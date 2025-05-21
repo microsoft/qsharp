@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import * as vscode from "vscode";
+import { updateQsharpProjectContext } from "./debugger/activate";
 
 export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
   private static readonly viewType = "qsharp-webview.circuit";
@@ -28,6 +29,16 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
       enableScripts: true,
     };
     webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
+
+    // Explicitly update context when this editor is resolved
+    await updateQsharpProjectContext(document);
+
+    // Also update context when the webview panel becomes active
+    webviewPanel.onDidChangeViewState(async () => {
+      if (webviewPanel.active) {
+        await updateQsharpProjectContext(document);
+      }
+    });
 
     webviewPanel.webview.onDidReceiveMessage((e) => {
       switch (e.command) {

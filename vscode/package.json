@@ -146,18 +146,23 @@
     "menus": {
       "editor/title/run": [
         {
-          "command": "qsharp-vscode.runEditorContents",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit",
+          "command": "qsharp-vscode.runQsharpProject",
+          "when": "qsharp.isProjectFile && (resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit)",
+          "group": "navigation@1"
+        },
+        {
+          "command": "qsharp-vscode.runFile",
+          "when": "!qsharp.isProjectFile && (resourceLangId == qsharp || resourceLangId == openqasm)",
+          "group": "navigation@1"
+        },
+        {
+          "command": "qsharp-vscode.runCircuitContents",
+          "when": "!qsharp.isProjectFile && resourceLangId == qsharpcircuit",
           "group": "navigation@1"
         },
         {
           "command": "qsharp-vscode.debugEditorContents",
           "when": "resourceLangId == qsharp || resourceLangId == openqasm",
-          "group": "navigation@2"
-        },
-        {
-          "command": "qsharp-vscode.runCircuitContents",
-          "when": "resourceLangId == qsharpcircuit",
           "group": "navigation@2"
         }
       ],
@@ -167,8 +172,12 @@
           "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
         {
-          "command": "qsharp-vscode.runEditorContents",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
+          "command": "qsharp-vscode.runQsharpProject",
+          "when": "qsharp.isProjectFile && (resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit)"
+        },
+        {
+          "command": "qsharp-vscode.runFile",
+          "when": "!qsharp.isProjectFile && (resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit)"
         },
         {
           "command": "qsharp-vscode.runEditorContentsWithCircuit",
@@ -345,7 +354,14 @@
         "icon": "$(debug-alt)"
       },
       {
-        "command": "qsharp-vscode.runEditorContents",
+        "command": "qsharp-vscode.runQsharpProject",
+        "title": "Run Project",
+        "category": "Debug",
+        "enablement": "!inDebugMode",
+        "icon": "$(play)"
+      },
+      {
+        "command": "qsharp-vscode.runFile",
         "title": "Run File",
         "category": "Debug",
         "enablement": "!inDebugMode",
