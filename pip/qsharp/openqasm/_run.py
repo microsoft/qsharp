@@ -51,6 +51,7 @@ def run(
         on_result: A callback function that will be called with each result. Only used when a callable is provided.
         save_events: If true, the output of each shot will be saved. If false, they will be printed. Only used when a callable is provided.
         noise: The noise to use in simulation.
+        as_bitstring: If true, the result registers will be converted to bitstrings.
         **kwargs: Additional keyword arguments to pass to the compilation when source program is provided.
           - name (str): The name of the circuit. This is used as the entry point for the program.
           - target_profile (TargetProfile): The target profile to use for code generation.
