@@ -22,7 +22,7 @@ from ._ipython import display_or_print
 
 def run(
     source: Union[str, Callable],
-    shots: int,
+    shots: int = 1024,
     *args,
     on_result: Optional[Callable[[ShotResult], None]] = None,
     save_events: bool = False,
@@ -35,6 +35,7 @@ def run(
             DepolarizingNoise,
         ]
     ] = None,
+    as_bitstring: bool = False,
     **kwargs: Optional[Dict[str, Any]],
 ) -> List[Any]:
     """
@@ -45,11 +46,12 @@ def run(
     Args:
         source (str): An OpenQASM program. Alternatively, a callable can be provided,
             which must be an already imported global callable.
-        shots: The number of shots to run.
+        shots: The number of shots to run, Defaults to 1024.
         *args: The arguments to pass to the callable, if one is provided.
         on_result: A callback function that will be called with each result. Only used when a callable is provided.
         save_events: If true, the output of each shot will be saved. If false, they will be printed. Only used when a callable is provided.
         noise: The noise to use in simulation.
+        as_bitstring: If true, the result registers will be converted to bitstrings.
         **kwargs: Additional keyword arguments to pass to the compilation when source program is provided.
           - name (str): The name of the circuit. This is used as the entry point for the program.
           - target_profile (TargetProfile): The target profile to use for code generation.
@@ -157,5 +159,10 @@ def run(
 
     durationMs = (monotonic() - start_time) * 1000
     telemetry_events.on_run_qasm_end(durationMs, shots)
+
+    if as_bitstring:
+        from ._utils import as_bitstring as convert_to_bitstring
+
+        results = convert_to_bitstring(results)
 
     return results

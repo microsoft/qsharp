@@ -28,6 +28,13 @@ impl Angle {
         Angle { value, size }
     }
 
+    pub fn from_u64_maybe_sized(value: u64, size: Option<u32>) -> Angle {
+        Angle {
+            value,
+            size: size.unwrap_or(f64::MANTISSA_DIGITS),
+        }
+    }
+
     pub fn from_f64_maybe_sized(val: f64, size: Option<u32>) -> Angle {
         Self::from_f64_sized(val, size.unwrap_or(f64::MANTISSA_DIGITS))
     }

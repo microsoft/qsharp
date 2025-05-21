@@ -1721,9 +1721,21 @@ impl Lowerer {
         }
 
         //   1.3. Lower the args.
+        let carg_ty = crate::semantic::types::Type::Angle(None, false);
         let args = stmt.args.iter().map(|arg| {
             let arg = self.lower_expr(arg);
-            self.cast_expr_to_type(&crate::semantic::types::Type::Angle(None, false), &arg)
+            match &arg.kind.as_ref() {
+                semantic::ExprKind::Lit(kind) => {
+                    if can_cast_literal(&carg_ty, &arg.ty)
+                        || can_cast_literal_with_value_knowledge(&carg_ty, kind)
+                    {
+                        self.coerce_literal_expr_to_type(&carg_ty, &arg, kind)
+                    } else {
+                        self.cast_expr_to_type(&carg_ty, &arg)
+                    }
+                }
+                _ => self.cast_expr_to_type(&carg_ty, &arg),
+            }
         });
         let args = list_from_iter(args);
         //   1.4. Lower the qubits.
@@ -2949,6 +2961,21 @@ impl Lowerer {
                         ))),
                         ty: lhs_ty.as_const(),
                     });
+                }
+                None
+            }
+            (Type::Angle(width, _), Type::Int(..) | Type::UInt(..)) => {
+                // compatibility case for existing code
+                if let semantic::LiteralKind::Int(value) = kind {
+                    if *value == 0 {
+                        return Some(semantic::Expr {
+                            span,
+                            kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Angle(
+                                Angle::from_u64_maybe_sized(0, *width),
+                            ))),
+                            ty: lhs_ty.as_const(),
+                        });
+                    }
                 }
                 None
             }

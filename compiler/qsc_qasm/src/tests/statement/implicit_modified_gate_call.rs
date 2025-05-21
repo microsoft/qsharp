@@ -115,7 +115,10 @@ fn crx_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled rx([ctl], (Std.OpenQASM.Angle.DoubleAsAngle(0.5, 53), target));
+        Controlled rx([ctl], (new Std.OpenQASM.Angle.Angle {
+            Value = 716770142402832,
+            Size = 53
+        }, target));
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -135,7 +138,10 @@ fn cry_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled ry([ctl], (Std.OpenQASM.Angle.DoubleAsAngle(0.5, 53), target));
+        Controlled ry([ctl], (new Std.OpenQASM.Angle.Angle {
+            Value = 716770142402832,
+            Size = 53
+        }, target));
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -155,7 +161,10 @@ fn crz_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled rz([ctl], (Std.OpenQASM.Angle.DoubleAsAngle(0.5, 53), target));
+        Controlled rz([ctl], (new Std.OpenQASM.Angle.Angle {
+            Value = 716770142402832,
+            Size = 53
+        }, target));
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -215,7 +224,10 @@ fn legacy_cphase_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled phase([ctl], (Std.OpenQASM.Angle.DoubleAsAngle(1., 53), target));
+        Controlled phase([ctl], (new Std.OpenQASM.Angle.Angle {
+            Value = 1433540284805665,
+            Size = 53
+        }, target));
     "#]]
     .assert_eq(&qsharp);
     Ok(())

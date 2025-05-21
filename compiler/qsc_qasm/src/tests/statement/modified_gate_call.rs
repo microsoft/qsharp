@@ -139,7 +139,10 @@ fn multiple_controls_on_crx_gate_can_be_called() -> miette::Result<(), Vec<Repor
         import Std.OpenQASM.Intrinsic.*;
         let q = QIR.Runtime.AllocateQubitArray(4);
         let f = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled Adjoint Controlled rx([q[1], q[0], q[2]], ([f], (Std.OpenQASM.Angle.DoubleAsAngle(0.5, 53), q[3])));
+        Controlled Adjoint Controlled rx([q[1], q[0], q[2]], ([f], (new Std.OpenQASM.Angle.Angle {
+            Value = 716770142402832,
+            Size = 53
+        }, q[3])));
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -159,7 +162,10 @@ fn neg_ctrl_can_be_applied_and_wrapped_in_another_modifier() -> miette::Result<(
         import Std.OpenQASM.Intrinsic.*;
         let q = QIR.Runtime.AllocateQubitArray(4);
         let f = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Adjoint ApplyControlledOnInt(0, Adjoint Controlled rx, [q[1], q[0], q[2]], ([f], (Std.OpenQASM.Angle.DoubleAsAngle(0.5, 53), q[3])));
+        Adjoint ApplyControlledOnInt(0, Adjoint Controlled rx, [q[1], q[0], q[2]], ([f], (new Std.OpenQASM.Angle.Angle {
+            Value = 716770142402832,
+            Size = 53
+        }, q[3])));
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -179,7 +185,10 @@ fn neg_ctrl_can_wrap_another_neg_crtl_modifier() -> miette::Result<(), Vec<Repor
         import Std.OpenQASM.Intrinsic.*;
         let q = QIR.Runtime.AllocateQubitArray(6);
         let f = QIR.Runtime.__quantum__rt__qubit_allocate();
-        ApplyControlledOnInt(0, ApplyControlledOnInt, [q[1], q[0], q[2]], (0, Controlled rx, [q[3], q[4]], ([f], (Std.OpenQASM.Angle.DoubleAsAngle(0.5, 53), q[5]))));
+        ApplyControlledOnInt(0, ApplyControlledOnInt, [q[1], q[0], q[2]], (0, Controlled rx, [q[3], q[4]], ([f], (new Std.OpenQASM.Angle.Angle {
+            Value = 716770142402832,
+            Size = 53
+        }, q[5]))));
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -199,7 +208,10 @@ fn modifiers_can_be_repeated_many_times() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         let q = QIR.Runtime.AllocateQubitArray(6);
         let f = QIR.Runtime.__quantum__rt__qubit_allocate();
-        ApplyOperationPowerA(1, ApplyOperationPowerA, (1, ApplyOperationPowerA, (1, Controlled rx, ([f], (Std.OpenQASM.Angle.DoubleAsAngle(0.5, 53), q[5])))));
+        ApplyOperationPowerA(1, ApplyOperationPowerA, (1, ApplyOperationPowerA, (1, Controlled rx, ([f], (new Std.OpenQASM.Angle.Angle {
+            Value = 716770142402832,
+            Size = 53
+        }, q[5])))));
     "#]]
     .assert_eq(&qsharp);
     Ok(())

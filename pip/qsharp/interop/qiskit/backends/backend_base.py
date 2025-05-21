@@ -315,7 +315,7 @@ class BackendBase(BackendV2, ABC):
         pass
 
     def _transpile(self, circuit: QuantumCircuit, **options) -> QuantumCircuit:
-        if self._skip_transpilation:
+        if options.get("skip_transpilation", self._skip_transpilation):
             return circuit
 
         circuit = self.run_qiskit_passes(circuit, options)
