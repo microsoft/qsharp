@@ -724,6 +724,17 @@ impl Lowerer {
             | fir::ExprKind::Return(..)
             | fir::ExprKind::While(..) => {}
 
+            fir::ExprKind::Assign(..)
+            | fir::ExprKind::AssignField(..)
+            | fir::ExprKind::AssignIndex(..)
+            | fir::ExprKind::AssignOp(..) => {
+                // Assignments are expressions that always produce the value `Unit`,
+                // so we need to push the expr first and then follow up with an explicit
+                // `Unit` node.
+                self.exec_graph.push(ExecGraphNode::Expr(id));
+                self.exec_graph.push(ExecGraphNode::Unit);
+            }
+
             // All other expressions should be added to the execution graph.
             _ => self.exec_graph.push(ExecGraphNode::Expr(id)),
         }
