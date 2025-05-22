@@ -136,9 +136,9 @@ impl Symbol {
         }
     }
 
-    /// Returns true if they symbol's value is a const expr.
+    /// Returns true if the symbol's value is a const expr.
     #[must_use]
-    pub fn is_const(&self) -> bool {
+    pub fn has_const_expr(&self) -> bool {
         self.const_expr.is_some()
     }
 
