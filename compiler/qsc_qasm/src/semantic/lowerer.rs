@@ -1207,7 +1207,7 @@ impl Lowerer {
             IOKind::Default,
         );
 
-        if init_expr.ty.is_const() || matches!(init_expr.ty, Type::Err) {
+        if init_expr.ty.is_const() {
             symbol = symbol.with_const_expr(Rc::new(init_expr.clone()));
         }
 

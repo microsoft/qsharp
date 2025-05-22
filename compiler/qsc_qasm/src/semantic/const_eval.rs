@@ -85,6 +85,10 @@ impl SymbolId {
     fn const_eval(self, ctx: &mut Lowerer) -> Option<LiteralKind> {
         let symbol = ctx.symbols[self].clone();
 
+        if !symbol.has_const_expr() {
+            return None;
+        }
+
         // Get the value of the symbol (an Expr).
         let expr = symbol.get_const_expr();
 
