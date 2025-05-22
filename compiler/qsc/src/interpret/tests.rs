@@ -2252,7 +2252,9 @@ mod given_interpreter {
             ) {
                 Ok(_) => panic!("interpreter should fail with error"),
                 Err(errors) => {
-                    is_error(&errors, &expect![[r#"
+                    is_error(
+                        &errors,
+                        &expect![[r#"
                         syntax error: expected `:`, found `{`
                            [test] [{]
                         syntax error: expected `}`, found EOF
@@ -2261,7 +2263,8 @@ mod given_interpreter {
                            [test] [(foo,bar)->foo+bar]
                         type error: insufficient type information to infer type
                            [test] [foo+bar]
-                    "#]]);
+                    "#]],
+                    );
                 }
             }
         }
