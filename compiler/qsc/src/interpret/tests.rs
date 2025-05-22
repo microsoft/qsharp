@@ -2230,5 +2230,40 @@ mod given_interpreter {
                 "#]],
             );
         }
+
+        #[test]
+        fn fuzz_2426() {
+            let sources = SourceMap::new(
+                [(
+                    "test".into(),
+                    r#"operation a(){(foo,bar)->foo+bar=foo->foo"#.into(),
+                )],
+                None,
+            );
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            match Interpreter::new(
+                sources,
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
+            ) {
+                Ok(_) => panic!("interpreter should fail with error"),
+                Err(errors) => {
+                    is_error(&errors, &expect![[r#"
+                        syntax error: expected `:`, found `{`
+                           [test] [{]
+                        syntax error: expected `}`, found EOF
+                           [test] []
+                        type error: invalid recursive type constraint
+                           [test] [(foo,bar)->foo+bar]
+                        type error: insufficient type information to infer type
+                           [test] [foo+bar]
+                    "#]]);
+                }
+            }
+        }
     }
 }
