@@ -84,9 +84,18 @@ impl Expr {
 impl SymbolId {
     fn const_eval(self, ctx: &mut Lowerer) -> Option<LiteralKind> {
         let symbol = ctx.symbols[self].clone();
-        symbol
-            .get_const_expr() // get the value of the symbol (an Expr)
-            .const_eval(ctx) // const eval that Expr
+
+        // Get the value of the symbol (an Expr).
+        let expr = symbol.get_const_expr();
+
+        // The Expr will be an Err if there was a semantic error
+        // when doing `const var = expr;` (e.g.: an implicit cast error).
+        if matches!(expr.ty, Type::Err) {
+            return None;
+        }
+
+        // Const eval that Expr.
+        expr.const_eval(ctx)
     }
 }
 

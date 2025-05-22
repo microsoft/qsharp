@@ -1207,7 +1207,7 @@ impl Lowerer {
             IOKind::Default,
         );
 
-        if init_expr.ty.is_const() {
+        if init_expr.ty.is_const() || matches!(init_expr.ty, Type::Err) {
             symbol = symbol.with_const_expr(Rc::new(init_expr.clone()));
         }
 
@@ -2016,8 +2016,9 @@ impl Lowerer {
             self.push_invalid_cast_error(target_ty, &expr.ty, expr.span);
             return None;
         };
+
         let Some(lit) = expr.const_eval(self) else {
-            // const_eval should have pushed an error unless the ty is Err
+            // const_eval must have pushed an error unless the ty is Err
             // in which case there is already an error pushed for the ty.
             return None;
         };
@@ -2686,7 +2687,7 @@ impl Lowerer {
             // if we can't cast the literal, we can't proceed
             // create a semantic error and return
             self.push_invalid_literal_cast_error(ty, &rhs.ty, span);
-            return rhs;
+            return err_expr!(Type::Err, span);
         }
         // the lhs has a type, but the rhs may be of a different type with
         // implicit and explicit conversions. We need to cast the rhs to the

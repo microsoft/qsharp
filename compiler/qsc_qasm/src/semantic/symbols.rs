@@ -127,7 +127,7 @@ impl Symbol {
     #[must_use]
     pub fn with_const_expr(self, value: Rc<Expr>) -> Self {
         assert!(
-            value.ty.is_const(),
+            value.ty.is_const() || matches!(value.ty, Type::Err),
             "this builder pattern should only be used with const expressions"
         );
         Symbol {
