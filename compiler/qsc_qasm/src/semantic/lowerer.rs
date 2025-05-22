@@ -3347,6 +3347,22 @@ impl Lowerer {
             self.push_semantic_error(kind);
         }
 
+        // Bit shifts with int lhs are not allowed in the spec.
+        // If we have an int literal in the lhs, we reinterpret it as a uint.
+        let lhs = if matches!(op, syntax::BinOp::Shl | syntax::BinOp::Shr)
+            && matches!(
+                &*lhs.kind,
+                semantic::ExprKind::Lit(semantic::LiteralKind::Int(val)) if *val >= 0
+            ) {
+            semantic::Expr {
+                span: lhs.span,
+                kind: lhs.kind,
+                ty: Type::UInt(lhs.ty.width(), true),
+            }
+        } else {
+            lhs
+        };
+
         let left_type = lhs.ty.clone();
         let right_type = rhs.ty.clone();
 
