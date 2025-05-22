@@ -2255,15 +2255,15 @@ mod given_interpreter {
                     is_error(
                         &errors,
                         &expect![[r#"
-                        syntax error: expected `:`, found `{`
-                           [test] [{]
-                        syntax error: expected `}`, found EOF
-                           [test] []
-                        type error: invalid recursive type constraint
-                           [test] [(foo,bar)->foo+bar]
-                        type error: insufficient type information to infer type
-                           [test] [foo+bar]
-                    "#]],
+                            syntax error: expected `:`, found `{`
+                               [test] [{]
+                            syntax error: expected `}`, found EOF
+                               [test] []
+                            type error: unsupported recursive type constraint
+                               [test] [(foo,bar)->foo+bar]
+                            type error: insufficient type information to infer type
+                               [test] [foo+bar]
+                        "#]],
                     );
                 }
             }
