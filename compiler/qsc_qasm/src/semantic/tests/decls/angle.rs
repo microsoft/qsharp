@@ -419,9 +419,9 @@ fn explicit_zero_width_fails() {
                         kind: ClassicalDeclarationStmt [0-18]:
                             symbol_id: 8
                             ty_span: [0-8]
-                            init_expr: Expr [13-17]:
-                                ty: const float
-                                kind: Lit: Float(42.1)
+                            init_expr: Expr [0-18]:
+                                ty: unknown
+                                kind: Err
 
             [Qasm.Lowerer.TypeWidthMustBePositiveIntConstExpr
 
@@ -447,9 +447,9 @@ fn explicit_width_over_64_fails() {
                         kind: ClassicalDeclarationStmt [0-25]:
                             symbol_id: 8
                             ty_span: [6-15]
-                            init_expr: Expr [20-24]:
-                                ty: const float
-                                kind: Lit: Float(42.1)
+                            init_expr: Expr [0-25]:
+                                ty: unknown
+                                kind: Err
 
             [Qasm.Lowerer.TypeMaxWidthExceeded
 

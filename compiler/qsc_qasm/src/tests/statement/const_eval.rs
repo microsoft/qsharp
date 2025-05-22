@@ -6,7 +6,7 @@
 //! contexts where they need to be const-evaluated, like array
 //! sizes or type widths.
 
-use crate::tests::compile_qasm_to_qsharp;
+use crate::tests::{check_qasm_to_qsharp, compile_qasm_to_qsharp};
 use expect_test::expect;
 use miette::Report;
 
@@ -2076,4 +2076,27 @@ fn modulo_of_int_by_zero_int_errors() {
            `----
     "#]]
     .assert_eq(&errs_string);
+}
+
+#[test]
+fn wrong_type_as_modifer_arg_fails() {
+    let source = r#"
+        const int n = 2.0;
+        ctrl(n) @ x q;
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        Qasm.Lowerer.CannotCastLiteral
+
+          x cannot cast literal expression of type const float to type const int
+           ,-[Test.qasm:2:9]
+         1 | 
+         2 |         const int n = 2.0;
+           :         ^^^^^^^^^^^^^^^^^^
+         3 |         ctrl(n) @ x q;
+           `----
+    "#]],
+    );
 }

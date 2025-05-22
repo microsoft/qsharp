@@ -93,9 +93,9 @@ fn too_many_indices_in_indexed_assignment() {
                                     Expr [104-105]:
                                         ty: const int
                                         kind: Lit: Int(3)
-                            rhs: Expr [109-112]:
-                                ty: const float
-                                kind: Lit: Float(2.3)
+                            rhs: Expr [89-113]:
+                                ty: unknown
+                                kind: Err
 
             [Qasm.Lowerer.TooManyIndices
 

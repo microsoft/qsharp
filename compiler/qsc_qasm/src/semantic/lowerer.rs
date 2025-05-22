@@ -712,8 +712,11 @@ impl Lowerer {
         let need_to_capture_symbol = is_symbol_inside_gate_or_function_scope
             && is_symbol_declaration_outside_gate_or_function_scope;
 
-        let kind = if need_to_capture_symbol && symbol.is_const() {
-            if let Some(val) = symbol.get_const_expr().const_eval(self) {
+        let kind = if need_to_capture_symbol && symbol.ty.is_const() {
+            if let Some(val) = symbol
+                .get_const_expr()
+                .and_then(|expr| expr.const_eval(self))
+            {
                 semantic::ExprKind::Lit(val)
             } else {
                 // If the const evaluation fails, we return Err but don't push
@@ -721,7 +724,7 @@ impl Lowerer {
                 // const_eval function.
                 semantic::ExprKind::Ident(symbol_id)
             }
-        } else if need_to_capture_symbol && !symbol.ty.is_err() && !symbol.is_const() {
+        } else if need_to_capture_symbol && !symbol.ty.is_err() && !symbol.ty.is_const() {
             self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
                 "a captured variable".into(),
                 ident.span,
@@ -2016,14 +2019,16 @@ impl Lowerer {
             self.push_invalid_cast_error(target_ty, &expr.ty, expr.span);
             return None;
         };
+
         let Some(lit) = expr.const_eval(self) else {
-            // const_eval would have pushed an error unless the ty is Err
-            // in which case there is already an error pushed for the ty
+            // const_eval must have pushed an error unless the ty is Err
+            // in which case there is already an error pushed for the ty.
             return None;
         };
 
         let semantic::LiteralKind::Int(n) = lit else {
-            unreachable!("we casted the expr to UInt before const evaluating it")
+            // A CannotCastLiteral error was already pushed.
+            return None;
         };
 
         let Ok(n) = u32::try_from(n) else {
@@ -2685,7 +2690,7 @@ impl Lowerer {
             // if we can't cast the literal, we can't proceed
             // create a semantic error and return
             self.push_invalid_literal_cast_error(ty, &rhs.ty, span);
-            return rhs;
+            return err_expr!(Type::Err, span);
         }
         // the lhs has a type, but the rhs may be of a different type with
         // implicit and explicit conversions. We need to cast the rhs to the

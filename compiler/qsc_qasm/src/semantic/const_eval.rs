@@ -83,10 +83,7 @@ impl Expr {
 
 impl SymbolId {
     fn const_eval(self, ctx: &mut Lowerer) -> Option<LiteralKind> {
-        let symbol = ctx.symbols[self].clone();
-        symbol
-            .get_const_expr() // get the value of the symbol (an Expr)
-            .const_eval(ctx) // const eval that Expr
+        ctx.symbols[self].get_const_expr()?.const_eval(ctx)
     }
 }
 
@@ -177,7 +174,7 @@ impl LiteralKind {
 
 impl IndexedIdent {
     fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
-        let expr = ctx.symbols[self.symbol_id].get_const_expr();
+        let expr = ctx.symbols[self.symbol_id].get_const_expr()?;
         let value = expr.const_eval(ctx)?;
         let indices: Vec<_> = self.indices.iter().map(|idx| (**idx).clone()).collect();
         value.index_array(ctx, &indices, self.name_span)
