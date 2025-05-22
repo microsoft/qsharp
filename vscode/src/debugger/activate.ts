@@ -13,6 +13,7 @@ import {
 } from "../programConfig";
 import { getRandomGuid } from "../utils";
 import { QscDebugSession } from "./session";
+import { generateQubitCircuitExpression } from "../circuitEditor";
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
@@ -59,7 +60,7 @@ export async function activateDebugger(
 export async function updateQsharpProjectContext(
   document: vscode.TextDocument,
 ) {
-  let isProjectFile = false;
+  let isProjectFile = undefined;
   if (
     document.languageId === "qsharp" ||
     document.languageId === "openqasm" ||
@@ -118,7 +119,22 @@ function registerCommands(context: vscode.ExtensionContext) {
   // Register commands for running and debugging Q# files.
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      `${qsharpExtensionId}.runQsharpProject`,
+      `${qsharpExtensionId}.runQsharp`,
+      (resource: vscode.Uri, expr?: string) => {
+        // if expr is not a string, ignore it. VS Code can sometimes
+        // pass other types when this command is invoked via UI buttons.
+        if (typeof expr !== "string") {
+          expr = undefined;
+        }
+        startQdkDebugging(
+          resource,
+          { name: "Run", stopOnEntry: false, entry: expr },
+          { noDebug: true },
+        );
+      },
+    ),
+    vscode.commands.registerCommand(
+      `${qsharpExtensionId}.runQsharpFile`,
       (resource: vscode.Uri, expr?: string) => {
         // if expr is not a string, ignore it. VS Code can sometimes
         // pass other types when this command is invoked via UI buttons.
@@ -133,22 +149,7 @@ function registerCommands(context: vscode.ExtensionContext) {
       },
     ),
     vscode.commands.registerCommand(
-      `${qsharpExtensionId}.runFile`,
-      (resource: vscode.Uri, expr?: string) => {
-        // if expr is not a string, ignore it. VS Code can sometimes
-        // pass other types when this command is invoked via UI buttons.
-        if (typeof expr !== "string") {
-          expr = undefined;
-        }
-        startQdkDebugging(
-          resource,
-          { name: "Run File", stopOnEntry: false, entry: expr },
-          { noDebug: true },
-        );
-      },
-    ),
-    vscode.commands.registerCommand(
-      `${qsharpExtensionId}.debugEditorContents`,
+      `${qsharpExtensionId}.debugQsharp`,
       (resource: vscode.Uri, expr?: string) => {
         // if expr is not a string, ignore it. VS Code can sometimes
         // pass other types when this command is invoked via UI buttons.
@@ -156,7 +157,7 @@ function registerCommands(context: vscode.ExtensionContext) {
           expr = undefined;
         }
         startQdkDebugging(resource, {
-          name: "Debug File",
+          name: "Debug",
           stopOnEntry: true,
           entry: expr,
         });
@@ -165,49 +166,11 @@ function registerCommands(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.runCircuitContents`,
       async (resource: vscode.Uri) => {
-        let numQubits: number | undefined = undefined;
-        let fileName: string | undefined = undefined;
-        try {
-          const document = await vscode.workspace.openTextDocument(resource);
-          const text = document.getText();
-          const json = JSON.parse(text);
-          if (
-            Array.isArray(json.circuits) &&
-            json.circuits.length > 0 &&
-            Array.isArray(json.circuits[0].qubits)
-          ) {
-            numQubits = json.circuits[0].qubits.length;
-          } else {
-            log.warn("Circuit file does not have expected structure.");
-          }
-          const fullPath = document.uri.path;
-          fileName = fullPath.substring(fullPath.lastIndexOf("/") + 1);
-          // Remove extension
-          fileName = fileName.substring(0, fileName.lastIndexOf("."));
-        } catch (err) {
-          log.error(
-            "Failed to read or parse circuit file for qubit count:",
-            err,
-          );
-        }
-
-        log.info(
-          `Running circuit with ${numQubits} qubits from file ${fileName}`,
-        );
-
-        const expr = `{
-    import Std.Diagnostics.DumpMachine;
-    import ${fileName}.${fileName};
-    use qs = Qubit[${numQubits}];
-    let results = ${fileName}(qs);
-    DumpMachine();
-    ResetAll(qs);
-    results
-}`;
+        const entry = await generateQubitCircuitExpression(resource);
 
         startQdkDebugging(
           resource,
-          { name: "Run Circuit File", stopOnEntry: false, entry: expr },
+          { name: "Run Circuit File", stopOnEntry: false, entry },
           { noDebug: true },
         );
       },

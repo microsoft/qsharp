@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import * as vscode from "vscode";
 import { updateQsharpProjectContext } from "./debugger/activate";
+import * as vscode from "vscode";
+import { log } from "../../npm/qsharp/dist/log";
 
 export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
   private static readonly viewType = "qsharp-webview.circuit";
@@ -175,4 +176,41 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     await vscode.workspace.applyEdit(edit);
     this.updatingDocument = false;
   }
+}
+export async function generateQubitCircuitExpression(resource: vscode.Uri) {
+  let numQubits: number | undefined = undefined;
+  let fileName: string | undefined = undefined;
+  try {
+    const document = await vscode.workspace.openTextDocument(resource);
+    const text = document.getText();
+    const json = JSON.parse(text);
+    if (
+      Array.isArray(json.circuits) &&
+      json.circuits.length > 0 &&
+      Array.isArray(json.circuits[0].qubits)
+    ) {
+      numQubits = json.circuits[0].qubits.length;
+    } else {
+      log.warn("Circuit file does not have expected structure.");
+    }
+    const fullPath = document.uri.path;
+    fileName = fullPath.substring(fullPath.lastIndexOf("/") + 1);
+    // Remove extension
+    fileName = fileName.substring(0, fileName.lastIndexOf("."));
+  } catch (err) {
+    log.error("Failed to read or parse circuit file for qubit count:", err);
+  }
+
+  log.info(`Running circuit with ${numQubits} qubits from file ${fileName}`);
+
+  const expr = `{
+    import Std.Diagnostics.DumpMachine;
+    import ${fileName}.${fileName};
+    use qs = Qubit[${numQubits}];
+    let results = ${fileName}(qs);
+    DumpMachine();
+    ResetAll(qs);
+    results
+}`;
+  return expr;
 }
