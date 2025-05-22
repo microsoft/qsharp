@@ -712,8 +712,11 @@ impl Lowerer {
         let need_to_capture_symbol = is_symbol_inside_gate_or_function_scope
             && is_symbol_declaration_outside_gate_or_function_scope;
 
-        let kind = if need_to_capture_symbol && symbol.has_const_expr() {
-            if let Some(val) = symbol.get_const_expr().const_eval(self) {
+        let kind = if need_to_capture_symbol && symbol.ty.is_const() {
+            if let Some(val) = symbol
+                .get_const_expr()
+                .and_then(|expr| expr.const_eval(self))
+            {
                 semantic::ExprKind::Lit(val)
             } else {
                 // If the const evaluation fails, we return Err but don't push
@@ -721,7 +724,7 @@ impl Lowerer {
                 // const_eval function.
                 semantic::ExprKind::Ident(symbol_id)
             }
-        } else if need_to_capture_symbol && !symbol.ty.is_err() && !symbol.has_const_expr() {
+        } else if need_to_capture_symbol && !symbol.ty.is_err() && !symbol.ty.is_const() {
             self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
                 "a captured variable".into(),
                 ident.span,

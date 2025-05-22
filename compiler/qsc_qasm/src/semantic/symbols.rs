@@ -136,20 +136,10 @@ impl Symbol {
         }
     }
 
-    /// Returns true if the symbol's value is a const expr.
-    #[must_use]
-    pub fn has_const_expr(&self) -> bool {
-        self.const_expr.is_some()
-    }
-
     /// Returns the value of the symbol.
     #[must_use]
-    pub fn get_const_expr(&self) -> Rc<Expr> {
-        if let Some(val) = &self.const_expr {
-            val.clone()
-        } else {
-            unreachable!("this function should only be called on const symbols");
-        }
+    pub fn get_const_expr(&self) -> Option<Rc<Expr>> {
+        self.const_expr.clone()
     }
 }
 
