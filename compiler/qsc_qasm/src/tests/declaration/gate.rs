@@ -147,13 +147,14 @@ fn capturing_non_const_evaluatable_external_variable_fails() {
     };
 
     expect![[r#"
-        [Qasm.Lowerer.UnsupportedBinaryOp
+        [Qasm.Lowerer.NegativeUIntValue
 
-          x Shl is not supported between types const int and const uint
-           ,-[Test.qasm:2:23]
+          x uint expression must evaluate to a non-negative value, but it evaluated
+          | to -3
+           ,-[Test.qasm:2:28]
          1 | 
          2 |         const int a = 2 << (-3);
-           :                       ^^^^^^^^^
+           :                            ^^^^
          3 |         gate my_gate q {
            `----
         ]"#]]

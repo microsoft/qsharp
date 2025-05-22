@@ -369,7 +369,21 @@ fn binary_op_shl_uint() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
+fn binary_op_shl_int_literal() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        bit[1 << 3] r;
+    "#;
 
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        mutable r = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
 fn binary_op_shl_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         const angle[32] a = 1.0;
@@ -504,7 +518,21 @@ fn binary_op_shr_uint() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
+fn binary_op_shr_int_literal() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        bit[1 >> 3] r;
+    "#;
 
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        mutable r = [];
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
 fn binary_op_shr_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         const angle[32] a = 1.0;
