@@ -974,6 +974,8 @@ fn unknown_ty(solved_types: &IndexMap<InferTyId, Ty>, given_type: &Ty) -> Option
     }
 }
 
+/// Checks whether the given inference type is eventually pointed to by the given type,
+/// indicating a recursive type constraint.
 fn links_to_infer_ty(solution_tys: &IndexMap<InferTyId, Ty>, id: InferTyId, ty: &Ty) -> bool {
     match ty {
         Ty::Err | Ty::Param { .. } | Ty::Prim(_) | Ty::Udt(_, _) => false,
@@ -983,7 +985,10 @@ fn links_to_infer_ty(solution_tys: &IndexMap<InferTyId, Ty>, id: InferTyId, ty: 
                 || links_to_infer_ty(solution_tys, id, &arrow.output.borrow())
         }
         Ty::Infer(other_id) => {
+            // if the other id is the same as the one we are checking, then this is a recursive type
             id == *other_id
+                // OR if the other id is in the solutions tys, we need to continue the check
+                // through the pointed to type.
                 || solution_tys
                     .get(*other_id)
                     .is_some_and(|ty| links_to_infer_ty(solution_tys, id, ty))
