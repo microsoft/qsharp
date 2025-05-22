@@ -728,6 +728,18 @@ impl Lowerer {
             _ => self.exec_graph.push(ExecGraphNode::Expr(id)),
         }
 
+        if matches!(
+            kind,
+            fir::ExprKind::Assign(..)
+                | fir::ExprKind::AssignField(..)
+                | fir::ExprKind::AssignIndex(..)
+                | fir::ExprKind::AssignOp(..)
+        ) {
+            // The result of an assignment is always Unit,
+            // so add an explicit Unit to the execution graph.
+            self.exec_graph.push(ExecGraphNode::Unit);
+        }
+
         let expr = fir::Expr {
             id,
             span: expr.span,
