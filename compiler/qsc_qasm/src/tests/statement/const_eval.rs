@@ -384,6 +384,27 @@ fn binary_op_shl_int_literal() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
+fn binary_op_shl_overflow() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        const uint a = 1 << 65;
+        def const_eval_context() {
+            uint b = a;
+        }
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        let a = 1 <<< 65;
+        function const_eval_context() : Unit {
+            mutable b = 0;
+        }
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
 fn binary_op_shl_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         const angle[32] a = 1.0;
@@ -527,6 +548,27 @@ fn binary_op_shr_int_literal() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         mutable r = [];
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn binary_op_shr_overflow() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        const uint a = 1 >> 65;
+        def const_eval_context() {
+            uint b = a;
+        }
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        let a = 1 >>> 65;
+        function const_eval_context() : Unit {
+            mutable b = 0;
+        }
     "#]]
     .assert_eq(&qsharp);
     Ok(())

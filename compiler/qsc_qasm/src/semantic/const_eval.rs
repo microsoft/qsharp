@@ -243,6 +243,38 @@ impl UnaryOpExpr {
     }
 }
 
+/// Rust's `i64::Shl` panics if the rhs is greater than 63,
+/// and `i64::overflowing_shl` doesn't behaves as expected
+/// so we need to implement our own `overflowing_shl`.
+fn overflowing_shl(mut lhs: i64, mut rhs: i64) -> i64 {
+    while rhs > 0 {
+        if rhs >= 64 {
+            lhs <<= 63;
+            rhs -= 63;
+        } else {
+            lhs <<= rhs;
+            rhs = 0;
+        }
+    }
+    lhs
+}
+
+/// Rust's `i64::Shr` panics if the rhs is greater than 63,
+/// and `i64::overflowing_shr` doesn't behaves as expected
+/// so we need to implement our own `overflowing_shr`.
+fn overflowing_shr(mut lhs: i64, mut rhs: i64) -> i64 {
+    while rhs > 0 {
+        if rhs >= 64 {
+            lhs >>= 63;
+            rhs -= 63;
+        } else {
+            lhs >>= rhs;
+            rhs = 0;
+        }
+    }
+    lhs
+}
+
 impl BinaryOpExpr {
     #[allow(clippy::too_many_lines)]
     fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
@@ -284,9 +316,11 @@ impl BinaryOpExpr {
                 match lhs_ty {
                     Type::UInt(Some(size), _) => rewrap_lit!(lhs, Int(lhs), {
                         let mask = (1 << size) - 1;
-                        Int((lhs << rhs) & mask)
+                        Int((overflowing_shl(lhs, rhs)) & mask)
                     }),
-                    Type::UInt(..) => rewrap_lit!(lhs, Int(lhs), Int(lhs << rhs)),
+                    Type::UInt(..) => {
+                        rewrap_lit!(lhs, Int(lhs), Int(overflowing_shl(lhs, rhs)))
+                    }
                     Type::Angle(..) => {
                         rewrap_lit!(lhs, Angle(lhs), Angle(lhs << rhs))
                     }
@@ -321,7 +355,7 @@ impl BinaryOpExpr {
                 }
 
                 match lhs_ty {
-                    Type::UInt(..) => rewrap_lit!(lhs, Int(lhs), Int(lhs >> rhs)),
+                    Type::UInt(..) => rewrap_lit!(lhs, Int(lhs), Int(overflowing_shr(lhs, rhs))),
                     Type::Angle(..) => {
                         rewrap_lit!(lhs, Angle(lhs), Angle(lhs >> rhs))
                     }
