@@ -167,6 +167,10 @@
           "when": "resourceLangId == qsharp || resourceLangId == openqasm || (qsharp.isProjectFile && resourceLangId == qsharpcircuit)"
         },
         {
+          "command": "qsharp-vscode.runCircuitContents",
+          "when": "false"
+        },
+        {
           "command": "qsharp-vscode.debugQsharp",
           "when": "resourceLangId == qsharp || resourceLangId == openqasm || (qsharp.isProjectFile && resourceLangId == qsharpcircuit)"
         },
