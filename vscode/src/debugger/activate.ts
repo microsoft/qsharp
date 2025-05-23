@@ -68,7 +68,6 @@ export async function updateQsharpProjectContext(
   ) {
     isProjectFile = await checkIfInQsharpProject(document.uri);
   }
-  log.info("isProjectFile", isProjectFile);
   vscode.commands.executeCommand(
     "setContext",
     "qsharp.isProjectFile",
