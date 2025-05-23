@@ -187,7 +187,7 @@ internal function LookupData(factor : BigInt, expLength : Int, mulLength : Int, 
         for a in 0..2^expLength - 1 {
             let idx = b * 2^expLength + a;
             let value = ModulusL(factor * IntAsBigInt(b) * IntAsBigInt(sign) * (base^a), mod);
-            set data w/= idx <- BigIntAsBoolArray(value, numBits);
+            data[idx] = BigIntAsBoolArray(value, numBits);
         }
     }
 

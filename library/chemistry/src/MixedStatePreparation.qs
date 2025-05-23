@@ -220,7 +220,7 @@ function QuantumROMDiscretization(bitsPrecision : Int, coefficients : Double[]) 
 
     // Uniformly distribute excess bars across coefficients.
     for idx in 0..AbsI(bars) - 1 {
-        keepCoeff w/= idx <- keepCoeff[idx] + (bars > 0 ? -1 | + 1);
+        keepCoeff[idx] += (bars > 0 ? -1 | + 1);
     }
 
     mutable barSink = [];
@@ -241,8 +241,8 @@ function QuantumROMDiscretization(bitsPrecision : Int, coefficients : Double[]) 
             barSink = Most(barSink);
             barSource = Most(barSource);
 
-            keepCoeff w/= idxSource <- keepCoeff[idxSource] - barHeight + keepCoeff[idxSink];
-            altIndex w/= idxSink <- idxSource;
+            keepCoeff[idxSource] += keepCoeff[idxSink] - barHeight;
+            altIndex[idxSink] = idxSource;
 
             if keepCoeff[idxSource] < barHeight {
                 barSink += [idxSource];
@@ -252,7 +252,7 @@ function QuantumROMDiscretization(bitsPrecision : Int, coefficients : Double[]) 
         } elif Length(barSource) > 0 {
             let idxSource = Tail(barSource);
             barSource = Most(barSource);
-            keepCoeff w/= idxSource <- barHeight;
+            keepCoeff[idxSource] = barHeight;
         } else {
             return (oneNorm, keepCoeff, altIndex);
         }

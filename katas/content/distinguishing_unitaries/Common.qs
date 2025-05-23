@@ -28,10 +28,10 @@ namespace Kata.Verification {
 
             if returnedIndex != actualIndex {
                 if returnedIndex < 0 or returnedIndex >= nUnitaries {
-                    set unknownClassifications w/= actualIndex <- unknownClassifications[actualIndex] + 1;
+                    unknownClassifications[actualIndex] += 1;
                 } else {
                     let index = actualIndex * nUnitaries + returnedIndex;
-                    set wrongClassifications w/= index <- wrongClassifications[index] + 1;
+                    wrongClassifications[index] += 1;
                 }
             }
         }

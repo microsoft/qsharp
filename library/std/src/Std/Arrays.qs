@@ -344,7 +344,7 @@ function Excluding<'T>(remove : Int[], array : 'T[]) : 'T[] {
     let arrayLength = Length(array);
     mutable toKeep = Repeated(true, arrayLength);
     for indexToRemove in remove {
-        set toKeep w/= indexToRemove <- false;
+        toKeep[indexToRemove] = false;
     }
     mutable output = [];
     for index in 0..arrayLength - 1 {
@@ -987,10 +987,10 @@ function Partitioned<'T>(partitionSizes : Int[], array : 'T[]) : 'T[][] {
         if partitionEndIndex >= Length(array) {
             fail "Partitioned argument out of bounds.";
         }
-        set output w/= index <- array[partitionStartIndex..partitionEndIndex];
-        set partitionStartIndex = partitionEndIndex + 1;
+        output[index] = array[partitionStartIndex..partitionEndIndex];
+        partitionStartIndex = partitionEndIndex + 1;
     }
-    set output w/= Length(partitionSizes) <- array[partitionStartIndex..Length(array) - 1];
+    output[Length(partitionSizes)] = array[partitionStartIndex..Length(array) - 1];
     output
 }
 
@@ -1227,9 +1227,10 @@ function Subarray<'T>(locations : Int[], array : 'T[]) : 'T[] {
 /// Swapped(1, 3, [0, 1, 2, 3, 4]);
 /// ```
 function Swapped<'T>(firstIndex : Int, secondIndex : Int, array : 'T[]) : 'T[] {
-    array
-        w/ firstIndex <- array[secondIndex]
-        w/ secondIndex <- array[firstIndex]
+    mutable copy = array;
+    copy[firstIndex] = array[secondIndex];
+    copy[secondIndex] = array[firstIndex];
+    copy
 }
 
 /// # Summary
