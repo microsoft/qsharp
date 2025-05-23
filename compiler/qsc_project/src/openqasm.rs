@@ -13,7 +13,6 @@ where
 {
     let mut loaded_files = FxHashMap::default();
     let mut pending_includes = vec![];
-    let mut errors = vec![];
 
     // this is the root of the project
     // it is the only file that has a full path.
@@ -61,11 +60,10 @@ where
                     pending_includes.push(include);
                 }
             }
-            Err(e) => {
-                errors.push(super::project::Error::FileSystem {
-                    about_path: doc_uri.to_string(),
-                    error: e.to_string(),
-                });
+            Err(_e) => {
+                // If the source failed to resolve we don't push an error here.
+                // We will push an error later during lowering, so that we can
+                // construct the error with the right span.
             }
         }
     }
@@ -76,7 +74,7 @@ where
         path: doc_uri.clone(),
         name: get_file_name_from_uri(doc_uri),
         lints: Vec::default(),
-        errors,
+        errors: vec![],
         project_type: super::ProjectType::OpenQASM(sources),
     }
 }

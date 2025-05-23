@@ -173,8 +173,15 @@ impl Lowerer {
                     continue;
                 }
 
-                let include = includes.next().expect("missing include");
-                self.lower_source(include);
+                match includes.next().expect("missing include") {
+                    Ok(include) => self.lower_source(include),
+                    Err(e) => {
+                        self.push_semantic_error(SemanticErrorKind::IO(
+                            e.to_string(),
+                            include.span,
+                        ));
+                    }
+                }
             } else {
                 let mut stmts = self.lower_stmt(stmt);
                 self.stmts.append(&mut stmts);
