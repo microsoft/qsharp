@@ -134,21 +134,6 @@ function registerCommands(context: vscode.ExtensionContext) {
       },
     ),
     vscode.commands.registerCommand(
-      `${qsharpExtensionId}.runQsharpFile`,
-      (resource: vscode.Uri, expr?: string) => {
-        // if expr is not a string, ignore it. VS Code can sometimes
-        // pass other types when this command is invoked via UI buttons.
-        if (typeof expr !== "string") {
-          expr = undefined;
-        }
-        startQdkDebugging(
-          resource,
-          { name: "Run Project", stopOnEntry: false, entry: expr },
-          { noDebug: true },
-        );
-      },
-    ),
-    vscode.commands.registerCommand(
       `${qsharpExtensionId}.debugQsharp`,
       (resource: vscode.Uri, expr?: string) => {
         // if expr is not a string, ignore it. VS Code can sometimes

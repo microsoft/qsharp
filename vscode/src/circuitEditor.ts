@@ -4,6 +4,7 @@
 import { updateQsharpProjectContext } from "./debugger/activate";
 import * as vscode from "vscode";
 import { log } from "../../npm/qsharp/dist/log";
+import { loadProject } from "./projectSystem";
 
 export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
   private static readonly viewType = "qsharp-webview.circuit";
@@ -177,40 +178,101 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     this.updatingDocument = false;
   }
 }
-export async function generateQubitCircuitExpression(resource: vscode.Uri) {
+
+/**
+ * Generates a Q# entry expression for simulating a circuit operation defined in a JSON circuit file.
+ * The entry expression will use the number of qubits specified in the JSON file and
+ * call the operation with these qubits. It will then dump the machine state, reset the qubits,
+ * and return the results (if any) of running the circuit.
+ *
+ * If any error occurs (invalid structure, missing fields, etc.), logs the error and returns an empty string.
+ *
+ * @param resource The URI of the circuit JSON file.
+ * @returns A Q# code block as a string, or an empty string on error.
+ */
+export async function generateQubitCircuitExpression(
+  resource: vscode.Uri,
+): Promise<string> {
   let numQubits: number | undefined = undefined;
-  let fileName: string | undefined = undefined;
+  let operationName: string | undefined = undefined;
+  let namespaceName: string | undefined = undefined;
+
   try {
+    const program = await loadProject(resource);
+
     const document = await vscode.workspace.openTextDocument(resource);
     const text = document.getText();
     const json = JSON.parse(text);
+
     if (
-      Array.isArray(json.circuits) &&
-      json.circuits.length > 0 &&
-      Array.isArray(json.circuits[0].qubits)
+      !Array.isArray(json.circuits) ||
+      json.circuits.length === 0 ||
+      !Array.isArray(json.circuits[0].qubits)
     ) {
-      numQubits = json.circuits[0].qubits.length;
-    } else {
-      log.warn("Circuit file does not have expected structure.");
+      log.error("Circuit file does not have expected structure.");
+      return "";
     }
-    const fullPath = document.uri.path;
-    fileName = fullPath.substring(fullPath.lastIndexOf("/") + 1);
-    // Remove extension
-    fileName = fileName.substring(0, fileName.lastIndexOf("."));
-  } catch (err) {
-    log.error("Failed to read or parse circuit file for qubit count:", err);
-  }
+    numQubits = json.circuits[0].qubits.length;
+    if (typeof numQubits !== "number" || numQubits <= 0) {
+      log.error("Could not determine number of qubits.");
+      return "";
+    }
 
-  log.info(`Running circuit with ${numQubits} qubits from file ${fileName}`);
+    // Get operation name (file name without extension)
+    const fileName = resource.path.substring(
+      resource.path.lastIndexOf("/") + 1,
+    );
+    operationName = fileName.replace(/\.[^/.]+$/, "");
+    if (!operationName) {
+      log.error("Could not determine operation name from file name.");
+      return "";
+    }
 
-  const expr = `{
+    // Get relative path from src/ (adjacent to qsharp.json) to resource
+    const projectUri = vscode.Uri.parse(program.projectUri);
+
+    if (projectUri.toString() === resource.toString()) {
+      // Not in a project: use FileName as namespace
+      namespaceName = operationName;
+    } else {
+      // Find the src/ directory adjacent to qsharp.json
+      const projectDir = projectUri.path.endsWith("/")
+        ? projectUri.path
+        : projectUri.path.substring(0, projectUri.path.lastIndexOf("/"));
+      const srcDir = projectDir.endsWith("/src")
+        ? projectDir
+        : projectDir + "/src";
+      let relPath = resource.path.startsWith(srcDir)
+        ? resource.path.substring(srcDir.length)
+        : resource.path;
+      if (relPath.startsWith("/")) relPath = relPath.substring(1);
+
+      // Remove extension and replace slashes with dots for namespace
+      relPath = relPath.replace(/\.[^/.]+$/, "");
+      namespaceName = relPath.replace(/[\\/]/g, ".");
+    }
+
+    if (!namespaceName) {
+      log.error("Could not determine namespace name.");
+      return "";
+    }
+
+    log.info(
+      `Running circuit with ${numQubits} qubits from namespace ${namespaceName} and operation ${operationName}`,
+    );
+
+    const expr = `{
     import Std.Diagnostics.DumpMachine;
-    import ${fileName}.${fileName};
+    import ${namespaceName}.${operationName};
     use qs = Qubit[${numQubits}];
-    let results = ${fileName}(qs);
+    let results = ${operationName}(qs);
     DumpMachine();
     ResetAll(qs);
     results
 }`;
-  return expr;
+    return expr;
+  } catch (err: any) {
+    log.error("Failed to generate Q# circuit expression:", err?.message ?? err);
+    return "";
+  }
 }

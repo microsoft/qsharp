@@ -147,23 +147,18 @@
       "editor/title/run": [
         {
           "command": "qsharp-vscode.runQsharp",
-          "when": "qsharp.isProjectFile && (resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit)",
-          "group": "navigation@1"
-        },
-        {
-          "command": "qsharp-vscode.runQsharpFile",
-          "when": "!qsharp.isProjectFile && (resourceLangId == qsharp || resourceLangId == openqasm)",
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm || (qsharp.isProjectFile && resourceLangId == qsharpcircuit)",
           "group": "navigation@1"
         },
         {
           "command": "qsharp-vscode.runCircuitContents",
-          "when": "!qsharp.isProjectFile && resourceLangId == qsharpcircuit",
-          "group": "navigation@1"
+          "when": "resourceLangId == qsharpcircuit",
+          "group": "navigation@2"
         },
         {
           "command": "qsharp-vscode.debugQsharp",
           "when": "resourceLangId == qsharp || resourceLangId == openqasm || (qsharp.isProjectFile && resourceLangId == qsharpcircuit)",
-          "group": "navigation@2"
+          "group": "navigation@3"
         }
       ],
       "commandPalette": [
@@ -352,13 +347,6 @@
       {
         "command": "qsharp-vscode.runQsharp",
         "title": "Run",
-        "category": "Debug",
-        "enablement": "!inDebugMode",
-        "icon": "$(play)"
-      },
-      {
-        "command": "qsharp-vscode.runQsharpFile",
-        "title": "Run File",
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(play)"
