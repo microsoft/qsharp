@@ -13,6 +13,7 @@ import {
 } from "../programConfig";
 import { getRandomGuid } from "../utils";
 import { QscDebugSession } from "./session";
+import { generateQubitCircuitExpression } from "../circuitEditor";
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
@@ -39,13 +40,85 @@ export async function activateDebugger(
   context.subscriptions.push(
     vscode.debug.registerDebugAdapterDescriptorFactory("qsharp", factory),
   );
+
+  // Listen for active editor changes and set the context key
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+      if (editor) {
+        await updateQsharpProjectContext(editor.document);
+      }
+    }),
+  );
+
+  // Also set the context key on activation (in case a file is already open)
+  if (vscode.window.activeTextEditor) {
+    await updateQsharpProjectContext(vscode.window.activeTextEditor.document);
+  }
+}
+
+// Helper function to check if the file is in a project and set the context key
+export async function updateQsharpProjectContext(
+  document: vscode.TextDocument,
+) {
+  let isProjectFile = undefined;
+  if (
+    document.languageId === "qsharp" ||
+    document.languageId === "openqasm" ||
+    document.languageId === "qsharpcircuit"
+  ) {
+    isProjectFile = await checkIfInQsharpProject(document.uri);
+  }
+  vscode.commands.executeCommand(
+    "setContext",
+    "qsharp.isProjectFile",
+    isProjectFile,
+  );
+}
+
+// Returns true if any ancestor directory (excluding the file's own directory) contains qsharp.json
+async function checkIfInQsharpProject(uri: vscode.Uri): Promise<boolean> {
+  try {
+    // Start from the parent directory of the file
+    let dir = uri.with({
+      path: uri.path.substring(0, uri.path.lastIndexOf("/")),
+    });
+
+    // Move up one level to skip the file's own directory
+    dir = dir.with({ path: dir.path.substring(0, dir.path.lastIndexOf("/")) });
+
+    const root = dir.with({ path: "/" });
+
+    while (dir.path && dir.path !== root.path) {
+      const manifestUri = dir.with({
+        path: dir.path.endsWith("/")
+          ? dir.path + "qsharp.json"
+          : dir.path + "/qsharp.json",
+      });
+      try {
+        // Try to stat the qsharp.json file in this directory
+        await vscode.workspace.fs.stat(manifestUri);
+        return true;
+      } catch {
+        // Not found, keep going up
+      }
+      // Move up one directory
+      const parentPath = dir.path.substring(0, dir.path.lastIndexOf("/"));
+      if (!parentPath || parentPath === dir.path) {
+        break;
+      }
+      dir = dir.with({ path: parentPath });
+    }
+  } catch (err) {
+    // Ignore errors, treat as not in project
+  }
+  return false;
 }
 
 function registerCommands(context: vscode.ExtensionContext) {
   // Register commands for running and debugging Q# files.
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      `${qsharpExtensionId}.runEditorContents`,
+      `${qsharpExtensionId}.runQsharp`,
       (resource: vscode.Uri, expr?: string) => {
         // if expr is not a string, ignore it. VS Code can sometimes
         // pass other types when this command is invoked via UI buttons.
@@ -54,13 +127,13 @@ function registerCommands(context: vscode.ExtensionContext) {
         }
         startQdkDebugging(
           resource,
-          { name: "Run File", stopOnEntry: false, entry: expr },
+          { name: "Run", stopOnEntry: false, entry: expr },
           { noDebug: true },
         );
       },
     ),
     vscode.commands.registerCommand(
-      `${qsharpExtensionId}.debugEditorContents`,
+      `${qsharpExtensionId}.debugQsharp`,
       (resource: vscode.Uri, expr?: string) => {
         // if expr is not a string, ignore it. VS Code can sometimes
         // pass other types when this command is invoked via UI buttons.
@@ -68,10 +141,28 @@ function registerCommands(context: vscode.ExtensionContext) {
           expr = undefined;
         }
         startQdkDebugging(resource, {
-          name: "Debug File",
+          name: "Debug",
           stopOnEntry: true,
           entry: expr,
         });
+      },
+    ),
+    vscode.commands.registerCommand(
+      `${qsharpExtensionId}.runCircuitContents`,
+      async (resource: vscode.Uri) => {
+        if (!resource) {
+          throw new Error(
+            "Unable to find a circuit file to run. Please use the Run button.",
+          );
+        }
+
+        const entry = await generateQubitCircuitExpression(resource);
+
+        startQdkDebugging(
+          resource,
+          { name: "Run Circuit File", stopOnEntry: false, entry },
+          { noDebug: true },
+        );
       },
     ),
     vscode.commands.registerCommand(
