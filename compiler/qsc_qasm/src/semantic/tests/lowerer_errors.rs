@@ -76,9 +76,9 @@ fn check_lowerer_error_spans_are_correct() {
 
             Qasm.Lowerer.InconsistentTypesInAlias
 
-              x inconsistent types in alias expression: Expr [878-895]:
+              x inconsistent types in alias expression: Expr [842-859]:
               |     ty: array[int, 2]
-              |     kind: SymbolId(37), Expr [899-916]:
+              |     kind: SymbolId(37), Expr [863-880]:
               |     ty: array[angle, 2]
               |     kind: SymbolId(38)
                 ,-[Test.qasm:37:1]
