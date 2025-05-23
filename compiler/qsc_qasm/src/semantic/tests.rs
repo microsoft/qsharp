@@ -7,6 +7,7 @@ pub mod assignment;
 pub mod decls;
 
 pub mod expression;
+mod lowerer_errors;
 pub mod statements;
 
 use super::parse_source;
