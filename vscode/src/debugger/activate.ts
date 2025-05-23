@@ -151,6 +151,12 @@ function registerCommands(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.runCircuitContents`,
       async (resource: vscode.Uri) => {
+        if (!resource) {
+          throw new Error(
+            "Unable to find a circuit file to run. Please use the Run button.",
+          );
+        }
+
         const entry = await generateQubitCircuitExpression(resource);
 
         startQdkDebugging(

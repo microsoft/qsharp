@@ -3,7 +3,6 @@
 
 import { updateQsharpProjectContext } from "./debugger/activate";
 import * as vscode from "vscode";
-import { log } from "../../npm/qsharp/dist/log";
 import { loadProject } from "./projectSystem";
 
 export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
@@ -185,10 +184,11 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
  * call the operation with these qubits. It will then dump the machine state, reset the qubits,
  * and return the results (if any) of running the circuit.
  *
- * If any error occurs (invalid structure, missing fields, etc.), logs the error and returns an empty string.
+ * If any error occurs (invalid structure, missing fields, etc.), this function throws an error.
  *
  * @param resource The URI of the circuit JSON file.
- * @returns A Q# code block as a string, or an empty string on error.
+ * @returns A Q# code block as a string.
+ * @throws Error if the circuit file is invalid or required fields are missing.
  */
 export async function generateQubitCircuitExpression(
   resource: vscode.Uri,
@@ -209,13 +209,11 @@ export async function generateQubitCircuitExpression(
       json.circuits.length === 0 ||
       !Array.isArray(json.circuits[0].qubits)
     ) {
-      log.error("Circuit file does not have expected structure.");
-      return "";
+      throw new Error("Circuit file does not have expected structure.");
     }
     numQubits = json.circuits[0].qubits.length;
     if (typeof numQubits !== "number" || numQubits <= 0) {
-      log.error("Could not determine number of qubits.");
-      return "";
+      throw new Error("Could not determine number of qubits.");
     }
 
     // Get operation name (file name without extension)
@@ -224,8 +222,7 @@ export async function generateQubitCircuitExpression(
     );
     operationName = fileName.replace(/\.[^/.]+$/, "");
     if (!operationName) {
-      log.error("Could not determine operation name from file name.");
-      return "";
+      throw new Error("Could not determine operation name from file name.");
     }
 
     // Get relative path from src/ (adjacent to qsharp.json) to resource
@@ -253,13 +250,8 @@ export async function generateQubitCircuitExpression(
     }
 
     if (!namespaceName) {
-      log.error("Could not determine namespace name.");
-      return "";
+      throw new Error("Could not determine namespace name.");
     }
-
-    log.info(
-      `Running circuit with ${numQubits} qubits from namespace ${namespaceName} and operation ${operationName}`,
-    );
 
     const expr = `{
     import Std.Diagnostics.DumpMachine;
@@ -272,7 +264,8 @@ export async function generateQubitCircuitExpression(
 }`;
     return expr;
   } catch (err: any) {
-    log.error("Failed to generate Q# circuit expression:", err?.message ?? err);
-    return "";
+    throw new Error(
+      `Failed to generate Q# circuit expression: ${err?.message ?? err}`,
+    );
   }
 }
