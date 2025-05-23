@@ -1,4 +1,4 @@
-name: Copilot Custom Setup Steps
+name: Copilot Setup Steps
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
       - name: Setup rust toolchain
         uses: ./.github/actions/toolchains/rust
         with:
-          toolchain: "1.84"
+          toolchain: "1.86"
           components: rustfmt clippy
       - uses: actions/setup-python@v4
         with:
