@@ -752,7 +752,7 @@ impl Solver {
                 constraints
             }
             (Ty::Infer(infer1), Ty::Infer(infer2)) if infer1 == infer2 => Vec::new(),
-            (&Ty::Infer(infer), ty) | (ty, &Ty::Infer(infer)) if !contains_infer_ty(infer, ty) => {
+            (&Ty::Infer(infer), ty) | (ty, &Ty::Infer(infer)) => {
                 self.bind_ty(infer, ty.clone(), span)
             }
             (
@@ -821,6 +821,10 @@ impl Solver {
         if ty.size() > MAX_TY_SIZE {
             self.errors
                 .push(Error(ErrorKind::TySizeLimitExceeded(ty.display(), span)));
+            return Vec::new();
+        } else if links_to_infer_ty(&self.solution.tys, infer, &ty) {
+            self.errors
+                .push(Error(ErrorKind::RecursiveTypeConstraint(span)));
             return Vec::new();
         }
         self.solution.tys.insert(infer, ty.clone());
@@ -970,16 +974,28 @@ fn unknown_ty(solved_types: &IndexMap<InferTyId, Ty>, given_type: &Ty) -> Option
     }
 }
 
-fn contains_infer_ty(id: InferTyId, ty: &Ty) -> bool {
+/// Checks whether the given inference type is eventually pointed to by the given type,
+/// indicating a recursive type constraint.
+fn links_to_infer_ty(solution_tys: &IndexMap<InferTyId, Ty>, id: InferTyId, ty: &Ty) -> bool {
     match ty {
         Ty::Err | Ty::Param { .. } | Ty::Prim(_) | Ty::Udt(_, _) => false,
-        Ty::Array(item) => contains_infer_ty(id, item),
+        Ty::Array(item) => links_to_infer_ty(solution_tys, id, item),
         Ty::Arrow(arrow) => {
-            contains_infer_ty(id, &arrow.input.borrow())
-                || contains_infer_ty(id, &arrow.output.borrow())
+            links_to_infer_ty(solution_tys, id, &arrow.input.borrow())
+                || links_to_infer_ty(solution_tys, id, &arrow.output.borrow())
         }
-        Ty::Infer(other_id) => id == *other_id,
-        Ty::Tuple(items) => items.iter().any(|ty| contains_infer_ty(id, ty)),
+        Ty::Infer(other_id) => {
+            // if the other id is the same as the one we are checking, then this is a recursive type
+            id == *other_id
+                // OR if the other id is in the solutions tys, we need to continue the check
+                // through the pointed to type.
+                || solution_tys
+                    .get(*other_id)
+                    .is_some_and(|ty| links_to_infer_ty(solution_tys, id, ty))
+        }
+        Ty::Tuple(items) => items
+            .iter()
+            .any(|ty| links_to_infer_ty(solution_tys, id, ty)),
     }
 }
 
