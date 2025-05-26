@@ -178,8 +178,8 @@ fn top_index_file_generation() {
     expect![[r#"
         ---
         uid: Microsoft.Quantum.apiref-toc
-        title: Q# standard libraries for the Azure Quantum Development Kit
-        description: Table of contents for the Q# standard libraries for Azure Quantum Development Kit
+        title: Q# standard libraries for the Microsoft Quantum Development Kit
+        description: Table of contents for the Q# standard libraries for Microsoft Quantum Development Kit
         author: {AUTHOR}
         ms.author: {MS_AUTHOR}
         ms.date: {TIMESTAMP}
@@ -204,7 +204,7 @@ fn top_index_file_generation() {
         | [`Std.Measurement`](xref:Qdk.Std.Measurement-toc)                                                         | Items for measuring quantum results.                         |
         | [`Std.Random`](xref:Qdk.Std.Random-toc)                                                                   | Items for creating random values.                            |
         | [`Std.Range`](xref:Qdk.Std.Range-toc)                                                                     | Items for working with ranges.                               |
-        | [`Std.ResourceEstimation`](xref:Qdk.Std.ResourceEstimation-toc)                                           | Items for working with the Azure Quantum Resource Estimator. |
+        | [`Std.ResourceEstimation`](xref:Qdk.Std.ResourceEstimation-toc)                                           | Items for working with the Microsoft Quantum Resource Estimator. |
         | [`Microsoft.Quantum.Unstable.Arithmetic`](xref:Qdk.Microsoft.Quantum.Unstable.Arithmetic-toc)             | Items for working with quantum arithmetic operations.        |
         | [`Microsoft.Quantum.Unstable.StatePreparation`](xref:Qdk.Microsoft.Quantum.Unstable.StatePreparation-toc) | Items for preparing a quantum state.                         |
         | [`Microsoft.Quantum.Unstable.TableLookup`](xref:Qdk.Microsoft.Quantum.Unstable.TableLookup-toc)           | Items for performing quantum table lookups.                  |
