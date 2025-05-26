@@ -46,7 +46,7 @@ impl<
                 .prune_error_budget(&mut error_budget, self.error_budget_strategy());
 
             let required_logical_error_rate =
-                self.required_logical_error_rate(error_budget.logical(), num_cycles);
+                self.required_logical_error_rate(error_budget.logical(), num_cycles)?;
             let code_parameter = self.compute_code_parameter(required_logical_error_rate)?;
 
             let max_allowed_num_cycles_for_code_parameter = match adjusted_strategy {
@@ -58,7 +58,7 @@ impl<
                         .ftp
                         .logical_error_rate(&self.qubit, &code_parameter)
                         .map_err(Error::LogicalErrorRateComputationFailed)?
-                        * (self.volume(num_cycles) as f64);
+                        * (self.volume(num_cycles)? as f64);
                     let diff = error_budget.logical() - new_logical;
                     error_budget.set_logical(new_logical);
                     let new_magic_states = error_budget.magic_states() + diff;
@@ -97,14 +97,14 @@ impl<
             }
 
             if factory_parts.len() == self.factory_builder.num_magic_state_types() {
-                return Ok(PhysicalResourceEstimationResult::new(
+                return PhysicalResourceEstimationResult::new(
                     self,
                     logical_patch,
                     &error_budget,
                     num_cycles,
                     factory_parts,
                     required_logical_error_rate,
-                ));
+                );
             }
 
             num_cycles = std::cmp::max(
@@ -122,7 +122,10 @@ impl<
         error_budget: &ErrorBudget,
         index: usize,
     ) -> Result<FactoryPartsResult<B::Factory>, Error> {
-        let num_magic_states = self.layout_overhead.num_magic_states(error_budget, index);
+        let num_magic_states = self
+            .layout_overhead
+            .num_magic_states(error_budget, index)
+            .map_err(Error::NumberOfMagicStatesComputationFailed)?;
 
         if num_magic_states == 0 {
             return Ok(FactoryPartsResult::NoMagicStates);
@@ -159,14 +162,14 @@ impl<
             error_budget,
             min_cycles,
             max_cycles,
-        ) {
+        )? {
             let num_factories = self.num_factories(
                 logical_patch,
                 index,
                 &factory,
                 error_budget,
                 num_cycles_required,
-            );
+            )?;
             Ok(FactoryPartsResult::Success {
                 factory_part: FactoryPart::new(
                     factory.into_owned(),
@@ -189,25 +192,40 @@ impl<
         error_budget: &ErrorBudget,
         min_cycles: u64,
         max_cycles: u64,
-    ) -> Option<FactoryForCycles<'b, B::Factory>> {
+    ) -> Result<Option<FactoryForCycles<'b, B::Factory>>, Error> {
         // First, try to find a factory that can be applied within min_cycles;
         // return it, if successful
         let algorithm_duration = min_cycles * logical_patch.logical_cycle_time();
-        if let Some(factory) = factories
+
+        // Match up factories with a predicate and make sure there are no errors
+        let factories_with_predicate: Vec<_> = factories
             .iter()
-            .filter(|&factory| {
-                factory.duration() <= algorithm_duration
-                    && self.is_max_factories_constraint_satisfied(
+            .map(|factory| {
+                Ok((
+                    factory,
+                    self.is_max_factories_constraint_satisfied(
                         logical_patch,
                         factory,
                         error_budget,
                         min_cycles,
-                    )
+                    )?,
+                ))
+            })
+            .collect::<Result<_, _>>()?;
+
+        if let Some(factory) = factories_with_predicate
+            .iter()
+            .filter_map(|&(factory, is_satisfied)| {
+                if is_satisfied && factory.duration() <= algorithm_duration {
+                    Some(factory)
+                } else {
+                    None
+                }
             })
             .min_by(|&p, &q| p.normalized_volume().total_cmp(&q.normalized_volume()))
             .cloned()
         {
-            return Some(FactoryForCycles::new(factory, min_cycles));
+            return Ok(Some(FactoryForCycles::new(factory, min_cycles)));
         }
 
         // If no factory was found, try to find a factory up to max_cycles
@@ -217,11 +235,11 @@ impl<
             logical_patch,
             error_budget,
             max_cycles,
-        ) {
-            return Some(factory);
+        )? {
+            return Ok(Some(factory));
         }
 
-        None
+        Ok(None)
     }
 
     fn find_factory_within_max_cycles<'b>(
@@ -231,8 +249,13 @@ impl<
         logical_patch: &LogicalPatch<E>,
         error_budget: &ErrorBudget,
         max_cycles: u64,
-    ) -> Option<FactoryForCycles<'b, B::Factory>> {
-        self.max_factories.map_or_else(
+    ) -> Result<Option<FactoryForCycles<'b, B::Factory>>, Error> {
+        let num_magic_states = self
+            .layout_overhead
+            .num_magic_states(error_budget, magic_state_index)
+            .map_err(Error::NumberOfMagicStatesComputationFailed)?;
+
+        Ok(self.max_factories.map_or_else(
             // if there is no max_factories constraint, pick whatever is best
             // for given max cycles
             || {
@@ -250,10 +273,7 @@ impl<
                     .iter()
                     .filter_map(|factory| {
                         let magic_states_per_run = max_factories * factory.num_output_states();
-                        let required_runs = self
-                            .layout_overhead
-                            .num_magic_states(error_budget, magic_state_index)
-                            .div_ceil(magic_states_per_run);
+                        let required_runs = num_magic_states.div_ceil(magic_states_per_run);
                         let required_duration = required_runs * factory.duration();
                         let num = required_duration.div_ceil(logical_patch.logical_cycle_time());
 
@@ -261,7 +281,7 @@ impl<
                     })
                     .min()
             },
-        )
+        ))
     }
 
     // checks whether the provided parameters suffice to satisfy the
@@ -273,9 +293,15 @@ impl<
         factory: &B::Factory,
         error_budget: &ErrorBudget,
         num_cycles: u64,
-    ) -> bool {
-        self.max_factories.is_none_or(|max_factories| {
-            max_factories >= self.num_factories(logical_patch, 0, factory, error_budget, num_cycles)
+    ) -> Result<bool, Error> {
+        Ok(if let Some(max_factories) = self.max_factories {
+            // if there is a max_factories constraint, check whether the number of
+            // factories required for the given parameters is less than or equal
+            // to the max_factories constraint
+            max_factories
+                >= self.num_factories(logical_patch, 0, factory, error_budget, num_cycles)?
+        } else {
+            true
         })
     }
 }

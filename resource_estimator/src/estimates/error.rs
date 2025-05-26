@@ -13,6 +13,27 @@ pub enum Error {
     #[error("Algorithm requires at least one magic state or measurement to estimate resources")]
     #[diagnostic(code("Qsc.Estimates.AlgorithmHasNoResources"))]
     AlgorithmHasNoResources,
+    /// The number of algorithmic logical qubits cannot be computed.
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// 🧑‍💻 This indicates a user error
+    #[error("Cannot compute the number of algorithmic logical qubits: {0}")]
+    #[diagnostic(code("Qsc.Estimates.AlgorithmicLogicalQubitsComputationFailed"))]
+    AlgorithmicLogicalQubitsComputationFailed(String),
+    /// The algorithmic logical depth cannot be computed.
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// 🧑‍💻 This indicates a user error
+    #[error("Cannot compute the algorithmic logical depth: {0}")]
+    #[diagnostic(code("Qsc.Estimates.AlgorithmicLogicalDepthComputationFailed"))]
+    AlgorithmicLogicalDepthComputationFailed(String),
+    /// The number of required magic states cannot be computed.
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// 🧑‍💻 This indicates a user error
+    #[error("Cannot compute the required number of magic states: {0}")]
+    #[diagnostic(code("Qsc.Estimates.NumberOfMagicStatesComputationFailed"))]
+    NumberOfMagicStatesComputationFailed(String),
     /// Both constraints for maximal time and
     /// maximal number of qubits are provided
     ///
