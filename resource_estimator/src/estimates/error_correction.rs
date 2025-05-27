@@ -82,13 +82,11 @@ pub trait ErrorCorrection {
         required_logical_error_rate: f64,
     ) -> Result<Self::Parameter, String> {
         for parameter in self.code_parameter_range(None) {
-            if let (Ok(probability), Ok(logical_qubits)) = (
-                self.logical_error_rate(qubit, &parameter),
-                self.logical_qubits(&parameter),
-            ) {
-                if probability / (logical_qubits as f64) <= required_logical_error_rate {
-                    return Ok(parameter);
-                }
+            let probability = self.logical_error_rate(qubit, &parameter)?;
+            let logical_qubits = self.logical_qubits(&parameter)?;
+
+            if probability / (logical_qubits as f64) <= required_logical_error_rate {
+                return Ok(parameter);
             }
         }
 
@@ -110,20 +108,17 @@ pub trait ErrorCorrection {
         let mut best: Option<(Self::Parameter, f64)> = None;
 
         for parameter in self.code_parameter_range(None) {
-            if let (Ok(probability), Ok(logical_qubits), Ok(physical_qubits)) = (
-                self.logical_error_rate(qubit, &parameter),
-                self.logical_qubits(&parameter),
-                self.physical_qubits(&parameter),
-            ) {
-                let physical_qubits_per_logical_qubits =
-                    physical_qubits as f64 / logical_qubits as f64;
-                if (probability / (logical_qubits as f64) <= required_logical_error_rate)
-                    && best
-                        .as_ref()
-                        .is_none_or(|&(_, pq)| physical_qubits_per_logical_qubits < pq)
-                {
-                    best = Some((parameter, physical_qubits_per_logical_qubits));
-                }
+            let probability = self.logical_error_rate(qubit, &parameter)?;
+            let logical_qubits = self.logical_qubits(&parameter)?;
+            let physical_qubits = self.physical_qubits(&parameter)?;
+
+            let physical_qubits_per_logical_qubits = physical_qubits as f64 / logical_qubits as f64;
+            if (probability / (logical_qubits as f64) <= required_logical_error_rate)
+                && best
+                    .as_ref()
+                    .is_none_or(|&(_, pq)| physical_qubits_per_logical_qubits < pq)
+            {
+                best = Some((parameter, physical_qubits_per_logical_qubits));
             }
         }
 
@@ -146,16 +141,14 @@ pub trait ErrorCorrection {
         let mut best: Option<(Self::Parameter, u64)> = None;
 
         for parameter in self.code_parameter_range(None) {
-            if let (Ok(probability), Ok(logical_qubits), Ok(logical_cycle_time)) = (
-                self.logical_error_rate(qubit, &parameter),
-                self.logical_qubits(&parameter),
-                self.logical_cycle_time(qubit, &parameter),
-            ) {
-                if (probability / (logical_qubits as f64) <= required_logical_error_rate)
-                    && best.as_ref().is_none_or(|&(_, t)| logical_cycle_time < t)
-                {
-                    best = Some((parameter, logical_cycle_time));
-                }
+            let probability = self.logical_error_rate(qubit, &parameter)?;
+            let logical_qubits = self.logical_qubits(&parameter)?;
+            let logical_cycle_time = self.logical_cycle_time(qubit, &parameter)?;
+
+            if (probability / (logical_qubits as f64) <= required_logical_error_rate)
+                && best.as_ref().is_none_or(|&(_, t)| logical_cycle_time < t)
+            {
+                best = Some((parameter, logical_cycle_time));
             }
         }
 
