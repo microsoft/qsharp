@@ -70,7 +70,7 @@ function populateSamplesFolder(
     const sanitized_file_name = sample.title.replace(/\W/g, ""); // Remove non-word characters
     vfs.writeFile(
       playgroundRootUri.with({
-        path: `/${folder}/${sanitized_file_name}.${extension}`,
+        path: `/${folder}/${sanitized_file_name}${extension}`,
       }),
       encoder.encode(sample.code),
       { create: true, overwrite: true },
