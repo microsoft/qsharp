@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log, samples } from "qsharp-lang";
+import { log, samples, openqasm_samples } from "qsharp-lang";
 import * as vscode from "vscode";
 import { qsharpExtensionId } from "./common";
 
@@ -33,28 +33,41 @@ For more information about the Azure Quantum Development Kit,
 visit <https://aka.ms/AQ/Documentation>.
 `;
 
-// Put the playground in its own 'authority', so we can keep the default space clean.
-// This has the benefit of the URI https://vscode.dev/quantum/playground/ opening the playground
+// Type of a generated sample entry.
+type SampleTy = typeof samples[number];
+
 function populateSamples(vfs: MemFS) {
+  // Put the playground in its own 'authority', so we can keep the default space clean.
+  // This has the benefit of the URI https://vscode.dev/quantum/playground/ opening the playground
   vfs.addAuthority(playgroundAuthority);
 
   const encoder = new TextEncoder();
-  vfs.createDirectory(playgroundRootUri.with({ path: "/samples" }));
-
-  samples.forEach((sample) => {
-    const sanitized_file_name = sample.title.replace(/\W/g, ""); // Remove non-word characters
-    vfs.writeFile(
-      playgroundRootUri.with({ path: `/samples/${sanitized_file_name}.qs` }),
-      encoder.encode(sample.code),
-      { create: true, overwrite: true },
-    );
-  });
+  populateSamplesFolder(vfs, encoder, "samples_qsharp", samples, ".qs");
+  populateSamplesFolder(vfs, encoder, "samples_openqasm", openqasm_samples, ".qasm");
 
   vfs.writeFile(
     playgroundRootUri.with({ path: "/README.md" }),
     encoder.encode(playgroundReadme),
     { create: true, overwrite: true },
   );
+}
+
+function populateSamplesFolder(
+  vfs: MemFS,
+  encoder: TextEncoder,
+  folder: string,
+  samples: SampleTy[],
+  extension: string) {
+
+  vfs.createDirectory(playgroundRootUri.with({ path: `/${folder}` }));
+  samples.forEach((sample) => {
+    const sanitized_file_name = sample.title.replace(/\W/g, ""); // Remove non-word characters
+    vfs.writeFile(
+      playgroundRootUri.with({ path: `/${folder}/${sanitized_file_name}.${extension}` }),
+      encoder.encode(sample.code),
+      { create: true, overwrite: true }
+    );
+  });
 }
 
 export async function initFileSystem(context: vscode.ExtensionContext) {
