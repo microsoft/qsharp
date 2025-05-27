@@ -104,6 +104,7 @@ function startCommandDiagnostics(): vscode.Disposable[] {
         if (commandErrors.length > 0) {
           const action = new vscode.CodeAction(
             "Dismiss errors for the last run QDK command",
+            vscode.CodeActionKind.QuickFix, // makes the lightbulb reliably show up
           );
           action.diagnostics = commandErrors;
           action.command = {
