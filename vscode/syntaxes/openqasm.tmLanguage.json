@@ -51,7 +51,7 @@
         },
         {
           "name": "keyword.other.openqasm",
-          "match": "\\b(OPENQASM|include|qubit|reset|mutable|readonly|#dim|stretch|delay|barrier|box|input|output|int|float|bit|bool|uint|angle|complex|const|defcal|def|array|duration|let|measure|pragma|defcalgrammar|cal|qreg|creg|extern|port|frame|waveform)\\b"
+          "match": "\\b(OPENQASM|include|qubit|reset|mutable|readonly|#dim|stretch|delay|barrier|box|input|output|int|float|bit|bool|uint|angle|complex|const|defcal|def|gate|array|duration|let|measure|pragma|defcalgrammar|cal|qreg|creg|extern|port|frame|waveform)\\b"
         }
       ]
     },
