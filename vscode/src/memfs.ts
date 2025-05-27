@@ -18,8 +18,8 @@ const playgroundReadme = `
 Welcome to the Azure Quantum Development Kit playground! An online environment to
 safely learn and explore quantum computing with the Q# language.
 
-The samples_qsharp folder contains a set of common quantum algorithms written in Q#.
-The samples_openqasm folder contains several quantum programs written in OpenQASM.
+The 'Samples (Q#)' folder contains a set of common quantum algorithms written in Q#.
+The 'Samples (OpenQASM)' folder contains several quantum programs written in OpenQASM.
 You can run these samples by clicking the "Run" button in the top right corner
 of the editor when you have the file open. You can also set breakpoints and
 step through the code using the Debug button at the same location to see how the
