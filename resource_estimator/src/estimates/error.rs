@@ -58,12 +58,6 @@ pub enum Error {
     #[error("No solution found for the provided maximum number of physical qubits.")]
     #[diagnostic(code("Qsc.Estimates.MaxPhysicalQubitsTooSmall"))]
     MaxPhysicalQubitsTooSmall,
-    /// Resource estimation configuration can never produce T states
-    ///
-    /// ✅ This error cannot be triggered by the system.
-    #[error("Resource estimation configuration can never produce T states, required magic state output error rate was {0:.3e}")]
-    #[diagnostic(code("Qsc.Estimates.CannotComputeMagicStates"))]
-    CannotComputeMagicStates(f64),
     /// Resource estimation failed to find factories
     ///
     /// ✅ This error cannot be triggered by the system.
