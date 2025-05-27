@@ -23,30 +23,45 @@ export function Circuit(props: {
   isEditable: boolean;
   editCallback?: (fileData: qviz.CircuitGroup) => void;
 }) {
-  const circuitGroup = toCircuitGroup(props.circuit);
-  const circuit = circuitGroup.circuits[0];
+  let unrenderable = false;
+  let qubits = 0;
+  let operations = 0;
+  let errorMsg: string | undefined = undefined;
 
-  if (circuit.componentGrid === undefined) circuit.componentGrid = [];
-  if (circuit.qubits === undefined) circuit.qubits = [];
+  console.log("About to parse circuit file");
+  const result = toCircuitGroup(props.circuit);
 
-  if (circuit.componentGrid === undefined) circuit.componentGrid = [];
-  if (circuit.qubits === undefined) circuit.qubits = [];
+  if (result.ok) {
+    console.log("Successfully parsed circuit file");
+    const circuit = result.circuitGroup.circuits[0];
+    if (circuit.componentGrid === undefined) circuit.componentGrid = [];
+    if (circuit.qubits === undefined) circuit.qubits = [];
+    qubits = circuit.qubits.length;
+    operations = circuit.componentGrid.length;
 
-  const unrenderable =
-    circuitGroup.circuits.length > MAX_CIRCUITS ||
-    (!props.isEditable && circuit.qubits.length === 0) ||
-    circuit.componentGrid.length > MAX_OPERATIONS ||
-    circuit.qubits.length > MAX_QUBITS;
+    unrenderable =
+      unrenderable ||
+      result.circuitGroup.circuits.length > MAX_CIRCUITS ||
+      (!props.isEditable && qubits === 0) ||
+      operations > MAX_OPERATIONS ||
+      qubits > MAX_QUBITS;
+  } else {
+    errorMsg = result.error;
+    console.log("Failed to parse circuit file: ", errorMsg);
+  }
+
+  console.log("Is Unrenderable after: ", unrenderable);
 
   return (
     <div>
-      {unrenderable ? (
+      {!result.ok || unrenderable ? (
         <Unrenderable
-          qubits={circuit.qubits.length}
-          operations={circuit.componentGrid.length}
+          qubits={qubits}
+          operations={operations}
+          error={errorMsg}
         />
       ) : (
-        <ZoomableCircuit {...props} circuitGroup={circuitGroup} />
+        <ZoomableCircuit {...props} circuitGroup={result.circuitGroup} />
       )}
     </div>
   );
@@ -192,29 +207,49 @@ function ZoomableCircuit(props: {
   }
 }
 
-function Unrenderable(props: { qubits: number; operations: number }) {
-  const errorDiv =
-    props.qubits === 0 ? (
+function Unrenderable(props: {
+  qubits: number;
+  operations: number;
+  error?: string;
+}) {
+  let errorDiv = null;
+
+  if (props.error) {
+    errorDiv = (
+      <div>
+        <p>
+          <b>Unable to render circuit:</b>
+        </p>
+        <pre>{props.error}</pre>
+      </div>
+    );
+  } else if (props.qubits === 0) {
+    errorDiv = (
       <div>
         <p>No circuit to display. No qubits have been allocated.</p>
       </div>
-    ) : props.operations > MAX_OPERATIONS ? (
-      // Don't show the real number of operations here, as that number is
-      // *already* truncated by the underlying circuit builder.
+    );
+  } else if (props.operations > MAX_OPERATIONS) {
+    // Don't show the real number of operations here, as that number is
+    // *already* truncated by the underlying circuit builder.
+    errorDiv = (
       <div>
         <p>
           This circuit has too many gates to display. The maximum supported
           number of gates is {MAX_OPERATIONS}.
         </p>
       </div>
-    ) : props.qubits > MAX_QUBITS ? (
+    );
+  } else if (props.qubits > MAX_QUBITS) {
+    errorDiv = (
       <div>
         <p>
           This circuit has too many qubits to display. It has {props.qubits}{" "}
           qubits, but the maximum supported is {MAX_QUBITS}.
         </p>
       </div>
-    ) : undefined;
+    );
+  }
 
   return <div class="qs-circuit-error">{errorDiv}</div>;
 }

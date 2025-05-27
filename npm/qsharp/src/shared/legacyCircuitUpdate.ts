@@ -7,18 +7,24 @@ import {
   CircuitGroup,
   ComponentGrid,
   CURRENT_VERSION,
+  isCircuit,
+  isCircuitGroup,
   Operation,
   Qubit,
 } from "./circuit.js";
+
+export type ToCircuitGroupResult =
+  | { ok: true; circuitGroup: CircuitGroup }
+  | { ok: false; error: string };
 
 /**
  * Ensures that the given circuit object is a CircuitGroup, doing any
  * necessary conversions from Circuit or legacy formats.
  *
  * @param circuit The circuit to convert.
- * @returns The converted CircuitGroup.
+ * @returns The result of the conversion.
  */
-export function toCircuitGroup(circuit: any): CircuitGroup {
+export function toCircuitGroup(circuit: any): ToCircuitGroupResult {
   const emptyCircuit: Circuit = {
     qubits: [],
     componentGrid: [],
@@ -30,7 +36,7 @@ export function toCircuitGroup(circuit: any): CircuitGroup {
   };
 
   if (circuit && Object.keys(circuit).length === 0) {
-    return emptyCircuitGroup;
+    return { ok: true, circuitGroup: emptyCircuitGroup };
   }
 
   if (circuit?.version) {
@@ -38,30 +44,30 @@ export function toCircuitGroup(circuit: any): CircuitGroup {
     // If it has a "version" field, it is up-to-date
     if (isCircuitGroup(circuit)) {
       // If it's already a CircuitGroup, return it as is
-      return circuit;
+      return { ok: true, circuitGroup: circuit };
     } else if (isCircuit(circuit)) {
       // If it's a Circuit, wrap it in a CircuitGroup
-      return {
-        version,
-        circuits: [circuit],
-      };
+      return { ok: true, circuitGroup: { version, circuits: [circuit] } };
     } else {
-      console.error(
-        "Unknown schema: circuit is neither a CircuitGroup nor a Circuit.",
-      );
-      return emptyCircuitGroup;
+      return {
+        ok: false,
+        error:
+          "Unknown schema: circuit is neither a CircuitGroup nor a Circuit.",
+      };
     }
   } else if (isCircuit(circuit)) {
     // If it's a Circuit without a version, wrap it in a CircuitGroup
     return {
-      version: CURRENT_VERSION,
-      circuits: [circuit],
+      ok: true,
+      circuitGroup: { version: CURRENT_VERSION, circuits: [circuit] },
     };
   } else if (circuit?.operations) {
     // Legacy schema: convert to CircuitGroup
     if (circuit.qubits === undefined || !Array.isArray(circuit.qubits)) {
-      console.error("Unknown schema: circuit is missing qubit information.");
-      return emptyCircuitGroup;
+      return {
+        ok: false,
+        error: "Unknown schema: circuit is missing qubit information.",
+      };
     }
 
     const qubits: Qubit[] = circuit.qubits.map((qubit: any) => {
@@ -77,17 +83,22 @@ export function toCircuitGroup(circuit: any): CircuitGroup {
     );
 
     return {
-      version: CURRENT_VERSION,
-      circuits: [
-        {
-          qubits,
-          componentGrid,
-        },
-      ],
+      ok: true,
+      circuitGroup: {
+        version: CURRENT_VERSION,
+        circuits: [
+          {
+            qubits,
+            componentGrid,
+          },
+        ],
+      },
     };
   } else {
-    console.error("Unknown schema: circuit does not match any known format.");
-    return emptyCircuitGroup;
+    return {
+      ok: false,
+      error: "Unknown schema: circuit does not match any known format.",
+    };
   }
 }
 
@@ -155,30 +166,6 @@ function toOperation(op: any): Operation {
       return convertedOp;
     }
   }
-}
-
-/**
- * Checks if the given object is a CircuitGroup.
- *
- * @param circuit The object to check.
- * @returns True if the object is a CircuitGroup, false otherwise.
- */
-function isCircuitGroup(circuit: any): circuit is CircuitGroup {
-  return circuit && Array.isArray(circuit.circuits);
-}
-
-/**
- * Checks if the given object is a Circuit.
- *
- * @param circuit The object to check.
- * @returns True if the object is a Circuit, false otherwise.
- */
-function isCircuit(circuit: any): circuit is Circuit {
-  return (
-    circuit &&
-    Array.isArray(circuit.qubits) &&
-    Array.isArray(circuit.componentGrid)
-  );
 }
 
 /**
