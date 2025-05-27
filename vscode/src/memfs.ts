@@ -43,11 +43,11 @@ function populateSamples(vfs: MemFS) {
   vfs.addAuthority(playgroundAuthority);
 
   const encoder = new TextEncoder();
-  populateSamplesFolder(vfs, encoder, "samples_qsharp", samples, ".qs");
+  populateSamplesFolder(vfs, encoder, "Samples (Q#)", samples, ".qs");
   populateSamplesFolder(
     vfs,
     encoder,
-    "samples_openqasm",
+    "Samples (OpenQASM)",
     openqasm_samples,
     ".qasm",
   );
