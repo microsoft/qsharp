@@ -34,7 +34,7 @@ visit <https://aka.ms/AQ/Documentation>.
 `;
 
 // Type of a generated sample entry.
-type SampleTy = typeof samples[number];
+type SampleTy = (typeof samples)[number];
 
 function populateSamples(vfs: MemFS) {
   // Put the playground in its own 'authority', so we can keep the default space clean.
@@ -43,7 +43,13 @@ function populateSamples(vfs: MemFS) {
 
   const encoder = new TextEncoder();
   populateSamplesFolder(vfs, encoder, "samples_qsharp", samples, ".qs");
-  populateSamplesFolder(vfs, encoder, "samples_openqasm", openqasm_samples, ".qasm");
+  populateSamplesFolder(
+    vfs,
+    encoder,
+    "samples_openqasm",
+    openqasm_samples,
+    ".qasm",
+  );
 
   vfs.writeFile(
     playgroundRootUri.with({ path: "/README.md" }),
@@ -57,15 +63,17 @@ function populateSamplesFolder(
   encoder: TextEncoder,
   folder: string,
   samples: SampleTy[],
-  extension: string) {
-
+  extension: string,
+) {
   vfs.createDirectory(playgroundRootUri.with({ path: `/${folder}` }));
   samples.forEach((sample) => {
     const sanitized_file_name = sample.title.replace(/\W/g, ""); // Remove non-word characters
     vfs.writeFile(
-      playgroundRootUri.with({ path: `/${folder}/${sanitized_file_name}.${extension}` }),
+      playgroundRootUri.with({
+        path: `/${folder}/${sanitized_file_name}.${extension}`,
+      }),
       encoder.encode(sample.code),
-      { create: true, overwrite: true }
+      { create: true, overwrite: true },
     );
   });
 }
