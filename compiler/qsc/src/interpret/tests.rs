@@ -2230,5 +2230,44 @@ mod given_interpreter {
                 "#]],
             );
         }
+
+        /// Found via fuzzing, see #2426 <https://github.com/microsoft/qsharp/issues/2426>
+        #[test]
+        fn recursive_type_constraint_should_fail() {
+            let sources = SourceMap::new(
+                [(
+                    "test".into(),
+                    r#"operation a(){(foo,bar)->foo+bar=foo->foo"#.into(),
+                )],
+                None,
+            );
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            match Interpreter::new(
+                sources,
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
+            ) {
+                Ok(_) => panic!("interpreter should fail with error"),
+                Err(errors) => {
+                    is_error(
+                        &errors,
+                        &expect![[r#"
+                            syntax error: expected `:`, found `{`
+                               [test] [{]
+                            syntax error: expected `}`, found EOF
+                               [test] []
+                            type error: unsupported recursive type constraint
+                               [test] [(foo,bar)->foo+bar]
+                            type error: insufficient type information to infer type
+                               [test] [foo+bar]
+                        "#]],
+                    );
+                }
+            }
+        }
     }
 }
