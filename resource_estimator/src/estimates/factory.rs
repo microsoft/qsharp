@@ -33,7 +33,7 @@ where
         magic_state_type: usize,
         output_error_rate: f64,
         max_code_parameter: &E::Parameter,
-    ) -> Option<Vec<Cow<Self::Factory>>>;
+    ) -> Result<Vec<Cow<Self::Factory>>, String>;
 
     fn num_magic_state_types(&self) -> usize {
         1

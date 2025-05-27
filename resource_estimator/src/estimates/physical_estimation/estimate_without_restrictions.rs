@@ -144,9 +144,7 @@ impl<
                 required_logical_magic_state_error_rate,
                 logical_patch.code_parameter(),
             )
-            .ok_or(Error::CannotComputeMagicStates(
-                required_logical_magic_state_error_rate,
-            ))?;
+            .map_err(Error::FactorySearchFailed)?;
 
         if factories.is_empty() {
             return Ok(FactoryPartsResult::NoFactories);

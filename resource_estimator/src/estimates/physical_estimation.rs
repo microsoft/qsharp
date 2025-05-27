@@ -242,9 +242,7 @@ impl<
                         required_logical_magic_state_error_rate,
                         &code_parameter,
                     )
-                    .ok_or(Error::CannotComputeMagicStates(
-                        required_logical_magic_state_error_rate,
-                    ))?;
+                    .map_err(Error::FactorySearchFailed)?;
 
                 last_code_parameter = self.find_highest_code_parameter(&last_factories);
             }
@@ -395,9 +393,7 @@ impl<
                         required_logical_magic_state_error_rate,
                         &code_parameter,
                     )
-                    .ok_or(Error::CannotComputeMagicStates(
-                        required_logical_magic_state_error_rate,
-                    ))?;
+                    .map_err(Error::FactorySearchFailed)?;
 
                 last_code_parameter = self.find_highest_code_parameter(&last_factories);
             }
