@@ -131,7 +131,11 @@ export async function initFileSystem(context: vscode.ExtensionContext) {
             log.debug("code from query: " + code);
             try {
               linkedCode = await compressedBase64ToCode(code);
-              const codeFile = vscode.Uri.parse(`${scheme}:/code.qs`);
+              const isQasm = /^OPENQASM [\d.]+;$/gm.test(linkedCode);
+
+              const codeFile = vscode.Uri.parse(
+                `${scheme}:/code.${isQasm ? "qasm" : "qs"}`,
+              );
 
               const encoder = new TextEncoder();
               vfs.writeFile(codeFile, encoder.encode(linkedCode), {
