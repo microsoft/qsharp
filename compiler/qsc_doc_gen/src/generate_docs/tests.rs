@@ -7,6 +7,70 @@ use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::compile::{PackageStore, SourceMap};
 use std::sync::Arc;
 
+/// Helper function to set up test documentation generation with dependencies
+///
+/// # Arguments
+/// * `dependency_source` - Optional tuple of (filename, content) for dependency package
+/// * `dependency_alias` - Optional alias name for the dependency package
+/// * `user_source` - Tuple of (filename, content) for user code
+/// * `target_doc_name` - Name of the documentation file to find and return
+///
+/// # Returns
+/// Formatted string containing metadata and contents of the target documentation file
+fn setup_test_docs(
+    dependency_source: Option<(&str, &str)>,
+    dependency_alias: Option<&str>,
+    user_source: (&str, &str),
+    target_doc_name: &str,
+) -> String {
+    // Create package store with core
+    let mut package_store = PackageStore::new(qsc_frontend::compile::core());
+    let std_unit = qsc_frontend::compile::std(&package_store, Default::default());
+    package_store.insert(std_unit);
+
+    // Set up dependencies if provided
+    let dependencies = if let Some((dep_filename, dep_content)) = dependency_source {
+        let dep_sources = SourceMap::new([(dep_filename.into(), dep_content.into())], None);
+
+        let dep_unit = qsc_frontend::compile::compile(
+            &package_store,
+            &[],
+            dep_sources,
+            Default::default(),
+            LanguageFeatures::default(),
+        );
+
+        let dep_package_id = package_store.insert(dep_unit);
+
+        if let Some(alias) = dependency_alias {
+            vec![(dep_package_id, Some(Arc::from(alias)))]
+        } else {
+            vec![(dep_package_id, None)]
+        }
+    } else {
+        vec![]
+    };
+
+    // Set up user sources
+    let user_sources = SourceMap::new([(user_source.0.into(), user_source.1.into())], None);
+
+    // Generate documentation
+    let files = generate_docs(
+        Some((package_store, &dependencies, user_sources)),
+        None,
+        None,
+    );
+
+    // Find the target documentation file
+    let doc_file = files
+        .iter()
+        .find(|(file_name, _, _)| file_name.contains(target_doc_name))
+        .unwrap_or_else(|| panic!("Could not find doc file for {}", target_doc_name));
+
+    let (_, metadata, contents) = doc_file;
+    format!("{metadata}\n\n{contents}")
+}
+
 #[test]
 fn generates_standard_item() {
     let files = generate_docs(None, None, None);
@@ -217,46 +281,12 @@ fn top_index_file_generation() {
 
 #[test]
 fn dependency_with_main_namespace_fully_qualified_name() {
-    // Create a dependency package with Main namespace
-    let mut dependency_store = PackageStore::new(qsc_frontend::compile::core());
-    let std_unit = qsc_frontend::compile::std(&dependency_store, Default::default());
-    dependency_store.insert(std_unit);
-
-    let dep_sources = SourceMap::new([
-        ("dep/Main.qs".into(), "namespace Main { operation DependencyFunction() : Unit {} export DependencyFunction; }".into()),
-    ], None);
-
-    let dep_unit = qsc_frontend::compile::compile(
-        &dependency_store, 
-        &[], 
-        dep_sources,
-        Default::default(),
-        LanguageFeatures::default()
+    let full_contents = setup_test_docs(
+        Some(("dep/Main.qs", "namespace Main { operation DependencyFunction() : Unit {} export DependencyFunction; }")),
+        Some("MyDep"),
+        ("src/Main.qs", "operation Main() : Unit { MyDep.DependencyFunction() }"),
+        "DependencyFunction.md",
     );
-    
-    let dep_package_id = dependency_store.insert(dep_unit);
-
-    // Create user project that depends on the above package with alias "MyDep"
-    let user_sources = SourceMap::new([
-        ("src/Main.qs".into(), "operation Main() : Unit { MyDep.DependencyFunction() }".into()),
-    ], None);
-
-    let dependencies = [(dep_package_id, Some(Arc::from("MyDep")))];
-
-    let files = generate_docs(
-        Some((dependency_store, &dependencies, user_sources)), 
-        None, 
-        None
-    );
-
-    // Find the documentation for DependencyFunction
-    let doc_file = files
-        .iter()
-        .find(|(file_name, _, _)| file_name.contains("DependencyFunction.md"))
-        .expect("Could not find doc file for DependencyFunction");
-
-    let (_, metadata, contents) = doc_file;
-    let full_contents = format!("{metadata}\n\n{contents}");
 
     // The fully qualified name should be "MyDep.DependencyFunction", not "MyDep.Main.DependencyFunction"
     // After the fix, "Main" namespace should be omitted for aliased packages
@@ -286,46 +316,18 @@ fn dependency_with_main_namespace_fully_qualified_name() {
 
 #[test]
 fn dependency_with_non_main_namespace_fully_qualified_name() {
-    // Create a dependency package with a non-Main namespace
-    let mut dependency_store = PackageStore::new(qsc_frontend::compile::core());
-    let std_unit = qsc_frontend::compile::std(&dependency_store, Default::default());
-    dependency_store.insert(std_unit);
-
-    let dep_sources = SourceMap::new([
-        ("dep/Utils.qs".into(), "namespace Utils { operation UtilityFunction() : Unit {} export UtilityFunction; }".into()),
-    ], None);
-
-    let dep_unit = qsc_frontend::compile::compile(
-        &dependency_store, 
-        &[], 
-        dep_sources,
-        Default::default(),
-        LanguageFeatures::default()
+    let full_contents = setup_test_docs(
+        Some((
+            "dep/Utils.qs",
+            "namespace Utils { operation UtilityFunction() : Unit {} export UtilityFunction; }",
+        )),
+        Some("MyDep"),
+        (
+            "src/Main.qs",
+            "operation Main() : Unit { MyDep.Utils.UtilityFunction() }",
+        ),
+        "UtilityFunction.md",
     );
-    
-    let dep_package_id = dependency_store.insert(dep_unit);
-
-    // Create user project that depends on the above package with alias "MyDep"
-    let user_sources = SourceMap::new([
-        ("src/Main.qs".into(), "operation Main() : Unit { MyDep.Utils.UtilityFunction() }".into()),
-    ], None);
-
-    let dependencies = [(dep_package_id, Some(Arc::from("MyDep")))];
-
-    let files = generate_docs(
-        Some((dependency_store, &dependencies, user_sources)), 
-        None, 
-        None
-    );
-
-    // Find the documentation for UtilityFunction
-    let doc_file = files
-        .iter()
-        .find(|(file_name, _, _)| file_name.contains("UtilityFunction.md"))
-        .expect("Could not find doc file for UtilityFunction");
-
-    let (_, metadata, contents) = doc_file;
-    let full_contents = format!("{metadata}\n\n{contents}");
 
     // For non-Main namespaces, the namespace should be included in fully qualified name
     expect![[r#"
@@ -354,29 +356,15 @@ fn dependency_with_non_main_namespace_fully_qualified_name() {
 
 #[test]
 fn user_code_with_main_namespace_fully_qualified_name() {
-    // Create user project with Main namespace
-    let mut package_store = PackageStore::new(qsc_frontend::compile::core());
-    let std_unit = qsc_frontend::compile::std(&package_store, Default::default());
-    package_store.insert(std_unit);
-
-    let user_sources = SourceMap::new([
-        ("src/Main.qs".into(), "namespace Main { operation UserFunction() : Unit {} export UserFunction; }".into()),
-    ], None);
-
-    let files = generate_docs(
-        Some((package_store, &[], user_sources)), 
-        None, 
-        None
+    let full_contents = setup_test_docs(
+        None, // No dependencies
+        None,
+        (
+            "src/Main.qs",
+            "namespace Main { operation UserFunction() : Unit {} export UserFunction; }",
+        ),
+        "UserFunction.md",
     );
-
-    // Find the documentation for UserFunction
-    let doc_file = files
-        .iter()
-        .find(|(file_name, _, _)| file_name.contains("UserFunction.md"))
-        .expect("Could not find doc file for UserFunction");
-
-    let (_, metadata, contents) = doc_file;
-    let full_contents = format!("{metadata}\n\n{contents}");
 
     // For user code (PackageKind::UserCode), Main namespace should still be included
     expect![[r#"

@@ -46,10 +46,12 @@ impl Metadata {
         };
 
         // For aliased packages, omit "Main" namespace as it's treated as root
-        if !matches!(self.package, PackageKind::AliasedPackage(_)) || self.namespace.as_ref() != "Main" {
+        if !matches!(self.package, PackageKind::AliasedPackage(_))
+            || self.namespace.as_ref() != "Main"
+        {
             buf.push(self.namespace.to_string());
         }
-        
+
         buf.push(self.name.to_string());
         buf.join(".")
     }
