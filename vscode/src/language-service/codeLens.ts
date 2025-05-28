@@ -60,7 +60,7 @@ function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
       break;
     case "run":
       title = "Run";
-      command = "qsharp-vscode.runQsharp";
+      command = "qsharp-vscode.runProgram";
       tooltip = "Run callable";
       break;
     case "circuit":

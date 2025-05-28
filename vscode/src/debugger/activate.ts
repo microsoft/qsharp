@@ -5,7 +5,7 @@
 
 import { IDebugServiceWorker, getDebugServiceWorker, log } from "qsharp-lang";
 import * as vscode from "vscode";
-import { qsharpExtensionId } from "../common";
+import { isCircuitDocument, isQdkDocument, qsharpExtensionId } from "../common";
 import { clearCommandDiagnostics } from "../diagnostics";
 import {
   getActiveQdkDocumentUri,
@@ -14,6 +14,7 @@ import {
 import { getRandomGuid } from "../utils";
 import { QscDebugSession } from "./session";
 import { generateQubitCircuitExpression } from "../circuitEditor";
+import { loadProject } from "../projectSystem";
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
@@ -61,11 +62,7 @@ export async function updateQsharpProjectContext(
   document: vscode.TextDocument,
 ) {
   let isProjectFile = undefined;
-  if (
-    document.languageId === "qsharp" ||
-    document.languageId === "openqasm" ||
-    document.languageId === "qsharpcircuit"
-  ) {
+  if (isQdkDocument(document) || isCircuitDocument(document)) {
     isProjectFile = await checkIfInQsharpProject(document.uri);
   }
   vscode.commands.executeCommand(
@@ -77,48 +74,15 @@ export async function updateQsharpProjectContext(
 
 // Returns true if any ancestor directory (excluding the file's own directory) contains qsharp.json
 async function checkIfInQsharpProject(uri: vscode.Uri): Promise<boolean> {
-  try {
-    // Start from the parent directory of the file
-    let dir = uri.with({
-      path: uri.path.substring(0, uri.path.lastIndexOf("/")),
-    });
-
-    // Move up one level to skip the file's own directory
-    dir = dir.with({ path: dir.path.substring(0, dir.path.lastIndexOf("/")) });
-
-    const root = dir.with({ path: "/" });
-
-    while (dir.path && dir.path !== root.path) {
-      const manifestUri = dir.with({
-        path: dir.path.endsWith("/")
-          ? dir.path + "qsharp.json"
-          : dir.path + "/qsharp.json",
-      });
-      try {
-        // Try to stat the qsharp.json file in this directory
-        await vscode.workspace.fs.stat(manifestUri);
-        return true;
-      } catch {
-        // Not found, keep going up
-      }
-      // Move up one directory
-      const parentPath = dir.path.substring(0, dir.path.lastIndexOf("/"));
-      if (!parentPath || parentPath === dir.path) {
-        break;
-      }
-      dir = dir.with({ path: parentPath });
-    }
-  } catch (err) {
-    // Ignore errors, treat as not in project
-  }
-  return false;
+  const project = await loadProject(uri);
+  return project !== undefined && project.projectUri !== uri.toString();
 }
 
 function registerCommands(context: vscode.ExtensionContext) {
   // Register commands for running and debugging Q# files.
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      `${qsharpExtensionId}.runQsharp`,
+      `${qsharpExtensionId}.runProgram`,
       (resource: vscode.Uri, expr?: string) => {
         // if expr is not a string, ignore it. VS Code can sometimes
         // pass other types when this command is invoked via UI buttons.
@@ -133,7 +97,7 @@ function registerCommands(context: vscode.ExtensionContext) {
       },
     ),
     vscode.commands.registerCommand(
-      `${qsharpExtensionId}.debugQsharp`,
+      `${qsharpExtensionId}.debugProgram`,
       (resource: vscode.Uri, expr?: string) => {
         // if expr is not a string, ignore it. VS Code can sometimes
         // pass other types when this command is invoked via UI buttons.
@@ -148,7 +112,7 @@ function registerCommands(context: vscode.ExtensionContext) {
       },
     ),
     vscode.commands.registerCommand(
-      `${qsharpExtensionId}.runCircuitContents`,
+      `${qsharpExtensionId}.runCircuitFile`,
       async (resource: vscode.Uri) => {
         if (!resource) {
           throw new Error(

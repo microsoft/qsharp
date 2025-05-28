@@ -146,32 +146,32 @@
     "menus": {
       "editor/title/run": [
         {
-          "command": "qsharp-vscode.runQsharp",
+          "command": "qsharp-vscode.runProgram",
           "when": "resourceLangId == qsharp || resourceLangId == openqasm || (qsharp.isProjectFile && resourceLangId == qsharpcircuit)",
           "group": "navigation@1"
         },
         {
-          "command": "qsharp-vscode.runCircuitContents",
+          "command": "qsharp-vscode.runCircuitFile",
           "when": "resourceLangId == qsharpcircuit",
           "group": "navigation@2"
         },
         {
-          "command": "qsharp-vscode.debugQsharp",
+          "command": "qsharp-vscode.debugProgram",
           "when": "resourceLangId == qsharp || resourceLangId == openqasm || (qsharp.isProjectFile && resourceLangId == qsharpcircuit)",
           "group": "navigation@3"
         }
       ],
       "commandPalette": [
         {
-          "command": "qsharp-vscode.runQsharp",
+          "command": "qsharp-vscode.runProgram",
           "when": "resourceLangId == qsharp || resourceLangId == openqasm || (qsharp.isProjectFile && resourceLangId == qsharpcircuit)"
         },
         {
-          "command": "qsharp-vscode.runCircuitContents",
+          "command": "qsharp-vscode.runCircuitFile",
           "when": "false"
         },
         {
-          "command": "qsharp-vscode.debugQsharp",
+          "command": "qsharp-vscode.debugProgram",
           "when": "resourceLangId == qsharp || resourceLangId == openqasm || (qsharp.isProjectFile && resourceLangId == qsharpcircuit)"
         },
         {
@@ -342,21 +342,21 @@
         "category": "QDK"
       },
       {
-        "command": "qsharp-vscode.debugQsharp",
+        "command": "qsharp-vscode.debugProgram",
         "title": "Start Debugging",
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(debug-alt)"
       },
       {
-        "command": "qsharp-vscode.runQsharp",
+        "command": "qsharp-vscode.runProgram",
         "title": "Run",
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(play)"
       },
       {
-        "command": "qsharp-vscode.runCircuitContents",
+        "command": "qsharp-vscode.runCircuitFile",
         "title": "Run Circuit File",
         "category": "Debug",
         "enablement": "!inDebugMode",

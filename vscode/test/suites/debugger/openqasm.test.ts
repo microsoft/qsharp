@@ -43,11 +43,11 @@ suite("OpenQASM Debugger Tests", function suite() {
     vscode.debug.removeBreakpoints(vscode.debug.breakpoints);
   });
 
-  test("Launch with debugQsharp command", async () => {
+  test("Launch with debugProgram command", async () => {
     await vscode.window.showTextDocument(selfContainedUri);
 
     // launch debugger
-    await vscode.commands.executeCommand(`${qsharpExtensionId}.debugQsharp`);
+    await vscode.commands.executeCommand(`${qsharpExtensionId}.debugProgram`);
 
     await waitUntilPaused([
       {
