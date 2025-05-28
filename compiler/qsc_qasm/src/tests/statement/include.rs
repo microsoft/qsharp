@@ -304,3 +304,26 @@ fn cyclic_include_errors() {
           source3.inc includes source1.inc"#]]
     .assert_eq(&errors_string);
 }
+
+#[test]
+fn missing_include_error() {
+    let main = r#"
+        include "source1.inc";
+    "#;
+    let all_sources = [("main.qasm".into(), main.into())];
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::Qiskit,
+        ProgramType::File,
+        Some("Test".into()),
+        None,
+    );
+
+    let Err(errors) = compile_all_with_config("main.qasm", all_sources, config) else {
+        panic!("expected errors")
+    };
+
+    let errors: Vec<_> = errors.iter().map(|e| format!("{e}")).collect();
+    let errors_string = errors.join("\n");
+    expect!["Not Found Could not resolve include file: source1.inc"].assert_eq(&errors_string);
+}

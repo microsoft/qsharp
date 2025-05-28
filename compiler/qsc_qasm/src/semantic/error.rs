@@ -148,6 +148,9 @@ pub enum SemanticErrorKind {
     #[error("{0} can only appear in {1} scopes")]
     #[diagnostic(code("Qasm.Lowerer.InvalidScope"))]
     InvalidScope(String, String, #[label] Span),
+    #[error("{0}")]
+    #[diagnostic(code("Qasm.Lowerer.IO"))]
+    IO(String, #[label] Span),
     #[error("measure statements must have a name")]
     #[diagnostic(code("Qasm.Lowerer.MeasureExpressionsMustHaveName"))]
     MeasureExpressionsMustHaveName(#[label] Span),
