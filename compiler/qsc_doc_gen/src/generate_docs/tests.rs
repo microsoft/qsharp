@@ -3,6 +3,9 @@
 
 use super::generate_docs;
 use expect_test::expect;
+use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_frontend::compile::{PackageStore, SourceMap};
+use std::sync::Arc;
 
 #[test]
 fn generates_standard_item() {
@@ -208,6 +211,194 @@ fn top_index_file_generation() {
         | [`Microsoft.Quantum.Unstable.Arithmetic`](xref:Qdk.Microsoft.Quantum.Unstable.Arithmetic-toc)             | Items for working with quantum arithmetic operations.        |
         | [`Microsoft.Quantum.Unstable.StatePreparation`](xref:Qdk.Microsoft.Quantum.Unstable.StatePreparation-toc) | Items for preparing a quantum state.                         |
         | [`Microsoft.Quantum.Unstable.TableLookup`](xref:Qdk.Microsoft.Quantum.Unstable.TableLookup-toc)           | Items for performing quantum table lookups.                  |
+    "#]]
+    .assert_eq(full_contents.as_str());
+}
+
+#[test]
+fn dependency_with_main_namespace_fully_qualified_name() {
+    // Create a dependency package with Main namespace
+    let mut dependency_store = PackageStore::new(qsc_frontend::compile::core());
+    let std_unit = qsc_frontend::compile::std(&dependency_store, Default::default());
+    dependency_store.insert(std_unit);
+
+    let dep_sources = SourceMap::new([
+        ("dep/Main.qs".into(), "namespace Main { operation DependencyFunction() : Unit {} export DependencyFunction; }".into()),
+    ], None);
+
+    let dep_unit = qsc_frontend::compile::compile(
+        &dependency_store, 
+        &[], 
+        dep_sources,
+        Default::default(),
+        LanguageFeatures::default()
+    );
+    
+    let dep_package_id = dependency_store.insert(dep_unit);
+
+    // Create user project that depends on the above package with alias "MyDep"
+    let user_sources = SourceMap::new([
+        ("src/Main.qs".into(), "operation Main() : Unit { MyDep.DependencyFunction() }".into()),
+    ], None);
+
+    let dependencies = [(dep_package_id, Some(Arc::from("MyDep")))];
+
+    let files = generate_docs(
+        Some((dependency_store, &dependencies, user_sources)), 
+        None, 
+        None
+    );
+
+    // Find the documentation for DependencyFunction
+    let doc_file = files
+        .iter()
+        .find(|(file_name, _, _)| file_name.contains("DependencyFunction.md"))
+        .expect("Could not find doc file for DependencyFunction");
+
+    let (_, metadata, contents) = doc_file;
+    let full_contents = format!("{metadata}\n\n{contents}");
+
+    // The fully qualified name should be "MyDep.DependencyFunction", not "MyDep.Main.DependencyFunction"
+    // After the fix, "Main" namespace should be omitted for aliased packages
+    expect![[r#"
+        ---
+        uid: Qdk.Main.DependencyFunction
+        title: DependencyFunction operation
+        description: "Q# DependencyFunction operation: "
+        ms.date: {TIMESTAMP}
+        qsharp.kind: operation
+        qsharp.package: MyDep
+        qsharp.namespace: Main
+        qsharp.name: DependencyFunction
+        qsharp.summary: ""
+        ---
+
+        # DependencyFunction operation
+
+        Fully qualified name: MyDep.DependencyFunction
+
+        ```qsharp
+        operation DependencyFunction() : Unit
+        ```
+    "#]]
+    .assert_eq(full_contents.as_str());
+}
+
+#[test]
+fn dependency_with_non_main_namespace_fully_qualified_name() {
+    // Create a dependency package with a non-Main namespace
+    let mut dependency_store = PackageStore::new(qsc_frontend::compile::core());
+    let std_unit = qsc_frontend::compile::std(&dependency_store, Default::default());
+    dependency_store.insert(std_unit);
+
+    let dep_sources = SourceMap::new([
+        ("dep/Utils.qs".into(), "namespace Utils { operation UtilityFunction() : Unit {} export UtilityFunction; }".into()),
+    ], None);
+
+    let dep_unit = qsc_frontend::compile::compile(
+        &dependency_store, 
+        &[], 
+        dep_sources,
+        Default::default(),
+        LanguageFeatures::default()
+    );
+    
+    let dep_package_id = dependency_store.insert(dep_unit);
+
+    // Create user project that depends on the above package with alias "MyDep"
+    let user_sources = SourceMap::new([
+        ("src/Main.qs".into(), "operation Main() : Unit { MyDep.Utils.UtilityFunction() }".into()),
+    ], None);
+
+    let dependencies = [(dep_package_id, Some(Arc::from("MyDep")))];
+
+    let files = generate_docs(
+        Some((dependency_store, &dependencies, user_sources)), 
+        None, 
+        None
+    );
+
+    // Find the documentation for UtilityFunction
+    let doc_file = files
+        .iter()
+        .find(|(file_name, _, _)| file_name.contains("UtilityFunction.md"))
+        .expect("Could not find doc file for UtilityFunction");
+
+    let (_, metadata, contents) = doc_file;
+    let full_contents = format!("{metadata}\n\n{contents}");
+
+    // For non-Main namespaces, the namespace should be included in fully qualified name
+    expect![[r#"
+        ---
+        uid: Qdk.Utils.UtilityFunction
+        title: UtilityFunction operation
+        description: "Q# UtilityFunction operation: "
+        ms.date: {TIMESTAMP}
+        qsharp.kind: operation
+        qsharp.package: MyDep
+        qsharp.namespace: Utils
+        qsharp.name: UtilityFunction
+        qsharp.summary: ""
+        ---
+
+        # UtilityFunction operation
+
+        Fully qualified name: MyDep.Utils.UtilityFunction
+
+        ```qsharp
+        operation UtilityFunction() : Unit
+        ```
+    "#]]
+    .assert_eq(full_contents.as_str());
+}
+
+#[test]
+fn user_code_with_main_namespace_fully_qualified_name() {
+    // Create user project with Main namespace
+    let mut package_store = PackageStore::new(qsc_frontend::compile::core());
+    let std_unit = qsc_frontend::compile::std(&package_store, Default::default());
+    package_store.insert(std_unit);
+
+    let user_sources = SourceMap::new([
+        ("src/Main.qs".into(), "namespace Main { operation UserFunction() : Unit {} export UserFunction; }".into()),
+    ], None);
+
+    let files = generate_docs(
+        Some((package_store, &[], user_sources)), 
+        None, 
+        None
+    );
+
+    // Find the documentation for UserFunction
+    let doc_file = files
+        .iter()
+        .find(|(file_name, _, _)| file_name.contains("UserFunction.md"))
+        .expect("Could not find doc file for UserFunction");
+
+    let (_, metadata, contents) = doc_file;
+    let full_contents = format!("{metadata}\n\n{contents}");
+
+    // For user code (PackageKind::UserCode), Main namespace should still be included
+    expect![[r#"
+        ---
+        uid: Qdk.Main.UserFunction
+        title: UserFunction operation
+        description: "Q# UserFunction operation: "
+        ms.date: {TIMESTAMP}
+        qsharp.kind: operation
+        qsharp.package: __Main__
+        qsharp.namespace: Main
+        qsharp.name: UserFunction
+        qsharp.summary: ""
+        ---
+
+        # UserFunction operation
+
+        Fully qualified name: Main.UserFunction
+
+        ```qsharp
+        operation UserFunction() : Unit
+        ```
     "#]]
     .assert_eq(full_contents.as_str());
 }
