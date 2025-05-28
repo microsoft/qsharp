@@ -206,7 +206,7 @@ export function createProxyInternal<
     }
     if (!curr) {
       // Nothing else queued, signal that we're now idle and exit.
-      log.debug("Proxy: Worker queue is empty");
+      log.trace("Proxy: Worker queue is empty");
       setState("idle");
       return;
     }
@@ -216,7 +216,7 @@ export function createProxyInternal<
       setState("busy");
     }
 
-    log.debug("Proxy: Posting message to worker: %o", msg);
+    log.trace("Proxy: Posting message to worker: %o", msg);
     postMessage(msg);
   }
 
@@ -227,7 +227,7 @@ export function createProxyInternal<
       | CommonEventMessage,
   ) {
     if (log.getLogLevel() >= 4)
-      log.debug("Proxy: Received message from worker: %s", JSON.stringify(msg));
+      log.trace("Proxy: Received message from worker: %s", JSON.stringify(msg));
 
     if (msg.messageType === "common-event") {
       const commonEvent = msg; // assignment is necessary here for TypeScript to narrow the type
@@ -249,7 +249,7 @@ export function createProxyInternal<
       const event = new Event(msg.type) as Event & TServiceEventMsg;
       event.detail = msg.detail;
 
-      log.debug("Proxy: Posting event: %o", msg);
+      log.trace("Proxy: Posting event: %o", msg);
       // Post to a currently attached event target if there's a "requestWithProgress"
       // in progress
       curr?.requestEventTarget?.dispatchEvent(event);
@@ -323,7 +323,7 @@ export function createProxyInternal<
     // Kill the worker without a chance to shutdown. May be needed if it is not responding.
     log.info("Proxy: Terminating the worker");
     if (curr) {
-      log.debug(
+      log.trace(
         "Proxy: Terminating running worker item of type: %s",
         curr.type,
       );
@@ -332,7 +332,7 @@ export function createProxyInternal<
     // Reject any outstanding items
     while (queue.length) {
       const item = queue.shift();
-      log.debug(
+      log.trace(
         "Proxy: Terminating outstanding work item of type: %s",
         item?.type,
       );
@@ -366,12 +366,12 @@ function createDispatcher<
   methods: MethodMap<TService>,
   eventNames: TServiceEventMsg["type"][],
 ): (req: RequestMessage<TService>) => Promise<void> {
-  log.debug("Worker: Constructing WorkerEventHandler");
+  log.trace("Worker: Constructing WorkerEventHandler");
 
   function logAndPost(
     msg: ResponseMessage<TService> | EventMessage<TServiceEventMsg>,
   ) {
-    log.debug(
+    log.trace(
       "Worker: Sending %s message from worker: %o",
       msg.messageType,
       msg,
