@@ -3,7 +3,7 @@
 
 import { updateQsharpProjectContext } from "./debugger/activate";
 import * as vscode from "vscode";
-import { loadProject } from "./projectSystem";
+import { findManifestDirectory } from "./projectSystem";
 
 export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
   private static readonly viewType = "qsharp-webview.circuit";
@@ -198,8 +198,6 @@ export async function generateQubitCircuitExpression(
   let namespaceName: string | undefined = undefined;
 
   try {
-    const program = await loadProject(resource);
-
     const document = await vscode.workspace.openTextDocument(resource);
     const text = document.getText();
     const json = JSON.parse(text);
@@ -225,22 +223,15 @@ export async function generateQubitCircuitExpression(
       throw new Error("Could not determine operation name from file name.");
     }
 
-    // Get relative path from src/ (adjacent to qsharp.json) to resource
-    const projectUri = vscode.Uri.parse(program.projectUri);
-
-    if (projectUri.toString() === resource.toString()) {
-      // Not in a project: use FileName as namespace
+    const projectUri = await findManifestDirectory(resource.toString());
+    if (projectUri === null) {
+      // Not in a project: use file name as namespace
       namespaceName = operationName;
     } else {
-      // Find the src/ directory adjacent to qsharp.json
-      const projectDir = projectUri.path.endsWith("/")
-        ? projectUri.path
-        : projectUri.path.substring(0, projectUri.path.lastIndexOf("/"));
-      const srcDir = projectDir.endsWith("/src")
-        ? projectDir
-        : projectDir + "/src";
-      let relPath = resource.path.startsWith(srcDir)
-        ? resource.path.substring(srcDir.length)
+      // Compute relative path from src/ to resource
+      const srcUri = vscode.Uri.joinPath(vscode.Uri.parse(projectUri), "src");
+      let relPath = resource.path.startsWith(srcUri.path)
+        ? resource.path.substring(srcUri.path.length)
         : resource.path;
       if (relPath.startsWith("/")) relPath = relPath.substring(1);
 

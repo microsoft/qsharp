@@ -14,7 +14,7 @@ import {
 import { getRandomGuid } from "../utils";
 import { QscDebugSession } from "./session";
 import { generateQubitCircuitExpression } from "../circuitEditor";
-import { loadProject } from "../projectSystem";
+import { findManifestDirectory } from "../projectSystem";
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
@@ -61,21 +61,19 @@ export async function activateDebugger(
 export async function updateQsharpProjectContext(
   document: vscode.TextDocument,
 ) {
-  let isProjectFile = undefined;
+  // The path of the project directory, if applicable, null if not in a project.
+  let activeProjectDirectory: string | undefined = undefined;
   if (isQdkDocument(document) || isCircuitDocument(document)) {
-    isProjectFile = await checkIfInQsharpProject(document.uri);
+    const projectDir = await findManifestDirectory(document.uri.toString());
+    if (projectDir !== null && projectDir !== "") {
+      activeProjectDirectory = projectDir;
+    }
   }
   vscode.commands.executeCommand(
     "setContext",
-    "qsharp.isProjectFile",
-    isProjectFile,
+    "qsharp.activeProjectDirectory",
+    activeProjectDirectory,
   );
-}
-
-// Returns true if any ancestor directory (excluding the file's own directory) contains qsharp.json
-async function checkIfInQsharpProject(uri: vscode.Uri): Promise<boolean> {
-  const project = await loadProject(uri);
-  return project !== undefined && project.projectUri !== uri.toString();
 }
 
 function registerCommands(context: vscode.ExtensionContext) {
