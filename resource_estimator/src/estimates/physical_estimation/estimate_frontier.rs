@@ -34,15 +34,18 @@ impl<
             let min_cycles = estimator.compute_num_cycles(error_budget)?;
 
             let required_logical_error_rate =
-                estimator.required_logical_error_rate(error_budget.logical(), min_cycles);
+                estimator.required_logical_error_rate(error_budget.logical(), min_cycles)?;
+
+            let num_magic_states = estimator
+                .layout_overhead
+                .num_magic_states(error_budget, 0)
+                .map_err(Error::NumberOfMagicStatesComputationFailed)?;
 
             // The required magic state error rate is computed by dividing the total
             // error budget for magic states by the number of magic states required
             // for the algorithm.
-            let required_logical_magic_state_error_rate = error_budget.magic_states()
-                / estimator.layout_overhead.num_magic_states(error_budget, 0) as f64;
-
-            let num_magic_states = estimator.layout_overhead.num_magic_states(error_budget, 0);
+            let required_logical_magic_state_error_rate =
+                error_budget.magic_states() / num_magic_states as f64;
 
             Ok(Self {
                 estimator,
@@ -70,7 +73,7 @@ impl<
                 &self.error_budget,
                 self.min_cycles,
                 self.required_logical_error_rate,
-            )]);
+            )?]);
         }
 
         let mut best_estimation_results = Population::new();
@@ -103,9 +106,7 @@ impl<
                         self.required_logical_magic_state_error_rate,
                         &code_parameter,
                     )
-                    .ok_or(Error::CannotComputeMagicStates(
-                        self.required_logical_magic_state_error_rate,
-                    ))?;
+                    .map_err(Error::FactorySearchFailed)?;
 
                 last_code_parameter = self.find_highest_code_parameter(&last_factories);
             }
@@ -166,7 +167,7 @@ impl<
                 &factory,
                 &self.error_budget,
                 max_num_cycles_allowed,
-            );
+            )?;
 
             for num_factories in min_num_factories.. {
                 let num_cycles_required_for_magic_states = self
@@ -176,7 +177,7 @@ impl<
                         factory.as_ref(),
                         &logical_patch,
                         &self.error_budget,
-                    );
+                    )?;
 
                 // This num_cycles could be larger than min_cycles but must
                 // still not exceed the maximum number of cycles allowed by the
@@ -198,7 +199,7 @@ impl<
                     num_cycles,
                     vec![Some(factory_part)],
                     self.required_logical_error_rate,
-                );
+                )?;
 
                 let physical_qubits = result.physical_qubits() as f64;
                 let runtime = result.runtime();
