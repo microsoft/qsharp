@@ -6,7 +6,7 @@
 import os
 
 # To be updated every time we start a new major.minor version.
-major_minor = "1.16"
+major_minor = "1.17"
 
 # Default to 'dev' builds
 BUILD_TYPE = os.environ.get("BUILD_TYPE") or "dev"
