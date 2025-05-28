@@ -75,7 +75,10 @@ export function toCircuitGroup(circuit: any): ToCircuitGroupResult {
 
 /**
  * Attempts to convert a legacy circuit schema to a CircuitGroup.
- * Returns a ToCircuitGroupResult with detailed error messages on failure.
+ *
+ * @param circuit The legacy circuit object to convert.
+ * @returns A ToCircuitGroupResult containing the converted CircuitGroup on success,
+ *          or an error message on failure.
  */
 function tryConvertLegacySchema(circuit: any): ToCircuitGroupResult {
   try {
