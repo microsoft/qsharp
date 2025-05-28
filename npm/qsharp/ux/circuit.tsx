@@ -28,11 +28,8 @@ export function Circuit(props: {
   let operations = 0;
   let errorMsg: string | undefined = undefined;
 
-  console.log("About to parse circuit file");
   const result = toCircuitGroup(props.circuit);
-
   if (result.ok) {
-    console.log("Successfully parsed circuit file");
     const circuit = result.circuitGroup.circuits[0];
     if (circuit.componentGrid === undefined) circuit.componentGrid = [];
     if (circuit.qubits === undefined) circuit.qubits = [];
@@ -47,10 +44,7 @@ export function Circuit(props: {
       qubits > MAX_QUBITS;
   } else {
     errorMsg = result.error;
-    console.log("Failed to parse circuit file: ", errorMsg);
   }
-
-  console.log("Is Unrenderable after: ", unrenderable);
 
   return (
     <div>

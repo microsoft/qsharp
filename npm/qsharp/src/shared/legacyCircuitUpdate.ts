@@ -9,6 +9,7 @@ import {
   CURRENT_VERSION,
   isCircuit,
   isCircuitGroup,
+  isOperation,
   Operation,
   Qubit,
 } from "./circuit.js";
@@ -41,46 +42,75 @@ export function toCircuitGroup(circuit: any): ToCircuitGroupResult {
 
   if (circuit?.version) {
     const version = circuit.version;
-    // If it has a "version" field, it is up-to-date
     if (isCircuitGroup(circuit)) {
-      // If it's already a CircuitGroup, return it as is
       return { ok: true, circuitGroup: circuit };
     } else if (isCircuit(circuit)) {
-      // If it's a Circuit, wrap it in a CircuitGroup
       return { ok: true, circuitGroup: { version, circuits: [circuit] } };
     } else {
       return {
         ok: false,
-        error:
-          "Unknown schema: circuit is neither a CircuitGroup nor a Circuit.",
+        error: "Unknown schema: file is neither a CircuitGroup nor a Circuit.",
       };
     }
   } else if (isCircuit(circuit)) {
-    // If it's a Circuit without a version, wrap it in a CircuitGroup
     return {
       ok: true,
       circuitGroup: { version: CURRENT_VERSION, circuits: [circuit] },
     };
-  } else if (circuit?.operations) {
-    // Legacy schema: convert to CircuitGroup
-    if (circuit.qubits === undefined || !Array.isArray(circuit.qubits)) {
-      return {
-        ok: false,
-        error: "Unknown schema: circuit is missing qubit information.",
-      };
-    }
+  } else if (
+    circuit?.operations &&
+    Array.isArray(circuit.operations) &&
+    circuit?.qubits &&
+    Array.isArray(circuit.qubits)
+  ) {
+    // If it has "operations" and "qubits", it is a legacy schema
+    return tryConvertLegacySchema(circuit);
+  } else {
+    return {
+      ok: false,
+      error: "Unknown schema: file does not match any known format.",
+    };
+  }
+}
 
-    const qubits: Qubit[] = circuit.qubits.map((qubit: any) => {
+/**
+ * Attempts to convert a legacy circuit schema to a CircuitGroup.
+ * Returns a ToCircuitGroupResult with detailed error messages on failure.
+ */
+function tryConvertLegacySchema(circuit: any): ToCircuitGroupResult {
+  try {
+    const qubits: Qubit[] = circuit.qubits.map((qubit: any, idx: number) => {
+      if (
+        typeof qubit !== "object" ||
+        qubit === null ||
+        typeof qubit.id !== "number"
+      ) {
+        throw new Error(`Invalid qubit at index ${idx}.`);
+      }
       return {
         id: qubit.id,
-        numResults: qubit.numChildren || 0, // Rename "numChildren" to "numResults"
+        numResults: qubit.numChildren || 0,
       };
     });
 
-    const componentGrid = operationListToGrid(
-      circuit.operations.map(toOperation),
-      qubits.length,
-    );
+    const operationList = circuit.operations.map((op: any, idx: number) => {
+      try {
+        return toOperation(op);
+      } catch (e) {
+        throw new Error(
+          `Failed to convert operation at index ${idx}: ${(e as Error).message}`,
+        );
+      }
+    });
+
+    if (!operationList.every(isOperation)) {
+      return {
+        ok: false,
+        error: "Unknown schema: file contains invalid operations.",
+      };
+    }
+
+    const componentGrid = operationListToGrid(operationList, qubits.length);
 
     return {
       ok: true,
@@ -94,10 +124,10 @@ export function toCircuitGroup(circuit: any): ToCircuitGroupResult {
         ],
       },
     };
-  } else {
+  } catch (e) {
     return {
       ok: false,
-      error: "Unknown schema: circuit does not match any known format.",
+      error: `Legacy schema: ${e instanceof Error ? e.message : String(e)}`,
     };
   }
 }
@@ -136,7 +166,7 @@ function toOperation(op: any): Operation {
       results: targets,
     } as Operation;
   } else {
-    const ket = getKetLabel(op.gate);
+    const ket = op.gate === undefined ? "" : getKetLabel(op.gate);
     if (ket.length > 0) {
       return {
         ...op,
@@ -309,10 +339,12 @@ function groupOperations(
   );
   operations.forEach((operation, instrIdx) => {
     const [minRegIdx, maxRegIdx] = getMinMaxRegIdx(operation, numQubits);
-    // Add operation also to registers that are in-between target registers
-    // so that other gates won't render in the middle.
-    for (let i = minRegIdx; i <= maxRegIdx; i++) {
-      groupedOps[i].push(instrIdx);
+    if (minRegIdx > -1 && maxRegIdx > -1) {
+      // Add operation also to registers that are in-between target registers
+      // so that other gates won't render in the middle.
+      for (let i = minRegIdx; i <= maxRegIdx; i++) {
+        groupedOps[i].push(instrIdx);
+      }
     }
   });
   return groupedOps;

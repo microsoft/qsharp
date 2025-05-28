@@ -202,7 +202,7 @@ export function isOperation(obj: any): obj is Operation {
   if (!isBaseOperation(obj)) return false;
   // Re-cast to any so we can check discriminated fields without narrowing
   const op: any = obj;
-  if (typeof op.kind !== "string") return false;
+  if (op.kind === undefined || typeof op.kind !== "string") return false;
   switch (op.kind) {
     case "unitary":
       return (
