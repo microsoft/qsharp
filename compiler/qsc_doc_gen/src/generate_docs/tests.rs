@@ -282,7 +282,7 @@ fn top_index_file_generation() {
 #[test]
 fn dependency_with_main_namespace_fully_qualified_name() {
     let full_contents = check_doc_generation(
-        Some(("dep/Main.qs", "namespace Main { operation DependencyFunction() : Unit {} export DependencyFunction; }")),
+        Some(("dep/Main.qs", "operation DependencyFunction() : Unit {} export DependencyFunction;")),
         Some("MyDep"),
         ("src/Main.qs", "operation Main() : Unit { MyDep.DependencyFunction() }"),
         "DependencyFunction.md",
@@ -361,7 +361,7 @@ fn user_code_with_main_namespace_fully_qualified_name() {
         None,
         (
             "src/Main.qs",
-            "namespace Main { operation UserFunction() : Unit {} export UserFunction; }",
+            "operation UserFunction() : Unit {} export UserFunction;",
         ),
         "UserFunction.md",
     );
@@ -386,6 +386,44 @@ fn user_code_with_main_namespace_fully_qualified_name() {
 
         ```qsharp
         operation UserFunction() : Unit
+        ```
+    "#]]
+    .assert_eq(full_contents.as_str());
+}
+
+#[test]
+fn user_code_with_implicit_main_namespace() {
+    // Test that implicit Main namespace (without explicit declaration) behaves the same
+    let full_contents = check_doc_generation(
+        None, // No dependencies
+        None,
+        (
+            "src/Main.qs",
+            "operation ImplicitMainFunction() : Unit {} export ImplicitMainFunction;",
+        ),
+        "ImplicitMainFunction.md",
+    );
+
+    // Should behave the same as explicit Main namespace declaration
+    expect![[r#"
+        ---
+        uid: Qdk.Main.ImplicitMainFunction
+        title: ImplicitMainFunction operation
+        description: "Q# ImplicitMainFunction operation: "
+        ms.date: {TIMESTAMP}
+        qsharp.kind: operation
+        qsharp.package: __Main__
+        qsharp.namespace: Main
+        qsharp.name: ImplicitMainFunction
+        qsharp.summary: ""
+        ---
+
+        # ImplicitMainFunction operation
+
+        Fully qualified name: Main.ImplicitMainFunction
+
+        ```qsharp
+        operation ImplicitMainFunction() : Unit
         ```
     "#]]
     .assert_eq(full_contents.as_str());
