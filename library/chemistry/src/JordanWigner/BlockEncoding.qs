@@ -50,14 +50,14 @@ function JWBlockEncodingGeneratorSystem(data : JWOptimizedHTerms) : GeneratorSys
 
     for idx in IndexRange(ZData) {
         // Array of Arrays of Length 1
-        genIdxes w/= idx <- (ZTermToPauliGenIdx(HTermToGenIdx(ZData[idx], [0])))[0];
+        genIdxes[idx] = (ZTermToPauliGenIdx(HTermToGenIdx(ZData[idx], [0])))[0];
     }
 
     startIdx = Length(ZData);
 
     for idx in IndexRange(ZZData) {
         // Array of Arrays of Length 1
-        genIdxes w/= startIdx + idx <- (ZZTermToPauliGenIdx(HTermToGenIdx(ZZData[idx], [1])))[0];
+        genIdxes[startIdx + idx] = (ZZTermToPauliGenIdx(HTermToGenIdx(ZZData[idx], [1])))[0];
     }
 
     startIdx = startIdx + Length(ZZData);
@@ -66,8 +66,8 @@ function JWBlockEncodingGeneratorSystem(data : JWOptimizedHTerms) : GeneratorSys
 
         // Array of Arrays of Length 2
         let genArr = PQandPQQRTermToPauliGenIdx(HTermToGenIdx(PQandPQQRData[idx], [2]));
-        genIdxes w/= startIdx + 2 * idx <- genArr[0];
-        genIdxes w/= (startIdx + 2 * idx) + 1 <- genArr[1];
+        genIdxes[startIdx + 2 * idx] = genArr[0];
+        genIdxes[(startIdx + 2 * idx) + 1] = genArr[1];
     }
 
     startIdx = startIdx + 2 * Length(PQandPQQRData);
@@ -78,7 +78,7 @@ function JWBlockEncodingGeneratorSystem(data : JWOptimizedHTerms) : GeneratorSys
         let genArr = V0123TermToPauliGenIdx(HTermToGenIdx(h0123Data[idx], [3]));
 
         for idx0123 in IndexRange(genArr) {
-            genIdxes w/= finalIdx <- genArr[idx0123];
+            genIdxes[finalIdx] = genArr[idx0123];
             finalIdx += 1;
         }
     }
@@ -203,11 +203,11 @@ function V0123TermToPauliGenIdx(term : GeneratorIndex) : GeneratorIndex[] {
     for idxOp in IndexRange(ops) {
         if (IsNotZero(v0123[idxOp % 4])) {
             let newCoeff = [v0123[idxOp % 4]];
-            genIdxes w/= nonZero <- new GeneratorIndex {
+            genIdxes[nonZero] = new GeneratorIndex {
                 Term = (ops[idxOp] + Repeated(3, Length(qubitsPQJW) + Length(qubitsRSJW)), newCoeff),
                 Subsystem = ((qubitsPQ + qubitsRS) + qubitsPQJW) + qubitsRSJW
             };
-            nonZero = nonZero + 1;
+            nonZero += 1;
         }
     }
 
