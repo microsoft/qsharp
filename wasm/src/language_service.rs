@@ -382,6 +382,7 @@ serializable_type! {
         pub lints: Option<Vec<LintOrGroupConfig>>
     },
     r#"export interface IWorkspaceConfiguration {
+        projectType?: ProjectType;
         targetProfile?: TargetProfile;
         packageType?: "exe" | "lib";
         languageFeatures?: LanguageFeatures[];
