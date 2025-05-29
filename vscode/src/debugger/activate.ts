@@ -89,7 +89,7 @@ function registerCommands(context: vscode.ExtensionContext) {
         }
         startQdkDebugging(
           resource,
-          { name: "Run", stopOnEntry: false, entry: expr },
+          { name: "QDK: Run Program", stopOnEntry: false, entry: expr },
           { noDebug: true },
         );
       },
@@ -103,7 +103,7 @@ function registerCommands(context: vscode.ExtensionContext) {
           expr = undefined;
         }
         startQdkDebugging(resource, {
-          name: "Debug",
+          name: "QDK: Debug Program",
           stopOnEntry: true,
           entry: expr,
         });
@@ -122,7 +122,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
         startQdkDebugging(
           resource,
-          { name: "Run Circuit File", stopOnEntry: false, entry },
+          { name: "QDK: Run Circuit File", stopOnEntry: false, entry },
           { noDebug: true },
         );
       },
@@ -133,7 +133,7 @@ function registerCommands(context: vscode.ExtensionContext) {
         startQdkDebugging(
           resource,
           {
-            name: "Run file and show circuit diagram",
+            name: "QDK: Run and Show Circuit",
             stopOnEntry: false,
             showCircuit: true,
           },
