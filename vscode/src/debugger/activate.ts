@@ -5,7 +5,7 @@
 
 import { IDebugServiceWorker, getDebugServiceWorker, log } from "qsharp-lang";
 import * as vscode from "vscode";
-import { qsharpExtensionId } from "../common";
+import { isCircuitDocument, isQdkDocument, qsharpExtensionId } from "../common";
 import { clearCommandDiagnostics } from "../diagnostics";
 import {
   getActiveQdkDocumentUri,
@@ -13,6 +13,8 @@ import {
 } from "../programConfig";
 import { getRandomGuid } from "../utils";
 import { QscDebugSession } from "./session";
+import { generateQubitCircuitExpression } from "../circuitEditor";
+import { findManifestDirectory } from "../projectSystem";
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
@@ -39,13 +41,46 @@ export async function activateDebugger(
   context.subscriptions.push(
     vscode.debug.registerDebugAdapterDescriptorFactory("qsharp", factory),
   );
+
+  // Listen for active editor changes and set the context key
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+      if (editor) {
+        await updateQsharpProjectContext(editor.document);
+      }
+    }),
+  );
+
+  // Also set the context key on activation (in case a file is already open)
+  if (vscode.window.activeTextEditor) {
+    await updateQsharpProjectContext(vscode.window.activeTextEditor.document);
+  }
+}
+
+// Helper function to check if the file is in a project and set the context key
+export async function updateQsharpProjectContext(
+  document: vscode.TextDocument,
+) {
+  // The path of the project directory, if applicable, null if not in a project.
+  let activeProjectDirectory: string | undefined = undefined;
+  if (isQdkDocument(document) || isCircuitDocument(document)) {
+    const projectDir = await findManifestDirectory(document.uri.toString());
+    if (projectDir !== null && projectDir !== "") {
+      activeProjectDirectory = projectDir;
+    }
+  }
+  vscode.commands.executeCommand(
+    "setContext",
+    "qsharp.activeProjectDirectory",
+    activeProjectDirectory,
+  );
 }
 
 function registerCommands(context: vscode.ExtensionContext) {
   // Register commands for running and debugging Q# files.
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      `${qsharpExtensionId}.runEditorContents`,
+      `${qsharpExtensionId}.runProgram`,
       (resource: vscode.Uri, expr?: string) => {
         // if expr is not a string, ignore it. VS Code can sometimes
         // pass other types when this command is invoked via UI buttons.
@@ -54,13 +89,13 @@ function registerCommands(context: vscode.ExtensionContext) {
         }
         startQdkDebugging(
           resource,
-          { name: "Run File", stopOnEntry: false, entry: expr },
+          { name: "QDK: Run Program", stopOnEntry: false, entry: expr },
           { noDebug: true },
         );
       },
     ),
     vscode.commands.registerCommand(
-      `${qsharpExtensionId}.debugEditorContents`,
+      `${qsharpExtensionId}.debugProgram`,
       (resource: vscode.Uri, expr?: string) => {
         // if expr is not a string, ignore it. VS Code can sometimes
         // pass other types when this command is invoked via UI buttons.
@@ -68,10 +103,28 @@ function registerCommands(context: vscode.ExtensionContext) {
           expr = undefined;
         }
         startQdkDebugging(resource, {
-          name: "Debug File",
+          name: "QDK: Debug Program",
           stopOnEntry: true,
           entry: expr,
         });
+      },
+    ),
+    vscode.commands.registerCommand(
+      `${qsharpExtensionId}.runCircuitFile`,
+      async (resource: vscode.Uri) => {
+        if (!resource) {
+          throw new Error(
+            "Unable to find a circuit file to run. Please use the Run button.",
+          );
+        }
+
+        const entry = await generateQubitCircuitExpression(resource);
+
+        startQdkDebugging(
+          resource,
+          { name: "QDK: Run Circuit File", stopOnEntry: false, entry },
+          { noDebug: true },
+        );
       },
     ),
     vscode.commands.registerCommand(
@@ -80,7 +133,7 @@ function registerCommands(context: vscode.ExtensionContext) {
         startQdkDebugging(
           resource,
           {
-            name: "Run file and show circuit diagram",
+            name: "QDK: Run and Show Circuit",
             stopOnEntry: false,
             showCircuit: true,
           },
