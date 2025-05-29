@@ -7,7 +7,7 @@ use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::compile::{PackageStore, SourceMap};
 use std::sync::Arc;
 
-/// Helper function to set up test documentation generation with dependencies
+/// Helper function to test documentation generation for a given source
 ///
 /// # Arguments
 /// * `dependency_source` - Optional tuple of (filename, content) for dependency package
@@ -17,7 +17,7 @@ use std::sync::Arc;
 ///
 /// # Returns
 /// Formatted string containing metadata and contents of the target documentation file
-fn setup_test_docs(
+fn check_doc_generation(
     dependency_source: Option<(&str, &str)>,
     dependency_alias: Option<&str>,
     user_source: (&str, &str),
@@ -65,7 +65,7 @@ fn setup_test_docs(
     let doc_file = files
         .iter()
         .find(|(file_name, _, _)| file_name.contains(target_doc_name))
-        .unwrap_or_else(|| panic!("Could not find doc file for {}", target_doc_name));
+        .unwrap_or_else(|| panic!("Could not find doc file for {target_doc_name}"));
 
     let (_, metadata, contents) = doc_file;
     format!("{metadata}\n\n{contents}")
@@ -281,7 +281,7 @@ fn top_index_file_generation() {
 
 #[test]
 fn dependency_with_main_namespace_fully_qualified_name() {
-    let full_contents = setup_test_docs(
+    let full_contents = check_doc_generation(
         Some(("dep/Main.qs", "namespace Main { operation DependencyFunction() : Unit {} export DependencyFunction; }")),
         Some("MyDep"),
         ("src/Main.qs", "operation Main() : Unit { MyDep.DependencyFunction() }"),
@@ -316,7 +316,7 @@ fn dependency_with_main_namespace_fully_qualified_name() {
 
 #[test]
 fn dependency_with_non_main_namespace_fully_qualified_name() {
-    let full_contents = setup_test_docs(
+    let full_contents = check_doc_generation(
         Some((
             "dep/Utils.qs",
             "namespace Utils { operation UtilityFunction() : Unit {} export UtilityFunction; }",
@@ -356,7 +356,7 @@ fn dependency_with_non_main_namespace_fully_qualified_name() {
 
 #[test]
 fn user_code_with_main_namespace_fully_qualified_name() {
-    let full_contents = setup_test_docs(
+    let full_contents = check_doc_generation(
         None, // No dependencies
         None,
         (
