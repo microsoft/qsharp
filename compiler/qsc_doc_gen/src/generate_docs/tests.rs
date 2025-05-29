@@ -3,6 +3,73 @@
 
 use super::generate_docs;
 use expect_test::expect;
+use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_frontend::compile::{PackageStore, SourceMap};
+use std::sync::Arc;
+
+/// Helper function to test documentation generation for a given source
+///
+/// # Arguments
+/// * `dependency_source` - Optional tuple of (filename, content) for dependency package
+/// * `dependency_alias` - Optional alias name for the dependency package
+/// * `user_source` - Tuple of (filename, content) for user code
+/// * `target_doc_name` - Name of the documentation file to find and return
+///
+/// # Returns
+/// Formatted string containing metadata and contents of the target documentation file
+fn check_doc_generation(
+    dependency_source: Option<(&str, &str)>,
+    dependency_alias: Option<&str>,
+    user_source: (&str, &str),
+    target_doc_name: &str,
+) -> String {
+    // Create package store with core
+    let mut package_store = PackageStore::new(qsc_frontend::compile::core());
+    let std_unit = qsc_frontend::compile::std(&package_store, Default::default());
+    package_store.insert(std_unit);
+
+    // Set up dependencies if provided
+    let dependencies = if let Some((dep_filename, dep_content)) = dependency_source {
+        let dep_sources = SourceMap::new([(dep_filename.into(), dep_content.into())], None);
+
+        let dep_unit = qsc_frontend::compile::compile(
+            &package_store,
+            &[],
+            dep_sources,
+            Default::default(),
+            LanguageFeatures::default(),
+        );
+
+        let dep_package_id = package_store.insert(dep_unit);
+
+        if let Some(alias) = dependency_alias {
+            vec![(dep_package_id, Some(Arc::from(alias)))]
+        } else {
+            vec![(dep_package_id, None)]
+        }
+    } else {
+        vec![]
+    };
+
+    // Set up user sources
+    let user_sources = SourceMap::new([(user_source.0.into(), user_source.1.into())], None);
+
+    // Generate documentation
+    let files = generate_docs(
+        Some((package_store, &dependencies, user_sources)),
+        None,
+        None,
+    );
+
+    // Find the target documentation file
+    let doc_file = files
+        .iter()
+        .find(|(file_name, _, _)| file_name.contains(target_doc_name))
+        .unwrap_or_else(|| panic!("Could not find doc file for {target_doc_name}"));
+
+    let (_, metadata, contents) = doc_file;
+    format!("{metadata}\n\n{contents}")
+}
 
 #[test]
 fn generates_standard_item() {
@@ -208,6 +275,203 @@ fn top_index_file_generation() {
         | [`Std.ResourceEstimation`](xref:Qdk.Std.ResourceEstimation-toc) | Items for working with the Azure Quantum Resource Estimator.         |
         | [`Std.StatePreparation`](xref:Qdk.Std.StatePreparation-toc)     | Items for preparing a quantum state.                                 |
         | [`Std.TableLookup`](xref:Qdk.Std.TableLookup-toc)               | Items for performing quantum table lookups.                          |
+    "#]]
+    .assert_eq(full_contents.as_str());
+}
+
+#[test]
+fn dependency_with_main_namespace_fully_qualified_name() {
+    let full_contents = check_doc_generation(
+        Some((
+            "dep/Main.qs",
+            "operation DependencyFunction() : Unit {} export DependencyFunction;",
+        )),
+        Some("MyDep"),
+        (
+            "src/Main.qs",
+            "operation Main() : Unit { MyDep.DependencyFunction() }",
+        ),
+        "DependencyFunction.md",
+    );
+
+    // The fully qualified name should be "MyDep.DependencyFunction", not "MyDep.Main.DependencyFunction"
+    // After the fix, "Main" namespace should be omitted for aliased packages
+    expect![[r#"
+        ---
+        uid: Qdk.MyDep.DependencyFunction
+        title: DependencyFunction operation
+        description: "Q# DependencyFunction operation: "
+        ms.date: {TIMESTAMP}
+        qsharp.kind: operation
+        qsharp.package: MyDep
+        qsharp.namespace: 
+        qsharp.name: DependencyFunction
+        qsharp.summary: ""
+        ---
+
+        # DependencyFunction operation
+
+        Fully qualified name: MyDep.DependencyFunction
+
+        ```qsharp
+        operation DependencyFunction() : Unit
+        ```
+    "#]]
+    .assert_eq(full_contents.as_str());
+}
+
+#[test]
+fn dependency_with_non_main_namespace_fully_qualified_name() {
+    let full_contents = check_doc_generation(
+        Some((
+            "dep/Utils.qs",
+            "namespace Utils { operation UtilityFunction() : Unit {} export UtilityFunction; }",
+        )),
+        Some("MyDep"),
+        (
+            "src/Main.qs",
+            "operation Main() : Unit { MyDep.Utils.UtilityFunction() }",
+        ),
+        "UtilityFunction.md",
+    );
+
+    // For non-Main namespaces, the namespace should be included in fully qualified name
+    expect![[r#"
+        ---
+        uid: Qdk.MyDep.Utils.UtilityFunction
+        title: UtilityFunction operation
+        description: "Q# UtilityFunction operation: "
+        ms.date: {TIMESTAMP}
+        qsharp.kind: operation
+        qsharp.package: MyDep
+        qsharp.namespace: Utils
+        qsharp.name: UtilityFunction
+        qsharp.summary: ""
+        ---
+
+        # UtilityFunction operation
+
+        Fully qualified name: MyDep.Utils.UtilityFunction
+
+        ```qsharp
+        operation UtilityFunction() : Unit
+        ```
+    "#]]
+    .assert_eq(full_contents.as_str());
+}
+
+#[test]
+fn user_code_with_main_namespace_fully_qualified_name() {
+    let full_contents = check_doc_generation(
+        None, // No dependencies
+        None,
+        (
+            "src/Main.qs",
+            "operation UserFunction() : Unit {} export UserFunction;",
+        ),
+        "UserFunction.md",
+    );
+
+    // For user code, Main namespace should also be omitted for consistency with modern Q#
+    expect![[r#"
+        ---
+        uid: Qdk.UserFunction
+        title: UserFunction operation
+        description: "Q# UserFunction operation: "
+        ms.date: {TIMESTAMP}
+        qsharp.kind: operation
+        qsharp.package: __Main__
+        qsharp.namespace: 
+        qsharp.name: UserFunction
+        qsharp.summary: ""
+        ---
+
+        # UserFunction operation
+
+        Fully qualified name: UserFunction
+
+        ```qsharp
+        operation UserFunction() : Unit
+        ```
+    "#]]
+    .assert_eq(full_contents.as_str());
+}
+
+#[test]
+fn user_code_with_implicit_main_namespace() {
+    // Test that implicit Main namespace (without explicit declaration) behaves the same
+    let full_contents = check_doc_generation(
+        None, // No dependencies
+        None,
+        (
+            "src/Main.qs",
+            "operation ImplicitMainFunction() : Unit {} export ImplicitMainFunction;",
+        ),
+        "ImplicitMainFunction.md",
+    );
+
+    // Should behave the same as explicit Main namespace declaration
+    expect![[r#"
+        ---
+        uid: Qdk.ImplicitMainFunction
+        title: ImplicitMainFunction operation
+        description: "Q# ImplicitMainFunction operation: "
+        ms.date: {TIMESTAMP}
+        qsharp.kind: operation
+        qsharp.package: __Main__
+        qsharp.namespace: 
+        qsharp.name: ImplicitMainFunction
+        qsharp.summary: ""
+        ---
+
+        # ImplicitMainFunction operation
+
+        Fully qualified name: ImplicitMainFunction
+
+        ```qsharp
+        operation ImplicitMainFunction() : Unit
+        ```
+    "#]]
+    .assert_eq(full_contents.as_str());
+}
+
+#[test]
+fn dependency_with_implicit_main_namespace_fully_qualified_name() {
+    // Test the same scenario as above but with implicit Main namespace (no explicit namespace declaration)
+    let full_contents = check_doc_generation(
+        Some((
+            "dep/Main.qs",
+            "operation DependencyFunction() : Unit {} export DependencyFunction;",
+        )),
+        Some("MyDep"),
+        (
+            "src/Main.qs",
+            "operation Main() : Unit { MyDep.DependencyFunction() }",
+        ),
+        "DependencyFunction.md",
+    );
+
+    // Should behave identically to explicit Main namespace declaration
+    expect![[r#"
+        ---
+        uid: Qdk.MyDep.DependencyFunction
+        title: DependencyFunction operation
+        description: "Q# DependencyFunction operation: "
+        ms.date: {TIMESTAMP}
+        qsharp.kind: operation
+        qsharp.package: MyDep
+        qsharp.namespace: 
+        qsharp.name: DependencyFunction
+        qsharp.summary: ""
+        ---
+
+        # DependencyFunction operation
+
+        Fully qualified name: MyDep.DependencyFunction
+
+        ```qsharp
+        operation DependencyFunction() : Unit
+        ```
     "#]]
     .assert_eq(full_contents.as_str());
 }

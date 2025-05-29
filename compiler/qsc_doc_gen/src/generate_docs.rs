@@ -45,9 +45,22 @@ impl Metadata {
             vec![]
         };
 
-        buf.push(self.namespace.to_string());
+        // Omit "Main" namespace as it's treated as root in modern Q#
+        if self.namespace.as_ref() != "Main" && !self.namespace.is_empty() {
+            buf.push(self.namespace.to_string());
+        }
+
         buf.push(self.name.to_string());
         buf.join(".")
+    }
+
+    fn display_namespace(&self) -> &str {
+        // Omit "Main" namespace as it's treated as root in modern Q#
+        if self.namespace.as_ref() == "Main" {
+            ""
+        } else {
+            self.namespace.as_ref()
+        }
     }
 
     fn display_for_toc(&self) -> String {
@@ -73,6 +86,7 @@ ms.topic: landing-page
             MetadataKind::Export => "export",
             MetadataKind::TableOfContents => "table of contents",
         };
+        let display_ns = self.display_namespace();
         format!(
             "---
 uid: {}
@@ -91,7 +105,7 @@ qsharp.summary: \"{}\"
             self.summary,
             kind,
             self.package,
-            self.namespace,
+            display_ns,
             self.name,
             self.summary
         )
@@ -700,8 +714,30 @@ fn get_metadata(
         .replace("\r\n", " ")
         .replace('\n', " ");
 
+    // Build UID with package alias for aliased packages
+    let uid_path = match &package_kind {
+        PackageKind::AliasedPackage(alias) => {
+            // For aliased packages, omit "Main" namespace as it's treated as root
+            if ns.as_ref() == "Main" {
+                format!(".{alias}")
+            } else {
+                format!(".{alias}.{ns}")
+            }
+        }
+        _ => {
+            // For all packages, omit "Main" namespace as it's treated as root in modern Q#
+            if ns.as_ref() == "Main" {
+                String::new()
+            } else if ns.is_empty() {
+                String::new()
+            } else {
+                format!(".{ns}")
+            }
+        }
+    };
+
     Some(Metadata {
-        uid: format!("Qdk.{ns}.{name}"),
+        uid: format!("Qdk{uid_path}.{name}"),
         title: format!("{name} {kind}"),
         kind,
         package: package_kind,
