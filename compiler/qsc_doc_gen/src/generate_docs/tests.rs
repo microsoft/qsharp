@@ -282,9 +282,15 @@ fn top_index_file_generation() {
 #[test]
 fn dependency_with_main_namespace_fully_qualified_name() {
     let full_contents = check_doc_generation(
-        Some(("dep/Main.qs", "operation DependencyFunction() : Unit {} export DependencyFunction;")),
+        Some((
+            "dep/Main.qs",
+            "operation DependencyFunction() : Unit {} export DependencyFunction;",
+        )),
         Some("MyDep"),
-        ("src/Main.qs", "operation Main() : Unit { MyDep.DependencyFunction() }"),
+        (
+            "src/Main.qs",
+            "operation Main() : Unit { MyDep.DependencyFunction() }",
+        ),
         "DependencyFunction.md",
     );
 
@@ -292,7 +298,7 @@ fn dependency_with_main_namespace_fully_qualified_name() {
     // After the fix, "Main" namespace should be omitted for aliased packages
     expect![[r#"
         ---
-        uid: Qdk.DependencyFunction
+        uid: Qdk.MyDep.DependencyFunction
         title: DependencyFunction operation
         description: "Q# DependencyFunction operation: "
         ms.date: {TIMESTAMP}
@@ -332,7 +338,7 @@ fn dependency_with_non_main_namespace_fully_qualified_name() {
     // For non-Main namespaces, the namespace should be included in fully qualified name
     expect![[r#"
         ---
-        uid: Qdk.Utils.UtilityFunction
+        uid: Qdk.MyDep.Utils.UtilityFunction
         title: UtilityFunction operation
         description: "Q# UtilityFunction operation: "
         ms.date: {TIMESTAMP}
@@ -366,23 +372,23 @@ fn user_code_with_main_namespace_fully_qualified_name() {
         "UserFunction.md",
     );
 
-    // For user code (PackageKind::UserCode), Main namespace should still be included
+    // For user code, Main namespace should also be omitted for consistency with modern Q#
     expect![[r#"
         ---
-        uid: Qdk.Main.UserFunction
+        uid: Qdk.UserFunction
         title: UserFunction operation
         description: "Q# UserFunction operation: "
         ms.date: {TIMESTAMP}
         qsharp.kind: operation
         qsharp.package: __Main__
-        qsharp.namespace: Main
+        qsharp.namespace: 
         qsharp.name: UserFunction
         qsharp.summary: ""
         ---
 
         # UserFunction operation
 
-        Fully qualified name: Main.UserFunction
+        Fully qualified name: UserFunction
 
         ```qsharp
         operation UserFunction() : Unit
@@ -407,23 +413,64 @@ fn user_code_with_implicit_main_namespace() {
     // Should behave the same as explicit Main namespace declaration
     expect![[r#"
         ---
-        uid: Qdk.Main.ImplicitMainFunction
+        uid: Qdk.ImplicitMainFunction
         title: ImplicitMainFunction operation
         description: "Q# ImplicitMainFunction operation: "
         ms.date: {TIMESTAMP}
         qsharp.kind: operation
         qsharp.package: __Main__
-        qsharp.namespace: Main
+        qsharp.namespace: 
         qsharp.name: ImplicitMainFunction
         qsharp.summary: ""
         ---
 
         # ImplicitMainFunction operation
 
-        Fully qualified name: Main.ImplicitMainFunction
+        Fully qualified name: ImplicitMainFunction
 
         ```qsharp
         operation ImplicitMainFunction() : Unit
+        ```
+    "#]]
+    .assert_eq(full_contents.as_str());
+}
+
+#[test]
+fn dependency_with_implicit_main_namespace_fully_qualified_name() {
+    // Test the same scenario as above but with implicit Main namespace (no explicit namespace declaration)
+    let full_contents = check_doc_generation(
+        Some((
+            "dep/Main.qs",
+            "operation DependencyFunction() : Unit {} export DependencyFunction;",
+        )),
+        Some("MyDep"),
+        (
+            "src/Main.qs",
+            "operation Main() : Unit { MyDep.DependencyFunction() }",
+        ),
+        "DependencyFunction.md",
+    );
+
+    // Should behave identically to explicit Main namespace declaration
+    expect![[r#"
+        ---
+        uid: Qdk.MyDep.DependencyFunction
+        title: DependencyFunction operation
+        description: "Q# DependencyFunction operation: "
+        ms.date: {TIMESTAMP}
+        qsharp.kind: operation
+        qsharp.package: MyDep
+        qsharp.namespace: 
+        qsharp.name: DependencyFunction
+        qsharp.summary: ""
+        ---
+
+        # DependencyFunction operation
+
+        Fully qualified name: MyDep.DependencyFunction
+
+        ```qsharp
+        operation DependencyFunction() : Unit
         ```
     "#]]
     .assert_eq(full_contents.as_str());

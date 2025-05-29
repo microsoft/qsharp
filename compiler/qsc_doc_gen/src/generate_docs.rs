@@ -45,10 +45,8 @@ impl Metadata {
             vec![]
         };
 
-        // For aliased packages, omit "Main" namespace as it's treated as root
-        if !matches!(self.package, PackageKind::AliasedPackage(_))
-            || self.namespace.as_ref() != "Main"
-        {
+        // Omit "Main" namespace as it's treated as root in modern Q#
+        if self.namespace.as_ref() != "Main" && !self.namespace.is_empty() {
             buf.push(self.namespace.to_string());
         }
 
@@ -57,8 +55,8 @@ impl Metadata {
     }
 
     fn display_namespace(&self) -> &str {
-        // For aliased packages, omit "Main" namespace as it's treated as root
-        if matches!(self.package, PackageKind::AliasedPackage(_)) && self.namespace.as_ref() == "Main" {
+        // Omit "Main" namespace as it's treated as root in modern Q#
+        if self.namespace.as_ref() == "Main" {
             ""
         } else {
             self.namespace.as_ref()
@@ -716,15 +714,30 @@ fn get_metadata(
         .replace("\r\n", " ")
         .replace('\n', " ");
 
-    // For aliased packages, omit "Main" namespace from UID as it's treated as root
-    let uid_namespace = if matches!(package_kind, PackageKind::AliasedPackage(_)) && ns.as_ref() == "Main" {
-        String::new()
-    } else {
-        format!(".{ns}")
+    // Build UID with package alias for aliased packages
+    let uid_path = match &package_kind {
+        PackageKind::AliasedPackage(alias) => {
+            // For aliased packages, omit "Main" namespace as it's treated as root
+            if ns.as_ref() == "Main" {
+                format!(".{alias}")
+            } else {
+                format!(".{alias}.{ns}")
+            }
+        }
+        _ => {
+            // For all packages, omit "Main" namespace as it's treated as root in modern Q#
+            if ns.as_ref() == "Main" {
+                String::new()
+            } else if ns.is_empty() {
+                String::new()
+            } else {
+                format!(".{ns}")
+            }
+        }
     };
 
     Some(Metadata {
-        uid: format!("Qdk{uid_namespace}.{name}"),
+        uid: format!("Qdk{uid_path}.{name}"),
         title: format!("{name} {kind}"),
         kind,
         package: package_kind,
