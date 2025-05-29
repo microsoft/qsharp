@@ -292,13 +292,13 @@ fn dependency_with_main_namespace_fully_qualified_name() {
     // After the fix, "Main" namespace should be omitted for aliased packages
     expect![[r#"
         ---
-        uid: Qdk.Main.DependencyFunction
+        uid: Qdk.DependencyFunction
         title: DependencyFunction operation
         description: "Q# DependencyFunction operation: "
         ms.date: {TIMESTAMP}
         qsharp.kind: operation
         qsharp.package: MyDep
-        qsharp.namespace: Main
+        qsharp.namespace: 
         qsharp.name: DependencyFunction
         qsharp.summary: ""
         ---

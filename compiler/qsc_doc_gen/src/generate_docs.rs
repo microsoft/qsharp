@@ -56,6 +56,15 @@ impl Metadata {
         buf.join(".")
     }
 
+    fn display_namespace(&self) -> &str {
+        // For aliased packages, omit "Main" namespace as it's treated as root
+        if matches!(self.package, PackageKind::AliasedPackage(_)) && self.namespace.as_ref() == "Main" {
+            ""
+        } else {
+            self.namespace.as_ref()
+        }
+    }
+
     fn display_for_toc(&self) -> String {
         format!(
             "---
@@ -79,6 +88,7 @@ ms.topic: landing-page
             MetadataKind::Export => "export",
             MetadataKind::TableOfContents => "table of contents",
         };
+        let display_ns = self.display_namespace();
         format!(
             "---
 uid: {}
@@ -97,7 +107,7 @@ qsharp.summary: \"{}\"
             self.summary,
             kind,
             self.package,
-            self.namespace,
+            display_ns,
             self.name,
             self.summary
         )
@@ -706,8 +716,15 @@ fn get_metadata(
         .replace("\r\n", " ")
         .replace('\n', " ");
 
+    // For aliased packages, omit "Main" namespace from UID as it's treated as root
+    let uid_namespace = if matches!(package_kind, PackageKind::AliasedPackage(_)) && ns.as_ref() == "Main" {
+        String::new()
+    } else {
+        format!(".{ns}")
+    };
+
     Some(Metadata {
-        uid: format!("Qdk.{ns}.{name}"),
+        uid: format!("Qdk{uid_namespace}.{name}"),
         title: format!("{name} {kind}"),
         kind,
         package: package_kind,
