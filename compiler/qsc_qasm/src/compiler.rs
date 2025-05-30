@@ -1506,19 +1506,10 @@ impl QasmCompiler {
     }
 
     fn compile_range_expr(&mut self, range: &semast::Range) -> qsast::Expr {
-        let Some(start) = &range.start else {
-            self.push_unimplemented_error_message("omitted range start", range.span);
-            return err_expr(range.span);
-        };
-        let Some(end) = &range.end else {
-            self.push_unimplemented_error_message("omitted range end", range.span);
-            return err_expr(range.span);
-        };
-
-        let start = self.compile_expr(start);
-        let end = self.compile_expr(end);
+        let start = range.start.as_ref().map(|expr| self.compile_expr(expr));
         let step = range.step.as_ref().map(|expr| self.compile_expr(expr));
-        build_range_expr(start, end, step, range.span)
+        let end = range.end.as_ref().map(|expr| self.compile_expr(expr));
+        build_range_expr(start, step, end, range.span)
     }
 
     fn compile_array_literal(&mut self, array: &Array, span: Span) -> qsast::Expr {
