@@ -600,6 +600,72 @@ operation ApplyOperationPowerA<'T>(
 }
 
 /// # Summary
+/// Applies operation `op` to the `target` `power` times.
+/// If `power` is negative, the adjoint of `op` is used.
+/// If `power` is 0, the operation `op` is not applied.
+operation ApplyOperationPowerCA<'T>(
+    power : Int,
+    op : 'T => Unit is Ctl + Adj,
+    target : 'T
+) : Unit is Ctl + Adj {
+    let u = if power >= 0 { op } else { Adjoint op };
+    for _ in 1..AbsI(power) {
+        u(target);
+    }
+}
+
+/// # Summary
+/// Performs the quantum phase estimation algorithm for a unitary U represented
+/// by `applyPowerOfU`, and a `targetState`. Returns the phase estimation
+/// in the range of [0, 2π) as a fraction of 2π in the little-endian register `phase`.
+///
+/// # Input
+/// ## applyPowerOfU
+/// An oracle implementing Uᵐ for a unitary U and a given integer power m.
+/// `ApplyOperationPowerCA(_, U, _)` can be used to implement this oracle,
+/// if no better performing implementation is available.
+/// ## targetState
+/// A quantum register acted on by U. When this `targetState` is the eigenstate
+/// of the operator U, the corresponding eigenvalue is estimated.
+/// ## phase
+/// A little-endian quantum register containing the phase estimation result. The phase is
+/// a fraction of 2π represented in binary with q[0] containing 2π/2=π bit, q[1] containing 2π/4=π/2 bit,
+/// q[2] containing 2π/8=π/4 bit, and so on. The length of the register indicates the desired precision.
+/// The phase register is assumed to be in the state |0...0⟩ when the operation is invoked.
+///
+/// # Remarks
+/// All eigenvalues of a unitary operator are of magnitude 1 and therefore can be represented as
+/// $e^{i\phi}$ for some $\phi \in [0, 2\pi)$. Finding the phase of an eigenvalue is therefore
+/// equivalent to finding the eigenvalue itself. Passing the eigenvector as `targetState`
+/// to the phase estimation operation allows finding the eigenvalue to the desired precision
+/// determined by the length of the `phase` register.
+///
+/// # Reference
+/// - [Quantum phase estimation algorithm](https://en.wikipedia.org/wiki/Quantum_phase_estimation_algorithm)
+///
+/// # See Also
+/// - [Std.Canon.ApplyOperationPowerCA](xref:Qdk.Std.Canon.ApplyOperationPowerCA)
+operation ApplyQPE(
+    applyPowerOfU : (Int, Qubit[]) => Unit is Adj + Ctl,
+    targetState : Qubit[],
+    phase : Qubit[]
+) : Unit is Adj + Ctl {
+
+    let nQubits = Length(phase);
+    ApplyToEachCA(H, phase);
+
+    for i in 0..nQubits - 1 {
+        let power = 2^((nQubits - i) - 1);
+        Controlled applyPowerOfU(
+            phase[i..i],
+            (power, targetState)
+        );
+    }
+
+    Adjoint ApplyQFT(phase);
+}
+
+/// # Summary
 /// Relabels the qubits in the `current` array with the qubits in the `updated` array. The `updated` array
 /// must be a valid permutation of the `current` array.
 ///
