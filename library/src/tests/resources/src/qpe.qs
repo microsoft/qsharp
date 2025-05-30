@@ -1,7 +1,7 @@
 namespace Test {
     import Std.Diagnostics.*;
 
-    operation TestQPE_Phase(gate: Qubit => Unit is Ctl + Adj, power: Int) : Unit {
+    operation TestQPE_Phase(gate : Qubit => Unit is Ctl + Adj, power : Int) : Unit {
         use state = Qubit();
         use phase = Qubit[4];
 
