@@ -27,6 +27,7 @@ import {
   QscEvents,
   makeEvent,
 } from "./events.js";
+import { callAndTransformExceptions } from "../diagnostics.js";
 
 // The wasm types generated for the node.js bundle are just the exported APIs,
 // so use those as the set used by the shared compiler
@@ -174,7 +175,7 @@ export class Compiler implements ICompiler {
       program,
       program.profile || "adaptive_ri",
     );
-    return this.wasm.get_rir(config);
+    return callAndTransformExceptions(async () => this.wasm.get_rir(config));
   }
 
   async run(
@@ -186,11 +187,13 @@ export class Compiler implements ICompiler {
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
     // entry expression or similar), it may throw on run. The caller should expect this promise
     // may reject without all shots running or events firing.
-    this.wasm.run(
-      toWasmProgramConfig(program, "unrestricted"),
-      expr,
-      (msg: string) => onCompilerEvent(msg, eventHandler!),
-      shots!,
+    await callAndTransformExceptions(async () =>
+      this.wasm.run(
+        toWasmProgramConfig(program, "unrestricted"),
+        expr,
+        (msg: string) => onCompilerEvent(msg, eventHandler!),
+        shots!,
+      ),
     );
   }
 
@@ -201,17 +204,21 @@ export class Compiler implements ICompiler {
     pauliNoise: number[],
     eventHandler: IQscEventTarget,
   ): Promise<void> {
-    this.wasm.runWithPauliNoise(
-      toWasmProgramConfig(program, "unrestricted"),
-      expr,
-      (msg: string) => onCompilerEvent(msg, eventHandler!),
-      shots!,
-      pauliNoise,
+    await callAndTransformExceptions(async () =>
+      this.wasm.runWithPauliNoise(
+        toWasmProgramConfig(program, "unrestricted"),
+        expr,
+        (msg: string) => onCompilerEvent(msg, eventHandler!),
+        shots!,
+        pauliNoise,
+      ),
     );
   }
 
   async getQir(program: ProgramConfig): Promise<string> {
-    return this.wasm.get_qir(toWasmProgramConfig(program, "base"));
+    return callAndTransformExceptions(async () =>
+      this.wasm.get_qir(toWasmProgramConfig(program, "base")),
+    );
   }
 
   async getEstimates(
@@ -219,10 +226,12 @@ export class Compiler implements ICompiler {
     expr: string,
     params: string,
   ): Promise<string> {
-    return this.wasm.get_estimates(
-      toWasmProgramConfig(program, "unrestricted"),
-      expr,
-      params,
+    return callAndTransformExceptions(async () =>
+      this.wasm.get_estimates(
+        toWasmProgramConfig(program, "unrestricted"),
+        expr,
+        params,
+      ),
     );
   }
 
@@ -231,10 +240,12 @@ export class Compiler implements ICompiler {
     simulate: boolean,
     operation?: IOperationInfo,
   ): Promise<CircuitData> {
-    const circuit = this.wasm.get_circuit(
-      toWasmProgramConfig(program, "unrestricted"),
-      simulate,
-      operation,
+    const circuit = await callAndTransformExceptions(async () =>
+      this.wasm.get_circuit(
+        toWasmProgramConfig(program, "unrestricted"),
+        simulate,
+        operation,
+      ),
     );
     return {
       circuits: [circuit],

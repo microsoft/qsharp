@@ -17,6 +17,7 @@ import { clearCommandDiagnostics } from "./diagnostics";
 import { FullProgramConfig, getActiveProgram } from "./programConfig";
 import {
   EventType,
+  QsharpDocumentType,
   UserFlowStatus,
   UserTaskInvocationType,
   getActiveDocumentType,
@@ -57,6 +58,7 @@ export async function showCircuitCommand(
   extensionUri: Uri,
   operation: IOperationInfo | undefined,
   telemetryInvocationType: UserTaskInvocationType,
+  telemetryDocumentType?: QsharpDocumentType,
   programConfig?: FullProgramConfig,
 ): Promise<CircuitOrError> {
   clearCommandDiagnostics();
@@ -65,7 +67,7 @@ export async function showCircuitCommand(
   sendTelemetryEvent(
     EventType.TriggerCircuit,
     {
-      documentType: getActiveDocumentType(),
+      documentType: telemetryDocumentType || getActiveDocumentType(),
       associationId,
       invocationType: telemetryInvocationType,
     },
@@ -73,7 +75,7 @@ export async function showCircuitCommand(
   );
 
   if (!programConfig) {
-    const program = await getActiveProgram();
+    const program = await getActiveProgram({ showModalError: true });
     if (!program.success) {
       throw new Error(program.errorMsg);
     }

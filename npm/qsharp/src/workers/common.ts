@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { type IQSharpError } from "../../lib/web/qsc_wasm.js";
 import { CancellationToken } from "../cancellation.js";
+import { QdkDiagnostics } from "../diagnostics.js";
 import { TelemetryEvent, log } from "../log.js";
 type Wasm = typeof import("../../lib/web/qsc_wasm.js");
 
@@ -269,7 +271,12 @@ export function createProxyInternal<
         curr = undefined;
         doNextRequest();
       } else {
-        curr.reject(result.data);
+        let err = result.data;
+
+        // The error may be a serialized error object.
+        err = deserializeIfError(err);
+
+        curr.reject(err);
         curr = undefined;
         doNextRequest();
       }
@@ -419,7 +426,10 @@ function createDispatcher<
           result: { success: true, result },
         }),
       )
-      .catch((err: any) =>
+      .catch((err: any) => {
+        // Serialize the error if it's a known type.
+        err = serializeIfError(err);
+
         logAndPost({
           // If this happens then the wasm code likely threw an exception/panicked rather than
           // completing gracefully and fullfilling the promise. Communicate to the client
@@ -427,8 +437,8 @@ function createDispatcher<
           messageType: "response",
           type: req.type,
           result: { success: false, error: err },
-        }),
-      );
+        });
+      });
   };
 }
 
@@ -511,4 +521,45 @@ export function initService<
     serviceProtocol.methods,
     serviceProtocol.eventNames,
   );
+}
+
+/**
+ * Serializes an error, if it is a known type, so that it can be sent between threads.
+ *
+ * By default, browsers can only send certain types of errors between the main thread and a worker.
+ * See: https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm#error_types
+ *
+ * Serializing our own custom errors allows us to send them between threads.
+ */
+function serializeIfError(err: unknown) {
+  // Currently `QdkDiagnostics` is the only custom error type,
+  // but this could be extended to handle others.
+  if (err instanceof QdkDiagnostics) {
+    err = { name: err.name, data: err.diagnostics };
+  }
+  return err;
+}
+
+/**
+ * Deserializes an error if it is a known type.
+ *
+ * By default, browsers can only send certain types of errors between the main thread and a worker.
+ * See: https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm#error_types
+ *
+ * Serializing our own custom errors allows us to send them between threads.
+ */
+function deserializeIfError(err: unknown) {
+  // Currently `QdkDiagnostics` is the only custom error type,
+  // but this could be extended to handle others.
+  if (
+    err !== null &&
+    typeof err === "object" &&
+    "name" in err &&
+    err.name === "QdkDiagnostics" &&
+    "data" in err
+  ) {
+    // If it is, deserialize it
+    err = new QdkDiagnostics(err.data as IQSharpError[]);
+  }
+  return err;
 }
