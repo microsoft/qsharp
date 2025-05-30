@@ -21,6 +21,7 @@ import {
   readFileSync,
   writeFileSync,
   readdirSync,
+  statSync,
 } from "node:fs";
 import { basename, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -43,6 +44,9 @@ mdValidator.use(mk.default, katexOpts);
 
 const validate = true; // Consider making this a command-line option
 let emitHtml = true;
+
+const forceRegeneration =
+  process.argv.includes("--force") || process.argv.includes("-f");
 
 const scriptDirPath = dirname(fileURLToPath(import.meta.url));
 const katasContentPath = join(scriptDirPath, "..", "..", "katas", "content");
@@ -747,8 +751,79 @@ function generateKatasContent(katasPath, outputPath) {
   );
 }
 
-// Generate HTML and Markdown versions of the katas bundle
-emitHtml = true;
-generateKatasContent(katasContentPath, katasGeneratedContentPath);
-emitHtml = false;
-generateKatasContent(katasContentPath, katasGeneratedContentPath);
+function needsRegeneration(katasPath, outputPath) {
+  if (forceRegeneration) {
+    return true;
+  }
+
+  const outputFiles = [
+    join(outputPath, "katas-content.generated.ts"),
+    join(outputPath, "katas-content.generated.md.ts"),
+  ];
+
+  // Check if any output file is missing
+  for (const outputFile of outputFiles) {
+    if (!existsSync(outputFile)) {
+      console.log(`Output file ${outputFile} missing`);
+      return true;
+    }
+  }
+
+  // Get the oldest output file timestamp
+  let oldestOutputTime = Infinity;
+  for (const outputFile of outputFiles) {
+    try {
+      const stat = statSync(outputFile);
+      oldestOutputTime = Math.min(oldestOutputTime, stat.mtime.getTime());
+    } catch {
+      console.log(
+        `Could not stat output file ${outputFile}`,
+      );
+      return true; // If we can't stat the file, regenerate
+    }
+  }
+
+  // Check if any input file is newer than the oldest output
+  function checkDirectory(dirPath) {
+    try {
+      const entries = readdirSync(dirPath, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+          if (checkDirectory(fullPath)) return true;
+        } else {
+          try {
+            const stat = statSync(fullPath);
+            if (stat.mtime.getTime() > oldestOutputTime) {
+              console.log(
+                `Input file newer than output: ${relative(process.cwd(), fullPath)}`,
+              );
+              return true;
+            }
+          } catch {
+            // If we can't stat an input file, be safe and regenerate
+            console.log(`Could not stat input file ${fullPath}`);
+            return true;
+          }
+        }
+      }
+    } catch {
+      // If we can't read the directory, be safe and regenerate
+      console.log(`Could not read directory ${dirPath}`);
+      return true;
+    }
+    return false;
+  }
+
+  return checkDirectory(katasPath);
+}
+
+if (needsRegeneration(katasContentPath, katasGeneratedContentPath)) {
+  // Generate HTML and Markdown versions of the katas bundle
+  emitHtml = true;
+  generateKatasContent(katasContentPath, katasGeneratedContentPath);
+  emitHtml = false;
+  generateKatasContent(katasContentPath, katasGeneratedContentPath);
+} else {
+  console.log("Content is up to date, skipping generation");
+}

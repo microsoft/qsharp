@@ -27,6 +27,7 @@
   "scripts": {
     "build": "npm run docs && npm run generate && npm run build:tsc",
     "generate": "node generate_katas_content.js && node generate_samples_content.js",
+    "generate:force": "node generate_katas_content.js --force && node generate_samples_content.js",
     "docs": "node generate_docs.js",
     "build:tsc": "node ../../node_modules/typescript/bin/tsc -p ./src/tsconfig.json",
     "tsc:watch": "node ../../node_modules/typescript/bin/tsc -p ./src/tsconfig.json --watch --preserveWatchOutput",
