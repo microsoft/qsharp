@@ -169,3 +169,34 @@ fn index_set_in_non_alias_stmt_fails() {
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
 }
+
+#[test]
+fn indexed_ident_with_omitted_start() {
+    let source = r#"
+        array[int, 5] a;
+        a[:3];
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = [0, 0, 0, 0, 0];
+            a[...3];
+        "#]],
+    );
+}
+
+#[test]
+fn indexed_ident_with_omitted_stop() {
+    let source = r#"
+        array[int, 5] a;
+        a[2:];
+    "#;
+
+    check_qasm_to_qsharp(source, &expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        mutable a = [0, 0, 0, 0, 0];
+        a[2...];
+    "#]]);
+}
