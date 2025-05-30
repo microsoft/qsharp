@@ -165,6 +165,7 @@ export class QSharpTools {
       this.extensionUri,
       undefined,
       UserTaskInvocationType.ChatToolCall,
+      program.telemetryDocumentType,
       programConfig,
     );
 
@@ -243,7 +244,7 @@ export class QSharpTools {
     const program = await getProgramForDocument(doc);
     if (!program.success) {
       throw new CopilotToolError(
-        `Cannot get program for the file ${filePath} . error: ${program.errorMsg}`,
+        `Cannot get program for the file ${filePath}\n\n${program.diagnostics ? JSON.stringify(program.diagnostics) : program.errorMsg}`,
       );
     }
     return { program, telemetryDocumentType };

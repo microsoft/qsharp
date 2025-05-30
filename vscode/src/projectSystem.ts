@@ -10,7 +10,6 @@ import {
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { URI, Utils } from "vscode-uri";
-import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 import { sendTelemetryEvent, EventType } from "./telemetry";
 
 /** Returns the manifest document if one is found
@@ -187,11 +186,8 @@ export async function loadProject(
     });
   }
 
-  const project = invokeAndReportCommandDiagnostics(
-    async () =>
-      await projectLoader!.load_project_with_deps(
-        manifestDocument.directory.toString(),
-      ),
+  const project = await projectLoader!.loadQSharpProject(
+    manifestDocument.directory.toString(),
   );
 
   return project;
@@ -217,9 +213,9 @@ export async function loadOpenQasmProject(
       resolvePath: async (a, b) => resolvePath(a, b),
     });
   }
-  const project = invokeAndReportCommandDiagnostics(
-    async () =>
-      await projectLoader!.load_openqasm_project(documentUri.toString()),
+
+  const project = await projectLoader!.loadOpenQasmProject(
+    documentUri.toString(),
   );
 
   return project;

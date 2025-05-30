@@ -8,6 +8,7 @@ import {
   IOperationInfo,
   IQSharpError,
   IRange,
+  QdkDiagnostics,
   getCompilerWorker,
   log,
 } from "qsharp-lang";
@@ -17,6 +18,7 @@ import { clearCommandDiagnostics } from "./diagnostics";
 import { FullProgramConfig, getActiveProgram } from "./programConfig";
 import {
   EventType,
+  QsharpDocumentType,
   UserFlowStatus,
   UserTaskInvocationType,
   getActiveDocumentType,
@@ -57,6 +59,7 @@ export async function showCircuitCommand(
   extensionUri: Uri,
   operation: IOperationInfo | undefined,
   telemetryInvocationType: UserTaskInvocationType,
+  telemetryDocumentType?: QsharpDocumentType,
   programConfig?: FullProgramConfig,
 ): Promise<CircuitOrError> {
   clearCommandDiagnostics();
@@ -65,7 +68,7 @@ export async function showCircuitCommand(
   sendTelemetryEvent(
     EventType.TriggerCircuit,
     {
-      documentType: getActiveDocumentType(),
+      documentType: telemetryDocumentType || getActiveDocumentType(),
       associationId,
       invocationType: telemetryInvocationType,
     },
@@ -73,7 +76,7 @@ export async function showCircuitCommand(
   );
 
   if (!programConfig) {
-    const program = await getActiveProgram();
+    const program = await getActiveProgram({ showModalError: true });
     if (!program.success) {
       throw new Error(program.errorMsg);
     }
@@ -272,9 +275,9 @@ async function getCircuitOrError(
   } catch (e: any) {
     let errors: IQSharpError[] = [];
     let resultCompError = false;
-    if (typeof e === "string") {
+    if (e instanceof QdkDiagnostics) {
       try {
-        errors = JSON.parse(e);
+        errors = e.diagnostics;
         resultCompError = hasResultComparisonError(errors);
       } catch {
         // couldn't parse the error - would indicate a bug.

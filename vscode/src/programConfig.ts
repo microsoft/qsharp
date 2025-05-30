@@ -1,10 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { IProjectConfig, ProgramConfig } from "qsharp-lang";
+import {
+  IProjectConfig,
+  IQSharpError,
+  ProgramConfig,
+  QdkDiagnostics,
+} from "qsharp-lang";
 import * as vscode from "vscode";
 import { isOpenQasmDocument, isQdkDocument } from "./common";
 import { getTarget } from "./config";
+import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 import { loadOpenQasmProject, loadProject } from "./projectSystem";
 
 /**
@@ -35,6 +41,7 @@ export type FullProgramConfigOrError =
   | {
       success: false;
       errorMsg: string;
+      diagnostics?: IQSharpError[];
     };
 
 /**
@@ -42,7 +49,11 @@ export type FullProgramConfigOrError =
  *   function that is useful for any extension command that is intended to
  *   operate on the "current" project.
  */
-export async function getActiveProgram(): Promise<FullProgramConfigOrError> {
+export async function getActiveProgram(
+  options: {
+    showModalError: boolean;
+  } = { showModalError: false },
+): Promise<FullProgramConfigOrError> {
   const doc = getActiveQdkDocument();
   if (!doc) {
     return {
@@ -52,7 +63,7 @@ export async function getActiveProgram(): Promise<FullProgramConfigOrError> {
     };
   }
 
-  return await getProgramForDocument(doc);
+  return await getProgramForDocument(doc, options);
 }
 
 export function getActiveQdkDocumentUri(): vscode.Uri | undefined {
@@ -75,7 +86,7 @@ export async function getVisibleProgram(): Promise<FullProgramConfigOrError> {
         "There are no visible windows that contain a document supported by the QDK",
     };
   }
-  return await getProgramForDocument(doc);
+  return await getProgramForDocument(doc, { showModalError: false });
 }
 
 export function getVisibleQdkDocumentUri(): vscode.Uri | undefined {
@@ -88,57 +99,38 @@ export function getVisibleQdkDocument(): vscode.TextDocument | undefined {
   )?.document;
 }
 
-export async function getProgramForDocument(doc: vscode.TextDocument) {
-  return isOpenQasmDocument(doc)
-    ? await getOpenQasmProgramForDocument(doc.uri)
-    : await getQSharpProgramForDocument(doc.uri);
-}
-
-/**
- * @param docUri A Q# document URI.
- * @returns The program configuration that applies to this document,
- *   including any settings that come from the qsharp.json as well as the
- *   user/workspace settings.
- */
-async function getQSharpProgramForDocument(
-  docUri: vscode.Uri,
-): Promise<FullProgramConfigOrError> {
-  // Target profile comes from settings
-  const profile = getTarget();
-
-  // Project configs come from the document and/or manifest
-  try {
-    const program = await loadProject(docUri);
-
-    return { success: true, programConfig: { profile, ...program } };
-  } catch (e: any) {
-    return {
-      success: false,
-      errorMsg: e.message || "Failed to load Q# project",
-    };
-  }
-}
-
-/**
- * @param docUri An OpenQASM document URI.
- * @returns The program configuration that applies to this document,
- *   with user/workspace settings.
- */
-async function getOpenQasmProgramForDocument(
-  docUri: vscode.Uri,
+export async function getProgramForDocument(
+  doc: vscode.TextDocument,
+  options: {
+    showModalError: boolean;
+  } = { showModalError: false },
 ): Promise<FullProgramConfigOrError> {
   // Target profile comes from settings
   const profile = getTarget();
 
   // Project configs come from the document
   try {
-    const program = await loadOpenQasmProject(docUri);
+    const program = await invokeAndReportCommandDiagnostics(
+      () => loadProjectForDocument(doc),
+      // Don't populate problems view with errors, because
+      // we expect the language service to have already done that at this point.
+      options,
+    );
 
     return { success: true, programConfig: { profile, ...program } };
-  } catch (e: any) {
+  } catch (e: unknown) {
     return {
       success: false,
-      errorMsg: e.message || "Failed to load OpenQASM project",
+      diagnostics: e instanceof QdkDiagnostics ? e.diagnostics : undefined,
+      errorMsg: e instanceof Error ? e.message : "Could not load project",
     };
   }
+}
+
+function loadProjectForDocument(
+  doc: vscode.TextDocument,
+): IProjectConfig | Promise<IProjectConfig> {
+  return isOpenQasmDocument(doc)
+    ? loadOpenQasmProject(doc.uri)
+    : loadProject(doc.uri);
 }
