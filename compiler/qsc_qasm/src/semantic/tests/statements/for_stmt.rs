@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::semantic::tests::check_stmt_kinds;
+use crate::{semantic::tests::check_stmt_kinds, tests::check_qasm_to_qsharp};
 use expect_test::expect;
 
 #[test]
@@ -93,5 +93,49 @@ fn loop_creates_its_own_scope() {
                                     ty: int
                                     kind: Lit: Int(1)
         "#]],
+    );
+}
+
+#[test]
+fn omitted_start_in_for_range_fails() {
+    let source = "
+        for int i in [:5] {}
+    ";
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            Qasm.Parser.Rule
+
+              x expected expression, found `:`
+               ,-[Test.qasm:2:23]
+             1 | 
+             2 |         for int i in [:5] {}
+               :                       ^
+             3 |     
+               `----
+        "#]],
+    );
+}
+
+#[test]
+fn omitted_end_in_for_range_fails() {
+    let source = "
+        for int i in [1:] {}
+    ";
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        Qasm.Parser.Rule
+
+          x expected expression, found `]`
+           ,-[Test.qasm:2:25]
+         1 | 
+         2 |         for int i in [1:] {}
+           :                         ^
+         3 |     
+           `----
+    "#]],
     );
 }
