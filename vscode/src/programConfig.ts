@@ -49,9 +49,11 @@ export type FullProgramConfigOrError =
  *   function that is useful for any extension command that is intended to
  *   operate on the "current" project.
  */
-export async function getActiveProgram(options: {
-  showModalError: boolean;
-}): Promise<FullProgramConfigOrError> {
+export async function getActiveProgram(
+  options: {
+    showModalError: boolean;
+  } = { showModalError: false },
+): Promise<FullProgramConfigOrError> {
   const doc = getActiveQdkDocument();
   if (!doc) {
     return {

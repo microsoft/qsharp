@@ -130,17 +130,16 @@ export function startTestDiscovery(
     const file = await vscode.workspace.openTextDocument(uri);
     const programResult = await getProgramForDocument(file);
 
-    if (!programResult.success) {
-      throw new Error(programResult.errorMsg);
-    }
-
-    const program = programResult.programConfig;
-
     try {
-      await worker.run(program, callableExpr, 1, evtTarget);
+      if (!programResult.success) {
+        throw new Error(programResult.errorMsg);
+      }
+
+      await worker.run(programResult.programConfig, callableExpr, 1, evtTarget);
     } catch (error) {
       log.error(`Error running test ${testCase.id}:`, error);
       run.appendOutput(`Error running test ${testCase.id}: ${error}\r\n`);
+      run.end();
     }
     log.trace("ran test:", testCase.id);
   }

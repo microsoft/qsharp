@@ -7,7 +7,7 @@ import { sendMessageToPanel } from "./webviewPanel";
 import { getActiveProgram } from "./programConfig";
 
 export async function showDocumentationCommand(extensionUri: Uri) {
-  const program = await getActiveProgram({ showModalError: true });
+  const program = await getActiveProgram();
   if (!program.success) {
     throw new Error(program.errorMsg);
   }

@@ -8,6 +8,7 @@ import {
   IOperationInfo,
   IQSharpError,
   IRange,
+  QdkDiagnostics,
   getCompilerWorker,
   log,
 } from "qsharp-lang";
@@ -274,9 +275,9 @@ async function getCircuitOrError(
   } catch (e: any) {
     let errors: IQSharpError[] = [];
     let resultCompError = false;
-    if (typeof e === "string") {
+    if (e instanceof QdkDiagnostics) {
       try {
-        errors = JSON.parse(e);
+        errors = e.diagnostics;
         resultCompError = hasResultComparisonError(errors);
       } catch {
         // couldn't parse the error - would indicate a bug.

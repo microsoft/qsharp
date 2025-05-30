@@ -152,7 +152,7 @@ export async function invokeAndReportCommandDiagnostics<T>(
 }
 
 /**
- * Given an exception, checks if it's a JSON string representation of IQSharpError[],
+ * Given an exception, checks if it's an instance of `QdkDiagnostics`,
  * and if so, reports the diagnostics to VS Code.
  *
  * @param e an exception originating from the qsharp-lang package
