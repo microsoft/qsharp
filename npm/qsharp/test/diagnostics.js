@@ -33,7 +33,7 @@ function getInvalidQirProgramConfig() {
   };
 }
 
-test("getQir throws QdkDiagnostics on invalid program", async () => {
+test("getQir throws QdkDiagnostics", async () => {
   const compiler = getCompiler();
   const invalidConfig = getInvalidQirProgramConfig();
   await assert.rejects(
@@ -48,7 +48,7 @@ test("getQir throws QdkDiagnostics on invalid program", async () => {
   );
 });
 
-test("getQir throws QdkDiagnostics on invalid program - worker", async () => {
+test("getQir throws QdkDiagnostics - worker", async () => {
   const compiler = getCompilerWorker();
   const invalidConfig = getInvalidQirProgramConfig();
   try {
@@ -76,7 +76,7 @@ const dummyHost = {
   findManifestDirectory: async () => null,
 };
 
-test("ProjectLoader.loadQSharpProject throws QdkDiagnostics on invalid directory", async () => {
+test("loadQSharpProject throws QdkDiagnostics", async () => {
   const loader = getProjectLoader(dummyHost);
   await assert.rejects(
     () => loader.loadQSharpProject("/not/a/real/dir"),
