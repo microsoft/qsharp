@@ -148,8 +148,6 @@ fn index_file_generation() {
         uid: Qdk.Std.Core-toc
         title: Std.Core namespace
         description: Table of contents for the Q# Core namespace
-        author: {AUTHOR}
-        ms.author: {MS_AUTHOR}
         ms.date: {TIMESTAMP}
         ms.topic: landing-page
         ---
@@ -180,8 +178,6 @@ fn top_index_file_generation() {
         uid: Microsoft.Quantum.apiref-toc
         title: Q# standard libraries for the Azure Quantum Development Kit
         description: Table of contents for the Q# standard libraries for Azure Quantum Development Kit
-        author: {AUTHOR}
-        ms.author: {MS_AUTHOR}
         ms.date: {TIMESTAMP}
         ms.topic: landing-page
         ---

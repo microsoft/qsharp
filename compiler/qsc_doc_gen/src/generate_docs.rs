@@ -56,8 +56,6 @@ impl Metadata {
 uid: {}
 title: {}
 description: {}
-author: {{AUTHOR}}
-ms.author: {{MS_AUTHOR}}
 ms.date: {{TIMESTAMP}}
 ms.topic: landing-page
 ---",
