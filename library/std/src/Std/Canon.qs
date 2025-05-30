@@ -726,8 +726,10 @@ export
     ApplyControlledOnInt,
     ApplyControlledOnBitString,
     ApplyQFT,
+    ApplyQPE,
     SwapReverseRegister,
     ApplyXorInPlace,
     ApplyXorInPlaceL,
     ApplyOperationPowerA,
+    ApplyOperationPowerCA,
     Relabel;

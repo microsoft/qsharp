@@ -504,6 +504,35 @@ fn check_qft_le_sample_4() {
     );
 }
 
+const QPE_TEST_LIB: &str = include_str!("resources/src/qpe.qs");
+
+#[test]
+fn check_qpe_z() {
+    test_expression_with_lib(
+        "Test.TestQPE_Z()",
+        QPE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_qpe_s() {
+    test_expression_with_lib(
+        "Test.TestQPE_S()",
+        QPE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_qpe_t() {
+    test_expression_with_lib(
+        "Test.TestQPE_T()",
+        QPE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
 #[test]
 fn check_swap_reverse_register() {
     test_expression(
@@ -565,6 +594,21 @@ fn check_apply_operation_power_a() {
             use q = Qubit();
             ApplyOperationPowerA(12, Rx(Std.Math.PI()/16.0, _), q);
             ApplyOperationPowerA(-3, Rx(Std.Math.PI()/4.0, _), q);
+            M(q)
+        }"
+        },
+        &Value::RESULT_ZERO,
+    );
+}
+
+#[test]
+fn check_apply_operation_power_ca() {
+    test_expression(
+        {
+            "{
+            use q = Qubit();
+            ApplyOperationPowerCA(12, Rx(Std.Math.PI()/16.0, _), q);
+            ApplyOperationPowerCA(-3, Rx(Std.Math.PI()/4.0, _), q);
             M(q)
         }"
         },
