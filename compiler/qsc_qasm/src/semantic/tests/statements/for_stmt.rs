@@ -105,13 +105,13 @@ fn omitted_start_in_for_range_fails() {
     check_qasm_to_qsharp(
         source,
         &expect![[r#"
-            Qasm.Parser.Rule
+            Qasm.Lowerer.RangeExpressionsMustHaveStart
 
-              x expected expression, found `:`
-               ,-[Test.qasm:2:23]
+              x range expressions must have a start
+               ,-[Test.qasm:2:22]
              1 | 
              2 |         for int i in [:5] {}
-               :                       ^
+               :                      ^^^^
              3 |     
                `----
         "#]],
@@ -127,15 +127,15 @@ fn omitted_end_in_for_range_fails() {
     check_qasm_to_qsharp(
         source,
         &expect![[r#"
-        Qasm.Parser.Rule
+            Qasm.Lowerer.RangeExpressionsMustHaveStop
 
-          x expected expression, found `]`
-           ,-[Test.qasm:2:25]
-         1 | 
-         2 |         for int i in [1:] {}
-           :                         ^
-         3 |     
-           `----
-    "#]],
+              x range expressions must have a stop
+               ,-[Test.qasm:2:22]
+             1 | 
+             2 |         for int i in [1:] {}
+               :                      ^^^^
+             3 |     
+               `----
+        "#]],
     );
 }

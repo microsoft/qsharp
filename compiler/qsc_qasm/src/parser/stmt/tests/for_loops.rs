@@ -144,6 +144,66 @@ fn for_stmt_iterating_over_range_no_step() {
 }
 
 #[test]
+fn for_stmt_iterating_over_range_no_start() {
+    check(
+        parse,
+        "
+    for int x in [:7] {
+        a = 0;
+    }",
+        &expect![[r#"
+            Stmt [5-45]:
+                annotations: <empty>
+                kind: ForStmt [5-45]:
+                    variable_type: ScalarType [9-12]: IntType [9-12]:
+                        size: <none>
+                    variable_name: Ident [13-14] "x"
+                    iterable: Range [18-22]:
+                        start: <none>
+                        step: <none>
+                        end: Expr [20-21]: Lit: Int(7)
+                    body: Stmt [23-45]:
+                        annotations: <empty>
+                        kind: Block [23-45]:
+                            Stmt [33-39]:
+                                annotations: <empty>
+                                kind: AssignStmt [33-39]:
+                                    lhs: Ident [33-34] "a"
+                                    rhs: Expr [37-38]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn for_stmt_iterating_over_range_no_end() {
+    check(
+        parse,
+        "
+    for int x in [0:] {
+        a = 0;
+    }",
+        &expect![[r#"
+            Stmt [5-45]:
+                annotations: <empty>
+                kind: ForStmt [5-45]:
+                    variable_type: ScalarType [9-12]: IntType [9-12]:
+                        size: <none>
+                    variable_name: Ident [13-14] "x"
+                    iterable: Range [18-22]:
+                        start: Expr [19-20]: Lit: Int(0)
+                        step: <none>
+                        end: <none>
+                    body: Stmt [23-45]:
+                        annotations: <empty>
+                        kind: Block [23-45]:
+                            Stmt [33-39]:
+                                annotations: <empty>
+                                kind: AssignStmt [33-39]:
+                                    lhs: Ident [33-34] "a"
+                                    rhs: Expr [37-38]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
 fn for_stmt_iterating_over_expr() {
     check(
         parse,

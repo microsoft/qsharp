@@ -194,9 +194,12 @@ fn indexed_ident_with_omitted_stop() {
         a[2:];
     "#;
 
-    check_qasm_to_qsharp(source, &expect![[r#"
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         mutable a = [0, 0, 0, 0, 0];
         a[2...];
-    "#]]);
+    "#]],
+    );
 }
