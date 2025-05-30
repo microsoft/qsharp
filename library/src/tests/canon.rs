@@ -534,6 +534,15 @@ fn check_qpe_t() {
 }
 
 #[test]
+fn check_qpe_p() {
+    test_expression_with_lib(
+        "Test.TestQPE_P()",
+        QPE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
 fn check_swap_reverse_register() {
     test_expression(
         {
