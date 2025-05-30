@@ -107,7 +107,7 @@ fn omitted_start_in_for_range_fails() {
         &expect![[r#"
             Qasm.Lowerer.RangeExpressionsMustHaveStart
 
-              x range expressions must have a start
+              x range expressions must have a start when used in for loops
                ,-[Test.qasm:2:22]
              1 | 
              2 |         for int i in [:5] {}
@@ -129,7 +129,7 @@ fn omitted_end_in_for_range_fails() {
         &expect![[r#"
             Qasm.Lowerer.RangeExpressionsMustHaveStop
 
-              x range expressions must have a stop
+              x range expressions must have a stop when used in for loops
                ,-[Test.qasm:2:22]
              1 | 
              2 |         for int i in [1:] {}
