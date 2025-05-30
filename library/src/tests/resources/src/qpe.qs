@@ -38,12 +38,12 @@ namespace Test {
     }
 
     // Phase gate is a rotation around the Z axis and an ajustment for the global phase.
-    operation P(phase: Double, q : Qubit) : Unit is Ctl + Adj {
+    operation P(phase : Double, q : Qubit) : Unit is Ctl + Adj {
         Rz(phase, q);
-        Exp([], phase/2.0, []);
+        Exp([], phase / 2.0, []);
     }
 
     operation TestQPE_P() : Unit {
-        TestQPE_Phase(P(Std.Math.PI()/8.0,_), 3); // exp(i * π / 2^3)
+        TestQPE_Phase(P(Std.Math.PI() / 8.0, _), 3); // exp(i * π / 2^3)
     }
 }
