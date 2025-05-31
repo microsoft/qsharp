@@ -641,7 +641,7 @@ operation ApplyOperationPowerCA<'T>(
 /// determined by the length of the `phase` register.
 ///
 /// # Reference
-/// - [Quantum phase estimation algorithm](https://en.wikipedia.org/wiki/Quantum_phase_estimation_algorithm)
+/// - [Quantum phase estimation algorithm](https://wikipedia.org/wiki/Quantum_phase_estimation_algorithm)
 ///
 /// # See Also
 /// - [Std.Canon.ApplyOperationPowerCA](xref:Qdk.Std.Canon.ApplyOperationPowerCA)
