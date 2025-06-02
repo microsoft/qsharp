@@ -389,7 +389,7 @@ pub trait FileSystemAsync {
         })
     }
 
-    /// Given a directory, attemps to parse a `qsharp.json` in that directory
+    /// Given a directory, attempts to parse a `qsharp.json` in that directory
     /// according to the manifest schema.
     async fn parse_manifest_in_dir(&self, directory: &Path) -> ProjectResult<Manifest> {
         let manifest_path = self
