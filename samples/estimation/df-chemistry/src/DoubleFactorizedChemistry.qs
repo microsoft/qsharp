@@ -286,8 +286,8 @@ internal function ComputeOffsetDataSet(lengths : Int[]) : Bool[][] {
     mutable offsets = [0, size = Length(lengths)];
 
     for i in IndexRange(lengths) {
-        set offsets w/= i <- currentOffset;
-        set currentOffset += lengths[i];
+        offsets[i] = currentOffset;
+        currentOffset += lengths[i];
     }
 
     let offsetWidth = Ceiling(Lg(IntAsDouble(currentOffset)));

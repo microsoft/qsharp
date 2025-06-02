@@ -53,7 +53,7 @@ namespace Kata.Verification {
                 return 0x1;
             }
             set average += IntAsDouble(val);
-            set counts w/= val <- counts[val] + 1;
+            counts[val] += 1;
         }
 
         set average = average / IntAsDouble(nRuns);

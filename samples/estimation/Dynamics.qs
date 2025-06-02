@@ -58,26 +58,26 @@ function SetAngleSequence(p : Double, dt : Double, J : Double, g : Double) : Dou
     for i in 0..len1 {
 
         if (i % 2 == 0) {
-            set values w/= i <- val1;
+            values[i] = val1;
         } else {
-            set values w/= i <- val2;
+            values[i] = val2;
         }
 
     }
 
     for i in len1 + 1..len1 + len2 {
         if (i % 2 == 0) {
-            set values w/= i <- val3;
+            values[i] = val3;
         } else {
-            set values w/= i <- val4;
+            values[i] = val4;
         }
     }
 
     for i in len1 + len2 + 1..valLength - 1 {
         if (i % 2 == 0) {
-            set values w/= i <- val1;
+            values[i] = val1;
         } else {
-            set values w/= i <- val2;
+            values[i] = val2;
         }
     }
     return values;
