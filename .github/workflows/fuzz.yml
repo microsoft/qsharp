@@ -11,8 +11,6 @@ env:
   SEEDS_RDPATH: fuzz/seed_inputs              # Fuzzing seed inputs rel dir path.
   SEEDS_FNAME: list.txt                       # Fuzzing seed inputs list file name.
 on:
-  schedule:                                   # Production runs against default branch.
-    - cron: '24 11 * * 0'                     # Run after 11:24 UTC (4:24am PDT/3:24am PST) on Sun.
   workflow_dispatch:                          # Manual runs.
   push:
     branches:
