@@ -1167,7 +1167,10 @@ pub(crate) fn binary_op_is_supported_for_types(op: BinOp, lhs_ty: &Type, rhs_ty:
         // Arithmetic
         BinOp::Add | BinOp::Sub => {
             base_types_equal(lhs_ty, rhs_ty)
-                && matches!(lhs_ty, Int(..) | UInt(..) | Float(..) | Angle(..))
+                && matches!(
+                    lhs_ty,
+                    Int(..) | UInt(..) | Float(..) | Angle(..) | Complex(..)
+                )
         }
         BinOp::Mul => {
             let uint_angle_exception = (matches!(lhs_ty, Angle(..)) && matches!(rhs_ty, UInt(..)))

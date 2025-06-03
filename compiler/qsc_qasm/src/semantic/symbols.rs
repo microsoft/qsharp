@@ -136,7 +136,19 @@ impl Symbol {
         }
     }
 
-    /// Returns the value of the symbol.
+    /// Returns the const evaluated value of the symbol, if any.
+    #[must_use]
+    pub fn get_const_value(&self) -> Option<LiteralKind> {
+        self.const_expr
+            .as_ref()
+            .and_then(|expr| expr.get_const_value())
+    }
+
+    /// This function is meant to be used by the Language Service
+    /// to access span and type information about the original
+    /// expression before it was const evaluated. If you need
+    /// the const evaluated value, use [`Symbol::get_const_value`]
+    /// instead.
     #[must_use]
     pub fn get_const_expr(&self) -> Option<Rc<Expr>> {
         self.const_expr.clone()
@@ -318,6 +330,7 @@ impl Default for SymbolTable {
                 span: Span::default(),
                 kind: Box::new(ExprKind::Lit(LiteralKind::Float(val))),
                 ty: ty.clone(),
+                const_value: Some(LiteralKind::Float(val)),
             };
 
             slf.insert_symbol(Symbol {

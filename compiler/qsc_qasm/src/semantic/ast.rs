@@ -480,6 +480,7 @@ pub struct Expr {
     pub span: Span,
     pub kind: Box<ExprKind>,
     pub ty: super::types::Type,
+    pub const_value: Option<LiteralKind>,
 }
 
 impl Display for Expr {
@@ -487,6 +488,17 @@ impl Display for Expr {
         writeln_header(f, "Expr", self.span)?;
         writeln_field(f, "ty", &self.ty)?;
         write_field(f, "kind", &self.kind)
+    }
+}
+
+impl Expr {
+    pub fn new(span: Span, kind: ExprKind, ty: super::types::Type) -> Self {
+        Self {
+            span,
+            kind: kind.into(),
+            ty,
+            const_value: None,
+        }
     }
 }
 
@@ -1216,11 +1228,11 @@ impl Array {
                 data,
                 dims: (&dims[1..]).into(),
             };
-            let expr = Expr {
-                span: Default::default(),
-                kind: Box::new(ExprKind::Lit(LiteralKind::Array(array))),
-                ty: super::types::Type::make_array_ty(&dims[1..], base_ty),
-            };
+            let expr = Expr::new(
+                Default::default(),
+                ExprKind::Lit(LiteralKind::Array(array)),
+                super::types::Type::make_array_ty(&dims[1..], base_ty),
+            );
             let dim_size = dims[0] as usize;
             vec![expr; dim_size]
         }

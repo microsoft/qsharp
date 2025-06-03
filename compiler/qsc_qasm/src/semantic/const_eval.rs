@@ -50,10 +50,25 @@ pub enum ConstEvalError {
 }
 
 impl Expr {
+    /// A builder pattern that initializes the [`Expr::const_value`] field
+    /// to the result of const evaluating the expression.
+    pub(crate) fn with_const_value(mut self, ctx: &mut Lowerer) -> Self {
+        self.const_value = self.const_eval(ctx);
+        self
+    }
+
+    pub(crate) fn get_const_value(&self) -> Option<LiteralKind> {
+        self.const_value.clone()
+    }
+
     /// Tries to evaluate the expression. It takes the current `Lowerer` as
     /// the evaluation context to resolve symbols and push errors in case
     /// of failure.
-    pub(crate) fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
+    fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
+        if self.const_value.is_some() {
+            return self.const_value.clone();
+        }
+
         let ty = &self.ty;
 
         if ty.is_err() {
@@ -83,7 +98,10 @@ impl Expr {
 
 impl SymbolId {
     fn const_eval(self, ctx: &mut Lowerer) -> Option<LiteralKind> {
-        ctx.symbols[self].get_const_expr()?.const_eval(ctx)
+        // Expressions associated to const symbols are evaluated
+        // when they are pushed in the symbol table. So, we just
+        // need to get the already computed value here.
+        ctx.symbols[self].get_const_value()
     }
 }
 
