@@ -30,6 +30,7 @@ use crate::convert::safe_i64_to_f64;
 use crate::parser::ast::list_from_iter;
 use crate::parser::ast::List;
 use crate::parser::QasmSource;
+use crate::semantic::ast::Expr;
 use crate::semantic::types::base_types_equal;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
@@ -400,6 +401,18 @@ impl Lowerer {
             }
         };
         (symbol_id, symbol)
+    }
+
+    /// This helper method is meant to be used when failing to lower a declaration statement
+    /// and returning `StmtKind::Err` before getting to build the symbol due to insufficient
+    /// type information. This usually happens when there is a const evaluation error when
+    /// trying to compute the size of a sized type.
+    fn try_insert_err_symbol_or_push_redefined_symbol_error<S>(&mut self, name: S, span: Span)
+    where
+        S: AsRef<str>,
+    {
+        let err_symbol = Symbol::err(name.as_ref(), span);
+        let _ = self.symbols.try_insert_or_get_existing(err_symbol);
     }
 
     fn lower_alias(&mut self, alias: &syntax::AliasDeclStmt) -> semantic::StmtKind {
@@ -1383,7 +1396,9 @@ impl Lowerer {
 
     fn lower_quantum_parameter(&mut self, typed_param: &syntax::QuantumTypedParameter) -> Symbol {
         let (ty, qsharp_ty) = if let Some(size) = &typed_param.size {
-            if let Some(size) = self.const_eval_array_size_designator_from_expr(size) {
+            let size = self.const_eval_array_size_designator_expr(size);
+            if let Some(size) = size {
+                let size = size.get_const_u32().expect("const evaluation succeeded");
                 let ty = crate::semantic::types::Type::QubitArray(size);
                 let qsharp_ty = crate::types::Type::QubitArray(crate::types::ArrayDimensions::One(
                     size as usize,
@@ -1762,7 +1777,8 @@ impl Lowerer {
             match &modifier.kind {
                 semantic::GateModifierKind::Inv | semantic::GateModifierKind::Pow(_) => (),
                 semantic::GateModifierKind::Ctrl(n) | semantic::GateModifierKind::NegCtrl(n) => {
-                    quantum_arity_with_modifiers += n;
+                    quantum_arity_with_modifiers +=
+                        n.get_const_u32().expect("const evaluation succeeded");
                 }
             }
         }
@@ -1971,9 +1987,16 @@ impl Lowerer {
         })
     }
 
-    fn lower_modifier_ctrl_args(&mut self, expr: Option<&syntax::Expr>) -> Option<u32> {
+    fn lower_modifier_ctrl_args(&mut self, expr: Option<&syntax::Expr>) -> Option<semantic::Expr> {
         let Some(expr) = expr else {
-            return Some(1);
+            return Some(
+                semantic::Expr::new(
+                    Span::default(),
+                    semantic::ExprKind::Lit(semantic::LiteralKind::Int(1)),
+                    Type::Int(None, true),
+                )
+                .with_const_value(self),
+            );
         };
 
         let expr = self.lower_expr(expr);
@@ -1997,15 +2020,15 @@ impl Lowerer {
             return None;
         };
 
-        let Ok(n) = u32::try_from(n) else {
+        if u32::try_from(n).is_err() {
             self.push_semantic_error(SemanticErrorKind::ExprMustFitInU32(
                 "ctrl modifier argument".into(),
                 expr.span,
             ));
             return None;
-        };
+        }
 
-        Some(n)
+        Some(expr)
     }
 
     /// This function is always a indication of a error. Either the
@@ -2180,26 +2203,32 @@ impl Lowerer {
 
         // If there wasn't an explicit size, infer the size to be 1.
         let (ty, size_and_span) = if let Some(size_expr) = &stmt.size {
-            let size_expr = self.lower_expr(size_expr);
             let span = size_expr.span;
-            let size_expr = Self::try_cast_expr_to_type(&Type::UInt(None, true), &size_expr)
-                .map(|expr| expr.with_const_value(self));
+            let size_expr = self.const_eval_quantum_register_size_expr(size_expr);
 
-            if let Some(Some(semantic::LiteralKind::Int(val))) =
-                size_expr.map(|expr| expr.get_const_value())
-            {
-                if let Ok(size) = u32::try_from(val) {
-                    (Type::QubitArray(size), Some((size, span)))
-                } else {
-                    let message = "quantum register size".into();
-                    self.push_semantic_error(SemanticErrorKind::ExprMustFitInU32(message, span));
-                    return semantic::StmtKind::Err;
-                }
-            } else {
-                let message = "quantum register size".into();
-                self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(message, span));
+            let Some(size_expr) = size_expr else {
+                // We insert an err symbol if the symbol was not previously defined.
+                self.try_insert_err_symbol_or_push_redefined_symbol_error(
+                    &stmt.qubit.name,
+                    stmt.qubit.span,
+                );
+
+                // Any errors would have already been pushed by `const_eval_quantum_register_size`.
                 return semantic::StmtKind::Err;
-            }
+            };
+
+            let Some(size) = size_expr.get_const_u32() else {
+                // We insert an err symbol if the symbol was not previously defined.
+                self.try_insert_err_symbol_or_push_redefined_symbol_error(
+                    &stmt.qubit.name,
+                    stmt.qubit.span,
+                );
+
+                // Any errors would have already been pushed by `const_eval_quantum_register_size`.
+                return semantic::StmtKind::Err;
+            };
+
+            (Type::QubitArray(size), Some((size_expr, span)))
         } else {
             (Type::Qubit, None)
         };
@@ -2401,7 +2430,7 @@ impl Lowerer {
     }
 
     /// Helper function for const evaluating array sizes, type widths, and durations.
-    fn const_eval_designator(&mut self, expr: &syntax::Expr) -> Option<semantic::LiteralKind> {
+    fn const_eval_designator(&mut self, expr: &syntax::Expr) -> Option<semantic::Expr> {
         let expr = self.lower_expr(expr);
         let expr_span = expr.span;
         let expr = self
@@ -2411,55 +2440,90 @@ impl Lowerer {
         // const_eval would have pushed an error unless the ty is Err
         // in which case there is already an error pushed for the ty
         // so there is no need to add more errors here.
-        expr.get_const_value()
+        expr.const_value.as_ref()?;
+
+        Some(expr)
     }
 
-    fn const_eval_array_size_designator_from_expr(&mut self, expr: &syntax::Expr) -> Option<u32> {
-        let semantic::LiteralKind::Int(val) = self.const_eval_designator(expr)? else {
-            self.push_semantic_error(SemanticErrorKind::ArraySizeMustBeNonNegativeConstExpr(
-                expr.span,
-            ));
+    fn const_eval_array_size_designator_expr(
+        &mut self,
+        expr: &syntax::Expr,
+    ) -> Option<semantic::Expr> {
+        let size = self.const_eval_designator(expr)?;
+
+        let Some(semantic::LiteralKind::Int(val)) = size.get_const_value() else {
+            let msg = "array size".to_string();
+            self.push_semantic_error(SemanticErrorKind::ExprMustBeInt(msg, expr.span));
             return None;
         };
 
         if val < 0 {
-            self.push_semantic_error(SemanticErrorKind::ArraySizeMustBeNonNegativeConstExpr(
-                expr.span,
-            ));
+            let msg = "array size".to_string();
+            self.push_semantic_error(SemanticErrorKind::ExprMustBeNonNegativeInt(msg, expr.span));
             return None;
         }
 
-        let Ok(val) = u32::try_from(val) else {
+        if u32::try_from(val).is_err() {
             self.push_semantic_error(SemanticErrorKind::DesignatorTooLarge(expr.span));
-            return None;
-        };
+        }
 
-        Some(val)
+        Some(size)
     }
 
-    fn const_eval_type_width_designator_from_expr(&mut self, expr: &syntax::Expr) -> Option<u32> {
-        let semantic::LiteralKind::Int(val) = self.const_eval_designator(expr)? else {
-            self.push_semantic_error(SemanticErrorKind::TypeWidthMustBePositiveIntConstExpr(
-                expr.span,
-            ));
+    fn const_eval_type_width_designator_expr(
+        &mut self,
+        expr: &syntax::Expr,
+    ) -> Option<semantic::Expr> {
+        let width = self.const_eval_designator(expr)?;
+
+        let Some(semantic::LiteralKind::Int(val)) = width.get_const_value() else {
+            let msg = "type width".to_string();
+            self.push_semantic_error(SemanticErrorKind::ExprMustBeInt(msg, expr.span));
             return None;
         };
 
         if val < 1 {
-            self.push_semantic_error(SemanticErrorKind::TypeWidthMustBePositiveIntConstExpr(
-                expr.span,
-            ));
+            let msg = "type width".to_string();
+            self.push_semantic_error(SemanticErrorKind::ExprMustBePositiveInt(msg, expr.span));
             return None;
         }
 
-        let Ok(val) = u32::try_from(val) else {
+        if u32::try_from(val).is_err() {
             self.push_semantic_error(SemanticErrorKind::DesignatorTooLarge(expr.span));
+        }
+
+        Some(width)
+    }
+
+    fn const_eval_quantum_register_size_expr(
+        &mut self,
+        expr: &syntax::Expr,
+    ) -> Option<semantic::Expr> {
+        let size = self.const_eval_designator(expr)?;
+
+        let Some(semantic::LiteralKind::Int(val)) = size.get_const_value() else {
+            let msg = "quantum register size".into();
+            self.push_semantic_error(SemanticErrorKind::ExprMustBeInt(msg, size.span));
             return None;
         };
 
-        Some(val)
+        if val < 1 {
+            let msg = "quantum register size".into();
+            self.push_semantic_error(SemanticErrorKind::ExprMustBePositiveInt(msg, expr.span));
+            return None;
+        }
+
+        if u32::try_from(val).is_err() {
+            self.push_semantic_error(SemanticErrorKind::DesignatorTooLarge(expr.span));
+        }
+
+        // We already verified that the expression as a non-negative int,
+        // so, this const cast will succeed.
+        Self::try_cast_expr_to_type(&Type::UInt(None, true), &size)
+            .map(|expr| expr.with_const_value(self))
     }
 
+    #[allow(clippy::too_many_lines)]
     fn get_semantic_type_from_scalar_ty(
         &mut self,
         scalar_ty: &syntax::ScalarType,
@@ -2468,7 +2532,10 @@ impl Lowerer {
         match &scalar_ty.kind {
             syntax::ScalarTypeKind::Bit(bit_type) => match &bit_type.size {
                 Some(size) => {
-                    let Some(size) = self.const_eval_array_size_designator_from_expr(size) else {
+                    let Some(size_expr) = self.const_eval_array_size_designator_expr(size) else {
+                        return crate::semantic::types::Type::Err;
+                    };
+                    let Some(size) = size_expr.get_const_u32() else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::BitArray(size, is_const)
@@ -2477,7 +2544,10 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::Int(int_type) => match &int_type.size {
                 Some(size) => {
-                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
+                    let Some(size_expr) = self.const_eval_type_width_designator_expr(size) else {
+                        return crate::semantic::types::Type::Err;
+                    };
+                    let Some(size) = size_expr.get_const_u32() else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::Int(Some(size), is_const)
@@ -2486,7 +2556,10 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::UInt(uint_type) => match &uint_type.size {
                 Some(size) => {
-                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
+                    let Some(size_expr) = self.const_eval_type_width_designator_expr(size) else {
+                        return crate::semantic::types::Type::Err;
+                    };
+                    let Some(size) = size_expr.get_const_u32() else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::UInt(Some(size), is_const)
@@ -2495,7 +2568,10 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::Float(float_type) => match &float_type.size {
                 Some(size) => {
-                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
+                    let Some(size_expr) = self.const_eval_type_width_designator_expr(size) else {
+                        return crate::semantic::types::Type::Err;
+                    };
+                    let Some(size) = size_expr.get_const_u32() else {
                         return crate::semantic::types::Type::Err;
                     };
                     if size > 64 {
@@ -2515,8 +2591,11 @@ impl Lowerer {
             syntax::ScalarTypeKind::Complex(complex_type) => match &complex_type.base_size {
                 Some(float_type) => match &float_type.size {
                     Some(size) => {
-                        let Some(size) = self.const_eval_type_width_designator_from_expr(size)
+                        let Some(size_expr) = self.const_eval_type_width_designator_expr(size)
                         else {
+                            return crate::semantic::types::Type::Err;
+                        };
+                        let Some(size) = size_expr.get_const_u32() else {
                             return crate::semantic::types::Type::Err;
                         };
                         crate::semantic::types::Type::Complex(Some(size), is_const)
@@ -2527,10 +2606,12 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::Angle(angle_type) => match &angle_type.size {
                 Some(size) => {
-                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
+                    let Some(size_expr) = self.const_eval_type_width_designator_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
-
+                    let Some(size) = size_expr.get_const_u32() else {
+                        return crate::semantic::types::Type::Err;
+                    };
                     if size > 64 {
                         self.push_semantic_error(SemanticErrorKind::TypeMaxWidthExceeded(
                             "angle".to_string(),
@@ -2593,7 +2674,10 @@ impl Lowerer {
         let dims = array_ty
             .dimensions
             .iter()
-            .filter_map(|expr| self.const_eval_array_size_designator_from_expr(expr))
+            .filter_map(|expr| {
+                self.const_eval_array_size_designator_expr(expr)
+                    .and_then(|expr| expr.get_const_u32())
+            })
             .collect::<Vec<_>>();
 
         if dims.len() != array_ty.dimensions.len() {
@@ -3952,19 +4036,21 @@ fn try_get_qsharp_name_and_implicit_modifiers<S: AsRef<str>>(
         kind,
     };
 
+    let ctrl_expr = Expr::uint(1, Span::default());
+
     match gate_name.as_ref() {
-        "cy" => Some(("y".to_string(), make_modifier(Ctrl(1)))),
-        "cz" => Some(("z".to_string(), make_modifier(Ctrl(1)))),
-        "ch" => Some(("h".to_string(), make_modifier(Ctrl(1)))),
-        "crx" => Some(("rx".to_string(), make_modifier(Ctrl(1)))),
-        "cry" => Some(("ry".to_string(), make_modifier(Ctrl(1)))),
-        "crz" => Some(("rz".to_string(), make_modifier(Ctrl(1)))),
-        "cswap" => Some(("swap".to_string(), make_modifier(Ctrl(1)))),
+        "cy" => Some(("y".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+        "cz" => Some(("z".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+        "ch" => Some(("h".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+        "crx" => Some(("rx".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+        "cry" => Some(("ry".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+        "crz" => Some(("rz".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+        "cswap" => Some(("swap".to_string(), make_modifier(Ctrl(ctrl_expr)))),
         "sdg" => Some(("s".to_string(), make_modifier(Inv))),
         "tdg" => Some(("t".to_string(), make_modifier(Inv))),
         // Gates for OpenQASM 2 backwards compatibility
-        "CX" => Some(("x".to_string(), make_modifier(Ctrl(1)))),
-        "cphase" => Some(("phase".to_string(), make_modifier(Ctrl(1)))),
+        "CX" => Some(("x".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+        "cphase" => Some(("phase".to_string(), make_modifier(Ctrl(ctrl_expr)))),
         _ => None,
     }
 }

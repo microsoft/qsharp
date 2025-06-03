@@ -124,6 +124,17 @@ impl Symbol {
         }
     }
 
+    pub(crate) fn err(name: &str, span: Span) -> Self {
+        Symbol {
+            name: name.to_string(),
+            span,
+            ty: Type::Err,
+            qsharp_ty: crate::types::Type::Err,
+            io_kind: IOKind::Default,
+            const_expr: None,
+        }
+    }
+
     #[must_use]
     pub fn with_const_expr(self, value: Rc<Expr>) -> Self {
         assert!(
@@ -378,14 +389,7 @@ impl SymbolTable {
     }
 
     fn insert_err_symbol(&mut self, name: &str, span: Span) -> (SymbolId, Rc<Symbol>) {
-        let symbol = Rc::new(Symbol {
-            name: name.to_string(),
-            span,
-            ty: Type::Err,
-            qsharp_ty: crate::types::Type::Err,
-            io_kind: IOKind::Default,
-            const_expr: None,
-        });
+        let symbol = Rc::new(Symbol::err(name, span));
         let id = self.current_id;
         self.current_id = self.current_id.successor();
         self.symbols.insert(id, symbol.clone());

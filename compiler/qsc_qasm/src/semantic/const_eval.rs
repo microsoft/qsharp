@@ -61,6 +61,14 @@ impl Expr {
         self.const_value.clone()
     }
 
+    pub(crate) fn get_const_u32(&self) -> Option<u32> {
+        if let Some(LiteralKind::Int(val)) = self.get_const_value() {
+            u32::try_from(val).ok()
+        } else {
+            None
+        }
+    }
+
     /// Tries to evaluate the expression. It takes the current `Lowerer` as
     /// the evaluation context to resolve symbols and push errors in case
     /// of failure.

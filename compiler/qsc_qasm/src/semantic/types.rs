@@ -4,8 +4,8 @@
 #[cfg(test)]
 mod tests;
 
-use super::ast::{BinOp, ExprKind, Index, LiteralKind, Range};
-use crate::{parser::ast as syntax, semantic::ast::Expr};
+use super::ast::{BinOp, Expr, ExprKind, Index, LiteralKind, Range};
+use crate::parser::ast as syntax;
 use core::fmt;
 use std::fmt::{Display, Formatter};
 use std::{cmp::max, rc::Rc};

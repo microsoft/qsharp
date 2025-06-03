@@ -30,9 +30,6 @@ pub enum SemanticErrorKind {
     #[error("array literals are only allowed in classical declarations")]
     #[diagnostic(code("Qasm.Lowerer.ArrayLiteralInNonClassicalDecl"))]
     ArrayLiteralInNonClassicalDecl(#[label] Span),
-    #[error("array size must be a non-negative integer const expression")]
-    #[diagnostic(code("Qasm.Lowerer.ArraySizeMustBeNonNegativeConstExpr"))]
-    ArraySizeMustBeNonNegativeConstExpr(#[label] Span),
     #[error("first quantum register is of type {0} but found an argument of type {1}")]
     #[diagnostic(code("Qasm.Lowerer.BroadcastCallQuantumArgsDisagreeInSize"))]
     BroadcastCallQuantumArgsDisagreeInSize(String, String, #[label] Span),
@@ -88,6 +85,15 @@ pub enum SemanticErrorKind {
     #[error("{0} must be a const expression")]
     #[diagnostic(code("Qasm.Lowerer.ExprMustBeConst"))]
     ExprMustBeConst(String, #[label] Span),
+    #[error("{0} must be an integer")]
+    #[diagnostic(code("Qasm.Lowerer.ExprMustBeInt"))]
+    ExprMustBeInt(String, #[label] Span),
+    #[error("{0} must be a non-negative integer")]
+    #[diagnostic(code("Qasm.Lowerer.ExprMustBeNonNegativeInt"))]
+    ExprMustBeNonNegativeInt(String, #[label] Span),
+    #[error("{0} must be a positive integer")]
+    #[diagnostic(code("Qasm.Lowerer.ExprMustBePositiveInt"))]
+    ExprMustBePositiveInt(String, #[label] Span),
     #[error("{0} must fit in a u32")]
     #[diagnostic(code("Qasm.Lowerer.ExprMustFitInU32"))]
     ExprMustFitInU32(String, #[label] Span),
@@ -223,9 +229,6 @@ pub enum SemanticErrorKind {
     #[error("types differ by dimensions and are incompatible")]
     #[diagnostic(code("Qasm.Lowerer.TypeRankError"))]
     TypeRankError(#[label] Span),
-    #[error("type width must be a positive integer const expression")]
-    #[diagnostic(code("Qasm.Lowerer.TypeWidthMustBePositiveIntConstExpr"))]
-    TypeWidthMustBePositiveIntConstExpr(#[label] Span),
     #[error("undefined symbol: {0}")]
     #[diagnostic(code("Qasm.Lowerer.UndefinedSymbol"))]
     UndefinedSymbol(String, #[label] Span),

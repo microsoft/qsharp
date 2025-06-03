@@ -423,9 +423,9 @@ fn explicit_zero_width_fails() {
                                 ty: unknown
                                 kind: Err
 
-            [Qasm.Lowerer.TypeWidthMustBePositiveIntConstExpr
+            [Qasm.Lowerer.ExprMustBePositiveInt
 
-              x type width must be a positive integer const expression
+              x type width must be a positive integer
                ,-[test:1:7]
              1 | angle[0] x = 42.1;
                :       ^

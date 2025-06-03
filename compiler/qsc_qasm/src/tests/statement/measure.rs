@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::tests::compile_qasm_to_qsharp;
+use crate::tests::{check_qasm_to_qsharp, compile_qasm_to_qsharp};
 use expect_test::expect;
 use miette::Report;
 use std::fmt::Write;
@@ -105,22 +105,24 @@ fn unindexed_single_qubit_can_be_measured_into_indexed_bit_register(
 }
 
 #[test]
-fn measure_zero_length_qubits_into_register() -> miette::Result<(), Vec<Report>> {
+fn measure_zero_length_qubits_into_register_fails() {
     let source = r#"
         bit[0] c;
         qubit[0] q;
         c = measure q;
     "#;
 
-    let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#"
-        import Std.OpenQASM.Intrinsic.*;
-        mutable c = [];
-        let q = QIR.Runtime.AllocateQubitArray(0);
-        set c = Std.Measurement.MeasureEachZ(q);
-    "#]]
-    .assert_eq(&qsharp);
-    Ok(())
+    check_qasm_to_qsharp(source, &expect![[r#"
+        Qasm.Lowerer.ExprMustBePositiveInt
+
+          x quantum register size must be a positive integer
+           ,-[Test.qasm:3:15]
+         2 |         bit[0] c;
+         3 |         qubit[0] q;
+           :               ^
+         4 |         c = measure q;
+           `----
+    "#]]);
 }
 
 #[test]
@@ -252,22 +254,27 @@ fn unindexed_single_qubit_with_measure_arrow_into_indexed_bit_register(
 }
 
 #[test]
-fn measure_arrow_zero_length_qubits_into_register() -> miette::Result<(), Vec<Report>> {
+fn measure_arrow_zero_length_qubits_into_register_fails() {
     let source = r#"
         bit[0] c;
         qubit[0] q;
         measure q -> c;
     "#;
 
-    let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#"
-        import Std.OpenQASM.Intrinsic.*;
-        mutable c = [];
-        let q = QIR.Runtime.AllocateQubitArray(0);
-        set c = Std.Measurement.MeasureEachZ(q);
-    "#]]
-    .assert_eq(&qsharp);
-    Ok(())
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            Qasm.Lowerer.ExprMustBePositiveInt
+
+              x quantum register size must be a positive integer
+               ,-[Test.qasm:3:15]
+             2 |         bit[0] c;
+             3 |         qubit[0] q;
+               :               ^
+             4 |         measure q -> c;
+               `----
+        "#]],
+    );
 }
 
 #[test]

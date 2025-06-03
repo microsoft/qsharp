@@ -494,9 +494,9 @@ fn check_lowerer_error_spans_are_correct() {
              187 | 
                  `----
 
-            Qasm.Lowerer.ArraySizeMustBeNonNegativeConstExpr
+            Qasm.Lowerer.ExprMustBeNonNegativeInt
 
-              x array size must be a non-negative integer const expression
+              x array size must be a non-negative integer
                  ,-[Test.qasm:189:12]
              188 | // ArraySizeMustBeNonNegativeConstExpr
              189 | array[int, -2] negative_array_size;
@@ -524,9 +524,9 @@ fn check_lowerer_error_spans_are_correct() {
              196 | 
                  `----
 
-            Qasm.Lowerer.TypeWidthMustBePositiveIntConstExpr
+            Qasm.Lowerer.ExprMustBePositiveInt
 
-              x type width must be a positive integer const expression
+              x type width must be a positive integer
                  ,-[Test.qasm:198:5]
              197 | // TypeWidthMustBePositiveIntConstExpr
              198 | int[0] zero_width;
@@ -534,9 +534,9 @@ fn check_lowerer_error_spans_are_correct() {
              199 | int[-2] negative_width;
                  `----
 
-            Qasm.Lowerer.TypeWidthMustBePositiveIntConstExpr
+            Qasm.Lowerer.ExprMustBePositiveInt
 
-              x type width must be a positive integer const expression
+              x type width must be a positive integer
                  ,-[Test.qasm:199:5]
              198 | int[0] zero_width;
              199 | int[-2] negative_width;

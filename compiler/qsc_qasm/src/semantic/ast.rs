@@ -500,6 +500,16 @@ impl Expr {
             const_value: None,
         }
     }
+
+    pub fn uint(val: i64, span: Span) -> Self {
+        let val = LiteralKind::Int(val);
+        Expr {
+            span,
+            kind: Box::new(ExprKind::Lit(val.clone())),
+            ty: super::types::Type::UInt(None, true),
+            const_value: Some(val),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -551,8 +561,12 @@ impl Display for QuantumGateModifier {
 pub enum GateModifierKind {
     Inv,
     Pow(Expr),
-    Ctrl(u32),
-    NegCtrl(u32),
+    /// This `Expr` is const, but we don't substitute by the `LiteralKind` yet
+    /// to be able to provide Span and Type information to the Language Service.
+    Ctrl(Expr),
+    /// This `Expr` is const, but we don't substitute by the `LiteralKind` yet
+    /// to be able to provide Span and Type information to the Language Service.
+    NegCtrl(Expr),
 }
 
 impl Display for GateModifierKind {
@@ -704,7 +718,9 @@ impl Display for QubitDeclaration {
 pub struct QubitArrayDeclaration {
     pub span: Span,
     pub symbol_id: SymbolId,
-    pub size: u32,
+    /// This `Expr` is const, but we don't substitute by the `LiteralKind` yet
+    /// to be able to provide Span and Type information to the Language Service.
+    pub size: Expr,
     pub size_span: Span,
 }
 
