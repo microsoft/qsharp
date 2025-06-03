@@ -83,7 +83,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
       return result;
     }
 
-    const program = await getActiveProgram();
+    const program = await getActiveProgram({ showModalError: true });
     if (!program.success) {
       throw new Error(program.errorMsg);
     }
