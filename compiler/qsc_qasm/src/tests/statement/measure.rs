@@ -112,7 +112,9 @@ fn measure_zero_length_qubits_into_register_fails() {
         c = measure q;
     "#;
 
-    check_qasm_to_qsharp(source, &expect![[r#"
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
         Qasm.Lowerer.ExprMustBePositiveInt
 
           x quantum register size must be a positive integer
@@ -122,7 +124,8 @@ fn measure_zero_length_qubits_into_register_fails() {
            :               ^
          4 |         c = measure q;
            `----
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
