@@ -13,7 +13,6 @@ import {
 } from "../programConfig";
 import { getRandomGuid } from "../utils";
 import { QscDebugSession } from "./session";
-import { generateQubitCircuitExpression } from "../circuitEditor";
 import { findManifestDirectory } from "../projectSystem";
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
@@ -107,24 +106,6 @@ function registerCommands(context: vscode.ExtensionContext) {
           stopOnEntry: true,
           entry: expr,
         });
-      },
-    ),
-    vscode.commands.registerCommand(
-      `${qsharpExtensionId}.runCircuitFile`,
-      async (resource: vscode.Uri) => {
-        if (!resource) {
-          throw new Error(
-            "Unable to find a circuit file to run. Please use the Run button.",
-          );
-        }
-
-        const entry = await generateQubitCircuitExpression(resource);
-
-        startQdkDebugging(
-          resource,
-          { name: "QDK: Run Circuit File", stopOnEntry: false, entry },
-          { noDebug: true },
-        );
       },
     ),
     vscode.commands.registerCommand(

@@ -151,24 +151,15 @@
           "group": "navigation@1"
         },
         {
-          "command": "qsharp-vscode.runCircuitFile",
-          "when": "resourceLangId == qsharpcircuit",
-          "group": "navigation@2"
-        },
-        {
           "command": "qsharp-vscode.debugProgram",
           "when": "resourceLangId == qsharp || resourceLangId == openqasm || (qsharp.activeProjectDirectory && resourceLangId == qsharpcircuit)",
-          "group": "navigation@3"
+          "group": "navigation@2"
         }
       ],
       "commandPalette": [
         {
           "command": "qsharp-vscode.runProgram",
           "when": "resourceLangId == qsharp || resourceLangId == openqasm || (qsharp.activeProjectDirectory && resourceLangId == qsharpcircuit)"
-        },
-        {
-          "command": "qsharp-vscode.runCircuitFile",
-          "when": "false"
         },
         {
           "command": "qsharp-vscode.debugProgram",
@@ -351,13 +342,6 @@
       {
         "command": "qsharp-vscode.runProgram",
         "title": "Run",
-        "category": "Debug",
-        "enablement": "!inDebugMode",
-        "icon": "$(play)"
-      },
-      {
-        "command": "qsharp-vscode.runCircuitFile",
-        "title": "Run Circuit File",
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(play)"

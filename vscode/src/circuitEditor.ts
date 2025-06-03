@@ -3,7 +3,6 @@
 
 import { updateQsharpProjectContext } from "./debugger/activate";
 import * as vscode from "vscode";
-import { findManifestDirectory } from "./projectSystem";
 
 export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
   private static readonly viewType = "qsharp-webview.circuit";
@@ -175,88 +174,5 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     this.updatingDocument = true;
     await vscode.workspace.applyEdit(edit);
     this.updatingDocument = false;
-  }
-}
-
-/**
- * Generates a Q# entry expression for simulating a circuit operation defined in a JSON circuit file.
- * The entry expression will use the number of qubits specified in the JSON file and
- * call the operation with these qubits. It will then dump the machine state, reset the qubits,
- * and return the results (if any) of running the circuit.
- *
- * If any error occurs (invalid structure, missing fields, etc.), this function throws an error.
- *
- * @param resource The URI of the circuit JSON file.
- * @returns A Q# code block as a string.
- * @throws Error if the circuit file is invalid or required fields are missing.
- */
-export async function generateQubitCircuitExpression(
-  resource: vscode.Uri,
-): Promise<string> {
-  let numQubits: number | undefined = undefined;
-  let operationName: string | undefined = undefined;
-  let namespaceName: string | undefined = undefined;
-
-  try {
-    const document = await vscode.workspace.openTextDocument(resource);
-    const text = document.getText();
-    const json = JSON.parse(text);
-
-    if (
-      !Array.isArray(json.circuits) ||
-      json.circuits.length === 0 ||
-      !Array.isArray(json.circuits[0].qubits)
-    ) {
-      throw new Error("Circuit file does not have expected structure.");
-    }
-    numQubits = json.circuits[0].qubits.length;
-    if (typeof numQubits !== "number" || numQubits <= 0) {
-      throw new Error("Could not determine number of qubits.");
-    }
-
-    // Get operation name (file name without extension)
-    const fileName = resource.path.substring(
-      resource.path.lastIndexOf("/") + 1,
-    );
-    operationName = fileName.replace(/\.[^/.]+$/, "");
-    if (!operationName) {
-      throw new Error("Could not determine operation name from file name.");
-    }
-
-    const projectUri = await findManifestDirectory(resource.toString());
-    if (projectUri === null) {
-      // Not in a project: use file name as namespace
-      namespaceName = operationName;
-    } else {
-      // Compute relative path from src/ to resource
-      const srcUri = vscode.Uri.joinPath(vscode.Uri.parse(projectUri), "src");
-      let relPath = resource.path.startsWith(srcUri.path)
-        ? resource.path.substring(srcUri.path.length)
-        : resource.path;
-      if (relPath.startsWith("/")) relPath = relPath.substring(1);
-
-      // Remove extension and replace slashes with dots for namespace
-      relPath = relPath.replace(/\.[^/.]+$/, "");
-      namespaceName = relPath.replace(/[\\/]/g, ".");
-    }
-
-    if (!namespaceName) {
-      throw new Error("Could not determine namespace name.");
-    }
-
-    const expr = `{
-    import Std.Diagnostics.DumpMachine;
-    import ${namespaceName}.${operationName};
-    use qs = Qubit[${numQubits}];
-    let results = ${operationName}(qs);
-    DumpMachine();
-    ResetAll(qs);
-    results
-}`;
-    return expr;
-  } catch (err: any) {
-    throw new Error(
-      `Failed to generate Q# circuit expression: ${err?.message ?? err}`,
-    );
   }
 }
