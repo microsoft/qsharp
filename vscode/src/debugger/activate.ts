@@ -40,39 +40,6 @@ export async function activateDebugger(
   context.subscriptions.push(
     vscode.debug.registerDebugAdapterDescriptorFactory("qsharp", factory),
   );
-
-  // Listen for active editor changes and set the context key
-  context.subscriptions.push(
-    vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-      if (editor) {
-        await updateQsharpProjectContext(editor.document);
-      }
-    }),
-  );
-
-  // Also set the context key on activation (in case a file is already open)
-  if (vscode.window.activeTextEditor) {
-    await updateQsharpProjectContext(vscode.window.activeTextEditor.document);
-  }
-}
-
-// Helper function to check if the file is in a project and set the context key
-export async function updateQsharpProjectContext(
-  document: vscode.TextDocument,
-) {
-  // The path of the project directory, if applicable, null if not in a project.
-  let activeProjectDirectory: string | undefined = undefined;
-  if (isQdkDocument(document) || isCircuitDocument(document)) {
-    const projectDir = await findManifestDirectory(document.uri.toString());
-    if (projectDir !== null && projectDir !== "") {
-      activeProjectDirectory = projectDir;
-    }
-  }
-  vscode.commands.executeCommand(
-    "setContext",
-    "qsharp.activeProjectDirectory",
-    activeProjectDirectory,
-  );
 }
 
 function registerCommands(context: vscode.ExtensionContext) {

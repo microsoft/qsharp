@@ -147,23 +147,23 @@
       "editor/title/run": [
         {
           "command": "qsharp-vscode.runProgram",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm || (qsharp.activeProjectDirectory && resourceLangId == qsharpcircuit)",
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit",
           "group": "navigation@1"
         },
         {
           "command": "qsharp-vscode.debugProgram",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm || (qsharp.activeProjectDirectory && resourceLangId == qsharpcircuit)",
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit",
           "group": "navigation@2"
         }
       ],
       "commandPalette": [
         {
           "command": "qsharp-vscode.runProgram",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm || (qsharp.activeProjectDirectory && resourceLangId == qsharpcircuit)"
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit"
         },
         {
           "command": "qsharp-vscode.debugProgram",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm || (qsharp.activeProjectDirectory && resourceLangId == qsharpcircuit)"
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit"
         },
         {
           "command": "qsharp-vscode.runEditorContentsWithCircuit",
