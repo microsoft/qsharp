@@ -171,7 +171,7 @@ impl Display for Type {
                     .map(std::string::ToString::to_string)
                     .collect::<Vec<_>>()
                     .join(", ");
-                write!(f, "def({params_ty_str}) -> {return_ty}")
+                write!(f, "def ({params_ty_str}) -> {return_ty}")
             }
             Type::Range => write!(f, "range"),
             Type::Set => write!(f, "set"),
