@@ -142,7 +142,7 @@ fn no_valid_overload_error(
     write!(error_msg, "\nOverloads available are:").expect("write should succeed");
 
     for (signature, _) in fn_table {
-        write!(error_msg, "\n  {signature}").expect("write should succeed");
+        write!(error_msg, "\n    {signature}").expect("write should succeed");
     }
 
     ConstEvalError::NoValidOverloadForBuiltinFunction(error_msg, call_span)
