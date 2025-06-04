@@ -501,12 +501,32 @@ impl Expr {
         }
     }
 
+    pub fn int(val: i64, span: Span) -> Self {
+        let val = LiteralKind::Int(val);
+        Expr {
+            span,
+            kind: Box::new(ExprKind::Lit(val.clone())),
+            ty: super::types::Type::Int(None, true),
+            const_value: Some(val),
+        }
+    }
+
     pub fn uint(val: i64, span: Span) -> Self {
         let val = LiteralKind::Int(val);
         Expr {
             span,
             kind: Box::new(ExprKind::Lit(val.clone())),
             ty: super::types::Type::UInt(None, true),
+            const_value: Some(val),
+        }
+    }
+
+    pub fn float(val: f64, span: Span) -> Self {
+        let val = LiteralKind::Float(val);
+        Expr {
+            span,
+            kind: Box::new(ExprKind::Lit(val.clone())),
+            ty: super::types::Type::Float(None, true),
             const_value: Some(val),
         }
     }

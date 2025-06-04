@@ -2865,7 +2865,7 @@ impl Lowerer {
         expr
     }
 
-    fn coerce_literal_expr_to_type(
+    pub(crate) fn coerce_literal_expr_to_type(
         &mut self,
         ty: &Type,
         expr: &semantic::Expr,

@@ -38,6 +38,11 @@ pub enum ConstEvalError {
     #[error("uint expression must evaluate to a non-negative value, but it evaluated to {0}")]
     #[diagnostic(code("Qasm.Lowerer.NegativeUIntValue"))]
     NegativeUIntValue(i64, #[label] Span),
+
+    #[error("{0}")]
+    #[diagnostic(code("Qasm.Lowerer.NoValidOverloadForBuiltinFunction"))]
+    NoValidOverloadForBuiltinFunction(String, #[label] Span),
+
     #[error("too many indices provided")]
     #[diagnostic(code("Qasm.Lowerer.TooManyIndices"))]
     TooManyIndices(#[label] Span),
