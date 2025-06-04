@@ -25,6 +25,12 @@ OpenQASM 3.0 has two built-in gates being the one-qubit gate `U(θ, ϕ, λ)` and
 
 Only the built-in gates are allowed without including them from another file or defining them in the program.
 
+When generating OpenQASM 3.0 file, start with the version declaration: `OPENQASM 3.0;` followed by `include "stdgates.inc";`.
+
+When generating OpenQASM 2.0 file, start with the version declaration: `OPENQASM 2.0;` followed by `include "qelib1.inc";`.
+
+`output` declarations, only available in OpenQASM 3.0, cannot be assigned to in the same line that they are declared. For example, the following is invalid: `output bit c = measure q;`. Instead, use a separate line for the assignment: `output bit c; c = measure q;`
+
 ## Python interop
 
 The `qsharp` package provides a way to compile, run, and resource estimate OpenQASM 3.0 programs in Python. The functions can be imported from the `qsharp.openqasm` module and are named `compile`, `run`, and `estimate`.

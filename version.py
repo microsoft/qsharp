@@ -4,9 +4,73 @@
 # Licensed under the MIT License.
 
 import os
+import re
 
 # To be updated every time we start a new major.minor version.
-major_minor = "1.16"
+major_minor = "1.17"
+
+root_dir = os.path.dirname(os.path.abspath(__file__))
+
+
+def update_file(file: str, old_text: str, new_text: str, is_regex: bool = False):
+    # Open the file and replace the first string matching the old text with the new text
+    with open(file, "r+", newline="") as f:
+        contents = f.read()
+        new_contents = (
+            contents.replace(old_text, new_text, 1)
+            if not is_regex
+            else re.sub(old_text, new_text, contents)
+        )
+        f.seek(0)
+        f.write(new_contents)
+        f.truncate()
+
+
+# If the first argument is "--set", update the repo to the version in the second argument.
+# This should be a full triple and will update the refs in the library manifests also, e.g.
+#  ./version.py --set 1.18.0
+# IMPORTANT: This is for convenience and does simple pattern matching. Verify all changes manually before committing.
+if len(os.sys.argv) > 1 and os.sys.argv[1] == "--set":
+    if len(os.sys.argv) != 3:
+        print("Usage: {} --set n.n.n".format(os.sys.argv[0]))
+        exit(1)
+
+    new_version = os.sys.argv[2]
+    # Ensure new version is in the correct format and extract major, minor, and build numbers
+    parts = new_version.split(".")
+    if len(parts) != 3 or not all(part.isdigit() for part in parts):
+        print("Version must be in the format 'n.n.n'")
+        exit(1)
+
+    # Update this file
+    update_file(
+        os.path.join(root_dir, "version.py"),
+        r'major_minor = "{}"'.format(major_minor),
+        r'major_minor = "{}"'.format(".".join(parts[:2])),
+    )
+
+    # Collect the files to update that have a full version reference
+    # Update the pre-populated manifest references to the new version
+    update_list = [os.path.join(root_dir, "vscode/src/registry.json")]
+
+    # Collect any file named "qsharp.json" under the /library directory
+    for root, dirs, files in os.walk(os.path.join(root_dir, "library")):
+        update_list += [
+            os.path.join(root, file) for file in files if file == "qsharp.json"
+        ]
+
+    for file in update_list:
+        update_file(
+            file,
+            r'"ref": "v[0-9.]+"',
+            r'"ref": "v{}"'.format(".".join(parts)),
+            is_regex=True,
+        )
+
+    print("Updated version to {}".format(new_version))
+
+    exit(0)
+
 
 # Default to 'dev' builds
 BUILD_TYPE = os.environ.get("BUILD_TYPE") or "dev"
@@ -38,18 +102,6 @@ print("Pip version: {}".format(pip_version))
 print("Npm version: {}".format(npm_version))
 print("VS Code version: {}".format(version_triple))
 
-
-def update_file(file: str, old_text: str, new_text: str):
-    # Open the file and replace the first string matching the old text with the new text
-    with open(file, "r+", newline="") as f:
-        contents = f.read()
-        new_contents = contents.replace(old_text, new_text, 1)
-        f.seek(0)
-        f.write(new_contents)
-        f.truncate()
-
-
-root_dir = os.path.dirname(os.path.abspath(__file__))
 update_file(
     os.path.join(root_dir, "pip/pyproject.toml"),
     r'version = "0.0.0"',

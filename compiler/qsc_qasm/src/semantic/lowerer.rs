@@ -3715,12 +3715,22 @@ impl Lowerer {
         })
     }
 
-    /// Ranges used for array initialization don't need to be const evaluatable
-    /// and can be computed at runtime.
+    /// These ranges as iterators in for loops. The spec says
+    /// that `start` and `stop` are mandatory in this case.
+    ///
+    /// Spec: <https://openqasm.com/language/classical.html#for-loops>
     fn lower_range(&mut self, range: &syntax::Range) -> semantic::Range {
         let start = range.start.as_ref().map(|e| self.lower_expr(e));
         let step = range.step.as_ref().map(|e| self.lower_expr(e));
         let end = range.end.as_ref().map(|e| self.lower_expr(e));
+
+        if start.is_none() {
+            self.push_semantic_error(SemanticErrorKind::RangeExpressionsMustHaveStart(range.span));
+        }
+
+        if end.is_none() {
+            self.push_semantic_error(SemanticErrorKind::RangeExpressionsMustHaveStop(range.span));
+        }
 
         semantic::Range {
             span: range.span,

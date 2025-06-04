@@ -854,7 +854,6 @@ operation SX(qubit : Qubit) : Unit is Adj + Ctl {
     }
     controlled (ctls, ...) {
         if Length(ctls) == 0 {
-            __quantum__qis__x__body(qubit);
             __quantum__qis__sx__body(qubit);
         } elif Length(ctls) == 1 {
             within {

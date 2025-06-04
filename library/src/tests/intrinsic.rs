@@ -1257,6 +1257,41 @@ fn test_base_mcsadj_4_control() {
 }
 
 #[test]
+fn test_mcsx_0_control() {
+    let mut sim = SparseSim::default();
+    let dump = test_expression_with_lib_and_profile_and_sim(
+        indoc! {"{
+            let qs = QIR.Runtime.AllocateQubitArray(1);
+            let aux = QIR.Runtime.AllocateQubitArray(1);
+            H(aux[0]);
+            CNOT(aux[0], qs[0]);
+            Controlled SX([], qs[0]);
+            Std.Diagnostics.DumpMachine();
+        }"},
+        "",
+        Profile::Unrestricted,
+        &mut sim,
+        &Value::unit(),
+    );
+    expect![[r#"
+        STATE:
+        |00⟩: 0.3536+0.3536𝑖
+        |01⟩: 0.3536−0.3536𝑖
+        |10⟩: 0.3536−0.3536𝑖
+        |11⟩: 0.3536+0.3536𝑖
+    "#]]
+    .assert_eq(&dump);
+
+    sim.sim.h(0);
+    sim.sim.sadj(0);
+    sim.sim.h(0);
+    sim.sim.mcx(&[1], 0);
+    sim.sim.h(1);
+    assert!(sim.sim.qubit_is_zero(1), "qubit 1 is not zero");
+    assert!(sim.sim.qubit_is_zero(0), "qubit 0 is not zero");
+}
+
+#[test]
 fn test_mcsx_1_control() {
     let mut sim = SparseSim::default();
     let dump = test_expression_with_lib_and_profile_and_sim(
@@ -1588,6 +1623,41 @@ fn test_base_mcsx_4_control() {
         assert!(sim.sim.qubit_is_zero(i + 5), "qubit {} is not zero", i + 5);
         assert!(sim.sim.qubit_is_zero(i), "qubit {i} is not zero");
     }
+}
+
+#[test]
+fn test_mcsxadj_0_control() {
+    let mut sim = SparseSim::default();
+    let dump = test_expression_with_lib_and_profile_and_sim(
+        indoc! {"{
+            let qs = QIR.Runtime.AllocateQubitArray(1);
+            let aux = QIR.Runtime.AllocateQubitArray(1);
+            H(aux[0]);
+            CNOT(aux[0], qs[0]);
+            Adjoint Controlled SX([], qs[0]);
+            Std.Diagnostics.DumpMachine();
+        }"},
+        "",
+        Profile::Unrestricted,
+        &mut sim,
+        &Value::unit(),
+    );
+    expect![[r#"
+        STATE:
+        |00⟩: 0.3536−0.3536𝑖
+        |01⟩: 0.3536+0.3536𝑖
+        |10⟩: 0.3536+0.3536𝑖
+        |11⟩: 0.3536−0.3536𝑖
+    "#]]
+    .assert_eq(&dump);
+
+    sim.sim.h(0);
+    sim.sim.s(0);
+    sim.sim.h(0);
+    sim.sim.mcx(&[1], 0);
+    sim.sim.h(1);
+    assert!(sim.sim.qubit_is_zero(1), "qubit 1 is not zero");
+    assert!(sim.sim.qubit_is_zero(0), "qubit 0 is not zero");
 }
 
 #[test]

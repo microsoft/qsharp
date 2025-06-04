@@ -181,10 +181,10 @@ pub enum SemanticErrorKind {
     #[error("quantum typed values cannot be used in binary expressions")]
     #[diagnostic(code("Qasm.Lowerer.QuantumTypesInBinaryExpression"))]
     QuantumTypesInBinaryExpression(#[label] Span),
-    #[error("range expressions must have a start")]
+    #[error("range expressions must have a start when used in for loops")]
     #[diagnostic(code("Qasm.Lowerer.RangeExpressionsMustHaveStart"))]
     RangeExpressionsMustHaveStart(#[label] Span),
-    #[error("range expressions must have a stop")]
+    #[error("range expressions must have a stop when used in for loops")]
     #[diagnostic(code("Qasm.Lowerer.RangeExpressionsMustHaveStop"))]
     RangeExpressionsMustHaveStop(#[label] Span),
     #[error("redefined symbol: {0}")]

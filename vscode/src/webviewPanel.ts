@@ -83,7 +83,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
       return result;
     }
 
-    const program = await getActiveProgram();
+    const program = await getActiveProgram({ showModalError: true });
     if (!program.success) {
       throw new Error(program.errorMsg);
     }
@@ -104,17 +104,18 @@ export function registerWebViewCommands(context: ExtensionContext) {
         }
       };
 
-      const numberOfShots =
-        (await window.showInputBox({
-          value: "100",
-          prompt: "Number of shots",
-          validateInput: validateShotsInput,
-        })) || "100";
+      const numberOfShotsInput = await window.showInputBox({
+        value: "100",
+        prompt: "Number of shots",
+        validateInput: validateShotsInput,
+      });
 
       // abort if the user hits <Esc> during shots entry
-      if (numberOfShots === undefined) {
+      if (numberOfShotsInput === undefined) {
         return;
       }
+
+      const numberOfShots = numberOfShotsInput;
 
       sendMessageToPanel(
         { panelType: "histogram", id: panelId },

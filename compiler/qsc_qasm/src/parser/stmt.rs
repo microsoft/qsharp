@@ -1205,15 +1205,18 @@ pub fn parse_if_stmt(s: &mut ParserContext) -> Result<IfStmt> {
 /// Ranges in for loops are a bit different. They must have explicit start and end.
 /// Grammar `LBRACKET start=expression COLON (step=expression COLON)? stop=expression]`.
 /// Reference: <https://openqasm.com/language/classical.html#for-loops>.
+///
+/// However, we allow the range to have omitted start and end at this point,
+/// and push a semantic error later at the lowering stage.
 fn for_loop_range_expr(s: &mut ParserContext) -> Result<Range> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Bracket))?;
-    let start = Some(expr::expr(s)?);
+    let start = opt(s, expr::expr)?;
     token(s, TokenKind::Colon)?;
 
     // QASM ranges have the pattern [start : (step :)? end]
     // We assume the second expr is the `end`.
-    let mut end = Some(expr::expr(s)?);
+    let mut end = opt(s, expr::expr)?;
     let mut step = None;
 
     // If we find a third expr, then the second expr was the `step`.

@@ -26,8 +26,8 @@ import {
 } from "./language-service/language-service.js";
 import { log } from "./log.js";
 import { createProxy } from "./workers/node.js";
-import type { ProjectLoader } from "../lib/web/qsc_wasm.js";
-import { IProjectHost } from "./browser.js";
+import { ProjectLoader } from "./project.js";
+import type { IProjectHost } from "./browser.js";
 
 export { qsharpLibraryUriScheme };
 
@@ -63,7 +63,7 @@ export function getCompiler(): ICompiler {
 
 export function getProjectLoader(host: IProjectHost): ProjectLoader {
   ensureWasm();
-  return new wasm!.ProjectLoader(host);
+  return new ProjectLoader(wasm!, host);
 }
 
 export function getCompilerWorker(): ICompilerWorker {

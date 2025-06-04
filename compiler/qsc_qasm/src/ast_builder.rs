@@ -561,14 +561,19 @@ pub(crate) fn build_array_reverse_expr(expr: Expr) -> Expr {
 }
 
 #[allow(clippy::similar_names)]
-pub(crate) fn build_range_expr(start: Expr, stop: Expr, step: Option<Expr>, span: Span) -> Expr {
+pub(crate) fn build_range_expr(
+    start: Option<Expr>,
+    step: Option<Expr>,
+    stop: Option<Expr>,
+    span: Span,
+) -> Expr {
     Expr {
         id: NodeId::default(),
         span,
         kind: Box::new(ExprKind::Range(
-            Some(Box::new(start)),
+            start.map(Box::new),
             step.map(Box::new),
-            Some(Box::new(stop)),
+            stop.map(Box::new),
         )),
     }
 }

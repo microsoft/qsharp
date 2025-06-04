@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { IQSharpError, log } from "qsharp-lang";
+import { log, QdkDiagnostics } from "qsharp-lang";
 import * as vscode from "vscode";
 import {
   qsharpExtensionId,
@@ -104,6 +104,7 @@ function startCommandDiagnostics(): vscode.Disposable[] {
         if (commandErrors.length > 0) {
           const action = new vscode.CodeAction(
             "Dismiss errors for the last run QDK command",
+            vscode.CodeActionKind.QuickFix, // makes the lightbulb reliably show up
           );
           action.diagnostics = commandErrors;
           action.command = {
@@ -135,65 +136,75 @@ export function clearCommandDiagnostics() {
  */
 export async function invokeAndReportCommandDiagnostics<T>(
   fn: () => T | Promise<T>,
+  options: {
+    showModalError?: boolean;
+    populateProblemsView?: boolean;
+  },
 ): Promise<T> {
   try {
     // Clear the diagnostics from the last command run.
     clearCommandDiagnostics();
     return await fn();
   } catch (e: unknown) {
-    reportIfQSharpErrors(e);
+    reportIfQSharpErrors(e, options);
     throw e;
   }
 }
 
 /**
- * Given an exception, checks if it's a JSON string representation of IQSharpError[],
+ * Given an exception, checks if it's an instance of `QdkDiagnostics`,
  * and if so, reports the diagnostics to VS Code.
  *
  * @param e an exception originating from the qsharp-lang package
  */
-function reportIfQSharpErrors(e: unknown) {
+function reportIfQSharpErrors(
+  e: unknown,
+  options: {
+    showModalError?: boolean;
+    populateProblemsView?: boolean;
+  },
+) {
   if (!commandDiagnostics) {
     log.warn(`diagnostic collection for commands was not initialized`);
     return;
   }
 
-  let qsharpErrors: IQSharpError[] | undefined;
-  if (typeof e === "string") {
-    try {
-      const errors = JSON.parse(e);
-      // Check for the shape of IQSharpError[]
-      if (Array.isArray(errors) && errors.length > 0 && errors[0].document) {
-        qsharpErrors = errors;
+  if (e instanceof QdkDiagnostics) {
+    if (options.populateProblemsView) {
+      const byUri = new Map<vscode.Uri, vscode.Diagnostic[]>();
+
+      for (const error of e.diagnostics) {
+        const uri = getSourceUri(error.document);
+
+        const diagnostics = byUri.get(uri) || [];
+        error.diagnostic.message = `QDK command error: ${error.diagnostic.message}`;
+        diagnostics.push(toVsCodeDiagnostic(error.diagnostic));
+        byUri.set(uri, diagnostics);
       }
-    } catch {
-      // Couldn't parse the error as JSON.
-      log.warn(`could not parse error string ${e}`);
+
+      for (const [uri, diags] of byUri) {
+        commandDiagnostics.set(uri, diags);
+      }
+    }
+
+    if (options.showModalError) {
+      // fire and forget
+      showModalError(e.message);
     }
   }
+}
 
-  if (qsharpErrors) {
-    const byUri = new Map<vscode.Uri, vscode.Diagnostic[]>();
-
-    for (const error of qsharpErrors) {
-      const uri = getSourceUri(error.document);
-
-      const diagnostics = byUri.get(uri) || [];
-      error.diagnostic.message = `QDK command error: ${error.diagnostic.message}`;
-      diagnostics.push(toVsCodeDiagnostic(error.diagnostic));
-      byUri.set(uri, diagnostics);
-    }
-
-    for (const [uri, diags] of byUri) {
-      commandDiagnostics.set(uri, diags);
-    }
-
-    // Focus on Problems view
-    vscode.commands.executeCommand("workbench.action.problems.focus");
-
-    vscode.window.showErrorMessage(
-      "The command returned errors. Please see the Problems view.",
-      { modal: true },
-    );
-  }
+async function showModalError(errorMsg: string) {
+  const choice = await vscode.window.showErrorMessage(
+    "The command returned errors. Please see the Problems view.\n\n" + errorMsg,
+    { modal: true },
+    {
+      title: "Show Problems",
+      isCloseAffordance: true,
+    },
+  );
+  await vscode.commands.executeCommand(
+    "workbench.action.problems.focus",
+    choice,
+  );
 }

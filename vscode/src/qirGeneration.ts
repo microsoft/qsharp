@@ -48,7 +48,7 @@ export async function getQirForVisibleSource(
 export async function getQirForActiveWindow(
   targetSupportsAdaptive?: boolean, // should be true or false when submitting to Azure, undefined when generating QIR
 ): Promise<string> {
-  const program = await getActiveProgram();
+  const program = await getActiveProgram({ showModalError: true });
   if (!program.success) {
     throw new QirGenerationError(program.errorMsg);
   }
@@ -151,8 +151,9 @@ async function getQirForProgram(
           worker.terminate();
         });
 
-        const qir = await invokeAndReportCommandDiagnostics(() =>
-          worker.getQir(config),
+        const qir = await invokeAndReportCommandDiagnostics(
+          () => worker.getQir(config),
+          { populateProblemsView: true, showModalError: true },
         );
         progress.report({ increment: 100 });
         return qir;
