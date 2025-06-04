@@ -74,7 +74,7 @@ fn check_const(expr: &Expr, ctx: &mut Lowerer) -> Option<()> {
 }
 
 /// A helper macro for unwrapping the literal value of a const expression.
-macro_rules! unwarp_lit {
+macro_rules! unwrap_lit {
     // This pattern is used for unary expressions.
     ($const_expr:expr, $pat:pat) => {
         #[allow(irrefutable_let_patterns)]
@@ -99,7 +99,7 @@ fn try_implicit_cast_inputs(
     }
 
     for (input, ty) in inputs.iter().zip(input_types.iter()) {
-        unwarp_lit!(input, value);
+        unwrap_lit!(input, value);
         if can_cast_literal(ty, &input.ty) || can_cast_literal_with_value_knowledge(ty, &value) {
             let mut value_expr = input.clone();
             // `coerce_literal_expr_to_type` expects a value expression.
@@ -183,13 +183,13 @@ pub(crate) fn mod_(
 }
 
 pub(crate) fn mod_int(inputs: &[Expr], span: Span) -> Expr {
-    unwarp_lit!(inputs[0], LiteralKind::Int(a));
-    unwarp_lit!(inputs[1], LiteralKind::Int(b));
+    unwrap_lit!(inputs[0], LiteralKind::Int(a));
+    unwrap_lit!(inputs[1], LiteralKind::Int(b));
     Expr::int(a.rem_euclid(b), span)
 }
 
 pub(crate) fn mod_float(inputs: &[Expr], span: Span) -> Expr {
-    unwarp_lit!(inputs[0], LiteralKind::Float(a));
-    unwarp_lit!(inputs[1], LiteralKind::Float(b));
+    unwrap_lit!(inputs[0], LiteralKind::Float(a));
+    unwrap_lit!(inputs[1], LiteralKind::Float(b));
     Expr::float(a.rem_euclid(b), span)
 }
