@@ -776,9 +776,7 @@ function needsRegeneration(katasPath, outputPath) {
       const stat = statSync(outputFile);
       oldestOutputTime = Math.min(oldestOutputTime, stat.mtime.getTime());
     } catch {
-      console.log(
-        `Could not stat output file ${outputFile}`,
-      );
+      console.log(`Could not stat output file ${outputFile}`);
       return true; // If we can't stat the file, regenerate
     }
   }
