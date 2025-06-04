@@ -7,14 +7,15 @@
 /// Rz gate is used as the unitary operation,
 /// and the eigenvector |1⟩ is chosen for the phase estimation.
 /// Run this sample and check the histogram of results.
+/// This sample is suitable for base profile.
 
 /// # Summary
 /// Estimate the phase of the eigenvalue of the unitary gate U
 /// using Quantum Phase Estimation (QPE) algorithm.
-/// The result is returned as an array of {0,1} integers
+/// The result is returned as an array of `Result` values
 /// representing the binary fraction of the phase in big-endian order.
 /// This is used to display the histogram of the results.
-operation Main() : Int[] {
+operation Main() : Result[] {
     // Allocate qubits to be used in phase estimation
     use state = Qubit();
     use phase = Qubit[6];
@@ -40,22 +41,16 @@ operation Main() : Int[] {
     Reset(state);
     ResetAll(phase);
 
-    // Convert result array to array of {0,1} integers for display purposes
-    mutable fraction : Int[] = [];
-    // Reverse the order of the results to present in big-endian
-    for i in Length(results) - 1..-1..0 {
-        fraction += [if results[i] == One { 1 } else { 0 }];
-    }
-
     // For the gate Rz(π/3) and the eigenvector |1⟩, the eigenvalue should be exp(i * π/6).
     // Its phase π/6 is 1/12 as a frction of 2π, or ~0.0001010101 in binary.
-    // The expected histogram should therefore peak at [0, 0, 0, 1, 0, 1] (big-endian order).
-    // with the smaller bar at a bigger value [0, 0, 0, 1, 1, 0]
+    // Estimation is done with the precision of 6 binary digits so the expected histogram
+    // should peak at [Zero, Zero, Zero, One, Zero, One] (big-endian order),
+    // with the smaller bar at the next value [Zero, Zero, Zero, One, One, Zero]
 
-    // Return one data point for histogram display
-    fraction
+    // Reverse the order of the results to present in big-endian
+    // and return one data point for histogram display
+    Std.Arrays.Reversed(results)
 }
-
 
 // U is the unitary gate for which we want to perform phase estimation.
 operation U(q : Qubit) : Unit is Ctl + Adj {
