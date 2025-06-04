@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 mod binary;
+mod builtin_functions;
 mod explicit_cast_from_angle;
 mod explicit_cast_from_bit;
 mod explicit_cast_from_bool;

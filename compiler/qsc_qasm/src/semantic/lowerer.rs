@@ -35,6 +35,7 @@ use crate::semantic::types::base_types_equal;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
 use crate::stdlib::angle::Angle;
+use crate::stdlib::builtin_functions;
 
 use super::ast as semantic;
 use crate::parser::ast as syntax;
@@ -1617,8 +1618,58 @@ impl Lowerer {
         })
     }
 
+    fn is_builtin_function(name: &str) -> bool {
+        matches!(
+            name,
+            "arccos"
+                | "arcsin"
+                | "arctan"
+                | "ceiling"
+                | "cos"
+                | "exp"
+                | "floor"
+                | "log"
+                | "mod"
+                | "popcount"
+                | "pow"
+                | "rotl"
+                | "rotr"
+                | "sin"
+                | "sqrt"
+                | "tan"
+        )
+    }
+
+    fn lower_builtin_function_call_expr(&mut self, expr: &syntax::FunctionCall) -> semantic::Expr {
+        let name = &*expr.name.name;
+        let inputs: Vec<_> = expr
+            .args
+            .iter()
+            .map(|e| self.lower_expr(e).with_const_value(self))
+            .collect();
+        let call_span = expr.span;
+
+        let output = match name {
+            "mod" => builtin_functions::mod_(&inputs, call_span, self),
+            "arccos" | "arcsin" | "arctan" | "ceiling" | "cos" | "exp" | "floor" | "log"
+            | "popcount" | "pow" | "rotl" | "rotr" | "sin" | "sqrt" | "tan" => {
+                self.push_unimplemented_error_message(format!("{name} builtin"), call_span);
+                None
+            }
+            _ => unreachable!(),
+        };
+
+        output.map_or_else(|| err_expr!(Type::Err, call_span), |pair| pair.0)
+    }
+
     fn lower_function_call_expr(&mut self, expr: &syntax::FunctionCall) -> semantic::Expr {
-        // 1. Check that the function name actually refers to a function
+        // 1. If the name refers to a builtin function, we defer
+        //    the lowering to `lower_builtin_function_call_expr`.
+        if Self::is_builtin_function(&expr.name.name) {
+            return self.lower_builtin_function_call_expr(expr);
+        }
+
+        // 2. Check that the function name actually refers to a function
         //    in the symbol table and get its symbol_id & symbol.
         let name = expr.name.name.clone();
         let name_span = expr.name.span;
@@ -1627,7 +1678,7 @@ impl Lowerer {
         let (params_ty, return_ty) = if let Type::Function(params_ty, return_ty) = &symbol.ty {
             let arity = params_ty.len();
 
-            // 2. Check that function classical arity matches the number of classical args.
+            // 3. Check that function classical arity matches the number of classical args.
             if arity != expr.args.len() {
                 self.push_semantic_error(SemanticErrorKind::InvalidNumberOfClassicalArgs(
                     arity,
@@ -1642,12 +1693,7 @@ impl Lowerer {
             (Rc::default(), crate::semantic::types::Type::Err)
         };
 
-        // 3. Lower the args. There are three cases.
-        // 3.1 If there are fewer args than the arity of the function.
-
-        // 3.2 If the number of args and the arity match.
-
-        // 3.3 If there are more args than the arity of the function.
+        // 4. Lower the args. There are three cases.
         let mut params_ty_iter = params_ty.iter();
         let args = expr.args.iter().map(|arg| {
             let arg = self.lower_expr(arg);

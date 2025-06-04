@@ -9,12 +9,16 @@
 use std::fmt::Write;
 
 use crate::semantic::{
-    ast::{Expr, LiteralKind},
+    ast::{Expr, ExprKind, LiteralKind},
     const_eval::ConstEvalError,
     types::{can_cast_literal, can_cast_literal_with_value_knowledge, Type},
     Lowerer,
 };
 use qsc_data_structures::span::Span;
+
+// ---------------------------------------------------
+// Dispatch mechanism for polymorphic function calls.
+// ---------------------------------------------------
 
 /// The output of calling a polymorphic function is a pair
 /// where the first element is the result of the computation
@@ -90,11 +94,22 @@ fn try_implicit_cast_inputs(
         unreachable!("if we hit this we are initializing the function table incorrectly");
     };
 
+    if inputs.len() != input_types.len() {
+        return None;
+    }
+
     for (input, ty) in inputs.iter().zip(input_types.iter()) {
         unwarp_lit!(input, value);
         if can_cast_literal(ty, &input.ty) || can_cast_literal_with_value_knowledge(ty, &value) {
-            let coerced_input = ctx.coerce_literal_expr_to_type(ty, input, &value);
-            new_inputs.push(coerced_input);
+            let mut value_expr = input.clone();
+            // `coerce_literal_expr_to_type` expects a value expression.
+            // So, we build an adhoc expression where `Expr::Kind` is a
+            // `LiteralKind` to satisfy this method.
+            value_expr.kind = Box::new(ExprKind::Lit(
+                input.get_const_value().expect("input should be const"),
+            ));
+            let coerced_input = ctx.coerce_literal_expr_to_type(ty, &value_expr, &value);
+            new_inputs.push(coerced_input.with_const_value(ctx));
         } else {
             return None;
         }
@@ -110,11 +125,19 @@ fn no_valid_overload_error(
     fn_table: FnTable,
 ) -> ConstEvalError {
     let mut error_msg = String::new();
-    write!(error_msg, "There is no valid overload for inputs: ").expect("write should succeed");
+    write!(
+        error_msg,
+        "There is no valid overload of `{name}` for inputs: "
+    )
+    .expect("write should succeed");
 
-    for input in inputs {
-        write!(error_msg, "{}", input.ty).expect("write should succeed");
-    }
+    let inputs_str = inputs
+        .iter()
+        .map(|expr| expr.ty.to_string())
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    write!(error_msg, "({inputs_str})").expect("write should succeed");
 
     write!(error_msg, "\nOverloads available are:").expect("write should succeed");
 
@@ -124,6 +147,11 @@ fn no_valid_overload_error(
 
     ConstEvalError::NoValidOverloadForBuiltinFunction(error_msg, call_span)
 }
+
+// ---------------------------------------
+// Helper functions to reduce boilerplate
+// when initializing the function tables.
+// ---------------------------------------
 
 pub fn fun(inputs: &[Type], output: Type) -> Type {
     Type::Function(inputs.into(), output.into())
@@ -137,9 +165,12 @@ pub fn float() -> Type {
     Type::Float(None, true)
 }
 
+// ----------------------------------
+// Builtin functions implementation.
+// ----------------------------------
+
 pub(crate) fn mod_(
-    a: Expr,
-    b: Expr,
+    inputs: &[Expr],
     call_span: Span,
     ctx: &mut Lowerer,
 ) -> PolymorphicFunctionOutput {
@@ -148,7 +179,7 @@ pub(crate) fn mod_(
         (fun(&[float(), float()], float()), Box::new(mod_float)),
     ];
 
-    dispatch("mod", call_span, &[a, b], fn_table, ctx)
+    dispatch("mod", call_span, inputs, fn_table, ctx)
 }
 
 pub(crate) fn mod_int(inputs: &[Expr], span: Span) -> Expr {

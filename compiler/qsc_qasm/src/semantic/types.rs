@@ -166,7 +166,12 @@ impl Display for Type {
             Type::UIntArray(width, dims) => write_array_ty(f, *width, "uint", None, dims),
             Type::Gate(cargs, qargs) => write!(f, "gate({cargs}, {qargs})"),
             Type::Function(params_ty, return_ty) => {
-                write!(f, "def({params_ty:#?}) -> {return_ty}")
+                let params_ty_str = params_ty
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                write!(f, "def({params_ty_str}) -> {return_ty}")
             }
             Type::Range => write!(f, "range"),
             Type::Set => write!(f, "set"),
