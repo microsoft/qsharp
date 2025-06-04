@@ -5,7 +5,7 @@
 
 import { IDebugServiceWorker, getDebugServiceWorker, log } from "qsharp-lang";
 import * as vscode from "vscode";
-import { isCircuitDocument, isQdkDocument, qsharpExtensionId } from "../common";
+import { qsharpExtensionId } from "../common";
 import { clearCommandDiagnostics } from "../diagnostics";
 import {
   getActiveQdkDocumentUri,
@@ -13,7 +13,6 @@ import {
 } from "../programConfig";
 import { getRandomGuid } from "../utils";
 import { QscDebugSession } from "./session";
-import { findManifestDirectory } from "../projectSystem";
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
