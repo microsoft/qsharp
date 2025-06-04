@@ -45,7 +45,7 @@ function registerCommands(context: vscode.ExtensionContext) {
   // Register commands for running and debugging Q# files.
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      `${qsharpExtensionId}.runEditorContents`,
+      `${qsharpExtensionId}.runProgram`,
       (resource: vscode.Uri, expr?: string) => {
         // if expr is not a string, ignore it. VS Code can sometimes
         // pass other types when this command is invoked via UI buttons.
@@ -54,13 +54,13 @@ function registerCommands(context: vscode.ExtensionContext) {
         }
         startQdkDebugging(
           resource,
-          { name: "Run File", stopOnEntry: false, entry: expr },
+          { name: "QDK: Run Program", stopOnEntry: false, entry: expr },
           { noDebug: true },
         );
       },
     ),
     vscode.commands.registerCommand(
-      `${qsharpExtensionId}.debugEditorContents`,
+      `${qsharpExtensionId}.debugProgram`,
       (resource: vscode.Uri, expr?: string) => {
         // if expr is not a string, ignore it. VS Code can sometimes
         // pass other types when this command is invoked via UI buttons.
@@ -68,7 +68,7 @@ function registerCommands(context: vscode.ExtensionContext) {
           expr = undefined;
         }
         startQdkDebugging(resource, {
-          name: "Debug File",
+          name: "QDK: Debug Program",
           stopOnEntry: true,
           entry: expr,
         });
@@ -80,7 +80,7 @@ function registerCommands(context: vscode.ExtensionContext) {
         startQdkDebugging(
           resource,
           {
-            name: "Run file and show circuit diagram",
+            name: "QDK: Run and Show Circuit",
             stopOnEntry: false,
             showCircuit: true,
           },

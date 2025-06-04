@@ -46,7 +46,7 @@
           {
             "id": "qsharp-vscode.welcome.debug",
             "title": "Debug Q# code",
-            "description": "With your Q# code open in the editor, use the F5 shortcut or the top right icons in the code edtior to run or debug the code.",
+            "description": "With your Q# code open in the editor, use the F5 shortcut or the top right icons in the code editor to run or debug the code.",
             "media": {
               "image": "resources/debug.png",
               "altText": "Debug"
@@ -146,24 +146,24 @@
     "menus": {
       "editor/title/run": [
         {
-          "command": "qsharp-vscode.runEditorContents",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm",
+          "command": "qsharp-vscode.runProgram",
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit",
           "group": "navigation@1"
         },
         {
-          "command": "qsharp-vscode.debugEditorContents",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm",
+          "command": "qsharp-vscode.debugProgram",
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit",
           "group": "navigation@2"
         }
       ],
       "commandPalette": [
         {
-          "command": "qsharp-vscode.debugEditorContents",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
+          "command": "qsharp-vscode.runProgram",
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit"
         },
         {
-          "command": "qsharp-vscode.runEditorContents",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
+          "command": "qsharp-vscode.debugProgram",
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit"
         },
         {
           "command": "qsharp-vscode.runEditorContentsWithCircuit",
@@ -333,15 +333,15 @@
         "category": "QDK"
       },
       {
-        "command": "qsharp-vscode.debugEditorContents",
-        "title": "Debug file",
+        "command": "qsharp-vscode.debugProgram",
+        "title": "Start Debugging",
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(debug-alt)"
       },
       {
-        "command": "qsharp-vscode.runEditorContents",
-        "title": "Run File",
+        "command": "qsharp-vscode.runProgram",
+        "title": "Run",
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(play)"
