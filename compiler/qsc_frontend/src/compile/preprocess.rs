@@ -204,7 +204,6 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> b
 // is preserved, so that the user can navigate to the definition of the callable.
 pub(crate) struct RemoveCircuitSpans {
     qsc_spans: Vec<Span>,
-    inside_stmt: bool,
 }
 
 impl RemoveCircuitSpans {
@@ -224,10 +223,7 @@ impl RemoveCircuitSpans {
             })
             .collect();
 
-        Self {
-            qsc_spans,
-            inside_stmt: false,
-        }
+        Self { qsc_spans }
     }
 }
 
@@ -256,16 +252,7 @@ impl MutVisitor for RemoveCircuitSpans {
     }
 
     fn visit_stmt(&mut self, stmt: &mut Stmt) {
-        self.inside_stmt = true;
+        stmt.span = Span::default(); // Clear the span for the statement
         walk_stmt(self, stmt);
-        self.inside_stmt = false;
-    }
-
-    fn visit_span(&mut self, span: &mut Span) {
-        // Clear the span if it is inside a statement
-        if self.inside_stmt {
-            span.lo = Span::default().lo;
-            span.hi = Span::default().hi;
-        }
     }
 }
