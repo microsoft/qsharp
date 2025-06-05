@@ -18,12 +18,15 @@ fn const_exprs_are_eagerly_evaluated() {
         const int c = a + b;
     ";
 
-    check_qasm_to_qsharp(source, &expect![[r#"
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = 2;
         let b = 3;
         let c = 5;
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
