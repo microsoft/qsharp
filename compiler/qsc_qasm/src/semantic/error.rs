@@ -193,6 +193,10 @@ pub enum SemanticErrorKind {
     #[error("range expressions must have a stop when used in for loops")]
     #[diagnostic(code("Qasm.Lowerer.RangeExpressionsMustHaveStop"))]
     RangeExpressionsMustHaveStop(#[label] Span),
+    #[error("redefined builtin function: {0}")]
+    #[help("builtin functions cannot be redefined, try choosing another name")]
+    #[diagnostic(code("Qasm.Lowerer.RedefinedBuiltinFunction"))]
+    RedefinedBuiltinFunction(String, #[label] Span),
     #[error("redefined symbol: {0}")]
     #[diagnostic(code("Qasm.Lowerer.RedefinedSymbol"))]
     RedefinedSymbol(String, #[label] Span),

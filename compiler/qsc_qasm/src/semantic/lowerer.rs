@@ -1280,8 +1280,20 @@ impl Lowerer {
 
         let qsharp_ty = crate::types::Type::Callable(kind, arity, 0);
 
-        let symbol = Symbol::new(&name, name_span, ty, qsharp_ty, IOKind::Default);
-        let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
+        // Check that the name isn't a builtin function.
+        let symbol_id = if Self::is_builtin_function(&name) {
+            self.push_semantic_error(SemanticErrorKind::RedefinedBuiltinFunction(
+                name.as_ref().to_string(),
+                stmt.name.span,
+            ));
+            None
+        } else {
+            let symbol = Symbol::new(&name, name_span, ty, qsharp_ty, IOKind::Default);
+            Some(self.try_insert_or_get_existing_symbol_id(name, symbol))
+        };
+
+        // If the name is a builtin function we still lower the body of the `def` to provide
+        // the user with as much feedback as possible.
 
         // Push the scope where the def lives.
         self.symbols.push_scope(ScopeKind::Function(return_ty));
@@ -1310,6 +1322,11 @@ impl Lowerer {
         if let Some(return_ty) = &stmt.return_type {
             self.check_that_def_returns_in_all_code_paths(&body, return_ty.span);
         }
+
+        // If the name was a builtin function we return `StmtKind::Err`.
+        let Some(symbol_id) = symbol_id else {
+            return semantic::StmtKind::Err;
+        };
 
         semantic::StmtKind::Def(semantic::DefStmt {
             span: stmt.span,
