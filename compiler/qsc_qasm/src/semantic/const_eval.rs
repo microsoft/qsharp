@@ -23,7 +23,7 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub enum ConstEvalError {
-    #[error("division by error during const evaluation")]
+    #[error("division by zero error during const evaluation")]
     #[diagnostic(code("Qasm.Lowerer.DivisionByZero"))]
     DivisionByZero(#[label] Span),
     #[error("expression must be const")]

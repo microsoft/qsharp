@@ -243,19 +243,48 @@ fn mod_int() {
 }
 
 #[test]
-fn mod_float() {
+fn mod_int_divide_by_zero_error() {
     let source = "
-        mod(9, 7.0);
+        mod(9, 0);
     ";
 
     check_stmt_kinds(
         source,
         &expect![[r#"
-            ExprStmt [9-21]:
-                expr: Expr [9-20]:
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-19]:
+                        annotations: <empty>
+                        kind: Err
+
+            [Qasm.Lowerer.DivisionByZero
+
+              x division by zero error during const evaluation
+               ,-[test:2:9]
+             1 | 
+             2 |         mod(9, 0);
+               :         ^^^^^^^^^
+             3 |     
+               `----
+            ]"#]],
+    );
+}
+
+#[test]
+fn mod_float() {
+    let source = "
+        mod(9, 7.);
+    ";
+
+    check_stmt_kinds(
+        source,
+        &expect![[r#"
+            ExprStmt [9-20]:
+                expr: Expr [9-19]:
                     ty: const float
                     const_value: Float(2.0)
-                    kind: BuiltinFunctionCall [9-20]:
+                    kind: BuiltinFunctionCall [9-19]:
                         fn_name_span: [9-12]
                         name: mod
                         function_ty: def (const float, const float) -> const float
@@ -264,10 +293,39 @@ fn mod_float() {
                                 ty: const int
                                 const_value: Int(9)
                                 kind: Lit: Int(9)
-                            Expr [16-19]:
+                            Expr [16-18]:
                                 ty: const float
                                 const_value: Float(7.0)
                                 kind: Lit: Float(7.0)
         "#]],
+    );
+}
+
+#[test]
+fn mod_float_divide_by_zero_error() {
+    let source = "
+        mod(9., 0.);
+    ";
+
+    check_stmt_kinds(
+        source,
+        &expect![[r#"
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-21]:
+                        annotations: <empty>
+                        kind: Err
+
+            [Qasm.Lowerer.DivisionByZero
+
+              x division by zero error during const evaluation
+               ,-[test:2:9]
+             1 | 
+             2 |         mod(9., 0.);
+               :         ^^^^^^^^^^^
+             3 |     
+               `----
+            ]"#]],
     );
 }

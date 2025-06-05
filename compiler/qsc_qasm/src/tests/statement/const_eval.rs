@@ -2030,7 +2030,7 @@ fn division_of_int_by_zero_int_errors() {
     expect![[r#"
         Qasm.Lowerer.DivisionByZero
 
-          x division by error during const evaluation
+          x division by zero error during const evaluation
            ,-[Test.qasm:2:23]
          1 | 
          2 |         const int a = 2 / 0;
@@ -2057,7 +2057,7 @@ fn division_of_angle_by_zero_int_errors() {
     expect![[r#"
         Qasm.Lowerer.DivisionByZero
 
-          x division by error during const evaluation
+          x division by zero error during const evaluation
            ,-[Test.qasm:3:25]
          2 |         const angle a = 2.0;
          3 |         const angle b = a / 0;
@@ -2083,7 +2083,7 @@ fn division_by_zero_float_errors() {
     expect![[r#"
         Qasm.Lowerer.DivisionByZero
 
-          x division by error during const evaluation
+          x division by zero error during const evaluation
            ,-[Test.qasm:2:25]
          1 | 
          2 |         const float a = 2.0 / 0.0;
@@ -2111,7 +2111,7 @@ fn division_by_zero_angle_errors() {
     expect![[r#"
         Qasm.Lowerer.DivisionByZero
 
-          x division by error during const evaluation
+          x division by zero error during const evaluation
            ,-[Test.qasm:4:24]
          3 |         const angle b = 0.0;
          4 |         const uint c = a / b;
@@ -2137,7 +2137,7 @@ fn modulo_of_int_by_zero_int_errors() {
     expect![[r#"
         Qasm.Lowerer.DivisionByZero
 
-          x division by error during const evaluation
+          x division by zero error during const evaluation
            ,-[Test.qasm:2:23]
          1 | 
          2 |         const int a = 2 % 0;
