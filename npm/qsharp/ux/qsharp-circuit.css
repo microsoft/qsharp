@@ -1,6 +1,29 @@
 /* Copyright (c) Microsoft Corporation.
    Licensed under the MIT License. */
 
+.svg-run-button {
+  cursor: pointer;
+}
+
+.svg-run-button-rect {
+  fill: var(--vscode-activityErrorBadge-background, #0078d4);
+  rx: 6;
+  transition: fill 0.2s;
+}
+
+.svg-run-button:hover .svg-run-button-rect,
+.svg-run-button:focus .svg-run-button-rect {
+  fill: #005a9e;
+}
+
+.svg-run-button-text {
+  fill: white;
+  font-size: 16px;
+  font-family: sans-serif;
+  text-anchor: middle;
+  pointer-events: none; /* So only the rect/g triggers click */
+}
+
 /* Circuit panel */
 .qs-circuit-panel {
   p {

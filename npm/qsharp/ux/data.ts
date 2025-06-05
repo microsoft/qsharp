@@ -75,6 +75,7 @@ export type CircuitProps = {
   calculating: boolean;
   isEditable: boolean;
   editCallback?: (fileData: CircuitGroup) => void;
+  runCallback?: (fileData: CircuitGroup) => void;
 };
 
 export type CircuitGroup = import("./circuit-vis/circuit").CircuitGroup;

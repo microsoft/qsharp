@@ -12,6 +12,7 @@ import { CircuitGroup } from "./circuit";
  * @param renderDepth Initial layer depth at which to render gates.
  * @param isEditable Whether the circuit is editable.
  * @param editCallback Callback function to be called when the circuit is edited.
+ * @param runCallback Callback function to be called when the circuit is run.
  */
 export const draw = (
   circuitGroup: CircuitGroup,
@@ -19,8 +20,9 @@ export const draw = (
   renderDepth = 0,
   isEditable = false,
   editCallback?: (circuitGroup: CircuitGroup) => void,
+  runCallback?: (circuitGroup: CircuitGroup) => void,
 ): void => {
-  const sqore = new Sqore(circuitGroup, isEditable, editCallback);
+  const sqore = new Sqore(circuitGroup, isEditable, editCallback, runCallback);
   sqore.draw(container, renderDepth);
 };
 

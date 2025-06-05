@@ -84,6 +84,13 @@ function updateTextDocument(circuit: any) {
   });
 }
 
+function runCircuit(circuit: any) {
+  vscodeApi.postMessage({
+    command: "run",
+    text: JSON.stringify(circuit, null, 2),
+  });
+}
+
 function App({ state }: { state: State }) {
   switch (state.viewType) {
     case "loading":
@@ -94,6 +101,7 @@ function App({ state }: { state: State }) {
           {...state.props}
           isEditable={true}
           editCallback={updateTextDocument}
+          runCallback={runCircuit}
         ></CircuitPanel>
       );
     default:

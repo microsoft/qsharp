@@ -22,6 +22,7 @@ export function Circuit(props: {
   circuit?: qviz.CircuitGroup | qviz.Circuit;
   isEditable: boolean;
   editCallback?: (fileData: qviz.CircuitGroup) => void;
+  runCallback?: (fileData: qviz.CircuitGroup) => void;
 }) {
   let unrenderable = false;
   let qubits = 0;
@@ -65,6 +66,7 @@ function ZoomableCircuit(props: {
   circuitGroup: qviz.CircuitGroup;
   isEditable: boolean;
   editCallback?: (fileData: qviz.CircuitGroup) => void;
+  runCallback?: (fileData: qviz.CircuitGroup) => void;
 }) {
   const circuitDiv = useRef<HTMLDivElement>(null);
   const [zoomLevel, setZoomLevel] = useState(100);
@@ -87,6 +89,7 @@ function ZoomableCircuit(props: {
         container,
         props.isEditable,
         props.editCallback,
+        props.runCallback,
       );
 
       if (!props.isEditable) {
@@ -172,8 +175,16 @@ function ZoomableCircuit(props: {
     container: HTMLDivElement,
     isEditable: boolean,
     editCallback?: (fileData: qviz.CircuitGroup) => void,
+    runCallback?: (fileData: qviz.CircuitGroup) => void,
   ) {
-    qviz.draw(circuitGroup, container, 0, isEditable, editCallback);
+    qviz.draw(
+      circuitGroup,
+      container,
+      0,
+      isEditable,
+      editCallback,
+      runCallback,
+    );
     return container.getElementsByClassName("qviz")[0]!;
   }
 
@@ -317,6 +328,7 @@ export function CircuitPanel(props: CircuitProps) {
           circuit={props.circuit}
           isEditable={props.isEditable}
           editCallback={props.editCallback}
+          runCallback={props.runCallback}
         ></Circuit>
       ) : null}
     </div>
