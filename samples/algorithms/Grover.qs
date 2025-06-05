@@ -6,7 +6,10 @@
 /// probability the unique input to a black box function that produces a
 /// particular output value.
 ///
-/// This Q# program implements the Grover's search algorithm.
+/// This Q# program implements the Grover's search algorithm and applies it
+/// to a specific problem: finding a marked state in a register of qubits.
+/// The marked state selected for this sample is |01010⟩.
+
 import Std.Convert.*;
 import Std.Math.*;
 import Std.Arrays.*;
@@ -24,8 +27,12 @@ operation Main() : Result[] {
     let iterations = CalculateOptimalIterations(nQubits);
     Message($"Number of iterations: {iterations}");
 
-    // Use Grover's algorithm to find a particular marked state.
+    // Use Grover's algorithm to find a particular marked state. The marked state
+    // we are looking for in this sample is |01010⟩, which is represented
+    // by the operation ReflectAboutMarked.
     let results = GroverSearch(nQubits, iterations, ReflectAboutMarked);
+
+    // Expected result is [Zero, One, Zero, One, Zero] with very high probability.
     return results;
 }
 
