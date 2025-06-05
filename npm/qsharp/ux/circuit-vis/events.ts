@@ -15,6 +15,7 @@ import {
   findParentArray,
   deepEqual,
   getQubitLabelElems,
+  getMinMaxRegIdx,
 } from "./utils";
 import { addContextMenuToHostElem, promptForArguments } from "./contextMenu";
 import {
@@ -35,7 +36,7 @@ import {
   makeDropzoneBox,
   removeAllWireDropzones,
 } from "./draggable";
-import { getMinMaxRegIdx, getOperationRegisters } from "../../src/utils";
+import { getOperationRegisters } from "../../src/utils";
 
 let events: CircuitEvents | null = null;
 

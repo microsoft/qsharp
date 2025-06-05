@@ -20,6 +20,19 @@ export interface Register {
 }
 
 /**
+ * Runtime check: is this a valid Register?
+ */
+export function isRegister(obj: any): obj is Register {
+  return (
+    obj &&
+    typeof obj === "object" &&
+    typeof obj.qubit === "number" &&
+    // result is optional, but if present must be a number
+    (obj.result === undefined || typeof obj.result === "number")
+  );
+}
+
+/**
  * Rendering data for qubit register.
  */
 export interface RegisterRenderData {

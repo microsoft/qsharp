@@ -15,7 +15,7 @@ export {
   type Unitary,
   type Parameter,
   type Qubit,
-} from "../../src/shared/circuit";
+} from "../../src/data-structures/circuit";
 
-export { CURRENT_VERSION } from "../../src/shared/circuit";
-export { toCircuitGroup } from "../../src/shared/legacyCircuitUpdate";
+export { CURRENT_VERSION } from "../../src/data-structures/circuit";
+export { toCircuitGroup } from "../../src/data-structures/legacyCircuitUpdate";

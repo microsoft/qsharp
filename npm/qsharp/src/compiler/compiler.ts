@@ -4,7 +4,7 @@
 import {
   CURRENT_VERSION,
   type CircuitGroup as CircuitData,
-} from "../shared/circuit.js";
+} from "../data-structures/circuit.js";
 import {
   IDocFile,
   IOperationInfo,

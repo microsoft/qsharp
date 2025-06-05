@@ -207,6 +207,52 @@ const getGateLocationString = (operation: Operation): string | null => {
   return operation.dataAttributes["location"];
 };
 
+/**
+ * Get the minimum and maximum register indices for a given operation.
+ *
+ * @param operation The operation for which to get the register indices.
+ * @param numQubits The number of qubits in the circuit.
+ * @returns A tuple containing the minimum and maximum register indices.
+ */
+function getMinMaxRegIdx(
+  operation: Operation,
+  numQubits: number,
+): [number, number] {
+  let targets: Register[];
+  let controls: Register[];
+  switch (operation.kind) {
+    case "measurement":
+      targets = operation.results;
+      controls = operation.qubits;
+      break;
+    case "unitary":
+      targets = operation.targets;
+      controls = operation.controls || [];
+      break;
+    case "ket":
+      targets = operation.targets;
+      controls = [];
+      break;
+  }
+
+  const qRegs = [...controls, ...targets]
+    .filter(({ result }) => result === undefined)
+    .map(({ qubit }) => qubit);
+  const clsControls: Register[] = controls.filter(
+    ({ result }) => result !== undefined,
+  );
+  const isClassicallyControlled: boolean = clsControls.length > 0;
+  if (!isClassicallyControlled && qRegs.length === 0) return [-1, -1];
+  // If operation is classically-controlled, pad all qubit registers. Otherwise, only pad
+  // the contiguous range of registers that it covers.
+  const minRegIdx: number = isClassicallyControlled ? 0 : Math.min(...qRegs);
+  const maxRegIdx: number = isClassicallyControlled
+    ? numQubits - 1
+    : Math.max(...qRegs);
+
+  return [minRegIdx, maxRegIdx];
+}
+
 /**********************
  *  Finder Functions  *
  **********************/
@@ -399,6 +445,7 @@ export {
   getChildTargets,
   locationStringToIndexes,
   getGateLocationString,
+  getMinMaxRegIdx,
   findGateElem,
   findLocation,
   findParentOperation,
