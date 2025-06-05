@@ -22,15 +22,16 @@ operation Main() : Result[] {
     // Grover's algorithm relies on performing a "Grover iteration" an
     // optimal number of times to maximize the probability of finding the
     // value we are searching for.
-    // You can set the number iterations to a value lower than optimal to
-    // intentionally reduce precision.
-    let iterations = CalculateOptimalIterations(nQubits);
-    Message($"Number of iterations: {iterations}");
+    // You can intentionally set the number iterations to a value lower
+    // than optimal. In this case, the algorithm will find the marked state
+    // with lower probability.
+    let nIterations = IterationsToMarked(nQubits);
+    Message($"Number of iterations: {nIterations}");
 
     // Use Grover's algorithm to find a particular marked state. The marked state
     // we are looking for in this sample is |01010⟩, which is represented
     // by the operation ReflectAboutMarked.
-    let results = GroverSearch(nQubits, iterations, ReflectAboutMarked);
+    let results = GroverSearch(nQubits, nIterations, ReflectAboutMarked);
 
     // Expected result is [Zero, One, Zero, One, Zero] with very high probability.
     return results;
@@ -63,8 +64,9 @@ operation GroverSearch(
 
 /// # Summary
 /// Returns the optimal number of Grover iterations needed to find a marked
-/// item, given the number of qubits in a register.
-function CalculateOptimalIterations(nQubits : Int) : Int {
+/// item, given the number of qubits in a register. Setting the number of
+/// itertions to a different number may undershoot or overshoot the marked state.
+function IterationsToMarked(nQubits : Int) : Int {
     if nQubits > 126 {
         fail "This sample supports at most 126 qubits.";
     }
