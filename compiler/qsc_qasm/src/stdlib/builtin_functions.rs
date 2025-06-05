@@ -102,6 +102,9 @@ macro_rules! unwrap_lit {
     };
 }
 
+/// Tries to implicitly cast all inputs to the signature of the overload being
+/// considered in dispatch. Returns Some(_) if all the inputs can be succesfully
+/// cast to match the signature of the overload, and None otherwise.
 fn try_implicit_cast_inputs(
     inputs: &[Expr],
     signature: &Type,
@@ -136,6 +139,9 @@ fn try_implicit_cast_inputs(
     Some(new_inputs)
 }
 
+/// Builds an error message explaining to the user that there is no
+/// valid overload matching the inputs they provided, and showing them
+/// the available overloads for the function they tried to call.
 fn no_valid_overload_error(
     name: &str,
     call_span: Span,

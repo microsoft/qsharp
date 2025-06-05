@@ -1185,6 +1185,10 @@ impl Display for FunctionCall {
     }
 }
 
+/// The information in this struct is aimed to be consumed
+/// by the language service. The result of the computation
+/// is already stored in the [`Expr::const_value`] field by
+/// the time the `Expr` is created.
 #[derive(Clone, Debug)]
 pub struct BuiltinFunctionCall {
     pub span: Span,
