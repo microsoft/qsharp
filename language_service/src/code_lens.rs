@@ -31,15 +31,26 @@ pub(crate) fn get_code_lenses(
         return vec![];
     }
 
-    // Check for frontend errors and critical compilation errors that prevent execution
+    // Don't show code lenses if there are compilation errors that would prevent execution
     let has_blocking_errors = compilation.compile_errors.iter().any(|error| {
-        matches!(
-            error.error(),
-            qsc::compile::ErrorKind::Frontend(_)
-                | qsc::compile::ErrorKind::DependencyCycle
-                | qsc::compile::ErrorKind::CircuitParse(_)
-                | qsc::compile::ErrorKind::OpenQasm(_)
-        )
+        match error.error() {
+            // Frontend errors prevent execution
+            qsc::compile::ErrorKind::Frontend(_) => true,
+            // Dependency cycles prevent execution
+            qsc::compile::ErrorKind::DependencyCycle => true,
+            // Circuit parse errors prevent execution
+            qsc::compile::ErrorKind::CircuitParse(_) => true,
+            // OpenQASM errors prevent execution
+            qsc::compile::ErrorKind::OpenQasm(_) => true,
+            // Pass errors may or may not prevent execution - check the error message
+            qsc::compile::ErrorKind::Pass(_) => {
+                let error_str = format!("{}", error.error());
+                // Entry point errors don't prevent individual operation execution
+                !error_str.contains("entry point") && !error_str.contains("Entry point")
+            }
+            // Lint errors don't prevent execution
+            qsc::compile::ErrorKind::Lint(_) => false,
+        }
     });
 
     if has_blocking_errors {
