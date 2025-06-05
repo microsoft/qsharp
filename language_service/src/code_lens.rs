@@ -25,6 +25,38 @@ pub(crate) fn get_code_lenses(
         return vec![];
     }
 
+    // Don't show code lenses if there are compilation or project errors
+    // that would prevent program execution
+    if !compilation.project_errors.is_empty() {
+        return vec![];
+    }
+
+    // Don't show code lenses if there are compilation errors that would prevent execution
+    let has_blocking_errors = compilation.compile_errors.iter().any(|error| {
+        match error.error() {
+            // Frontend errors prevent execution
+            qsc::compile::ErrorKind::Frontend(_) => true,
+            // Dependency cycles prevent execution
+            qsc::compile::ErrorKind::DependencyCycle => true,
+            // Circuit parse errors prevent execution
+            qsc::compile::ErrorKind::CircuitParse(_) => true,
+            // OpenQASM errors prevent execution
+            qsc::compile::ErrorKind::OpenQasm(_) => true,
+            // Pass errors may or may not prevent execution - check the error message
+            qsc::compile::ErrorKind::Pass(_) => {
+                let error_str = format!("{}", error.error());
+                // Entry point errors don't prevent individual operation execution
+                !error_str.contains("entry point") && !error_str.contains("Entry point")
+            }
+            // Lint errors don't prevent execution
+            qsc::compile::ErrorKind::Lint(_) => false,
+        }
+    });
+
+    if has_blocking_errors {
+        return vec![];
+    }
+
     let user_unit = compilation.user_unit();
     let package = &user_unit.package;
     let source_span = compilation.package_span_of_source(source_name);

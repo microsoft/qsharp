@@ -92,7 +92,6 @@ fn two_entrypoints() {
             ◉operation Main() : Unit{
             }◉
 
-            @EntryPoint()
             ◉operation Foo() : Unit{
             }◉
         }"#,
@@ -280,5 +279,26 @@ fn qubit_arrays_operation_circuit() {
                 ),
             ]
         "#]],
+    );
+}
+
+#[test]
+fn no_code_lenses_with_compilation_errors() {
+    let source = r#"
+        namespace Test {
+            operation Main() : Unit {
+                foo  // undefined variable - compilation error
+            }
+        }"#;
+
+    let (compilation, _) = compile_with_fake_stdlib_and_markers_no_cursor(source, true);
+    
+    // Verify the compilation actually has errors
+    assert!(!compilation.compile_errors.is_empty(), "Test should have compilation errors");
+    
+    let lenses = get_code_lenses(&compilation, "<source>", Encoding::Utf8);
+    assert!(
+        lenses.is_empty(),
+        "code lenses should not be present when there are compilation errors"
     );
 }
