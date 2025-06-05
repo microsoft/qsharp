@@ -51,6 +51,7 @@ fn array_with_no_init_expr() {
                 symbol_id: 8
                 size: Expr [6-7]:
                     ty: const uint
+                    const_value: Int(3)
                     kind: Lit: Int(3)
                 size_span: [6-7]"#]],
     );
@@ -73,6 +74,7 @@ fn array_with_no_init_expr_in_non_global_scope() {
                                     symbol_id: 8
                                     size: Expr [7-8]:
                                         ty: const uint
+                                        const_value: Int(3)
                                         kind: Lit: Int(3)
                                     size_span: [7-8]
 

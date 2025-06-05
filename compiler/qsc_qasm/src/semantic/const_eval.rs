@@ -100,6 +100,7 @@ impl Expr {
             ExprKind::BinaryOp(binary_op_expr) => binary_op_expr.const_eval(ctx),
             ExprKind::Lit(literal_kind) => Some(literal_kind.clone()),
             ExprKind::FunctionCall(function_call) => function_call.const_eval(ctx, ty),
+            ExprKind::BuiltinFunctionCall(_) => self.get_const_value(),
             ExprKind::Cast(cast) => cast.const_eval(ctx),
             ExprKind::IndexExpr(index_expr) => index_expr.const_eval(ctx, ty),
             ExprKind::Paren(expr) => expr.const_eval(ctx),

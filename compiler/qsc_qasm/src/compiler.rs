@@ -1167,6 +1167,13 @@ impl QasmCompiler {
             semast::ExprKind::FunctionCall(function_call) => {
                 self.compile_function_call_expr(function_call)
             }
+            semast::ExprKind::BuiltinFunctionCall(_) => {
+                let Some(value) = expr.get_const_value() else {
+                    unreachable!("builtin function call exprs are only lowered if they succeed");
+                };
+
+                self.compile_literal_expr(&value, expr.span)
+            }
             semast::ExprKind::Cast(cast) => self.compile_cast_expr(cast),
             semast::ExprKind::IndexExpr(index_expr) => self.compile_index_expr(index_expr),
             semast::ExprKind::Paren(pexpr) => self.compile_paren_expr(pexpr, expr.span),

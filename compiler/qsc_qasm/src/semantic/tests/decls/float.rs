@@ -53,6 +53,7 @@ fn const_lit() {
                 ty_span: [6-11]
                 init_expr: Expr [16-20]:
                     ty: const float
+                    const_value: Float(42.1)
                     kind: Lit: Float(42.1)
             [8] Symbol [12-13]:
                 name: x
@@ -91,6 +92,7 @@ fn const_explicit_width_lit() {
                 ty_span: [6-15]
                 init_expr: Expr [20-24]:
                     ty: const float[64]
+                    const_value: Float(42.1)
                     kind: Lit: Float(42.1)
             [8] Symbol [16-17]:
                 name: x
@@ -129,6 +131,7 @@ fn const_lit_decl_leading_dot() {
                 ty_span: [6-11]
                 init_expr: Expr [16-20]:
                     ty: const float
+                    const_value: Float(0.421)
                     kind: Lit: Float(0.421)
             [8] Symbol [12-13]:
                 name: x
@@ -148,6 +151,7 @@ fn const_lit_decl_leading_dot_scientific() {
                 ty_span: [6-11]
                 init_expr: Expr [16-22]:
                     ty: const float
+                    const_value: Float(42.1)
                     kind: Lit: Float(42.1)
             [8] Symbol [12-13]:
                 name: x
@@ -186,6 +190,7 @@ fn const_lit_decl_trailing_dot() {
                 ty_span: [6-11]
                 init_expr: Expr [16-20]:
                     ty: const float
+                    const_value: Float(421.0)
                     kind: Lit: Float(421.0)
             [8] Symbol [12-13]:
                 name: x
@@ -224,6 +229,7 @@ fn const_lit_decl_scientific() {
                 ty_span: [6-11]
                 init_expr: Expr [16-22]:
                     ty: const float
+                    const_value: Float(42.1)
                     kind: Lit: Float(42.1)
             [8] Symbol [12-13]:
                 name: x
@@ -262,6 +268,7 @@ fn const_lit_decl_scientific_signed_pos() {
                 ty_span: [6-11]
                 init_expr: Expr [16-23]:
                     ty: const float
+                    const_value: Float(42.1)
                     kind: Lit: Float(42.1)
             [8] Symbol [12-13]:
                 name: x
@@ -300,6 +307,7 @@ fn const_lit_decl_scientific_cap_e() {
                 ty_span: [6-11]
                 init_expr: Expr [16-22]:
                     ty: const float
+                    const_value: Float(42.1)
                     kind: Lit: Float(42.1)
             [8] Symbol [12-13]:
                 name: x
@@ -338,6 +346,7 @@ fn const_lit_decl_scientific_signed_neg() {
                 ty_span: [6-11]
                 init_expr: Expr [16-24]:
                     ty: const float
+                    const_value: Float(42.1)
                     kind: Lit: Float(42.1)
             [8] Symbol [12-13]:
                 name: x
@@ -357,6 +366,7 @@ fn const_lit_decl_signed_float_lit_cast_neg() {
                 ty_span: [6-11]
                 init_expr: Expr [17-19]:
                     ty: const float
+                    const_value: Float(-7.0)
                     kind: UnaryOpExpr [17-19]:
                         op: Neg
                         expr: Expr [17-19]:
@@ -380,6 +390,7 @@ fn const_lit_decl_signed_int_lit_cast_neg() {
                 ty_span: [6-11]
                 init_expr: Expr [17-18]:
                     ty: const float
+                    const_value: Float(-7.0)
                     kind: Cast [0-0]:
                         ty: const float
                         expr: Expr [17-18]:

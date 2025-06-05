@@ -1642,15 +1642,16 @@ impl Lowerer {
 
     fn lower_builtin_function_call_expr(&mut self, expr: &syntax::FunctionCall) -> semantic::Expr {
         let name = &*expr.name.name;
+        let name_span = expr.name.span;
+        let call_span = expr.span;
         let inputs: Vec<_> = expr
             .args
             .iter()
             .map(|e| self.lower_expr(e).with_const_value(self))
             .collect();
-        let call_span = expr.span;
 
         let output = match name {
-            "mod" => builtin_functions::mod_(&inputs, call_span, self),
+            "mod" => builtin_functions::mod_(&inputs, name_span, call_span, self),
             "arccos" | "arcsin" | "arctan" | "ceiling" | "cos" | "exp" | "floor" | "log"
             | "popcount" | "pow" | "rotl" | "rotr" | "sin" | "sqrt" | "tan" => {
                 self.push_unimplemented_error_message(format!("{name} builtin"), call_span);
@@ -1659,7 +1660,7 @@ impl Lowerer {
             _ => unreachable!(),
         };
 
-        output.map_or_else(|| err_expr!(Type::Err, call_span), |pair| pair.0)
+        output.unwrap_or_else(|| err_expr!(Type::Err, call_span))
     }
 
     fn lower_function_call_expr(&mut self, expr: &syntax::FunctionCall) -> semantic::Expr {

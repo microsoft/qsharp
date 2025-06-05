@@ -58,12 +58,14 @@ fn const_int_idents_without_width_can_be_multiplied() {
                 ty_span: [15-18]
                 init_expr: Expr [23-24]:
                     ty: const int
+                    const_value: Int(5)
                     kind: Lit: Int(5)
             ClassicalDeclarationStmt [34-50]:
                 symbol_id: 9
                 ty_span: [40-43]
                 init_expr: Expr [48-49]:
                     ty: const int
+                    const_value: Int(3)
                     kind: Lit: Int(3)
             ExprStmt [59-65]:
                 expr: Expr [59-64]:
@@ -102,6 +104,7 @@ fn const_and_mut_int_idents_without_width_can_be_multiplied() {
                 ty_span: [34-37]
                 init_expr: Expr [42-43]:
                     ty: const int
+                    const_value: Int(3)
                     kind: Lit: Int(3)
             ExprStmt [53-59]:
                 expr: Expr [53-58]:
@@ -134,12 +137,14 @@ fn const_int_idents_widthless_lhs_can_be_multiplied_by_explicit_width_int() {
                 ty_span: [15-22]
                 init_expr: Expr [27-28]:
                     ty: const int[32]
+                    const_value: Int(5)
                     kind: Lit: Int(5)
             ClassicalDeclarationStmt [38-54]:
                 symbol_id: 9
                 ty_span: [44-47]
                 init_expr: Expr [52-53]:
                     ty: const int
+                    const_value: Int(3)
                     kind: Lit: Int(3)
             ExprStmt [63-69]:
                 expr: Expr [63-68]:

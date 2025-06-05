@@ -32,6 +32,7 @@ fn on_an_indexed_qubit_register() {
                 symbol_id: 8
                 size: Expr [6-7]:
                     ty: const uint
+                    const_value: Int(5)
                     kind: Lit: Int(5)
                 size_span: [6-7]
             ResetStmt [20-31]:
@@ -61,6 +62,7 @@ fn on_a_span_indexed_qubit_register() {
                 symbol_id: 8
                 size: Expr [6-7]:
                     ty: const uint
+                    const_value: Int(5)
                     kind: Lit: Int(5)
                 size_span: [6-7]
             ResetStmt [20-33]:
@@ -128,6 +130,7 @@ fn on_an_unindexed_qubit_register() {
                 symbol_id: 8
                 size: Expr [6-7]:
                     ty: const uint
+                    const_value: Int(5)
                     kind: Lit: Int(5)
                 size_span: [6-7]
             ResetStmt [20-28]:

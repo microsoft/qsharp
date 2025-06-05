@@ -6,8 +6,6 @@
 //! The following are compile-time functions that take const inputs and have a const output.
 //! The normal implicit casting rules apply to the inputs of these functions.
 
-use std::fmt::Write;
-
 use crate::semantic::{
     ast::{Expr, ExprKind, LiteralKind},
     const_eval::ConstEvalError,
@@ -15,6 +13,7 @@ use crate::semantic::{
     Lowerer,
 };
 use qsc_data_structures::span::Span;
+use std::fmt::Write;
 
 // ---------------------------------------------------
 // Dispatch mechanism for polymorphic function calls.
@@ -24,16 +23,20 @@ use qsc_data_structures::span::Span;
 /// where the first element is the result of the computation
 /// and the second element is the type of the monomorphic
 /// function that was selected, if any.
-type PolymorphicFunctionOutput = Option<(Expr, Type)>;
+type PolymorphicFunctionOutput = Option<Expr>;
 
 // A function table mapping function signatures to functions.
 // This is a vector and not a hash-map because the order of
 // iteration matters. Overloads should be tried in the order
 // they appear.
-type FnTable = Vec<(Type, Box<dyn Fn(&[Expr], Span) -> Expr>)>;
+type FnTable = Vec<(
+    Type,
+    Box<dyn Fn(&[Expr], Span) -> Result<LiteralKind, ConstEvalError>>,
+)>;
 
 fn dispatch(
     name: &str,
+    name_span: Span,
     call_span: Span,
     inputs: &[Expr],
     fn_table: FnTable,
@@ -55,7 +58,22 @@ fn dispatch(
     for (signature, function) in &fn_table {
         if let Some(new_inputs) = try_implicit_cast_inputs(inputs, signature, ctx) {
             let output = function(&new_inputs, call_span);
-            return Some((output, signature.clone()));
+            match output {
+                Ok(output) => {
+                    return Some(Expr::builtin_funcall(
+                        name,
+                        call_span,
+                        name_span,
+                        signature.clone(),
+                        inputs,
+                        output,
+                    ));
+                }
+                Err(err) => {
+                    ctx.push_const_eval_error(err);
+                    return None;
+                }
+            };
         }
     }
 
@@ -171,6 +189,7 @@ pub fn float() -> Type {
 
 pub(crate) fn mod_(
     inputs: &[Expr],
+    name_span: Span,
     call_span: Span,
     ctx: &mut Lowerer,
 ) -> PolymorphicFunctionOutput {
@@ -179,17 +198,27 @@ pub(crate) fn mod_(
         (fun(&[float(), float()], float()), Box::new(mod_float)),
     ];
 
-    dispatch("mod", call_span, inputs, fn_table, ctx)
+    dispatch("mod", name_span, call_span, inputs, fn_table, ctx)
 }
 
-pub(crate) fn mod_int(inputs: &[Expr], span: Span) -> Expr {
+pub(crate) fn mod_int(inputs: &[Expr], span: Span) -> Result<LiteralKind, ConstEvalError> {
     unwrap_lit!(inputs[0], LiteralKind::Int(a));
     unwrap_lit!(inputs[1], LiteralKind::Int(b));
-    Expr::int(a.rem_euclid(b), span)
+
+    if b == 0 {
+        Err(ConstEvalError::DivisionByZero(span))
+    } else {
+        Ok(LiteralKind::Int(a.rem_euclid(b)))
+    }
 }
 
-pub(crate) fn mod_float(inputs: &[Expr], span: Span) -> Expr {
+pub(crate) fn mod_float(inputs: &[Expr], span: Span) -> Result<LiteralKind, ConstEvalError> {
     unwrap_lit!(inputs[0], LiteralKind::Float(a));
     unwrap_lit!(inputs[1], LiteralKind::Float(b));
-    Expr::float(a.rem_euclid(b), span)
+
+    if b == 0. {
+        Err(ConstEvalError::DivisionByZero(span))
+    } else {
+        Ok(LiteralKind::Float(a.rem_euclid(b)))
+    }
 }

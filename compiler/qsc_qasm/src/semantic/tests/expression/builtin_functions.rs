@@ -117,17 +117,39 @@ fn builtin_call_with_const_expr_succeeds() {
                 ty_span: [15-18]
                 init_expr: Expr [23-24]:
                     ty: const int
+                    const_value: Int(9)
                     kind: Lit: Int(9)
             ClassicalDeclarationStmt [34-50]:
                 symbol_id: 9
                 ty_span: [40-43]
                 init_expr: Expr [48-49]:
                     ty: const int
+                    const_value: Int(7)
                     kind: Lit: Int(7)
             ExprStmt [59-73]:
                 expr: Expr [59-72]:
                     ty: const int
-                    kind: Lit: Int(2)
+                    const_value: Int(2)
+                    kind: BuiltinFunctionCall [59-72]:
+                        fn_name_span: [59-62]
+                        name: mod
+                        function_ty: def (const int, const int) -> const int
+                        args:
+                            Expr [63-68]:
+                                ty: const int
+                                const_value: Int(16)
+                                kind: BinaryOpExpr:
+                                    op: Add
+                                    lhs: Expr [63-64]:
+                                        ty: const int
+                                        kind: SymbolId(8)
+                                    rhs: Expr [67-68]:
+                                        ty: const int
+                                        kind: SymbolId(9)
+                            Expr [70-71]:
+                                ty: const int
+                                const_value: Int(7)
+                                kind: SymbolId(9)
         "#]],
     );
 }
@@ -148,17 +170,44 @@ fn nested_builtin_call_succeeds() {
                 ty_span: [15-18]
                 init_expr: Expr [23-24]:
                     ty: const int
+                    const_value: Int(9)
                     kind: Lit: Int(9)
             ClassicalDeclarationStmt [34-50]:
                 symbol_id: 9
                 ty_span: [40-43]
                 init_expr: Expr [48-49]:
                     ty: const int
+                    const_value: Int(7)
                     kind: Lit: Int(7)
             ExprStmt [59-77]:
                 expr: Expr [59-76]:
                     ty: const int
-                    kind: Lit: Int(1)
+                    const_value: Int(1)
+                    kind: BuiltinFunctionCall [59-76]:
+                        fn_name_span: [59-62]
+                        name: mod
+                        function_ty: def (const int, const int) -> const int
+                        args:
+                            Expr [63-64]:
+                                ty: const int
+                                const_value: Int(9)
+                                kind: SymbolId(8)
+                            Expr [66-75]:
+                                ty: const int
+                                const_value: Int(2)
+                                kind: BuiltinFunctionCall [66-75]:
+                                    fn_name_span: [66-69]
+                                    name: mod
+                                    function_ty: def (const int, const int) -> const int
+                                    args:
+                                        Expr [70-71]:
+                                            ty: const int
+                                            const_value: Int(9)
+                                            kind: SymbolId(8)
+                                        Expr [73-74]:
+                                            ty: const int
+                                            const_value: Int(7)
+                                            kind: SymbolId(9)
         "#]],
     );
 }
@@ -175,7 +224,20 @@ fn mod_int() {
             ExprStmt [9-19]:
                 expr: Expr [9-18]:
                     ty: const int
-                    kind: Lit: Int(2)
+                    const_value: Int(2)
+                    kind: BuiltinFunctionCall [9-18]:
+                        fn_name_span: [9-12]
+                        name: mod
+                        function_ty: def (const int, const int) -> const int
+                        args:
+                            Expr [13-14]:
+                                ty: const int
+                                const_value: Int(9)
+                                kind: Lit: Int(9)
+                            Expr [16-17]:
+                                ty: const int
+                                const_value: Int(7)
+                                kind: Lit: Int(7)
         "#]],
     );
 }
@@ -192,7 +254,20 @@ fn mod_float() {
             ExprStmt [9-21]:
                 expr: Expr [9-20]:
                     ty: const float
-                    kind: Lit: Float(2.0)
+                    const_value: Float(2.0)
+                    kind: BuiltinFunctionCall [9-20]:
+                        fn_name_span: [9-12]
+                        name: mod
+                        function_ty: def (const float, const float) -> const float
+                        args:
+                            Expr [13-14]:
+                                ty: const int
+                                const_value: Int(9)
+                                kind: Lit: Int(9)
+                            Expr [16-19]:
+                                ty: const float
+                                const_value: Float(7.0)
+                                kind: Lit: Float(7.0)
         "#]],
     );
 }
