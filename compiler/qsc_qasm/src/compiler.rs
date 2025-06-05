@@ -1148,6 +1148,12 @@ impl QasmCompiler {
     }
 
     fn compile_expr(&mut self, expr: &semast::Expr) -> qsast::Expr {
+        if expr.ty.is_const() {
+            if let Some(value) = expr.get_const_value() {
+                return self.compile_literal_expr(&value, expr.span);
+            }
+        }
+
         match expr.kind.as_ref() {
             semast::ExprKind::Err => qsast::Expr {
                 span: expr.span,
