@@ -37,6 +37,38 @@ fn builtin_call_with_invalid_input_types_fails() {
 }
 
 #[test]
+fn builtin_call_with_zero_arguments_fails() {
+    let source = "
+        mod();
+    ";
+
+    check_stmt_kinds(
+        source,
+        &expect![[r#"
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-15]:
+                        annotations: <empty>
+                        kind: Err
+
+            [Qasm.Lowerer.NoValidOverloadForBuiltinFunction
+
+              x There is no valid overload of `mod` for inputs: ()
+              | Overloads available are:
+              |     def (const int, const int) -> const int
+              |     def (const float, const float) -> const float
+               ,-[test:2:9]
+             1 | 
+             2 |         mod();
+               :         ^^^^^
+             3 |     
+               `----
+            ]"#]],
+    );
+}
+
+#[test]
 fn builtin_call_with_lower_arity_fails() {
     let source = "
         mod(9);
