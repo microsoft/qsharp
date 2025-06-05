@@ -2,7 +2,8 @@
 // Licensed under the MIT License.
 
 use std::fmt::Write;
-use std::path::Path;
+use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use pyo3::exceptions::PyException;
@@ -12,7 +13,9 @@ use pyo3::IntoPyObjectExt;
 use qsc::hir::PackageId;
 use qsc::interpret::output::Receiver;
 use qsc::interpret::{into_errors, CircuitEntryPoint, Interpreter};
-use qsc::qasm::io::{SourceResolver, SourceResolverContext};
+use qsc::project::ProjectType;
+use qsc::qasm::compiler::compile_to_qsharp_ast_with_config;
+use qsc::qasm::semantic::QasmSemanticParseResult;
 use qsc::qasm::{OperationSignature, QubitSemantics};
 use qsc::target::Profile;
 use qsc::{
@@ -27,56 +30,6 @@ use crate::interpreter::{
 };
 
 use resource_estimator as re;
-
-/// `SourceResolver` implementation that uses the provided `FileSystem`
-/// to resolve qasm include statements.
-pub(crate) struct ImportResolver<T>
-where
-    T: FileSystem,
-{
-    fs: T,
-    path: Arc<str>,
-    ctx: SourceResolverContext,
-}
-
-impl<T> ImportResolver<T>
-where
-    T: FileSystem,
-{
-    pub(crate) fn new(fs: T, path: Arc<str>) -> Self {
-        Self {
-            fs,
-            path,
-            ctx: Default::default(),
-        }
-    }
-}
-
-impl<T> SourceResolver for ImportResolver<T>
-where
-    T: FileSystem,
-{
-    fn ctx(&mut self) -> &mut SourceResolverContext {
-        &mut self.ctx
-    }
-
-    fn resolve(
-        &mut self,
-        path: &Arc<str>,
-    ) -> miette::Result<(Arc<str>, Arc<str>), qsc::qasm::io::Error> {
-        let path = self
-            .fs
-            .resolve_path(Path::new(self.path.as_ref()), Path::new(path.as_ref()))
-            .map_err(|e| qsc::qasm::io::Error(qsc::qasm::io::ErrorKind::IO(e.to_string())))?;
-        self.ctx()
-            .check_include_errors(&path.display().to_string().into())?;
-        let (path, source) = self
-            .fs
-            .read_file(path.as_ref())
-            .map_err(|e| qsc::qasm::io::Error(qsc::qasm::io::ErrorKind::IO(e.to_string())))?;
-        Ok((path, source))
-    }
-}
 
 /// Runs the given OpenQASM program for the given number of shots.
 /// Each shot uses an independent instance of the simulator.
@@ -136,12 +89,22 @@ pub(crate) fn run_qasm_program(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let mut resolver = ImportResolver::new(fs, search_path.into());
-
+    let file_path = PathBuf::from_str(&search_path)
+        .expect("from_str is infallible")
+        .join("program.qasm");
+    let project = fs.load_openqasm_project(
+        &Arc::<str>::from(file_path.display().to_string()),
+        Some(Arc::<str>::from(source)),
+    );
+    let ProjectType::OpenQASM(sources) = project.project_type else {
+        return Err(QasmError::new_err(
+            "Expected OpenQASM project, but got a different type".to_string(),
+        ));
+    };
+    let res = qsc::qasm::semantic::parse_sources(&sources);
     let (package, source_map, signature) = compile_qasm_enriching_errors(
-        source.into(),
+        res,
         &operation_name,
-        &mut resolver,
         ProgramType::File,
         output_semantics,
         false,
@@ -236,18 +199,24 @@ pub(crate) fn resource_estimate_qasm_program(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let mut resolver = ImportResolver::new(fs, search_path.into());
+    let file_path = PathBuf::from_str(&search_path)
+        .expect("from_str is infallible")
+        .join("program.qasm");
+    let project = fs.load_openqasm_project(
+        &Arc::<str>::from(file_path.display().to_string()),
+        Some(Arc::<str>::from(source)),
+    );
+    let ProjectType::OpenQASM(sources) = project.project_type else {
+        return Err(QasmError::new_err(
+            "Expected OpenQASM project, but got a different type".to_string(),
+        ));
+    };
+    let res = qsc::qasm::semantic::parse_sources(&sources);
 
     let program_type = ProgramType::File;
     let output_semantics = OutputSemantics::ResourceEstimation;
-    let (package, source_map, _) = compile_qasm_enriching_errors(
-        source.into(),
-        &operation_name,
-        &mut resolver,
-        program_type,
-        output_semantics,
-        false,
-    )?;
+    let (package, source_map, _) =
+        compile_qasm_enriching_errors(res, &operation_name, program_type, output_semantics, false)?;
 
     match crate::interop::estimate_qasm(package, source_map, job_params) {
         Ok(estimate) => Ok(estimate),
@@ -322,18 +291,24 @@ pub(crate) fn compile_qasm_program_to_qir(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let mut resolver = ImportResolver::new(fs, search_path.into());
+    let file_path = PathBuf::from_str(&search_path)
+        .expect("from_str is infallible")
+        .join("program.qasm");
+    let project = fs.load_openqasm_project(
+        &Arc::<str>::from(file_path.display().to_string()),
+        Some(Arc::<str>::from(source)),
+    );
+    let ProjectType::OpenQASM(sources) = project.project_type else {
+        return Err(QasmError::new_err(
+            "Expected OpenQASM project, but got a different type".to_string(),
+        ));
+    };
+    let res = qsc::qasm::semantic::parse_sources(&sources);
 
     let program_ty = ProgramType::File;
     let output_semantics = get_output_semantics(&kwargs, || OutputSemantics::Qiskit)?;
-    let (package, source_map, signature) = compile_qasm_enriching_errors(
-        source.into(),
-        &operation_name,
-        &mut resolver,
-        program_ty,
-        output_semantics,
-        false,
-    )?;
+    let (package, source_map, signature) =
+        compile_qasm_enriching_errors(res, &operation_name, program_ty, output_semantics, false)?;
 
     let package_type = PackageType::Lib;
     let language_features = LanguageFeatures::default();
@@ -345,15 +320,13 @@ pub(crate) fn compile_qasm_program_to_qir(
     generate_qir_from_ast(entry_expr, &mut interpreter)
 }
 
-pub(crate) fn compile_qasm_enriching_errors<S: AsRef<str>, R: SourceResolver>(
-    source: Arc<str>,
+pub(crate) fn compile_qasm_enriching_errors<S: AsRef<str>>(
+    semantic_parse_result: QasmSemanticParseResult,
     operation_name: S,
-    resolver: &mut R,
     program_ty: ProgramType,
     output_semantics: OutputSemantics,
     allow_input_params: bool,
 ) -> PyResult<(Package, SourceMap, OperationSignature)> {
-    let path = format!("{}.qasm", operation_name.as_ref());
     let config = qsc::qasm::CompilerConfig::new(
         QubitSemantics::Qiskit,
         output_semantics.into(),
@@ -361,7 +334,8 @@ pub(crate) fn compile_qasm_enriching_errors<S: AsRef<str>, R: SourceResolver>(
         Some(operation_name.as_ref().into()),
         None,
     );
-    let unit = qsc::qasm::compile_to_qsharp_ast_with_config(source, path, Some(resolver), config);
+
+    let unit = compile_to_qsharp_ast_with_config(semantic_parse_result, config);
 
     let (source_map, errors, package, sig) = unit.into_tuple();
     if !errors.is_empty() {
@@ -419,18 +393,24 @@ pub(crate) fn compile_qasm_to_qsharp(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let mut resolver = ImportResolver::new(fs, search_path.into());
+    let file_path = PathBuf::from_str(&search_path)
+        .expect("from_str is infallible")
+        .join("program.qasm");
+    let project = fs.load_openqasm_project(
+        &Arc::<str>::from(file_path.display().to_string()),
+        Some(Arc::<str>::from(source)),
+    );
+    let ProjectType::OpenQASM(sources) = project.project_type else {
+        return Err(QasmError::new_err(
+            "Expected OpenQASM project, but got a different type".to_string(),
+        ));
+    };
+    let res = qsc::qasm::semantic::parse_sources(&sources);
 
     let program_ty = get_program_type(&kwargs, || ProgramType::File)?;
     let output_semantics = get_output_semantics(&kwargs, || OutputSemantics::Qiskit)?;
-    let (package, _, _) = compile_qasm_enriching_errors(
-        source.into(),
-        &operation_name,
-        &mut resolver,
-        program_ty,
-        output_semantics,
-        true,
-    )?;
+    let (package, _, _) =
+        compile_qasm_enriching_errors(res, &operation_name, program_ty, output_semantics, true)?;
 
     let qsharp = qsc::codegen::qsharp::write_package_string(&package);
     Ok(qsharp)
@@ -580,12 +560,23 @@ pub(crate) fn circuit_qasm_program(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let mut resolver = ImportResolver::new(fs, search_path.into());
+    let file_path = PathBuf::from_str(&search_path)
+        .expect("from_str is infallible")
+        .join("program.qasm");
+    let project = fs.load_openqasm_project(
+        &Arc::<str>::from(file_path.display().to_string()),
+        Some(Arc::<str>::from(source)),
+    );
+    let ProjectType::OpenQASM(sources) = project.project_type else {
+        return Err(QasmError::new_err(
+            "Expected OpenQASM project, but got a different type".to_string(),
+        ));
+    };
+    let res = qsc::qasm::semantic::parse_sources(&sources);
 
     let (package, source_map, signature) = compile_qasm_enriching_errors(
-        source.into(),
+        res,
         &operation_name,
-        &mut resolver,
         ProgramType::File,
         OutputSemantics::ResourceEstimation,
         false,

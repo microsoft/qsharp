@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use qsc_qasm::{
-    compile_to_qsharp_ast_with_config, io::InMemorySourceResolver, CompilerConfig, OutputSemantics,
-    ProgramType, QasmCompileUnit, QubitSemantics,
+    compiler::parse_and_compile_to_qsharp_ast_with_config, io::InMemorySourceResolver,
+    CompilerConfig, OutputSemantics, ProgramType, QasmCompileUnit, QubitSemantics,
 };
 
 fn rgqft_multiplier<S: Into<Arc<str>>>(source: S) -> QasmCompileUnit {
@@ -17,7 +17,12 @@ fn rgqft_multiplier<S: Into<Arc<str>>>(source: S) -> QasmCompileUnit {
         Some("Test".into()),
         None,
     );
-    compile_to_qsharp_ast_with_config(source, "", None::<&mut InMemorySourceResolver>, config)
+    parse_and_compile_to_qsharp_ast_with_config(
+        source,
+        "",
+        None::<&mut InMemorySourceResolver>,
+        config,
+    )
 }
 
 pub fn rgqft_multiplier_1q(c: &mut Criterion) {

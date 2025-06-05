@@ -389,6 +389,15 @@ pub trait FileSystemAsync {
         })
     }
 
+    /// Given an OpenQASM file, loads the project sources
+    /// and the sources for all its dependencies.
+    ///
+    /// Any errors that didn't block project load are contained in the
+    /// `errors` field of the returned `Project`.
+    async fn load_openqasm_project(&self, path: &Arc<str>, source: Option<Arc<str>>) -> Project {
+        crate::openqasm::load_project(self, path, source).await
+    }
+
     /// Given a directory, attempts to parse a `qsharp.json` in that directory
     /// according to the manifest schema.
     async fn parse_manifest_in_dir(&self, directory: &Path) -> ProjectResult<Manifest> {
@@ -849,6 +858,22 @@ pub trait FileSystem {
         // more complex.
         FutureExt::now_or_never(fs.load_project(directory, global_cache))
             .expect("load_project should never await")
+    }
+
+    fn load_openqasm_project(&self, path: &Arc<str>, source: Option<Arc<str>>) -> Project {
+        // Rather than rewriting all the async code in the project loader,
+        // we call the async implementation here, doing some tricks to make it
+        // run synchronously.
+
+        let fs = ToFileSystemAsync { fs: self };
+
+        // WARNING: This will panic if there are *any* await points in the
+        // load_openqasm_project implementation. Right now, we know that will never be the case
+        // because we just passed in our synchronous FS functions to the project loader.
+        // Proceed with caution if you make the `FileSystemAsync` implementation any
+        // more complex.
+        FutureExt::now_or_never(fs.load_openqasm_project(path, source))
+            .expect("load_openqasm_project should never await")
     }
 }
 

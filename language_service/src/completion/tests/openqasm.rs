@@ -1,22 +1,47 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::sync::Arc;
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use super::{get_completions, CompletionItem};
-use crate::{test_utils::get_sources_and_markers, Compilation, Encoding};
+use crate::{
+    test_utils::get_sources_and_markers,
+    tests::test_fs::{dir_of_files, file, TestProjectHost},
+    Compilation, Encoding,
+};
 use expect_test::{expect, Expect};
+use futures::FutureExt;
 use indoc::indoc;
 use qsc::{
     line_column::{Position, Range},
     location::Location,
     PackageType,
 };
+use qsc_project::{FileSystemAsync, ProjectType};
 
 fn compile_project_with_markers_cursor_optional(
     sources_with_markers: &[(&str, &str)],
 ) -> (Compilation, Option<(String, Position)>, Vec<Location>) {
     let (sources, cursor_location, target_spans) = get_sources_and_markers(sources_with_markers);
+    let path = &sources
+        .first()
+        .expect("There must be a file to compile")
+        .0
+        .clone();
+    let files = sources
+        .into_iter()
+        .map(|(name, contents)| file(&name, &contents))
+        .collect::<Vec<_>>();
+    let fs = dir_of_files(files);
+    let fs = Rc::new(RefCell::new(fs));
+    let project_host = TestProjectHost { fs: fs.clone() };
+
+    let project = FutureExt::now_or_never(project_host.load_openqasm_project(path, None))
+        .expect("load_openqasm_project should never await");
+
+    let ProjectType::OpenQASM(sources) = project.project_type else {
+        panic!("expected OpenQASM project type");
+    };
 
     (
         Compilation::new_qasm(

@@ -1,65 +1,95 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::{path::Path, sync::Arc};
+#[cfg(test)]
+mod integration_tests;
 
 use super::{FileSystemAsync, Project};
-use qsc_qasm::parser::ast::StmtKind;
-use rustc_hash::FxHashMap;
+use qsc_qasm::parser::ast::{Program, StmtKind};
+use rustc_hash::FxHashSet;
+use std::{path::Path, sync::Arc};
 
-pub async fn load_project<T>(project_host: &T, doc_uri: &Arc<str>) -> Project
+pub async fn load_project<T>(
+    project_host: &T,
+    doc_uri: &Arc<str>,
+    source: Option<Arc<str>>,
+) -> Project
 where
     T: FileSystemAsync + ?Sized,
 {
-    let mut loaded_files = FxHashMap::default();
+    let mut sources = Vec::<(Arc<str>, Arc<str>)>::new();
+    let mut loaded_files = FxHashSet::default();
     let mut pending_includes = vec![];
     let mut errors = vec![];
 
-    // this is the root of the project
-    // it is the only file that has a full path.
-    // all other files are relative to this one.
-    // and the directory above is the directory of the file
-    // we need to combine the two to get the full path
-    pending_includes.push(doc_uri.clone());
+    match source {
+        Some(source) => {
+            let (program, _errors) = qsc_qasm::parser::parse(source.as_ref());
+            let includes = get_includes(&program, doc_uri);
+            pending_includes.extend(includes);
+            loaded_files.insert(doc_uri.clone());
+            sources.push((doc_uri.clone(), source.clone()));
+        }
+        None => {
+            match project_host.read_file(Path::new(doc_uri.as_ref())).await {
+                Ok((file, source)) => {
+                    // load the root file
+                    let (program, _errors) = qsc_qasm::parser::parse(source.as_ref());
+                    let includes = get_includes(&program, &file);
+                    pending_includes.extend(includes);
+                    loaded_files.insert(file.clone());
+                    sources.push((file, source.clone()));
+                }
+                Err(e) => {
+                    // If we can't read the file, we create a project with an error.
+                    // This is a special case where we can't load the project at all.
+                    errors.push(super::project::Error::FileSystem {
+                        about_path: doc_uri.to_string(),
+                        error: e.to_string(),
+                    });
+                    return Project {
+                        path: doc_uri.clone(),
+                        name: get_file_name_from_uri(doc_uri),
+                        lints: Vec::default(),
+                        errors,
+                        project_type: super::ProjectType::OpenQASM(vec![]),
+                    };
+                }
+            }
+        }
+    }
 
-    while let Some(current) = pending_includes.pop() {
-        if loaded_files.contains_key(&current) {
+    while let Some((current, include)) = pending_includes.pop() {
+        // Resolve relative path, this works for both FS and URI paths.
+        let resolved_path = {
+            let current_path = Path::new(current.as_ref());
+            let parent_dir = current_path.parent().unwrap_or(Path::new("."));
+            let target_path = Path::new(include.as_ref());
+
+            match project_host.resolve_path(parent_dir, target_path).await {
+                Ok(resolved) => Arc::from(resolved.to_string_lossy().as_ref()),
+                Err(_) => include.clone(),
+            }
+        };
+
+        if loaded_files.contains(&resolved_path) {
             // We've already loaded this include, so skip it.
             // We'll let the source resolver handle any duplicates.
             // and cyclic dependency errors.
             continue;
         }
 
-        match project_host.read_file(Path::new(current.as_ref())).await {
+        // At this point, we have a valid include path that we need to try to load.
+        match project_host
+            .read_file(Path::new(resolved_path.as_ref()))
+            .await
+        {
             Ok((file, source)) => {
-                loaded_files.insert(file, source.clone());
-
                 let (program, _errors) = qsc_qasm::parser::parse(source.as_ref());
-
-                let includes: Vec<Arc<str>> = program
-                    .statements
-                    .iter()
-                    .filter_map(|stmt| {
-                        if let StmtKind::Include(include) = &*stmt.kind {
-                            Some(include.filename.clone())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<_>>();
-
-                for include in includes {
-                    if include == "stdgates.inc".into() {
-                        // Don't include stdgates.inc, as it is a special case.
-                        continue;
-                    }
-                    if loaded_files.contains_key(&include) {
-                        // We've already loaded this include, so skip it.
-                        continue;
-                    }
-
-                    pending_includes.push(include);
-                }
+                let includes = get_includes(&program, &file);
+                pending_includes.extend(includes);
+                loaded_files.insert(file.clone());
+                sources.push((file, source.clone()));
             }
             Err(e) => {
                 errors.push(super::project::Error::FileSystem {
@@ -70,8 +100,6 @@ where
         }
     }
 
-    let sources = loaded_files.into_iter().collect::<Vec<_>>();
-
     Project {
         path: doc_uri.clone(),
         name: get_file_name_from_uri(doc_uri),
@@ -81,8 +109,29 @@ where
     }
 }
 
+/// Returns a vector of all includes found in the given `Program`.
+/// Each include is represented as a tuple containing:
+/// - The parent file path (as an `Arc<str>`)
+/// - The filename of the included file (as an `Arc<str>`)
+fn get_includes(program: &Program, parent: &Arc<str>) -> Vec<(Arc<str>, Arc<str>)> {
+    let includes = program
+        .statements
+        .iter()
+        .filter_map(|stmt| {
+            if let StmtKind::Include(include) = &*stmt.kind {
+                if include.filename.to_lowercase() == "stdgates.inc" {
+                    return None;
+                }
+                Some((parent.clone(), include.filename.clone()))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+    includes
+}
+
 fn get_file_name_from_uri(uri: &Arc<str>) -> Arc<str> {
-    // Convert the Arc<str> into a &str and then into a Path
     let path = Path::new(uri.as_ref());
 
     // Extract the file name or return the original URI if it fails

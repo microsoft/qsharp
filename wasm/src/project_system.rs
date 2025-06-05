@@ -199,9 +199,15 @@ impl ProjectLoader {
         project_config.try_into()
     }
 
-    pub async fn load_openqasm_project(&self, file_path: String) -> Result<IProjectConfig, String> {
-        let project_config =
-            qsc_project::openqasm::load_project(&self.0, &file_path.clone().into()).await;
+    pub async fn load_openqasm_project(
+        &self,
+        file_path: String,
+        source: Option<String>,
+    ) -> Result<IProjectConfig, String> {
+        let project_config = self
+            .0
+            .load_openqasm_project(&file_path.clone().into(), source.map(Arc::<str>::from))
+            .await;
         // Will return error if project has errors
         project_config.try_into()
     }
@@ -297,11 +303,15 @@ impl TryFrom<qsc_project::Project> for IProjectConfig {
                 &value.errors,
             ));
         }
+        let project_type = match value.project_type {
+            qsc_project::ProjectType::QSharp(..) => "qsharp".into(),
+            qsc_project::ProjectType::OpenQASM(..) => "openqasm".into(),
+        };
         let package_graph_sources = match value.project_type {
-            qsc_project::ProjectType::QSharp(ref pgs) => pgs.clone(),
-            qsc_project::ProjectType::OpenQASM(ref sources) => qsc_project::PackageGraphSources {
+            qsc_project::ProjectType::QSharp(pgs) => pgs,
+            qsc_project::ProjectType::OpenQASM(res) => qsc_project::PackageGraphSources {
                 root: qsc_project::PackageInfo {
-                    sources: sources.clone(),
+                    sources: res,
                     language_features: LanguageFeatures::default(),
                     dependencies: FxHashMap::default(),
                     package_type: None,
@@ -314,10 +324,7 @@ impl TryFrom<qsc_project::Project> for IProjectConfig {
             project_uri: value.path.to_string(),
             lints: value.lints,
             package_graph_sources: package_graph_sources.into(),
-            project_type: match value.project_type {
-                qsc_project::ProjectType::QSharp(..) => "qsharp".into(),
-                qsc_project::ProjectType::OpenQASM(..) => "openqasm".into(),
-            },
+            project_type,
         };
         Ok(project_config.into())
     }

@@ -14,10 +14,18 @@ suite("OpenQASM Debugger Tests", function suite() {
   assert(workspaceFolder, "Expecting an open folder");
 
   const selfContainedName = "self-contained.qasm";
+  const multifileName = "multifile.qasm";
+  const multifileIncludeName = "imports.inc";
 
   const selfContainedUri = vscode.Uri.joinPath(
     workspaceFolder.uri,
     selfContainedName,
+  );
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const multifileUri = vscode.Uri.joinPath(workspaceFolder.uri, multifileName);
+  const multifileIncludeUri = vscode.Uri.joinPath(
+    workspaceFolder.uri,
+    multifileIncludeName,
   );
   let tracker: Tracker | undefined;
   let disposable;
@@ -199,6 +207,57 @@ suite("OpenQASM Debugger Tests", function suite() {
         name: "program ",
         endLine: 6,
         endColumn: 8,
+      },
+      { id: 0, line: 0, column: 0, name: "entry", source: undefined },
+    ]);
+  });
+
+  test("Set breakpoint in multi file program", async () => {
+    // Set a breakpoint on line 3 of imports.inc (2 when 0-indexed)
+    await vscode.debug.addBreakpoints([
+      new vscode.SourceBreakpoint(
+        new vscode.Location(multifileIncludeUri, new vscode.Position(2, 0)),
+      ),
+    ]);
+
+    // launch debugger
+    await vscode.debug.startDebugging(workspaceFolder, {
+      name: `Launch ${multifileName}`,
+      type: "qsharp",
+      request: "launch",
+      program: "${workspaceFolder}" + `${multifileName}`,
+      stopOnEntry: false,
+    });
+
+    // should hit the breakpoint we set above
+    await waitUntilPaused([
+      {
+        id: 1,
+        source: {
+          name: multifileIncludeName,
+          path: `vscode-test-web://mount/${multifileIncludeName}`,
+          sourceReference: 0,
+          adapterData: "qsharp-adapter-data",
+        },
+        line: 3,
+        column: 5,
+        name: "Bar ",
+        endLine: 3,
+        endColumn: 16,
+      },
+      {
+        id: 0,
+        source: {
+          name: multifileName,
+          path: `vscode-test-web://mount/${multifileName}`,
+          sourceReference: 0,
+          adapterData: "qsharp-adapter-data",
+        },
+        line: 5,
+        column: 1,
+        name: "program ",
+        endLine: 5,
+        endColumn: 6,
       },
       { id: 0, line: 0, column: 0, name: "entry", source: undefined },
     ]);

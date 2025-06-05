@@ -7,7 +7,7 @@ use crate::{
     interop::{
         circuit_qasm_program, compile_qasm_program_to_qir, compile_qasm_to_qsharp,
         create_filesystem_from_py, get_operation_name, get_output_semantics, get_program_type,
-        get_search_path, resource_estimate_qasm_program, run_qasm_program, ImportResolver,
+        get_search_path, resource_estimate_qasm_program, run_qasm_program,
     },
     noisy_simulator::register_noisy_simulator_submodule,
 };
@@ -32,13 +32,13 @@ use qsc::{
     },
     packages::BuildableProgram,
     project::{FileSystem, PackageCache, PackageGraphSources, ProjectType},
-    qasm::{compile_to_qsharp_ast_with_config, CompilerConfig, QubitSemantics},
+    qasm::{compiler::compile_to_qsharp_ast_with_config, CompilerConfig, QubitSemantics},
     target::Profile,
     LanguageFeatures, PackageType, SourceMap,
 };
 
 use resource_estimator::{self as re, estimate_call, estimate_expr};
-use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc, str::FromStr};
+use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc, str::FromStr, sync::Arc};
 
 /// If the classes are not Send, the Python interpreter
 /// will not be able to use them in a separate thread.
@@ -481,7 +481,18 @@ impl Interpreter {
 
         let fs =
             create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-        let mut resolver = ImportResolver::new(fs, search_path.into());
+        let file_path = PathBuf::from_str(&search_path)
+            .expect("from_str is infallible")
+            .join("program.qasm");
+        let project = fs.load_openqasm_project(
+            &Arc::<str>::from(file_path.display().to_string()),
+            Some(Arc::<str>::from(input)),
+        );
+        let ProjectType::OpenQASM(sources) = project.project_type else {
+            return Err(QasmError::new_err(
+                "Expected OpenQASM project, but got a different type".to_string(),
+            ));
+        };
 
         let config = CompilerConfig::new(
             QubitSemantics::Qiskit,
@@ -490,8 +501,8 @@ impl Interpreter {
             Some(operation_name.into()),
             None,
         );
-
-        let unit = compile_to_qsharp_ast_with_config(input, "<none>", Some(&mut resolver), config);
+        let res = qsc::qasm::semantic::parse_sources(&sources);
+        let unit = compile_to_qsharp_ast_with_config(res, config);
         let (sources, errors, package, _) = unit.into_tuple();
 
         if !errors.is_empty() {

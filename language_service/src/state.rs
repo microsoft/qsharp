@@ -227,7 +227,7 @@ impl<'a> CompilationStateUpdater<'a> {
     ) -> Result<Option<Project>, Vec<project::Error>> {
         if is_openqasm_file(language_id) {
             return Ok(Some(
-                qsc_project::openqasm::load_project(&*self.project_host, doc_uri).await,
+                self.project_host.load_openqasm_project(doc_uri, None).await,
             ));
         }
         self.load_manifest(doc_uri).await
