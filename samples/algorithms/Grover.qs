@@ -65,7 +65,7 @@ operation GroverSearch(
 /// # Summary
 /// Returns the optimal number of Grover iterations needed to find a marked
 /// item, given the number of qubits in a register. Setting the number of
-/// itertions to a different number may undershoot or overshoot the marked state.
+/// iterations to a different number may undershoot or overshoot the marked state.
 function IterationsToMarked(nQubits : Int) : Int {
     if nQubits > 126 {
         fail "This sample supports at most 126 qubits.";
