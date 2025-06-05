@@ -25,6 +25,27 @@ pub(crate) fn get_code_lenses(
         return vec![];
     }
 
+    // Don't show code lenses if there are compilation or project errors
+    // that would prevent program execution
+    if !compilation.project_errors.is_empty() {
+        return vec![];
+    }
+
+    // Check for frontend errors and critical compilation errors that prevent execution
+    let has_blocking_errors = compilation.compile_errors.iter().any(|error| {
+        matches!(
+            error.error(),
+            qsc::compile::ErrorKind::Frontend(_)
+                | qsc::compile::ErrorKind::DependencyCycle
+                | qsc::compile::ErrorKind::CircuitParse(_)
+                | qsc::compile::ErrorKind::OpenQasm(_)
+        )
+    });
+
+    if has_blocking_errors {
+        return vec![];
+    }
+
     let user_unit = compilation.user_unit();
     let package = &user_unit.package;
     let source_span = compilation.package_span_of_source(source_name);

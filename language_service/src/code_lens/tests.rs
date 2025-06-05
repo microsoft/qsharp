@@ -3,12 +3,16 @@
 
 use super::get_code_lenses;
 use crate::{
+    compilation::{Compilation, CompilationKind},
     test_utils::{
         compile_notebook_with_fake_stdlib, compile_with_fake_stdlib_and_markers_no_cursor,
     },
     Encoding,
 };
 use expect_test::{expect, Expect};
+use qsc::{compile, target::Profile, LanguageFeatures, PackageType, SourceMap};
+use qsc_project::PackageGraphSources;
+use std::sync::Arc;
 
 fn check(source_with_markers: &str, expect: &Expect) {
     let (compilation, expected_code_lens_ranges) =
@@ -280,5 +284,64 @@ fn qubit_arrays_operation_circuit() {
                 ),
             ]
         "#]],
+    );
+}
+
+#[test]
+fn no_code_lenses_with_compilation_errors() {
+    // Create a compilation with an error in it
+    let source = r#"
+        namespace Test {
+            operation Main() : Unit {
+                foo
+            }
+        }"#;
+
+    let (std_package_id, mut package_store) =
+        qsc::compile::package_store_with_stdlib(qsc::TargetCapabilityFlags::all());
+    let dependencies = vec![(std_package_id, None)];
+
+    let sources = vec![("test.qs".into(), source.into())];
+    let source_map = SourceMap::new(sources, None);
+
+    let (unit, errors) = compile::compile(
+        &package_store,
+        &dependencies,
+        source_map,
+        PackageType::Exe,
+        Profile::Unrestricted.into(),
+        LanguageFeatures::default(),
+    );
+
+    // Make sure we actually have errors
+    assert!(!errors.is_empty(), "Test should have compilation errors");
+
+    let test_cases = unit.package.get_test_callables();
+    let package_id = package_store.insert(unit);
+
+    let package_graph_sources = PackageGraphSources::with_no_dependencies(
+        vec![("test.qs".into(), source.into())],
+        LanguageFeatures::default(),
+        Some(qsc_project::PackageType::Exe),
+    );
+
+    let compilation = Compilation {
+        package_store,
+        user_package_id: package_id,
+        kind: CompilationKind::OpenProject {
+            package_graph_sources,
+            friendly_name: Arc::from("test project"),
+        },
+        compile_errors: errors,
+        project_errors: Vec::new(),
+        dependencies: dependencies.into_iter().collect(),
+        test_cases,
+    };
+
+    // Should return no code lenses when there are compilation errors
+    let lenses = get_code_lenses(&compilation, "test.qs", Encoding::Utf8);
+    assert!(
+        lenses.is_empty(),
+        "code lenses should not be present when there are compilation errors"
     );
 }
