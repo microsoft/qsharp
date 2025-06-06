@@ -11,7 +11,10 @@ use qsc::{
     line_column::{Encoding, Position, Range},
     packages::{prepare_package_store, BuildableProgram},
     project,
-    qasm::{io::InMemorySourceResolver, CompileRawQasmResult},
+    qasm::{
+        compiler::compile_to_qsharp_ast_with_config, CompileRawQasmResult, CompilerConfig,
+        OutputSemantics, ProgramType, QubitSemantics,
+    },
     resolve,
     target::Profile,
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
@@ -256,24 +259,21 @@ impl Compilation {
         project_errors: Vec<project::Error>,
         friendly_name: &Arc<str>,
     ) -> Self {
-        let (path, source) = sources.first().expect("expected to find qasm source");
-
-        let mut resolver = sources
-            .clone()
-            .into_iter()
-            .collect::<InMemorySourceResolver>();
         let capabilities = target_profile.into();
 
+        let config = CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            OutputSemantics::OpenQasm,
+            ProgramType::File,
+            Some("program".into()),
+            None,
+        );
+        let res = qsc::qasm::semantic::parse_sources(&sources);
+        let unit = compile_to_qsharp_ast_with_config(res.clone(), config);
         let CompileRawQasmResult(store, source_package_id, dependencies, _sig, mut compile_errors) =
-            qsc::qasm::compile_raw_qasm(
-                source.clone(),
-                path.clone(),
-                Some(&mut resolver),
-                package_type,
-                capabilities,
-            );
+            qsc::qasm::compile_openqasm(unit.clone(), package_type, capabilities);
 
-        let unit = store
+        let compile_unit = store
             .get(source_package_id)
             .expect("expected to find user package");
 
@@ -282,7 +282,7 @@ impl Compilation {
             target_profile,
             &store,
             source_package_id,
-            unit,
+            compile_unit,
         );
 
         Self {
@@ -421,12 +421,12 @@ impl Compilation {
                 project.clone(),
             ),
             CompilationKind::OpenQASM {
-                ref sources,
+                sources: ref source,
                 ref friendly_name,
             } => Self::new_qasm(
                 package_type,
                 target_profile,
-                sources.clone(),
+                source.clone(),
                 Vec::new(), // project errors will stay the same
                 friendly_name,
             ),

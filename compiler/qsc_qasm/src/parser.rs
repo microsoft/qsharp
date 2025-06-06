@@ -9,6 +9,9 @@ use qsc_data_structures::span::Span;
 use qsc_frontend::compile::SourceMap;
 use qsc_frontend::error::WithSource;
 use scan::ParserContext;
+use std::path::Component;
+use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 #[cfg(test)]
@@ -17,6 +20,7 @@ pub(crate) mod tests;
 pub mod completion;
 mod error;
 pub use error::Error;
+pub use error::ErrorKind;
 mod expr;
 mod mut_visit;
 mod prgm;
@@ -33,6 +37,7 @@ impl MutVisitor for Offsetter {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct QasmParseResult {
     pub source: QasmSource,
     pub source_map: SourceMap,
@@ -114,7 +119,12 @@ pub fn parse_source<R: SourceResolver, S: Into<Arc<str>>, P: Into<Arc<str>>>(
     path: P,
     resolver: &mut R,
 ) -> QasmParseResult {
-    let res = parse_qasm_source(source.into(), path.into(), resolver);
+    let path = path.into();
+    resolver
+        .ctx()
+        .check_include_errors(&path, Span::default())
+        .expect("Failed to check include errors");
+    let res = parse_qasm_source(source.into(), path.clone(), resolver);
     QasmParseResult::new(res)
 }
 
@@ -219,6 +229,56 @@ impl QasmSource {
     }
 }
 
+fn strip_scheme(path: &str) -> (Option<Arc<str>>, Arc<str>) {
+    if let Some(scheme_end) = path.find("://") {
+        let scheme = &path[..scheme_end];
+        let after_scheme = &path[scheme_end + 3..];
+
+        (Some(Arc::from(scheme)), Arc::from(after_scheme))
+    } else {
+        (None, Arc::from(path))
+    }
+}
+
+/// append a path to a base path, resolving any relative components
+/// like `.` and `..` in the process.
+/// When the base path is a URI, it will be resolved as well.
+/// Uri schemes are stripped from the path, and the resulting path
+/// is processed as a file path. The scheme is prepended back to the
+/// resulting path if it was present in the base path.
+fn resolve_path(base: &Path, path: &Path) -> miette::Result<PathBuf> {
+    let (scheme, joined) = strip_scheme(&base.join(path).to_string_lossy());
+    let joined = PathBuf::from(joined.as_ref());
+    // Adapted from https://github.com/rust-lang/cargo/blob/a879a1ca12e3997d9fdd71b70f34f1f3c866e1da/crates/cargo-util/src/paths.rs#L84
+    let mut components = joined.components().peekable();
+    let mut normalized = if let Some(c @ Component::Prefix(..)) = components.peek().copied() {
+        components.next();
+        PathBuf::from(c.as_os_str())
+    } else {
+        PathBuf::new()
+    };
+
+    for component in components {
+        match component {
+            Component::Prefix(..) => unreachable!(),
+            Component::RootDir => {
+                normalized.push(component.as_os_str());
+            }
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            Component::Normal(c) => {
+                normalized.push(c);
+            }
+        }
+    }
+    if let Some(scheme) = scheme {
+        normalized = format!("{scheme}://{}", normalized.to_string_lossy()).into();
+    }
+    Ok(normalized)
+}
+
 /// Parse a QASM file and return the parse result using the provided resolver.
 /// Returns `Err` if the resolver cannot resolve the file.
 /// Returns `Ok` otherwise. Any parse errors will be included in the result.
@@ -226,11 +286,33 @@ impl QasmSource {
 /// This function is the start of a recursive process that will resolve all
 /// includes in the QASM file. Any includes are parsed as if their contents
 /// were defined where the include statement is.
-fn parse_qasm_file<R>(path: &Arc<str>, resolver: &mut R) -> QasmSource
+fn parse_qasm_file<R>(
+    path: &Arc<str>,
+    resolver: &mut R,
+    span: Span,
+) -> miette::Result<QasmSource, crate::parser::Error>
 where
     R: SourceResolver,
 {
-    match resolver.resolve(path) {
+    let resolved_path = if let Some(current) = resolver.ctx().peek_current_file() {
+        let current_path = Path::new(current.as_ref());
+        let parent_dir = current_path.parent().unwrap_or(Path::new("."));
+        let target_path = Path::new(path.as_ref());
+
+        match resolve_path(parent_dir, target_path) {
+            Ok(resolved_path) => Arc::from(resolved_path.display().to_string()),
+            Err(_) => path.clone(),
+        }
+    } else {
+        path.clone()
+    };
+
+    resolver
+        .ctx()
+        .check_include_errors(&resolved_path, span)
+        .map_err(|e| io_to_parse_error(span, e))?;
+
+    match resolver.resolve(&resolved_path) {
         Ok((path, source)) => {
             let parse_result = parse_qasm_source(source, path.clone(), resolver);
 
@@ -239,24 +321,16 @@ where
             // and cyclic includes.
             resolver.ctx().pop_current_file();
 
-            parse_result
+            Ok(parse_result)
         }
-        Err(e) => {
-            let error = crate::parser::error::ErrorKind::IO(e);
-            let error = crate::parser::Error(error, None);
-            QasmSource {
-                path: path.clone(),
-                source: Default::default(),
-                program: Program {
-                    span: Span::default(),
-                    statements: vec![].into_boxed_slice(),
-                    version: None,
-                },
-                errors: vec![error],
-                included: vec![],
-            }
-        }
+        Err(e) => Err(io_to_parse_error(span, e)),
     }
+}
+
+fn io_to_parse_error(span: Span, e: crate::io::Error) -> Error {
+    let e = e.with_span(span);
+    let error = crate::parser::error::ErrorKind::IO(e);
+    crate::parser::Error(error, None)
 }
 
 fn parse_qasm_source<R>(source: Arc<str>, path: Arc<str>, resolver: &mut R) -> QasmSource
@@ -274,16 +348,18 @@ fn parse_source_and_includes<P: AsRef<str>, R>(
 where
     R: SourceResolver,
 {
-    let (program, errors) = parse(source.as_ref());
-    let included = parse_includes(&program, resolver);
-    (program, errors, included)
+    let (program, mut errors) = parse(source.as_ref());
+    let (includes, inc_errors) = parse_includes(&program, resolver);
+    errors.extend(inc_errors);
+    (program, errors, includes)
 }
 
-fn parse_includes<R>(program: &Program, resolver: &mut R) -> Vec<QasmSource>
+fn parse_includes<R>(program: &Program, resolver: &mut R) -> (Vec<QasmSource>, Vec<Error>)
 where
     R: SourceResolver,
 {
     let mut includes = vec![];
+    let mut errors = vec![];
     for stmt in &program.statements {
         if let StmtKind::Include(include) = stmt.kind.as_ref() {
             let file_path = &include.filename;
@@ -292,12 +368,43 @@ where
             if file_path.to_lowercase() == "stdgates.inc" {
                 continue;
             }
-            let source = parse_qasm_file(file_path, resolver);
+            let source = match parse_qasm_file(file_path, resolver, stmt.span) {
+                Ok(source) => {
+                    // If the include was successful, we add it to the list of includes.
+                    source
+                }
+                Err(e) => {
+                    let error = match e.0 {
+                        error::ErrorKind::IO(e) => {
+                            let error_kind = error::ErrorKind::IO(e.with_span(stmt.span));
+                            crate::parser::Error(error_kind, None)
+                        }
+                        _ => e,
+                    };
+                    // we need to push the error so that the error span is correct
+                    // for the include statement of the parent file.
+                    errors.push(error.clone());
+                    // If the include failed, we create a QasmSource with an empty program
+                    // The source has no errors as the error will be associated with the
+                    // include statement in the parent file.
+                    QasmSource {
+                        path: file_path.clone(),
+                        source: Default::default(),
+                        program: Program {
+                            span: Span::default(),
+                            statements: vec![].into_boxed_slice(),
+                            version: None,
+                        },
+                        errors: vec![],
+                        included: vec![],
+                    }
+                }
+            };
             includes.push(source);
         }
     }
 
-    includes
+    (includes, errors)
 }
 
 pub(crate) type Result<T> = std::result::Result<T, crate::parser::error::Error>;

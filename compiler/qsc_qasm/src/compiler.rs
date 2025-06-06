@@ -46,6 +46,7 @@ use crate::{
         },
         symbols::{IOKind, Symbol, SymbolId, SymbolTable},
         types::{promote_types, Type},
+        QasmSemanticParseResult,
     },
     CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QasmCompileUnit,
     QubitSemantics,
@@ -65,7 +66,7 @@ fn err_expr(span: Span) -> qsast::Expr {
 }
 
 #[must_use]
-pub fn compile_to_qsharp_ast_with_config<
+pub fn parse_and_compile_to_qsharp_ast_with_config<
     R: SourceResolver,
     S: Into<Arc<str>>,
     P: Into<Arc<str>>,
@@ -80,6 +81,14 @@ pub fn compile_to_qsharp_ast_with_config<
     } else {
         crate::semantic::parse(source, path)
     };
+    compile_to_qsharp_ast_with_config(res, config)
+}
+
+#[must_use]
+pub fn compile_to_qsharp_ast_with_config(
+    res: QasmSemanticParseResult,
+    config: CompilerConfig,
+) -> QasmCompileUnit {
     let program = res.program;
 
     let compiler = crate::compiler::QasmCompiler {
@@ -111,6 +120,7 @@ impl QasmCompiler {
     /// The main entry into compilation. This function will compile the
     /// source file and build the appropriate package based on the
     /// configuration.
+    #[must_use]
     pub fn compile(mut self, program: &crate::semantic::ast::Program) -> QasmCompileUnit {
         // in non-file mode we need the runtime imports in the body
         let program_ty = self.config.program_ty.clone();

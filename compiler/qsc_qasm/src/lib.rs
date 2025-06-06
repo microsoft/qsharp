@@ -2,9 +2,7 @@
 // Licensed under the MIT License.
 
 mod ast_builder;
-mod compiler;
-mod stdlib;
-pub use compiler::compile_to_qsharp_ast_with_config;
+pub mod compiler;
 mod convert;
 pub mod display_utils;
 pub mod io;
@@ -12,6 +10,7 @@ mod keyword;
 mod lex;
 pub mod parser;
 pub mod semantic;
+mod stdlib;
 mod types;
 
 #[cfg(test)]
@@ -164,6 +163,7 @@ pub enum ProgramType {
 /// This is used to create a function signature for the
 /// operation that is created from the QASM source code.
 /// This is the human readable form of the operation.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OperationSignature {
     pub name: String,
     pub ns: Option<String>,
@@ -224,6 +224,7 @@ impl std::fmt::Display for OperationSignature {
 
 /// A unit of compilation for QASM source code.
 /// This is the result of parsing and compiling a QASM source file.
+#[derive(Debug, Clone)]
 pub struct QasmCompileUnit {
     /// Source map created from the accumulated source files,
     source_map: SourceMap,

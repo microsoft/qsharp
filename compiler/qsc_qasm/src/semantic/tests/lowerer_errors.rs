@@ -12,7 +12,13 @@ fn check_lowerer_error_spans_are_correct() {
     check_qasm_to_qsharp(
         SOURCE,
         &expect![[r#"
-              x Not Found Could not resolve include file: missing_file
+              x Not Found: Could not resolve include file: missing_file
+                ,-[Test.qasm:21:1]
+             20 | // lowerer, so that we can contruct the error with the right span.
+             21 | include "missing_file";
+                : ^^^^^^^^^^^^^^^^^^^^^^^
+             22 | 
+                `----
 
             Qasm.Lowerer.UnsupportedVersion
 

@@ -222,6 +222,7 @@ impl std::fmt::Display for IOKind {
 
 /// A scope is a collection of symbols and a kind. The kind determines semantic
 /// rules for compliation as shadowing and decl rules vary by scope kind.
+#[derive(Debug, Clone)]
 pub(crate) struct Scope {
     /// A map from symbol name to symbol ID.
     name_to_id: FxHashMap<String, SymbolId>,
@@ -276,6 +277,7 @@ impl Scope {
 }
 
 /// A symbol table is a collection of scopes and manages the symbol ids.
+#[derive(Debug, Clone)]
 pub struct SymbolTable {
     scopes: Vec<Scope>,
     symbols: IndexMap<SymbolId, Rc<Symbol>>,

@@ -25,7 +25,10 @@ use qsc::{
     hir::PackageId,
     interpret::{GenericReceiver, Interpreter},
     packages::BuildableProgram,
-    qasm::{io::InMemorySourceResolver, OutputSemantics, ProgramType, QubitSemantics},
+    qasm::{
+        compiler::parse_and_compile_to_qsharp_ast_with_config, io::InMemorySourceResolver,
+        OutputSemantics, ProgramType, QubitSemantics,
+    },
     LanguageFeatures, PackageType, SourceMap, TargetCapabilityFlags,
 };
 use qsc_project::{FileSystem, ProjectType, StdFs};
@@ -102,7 +105,7 @@ fn compile_and_run_qasm_internal(source: &str, debug: bool) -> String {
         None,
         None,
     );
-    let unit = qsc::qasm::compile_to_qsharp_ast_with_config(
+    let unit = parse_and_compile_to_qsharp_ast_with_config(
         source,
         "",
         Option::<&mut InMemorySourceResolver>::None,

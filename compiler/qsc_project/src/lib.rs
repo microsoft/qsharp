@@ -16,6 +16,7 @@ mod manifest;
 pub mod openqasm;
 mod project;
 
+#[cfg(feature = "fs")]
 pub use error::StdFsError;
 #[cfg(feature = "fs")]
 pub use fs::StdFs;

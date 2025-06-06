@@ -190,6 +190,10 @@ pub(crate) fn dir<const COUNT: usize>(
     (name.into(), FsNode::Dir(contents.into_iter().collect()))
 }
 
+pub(crate) fn dir_of_files(contents: Vec<(Arc<str>, FsNode)>) -> FsNode {
+    FsNode::Dir(contents.into_iter().collect::<FxHashMap<_, _>>())
+}
+
 pub(crate) fn file(name: &str, contents: &str) -> (Arc<str>, FsNode) {
     (name.into(), FsNode::File(Arc::from(contents)))
 }
