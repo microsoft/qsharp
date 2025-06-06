@@ -3,13 +3,17 @@
 
 use core::str::FromStr;
 use qsc_ast::{
-    ast::{Attr, ExprKind, Idents, ItemKind, Namespace, PathKind, Stmt, StmtKind, UnOp},
-    mut_visit::MutVisitor,
+    ast::{
+        Attr, ExprKind, Idents, ItemKind, Namespace, Package, PathKind, Stmt, StmtKind,
+        TopLevelNode, UnOp,
+    },
+    mut_visit::{walk_stmt, MutVisitor},
 };
+use qsc_data_structures::span::Span;
 use qsc_hir::hir;
 use std::rc::Rc;
 
-use super::TargetCapabilityFlags;
+use super::{SourceMap, TargetCapabilityFlags};
 
 #[cfg(test)]
 mod tests;
@@ -192,4 +196,63 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> b
     }
     capabilities.contains(found_capabilities)
         && (disallowed_capabilities.is_empty() || !capabilities.contains(disallowed_capabilities))
+}
+
+// Visitor to remove spans from circuit callables defined in QSC files.
+// This will remove the spans for the contents of these circuit callables,
+// but it is important for the language server that the span for the callable itself
+// is preserved, so that the user can navigate to the definition of the callable.
+pub(crate) struct RemoveCircuitSpans {
+    qsc_spans: Vec<Span>,
+}
+
+impl RemoveCircuitSpans {
+    pub(crate) fn new(sources: &SourceMap) -> Self {
+        let qsc_spans = sources
+            .iter()
+            .filter(|source| {
+                std::path::Path::new(source.name.as_ref())
+                    .extension()
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case("qsc"))
+            })
+            .map(|source| {
+                let start = source.offset;
+                let end = start
+                    + u32::try_from(source.contents.len()).expect("source length exceeds u32::MAX");
+                Span { lo: start, hi: end }
+            })
+            .collect();
+
+        Self { qsc_spans }
+    }
+}
+
+impl MutVisitor for RemoveCircuitSpans {
+    fn visit_package(&mut self, package: &mut Package) {
+        // We only want to visit namespaces
+        package.nodes.iter_mut().for_each(|n| match n {
+            TopLevelNode::Namespace(ns) => self.visit_namespace(ns),
+            TopLevelNode::Stmt(_) => {}
+        });
+    }
+
+    fn visit_namespace(&mut self, namespace: &mut Namespace) {
+        // We only want to visit circuit callables
+        namespace.items.iter_mut().for_each(|item| {
+            if let ItemKind::Callable(callable) = item.kind.as_mut() {
+                // Check if the callable's span is inside a QSC file's span
+                self.qsc_spans
+                    .iter()
+                    .any(|s| s.lo <= callable.span.lo && s.hi >= callable.span.hi)
+                    .then(|| {
+                        self.visit_callable_decl(callable);
+                    });
+            }
+        });
+    }
+
+    fn visit_stmt(&mut self, stmt: &mut Stmt) {
+        stmt.span = Span::default(); // Clear the span for the statement
+        walk_stmt(self, stmt);
+    }
 }
