@@ -71,19 +71,32 @@ Most of the core components are implemented in Rust. These components are packag
 - **npm/**: The `qsharp-lang` npm package
 - **playground/**: Q# Playground website
 - **vscode/**: Visual Studio Code extension for Q#
+  - **src/**: Product source
+  - **test/**: Integration tests
 
-## Development workflow
+## Development Workflow
 
 - `./build.py` runs full CI checks, including lints and unit tests.
-- `./build.py --wasm --npm --vscode` to only build the VS Code extension, including its dependencies the WASM module and the `qsharp-lang` npm package.
-- `./build.py --pip` to only build the `qsharp` Python package.
+- `./build.py --wasm --npm --vscode` only builds the VS Code extension, including its dependencies the WASM module and the `qsharp-lang` npm package.
+- `./build.py --pip` only builds the `qsharp` Python package, including its native dependencies.
+- Pass `--no-check` to `./build.py`, in combination with any other command line options, to skip the lints and formatting checks.
 - When working in Rust parts of the codebase, using `cargo` commands is usually more efficient than building via `./build.py`.
   - Many lints can be auto-fixed via `cargo clippy --fix`.
-- When working in JavaScript/TypeScript parts of the codebase, using `npm` commands is usually more efficient than building via `./build.py`.
+- When working in JavaScript/TypeScript parts of the codebase, using `npm` scripts is usually more efficient than building via `./build.py`.
 
 ## Coding Standards
 
-Before opening a PR, ensure the following.
+- When adding new tests, follow the patterns established in existing tests in the same file or suite. Often, tests will use helper functions for brevity and readability. Design your tests to reuse these helpers where possible.
+- Before opening a PR, ensure the following.
+  - Code **must** be formatted by running `cargo fmt` and `npm run prettier:fix`.
+  - `./build.py` without any command-line arguments **must** run without errors or warnings.
 
-- Code **must** be formatted by running `cargo fmt` and `npm run prettier:fix`.
-- `./build.py` without any command-line arguments **must** run without errors or warnings.
+## Specific Guidelines for Parts of the Codebase
+
+### VS Code Integration Tests (`vscode/test/`)
+
+- `npm test` from the `vscode/` directory runs the integration tests.
+  - `npm test -- --suite=language-service`: Run only the `language-service` test suite
+- Tests use the VS Code for Web testing framework (`@vscode/test-web`), which uses `playwright` under the covers to automate headless Chrome.
+- `mocha` interface is used to declare tests, `chai` for asserts. No mocking library is used. Do *not* add dependencies to the test suite.
+- Tests run in the real VS Code environment, in the extension host, which means they can directly interact with the VS Code API.

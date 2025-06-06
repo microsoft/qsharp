@@ -8,13 +8,13 @@ To run the extension in a local browser environment, see
 From the `vscode` directory, run:
 
 ```bash
-npm run run:web
+npm start
 ```
 
 To run from the repo root, you can pass the `-w` switch to `npm`:
 
 ```bash
- npm -w vscode run run:web
+ npm -w vscode start
 ```
 
 This will open a Chromium browser hosting the VS Code for Web, with the extension
@@ -31,3 +31,13 @@ npm test
 This will run the integration tests in an instance of VS Code for the Web.
 See [test/runTests.mjs](test/runTests.mjs) and [test/suite/index.ts](test/runTests.mjs) for more details on how tests are
 discovered and run.
+
+## Debugging
+
+To run a specific test suite under the debugger:
+
+```bash
+npm test -- --suite=language-service --waitForDebugger=1234
+```
+
+and attach a Chrome debugger (VS Code or Chrome/Edge Dev Tools) on port 1234.
