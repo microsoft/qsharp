@@ -423,11 +423,6 @@ extends:
           workingDirectory: '$(System.DefaultWorkingDirectory)'
 
 
-      # We will get a warning about extra files in the sbom validation saying it failed.
-      # This is expected as we have the wheels being downloaded to the same directory.
-      # So each successive wheel will have the previous wheel in the directory and each
-      # will be flagged as an extra file. See:
-      # http://aka.ms/drop-validation-failure-additional-files
       - job: "Publish_Python_Packages"
         pool:
           name: 'Azure-Pipelines-DevTools-EO'
@@ -439,26 +434,28 @@ extends:
           inputs:  # All input build artifacts must be declared here
           - input: pipelineArtifact
             artifactName: Wheels.Win.x86_64
-            targetPath: $(System.DefaultWorkingDirectory)/target/wheels
+            targetPath: $(System.DefaultWorkingDirectory)/artifacts/win-x86_64
           - input: pipelineArtifact
             artifactName: Wheels.Win.aarch64
-            targetPath: $(System.DefaultWorkingDirectory)/target/wheels
+            targetPath: $(System.DefaultWorkingDirectory)/artifacts/win-aarch64
           - input: pipelineArtifact
             artifactName: Wheels.Mac
-            targetPath: $(System.DefaultWorkingDirectory)/target/wheels
+            targetPath: $(System.DefaultWorkingDirectory)/artifacts/mac
           - input: pipelineArtifact
             artifactName: Wheels.Linux.x86_64
-            targetPath: $(System.DefaultWorkingDirectory)/target/wheels
+            targetPath: $(System.DefaultWorkingDirectory)/artifacts/linux-x86_64
           - input: pipelineArtifact
             artifactName: Wheels.Linux.aarch64
-            targetPath: $(System.DefaultWorkingDirectory)/target/wheels
+            targetPath: $(System.DefaultWorkingDirectory)/artifacts/linux-aarch64
           - input: pipelineArtifact
             artifactName: Wheels.JupyterLab
-            targetPath: $(System.DefaultWorkingDirectory)/target/wheels
+            targetPath: $(System.DefaultWorkingDirectory)/artifacts/jupyterlab
         steps:
         - script: |
+            mkdir -p $(System.DefaultWorkingDirectory)/target/wheels
+            find $(System.DefaultWorkingDirectory)/artifacts -name "*.whl" -exec cp {} $(System.DefaultWorkingDirectory)/target/wheels/ \;
             ls $(System.DefaultWorkingDirectory)/target/wheels
-          displayName: Display Py Artifacts in Publishing Dir
+          displayName: Collect and Display Py Artifacts in Publishing Dir
 
         - task: EsrpRelease@9
           condition: succeeded()
