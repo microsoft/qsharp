@@ -47,6 +47,7 @@ impl QasmSemanticParseResult {
         !self.errors.is_empty()
     }
 
+    #[must_use]
     pub fn sytax_errors(&self) -> Vec<WithSource<crate::Error>> {
         let mut self_errors = self
             .source
@@ -58,7 +59,13 @@ impl QasmSemanticParseResult {
             .source
             .includes()
             .iter()
-            .flat_map(QasmSource::all_errors)
+            .flat_map(|res| match res {
+                Ok(qasm_source) => qasm_source.all_errors(),
+                // If the source failed to resolve we don't push an error here.
+                // We will push an error later during lowering, so that we can
+                // construct the error with the right span.
+                Err(_) => vec![],
+            })
             .map(|e| self.map_parse_error(e))
             .collect::<Vec<_>>();
 

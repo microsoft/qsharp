@@ -24,6 +24,9 @@ mod prim;
 mod scan;
 mod stmt;
 
+type QasmSourceResult = std::result::Result<QasmSource, crate::parser::Error>;
+type QasmSourceResultVec = Vec<std::result::Result<QasmSource, crate::parser::Error>>;
+
 struct Offsetter(pub(super) u32);
 
 impl MutVisitor for Offsetter {
@@ -52,13 +55,20 @@ impl QasmParseResult {
         self.source.has_errors()
     }
 
+    #[must_use]
     pub fn all_errors(&self) -> Vec<WithSource<crate::Error>> {
         let mut self_errors = self.errors();
         let include_errors = self
             .source
             .includes()
             .iter()
-            .flat_map(QasmSource::all_errors)
+            .flat_map(|res| match res {
+                Ok(qasm_source) => qasm_source.all_errors(),
+                // If the source failed to resolve we don't push an error here.
+                // We will push an error later during lowering, so that we can
+                // construct the error with the right span.
+                Err(_) => vec![],
+            })
             .map(|e| self.map_error(e))
             .collect::<Vec<_>>();
 
@@ -100,7 +110,7 @@ fn update_offsets(source_map: &SourceMap, source: &mut QasmSource) {
     offsetter.visit_program(&mut source.program);
 
     // Recursively update the includes, their programs, and errors
-    for include in source.includes_mut() {
+    for include in source.includes_mut().iter_mut().flatten() {
         update_offsets(source_map, include);
     }
 }
@@ -132,7 +142,7 @@ fn collect_source_files(source: &QasmSource, files: &mut Vec<(Arc<str>, Arc<str>
     files.push((source.path(), source.source()));
     // Collect all source files from the includes, this
     // begins the recursive process of collecting all source files.
-    for include in source.includes() {
+    for include in source.includes().iter().flatten() {
         collect_source_files(include, files);
     }
 }
@@ -151,7 +161,7 @@ pub struct QasmSource {
     errors: Vec<Error>,
     /// Any included files that were resolved.
     /// Note that this is a recursive structure.
-    included: Vec<QasmSource>,
+    included: QasmSourceResultVec,
 }
 
 impl QasmSource {
@@ -161,7 +171,7 @@ impl QasmSource {
         path: Arc<str>,
         program: Program,
         errors: Vec<Error>,
-        included: Vec<QasmSource>,
+        included: QasmSourceResultVec,
     ) -> QasmSource {
         QasmSource {
             path,
@@ -177,24 +187,33 @@ impl QasmSource {
         if !self.errors().is_empty() {
             return true;
         }
-        self.includes().iter().any(QasmSource::has_errors)
+        self.includes().iter().any(|res| match res {
+            Ok(qasm_source) => qasm_source.has_errors(),
+            Err(_) => true,
+        })
     }
 
     #[must_use]
     pub fn all_errors(&self) -> Vec<crate::parser::Error> {
         let mut self_errors = self.errors();
-        let include_errors = self.includes().iter().flat_map(QasmSource::all_errors);
+        let include_errors = self.includes().iter().flat_map(|res| match res {
+            Ok(qasm_source) => qasm_source.all_errors(),
+            // If the source failed to resolve we don't push an error here.
+            // We will push an error later during lowering, so that we can
+            // construct the error with the right span.
+            Err(_) => vec![],
+        });
         self_errors.extend(include_errors);
         self_errors
     }
 
     #[must_use]
-    pub fn includes(&self) -> &Vec<QasmSource> {
+    pub fn includes(&self) -> &QasmSourceResultVec {
         self.included.as_ref()
     }
 
     #[must_use]
-    pub fn includes_mut(&mut self) -> &mut Vec<QasmSource> {
+    pub fn includes_mut(&mut self) -> &mut QasmSourceResultVec {
         self.included.as_mut()
     }
 
@@ -226,7 +245,7 @@ impl QasmSource {
 /// This function is the start of a recursive process that will resolve all
 /// includes in the QASM file. Any includes are parsed as if their contents
 /// were defined where the include statement is.
-fn parse_qasm_file<R>(path: &Arc<str>, resolver: &mut R) -> QasmSource
+fn parse_qasm_file<R>(path: &Arc<str>, resolver: &mut R) -> QasmSourceResult
 where
     R: SourceResolver,
 {
@@ -239,22 +258,11 @@ where
             // and cyclic includes.
             resolver.ctx().pop_current_file();
 
-            parse_result
+            Ok(parse_result)
         }
         Err(e) => {
             let error = crate::parser::error::ErrorKind::IO(e);
-            let error = crate::parser::Error(error, None);
-            QasmSource {
-                path: path.clone(),
-                source: Default::default(),
-                program: Program {
-                    span: Span::default(),
-                    statements: vec![].into_boxed_slice(),
-                    version: None,
-                },
-                errors: vec![error],
-                included: vec![],
-            }
+            Err(crate::parser::Error(error, None))
         }
     }
 }
@@ -270,7 +278,7 @@ where
 fn parse_source_and_includes<P: AsRef<str>, R>(
     source: P,
     resolver: &mut R,
-) -> (Program, Vec<Error>, Vec<QasmSource>)
+) -> (Program, Vec<Error>, QasmSourceResultVec)
 where
     R: SourceResolver,
 {
@@ -279,7 +287,7 @@ where
     (program, errors, included)
 }
 
-fn parse_includes<R>(program: &Program, resolver: &mut R) -> Vec<QasmSource>
+fn parse_includes<R>(program: &Program, resolver: &mut R) -> QasmSourceResultVec
 where
     R: SourceResolver,
 {
