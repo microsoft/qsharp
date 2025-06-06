@@ -127,9 +127,9 @@ const _createToolbox = (): HTMLElement => {
 
   // Calculate button position (e.g., below all gates)
   const buttonY = prefixY + gateHeight + 20; // Adjust as needed
-  const buttonWidth = 60;
-  const buttonHeight = 28;
-  const buttonX = 10; // Adjust as needed
+  const buttonWidth = minGateWidth * 2 + horizontalGap;
+  const buttonHeight = gateHeight;
+  const buttonX = 1;
 
   const runButtonGroup = document.createElementNS(
     "http://www.w3.org/2000/svg",
@@ -150,7 +150,7 @@ const _createToolbox = (): HTMLElement => {
   // Text label
   const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
   text.setAttribute("x", (buttonX + buttonWidth / 2).toString());
-  text.setAttribute("y", (buttonY + buttonHeight / 2 + 6).toString());
+  text.setAttribute("y", (buttonY + buttonHeight / 2).toString());
   text.setAttribute("class", "svg-run-button-text");
   text.textContent = "Run";
 

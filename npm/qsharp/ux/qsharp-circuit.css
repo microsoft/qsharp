@@ -1,29 +1,6 @@
 /* Copyright (c) Microsoft Corporation.
    Licensed under the MIT License. */
 
-.svg-run-button {
-  cursor: pointer;
-}
-
-.svg-run-button-rect {
-  fill: var(--vscode-activityErrorBadge-background, #0078d4);
-  rx: 6;
-  transition: fill 0.2s;
-}
-
-.svg-run-button:hover .svg-run-button-rect,
-.svg-run-button:focus .svg-run-button-rect {
-  fill: #005a9e;
-}
-
-.svg-run-button-text {
-  fill: white;
-  font-size: 16px;
-  font-family: sans-serif;
-  text-anchor: middle;
-  pointer-events: none; /* So only the rect/g triggers click */
-}
-
 /* Circuit panel */
 .qs-circuit-panel {
   p {
@@ -349,6 +326,37 @@
 
   .ghost-opacity {
     opacity: 0.5;
+  }
+
+  .svg-run-button-rect {
+    fill: var(--vscode-button-background, #007acc);
+    rx: 8;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+    transition:
+      fill 0.2s,
+      filter 0.2s;
+  }
+
+  .svg-run-button:hover .svg-run-button-rect,
+  .svg-run-button:focus .svg-run-button-rect {
+    fill: var(--vscode-button-hoverBackground, #005a9e);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
+  }
+
+  .svg-run-button-text {
+    fill: var(--vscode-button-foreground, #ffffff);
+    font-size: 16px;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-weight: bold;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    pointer-events: none;
+    letter-spacing: 1px;
+    user-select: none;
+  }
+
+  .svg-run-button {
+    cursor: pointer;
   }
 }
 

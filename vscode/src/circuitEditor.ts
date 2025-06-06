@@ -40,7 +40,6 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
           return;
         case "run": {
           const entry = await generateQubitCircuitExpression(document.uri);
-          console.log("Running circuit");
           startQdkDebugging(
             document.uri,
             { name: "QDK: Run Circuit File", stopOnEntry: false, entry },
