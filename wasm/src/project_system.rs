@@ -8,7 +8,7 @@ use qsc::{linter::LintOrGroupConfig, packages::BuildableProgram, LanguageFeature
 use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, JSProjectHost, PackageCache};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, iter::FromIterator, rc::Rc, str::FromStr, sync::Arc};
+use std::{cell::RefCell, iter::FromIterator, path::Path, rc::Rc, str::FromStr, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -189,7 +189,7 @@ impl ProjectLoader {
     ) -> Result<IProjectConfig, String> {
         let package_cache = PACKAGE_CACHE.with(Clone::clone);
 
-        let dir_path = std::path::Path::new(&directory);
+        let dir_path = Path::new(&directory);
         let project_config = match self.0.load_project(dir_path, Some(&package_cache)).await {
             Ok(loaded_project) => loaded_project,
             Err(errs) => return Err(project_errors_into_qsharp_errors_json(&directory, &errs)),
@@ -206,7 +206,7 @@ impl ProjectLoader {
     ) -> Result<IProjectConfig, String> {
         let project_config = self
             .0
-            .load_openqasm_project(&file_path.clone().into(), source.map(Arc::<str>::from))
+            .load_openqasm_project(Path::new(&file_path), source.map(Arc::<str>::from))
             .await;
         // Will return error if project has errors
         project_config.try_into()

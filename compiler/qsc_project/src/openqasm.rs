@@ -9,9 +9,9 @@ use qsc_qasm::parser::ast::{Program, StmtKind};
 use rustc_hash::FxHashSet;
 use std::{path::Path, sync::Arc};
 
-pub async fn load_project<T>(
+pub async fn load_project<T, P: AsRef<Path>>(
     project_host: &T,
-    doc_uri: &Arc<str>,
+    path: P,
     source: Option<Arc<str>>,
 ) -> Project
 where
@@ -22,16 +22,17 @@ where
     let mut pending_includes = vec![];
     let mut errors = vec![];
 
+    let path = Arc::from(path.as_ref().to_string_lossy().as_ref());
     match source {
         Some(source) => {
             let (program, _errors) = qsc_qasm::parser::parse(source.as_ref());
-            let includes = get_includes(&program, doc_uri);
+            let includes = get_includes(&program, &path);
             pending_includes.extend(includes);
-            loaded_files.insert(doc_uri.clone());
-            sources.push((doc_uri.clone(), source.clone()));
+            loaded_files.insert(path.clone());
+            sources.push((path.clone(), source.clone()));
         }
         None => {
-            match project_host.read_file(Path::new(doc_uri.as_ref())).await {
+            match project_host.read_file(Path::new(path.as_ref())).await {
                 Ok((file, source)) => {
                     // load the root file
                     let (program, _errors) = qsc_qasm::parser::parse(source.as_ref());
@@ -44,12 +45,12 @@ where
                     // If we can't read the file, we create a project with an error.
                     // This is a special case where we can't load the project at all.
                     errors.push(super::project::Error::FileSystem {
-                        about_path: doc_uri.to_string(),
+                        about_path: path.to_string(),
                         error: e.to_string(),
                     });
                     return Project {
-                        path: doc_uri.clone(),
-                        name: get_file_name_from_uri(doc_uri),
+                        path: path.clone(),
+                        name: get_file_name_from_uri(&path),
                         lints: Vec::default(),
                         errors,
                         project_type: super::ProjectType::OpenQASM(vec![]),
@@ -95,8 +96,8 @@ where
     }
 
     Project {
-        path: doc_uri.clone(),
-        name: get_file_name_from_uri(doc_uri),
+        path: path.clone(),
+        name: get_file_name_from_uri(&path),
         lints: Vec::default(),
         errors,
         project_type: super::ProjectType::OpenQASM(sources),

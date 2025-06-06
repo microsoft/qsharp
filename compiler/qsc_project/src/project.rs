@@ -394,7 +394,7 @@ pub trait FileSystemAsync {
     ///
     /// Any errors that didn't block project load are contained in the
     /// `errors` field of the returned `Project`.
-    async fn load_openqasm_project(&self, path: &Arc<str>, source: Option<Arc<str>>) -> Project {
+    async fn load_openqasm_project(&self, path: &Path, source: Option<Arc<str>>) -> Project {
         crate::openqasm::load_project(self, path, source).await
     }
 
@@ -860,7 +860,7 @@ pub trait FileSystem {
             .expect("load_project should never await")
     }
 
-    fn load_openqasm_project(&self, path: &Arc<str>, source: Option<Arc<str>>) -> Project {
+    fn load_openqasm_project(&self, path: &Path, source: Option<Arc<str>>) -> Project {
         // Rather than rewriting all the async code in the project loader,
         // we call the async implementation here, doing some tricks to make it
         // run synchronously.

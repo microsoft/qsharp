@@ -18,6 +18,7 @@ use qsc_linter::LintOrGroupConfig;
 use qsc_project::{FileSystemAsync, JSProjectHost, PackageCache, Project, ProjectType};
 use rustc_hash::{FxHashMap, FxHashSet};
 
+use std::path::Path;
 use std::{cell::RefCell, fmt::Debug, mem::take, path::PathBuf, rc::Rc, sync::Arc, vec};
 
 #[derive(Default, Debug)]
@@ -227,7 +228,9 @@ impl<'a> CompilationStateUpdater<'a> {
     ) -> Result<Option<Project>, Vec<project::Error>> {
         if is_openqasm_file(language_id) {
             return Ok(Some(
-                self.project_host.load_openqasm_project(doc_uri, None).await,
+                self.project_host
+                    .load_openqasm_project(Path::new(doc_uri.as_ref()), None)
+                    .await,
             ));
         }
         self.load_manifest(doc_uri).await
