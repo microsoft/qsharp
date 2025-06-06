@@ -558,8 +558,13 @@ impl<
 
     /// Computes the code parameter for the required logical error rate
     fn compute_code_parameter(&self, error_rate: f64) -> Result<E::Parameter, Error> {
-        self.ftp
+        let parameter = self
+            .ftp
             .compute_code_parameter(&self.qubit, error_rate)
+            .map_err(Error::CodeParameterComputationFailed)?;
+
+        self.ftp
+            .adjust_code_parameter(parameter)
             .map_err(Error::CodeParameterComputationFailed)
     }
 
