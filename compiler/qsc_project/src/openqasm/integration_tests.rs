@@ -17,14 +17,13 @@ fn get_test_dir() -> PathBuf {
 fn parse_file(file_name: &'static str) -> (Arc<str>, QasmSemanticParseResult) {
     let test_dir = get_test_dir();
     let test_file = test_dir.join(file_name);
-    let test_file: Arc<str> = test_file.display().to_string().as_str().into();
     let fs = StdFs;
     let project = fs.load_openqasm_project(&test_file, None);
     let ProjectType::OpenQASM(sources) = project.project_type else {
         panic!("Expected OpenQASM project type");
     };
     let result = qsc_qasm::semantic::parse_sources(&sources);
-    (test_file, result)
+    (test_file.display().to_string().as_str().into(), result)
 }
 
 #[test]

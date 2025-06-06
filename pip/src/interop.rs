@@ -92,10 +92,7 @@ pub(crate) fn run_qasm_program(
     let file_path = PathBuf::from_str(&search_path)
         .expect("from_str is infallible")
         .join("program.qasm");
-    let project = fs.load_openqasm_project(
-        &Arc::<str>::from(file_path.display().to_string()),
-        Some(Arc::<str>::from(source)),
-    );
+    let project = fs.load_openqasm_project(&file_path, Some(Arc::<str>::from(source)));
     let ProjectType::OpenQASM(sources) = project.project_type else {
         return Err(QasmError::new_err(
             "Expected OpenQASM project, but got a different type".to_string(),
@@ -202,10 +199,7 @@ pub(crate) fn resource_estimate_qasm_program(
     let file_path = PathBuf::from_str(&search_path)
         .expect("from_str is infallible")
         .join("program.qasm");
-    let project = fs.load_openqasm_project(
-        &Arc::<str>::from(file_path.display().to_string()),
-        Some(Arc::<str>::from(source)),
-    );
+    let project = fs.load_openqasm_project(&file_path, Some(Arc::<str>::from(source)));
     let ProjectType::OpenQASM(sources) = project.project_type else {
         return Err(QasmError::new_err(
             "Expected OpenQASM project, but got a different type".to_string(),
@@ -294,10 +288,7 @@ pub(crate) fn compile_qasm_program_to_qir(
     let file_path = PathBuf::from_str(&search_path)
         .expect("from_str is infallible")
         .join("program.qasm");
-    let project = fs.load_openqasm_project(
-        &Arc::<str>::from(file_path.display().to_string()),
-        Some(Arc::<str>::from(source)),
-    );
+    let project = fs.load_openqasm_project(&file_path, Some(Arc::<str>::from(source)));
     let ProjectType::OpenQASM(sources) = project.project_type else {
         return Err(QasmError::new_err(
             "Expected OpenQASM project, but got a different type".to_string(),
@@ -396,10 +387,7 @@ pub(crate) fn compile_qasm_to_qsharp(
     let file_path = PathBuf::from_str(&search_path)
         .expect("from_str is infallible")
         .join("program.qasm");
-    let project = fs.load_openqasm_project(
-        &Arc::<str>::from(file_path.display().to_string()),
-        Some(Arc::<str>::from(source)),
-    );
+    let project = fs.load_openqasm_project(&file_path, Some(Arc::<str>::from(source)));
     let ProjectType::OpenQASM(sources) = project.project_type else {
         return Err(QasmError::new_err(
             "Expected OpenQASM project, but got a different type".to_string(),
@@ -563,10 +551,7 @@ pub(crate) fn circuit_qasm_program(
     let file_path = PathBuf::from_str(&search_path)
         .expect("from_str is infallible")
         .join("program.qasm");
-    let project = fs.load_openqasm_project(
-        &Arc::<str>::from(file_path.display().to_string()),
-        Some(Arc::<str>::from(source)),
-    );
+    let project = fs.load_openqasm_project(&file_path, Some(Arc::<str>::from(source)));
     let ProjectType::OpenQASM(sources) = project.project_type else {
         return Err(QasmError::new_err(
             "Expected OpenQASM project, but got a different type".to_string(),

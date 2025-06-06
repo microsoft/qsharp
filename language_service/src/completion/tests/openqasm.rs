@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{cell::RefCell, path::Path, rc::Rc, sync::Arc};
 
 use super::{get_completions, CompletionItem};
 use crate::{
@@ -36,8 +36,9 @@ fn compile_project_with_markers_cursor_optional(
     let fs = Rc::new(RefCell::new(fs));
     let project_host = TestProjectHost { fs: fs.clone() };
 
-    let project = FutureExt::now_or_never(project_host.load_openqasm_project(path, None))
-        .expect("load_openqasm_project should never await");
+    let project =
+        FutureExt::now_or_never(project_host.load_openqasm_project(Path::new(path.as_ref()), None))
+            .expect("load_openqasm_project should never await");
 
     let ProjectType::OpenQASM(sources) = project.project_type else {
         panic!("expected OpenQASM project type");

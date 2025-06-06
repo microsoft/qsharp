@@ -484,10 +484,7 @@ impl Interpreter {
         let file_path = PathBuf::from_str(&search_path)
             .expect("from_str is infallible")
             .join("program.qasm");
-        let project = fs.load_openqasm_project(
-            &Arc::<str>::from(file_path.display().to_string()),
-            Some(Arc::<str>::from(input)),
-        );
+        let project = fs.load_openqasm_project(&file_path, Some(Arc::<str>::from(input)));
         let ProjectType::OpenQASM(sources) = project.project_type else {
             return Err(QasmError::new_err(
                 "Expected OpenQASM project, but got a different type".to_string(),
