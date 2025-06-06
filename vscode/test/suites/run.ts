@@ -28,7 +28,7 @@ export function runMochaTests(requireTestModules: () => void): Promise<void> {
       mocha.run((failures) => {
         if (failures > 0) {
           console.error(
-            `[error] ${failures} vscode integration test(s) failed.`,
+            `[error] ${failures} vscode integration test(s) failed. See above for failure details.`,
           );
           e(new Error(`${failures} vscode integration test(s) failed.`));
         } else {
