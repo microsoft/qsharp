@@ -162,8 +162,9 @@ pub trait ErrorCorrection {
     /// computed.  The initial code parameter will fit the required logical
     /// error rate, but it's possible to further refine it, if necessary.
     ///
-    /// Note, that when implementing this function wrong, it may return a code
-    /// parameter that will not fit the required logical error rate any longer.
+    /// Note, that when implementing the ErrorCorrection trait and providing a
+    /// custom implementation for this function, it may return a code parameter
+    /// that will not fit the required logical error rate any longer.
     ///
     /// The default implementation does not update the code parameter.
     fn adjust_code_parameter(&self, parameter: Self::Parameter) -> Result<Self::Parameter, String> {
