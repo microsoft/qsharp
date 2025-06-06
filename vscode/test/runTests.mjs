@@ -49,12 +49,15 @@ const thisDir = dirname(fileURLToPath(import.meta.url));
 const extensionDevelopmentPath = join(thisDir, "..");
 
 try {
+  const suites = ["language-service", "debugger"];
   // Disable the language-service suite temporarily (5/2025),
   // as there are intermittent failures.
   // https://github.com/microsoft/qsharp/issues/2357
-  const suites = [/* "language-service", */ "debugger"];
+  const defaultSet = ["debugger"];
   const toRun =
-    selectedSuite && suites.includes(selectedSuite) ? [selectedSuite] : suites;
+    selectedSuite && suites.includes(selectedSuite)
+      ? [selectedSuite]
+      : defaultSet;
 
   for (const suite of toRun) {
     console.log(`Running suite: ${suite}`);
