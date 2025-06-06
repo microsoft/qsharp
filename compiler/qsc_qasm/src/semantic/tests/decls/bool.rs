@@ -103,6 +103,7 @@ fn const_decl_with_lit_false_init_expr() {
                 ty_span: [6-10]
                 init_expr: Expr [15-20]:
                     ty: const bool
+                    const_value: Bool(false)
                     kind: Lit: Bool(false)
             [8] Symbol [11-12]:
                 name: a
@@ -122,6 +123,7 @@ fn const_decl_with_lit_true_init_expr() {
                 ty_span: [6-10]
                 init_expr: Expr [15-19]:
                     ty: const bool
+                    const_value: Bool(true)
                     kind: Lit: Bool(true)
             [8] Symbol [11-12]:
                 name: a

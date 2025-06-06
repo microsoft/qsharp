@@ -5,7 +5,7 @@ use crate::io::InMemorySourceResolver;
 use crate::io::SourceResolver;
 use crate::parser::QasmSource;
 
-use lowerer::Lowerer;
+pub(crate) use lowerer::Lowerer;
 use qsc_frontend::compile::SourceMap;
 use qsc_frontend::error::WithSource;
 

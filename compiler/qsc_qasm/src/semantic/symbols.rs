@@ -124,6 +124,17 @@ impl Symbol {
         }
     }
 
+    pub(crate) fn err(name: &str, span: Span) -> Self {
+        Symbol {
+            name: name.to_string(),
+            span,
+            ty: Type::Err,
+            qsharp_ty: crate::types::Type::Err,
+            io_kind: IOKind::Default,
+            const_expr: None,
+        }
+    }
+
     #[must_use]
     pub fn with_const_expr(self, value: Rc<Expr>) -> Self {
         assert!(
@@ -136,7 +147,19 @@ impl Symbol {
         }
     }
 
-    /// Returns the value of the symbol.
+    /// Returns the const evaluated value of the symbol, if any.
+    #[must_use]
+    pub fn get_const_value(&self) -> Option<LiteralKind> {
+        self.const_expr
+            .as_ref()
+            .and_then(|expr| expr.get_const_value())
+    }
+
+    /// This function is meant to be used by the Language Service
+    /// to access span and type information about the original
+    /// expression before it was const evaluated. If you need
+    /// the const evaluated value, use [`Symbol::get_const_value`]
+    /// instead.
     #[must_use]
     pub fn get_const_expr(&self) -> Option<Rc<Expr>> {
         self.const_expr.clone()
@@ -318,6 +341,7 @@ impl Default for SymbolTable {
                 span: Span::default(),
                 kind: Box::new(ExprKind::Lit(LiteralKind::Float(val))),
                 ty: ty.clone(),
+                const_value: Some(LiteralKind::Float(val)),
             };
 
             slf.insert_symbol(Symbol {
@@ -365,14 +389,7 @@ impl SymbolTable {
     }
 
     fn insert_err_symbol(&mut self, name: &str, span: Span) -> (SymbolId, Rc<Symbol>) {
-        let symbol = Rc::new(Symbol {
-            name: name.to_string(),
-            span,
-            ty: Type::Err,
-            qsharp_ty: crate::types::Type::Err,
-            io_kind: IOKind::Default,
-            const_expr: None,
-        });
+        let symbol = Rc::new(Symbol::err(name, span));
         let id = self.current_id;
         self.current_id = self.current_id.successor();
         self.symbols.insert(id, symbol.clone());

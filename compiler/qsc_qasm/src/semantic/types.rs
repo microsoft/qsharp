@@ -4,8 +4,8 @@
 #[cfg(test)]
 mod tests;
 
-use super::ast::{BinOp, ExprKind, Index, LiteralKind, Range};
-use crate::{parser::ast as syntax, semantic::ast::Expr};
+use super::ast::{BinOp, Expr, ExprKind, Index, LiteralKind, Range};
+use crate::parser::ast as syntax;
 use core::fmt;
 use std::fmt::{Display, Formatter};
 use std::{cmp::max, rc::Rc};
@@ -166,7 +166,12 @@ impl Display for Type {
             Type::UIntArray(width, dims) => write_array_ty(f, *width, "uint", None, dims),
             Type::Gate(cargs, qargs) => write!(f, "gate({cargs}, {qargs})"),
             Type::Function(params_ty, return_ty) => {
-                write!(f, "def({params_ty:#?}) -> {return_ty}")
+                let params_ty_str = params_ty
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                write!(f, "def ({params_ty_str}) -> {return_ty}")
             }
             Type::Range => write!(f, "range"),
             Type::Set => write!(f, "set"),
@@ -1167,7 +1172,10 @@ pub(crate) fn binary_op_is_supported_for_types(op: BinOp, lhs_ty: &Type, rhs_ty:
         // Arithmetic
         BinOp::Add | BinOp::Sub => {
             base_types_equal(lhs_ty, rhs_ty)
-                && matches!(lhs_ty, Int(..) | UInt(..) | Float(..) | Angle(..))
+                && matches!(
+                    lhs_ty,
+                    Int(..) | UInt(..) | Float(..) | Angle(..) | Complex(..)
+                )
         }
         BinOp::Mul => {
             let uint_angle_exception = (matches!(lhs_ty, Angle(..)) && matches!(rhs_ty, UInt(..)))

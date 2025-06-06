@@ -53,6 +53,7 @@ fn const_implicit_bitness_double_img_only() {
                 ty_span: [6-20]
                 init_expr: Expr [25-31]:
                     ty: const complex[float]
+                    const_value: Complex(0.0, 1.01)
                     kind: Lit: Complex(0.0, 1.01)
             [8] Symbol [21-22]:
                 name: x
@@ -72,6 +73,7 @@ fn const_implicit_bitness_int_img_only() {
                 ty_span: [6-20]
                 init_expr: Expr [25-28]:
                     ty: const complex[float]
+                    const_value: Complex(0.0, 1.0)
                     kind: Lit: Complex(0.0, 1.0)
             [8] Symbol [21-22]:
                 name: x
@@ -91,6 +93,7 @@ fn const_explicit_bitness_double_img_only() {
                 ty_span: [6-24]
                 init_expr: Expr [29-35]:
                     ty: const complex[float[42]]
+                    const_value: Complex(0.0, 1.01)
                     kind: Lit: Complex(0.0, 1.01)
             [8] Symbol [25-26]:
                 name: x
@@ -110,6 +113,7 @@ fn const_explicit_bitness_int_img_only() {
                 ty_span: [6-24]
                 init_expr: Expr [29-32]:
                     ty: const complex[float[42]]
+                    const_value: Complex(0.0, 1.0)
                     kind: Lit: Complex(0.0, 1.0)
             [8] Symbol [25-26]:
                 name: x
@@ -167,6 +171,7 @@ fn const_implicit_bitness_double_real_only() {
                 ty_span: [6-20]
                 init_expr: Expr [25-29]:
                     ty: const complex[float]
+                    const_value: Complex(1.01, 0.0)
                     kind: Lit: Complex(1.01, 0.0)
             [8] Symbol [21-22]:
                 name: x
@@ -186,6 +191,7 @@ fn const_implicit_bitness_int_real_only() {
                 ty_span: [6-20]
                 init_expr: Expr [25-26]:
                     ty: const complex[float]
+                    const_value: Complex(1.0, 0.0)
                     kind: Lit: Complex(1.0, 0.0)
             [8] Symbol [21-22]:
                 name: x

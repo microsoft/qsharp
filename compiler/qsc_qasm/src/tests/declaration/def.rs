@@ -636,3 +636,27 @@ fn end_is_a_valid_return() {
         "#]],
     );
 }
+
+#[test]
+fn cannot_redefine_builtin_function() {
+    let source = r#"
+        def mod(int a) -> bit {
+            return 1;
+        }
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        Qasm.Lowerer.RedefinedBuiltinFunction
+
+          x redefined builtin function: mod
+           ,-[Test.qasm:2:13]
+         1 | 
+         2 |         def mod(int a) -> bit {
+           :             ^^^
+         3 |             return 1;
+           `----
+    "#]],
+    );
+}

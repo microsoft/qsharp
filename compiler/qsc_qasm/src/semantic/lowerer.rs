@@ -30,10 +30,12 @@ use crate::convert::safe_i64_to_f64;
 use crate::parser::ast::list_from_iter;
 use crate::parser::ast::List;
 use crate::parser::QasmSource;
+use crate::semantic::ast::Expr;
 use crate::semantic::types::base_types_equal;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
 use crate::stdlib::angle::Angle;
+use crate::stdlib::builtin_functions;
 
 use super::ast as semantic;
 use crate::parser::ast as syntax;
@@ -48,19 +50,11 @@ use super::{
 /// already reported.
 macro_rules! err_expr {
     ($ty:expr) => {
-        semantic::Expr {
-            span: Span::default(),
-            kind: Box::new(semantic::ExprKind::Err),
-            ty: $ty,
-        }
+        semantic::Expr::new(Span::default(), semantic::ExprKind::Err, $ty)
     };
 
     ($ty:expr, $span:expr) => {
-        semantic::Expr {
-            span: $span,
-            kind: Box::new(semantic::ExprKind::Err),
-            ty: $ty,
-        }
+        semantic::Expr::new($span, semantic::ExprKind::Err, $ty)
     };
 }
 
@@ -410,6 +404,18 @@ impl Lowerer {
         (symbol_id, symbol)
     }
 
+    /// This helper method is meant to be used when failing to lower a declaration statement
+    /// and returning `StmtKind::Err` before getting to build the symbol due to insufficient
+    /// type information. This usually happens when there is a const evaluation error when
+    /// trying to compute the size of a sized type.
+    fn try_insert_err_symbol_or_push_redefined_symbol_error<S>(&mut self, name: S, span: Span)
+    where
+        S: AsRef<str>,
+    {
+        let err_symbol = Symbol::err(name.as_ref(), span);
+        let _ = self.symbols.try_insert_or_get_existing(err_symbol);
+    }
+
     fn lower_alias(&mut self, alias: &syntax::AliasDeclStmt) -> semantic::StmtKind {
         let name = get_identifier_name(&alias.ident);
         // alias statements do their types backwards, you read the right side
@@ -713,10 +719,7 @@ impl Lowerer {
             && is_symbol_declaration_outside_gate_or_function_scope;
 
         let kind = if need_to_capture_symbol && symbol.ty.is_const() {
-            if let Some(val) = symbol
-                .get_const_expr()
-                .and_then(|expr| expr.const_eval(self))
-            {
+            if let Some(val) = symbol.get_const_value() {
                 semantic::ExprKind::Lit(val)
             } else {
                 // If the const evaluation fails, we return Err but don't push
@@ -734,11 +737,7 @@ impl Lowerer {
             semantic::ExprKind::Ident(symbol_id)
         };
 
-        semantic::Expr {
-            span: ident.span,
-            kind: Box::new(kind),
-            ty: symbol.ty.clone(),
-        }
+        semantic::Expr::new(ident.span, kind, symbol.ty.clone())
     }
 
     fn check_lit_array_size(&mut self, expr: &syntax::Lit, ty: &Type) {
@@ -824,11 +823,11 @@ impl Lowerer {
             ),
             syntax::LiteralKind::Array(exprs) => {
                 if let Some(ty) = ty {
-                    let dummy_index = semantic::Expr {
-                        span: Span::default(),
-                        kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Int(0))),
-                        ty: Type::Int(None, true),
-                    };
+                    let dummy_index = semantic::Expr::new(
+                        Span::default(),
+                        semantic::ExprKind::Lit(semantic::LiteralKind::Int(0)),
+                        Type::Int(None, true),
+                    );
 
                     let indexed_ty = self.get_indexed_type(
                         ty,
@@ -859,22 +858,14 @@ impl Lowerer {
                 }
             }
         };
-        semantic::Expr {
-            span: expr.span,
-            kind: Box::new(kind),
-            ty,
-        }
+        semantic::Expr::new(expr.span, kind, ty)
     }
 
     fn lower_paren_expr(&mut self, expr: &syntax::Expr, span: Span) -> semantic::Expr {
         let expr = self.lower_expr(expr);
         let ty = expr.ty.clone();
         let kind = semantic::ExprKind::Paren(expr);
-        semantic::Expr {
-            span,
-            kind: Box::new(kind),
-            ty,
-        }
+        semantic::Expr::new(span, kind, ty)
     }
 
     fn lower_unary_op_expr(&mut self, expr: &syntax::UnaryOpExpr) -> semantic::Expr {
@@ -896,11 +887,7 @@ impl Lowerer {
                     op: semantic::UnaryOp::Neg,
                     expr,
                 };
-                semantic::Expr {
-                    span,
-                    kind: Box::new(semantic::ExprKind::UnaryOp(unary)),
-                    ty,
-                }
+                semantic::Expr::new(span, semantic::ExprKind::UnaryOp(unary), ty)
             }
             syntax::UnaryOp::NotB => {
                 let op = expr.op;
@@ -919,11 +906,7 @@ impl Lowerer {
                     op: semantic::UnaryOp::NotB,
                     expr,
                 };
-                semantic::Expr {
-                    span,
-                    kind: Box::new(semantic::ExprKind::UnaryOp(unary)),
-                    ty,
-                }
+                semantic::Expr::new(span, semantic::ExprKind::UnaryOp(unary), ty)
             }
             syntax::UnaryOp::NotL => {
                 // this is the  only unary operator that tries to coerce the type
@@ -938,15 +921,15 @@ impl Lowerer {
 
                 let ty = expr.ty.clone();
 
-                semantic::Expr {
-                    span: expr.span,
-                    kind: Box::new(semantic::ExprKind::UnaryOp(semantic::UnaryOpExpr {
+                semantic::Expr::new(
+                    expr.span,
+                    semantic::ExprKind::UnaryOp(semantic::UnaryOpExpr {
                         span: expr.span,
                         op: semantic::UnaryOp::NotL,
                         expr,
-                    })),
+                    }),
                     ty,
-                }
+                )
             }
         }
     }
@@ -1194,7 +1177,7 @@ impl Lowerer {
         let ty_span = stmt.ty.span();
         let name = stmt.identifier.name.clone();
         let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty.span());
-        let init_expr = match &stmt.init_expr {
+        let mut init_expr = match &stmt.init_expr {
             syntax::ValueExpr::Expr(expr) => {
                 let expr = self.lower_decl_expr(expr, &ty, false);
                 self.cast_expr_with_target_type_or_default(Some(expr), &ty, stmt.span)
@@ -1211,6 +1194,7 @@ impl Lowerer {
         );
 
         if init_expr.ty.is_const() {
+            init_expr = init_expr.with_const_value(self);
             symbol = symbol.with_const_expr(Rc::new(init_expr.clone()));
         }
 
@@ -1296,8 +1280,20 @@ impl Lowerer {
 
         let qsharp_ty = crate::types::Type::Callable(kind, arity, 0);
 
-        let symbol = Symbol::new(&name, name_span, ty, qsharp_ty, IOKind::Default);
-        let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
+        // Check that the name isn't a builtin function.
+        let symbol_id = if Self::is_builtin_function(&name) {
+            self.push_semantic_error(SemanticErrorKind::RedefinedBuiltinFunction(
+                name.as_ref().to_string(),
+                stmt.name.span,
+            ));
+            None
+        } else {
+            let symbol = Symbol::new(&name, name_span, ty, qsharp_ty, IOKind::Default);
+            Some(self.try_insert_or_get_existing_symbol_id(name, symbol))
+        };
+
+        // If the name is a builtin function we still lower the body of the `def` to provide
+        // the user with as much feedback as possible.
 
         // Push the scope where the def lives.
         self.symbols.push_scope(ScopeKind::Function(return_ty));
@@ -1326,6 +1322,11 @@ impl Lowerer {
         if let Some(return_ty) = &stmt.return_type {
             self.check_that_def_returns_in_all_code_paths(&body, return_ty.span);
         }
+
+        // If the name was a builtin function we return `StmtKind::Err`.
+        let Some(symbol_id) = symbol_id else {
+            return semantic::StmtKind::Err;
+        };
 
         semantic::StmtKind::Def(semantic::DefStmt {
             span: stmt.span,
@@ -1413,7 +1414,9 @@ impl Lowerer {
 
     fn lower_quantum_parameter(&mut self, typed_param: &syntax::QuantumTypedParameter) -> Symbol {
         let (ty, qsharp_ty) = if let Some(size) = &typed_param.size {
-            if let Some(size) = self.const_eval_array_size_designator_from_expr(size) {
+            let size = self.const_eval_array_size_designator_expr(size);
+            if let Some(size) = size {
+                let size = size.get_const_u32().expect("const evaluation succeeded");
                 let ty = crate::semantic::types::Type::QubitArray(size);
                 let qsharp_ty = crate::types::Type::QubitArray(crate::types::ArrayDimensions::One(
                     size as usize,
@@ -1632,8 +1635,59 @@ impl Lowerer {
         })
     }
 
+    fn is_builtin_function(name: &str) -> bool {
+        matches!(
+            name,
+            "arccos"
+                | "arcsin"
+                | "arctan"
+                | "ceiling"
+                | "cos"
+                | "exp"
+                | "floor"
+                | "log"
+                | "mod"
+                | "popcount"
+                | "pow"
+                | "rotl"
+                | "rotr"
+                | "sin"
+                | "sqrt"
+                | "tan"
+        )
+    }
+
+    fn lower_builtin_function_call_expr(&mut self, expr: &syntax::FunctionCall) -> semantic::Expr {
+        let name = &*expr.name.name;
+        let name_span = expr.name.span;
+        let call_span = expr.span;
+        let inputs: Vec<_> = expr
+            .args
+            .iter()
+            .map(|e| self.lower_expr(e).with_const_value(self))
+            .collect();
+
+        let output = match name {
+            "mod" => builtin_functions::mod_(&inputs, name_span, call_span, self),
+            "arccos" | "arcsin" | "arctan" | "ceiling" | "cos" | "exp" | "floor" | "log"
+            | "popcount" | "pow" | "rotl" | "rotr" | "sin" | "sqrt" | "tan" => {
+                self.push_unimplemented_error_message(format!("{name} builtin"), call_span);
+                None
+            }
+            _ => unreachable!(),
+        };
+
+        output.unwrap_or_else(|| err_expr!(Type::Err, call_span))
+    }
+
     fn lower_function_call_expr(&mut self, expr: &syntax::FunctionCall) -> semantic::Expr {
-        // 1. Check that the function name actually refers to a function
+        // 1. If the name refers to a builtin function, we defer
+        //    the lowering to `lower_builtin_function_call_expr`.
+        if Self::is_builtin_function(&expr.name.name) {
+            return self.lower_builtin_function_call_expr(expr);
+        }
+
+        // 2. Check that the function name actually refers to a function
         //    in the symbol table and get its symbol_id & symbol.
         let name = expr.name.name.clone();
         let name_span = expr.name.span;
@@ -1642,7 +1696,7 @@ impl Lowerer {
         let (params_ty, return_ty) = if let Type::Function(params_ty, return_ty) = &symbol.ty {
             let arity = params_ty.len();
 
-            // 2. Check that function classical arity matches the number of classical args.
+            // 3. Check that function classical arity matches the number of classical args.
             if arity != expr.args.len() {
                 self.push_semantic_error(SemanticErrorKind::InvalidNumberOfClassicalArgs(
                     arity,
@@ -1657,12 +1711,7 @@ impl Lowerer {
             (Rc::default(), crate::semantic::types::Type::Err)
         };
 
-        // 3. Lower the args. There are three cases.
-        // 3.1 If there are fewer args than the arity of the function.
-
-        // 3.2 If the number of args and the arity match.
-
-        // 3.3 If there are more args than the arity of the function.
+        // 4. Lower the args. There are three cases.
         let mut params_ty_iter = params_ty.iter();
         let args = expr.args.iter().map(|arg| {
             let arg = self.lower_expr(arg);
@@ -1674,18 +1723,14 @@ impl Lowerer {
         });
         let args = list_from_iter(args);
 
-        let kind = Box::new(semantic::ExprKind::FunctionCall(semantic::FunctionCall {
+        let kind = semantic::ExprKind::FunctionCall(semantic::FunctionCall {
             span: expr.span,
             fn_name_span: expr.name.span,
             symbol_id,
             args,
-        }));
+        });
 
-        semantic::Expr {
-            span: expr.span,
-            kind,
-            ty: return_ty,
-        }
+        semantic::Expr::new(expr.span, kind, return_ty)
     }
 
     /// A broadcasted gate call unfolds into multiple statements.
@@ -1796,7 +1841,8 @@ impl Lowerer {
             match &modifier.kind {
                 semantic::GateModifierKind::Inv | semantic::GateModifierKind::Pow(_) => (),
                 semantic::GateModifierKind::Ctrl(n) | semantic::GateModifierKind::NegCtrl(n) => {
-                    quantum_arity_with_modifiers += n;
+                    quantum_arity_with_modifiers +=
+                        n.get_const_u32().expect("const evaluation succeeded");
                 }
             }
         }
@@ -1909,13 +1955,11 @@ impl Lowerer {
     }
 
     fn index_into_qubit_register(op: semantic::GateOperand, index: u32) -> semantic::GateOperand {
-        let index = semantic::Index::Expr(semantic::Expr {
-            span: op.span,
-            kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Int(
-                index.into(),
-            ))),
-            ty: Type::UInt(None, true),
-        });
+        let index = semantic::Index::Expr(semantic::Expr::new(
+            op.span,
+            semantic::ExprKind::Lit(semantic::LiteralKind::Int(index.into())),
+            Type::UInt(None, true),
+        ));
 
         match op.kind {
             semantic::GateOperandKind::Expr(expr) => {
@@ -1927,15 +1971,15 @@ impl Lowerer {
                     },
                     Type::QubitArray(..) => semantic::GateOperand {
                         span: op.span,
-                        kind: semantic::GateOperandKind::Expr(Box::new(semantic::Expr {
-                            span: op.span,
-                            kind: Box::new(semantic::ExprKind::IndexExpr(semantic::IndexExpr {
+                        kind: semantic::GateOperandKind::Expr(Box::new(semantic::Expr::new(
+                            op.span,
+                            semantic::ExprKind::IndexExpr(semantic::IndexExpr {
                                 span: op.span,
                                 collection: *expr,
                                 indices: list_from_iter([index]),
-                            })),
-                            ty: Type::Qubit,
-                        })),
+                            }),
+                            Type::Qubit,
+                        ))),
                     },
                     _ => unreachable!("we set register_type iff we find a QubitArray"),
                 }
@@ -2007,9 +2051,16 @@ impl Lowerer {
         })
     }
 
-    fn lower_modifier_ctrl_args(&mut self, expr: Option<&syntax::Expr>) -> Option<u32> {
+    fn lower_modifier_ctrl_args(&mut self, expr: Option<&syntax::Expr>) -> Option<semantic::Expr> {
         let Some(expr) = expr else {
-            return Some(1);
+            return Some(
+                semantic::Expr::new(
+                    Span::default(),
+                    semantic::ExprKind::Lit(semantic::LiteralKind::Int(1)),
+                    Type::Int(None, true),
+                )
+                .with_const_value(self),
+            );
         };
 
         let expr = self.lower_expr(expr);
@@ -2020,7 +2071,9 @@ impl Lowerer {
             return None;
         };
 
-        let Some(lit) = expr.const_eval(self) else {
+        let expr = expr.with_const_value(self);
+
+        let Some(lit) = expr.get_const_value() else {
             // const_eval must have pushed an error unless the ty is Err
             // in which case there is already an error pushed for the ty.
             return None;
@@ -2031,15 +2084,15 @@ impl Lowerer {
             return None;
         };
 
-        let Ok(n) = u32::try_from(n) else {
+        if u32::try_from(n).is_err() {
             self.push_semantic_error(SemanticErrorKind::ExprMustFitInU32(
                 "ctrl modifier argument".into(),
                 expr.span,
             ));
             return None;
-        };
+        }
 
-        Some(n)
+        Some(expr)
     }
 
     /// This function is always a indication of a error. Either the
@@ -2214,25 +2267,32 @@ impl Lowerer {
 
         // If there wasn't an explicit size, infer the size to be 1.
         let (ty, size_and_span) = if let Some(size_expr) = &stmt.size {
-            let size_expr = self.lower_expr(size_expr);
             let span = size_expr.span;
-            let size_expr = Self::try_cast_expr_to_type(&Type::UInt(None, true), &size_expr);
+            let size_expr = self.const_eval_quantum_register_size_expr(size_expr);
 
-            if let Some(Some(semantic::LiteralKind::Int(val))) =
-                size_expr.map(|expr| expr.const_eval(self))
-            {
-                if let Ok(size) = u32::try_from(val) {
-                    (Type::QubitArray(size), Some((size, span)))
-                } else {
-                    let message = "quantum register size".into();
-                    self.push_semantic_error(SemanticErrorKind::ExprMustFitInU32(message, span));
-                    return semantic::StmtKind::Err;
-                }
-            } else {
-                let message = "quantum register size".into();
-                self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(message, span));
+            let Some(size_expr) = size_expr else {
+                // We insert an err symbol if the symbol was not previously defined.
+                self.try_insert_err_symbol_or_push_redefined_symbol_error(
+                    &stmt.qubit.name,
+                    stmt.qubit.span,
+                );
+
+                // Any errors would have already been pushed by `const_eval_quantum_register_size`.
                 return semantic::StmtKind::Err;
-            }
+            };
+
+            let Some(size) = size_expr.get_const_u32() else {
+                // We insert an err symbol if the symbol was not previously defined.
+                self.try_insert_err_symbol_or_push_redefined_symbol_error(
+                    &stmt.qubit.name,
+                    stmt.qubit.span,
+                );
+
+                // Any errors would have already been pushed by `const_eval_quantum_register_size`.
+                return semantic::StmtKind::Err;
+            };
+
+            (Type::QubitArray(size), Some((size_expr, span)))
         } else {
             (Type::Qubit, None)
         };
@@ -2434,67 +2494,100 @@ impl Lowerer {
     }
 
     /// Helper function for const evaluating array sizes, type widths, and durations.
-    fn const_eval_designator(&mut self, expr: &syntax::Expr) -> Option<semantic::LiteralKind> {
+    fn const_eval_designator(&mut self, expr: &syntax::Expr) -> Option<semantic::Expr> {
         let expr = self.lower_expr(expr);
         let expr_span = expr.span;
-        let expr = self.cast_expr_with_target_type_or_default(
-            Some(expr),
-            &Type::UInt(None, true),
-            expr_span,
-        );
+        let expr = self
+            .cast_expr_with_target_type_or_default(Some(expr), &Type::UInt(None, true), expr_span)
+            .with_const_value(self);
 
         // const_eval would have pushed an error unless the ty is Err
         // in which case there is already an error pushed for the ty
         // so there is no need to add more errors here.
-        expr.const_eval(self)
+        expr.const_value.as_ref()?;
+
+        Some(expr)
     }
 
-    fn const_eval_array_size_designator_from_expr(&mut self, expr: &syntax::Expr) -> Option<u32> {
-        let semantic::LiteralKind::Int(val) = self.const_eval_designator(expr)? else {
-            self.push_semantic_error(SemanticErrorKind::ArraySizeMustBeNonNegativeConstExpr(
-                expr.span,
-            ));
+    fn const_eval_array_size_designator_expr(
+        &mut self,
+        expr: &syntax::Expr,
+    ) -> Option<semantic::Expr> {
+        let size = self.const_eval_designator(expr)?;
+
+        let Some(semantic::LiteralKind::Int(val)) = size.get_const_value() else {
+            let msg = "array size".to_string();
+            self.push_semantic_error(SemanticErrorKind::ExprMustBeInt(msg, expr.span));
             return None;
         };
 
         if val < 0 {
-            self.push_semantic_error(SemanticErrorKind::ArraySizeMustBeNonNegativeConstExpr(
-                expr.span,
-            ));
+            let msg = "array size".to_string();
+            self.push_semantic_error(SemanticErrorKind::ExprMustBeNonNegativeInt(msg, expr.span));
             return None;
         }
 
-        let Ok(val) = u32::try_from(val) else {
+        if u32::try_from(val).is_err() {
             self.push_semantic_error(SemanticErrorKind::DesignatorTooLarge(expr.span));
-            return None;
-        };
+        }
 
-        Some(val)
+        Some(size)
     }
 
-    fn const_eval_type_width_designator_from_expr(&mut self, expr: &syntax::Expr) -> Option<u32> {
-        let semantic::LiteralKind::Int(val) = self.const_eval_designator(expr)? else {
-            self.push_semantic_error(SemanticErrorKind::TypeWidthMustBePositiveIntConstExpr(
-                expr.span,
-            ));
+    fn const_eval_type_width_designator_expr(
+        &mut self,
+        expr: &syntax::Expr,
+    ) -> Option<semantic::Expr> {
+        let width = self.const_eval_designator(expr)?;
+
+        let Some(semantic::LiteralKind::Int(val)) = width.get_const_value() else {
+            let msg = "type width".to_string();
+            self.push_semantic_error(SemanticErrorKind::ExprMustBeInt(msg, expr.span));
             return None;
         };
 
         if val < 1 {
-            self.push_semantic_error(SemanticErrorKind::TypeWidthMustBePositiveIntConstExpr(
-                expr.span,
-            ));
+            let msg = "type width".to_string();
+            self.push_semantic_error(SemanticErrorKind::ExprMustBePositiveInt(msg, expr.span));
             return None;
         }
 
-        let Ok(val) = u32::try_from(val) else {
+        if u32::try_from(val).is_err() {
             self.push_semantic_error(SemanticErrorKind::DesignatorTooLarge(expr.span));
+        }
+
+        Some(width)
+    }
+
+    fn const_eval_quantum_register_size_expr(
+        &mut self,
+        expr: &syntax::Expr,
+    ) -> Option<semantic::Expr> {
+        let size = self.const_eval_designator(expr)?;
+
+        let Some(semantic::LiteralKind::Int(val)) = size.get_const_value() else {
+            let msg = "quantum register size".into();
+            self.push_semantic_error(SemanticErrorKind::ExprMustBeInt(msg, size.span));
             return None;
         };
 
-        Some(val)
+        if val < 1 {
+            let msg = "quantum register size".into();
+            self.push_semantic_error(SemanticErrorKind::ExprMustBePositiveInt(msg, expr.span));
+            return None;
+        }
+
+        if u32::try_from(val).is_err() {
+            self.push_semantic_error(SemanticErrorKind::DesignatorTooLarge(expr.span));
+        }
+
+        // We already verified that the expression as a non-negative int,
+        // so, this const cast will succeed.
+        Self::try_cast_expr_to_type(&Type::UInt(None, true), &size)
+            .map(|expr| expr.with_const_value(self))
     }
 
+    #[allow(clippy::too_many_lines)]
     fn get_semantic_type_from_scalar_ty(
         &mut self,
         scalar_ty: &syntax::ScalarType,
@@ -2503,7 +2596,10 @@ impl Lowerer {
         match &scalar_ty.kind {
             syntax::ScalarTypeKind::Bit(bit_type) => match &bit_type.size {
                 Some(size) => {
-                    let Some(size) = self.const_eval_array_size_designator_from_expr(size) else {
+                    let Some(size_expr) = self.const_eval_array_size_designator_expr(size) else {
+                        return crate::semantic::types::Type::Err;
+                    };
+                    let Some(size) = size_expr.get_const_u32() else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::BitArray(size, is_const)
@@ -2512,7 +2608,10 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::Int(int_type) => match &int_type.size {
                 Some(size) => {
-                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
+                    let Some(size_expr) = self.const_eval_type_width_designator_expr(size) else {
+                        return crate::semantic::types::Type::Err;
+                    };
+                    let Some(size) = size_expr.get_const_u32() else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::Int(Some(size), is_const)
@@ -2521,7 +2620,10 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::UInt(uint_type) => match &uint_type.size {
                 Some(size) => {
-                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
+                    let Some(size_expr) = self.const_eval_type_width_designator_expr(size) else {
+                        return crate::semantic::types::Type::Err;
+                    };
+                    let Some(size) = size_expr.get_const_u32() else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::UInt(Some(size), is_const)
@@ -2530,7 +2632,10 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::Float(float_type) => match &float_type.size {
                 Some(size) => {
-                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
+                    let Some(size_expr) = self.const_eval_type_width_designator_expr(size) else {
+                        return crate::semantic::types::Type::Err;
+                    };
+                    let Some(size) = size_expr.get_const_u32() else {
                         return crate::semantic::types::Type::Err;
                     };
                     if size > 64 {
@@ -2550,8 +2655,11 @@ impl Lowerer {
             syntax::ScalarTypeKind::Complex(complex_type) => match &complex_type.base_size {
                 Some(float_type) => match &float_type.size {
                     Some(size) => {
-                        let Some(size) = self.const_eval_type_width_designator_from_expr(size)
+                        let Some(size_expr) = self.const_eval_type_width_designator_expr(size)
                         else {
+                            return crate::semantic::types::Type::Err;
+                        };
+                        let Some(size) = size_expr.get_const_u32() else {
                             return crate::semantic::types::Type::Err;
                         };
                         crate::semantic::types::Type::Complex(Some(size), is_const)
@@ -2562,10 +2670,12 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::Angle(angle_type) => match &angle_type.size {
                 Some(size) => {
-                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
+                    let Some(size_expr) = self.const_eval_type_width_designator_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
-
+                    let Some(size) = size_expr.get_const_u32() else {
+                        return crate::semantic::types::Type::Err;
+                    };
                     if size > 64 {
                         self.push_semantic_error(SemanticErrorKind::TypeMaxWidthExceeded(
                             "angle".to_string(),
@@ -2628,7 +2738,10 @@ impl Lowerer {
         let dims = array_ty
             .dimensions
             .iter()
-            .filter_map(|expr| self.const_eval_array_size_designator_from_expr(expr))
+            .filter_map(|expr| {
+                self.const_eval_array_size_designator_expr(expr)
+                    .and_then(|expr| expr.get_const_u32())
+            })
             .collect::<Vec<_>>();
 
         if dims.len() != array_ty.dimensions.len() {
@@ -2709,11 +2822,7 @@ impl Lowerer {
             operand: self.lower_gate_operand(&expr.operand),
         };
 
-        semantic::Expr {
-            span: expr.span,
-            kind: Box::new(semantic::ExprKind::Measure(measurement)),
-            ty,
-        }
+        semantic::Expr::new(expr.span, semantic::ExprKind::Measure(measurement), ty)
     }
 
     #[allow(clippy::too_many_lines)]
@@ -2721,13 +2830,8 @@ impl Lowerer {
         use semantic::Expr;
         use semantic::ExprKind;
         use semantic::LiteralKind;
-        let from_lit_kind = |kind| -> Expr {
-            Expr {
-                span: Span::default(),
-                kind: Box::new(ExprKind::Lit(kind)),
-                ty: ty.as_const(),
-            }
-        };
+        let from_lit_kind =
+            |kind| -> Expr { Expr::new(Span::default(), ExprKind::Lit(kind), ty.as_const()) };
         let expr = match ty {
             Type::Angle(_, _) => Some(from_lit_kind(LiteralKind::Angle(Default::default()))),
             Type::Bit(_) => Some(from_lit_kind(LiteralKind::Bit(false))),
@@ -2825,7 +2929,7 @@ impl Lowerer {
         expr
     }
 
-    fn coerce_literal_expr_to_type(
+    pub(crate) fn coerce_literal_expr_to_type(
         &mut self,
         ty: &Type,
         expr: &semantic::Expr,
@@ -2867,29 +2971,25 @@ impl Lowerer {
             match kind {
                 semantic::LiteralKind::Int(value) => {
                     // can_cast_literal_with_value_knowledge guarantees that value is 0 or 1
-                    return Some(semantic::Expr {
+                    return Some(semantic::Expr::new(
                         span,
-                        kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Bit(
-                            *value != 0,
-                        ))),
-                        ty: lhs_ty.as_const(),
-                    });
+                        semantic::ExprKind::Lit(semantic::LiteralKind::Bit(*value != 0)),
+                        lhs_ty.as_const(),
+                    ));
                 }
                 semantic::LiteralKind::Bool(value) => {
-                    return Some(semantic::Expr {
+                    return Some(semantic::Expr::new(
                         span,
-                        kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Bit(*value))),
-                        ty: lhs_ty.as_const(),
-                    });
+                        semantic::ExprKind::Lit(semantic::LiteralKind::Bit(*value)),
+                        lhs_ty.as_const(),
+                    ));
                 }
                 &semantic::LiteralKind::Angle(value) => {
-                    return Some(semantic::Expr {
+                    return Some(semantic::Expr::new(
                         span,
-                        kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Bit(
-                            value.value != 0,
-                        ))),
-                        ty: lhs_ty.as_const(),
-                    });
+                        semantic::ExprKind::Lit(semantic::LiteralKind::Bit(value.value != 0)),
+                        lhs_ty.as_const(),
+                    ));
                 }
                 _ => (),
             }
@@ -2917,36 +3017,32 @@ impl Lowerer {
                     return None;
                 };
 
-                return Some(semantic::Expr {
+                return Some(semantic::Expr::new(
                     span,
-                    kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Bitstring(
-                        value, size,
-                    ))),
-                    ty: lhs_ty.as_const(),
-                });
+                    semantic::ExprKind::Lit(semantic::LiteralKind::Bitstring(value, size)),
+                    lhs_ty.as_const(),
+                ));
             }
         }
         if matches!(lhs_ty, Type::UInt(..)) {
             if let semantic::LiteralKind::Int(value) = kind {
                 // this should have been validated by can_cast_literal_with_value_knowledge
-                return Some(semantic::Expr {
+                return Some(semantic::Expr::new(
                     span,
-                    kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Int(*value))),
-                    ty: lhs_ty.as_const(),
-                });
+                    semantic::ExprKind::Lit(semantic::LiteralKind::Int(*value)),
+                    lhs_ty.as_const(),
+                ));
             }
         }
         let result = match (&lhs_ty, &rhs_ty) {
             (Type::Float(..), Type::Int(..) | Type::UInt(..)) => {
                 if let semantic::LiteralKind::Int(value) = kind {
                     if let Some(value) = safe_i64_to_f64(*value) {
-                        return Some(semantic::Expr {
+                        return Some(semantic::Expr::new(
                             span,
-                            kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Float(
-                                value,
-                            ))),
-                            ty: lhs_ty.as_const(),
-                        });
+                            semantic::ExprKind::Lit(semantic::LiteralKind::Float(value)),
+                            lhs_ty.as_const(),
+                        ));
                     }
                     self.push_semantic_error(SemanticErrorKind::InvalidCastValueRange(
                         rhs_ty.to_string(),
@@ -2959,13 +3055,13 @@ impl Lowerer {
             }
             (Type::Angle(width, _), Type::Float(..)) => {
                 if let semantic::LiteralKind::Float(value) = kind {
-                    return Some(semantic::Expr {
+                    return Some(semantic::Expr::new(
                         span,
-                        kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Angle(
+                        semantic::ExprKind::Lit(semantic::LiteralKind::Angle(
                             Angle::from_f64_maybe_sized(*value, *width),
-                        ))),
-                        ty: lhs_ty.as_const(),
-                    });
+                        )),
+                        lhs_ty.as_const(),
+                    ));
                 }
                 None
             }
@@ -2973,50 +3069,44 @@ impl Lowerer {
                 // compatibility case for existing code
                 if let semantic::LiteralKind::Int(value) = kind {
                     if *value == 0 {
-                        return Some(semantic::Expr {
+                        return Some(semantic::Expr::new(
                             span,
-                            kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Angle(
+                            semantic::ExprKind::Lit(semantic::LiteralKind::Angle(
                                 Angle::from_u64_maybe_sized(0, *width),
-                            ))),
-                            ty: lhs_ty.as_const(),
-                        });
+                            )),
+                            lhs_ty.as_const(),
+                        ));
                     }
                 }
                 None
             }
             (Type::Float(..), Type::Float(..)) => {
                 if let semantic::LiteralKind::Float(value) = kind {
-                    return Some(semantic::Expr {
+                    return Some(semantic::Expr::new(
                         span,
-                        kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Float(
-                            *value,
-                        ))),
-                        ty: lhs_ty.as_const(),
-                    });
+                        semantic::ExprKind::Lit(semantic::LiteralKind::Float(*value)),
+                        lhs_ty.as_const(),
+                    ));
                 }
                 None
             }
             (Type::Complex(..), Type::Complex(..)) => {
                 if let semantic::LiteralKind::Complex(real, imag) = kind {
-                    return Some(semantic::Expr {
+                    return Some(semantic::Expr::new(
                         span,
-                        kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Complex(
-                            *real, *imag,
-                        ))),
-                        ty: lhs_ty.as_const(),
-                    });
+                        semantic::ExprKind::Lit(semantic::LiteralKind::Complex(*real, *imag)),
+                        lhs_ty.as_const(),
+                    ));
                 }
                 None
             }
             (Type::Complex(..), Type::Float(..)) => {
                 if let semantic::LiteralKind::Float(value) = kind {
-                    return Some(semantic::Expr {
+                    return Some(semantic::Expr::new(
                         span,
-                        kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Complex(
-                            *value, 0.0,
-                        ))),
-                        ty: lhs_ty.as_const(),
-                    });
+                        semantic::ExprKind::Lit(semantic::LiteralKind::Complex(*value, 0.0)),
+                        lhs_ty.as_const(),
+                    ));
                 }
                 None
             }
@@ -3025,13 +3115,11 @@ impl Lowerer {
                 // convert the int to a double, then create the complex
                 if let semantic::LiteralKind::Int(value) = kind {
                     if let Some(value) = safe_i64_to_f64(*value) {
-                        return Some(semantic::Expr {
+                        return Some(semantic::Expr::new(
                             span,
-                            kind: Box::new(semantic::ExprKind::Lit(
-                                semantic::LiteralKind::Complex(value, 0.0),
-                            )),
-                            ty: lhs_ty.as_const(),
-                        });
+                            semantic::ExprKind::Lit(semantic::LiteralKind::Complex(value, 0.0)),
+                            lhs_ty.as_const(),
+                        ));
                     }
                     let kind = SemanticErrorKind::InvalidCastValueRange(
                         "int".to_string(),
@@ -3047,13 +3135,11 @@ impl Lowerer {
                 // we've already checked that the value is 0 or 1
                 if let semantic::LiteralKind::Int(value) = kind {
                     if *value == 0 || *value == 1 {
-                        return Some(semantic::Expr {
+                        return Some(semantic::Expr::new(
                             span,
-                            kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Int(
-                                *value,
-                            ))),
-                            ty: lhs_ty.as_const(),
-                        });
+                            semantic::ExprKind::Lit(semantic::LiteralKind::Int(*value)),
+                            lhs_ty.as_const(),
+                        ));
                     }
                     panic!("value must be 0 or 1");
                 } else {
@@ -3064,13 +3150,11 @@ impl Lowerer {
                 // we've already checked that this conversion can happen from a signed to unsigned int
                 match kind {
                     semantic::LiteralKind::Int(value) => {
-                        return Some(semantic::Expr {
+                        return Some(semantic::Expr::new(
                             span,
-                            kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Int(
-                                *value,
-                            ))),
-                            ty: lhs_ty.as_const(),
-                        });
+                            semantic::ExprKind::Lit(semantic::LiteralKind::Int(*value)),
+                            lhs_ty.as_const(),
+                        ));
                     }
                     semantic::LiteralKind::BigInt(value) => {
                         if let Some(width) = width {
@@ -3085,13 +3169,11 @@ impl Lowerer {
                                 return None;
                             }
                         }
-                        return Some(semantic::Expr {
+                        return Some(semantic::Expr::new(
                             span,
-                            kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::BigInt(
-                                value.clone(),
-                            ))),
-                            ty: lhs_ty.as_const(),
-                        });
+                            semantic::ExprKind::Lit(semantic::LiteralKind::BigInt(value.clone())),
+                            lhs_ty.as_const(),
+                        ));
                     }
                     _ => panic!("literal must be an Int or BigInt"),
                 }
@@ -3354,11 +3436,7 @@ impl Lowerer {
                 &*lhs.kind,
                 semantic::ExprKind::Lit(semantic::LiteralKind::Int(val)) if *val >= 0
             ) {
-            semantic::Expr {
-                span: lhs.span,
-                kind: lhs.kind,
-                ty: Type::UInt(lhs.ty.width(), true),
-            }
+            semantic::Expr::new(lhs.span, *lhs.kind, Type::UInt(lhs.ty.width(), true))
         } else {
             lhs
         };
@@ -3396,11 +3474,7 @@ impl Lowerer {
                     rhs,
                 };
                 let kind = semantic::ExprKind::BinaryOp(bin_expr);
-                let expr = semantic::Expr {
-                    span,
-                    kind: Box::new(kind),
-                    ty: target_ty,
-                };
+                let expr = semantic::Expr::new(span, kind, target_ty);
                 return expr;
             };
             // Now that we know the effective Uint type, we can cast the lhs and rhs
@@ -3419,11 +3493,7 @@ impl Lowerer {
                 op: op.into(),
             };
             let kind = semantic::ExprKind::BinaryOp(bin_expr);
-            let expr = semantic::Expr {
-                span,
-                kind: Box::new(kind),
-                ty,
-            };
+            let expr = semantic::Expr::new(span, kind, ty);
 
             let final_expr = self.cast_expr_to_type(&left_type, &expr);
             return final_expr;
@@ -3527,11 +3597,7 @@ impl Lowerer {
                     rhs,
                 };
                 let kind = semantic::ExprKind::BinaryOp(bin_expr);
-                semantic::Expr {
-                    span,
-                    kind: Box::new(kind),
-                    ty: ty.clone(),
-                }
+                semantic::Expr::new(span, kind, ty.clone())
             } else {
                 let kind =
                     SemanticErrorKind::OperatorNotAllowedForComplexValues(format!("{op:?}"), span);
@@ -3545,11 +3611,7 @@ impl Lowerer {
                 rhs,
             };
             let kind = semantic::ExprKind::BinaryOp(bin_expr);
-            semantic::Expr {
-                span,
-                kind: Box::new(kind),
-                ty: ty.clone(),
-            }
+            semantic::Expr::new(span, kind, ty.clone())
         };
 
         let ty = match op.into() {
@@ -3674,13 +3736,15 @@ impl Lowerer {
                 return None;
             };
             // const_eval will push any needed errors
-            let lit = lowered_expr.const_eval(self)?;
+            let lowered_expr = lowered_expr.with_const_value(self);
 
-            Some(semantic::Expr {
-                span: lowered_expr.span,
-                kind: Box::new(semantic::ExprKind::Lit(lit.clone())),
-                ty: Type::Int(None, true),
-            })
+            let lit = lowered_expr.get_const_value()?;
+
+            Some(semantic::Expr::new(
+                lowered_expr.span,
+                semantic::ExprKind::Lit(lit.clone()),
+                Type::Int(None, true),
+            ))
         };
 
         let start = range.start.as_ref().map(&mut lower_and_const_eval);
@@ -3761,15 +3825,15 @@ impl Lowerer {
 
         let indexed_ty = self.get_indexed_type(&collection.ty, expr.span, &indices);
 
-        semantic::Expr {
-            span: expr.span,
-            kind: Box::new(semantic::ExprKind::IndexExpr(semantic::IndexExpr {
+        semantic::Expr::new(
+            expr.span,
+            semantic::ExprKind::IndexExpr(semantic::IndexExpr {
                 span: expr.span,
                 collection,
                 indices: list_from_iter(indices),
-            })),
-            ty: indexed_ty,
-        }
+            }),
+            indexed_ty,
+        )
     }
 
     fn get_indexed_type(
@@ -3851,17 +3915,17 @@ impl Lowerer {
         // use the supplied number of indices rather than the number of indices we lowered
         let indexed_ty = self.get_indexed_type(&ty, indexed_ident.span, &indices);
 
-        semantic::Expr {
-            span: indexed_ident.span,
-            kind: Box::new(semantic::ExprKind::IndexedIdent(semantic::IndexedIdent {
+        semantic::Expr::new(
+            indexed_ident.span,
+            semantic::ExprKind::IndexedIdent(semantic::IndexedIdent {
                 span: indexed_ident.span,
                 name_span: ident.span,
                 index_span: indexed_ident.index_span,
                 symbol_id,
                 indices: list_from_iter(indices),
-            })),
-            ty: indexed_ty,
-        }
+            }),
+            indexed_ty,
+        )
     }
 
     fn lower_gate_operand(&mut self, operand: &syntax::GateOperand) -> semantic::GateOperand {
@@ -3977,15 +4041,15 @@ impl Lowerer {
 }
 
 fn wrap_expr_in_cast_expr(ty: Type, rhs: semantic::Expr) -> semantic::Expr {
-    semantic::Expr {
-        span: rhs.span,
-        kind: Box::new(semantic::ExprKind::Cast(semantic::Cast {
+    semantic::Expr::new(
+        rhs.span,
+        semantic::ExprKind::Cast(semantic::Cast {
             span: Span::default(),
             expr: rhs,
             ty: ty.clone(),
-        })),
+        }),
         ty,
-    }
+    )
 }
 
 fn get_measurement_ty_from_gate_operand(operand: &semantic::GateOperand) -> Type {
@@ -4036,19 +4100,21 @@ fn try_get_qsharp_name_and_implicit_modifiers<S: AsRef<str>>(
         kind,
     };
 
+    let ctrl_expr = Expr::uint(1, Span::default());
+
     match gate_name.as_ref() {
-        "cy" => Some(("y".to_string(), make_modifier(Ctrl(1)))),
-        "cz" => Some(("z".to_string(), make_modifier(Ctrl(1)))),
-        "ch" => Some(("h".to_string(), make_modifier(Ctrl(1)))),
-        "crx" => Some(("rx".to_string(), make_modifier(Ctrl(1)))),
-        "cry" => Some(("ry".to_string(), make_modifier(Ctrl(1)))),
-        "crz" => Some(("rz".to_string(), make_modifier(Ctrl(1)))),
-        "cswap" => Some(("swap".to_string(), make_modifier(Ctrl(1)))),
+        "cy" => Some(("y".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+        "cz" => Some(("z".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+        "ch" => Some(("h".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+        "crx" => Some(("rx".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+        "cry" => Some(("ry".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+        "crz" => Some(("rz".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+        "cswap" => Some(("swap".to_string(), make_modifier(Ctrl(ctrl_expr)))),
         "sdg" => Some(("s".to_string(), make_modifier(Inv))),
         "tdg" => Some(("t".to_string(), make_modifier(Inv))),
         // Gates for OpenQASM 2 backwards compatibility
-        "CX" => Some(("x".to_string(), make_modifier(Ctrl(1)))),
-        "cphase" => Some(("phase".to_string(), make_modifier(Ctrl(1)))),
+        "CX" => Some(("x".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+        "cphase" => Some(("phase".to_string(), make_modifier(Ctrl(ctrl_expr)))),
         _ => None,
     }
 }

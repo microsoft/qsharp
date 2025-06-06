@@ -13,11 +13,11 @@ use expect_test::expect;
 use qsc_data_structures::span::Span;
 
 fn make_int_expr(val: i64) -> Expr {
-    Expr {
-        span: Span::default(),
-        kind: Box::new(ExprKind::Lit(LiteralKind::Int(val))),
-        ty: Type::Int(None, true),
-    }
+    Expr::new(
+        Span::default(),
+        ExprKind::Lit(LiteralKind::Int(val)),
+        Type::Int(None, true),
+    )
 }
 
 #[test]

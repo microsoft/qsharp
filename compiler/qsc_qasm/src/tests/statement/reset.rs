@@ -2,7 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::{
-    tests::{compile_qasm_to_qsharp, compile_with_config, fail_on_compilation_errors, gen_qsharp},
+    tests::{
+        check_qasm_to_qsharp, compile_qasm_to_qsharp, compile_with_config,
+        fail_on_compilation_errors, gen_qsharp,
+    },
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
 };
 use expect_test::expect;
@@ -213,20 +216,26 @@ fn on_a_span_indexed_qubit_register() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn on_a_zero_len_qubit_register() -> miette::Result<(), Vec<Report>> {
+fn on_a_zero_len_qubit_register_fails() {
     let source = r#"
         qubit[0] q;
         reset q;
     "#;
 
-    let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#"
-        import Std.OpenQASM.Intrinsic.*;
-        let q = QIR.Runtime.AllocateQubitArray(0);
-        ResetAll(q);
-    "#]]
-    .assert_eq(&qsharp);
-    Ok(())
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            Qasm.Lowerer.ExprMustBePositiveInt
+
+              x quantum register size must be a positive integer
+               ,-[Test.qasm:2:15]
+             1 | 
+             2 |         qubit[0] q;
+               :               ^
+             3 |         reset q;
+               `----
+        "#]],
+    );
 }
 
 #[test]

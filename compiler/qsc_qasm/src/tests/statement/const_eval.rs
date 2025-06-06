@@ -11,6 +11,25 @@ use expect_test::expect;
 use miette::Report;
 
 #[test]
+fn const_exprs_are_eagerly_evaluated() {
+    let source = "
+        const int a = 2;
+        const int b = 3;
+        const int c = a + b;
+    ";
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        let a = 2;
+        let b = 3;
+        let c = 5;
+    "#]],
+    );
+}
+
+#[test]
 fn const_exprs_work_in_bitarray_size_position() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         const int a = 1;
@@ -24,8 +43,8 @@ fn const_exprs_work_in_bitarray_size_position() -> miette::Result<(), Vec<Report
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = 1;
-        let b = 2 + a;
-        let c = a + 3;
+        let b = 3;
+        let c = 4;
         mutable r1 = [Zero, Zero, Zero];
         mutable r2 = [Zero, Zero, Zero, Zero];
     "#]]
@@ -82,8 +101,8 @@ fn const_exprs_implicit_cast_work_in_bitarray_size_position() -> miette::Result<
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = 1;
-        let b = 2. + Std.Convert.IntAsDouble(a);
-        let c = Std.Convert.IntAsDouble(a) + 3.;
+        let b = 3.;
+        let c = 4.;
         mutable r1 = [Zero, Zero, Zero];
         mutable r2 = [Zero, Zero, Zero, Zero];
     "#]]
@@ -197,7 +216,7 @@ fn unary_op_neg_float() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = -1.;
-        let b = -a;
+        let b = 1.;
         mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -216,7 +235,7 @@ fn unary_op_neg_int() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = -1;
-        let b = -a;
+        let b = 1;
         mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -234,8 +253,11 @@ fn unary_op_neg_angle() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
-        let a = Std.OpenQASM.Angle.DoubleAsAngle(-1., 32);
-        let b = Std.OpenQASM.Angle.AngleAsResult(a);
+        let a = new Std.OpenQASM.Angle.Angle {
+            Value = 7573658969935327,
+            Size = 53
+        };
+        let b = One;
         mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -254,7 +276,7 @@ fn unary_op_negb_uint() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = 5;
-        let b = ~~~a;
+        let b = 2;
         mutable r = [Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -277,7 +299,7 @@ fn unary_op_negb_angle() -> miette::Result<(), Vec<Report>> {
             Value = 683565276,
             Size = 32
         };
-        let b = Std.OpenQASM.Angle.AngleAsResult(Std.OpenQASM.Angle.AngleNotB(a));
+        let b = One;
         mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -296,7 +318,7 @@ fn unary_op_negb_bit() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = Zero;
-        let b = ~~~a;
+        let b = One;
         mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -315,7 +337,7 @@ fn unary_op_negb_bitarray() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = [One, Zero, One];
-        let b = Std.OpenQASM.Convert.ResultArrayAsIntBE(~~~a);
+        let b = 2;
         mutable r = [Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -338,7 +360,7 @@ fn lhs_ty_equals_rhs_ty_assumption_holds() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         let a = 1;
         let b = 2.;
-        let c = Std.Math.Truncate(Std.Convert.IntAsDouble(a) + b);
+        let c = 3;
         mutable r = [Zero, Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -361,7 +383,7 @@ fn binary_op_shl_uint() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = 1;
-        let b = a <<< 2;
+        let b = 4;
         mutable r = [Zero, Zero, Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -395,7 +417,7 @@ fn binary_op_shl_overflow() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
-        let a = 1 <<< 65;
+        let a = 0;
         function const_eval_context() : Unit {
             mutable b = 0;
         }
@@ -420,8 +442,11 @@ fn binary_op_shl_angle() -> miette::Result<(), Vec<Report>> {
             Value = 683565276,
             Size = 32
         };
-        let b = Std.OpenQASM.Angle.__AngleShl__(a, 2);
-        let c = Std.OpenQASM.Angle.AngleAsResult(b);
+        let b = new Std.OpenQASM.Angle.Angle {
+            Value = 2734261104,
+            Size = 32
+        };
+        let c = One;
         mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -440,11 +465,7 @@ fn binary_op_shl_bit() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = One;
-        let b = if Std.OpenQASM.Convert.ResultAsInt(a) <<< 2 == 0 {
-            One
-        } else {
-            Zero
-        };
+        let b = Zero;
         mutable r = [];
     "#]]
     .assert_eq(&qsharp);
@@ -463,7 +484,7 @@ fn binary_op_shl_bitarray() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = [One, Zero, One];
-        let b = Std.OpenQASM.Convert.IntAsResultArrayBE(Std.OpenQASM.Convert.ResultArrayAsIntBE(a) <<< 2, 3);
+        let b = [One, Zero, Zero];
         mutable r = [Zero, Zero, Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -531,7 +552,7 @@ fn binary_op_shr_uint() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = 5;
-        let b = a >>> 2;
+        let b = 1;
         mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -565,7 +586,7 @@ fn binary_op_shr_overflow() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
-        let a = 1 >>> 65;
+        let a = 0;
         function const_eval_context() : Unit {
             mutable b = 0;
         }
@@ -590,8 +611,11 @@ fn binary_op_shr_angle() -> miette::Result<(), Vec<Report>> {
             Value = 683565276,
             Size = 32
         };
-        let b = Std.OpenQASM.Angle.AngleShr(a, 2);
-        let c = Std.OpenQASM.Angle.AngleAsResult(b);
+        let b = new Std.OpenQASM.Angle.Angle {
+            Value = 170891319,
+            Size = 32
+        };
+        let c = One;
         mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -610,11 +634,7 @@ fn binary_op_shr_bit() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = One;
-        let b = if Std.OpenQASM.Convert.ResultAsInt(a) >>> 2 == 0 {
-            One
-        } else {
-            Zero
-        };
+        let b = Zero;
         mutable r = [];
     "#]]
     .assert_eq(&qsharp);
@@ -633,7 +653,7 @@ fn binary_op_shr_bitarray() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = [One, Zero, One, One];
-        let b = Std.OpenQASM.Convert.IntAsResultArrayBE(Std.OpenQASM.Convert.ResultArrayAsIntBE(a) >>> 2, 4);
+        let b = [Zero, Zero, One, Zero];
         mutable r = [Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -703,7 +723,7 @@ fn binary_op_andb_uint() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = 5;
-        let b = a &&& 6;
+        let b = 4;
         mutable r = [Zero, Zero, Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -732,8 +752,11 @@ fn binary_op_andb_angle() -> miette::Result<(), Vec<Report>> {
             Value = 1367130551,
             Size = 32
         };
-        let c = Std.OpenQASM.Angle.AngleAndB(a, b);
-        let d = Std.OpenQASM.Angle.AngleAsResult(c);
+        let c = new Std.OpenQASM.Angle.Angle {
+            Value = 3948692,
+            Size = 32
+        };
+        let d = One;
         mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -752,11 +775,7 @@ fn binary_op_andb_bit() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = One;
-        let b = if Std.OpenQASM.Convert.ResultAsInt(a) &&& 0 == 0 {
-            One
-        } else {
-            Zero
-        };
+        let b = Zero;
         mutable r = [];
     "#]]
     .assert_eq(&qsharp);
@@ -775,7 +794,7 @@ fn binary_op_andb_bitarray() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = [One, Zero, One, One];
-        let b = Std.OpenQASM.Convert.IntAsResultArrayBE(Std.OpenQASM.Convert.ResultArrayAsIntBE(a) &&& Std.OpenQASM.Convert.ResultArrayAsIntBE([Zero, One, One, Zero]), 4);
+        let b = [Zero, Zero, One, Zero];
         mutable r = [Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -796,7 +815,7 @@ fn binary_op_orb_uint() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = 5;
-        let b = a ||| 6;
+        let b = 7;
         mutable r = [Zero, Zero, Zero, Zero, Zero, Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -825,8 +844,11 @@ fn binary_op_orb_angle() -> miette::Result<(), Vec<Report>> {
             Value = 1367130551,
             Size = 32
         };
-        let c = Std.OpenQASM.Angle.AngleOrB(a, b);
-        let d = Std.OpenQASM.Angle.AngleAsBool(c);
+        let c = new Std.OpenQASM.Angle.Angle {
+            Value = 2046747135,
+            Size = 32
+        };
+        let d = true;
         mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -845,11 +867,7 @@ fn binary_op_orb_bit() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = One;
-        let b = if Std.OpenQASM.Convert.ResultAsInt(a) ||| 0 == 0 {
-            One
-        } else {
-            Zero
-        };
+        let b = One;
         mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -868,7 +886,7 @@ fn binary_op_orb_bitarray() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = [Zero, Zero, One];
-        let b = Std.OpenQASM.Convert.IntAsResultArrayBE(Std.OpenQASM.Convert.ResultArrayAsIntBE(a) ||| Std.OpenQASM.Convert.ResultArrayAsIntBE([One, Zero, Zero]), 3);
+        let b = [One, Zero, One];
         mutable r = [Zero, Zero, Zero, Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -889,7 +907,7 @@ fn binary_op_xorb_uint() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = 5;
-        let b = a ^^^ 6;
+        let b = 3;
         mutable r = [Zero, Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -918,8 +936,11 @@ fn binary_op_xorb_angle() -> miette::Result<(), Vec<Report>> {
             Value = 1367130551,
             Size = 32
         };
-        let c = Std.OpenQASM.Angle.AngleXorB(a, b);
-        let d = Std.OpenQASM.Angle.AngleAsResult(c);
+        let c = new Std.OpenQASM.Angle.Angle {
+            Value = 2042798443,
+            Size = 32
+        };
+        let d = One;
         mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -938,11 +959,7 @@ fn binary_op_xorb_bit() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = One;
-        let b = if Std.OpenQASM.Convert.ResultAsInt(a) ^^^ 1 == 0 {
-            One
-        } else {
-            Zero
-        };
+        let b = Zero;
         mutable r = [];
     "#]]
     .assert_eq(&qsharp);
@@ -961,7 +978,7 @@ fn binary_op_xorb_bitarray() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = [One, Zero, One, One];
-        let b = Std.OpenQASM.Convert.IntAsResultArrayBE(Std.OpenQASM.Convert.ResultArrayAsIntBE(a) ^^^ Std.OpenQASM.Convert.ResultArrayAsIntBE([One, One, One, Zero]), 4);
+        let b = [Zero, One, Zero, One];
         mutable r = [Zero, Zero, Zero, Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -1245,7 +1262,7 @@ fn binary_op_add_angle() -> miette::Result<(), Vec<Report>> {
             Value = 1367130551,
             Size = 32
         };
-        let c = Std.OpenQASM.Angle.AngleAsResult(Std.OpenQASM.Angle.AddAngles(a, b));
+        let c = One;
         mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -1332,7 +1349,7 @@ fn binary_op_sub_angle() -> miette::Result<(), Vec<Report>> {
             Value = 1367130551,
             Size = 32
         };
-        let c = Std.OpenQASM.Angle.AngleAsResult(Std.OpenQASM.Angle.SubtractAngles(a, b));
+        let c = One;
         mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -1418,8 +1435,8 @@ fn binary_op_mul_angle() -> miette::Result<(), Vec<Report>> {
             Size = 32
         };
         let b = 2;
-        let c1 = Std.OpenQASM.Angle.AngleAsResult(Std.OpenQASM.Angle.MultiplyAngleByInt(a, b));
-        let c2 = Std.OpenQASM.Angle.AngleAsResult(Std.OpenQASM.Angle.MultiplyAngleByInt(a, b));
+        let c1 = One;
+        let c2 = One;
         mutable r1 = [Zero];
         mutable r2 = [Zero];
     "#]]
@@ -1511,12 +1528,8 @@ fn binary_op_div_angle() -> miette::Result<(), Vec<Report>> {
             Size = 48
         };
         let c = 2;
-        let d = if Std.OpenQASM.Angle.DivideAngleByAngle(Std.OpenQASM.Angle.AdjustAngleSizeNoTruncation(a, 48), b) == 0 {
-            One
-        } else {
-            Zero
-        };
-        let e = Std.OpenQASM.Angle.AngleAsResult(Std.OpenQASM.Angle.DivideAngleByInt(a, c));
+        let d = Zero;
+        let e = One;
         mutable r1 = [];
         mutable r2 = [Zero];
     "#]]
@@ -1654,23 +1667,11 @@ fn cast_to_bool() -> miette::Result<(), Vec<Report>> {
             Size = 32
         };
         let e = One;
-        let s1 = if a == 0 {
-            false
-        } else {
-            true
-        };
-        let s2 = if b == 0 {
-            false
-        } else {
-            true
-        };
-        let s3 = if Std.Math.Truncate(c) == 0 {
-            false
-        } else {
-            true
-        };
-        let s4 = Std.OpenQASM.Angle.AngleAsBool(d);
-        let s5 = Std.OpenQASM.Convert.ResultAsBool(e);
+        let s1 = false;
+        let s2 = true;
+        let s3 = true;
+        let s4 = true;
+        let s5 = true;
         mutable r1 = [];
         mutable r2 = [Zero];
         mutable r3 = [Zero];
@@ -1707,10 +1708,10 @@ fn cast_to_int() -> miette::Result<(), Vec<Report>> {
         let b = 2;
         let c = 3.;
         let d = Zero;
-        let s1 = Std.OpenQASM.Convert.BoolAsInt(a);
-        let s2 = b;
-        let s3 = Std.Math.Truncate(c);
-        let s4 = Std.OpenQASM.Convert.ResultAsInt(d);
+        let s1 = 1;
+        let s2 = 2;
+        let s3 = 3;
+        let s4 = 0;
         mutable r1 = [Zero];
         mutable r2 = [Zero, Zero];
         mutable r3 = [Zero, Zero, Zero];
@@ -1746,10 +1747,10 @@ fn cast_to_uint() -> miette::Result<(), Vec<Report>> {
         let b = 2;
         let c = 3.;
         let d = Zero;
-        let s1 = Std.OpenQASM.Convert.BoolAsInt(a);
-        let s2 = b;
-        let s3 = Std.Math.Truncate(c);
-        let s4 = Std.OpenQASM.Convert.ResultAsInt(d);
+        let s1 = 1;
+        let s2 = 2;
+        let s3 = 3;
+        let s4 = 0;
         mutable r1 = [Zero];
         mutable r2 = [Zero, Zero];
         mutable r3 = [Zero, Zero, Zero];
@@ -1781,9 +1782,9 @@ fn cast_to_float() -> miette::Result<(), Vec<Report>> {
         let a = true;
         let b = 2;
         let c = 3;
-        let s1 = Std.OpenQASM.Convert.BoolAsDouble(a);
-        let s2 = Std.Convert.IntAsDouble(b);
-        let s3 = Std.Convert.IntAsDouble(c);
+        let s1 = 1.;
+        let s2 = 2.;
+        let s3 = 3.;
         mutable r1 = [Zero];
         mutable r2 = [Zero, Zero];
         mutable r3 = [Zero, Zero, Zero];
@@ -1806,8 +1807,11 @@ fn cast_to_angle() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a1 = 2.;
-        let b1 = Std.OpenQASM.Angle.DoubleAsAngle(a1, 32);
-        let s1 = Std.OpenQASM.Angle.AngleAsResult(b1);
+        let b1 = new Std.OpenQASM.Angle.Angle {
+            Value = 2867080569611330,
+            Size = 53
+        };
+        let s1 = One;
         mutable r1 = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -1843,18 +1847,10 @@ fn cast_to_bit() -> miette::Result<(), Vec<Report>> {
             Value = 2050695827,
             Size = 32
         };
-        let s1 = Std.OpenQASM.Convert.BoolAsResult(a);
-        let s2 = if b == 0 {
-            One
-        } else {
-            Zero
-        };
-        let s3 = if c == 0 {
-            One
-        } else {
-            Zero
-        };
-        let s4 = Std.OpenQASM.Angle.AngleAsResult(d);
+        let s1 = Zero;
+        let s2 = One;
+        let s3 = One;
+        let s4 = One;
         mutable r1 = [];
         mutable r2 = [Zero];
         mutable r3 = [Zero];
@@ -2030,7 +2026,7 @@ fn division_of_int_by_zero_int_errors() {
     expect![[r#"
         Qasm.Lowerer.DivisionByZero
 
-          x division by error during const evaluation
+          x division by zero error during const evaluation
            ,-[Test.qasm:2:23]
          1 | 
          2 |         const int a = 2 / 0;
@@ -2057,7 +2053,7 @@ fn division_of_angle_by_zero_int_errors() {
     expect![[r#"
         Qasm.Lowerer.DivisionByZero
 
-          x division by error during const evaluation
+          x division by zero error during const evaluation
            ,-[Test.qasm:3:25]
          2 |         const angle a = 2.0;
          3 |         const angle b = a / 0;
@@ -2083,7 +2079,7 @@ fn division_by_zero_float_errors() {
     expect![[r#"
         Qasm.Lowerer.DivisionByZero
 
-          x division by error during const evaluation
+          x division by zero error during const evaluation
            ,-[Test.qasm:2:25]
          1 | 
          2 |         const float a = 2.0 / 0.0;
@@ -2111,7 +2107,7 @@ fn division_by_zero_angle_errors() {
     expect![[r#"
         Qasm.Lowerer.DivisionByZero
 
-          x division by error during const evaluation
+          x division by zero error during const evaluation
            ,-[Test.qasm:4:24]
          3 |         const angle b = 0.0;
          4 |         const uint c = a / b;
@@ -2137,7 +2133,7 @@ fn modulo_of_int_by_zero_int_errors() {
     expect![[r#"
         Qasm.Lowerer.DivisionByZero
 
-          x division by error during const evaluation
+          x division by zero error during const evaluation
            ,-[Test.qasm:2:23]
          1 | 
          2 |         const int a = 2 % 0;

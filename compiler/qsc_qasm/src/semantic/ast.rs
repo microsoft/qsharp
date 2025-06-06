@@ -479,6 +479,7 @@ impl Display for ExprStmt {
 pub struct Expr {
     pub span: Span,
     pub kind: Box<ExprKind>,
+    pub const_value: Option<LiteralKind>,
     pub ty: super::types::Type,
 }
 
@@ -486,7 +487,79 @@ impl Display for Expr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "Expr", self.span)?;
         writeln_field(f, "ty", &self.ty)?;
+        if self.const_value.is_some() {
+            writeln_opt_field(f, "const_value", self.const_value.as_ref())?;
+        }
         write_field(f, "kind", &self.kind)
+    }
+}
+
+impl Expr {
+    pub fn new(span: Span, kind: ExprKind, ty: super::types::Type) -> Self {
+        Self {
+            span,
+            kind: kind.into(),
+            ty,
+            const_value: None,
+        }
+    }
+
+    pub fn int(val: i64, span: Span) -> Self {
+        let val = LiteralKind::Int(val);
+        Expr {
+            span,
+            kind: Box::new(ExprKind::Lit(val.clone())),
+            ty: super::types::Type::Int(None, true),
+            const_value: Some(val),
+        }
+    }
+
+    pub fn uint(val: i64, span: Span) -> Self {
+        let val = LiteralKind::Int(val);
+        Expr {
+            span,
+            kind: Box::new(ExprKind::Lit(val.clone())),
+            ty: super::types::Type::UInt(None, true),
+            const_value: Some(val),
+        }
+    }
+
+    pub fn float(val: f64, span: Span) -> Self {
+        let val = LiteralKind::Float(val);
+        Expr {
+            span,
+            kind: Box::new(ExprKind::Lit(val.clone())),
+            ty: super::types::Type::Float(None, true),
+            const_value: Some(val),
+        }
+    }
+
+    pub fn builtin_funcall(
+        name: &str,
+        span: Span,
+        fn_name_span: Span,
+        function_ty: crate::semantic::types::Type,
+        args: &[Expr],
+        output: LiteralKind,
+    ) -> Self {
+        let crate::semantic::types::Type::Function(_, ty) = &function_ty else {
+            unreachable!("if we hit this there is a bug in the builtin functions implementation");
+        };
+
+        let ty = ty.as_ref().clone();
+
+        Self {
+            span,
+            kind: Box::new(ExprKind::BuiltinFunctionCall(BuiltinFunctionCall {
+                span,
+                fn_name_span,
+                name: name.into(),
+                args: args.into(),
+                function_ty,
+            })),
+            ty,
+            const_value: Some(output),
+        }
     }
 }
 
@@ -539,8 +612,12 @@ impl Display for QuantumGateModifier {
 pub enum GateModifierKind {
     Inv,
     Pow(Expr),
-    Ctrl(u32),
-    NegCtrl(u32),
+    /// This `Expr` is const, but we don't substitute by the `LiteralKind` yet
+    /// to be able to provide Span and Type information to the Language Service.
+    Ctrl(Expr),
+    /// This `Expr` is const, but we don't substitute by the `LiteralKind` yet
+    /// to be able to provide Span and Type information to the Language Service.
+    NegCtrl(Expr),
 }
 
 impl Display for GateModifierKind {
@@ -692,7 +769,9 @@ impl Display for QubitDeclaration {
 pub struct QubitArrayDeclaration {
     pub span: Span,
     pub symbol_id: SymbolId,
-    pub size: u32,
+    /// This `Expr` is const, but we don't substitute by the `LiteralKind` yet
+    /// to be able to provide Span and Type information to the Language Service.
+    pub size: Expr,
     pub size_span: Span,
 }
 
@@ -991,6 +1070,7 @@ pub enum ExprKind {
     BinaryOp(BinaryOpExpr),
     Lit(LiteralKind),
     FunctionCall(FunctionCall),
+    BuiltinFunctionCall(BuiltinFunctionCall),
     Cast(Cast),
     IndexExpr(IndexExpr),
     Paren(Expr),
@@ -1007,6 +1087,7 @@ impl Display for ExprKind {
             ExprKind::BinaryOp(expr) => write!(f, "{expr}"),
             ExprKind::Lit(lit) => write!(f, "Lit: {lit}"),
             ExprKind::FunctionCall(call) => write!(f, "{call}"),
+            ExprKind::BuiltinFunctionCall(call) => write!(f, "{call}"),
             ExprKind::Cast(expr) => write!(f, "{expr}"),
             ExprKind::IndexExpr(expr) => write!(f, "{expr}"),
             ExprKind::Paren(expr) => write!(f, "Paren {expr}"),
@@ -1101,6 +1182,29 @@ impl Display for FunctionCall {
         writeln_field(f, "fn_name_span", &self.fn_name_span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         write_list_field(f, "args", &self.args)
+    }
+}
+
+/// The information in this struct is aimed to be consumed
+/// by the language service. The result of the computation
+/// is already stored in the [`Expr::const_value`] field by
+/// the time the `Expr` is created.
+#[derive(Clone, Debug)]
+pub struct BuiltinFunctionCall {
+    pub span: Span,
+    pub fn_name_span: Span,
+    pub name: Rc<str>,
+    pub function_ty: crate::semantic::types::Type,
+    pub args: Rc<[Expr]>,
+}
+
+impl Display for BuiltinFunctionCall {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "BuiltinFunctionCall", self.span)?;
+        writeln_field(f, "fn_name_span", &self.fn_name_span)?;
+        writeln_field(f, "name", &self.name)?;
+        writeln_field(f, "function_ty", &self.function_ty)?;
+        write_list_field(f, "args", self.args.iter())
     }
 }
 
@@ -1216,11 +1320,11 @@ impl Array {
                 data,
                 dims: (&dims[1..]).into(),
             };
-            let expr = Expr {
-                span: Default::default(),
-                kind: Box::new(ExprKind::Lit(LiteralKind::Array(array))),
-                ty: super::types::Type::make_array_ty(&dims[1..], base_ty),
-            };
+            let expr = Expr::new(
+                Default::default(),
+                ExprKind::Lit(LiteralKind::Array(array)),
+                super::types::Type::make_array_ty(&dims[1..], base_ty),
+            );
             let dim_size = dims[0] as usize;
             vec![expr; dim_size]
         }

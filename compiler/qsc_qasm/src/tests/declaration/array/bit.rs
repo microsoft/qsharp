@@ -84,7 +84,7 @@ fn bitarray_indexing() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = [One, Zero, One, Zero, One];
-        let b = a[2];
+        let b = One;
         function f() : Unit {
             mutable c = One;
         }
@@ -108,7 +108,7 @@ fn bitarray_slicing() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = [One, Zero, One, Zero, One];
-        let b = a[1..3];
+        let b = [Zero, One, Zero];
         function f() : Unit {
             mutable c = [Zero, One, Zero];
         }

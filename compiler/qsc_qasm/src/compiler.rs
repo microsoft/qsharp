@@ -816,17 +816,19 @@ impl QasmCompiler {
                         build_path_ident_expr("ApplyOperationPowerA", modifier.span, stmt.span);
                 }
                 semast::GateModifierKind::Ctrl(num_ctrls) => {
+                    let num_ctrls = num_ctrls.get_const_u32()?;
+
                     // remove the last n qubits from the qubit list
-                    if qubits.len() < *num_ctrls as usize {
+                    if qubits.len() < num_ctrls as usize {
                         let kind = CompilerErrorKind::InvalidNumberOfQubitArgs(
-                            *num_ctrls as usize,
+                            num_ctrls as usize,
                             qubits.len(),
                             modifier.span,
                         );
                         self.push_compiler_error(kind);
                         return None;
                     }
-                    let ctrl = qubits.split_off(qubits.len().saturating_sub(*num_ctrls as usize));
+                    let ctrl = qubits.split_off(qubits.len().saturating_sub(num_ctrls as usize));
                     let ctrls = build_expr_array_expr(ctrl, modifier.span);
                     args = build_tuple_expr(vec![ctrls, args]);
                     callee = build_unary_op_expr(
@@ -836,17 +838,19 @@ impl QasmCompiler {
                     );
                 }
                 semast::GateModifierKind::NegCtrl(num_ctrls) => {
+                    let num_ctrls = num_ctrls.get_const_u32()?;
+
                     // remove the last n qubits from the qubit list
-                    if qubits.len() < *num_ctrls as usize {
+                    if qubits.len() < num_ctrls as usize {
                         let kind = CompilerErrorKind::InvalidNumberOfQubitArgs(
-                            *num_ctrls as usize,
+                            num_ctrls as usize,
                             qubits.len(),
                             modifier.span,
                         );
                         self.push_compiler_error(kind);
                         return None;
                     }
-                    let ctrl = qubits.split_off(qubits.len().saturating_sub(*num_ctrls as usize));
+                    let ctrl = qubits.split_off(qubits.len().saturating_sub(num_ctrls as usize));
                     let ctrls = build_expr_array_expr(ctrl, modifier.span);
                     let lit_0 = build_lit_int_expr(0, Span::default());
                     args = build_tuple_expr(vec![lit_0, callee, ctrls, args]);
@@ -1024,11 +1028,12 @@ impl QasmCompiler {
 
         let stmt = match self.config.qubit_semantics {
             QubitSemantics::QSharp => {
-                managed_qubit_alloc_array(name, stmt.size, stmt.span, name_span, stmt.size_span)
+                let size = stmt.size.get_const_u32()?;
+                managed_qubit_alloc_array(name, size, stmt.span, name_span, stmt.size_span)
             }
             QubitSemantics::Qiskit => build_unmanaged_qubit_alloc_array(
                 name,
-                stmt.size,
+                stmt.size.get_const_u32()?,
                 stmt.span,
                 name_span,
                 stmt.size_span,
@@ -1143,6 +1148,12 @@ impl QasmCompiler {
     }
 
     fn compile_expr(&mut self, expr: &semast::Expr) -> qsast::Expr {
+        if expr.ty.is_const() {
+            if let Some(value) = expr.get_const_value() {
+                return self.compile_literal_expr(&value, expr.span);
+            }
+        }
+
         match expr.kind.as_ref() {
             semast::ExprKind::Err => qsast::Expr {
                 span: expr.span,
@@ -1161,6 +1172,13 @@ impl QasmCompiler {
             }
             semast::ExprKind::FunctionCall(function_call) => {
                 self.compile_function_call_expr(function_call)
+            }
+            semast::ExprKind::BuiltinFunctionCall(_) => {
+                let Some(value) = expr.get_const_value() else {
+                    unreachable!("builtin function call exprs are only lowered if they succeed");
+                };
+
+                self.compile_literal_expr(&value, expr.span)
             }
             semast::ExprKind::Cast(cast) => self.compile_cast_expr(cast),
             semast::ExprKind::IndexExpr(index_expr) => self.compile_index_expr(index_expr),

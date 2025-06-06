@@ -34,6 +34,7 @@ fn const_implicit_bitness_int_lit() {
                 ty_span: [6-10]
                 init_expr: Expr [15-17]:
                     ty: const uint
+                    const_value: Int(42)
                     kind: Lit: Int(42)
             [8] Symbol [11-12]:
                 name: x
@@ -72,6 +73,7 @@ fn const_implicit_bitness_int_hex_low() {
                 ty_span: [6-10]
                 init_expr: Expr [15-22]:
                     ty: const uint
+                    const_value: Int(64031)
                     kind: Lit: Int(64031)
             [8] Symbol [11-12]:
                 name: x
@@ -91,6 +93,7 @@ fn const_implicit_bitness_int_hex_cap() {
                 ty_span: [6-10]
                 init_expr: Expr [15-22]:
                     ty: const uint
+                    const_value: Int(64031)
                     kind: Lit: Int(64031)
             [8] Symbol [11-12]:
                 name: y
@@ -148,6 +151,7 @@ fn const_implicit_bitness_int_octal_low() {
                 ty_span: [6-10]
                 init_expr: Expr [15-19]:
                     ty: const uint
+                    const_value: Int(34)
                     kind: Lit: Int(34)
             [8] Symbol [11-12]:
                 name: x
@@ -167,6 +171,7 @@ fn const_implicit_bitness_int_octal_cap() {
                 ty_span: [6-10]
                 init_expr: Expr [15-19]:
                     ty: const uint
+                    const_value: Int(34)
                     kind: Lit: Int(34)
             [8] Symbol [11-12]:
                 name: x
@@ -224,6 +229,7 @@ fn const_implicit_bitness_int_binary_low() {
                 ty_span: [6-10]
                 init_expr: Expr [15-26]:
                     ty: const uint
+                    const_value: Int(153)
                     kind: Lit: Int(153)
             [8] Symbol [11-12]:
                 name: x
@@ -243,6 +249,7 @@ fn const_implicit_bitness_int_binary_cap() {
                 ty_span: [6-10]
                 init_expr: Expr [15-21]:
                     ty: const uint
+                    const_value: Int(10)
                     kind: Lit: Int(10)
             [8] Symbol [11-12]:
                 name: x
@@ -281,6 +288,7 @@ fn const_implicit_bitness_int_formatted() {
                 ty_span: [6-10]
                 init_expr: Expr [15-21]:
                     ty: const uint
+                    const_value: Int(2000)
                     kind: Lit: Int(2000)
             [8] Symbol [11-12]:
                 name: x
@@ -319,6 +327,7 @@ fn assigning_uint_to_negative_lit() {
                 ty_span: [6-14]
                 init_expr: Expr [20-22]:
                     ty: const uint[10]
+                    const_value: Int(-42)
                     kind: Cast [0-0]:
                         ty: const uint[10]
                         expr: Expr [20-22]:
@@ -346,6 +355,7 @@ fn implicit_bitness_uint_const_negative_decl() {
                 ty_span: [6-10]
                 init_expr: Expr [16-18]:
                     ty: const uint
+                    const_value: Int(-42)
                     kind: Cast [0-0]:
                         ty: const uint
                         expr: Expr [16-18]:
@@ -373,6 +383,7 @@ fn explicit_bitness_uint_const_negative_decl() {
                 ty_span: [6-14]
                 init_expr: Expr [20-22]:
                     ty: const uint[32]
+                    const_value: Int(-42)
                     kind: Cast [0-0]:
                         ty: const uint[32]
                         expr: Expr [20-22]:

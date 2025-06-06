@@ -30,7 +30,10 @@ fn on_an_indexed_qubit_register() {
         &expect![[r#"
             QubitArrayDeclaration [0-11]:
                 symbol_id: 8
-                size: 5
+                size: Expr [6-7]:
+                    ty: const uint
+                    const_value: Int(5)
+                    kind: Lit: Int(5)
                 size_span: [6-7]
             ResetStmt [20-31]:
                 reset_token_span: [20-25]
@@ -57,7 +60,10 @@ fn on_a_span_indexed_qubit_register() {
         &expect![[r#"
             QubitArrayDeclaration [0-11]:
                 symbol_id: 8
-                size: 5
+                size: Expr [6-7]:
+                    ty: const uint
+                    const_value: Int(5)
+                    kind: Lit: Int(5)
                 size_span: [6-7]
             ResetStmt [20-33]:
                 reset_token_span: [20-25]
@@ -87,17 +93,30 @@ fn on_a_zero_len_qubit_register() {
         "qubit[0] q;
         reset q;",
         &expect![[r#"
-            QubitArrayDeclaration [0-11]:
-                symbol_id: 8
-                size: 0
-                size_span: [6-7]
-            ResetStmt [20-28]:
-                reset_token_span: [20-25]
-                operand: GateOperand [26-27]:
-                    kind: Expr [26-27]:
-                        ty: qubit[0]
-                        kind: SymbolId(8)
-        "#]],
+            Program:
+                version: <none>
+                statements:
+                    Stmt [0-11]:
+                        annotations: <empty>
+                        kind: Err
+                    Stmt [20-28]:
+                        annotations: <empty>
+                        kind: ResetStmt [20-28]:
+                            reset_token_span: [20-25]
+                            operand: GateOperand [26-27]:
+                                kind: Expr [26-27]:
+                                    ty: unknown
+                                    kind: SymbolId(8)
+
+            [Qasm.Lowerer.ExprMustBePositiveInt
+
+              x quantum register size must be a positive integer
+               ,-[test:1:7]
+             1 | qubit[0] q;
+               :       ^
+             2 |         reset q;
+               `----
+            ]"#]],
     );
 }
 
@@ -109,7 +128,10 @@ fn on_an_unindexed_qubit_register() {
         &expect![[r#"
             QubitArrayDeclaration [0-11]:
                 symbol_id: 8
-                size: 5
+                size: Expr [6-7]:
+                    ty: const uint
+                    const_value: Int(5)
+                    kind: Lit: Int(5)
                 size_span: [6-7]
             ResetStmt [20-28]:
                 reset_token_span: [20-25]

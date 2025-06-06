@@ -91,6 +91,7 @@ fn const_decl_with_lit_0_init_expr() {
                 ty_span: [6-9]
                 init_expr: Expr [14-15]:
                     ty: const bit
+                    const_value: Bit(0)
                     kind: Lit: Bit(0)
             [8] Symbol [10-11]:
                 name: a
@@ -110,6 +111,7 @@ fn const_decl_with_lit_1_init_expr() {
                 ty_span: [6-9]
                 init_expr: Expr [14-15]:
                     ty: const bit
+                    const_value: Bit(1)
                     kind: Lit: Bit(1)
             [8] Symbol [10-11]:
                 name: a

@@ -280,7 +280,7 @@ fn const_lit_decl_signed_int_lit_cast_neg() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        let x = Std.Convert.IntAsDouble(-7);
+        let x = -7.;
     "#]]
     .assert_eq(&qsharp);
     Ok(())

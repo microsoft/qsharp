@@ -44,10 +44,9 @@ fn qubit_array_decl_with_qsharp_semantics() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn indexing_a_qubit_array_of_zero_size_fails() {
+fn declaring_a_qubit_array_of_zero_size_fails() {
     let source = "
         qubit[0] qs;
-        qs[0];
     ";
 
     let Err(errors) = compile_qasm_to_qsharp(source) else {
@@ -55,16 +54,15 @@ fn indexing_a_qubit_array_of_zero_size_fails() {
     };
 
     expect![[r#"
-        [Qasm.Lowerer.ZeroSizeArrayAccess
+        [Qasm.Lowerer.ExprMustBePositiveInt
 
-          x zero size array access is not allowed
-           ,-[Test.qasm:3:9]
+          x quantum register size must be a positive integer
+           ,-[Test.qasm:2:15]
+         1 | 
          2 |         qubit[0] qs;
-         3 |         qs[0];
-           :         ^^^^^
-         4 |     
+           :               ^
+         3 |     
            `----
-          help: array size must be a positive integer const expression
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
 }

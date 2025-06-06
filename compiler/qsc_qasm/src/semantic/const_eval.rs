@@ -23,7 +23,7 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub enum ConstEvalError {
-    #[error("division by error during const evaluation")]
+    #[error("division by zero error during const evaluation")]
     #[diagnostic(code("Qasm.Lowerer.DivisionByZero"))]
     DivisionByZero(#[label] Span),
     #[error("expression must be const")]
@@ -38,6 +38,9 @@ pub enum ConstEvalError {
     #[error("uint expression must evaluate to a non-negative value, but it evaluated to {0}")]
     #[diagnostic(code("Qasm.Lowerer.NegativeUIntValue"))]
     NegativeUIntValue(i64, #[label] Span),
+    #[error("{0}")]
+    #[diagnostic(code("Qasm.Lowerer.NoValidOverloadForBuiltinFunction"))]
+    NoValidOverloadForBuiltinFunction(String, #[label] Span),
     #[error("too many indices provided")]
     #[diagnostic(code("Qasm.Lowerer.TooManyIndices"))]
     TooManyIndices(#[label] Span),
@@ -50,10 +53,33 @@ pub enum ConstEvalError {
 }
 
 impl Expr {
+    /// A builder pattern that initializes the [`Expr::const_value`] field
+    /// to the result of const evaluating the expression.
+    pub(crate) fn with_const_value(mut self, ctx: &mut Lowerer) -> Self {
+        self.const_value = self.const_eval(ctx);
+        self
+    }
+
+    pub(crate) fn get_const_value(&self) -> Option<LiteralKind> {
+        self.const_value.clone()
+    }
+
+    pub(crate) fn get_const_u32(&self) -> Option<u32> {
+        if let Some(LiteralKind::Int(val)) = self.get_const_value() {
+            u32::try_from(val).ok()
+        } else {
+            None
+        }
+    }
+
     /// Tries to evaluate the expression. It takes the current `Lowerer` as
     /// the evaluation context to resolve symbols and push errors in case
     /// of failure.
-    pub(crate) fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
+    fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
+        if self.const_value.is_some() {
+            return self.const_value.clone();
+        }
+
         let ty = &self.ty;
 
         if ty.is_err() {
@@ -72,6 +98,7 @@ impl Expr {
             ExprKind::BinaryOp(binary_op_expr) => binary_op_expr.const_eval(ctx),
             ExprKind::Lit(literal_kind) => Some(literal_kind.clone()),
             ExprKind::FunctionCall(function_call) => function_call.const_eval(ctx, ty),
+            ExprKind::BuiltinFunctionCall(_) => self.get_const_value(),
             ExprKind::Cast(cast) => cast.const_eval(ctx),
             ExprKind::IndexExpr(index_expr) => index_expr.const_eval(ctx, ty),
             ExprKind::Paren(expr) => expr.const_eval(ctx),
@@ -83,7 +110,10 @@ impl Expr {
 
 impl SymbolId {
     fn const_eval(self, ctx: &mut Lowerer) -> Option<LiteralKind> {
-        ctx.symbols[self].get_const_expr()?.const_eval(ctx)
+        // Expressions associated to const symbols are evaluated
+        // when they are pushed in the symbol table. So, we just
+        // need to get the already computed value here.
+        ctx.symbols[self].get_const_value()
     }
 }
 
