@@ -162,7 +162,7 @@ pub trait ErrorCorrection {
     /// computed.  The initial code parameter will fit the required logical
     /// error rate, but it's possible to further refine it, if necessary.
     ///
-    /// Note, that when implementing the ErrorCorrection trait and providing a
+    /// Note, that when implementing the `ErrorCorrection` trait and providing a
     /// custom implementation for this function, it may return a code parameter
     /// that will not fit the required logical error rate any longer.
     ///
