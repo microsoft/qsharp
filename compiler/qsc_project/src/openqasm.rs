@@ -80,23 +80,17 @@ where
         }
 
         // At this point, we have a valid include path that we need to try to load.
-        match project_host
+        // Any file read errors after the root are ignored,
+        // the parser will handle them as part of full parsing.
+        if let Ok((file, source)) = project_host
             .read_file(Path::new(resolved_path.as_ref()))
             .await
         {
-            Ok((file, source)) => {
-                let (program, _errors) = qsc_qasm::parser::parse(source.as_ref());
-                let includes = get_includes(&program, &file);
-                pending_includes.extend(includes);
-                loaded_files.insert(file.clone());
-                sources.push((file, source.clone()));
-            }
-            Err(e) => {
-                errors.push(super::project::Error::FileSystem {
-                    about_path: doc_uri.to_string(),
-                    error: e.to_string(),
-                });
-            }
+            let (program, _errors) = qsc_qasm::parser::parse(source.as_ref());
+            let includes = get_includes(&program, &file);
+            pending_includes.extend(includes);
+            loaded_files.insert(file.clone());
+            sources.push((file, source.clone()));
         }
     }
 
