@@ -206,8 +206,10 @@ export async function generateQubitCircuitExpression(
       throw new Error("Circuit file does not have expected structure.");
     }
     numQubits = json.circuits[0].qubits.length;
-    if (typeof numQubits !== "number" || numQubits <= 0) {
+    if (typeof numQubits !== "number" || numQubits < 0) {
       throw new Error("Could not determine number of qubits.");
+    } else if (numQubits === 0) {
+      return `Message("Circuit is empty. Please add operations to the circuit.")`;
     }
 
     // Get operation name (file name without extension)
