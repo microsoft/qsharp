@@ -67,7 +67,9 @@ where
         let res = self
             .resolve_path(&base.to_string_lossy(), &path.to_string_lossy())
             .await
-            .ok_or(Error::msg("Path could not be resolved"))?;
+            .ok_or(Error::msg(format!(
+                "Failed to resolve path ${base:?} and ${path:?}"
+            )))?;
         return Ok(PathBuf::from(res.to_string()));
     }
 
