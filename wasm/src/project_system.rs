@@ -44,8 +44,8 @@ extern "C" {
     #[wasm_bindgen(method, structural)]
     async fn listDirectory(this: &ProjectHost, uri: &str) -> JsValue;
 
-    #[wasm_bindgen(method, structural)]
-    async fn resolvePath(this: &ProjectHost, base: &str, path: &str) -> JsValue;
+    #[wasm_bindgen(method, structural, catch)]
+    async fn resolvePath(this: &ProjectHost, base: &str, path: &str) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(method, structural, catch)]
     async fn fetchGithub(
@@ -140,9 +140,20 @@ impl JSProjectHost for ProjectHost {
         }
     }
 
-    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>> {
-        let js_val = self.resolvePath(base, path).await;
-        js_val.as_string().map(Into::into)
+    async fn resolve_path(&self, base: &str, path: &str) -> miette::Result<Arc<str>> {
+        match self.resolvePath(base, path).await {
+            Ok(val) => Ok(val.as_string().unwrap_or_default().into()),
+            Err(js_val) => {
+                let err: js_sys::Error = js_val
+                    .dyn_into()
+                    .expect("exception should be an error type");
+                let message = err
+                    .message()
+                    .as_string()
+                    .expect("error message should be a string");
+                Err(Report::msg(message))
+            }
+        }
     }
 
     async fn fetch_github(

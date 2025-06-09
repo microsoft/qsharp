@@ -247,14 +247,7 @@ async function singleFileProject(
 }
 
 export function resolvePath(base: string, relative: string): string | null {
-  try {
-    return Utils.resolvePath(URI.parse(base, true), relative).toString();
-  } catch (e) {
-    log.trace(`Failed to resolve path ${base} and ${relative}: ${e}`);
-    // `string | null` gets mapped to `JSValue` then `Option<String>` in Rust where it is mapped
-    // to a result type, so we return `null` here if the path cannot be resolved.
-    return null;
-  }
+  return Utils.resolvePath(URI.parse(base, true), relative).toString();
 }
 
 let githubEndpoint = "https://raw.githubusercontent.com";
