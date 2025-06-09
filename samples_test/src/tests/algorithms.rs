@@ -88,6 +88,8 @@ pub const HIDDENSHIFT_EXPECT_DEBUG: Expect = expect![[r#"
     [170, 512, 999]"#]];
 pub const HIDDENSHIFTNISQ_EXPECT: Expect = expect!["[One, Zero, Zero, Zero, Zero, One]"];
 pub const HIDDENSHIFTNISQ_EXPECT_DEBUG: Expect = expect!["[One, Zero, Zero, Zero, Zero, One]"];
+pub const PHASEESTIMATION_EXPECT: Expect = expect![[r#"(1.0, 1.0799224746714913)"#]];
+pub const PHASEESTIMATION_EXPECT_DEBUG: Expect = expect![[r#"(1.0, 1.0799224746714913)"#]];
 pub const PHASEFLIPCODE_EXPECT: Expect = expect![[r#"
     STATE:
     |000⟩: 0.4743+0.0000𝑖
