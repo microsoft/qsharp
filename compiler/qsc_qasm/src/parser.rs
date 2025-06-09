@@ -229,26 +229,11 @@ impl QasmSource {
     }
 }
 
-fn strip_scheme(path: &str) -> (Option<Arc<str>>, Arc<str>) {
-    if let Some(scheme_end) = path.find("://") {
-        let scheme = &path[..scheme_end];
-        let after_scheme = &path[scheme_end + 3..];
-
-        (Some(Arc::from(scheme)), Arc::from(after_scheme))
-    } else {
-        (None, Arc::from(path))
-    }
-}
-
 /// append a path to a base path, resolving any relative components
 /// like `.` and `..` in the process.
 /// When the base path is a URI, it will be resolved as well.
-/// Uri schemes are stripped from the path, and the resulting path
-/// is processed as a file path. The scheme is prepended back to the
-/// resulting path if it was present in the base path.
 fn resolve_path(base: &Path, path: &Path) -> miette::Result<PathBuf> {
-    let (scheme, joined) = strip_scheme(&base.join(path).to_string_lossy());
-    let joined = PathBuf::from(joined.as_ref());
+    let joined = base.join(path);
     // Adapted from https://github.com/rust-lang/cargo/blob/a879a1ca12e3997d9fdd71b70f34f1f3c866e1da/crates/cargo-util/src/paths.rs#L84
     let mut components = joined.components().peekable();
     let mut normalized = if let Some(c @ Component::Prefix(..)) = components.peek().copied() {
@@ -273,9 +258,7 @@ fn resolve_path(base: &Path, path: &Path) -> miette::Result<PathBuf> {
             }
         }
     }
-    if let Some(scheme) = scheme {
-        normalized = format!("{scheme}://{}", normalized.to_string_lossy()).into();
-    }
+
     Ok(normalized)
 }
 

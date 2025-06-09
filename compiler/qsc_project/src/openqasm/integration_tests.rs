@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use expect_test::expect;
 use qsc_qasm::semantic::QasmSemanticParseResult;
 
 use crate::{FileSystem, ProjectType, StdFs};
-use std::path::PathBuf;
+use miette::Report;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 fn get_test_dir() -> PathBuf {
@@ -17,13 +19,23 @@ fn get_test_dir() -> PathBuf {
 fn parse_file(file_name: &'static str) -> (Arc<str>, QasmSemanticParseResult) {
     let test_dir = get_test_dir();
     let test_file = test_dir.join(file_name);
+    parse_file_with_contents(&test_file, None)
+}
+
+fn parse_file_with_contents<P: AsRef<Path>>(
+    test_file: P,
+    source: Option<Arc<str>>,
+) -> (Arc<str>, QasmSemanticParseResult) {
     let fs = StdFs;
-    let project = fs.load_openqasm_project(&test_file, None);
+    let project = fs.load_openqasm_project(test_file.as_ref(), source);
     let ProjectType::OpenQASM(sources) = project.project_type else {
         panic!("Expected OpenQASM project type");
     };
     let result = qsc_qasm::semantic::parse_sources(&sources);
-    (test_file.display().to_string().as_str().into(), result)
+    (
+        test_file.as_ref().display().to_string().as_str().into(),
+        result,
+    )
 }
 
 #[test]
@@ -164,4 +176,62 @@ fn test_relative_path_file_includes() {
             "Should find gate {gate} in symbols"
         );
     }
+}
+
+#[test]
+fn unsaved_files_can_ref_stdgates() {
+    let file_name = "untitled:Untitled-1";
+    let contents = r#"
+    OPENQASM 3.0;
+    include "stdgates.inc";
+
+    // This file includes a missing file
+    qreg q[1];
+    h q[0];
+    "#;
+    let (_, result) = parse_file_with_contents(file_name, Some(contents.into()));
+
+    if result.has_errors() {
+        let all_errors = result.all_errors();
+        assert!(
+            all_errors.is_empty(),
+            "Should not have errors for built-in includes, got: {all_errors:?}"
+        );
+    }
+}
+
+#[test]
+fn unsaved_files_cannot_ref_relative_includes() {
+    let file_name = "untitled:Untitled-1";
+    let contents = r#"
+    OPENQASM 3.0;
+    include "stdgates.inc";
+    include "nonexistent.qasm";
+
+    // This file includes a missing file
+    qreg q[1];
+    h q[0];
+    "#;
+    let (_, result) = parse_file_with_contents(file_name, Some(contents.into()));
+
+    assert!(result.has_errors(), "Should indicate presence of errors");
+
+    let all_errors = result.errors();
+
+    expect![[r#"
+        [  x Not Found: Could not resolve include file: nonexistent.qasm
+           ,-[untitled:Untitled-1:4:5]
+         3 |     include "stdgates.inc";
+         4 |     include "nonexistent.qasm";
+           :     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+         5 | 
+           `----
+        ]"#]]
+    .assert_eq(&format!(
+        "{:?}",
+        all_errors
+            .iter()
+            .map(|e| Report::new(e.clone()))
+            .collect::<Vec<_>>()
+    ));
 }

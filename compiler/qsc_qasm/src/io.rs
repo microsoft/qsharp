@@ -146,13 +146,6 @@ pub struct Cycle {
     pub paths: Vec<Arc<str>>,
 }
 
-impl Cycle {
-    #[must_use]
-    pub fn new(paths: Vec<Arc<str>>) -> Self {
-        Self { paths }
-    }
-}
-
 impl std::fmt::Display for Cycle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let parents = self.paths[0..(self.paths.len() - 1)].iter();

@@ -21,8 +21,6 @@ suite("OpenQASM Debugger Tests", function suite() {
     workspaceFolder.uri,
     selfContainedName,
   );
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const multifileUri = vscode.Uri.joinPath(workspaceFolder.uri, multifileName);
   const multifileIncludeUri = vscode.Uri.joinPath(
     workspaceFolder.uri,
     multifileIncludeName,

@@ -269,9 +269,9 @@ impl Compilation {
             None,
         );
         let res = qsc::qasm::semantic::parse_sources(&sources);
-        let unit = compile_to_qsharp_ast_with_config(res.clone(), config);
+        let unit = compile_to_qsharp_ast_with_config(res, config);
         let CompileRawQasmResult(store, source_package_id, dependencies, _sig, mut compile_errors) =
-            qsc::qasm::compile_openqasm(unit.clone(), package_type, capabilities);
+            qsc::qasm::compile_openqasm(unit, package_type, capabilities);
 
         let compile_unit = store
             .get(source_package_id)
@@ -393,13 +393,6 @@ impl Compilation {
         language_features: LanguageFeatures,
         lints_config: &[LintOrGroupConfig],
     ) {
-        let sources = self
-            .user_unit()
-            .sources
-            .iter()
-            .map(|source| (source.name.clone(), source.contents.clone()))
-            .collect::<Vec<_>>();
-
         let new = match self.kind {
             CompilationKind::OpenProject {
                 ref package_graph_sources,
@@ -413,20 +406,28 @@ impl Compilation {
                 Vec::new(), // project errors will stay the same
                 friendly_name,
             ),
-            CompilationKind::Notebook { ref project } => Self::new_notebook(
-                sources.into_iter(),
-                target_profile,
-                language_features,
-                lints_config,
-                project.clone(),
-            ),
+            CompilationKind::Notebook { ref project } => {
+                let sources = self
+                    .user_unit()
+                    .sources
+                    .iter()
+                    .map(|source| (source.name.clone(), source.contents.clone()));
+
+                Self::new_notebook(
+                    sources,
+                    target_profile,
+                    language_features,
+                    lints_config,
+                    project.clone(),
+                )
+            }
             CompilationKind::OpenQASM {
-                sources: ref source,
+                ref sources,
                 ref friendly_name,
             } => Self::new_qasm(
                 package_type,
                 target_profile,
-                source.clone(),
+                sources.clone(),
                 Vec::new(), // project errors will stay the same
                 friendly_name,
             ),
