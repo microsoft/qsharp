@@ -5,11 +5,9 @@ import { VSDiagnostic } from "qsharp-lang";
 import vscode from "vscode";
 import { CircuitOrError, showCircuitCommand } from "../circuit";
 import { loadCompilerWorker, toVsCodeDiagnostic } from "../common";
-import { HistogramData, CopilotToolError } from "../shared/types";
 import { createDebugConsoleEventTarget } from "../debugger/output";
 import { resourceEstimateTool } from "../estimate";
 import { FullProgramConfig, getProgramForDocument } from "../programConfig";
-import { sendMessageToPanel } from "../webviewPanel.js";
 import {
   determineDocumentType,
   EventType,
@@ -17,6 +15,8 @@ import {
   UserTaskInvocationType,
 } from "../telemetry";
 import { getRandomGuid } from "../utils";
+import { sendMessageToPanel } from "../webviewPanel.js";
+import { CopilotToolError, HistogramData } from "./types";
 
 /**
  * In general, tool calls that deal with Q# should include this project

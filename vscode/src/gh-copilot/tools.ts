@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { log } from "qsharp-lang";
 import * as vscode from "vscode";
-import * as azqTools from "../shared/azureQuantumTools";
-import { CopilotToolError, ToolState } from "../shared/types";
-import { updateCopilotInstructions } from "./instructions";
-import { QSharpTools } from "./qsharpTools";
 import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
 import { getRandomGuid } from "../utils";
-import { log } from "qsharp-lang";
+import * as azqTools from "./azureQuantumTools";
+import { updateCopilotInstructions } from "./instructions";
+import { QSharpTools } from "./qsharpTools";
+import { CopilotToolError, ToolState } from "./types";
 
 // state
 const workspaceState: ToolState = {};
