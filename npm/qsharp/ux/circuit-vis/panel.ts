@@ -125,8 +125,24 @@ const _createToolbox = (): HTMLElement => {
   svgElem.classList.add("toolbox-panel-svg");
   _childrenSvg(svgElem, gateElems);
 
-  // Calculate button position (e.g., below all gates)
-  const buttonY = prefixY + gateHeight + 20; // Adjust as needed
+  // Append run button
+  const runButtonGroup = _createRunButton(prefixY + gateHeight + 20);
+  svgElem.appendChild(runButtonGroup);
+
+  // Generate toolbox panel
+  const toolboxElem = _elem("div", "toolbox-panel");
+  _children(toolboxElem, [_title("Toolbox")]);
+  toolboxElem.appendChild(svgElem);
+
+  return toolboxElem;
+};
+
+/**
+ * Function to create the run button in the toolbox panel
+ * @param buttonY      Y coordinate for the top of the button
+ * @returns            SVG group element containing the run button
+ */
+const _createRunButton = (buttonY: number): SVGGElement => {
   const buttonWidth = minGateWidth * 2 + horizontalGap;
   const buttonHeight = gateHeight;
   const buttonX = 1;
@@ -160,16 +176,7 @@ const _createToolbox = (): HTMLElement => {
 
   // The run button should be hidden by default
   runButtonGroup.setAttribute("visibility", "hidden");
-
-  // Append to SVG
-  svgElem.appendChild(runButtonGroup);
-
-  // Generate toolbox panel
-  const toolboxElem = _elem("div", "toolbox-panel");
-  _children(toolboxElem, [_title("Toolbox")]);
-  toolboxElem.appendChild(svgElem);
-
-  return toolboxElem;
+  return runButtonGroup;
 };
 
 /**
