@@ -228,9 +228,6 @@
         {
           "command": "qsharp-vscode.addProjectReference",
           "when": "resourceFilename == qsharp.json"
-        },
-        {
-          "command": "qsharp-vscode.updateCopilotInstructions"
         }
       ],
       "view/title": [
@@ -242,11 +239,6 @@
         {
           "command": "qsharp-vscode.workspacesAdd",
           "when": "view == quantum-workspaces",
-          "group": "navigation"
-        },
-        {
-          "command": "qsharp-vscode.copilotClear",
-          "when": "view == quantum-copilot",
           "group": "navigation"
         }
       ],
@@ -290,28 +282,12 @@
         }
       ]
     },
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "quantum-copilot-container",
-          "title": "Microsoft Quantum Copilot",
-          "icon": "resources/Q-vector-1024x1024.svg"
-        }
-      ]
-    },
+    "viewsContainers": {},
     "views": {
       "explorer": [
         {
           "id": "quantum-workspaces",
           "name": "Quantum Workspaces"
-        }
-      ],
-      "quantum-copilot-container": [
-        {
-          "when": "config.Q#.chat.enabled",
-          "id": "quantum-copilot",
-          "type": "webview",
-          "name": "Microsoft Quantum Copilot"
         }
       ]
     },
@@ -395,13 +371,6 @@
         "icon": "$(remove)"
       },
       {
-        "command": "qsharp-vscode.copilotClear",
-        "category": "QDK",
-        "title": "Clear Quantum Copilot chat",
-        "enablement": "config.Q#.chat.enabled && !qdkCopilotIsBusy",
-        "icon": "$(clear-all)"
-      },
-      {
         "command": "qsharp-vscode.workspacePythonCode",
         "category": "QDK",
         "title": "Copy Python code to connect to workspace"
@@ -453,11 +422,6 @@
         "command": "qsharp-vscode.addProjectReference",
         "category": "QDK",
         "title": "Add Q# project reference"
-      },
-      {
-        "command": "qsharp-vscode.updateCopilotInstructions",
-        "category": "QDK",
-        "title": "Add Copilot instructions file for Q# and OpenQASM"
       }
     ],
     "breakpoints": [
@@ -949,11 +913,9 @@
     "pretest": "npm exec --no playwright install chromium && node ./test/buildTests.mjs",
     "tsc:check:main": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
     "tsc:check:view": "node ../node_modules/typescript/bin/tsc -p ./src/webview/tsconfig.json",
-    "tsc:check:copilotView": "node ../node_modules/typescript/bin/tsc -p ./src/copilot/webview/tsconfig.json",
-    "tsc:check": "npm run tsc:check:main && npm run tsc:check:view && npm run tsc:check:copilotView",
+    "tsc:check": "npm run tsc:check:main && npm run tsc:check:view",
     "tsc:watch": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json --watch --preserveWatchOutput",
-    "tsc:watch:view": "node ../node_modules/typescript/bin/tsc -p ./src/webview/tsconfig.json --watch --preserveWatchOutput",
-    "tsc:watch:copilotView": "node ../node_modules/typescript/bin/tsc -p ./src/copilot/webview/tsconfig.json --watch --preserveWatchOutput"
+    "tsc:watch:view": "node ../node_modules/typescript/bin/tsc -p ./src/webview/tsconfig.json --watch --preserveWatchOutput"
   },
   "repository": {
     "type": "git",

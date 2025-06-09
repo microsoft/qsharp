@@ -15,11 +15,12 @@ import {
   WorkspaceTreeProvider,
 } from "../azure/treeView.js";
 import { getJobFiles, submitJob } from "../azure/workspaceActions.js";
-import { HistogramData } from "./shared.js";
+import { HistogramData } from "./types.js";
 import { getQirForVisibleSource } from "../qirGeneration.js";
-import { CopilotToolError, ToolResult, ToolState } from "./tools.js";
-import { CopilotWebviewViewProvider as CopilotView } from "./webviewViewProvider.js";
+import { CopilotToolError, ToolState } from "./types.js";
 import { sendMessageToPanel } from "../webviewPanel.js";
+
+export type ToolResult<T = any> = { result: T };
 import { getRandomGuid } from "../utils.js";
 import {
   EventType,
@@ -462,12 +463,8 @@ export async function submitToTarget(
     const quantumUris = new QuantumUris(workspace.endpointUri, workspace.id);
 
     if (confirmation) {
-      const confirmed = await CopilotView.getConfirmation(
-        `Submit job "${jobName}" to ${target.id} for ${numberOfShots} shots?`,
-      );
-      if (!confirmed) {
-        return { result: "Job submission was cancelled by the user" };
-      }
+      // For GitHub Copilot tools, confirmation is handled at the tool level
+      // This parameter is kept for API compatibility but not used
     }
 
     try {

@@ -18,7 +18,6 @@ const buildOptions = {
     join(thisDir, "src", "compilerWorker.ts"),
     join(thisDir, "src", "debugger/debug-service-worker.ts"),
     join(thisDir, "src", "webview/webview.tsx"),
-    join(thisDir, "src", "copilot/webview/copilot.tsx"),
     join(thisDir, "src", "webview/editor.tsx"),
   ],
   outdir: join(thisDir, "out"),

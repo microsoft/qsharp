@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 import * as vscode from "vscode";
-import * as azqTools from "../copilot/azqTools";
-import { CopilotToolError, ToolState } from "../copilot/tools";
+import * as azqTools from "../shared/azureQuantumTools";
+import { CopilotToolError, ToolState } from "../shared/types";
 import { updateCopilotInstructions } from "./instructions";
 import { QSharpTools } from "./qsharpTools";
 import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";

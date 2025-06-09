@@ -5,8 +5,7 @@ import { VSDiagnostic } from "qsharp-lang";
 import vscode from "vscode";
 import { CircuitOrError, showCircuitCommand } from "../circuit";
 import { loadCompilerWorker, toVsCodeDiagnostic } from "../common";
-import { HistogramData } from "../copilot/shared";
-import { CopilotToolError } from "../copilot/tools";
+import { HistogramData, CopilotToolError } from "../shared/types";
 import { createDebugConsoleEventTarget } from "../debugger/output";
 import { resourceEstimateTool } from "../estimate";
 import { FullProgramConfig, getProgramForDocument } from "../programConfig";
@@ -285,10 +284,10 @@ export class QSharpTools {
         }
       }
       histogram = {
-        buckets: Array.from(buckets.entries()),
+        buckets: Array.from(buckets.entries()) as [string, number][],
         shotCount: resultCount,
       };
-      resultUpdate(histogram, failures);
+      resultUpdate(histogram!, failures);
       if (shots === resultCount || failures.length > 0) {
         // TODO: ugh
         resolvePromise();
