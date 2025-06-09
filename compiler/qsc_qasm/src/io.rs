@@ -17,7 +17,11 @@ use rustc_hash::FxHashMap;
 pub trait SourceResolver {
     fn ctx(&mut self) -> &mut SourceResolverContext;
 
-    fn resolve(&mut self, path: &Arc<str>) -> miette::Result<(Arc<str>, Arc<str>), Error>;
+    fn resolve(
+        &mut self,
+        path: &Arc<str>,
+        original_path: &Arc<str>,
+    ) -> miette::Result<(Arc<str>, Arc<str>), Error>;
 }
 
 pub struct IncludeGraphNode {
@@ -189,12 +193,16 @@ impl SourceResolver for InMemorySourceResolver {
         &mut self.ctx
     }
 
-    fn resolve(&mut self, path: &Arc<str>) -> miette::Result<(Arc<str>, Arc<str>), Error> {
+    fn resolve(
+        &mut self,
+        path: &Arc<str>,
+        original_path: &Arc<str>,
+    ) -> miette::Result<(Arc<str>, Arc<str>), Error> {
         match self.sources.get(path) {
             Some(source) => Ok((path.clone(), source.clone())),
             None => Err(Error(ErrorKind::NotFound(
                 Span::default(),
-                format!("Could not resolve include file: {path}"),
+                format!("Could not resolve include file: {original_path}"),
             ))),
         }
     }

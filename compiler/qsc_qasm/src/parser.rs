@@ -295,7 +295,7 @@ where
         .check_include_errors(&resolved_path, span)
         .map_err(|e| io_to_parse_error(span, e))?;
 
-    match resolver.resolve(&resolved_path) {
+    match resolver.resolve(&resolved_path, path) {
         Ok((path, source)) => {
             let parse_result = parse_qasm_source(source, path.clone(), resolver);
 
