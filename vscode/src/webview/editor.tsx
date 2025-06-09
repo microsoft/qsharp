@@ -84,11 +84,8 @@ function updateTextDocument(circuit: any) {
   });
 }
 
-function runCircuit(circuit: any) {
-  vscodeApi.postMessage({
-    command: "run",
-    text: JSON.stringify(circuit, null, 2),
-  });
+function runCircuit() {
+  vscodeApi.postMessage({ command: "run" });
 }
 
 function App({ state }: { state: State }) {

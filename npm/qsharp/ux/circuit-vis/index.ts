@@ -20,7 +20,7 @@ export const draw = (
   renderDepth = 0,
   isEditable = false,
   editCallback?: (circuitGroup: CircuitGroup) => void,
-  runCallback?: (circuitGroup: CircuitGroup) => void,
+  runCallback?: () => void,
 ): void => {
   const sqore = new Sqore(circuitGroup, isEditable, editCallback, runCallback);
   sqore.draw(container, renderDepth);

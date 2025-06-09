@@ -60,7 +60,7 @@ export class Sqore {
     public circuitGroup: CircuitGroup,
     readonly isEditable = false,
     private editCallback?: (circuitGroup: CircuitGroup) => void,
-    private runCallback?: (circuitGroup: CircuitGroup) => void,
+    private runCallback?: () => void,
   ) {
     if (
       this.circuitGroup == null ||
@@ -151,9 +151,7 @@ export class Sqore {
       createPanel(container);
       if (this.runCallback != undefined) {
         const callback = this.runCallback;
-        enableRunButton(container, () => {
-          callback(this.minimizeCircuits(this.circuitGroup));
-        });
+        enableRunButton(container, callback);
       }
       enableEvents(container, this, () => this.renderCircuit(container));
       if (this.editCallback != undefined) {
