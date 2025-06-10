@@ -718,6 +718,8 @@ impl BinaryOpExpr {
 }
 
 impl FunctionCall {
+    /// Builtin function calls, which are const, are const evaluated
+    /// in [Lowerer::lower_builtin_function_call_expr].
     #[allow(clippy::unused_self)]
     fn const_eval(&self, _ctx: &mut Lowerer, _ty: &Type) -> Option<LiteralKind> {
         None
