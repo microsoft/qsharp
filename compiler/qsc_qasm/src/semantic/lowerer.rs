@@ -3,6 +3,7 @@
 
 use std::ops::ShlAssign;
 use std::rc::Rc;
+use std::str::FromStr;
 
 use super::const_eval::ConstEvalError;
 use super::symbols::ScopeKind;
@@ -1282,7 +1283,7 @@ impl Lowerer {
         let qsharp_ty = crate::types::Type::Callable(kind, arity, 0);
 
         // Check that the name isn't a builtin function.
-        let symbol_id = if Self::is_builtin_function(&name) {
+        let symbol_id = if BuiltinFunction::from_str(&name).is_ok() {
             self.push_semantic_error(SemanticErrorKind::RedefinedBuiltinFunction(
                 name.as_ref().to_string(),
                 stmt.name.span,
@@ -1636,30 +1637,13 @@ impl Lowerer {
         })
     }
 
-    fn is_builtin_function(name: &str) -> bool {
-        matches!(
-            name,
-            "arccos"
-                | "arcsin"
-                | "arctan"
-                | "ceiling"
-                | "cos"
-                | "exp"
-                | "floor"
-                | "log"
-                | "mod"
-                | "popcount"
-                | "pow"
-                | "rotl"
-                | "rotr"
-                | "sin"
-                | "sqrt"
-                | "tan"
-        )
-    }
+    fn lower_builtin_function_call_expr(
+        &mut self,
+        expr: &syntax::FunctionCall,
+        builtin_fn: BuiltinFunction,
+    ) -> semantic::Expr {
+        use BuiltinFunction::*;
 
-    fn lower_builtin_function_call_expr(&mut self, expr: &syntax::FunctionCall) -> semantic::Expr {
-        let name = &*expr.name.name;
         let name_span = expr.name.span;
         let call_span = expr.span;
         let inputs: Vec<_> = expr
@@ -1668,24 +1652,23 @@ impl Lowerer {
             .map(|e| self.lower_expr(e).with_const_value(self))
             .collect();
 
-        let output = match name {
-            "arccos" => builtin_functions::arccos(&inputs, name_span, call_span, self),
-            "arcsin" => builtin_functions::arcsin(&inputs, name_span, call_span, self),
-            "arctan" => builtin_functions::arctan(&inputs, name_span, call_span, self),
-            "ceiling" => builtin_functions::ceiling(&inputs, name_span, call_span, self),
-            "cos" => builtin_functions::cos(&inputs, name_span, call_span, self),
-            "exp" => builtin_functions::exp(&inputs, name_span, call_span, self),
-            "floor" => builtin_functions::floor(&inputs, name_span, call_span, self),
-            "log" => builtin_functions::log(&inputs, name_span, call_span, self),
-            "mod" => builtin_functions::mod_(&inputs, name_span, call_span, self),
-            "popcount" => builtin_functions::popcount(&inputs, name_span, call_span, self),
-            "pow" => builtin_functions::pow(&inputs, name_span, call_span, self),
-            "rotl" => builtin_functions::rotl(&inputs, name_span, call_span, self),
-            "rotr" => builtin_functions::rotr(&inputs, name_span, call_span, self),
-            "sin" => builtin_functions::sin(&inputs, name_span, call_span, self),
-            "sqrt" => builtin_functions::sqrt(&inputs, name_span, call_span, self),
-            "tan" => builtin_functions::tan(&inputs, name_span, call_span, self),
-            _ => unreachable!(),
+        let output = match builtin_fn {
+            Arccos => builtin_functions::arccos(&inputs, name_span, call_span, self),
+            Arcsin => builtin_functions::arcsin(&inputs, name_span, call_span, self),
+            Arctan => builtin_functions::arctan(&inputs, name_span, call_span, self),
+            Ceiling => builtin_functions::ceiling(&inputs, name_span, call_span, self),
+            Cos => builtin_functions::cos(&inputs, name_span, call_span, self),
+            Exp => builtin_functions::exp(&inputs, name_span, call_span, self),
+            Floor => builtin_functions::floor(&inputs, name_span, call_span, self),
+            Log => builtin_functions::log(&inputs, name_span, call_span, self),
+            Mod => builtin_functions::mod_(&inputs, name_span, call_span, self),
+            Popcount => builtin_functions::popcount(&inputs, name_span, call_span, self),
+            Pow => builtin_functions::pow(&inputs, name_span, call_span, self),
+            Rotl => builtin_functions::rotl(&inputs, name_span, call_span, self),
+            Rotr => builtin_functions::rotr(&inputs, name_span, call_span, self),
+            Sin => builtin_functions::sin(&inputs, name_span, call_span, self),
+            Sqrt => builtin_functions::sqrt(&inputs, name_span, call_span, self),
+            Tan => builtin_functions::tan(&inputs, name_span, call_span, self),
         };
 
         output.unwrap_or_else(|| err_expr!(Type::Err, call_span))
@@ -1694,8 +1677,8 @@ impl Lowerer {
     fn lower_function_call_expr(&mut self, expr: &syntax::FunctionCall) -> semantic::Expr {
         // 1. If the name refers to a builtin function, we defer
         //    the lowering to `lower_builtin_function_call_expr`.
-        if Self::is_builtin_function(&expr.name.name) {
-            return self.lower_builtin_function_call_expr(expr);
+        if let Ok(builtin_fn) = BuiltinFunction::from_str(&expr.name.name) {
+            return self.lower_builtin_function_call_expr(expr, builtin_fn);
         }
 
         // 2. Check that the function name actually refers to a function
@@ -4127,5 +4110,51 @@ fn try_get_qsharp_name_and_implicit_modifiers<S: AsRef<str>>(
         "CX" => Some(("x".to_string(), make_modifier(Ctrl(ctrl_expr)))),
         "cphase" => Some(("phase".to_string(), make_modifier(Ctrl(ctrl_expr)))),
         _ => None,
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum BuiltinFunction {
+    Arccos,
+    Arcsin,
+    Arctan,
+    Ceiling,
+    Cos,
+    Exp,
+    Floor,
+    Log,
+    Mod,
+    Popcount,
+    Pow,
+    Rotl,
+    Rotr,
+    Sin,
+    Sqrt,
+    Tan,
+}
+
+impl FromStr for BuiltinFunction {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "arccos" => Ok(Self::Arccos),
+            "arcsin" => Ok(Self::Arcsin),
+            "arctan" => Ok(Self::Arctan),
+            "ceiling" => Ok(Self::Ceiling),
+            "cos" => Ok(Self::Cos),
+            "exp" => Ok(Self::Exp),
+            "floor" => Ok(Self::Floor),
+            "log" => Ok(Self::Log),
+            "mod" => Ok(Self::Mod),
+            "popcount" => Ok(Self::Popcount),
+            "pow" => Ok(Self::Pow),
+            "rotl" => Ok(Self::Rotl),
+            "rotr" => Ok(Self::Rotr),
+            "sin" => Ok(Self::Sin),
+            "sqrt" => Ok(Self::Sqrt),
+            "tan" => Ok(Self::Tan),
+            _ => Err(()),
+        }
     }
 }
