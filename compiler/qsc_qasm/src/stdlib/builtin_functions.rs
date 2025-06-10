@@ -810,7 +810,7 @@ pub(crate) fn sqrt(
         (fun(&[float()], float()), Box::new(sqrt_float)),
         (fun(&[complex()], complex()), Box::new(sqrt_complex)),
     ];
-    dispatch("exp", name_span, call_span, inputs, fn_table, ctx)
+    dispatch("sqrt", name_span, call_span, inputs, fn_table, ctx)
 }
 
 fn sqrt_float(inputs: &[Expr], span: Span) -> Result<LiteralKind, ConstEvalError> {

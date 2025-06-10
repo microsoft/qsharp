@@ -1873,40 +1873,32 @@ fn sqrt_float_domain_error() {
 #[test]
 fn sqrt_complex() {
     let source = "
-        sqrt(-5 + 12 im);
+        sqrt(7 + 24 im);
     ";
 
     check_stmt_kinds(
         source,
         &expect![[r#"
-            ExprStmt [9-26]:
-                expr: Expr [9-25]:
+            ExprStmt [9-25]:
+                expr: Expr [9-24]:
                     ty: const complex[float]
-                    const_value: Complex(2.0, 2.9999999999999996)
-                    kind: BuiltinFunctionCall [9-25]:
+                    const_value: Complex(4.0, 3.0)
+                    kind: BuiltinFunctionCall [9-24]:
                         fn_name_span: [9-13]
                         name: exp
                         function_ty: def (const complex[float]) -> const complex[float]
                         args:
-                            Expr [14-24]:
+                            Expr [14-23]:
                                 ty: const complex[float]
-                                const_value: Complex(-5.0, 12.0)
+                                const_value: Complex(7.0, 24.0)
                                 kind: BinaryOpExpr:
                                     op: Add
-                                    lhs: Expr [15-16]:
+                                    lhs: Expr [14-15]:
                                         ty: const complex[float]
-                                        kind: Cast [0-0]:
-                                            ty: const complex[float]
-                                            expr: Expr [15-16]:
-                                                ty: const int
-                                                kind: UnaryOpExpr [15-16]:
-                                                    op: Neg
-                                                    expr: Expr [15-16]:
-                                                        ty: const int
-                                                        kind: Lit: Int(5)
-                                    rhs: Expr [19-24]:
+                                        kind: Lit: Complex(7.0, 0.0)
+                                    rhs: Expr [18-23]:
                                         ty: const complex[float]
-                                        kind: Lit: Complex(0.0, 12.0)
+                                        kind: Lit: Complex(0.0, 24.0)
         "#]],
     );
 }
