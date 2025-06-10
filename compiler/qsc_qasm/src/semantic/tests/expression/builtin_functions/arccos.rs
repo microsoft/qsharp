@@ -7,26 +7,26 @@ use expect_test::expect;
 #[test]
 fn arccos() {
     let source = "
-        arccos(0.5);
+        arccos(0.);
     ";
 
     check_stmt_kinds(
         source,
         &expect![[r#"
-        ExprStmt [9-21]:
-            expr: Expr [9-20]:
-                ty: const float
-                const_value: Float(1.0471975511965979)
-                kind: BuiltinFunctionCall [9-20]:
-                    fn_name_span: [9-15]
-                    name: arccos
-                    function_ty: def (const float) -> const float
-                    args:
-                        Expr [16-19]:
-                            ty: const float
-                            const_value: Float(0.5)
-                            kind: Lit: Float(0.5)
-    "#]],
+            ExprStmt [9-20]:
+                expr: Expr [9-19]:
+                    ty: const float
+                    const_value: Float(1.5707963267948966)
+                    kind: BuiltinFunctionCall [9-19]:
+                        fn_name_span: [9-15]
+                        name: arccos
+                        function_ty: def (const float) -> const float
+                        args:
+                            Expr [16-18]:
+                                ty: const float
+                                const_value: Float(0.0)
+                                kind: Lit: Float(0.0)
+        "#]],
     );
 }
 
