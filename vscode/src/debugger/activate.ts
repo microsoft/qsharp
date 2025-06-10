@@ -88,43 +88,43 @@ function registerCommands(context: vscode.ExtensionContext) {
         ),
     ),
   );
+}
 
-  function startQdkDebugging(
-    resource: vscode.Uri | undefined,
-    config: { name: string; [key: string]: any },
-    options?: vscode.DebugSessionOptions,
-  ) {
-    clearCommandDiagnostics();
+export function startQdkDebugging(
+  resource: vscode.Uri | undefined,
+  config: { name: string; [key: string]: any },
+  options?: vscode.DebugSessionOptions,
+) {
+  clearCommandDiagnostics();
 
-    if (vscode.debug.activeDebugSession?.type === "qsharp") {
-      // Multiple debug sessions disallowed, to reduce confusion
-      return;
-    }
+  if (vscode.debug.activeDebugSession?.type === "qsharp") {
+    // Multiple debug sessions disallowed, to reduce confusion
+    return;
+  }
 
-    const targetResource = resource || getActiveQdkDocumentUri();
-    if (!targetResource) {
-      // No active document
-      return;
-    }
+  const targetResource = resource || getActiveQdkDocumentUri();
+  if (!targetResource) {
+    // No active document
+    return;
+  }
 
-    if (targetResource) {
-      config.programUri = targetResource.toString();
+  if (targetResource) {
+    config.programUri = targetResource.toString();
 
-      vscode.debug.startDebugging(
-        undefined,
-        {
-          type: "qsharp",
-          request: "launch",
-          shots: 1,
-          ...config,
-        },
-        {
-          // no need to save the file, in fact better not to, since it may cause the document uri to change
-          suppressSaveBeforeStart: true,
-          ...options,
-        },
-      );
-    }
+    vscode.debug.startDebugging(
+      undefined,
+      {
+        type: "qsharp",
+        request: "launch",
+        shots: 1,
+        ...config,
+      },
+      {
+        // no need to save the file, in fact better not to, since it may cause the document uri to change
+        suppressSaveBeforeStart: true,
+        ...options,
+      },
+    );
   }
 }
 

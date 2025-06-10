@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import * as vscode from "vscode";
-import { clearCommandDiagnostics } from "./diagnostics";
+import { startQdkDebugging } from "./debugger/activate";
 
 export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
   private static readonly viewType = "qsharp-webview.circuit";
@@ -238,34 +238,4 @@ export async function generateQubitCircuitExpression(
       `Failed to generate Q# circuit expression: ${err?.message ?? err}`,
     );
   }
-}
-
-function startQdkDebugging(
-  targetResource: vscode.Uri,
-  config: { name: string; [key: string]: any },
-  options?: vscode.DebugSessionOptions,
-) {
-  clearCommandDiagnostics();
-
-  if (vscode.debug.activeDebugSession?.type === "qsharp") {
-    // Multiple debug sessions disallowed, to reduce confusion
-    return;
-  }
-
-  config.programUri = targetResource.toString();
-
-  vscode.debug.startDebugging(
-    undefined,
-    {
-      type: "qsharp",
-      request: "launch",
-      shots: 1,
-      ...config,
-    },
-    {
-      // no need to save the file, in fact better not to, since it may cause the document uri to change
-      suppressSaveBeforeStart: true,
-      ...options,
-    },
-  );
 }
