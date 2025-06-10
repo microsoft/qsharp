@@ -211,7 +211,7 @@ fn const_implicit_bitness_simple_double_pos_im_decl() -> miette::Result<(), Vec<
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        let x = Std.Math.PlusC(Std.Math.Complex(1.1, 0.), Std.Math.Complex(0., 2.2));
+        let x = Std.Math.Complex(1.1, 2.2);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -239,7 +239,7 @@ fn const_implicit_bitness_simple_double_neg_im_decl() -> miette::Result<(), Vec<
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        let x = Std.Math.MinusC(Std.Math.Complex(1.1, 0.), Std.Math.Complex(0., 2.2));
+        let x = Std.Math.Complex(1.1, -2.2);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -267,7 +267,7 @@ fn const_implicit_bitness_simple_double_neg_real_decl() -> miette::Result<(), Ve
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        let x = Std.Math.PlusC(Std.Math.Complex(-1.1, 0.), Std.Math.Complex(0., 2.2));
+        let x = Std.Math.Complex(-1.1, 2.2);
     "#]]
     .assert_eq(&qsharp);
     Ok(())

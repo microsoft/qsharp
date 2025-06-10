@@ -780,38 +780,34 @@ fn exp_complex() {
     check_stmt_kinds(
         source,
         &expect![[r#"
-            Program:
-                version: <none>
-                statements:
-                    Stmt [9-36]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-36]:
-                            symbol_id: 8
-                            ty_span: [15-22]
-                            init_expr: Expr [27-35]:
+            ClassicalDeclarationStmt [9-36]:
+                symbol_id: 8
+                ty_span: [15-22]
+                init_expr: Expr [27-35]:
+                    ty: const complex[float]
+                    const_value: Complex(2.0, 3.0)
+                    kind: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [27-28]:
+                            ty: const complex[float]
+                            kind: Lit: Complex(2.0, 0.0)
+                        rhs: Expr [31-35]:
+                            ty: const complex[float]
+                            kind: Lit: Complex(0.0, 3.0)
+            ExprStmt [45-52]:
+                expr: Expr [45-51]:
+                    ty: const complex[float]
+                    const_value: Complex(-7.315110094901102, 1.0427436562359043)
+                    kind: BuiltinFunctionCall [45-51]:
+                        fn_name_span: [45-48]
+                        name: exp
+                        function_ty: def (const complex[float]) -> const complex[float]
+                        args:
+                            Expr [49-50]:
                                 ty: const complex[float]
-                                kind: BinaryOpExpr:
-                                    op: Add
-                                    lhs: Expr [27-28]:
-                                        ty: const complex[float]
-                                        kind: Lit: Complex(2.0, 0.0)
-                                    rhs: Expr [31-35]:
-                                        ty: const complex[float]
-                                        kind: Lit: Complex(0.0, 3.0)
-                    Stmt [45-52]:
-                        annotations: <empty>
-                        kind: Err
-
-            [Qasm.Lowerer.ExprMustBeConst
-
-              x expression must be const
-               ,-[test:3:13]
-             2 |         const complex a = 2 + 3 im;
-             3 |         exp(a);
-               :             ^
-             4 |     
-               `----
-            ]"#]],
+                                const_value: Complex(2.0, 3.0)
+                                kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -1883,23 +1879,35 @@ fn sqrt_complex() {
     check_stmt_kinds(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-26]:
-                    annotations: <empty>
-                    kind: Err
-
-        [Qasm.Lowerer.ExprMustBeConst
-
-          x expression must be const
-           ,-[test:2:14]
-         1 | 
-         2 |         sqrt(-5 + 12 im);
-           :              ^^^^^^^^^^
-         3 |     
-           `----
-        ]"#]],
+            ExprStmt [9-26]:
+                expr: Expr [9-25]:
+                    ty: const complex[float]
+                    const_value: Complex(2.0, 2.9999999999999996)
+                    kind: BuiltinFunctionCall [9-25]:
+                        fn_name_span: [9-13]
+                        name: exp
+                        function_ty: def (const complex[float]) -> const complex[float]
+                        args:
+                            Expr [14-24]:
+                                ty: const complex[float]
+                                const_value: Complex(-5.0, 12.0)
+                                kind: BinaryOpExpr:
+                                    op: Add
+                                    lhs: Expr [15-16]:
+                                        ty: const complex[float]
+                                        kind: Cast [0-0]:
+                                            ty: const complex[float]
+                                            expr: Expr [15-16]:
+                                                ty: const int
+                                                kind: UnaryOpExpr [15-16]:
+                                                    op: Neg
+                                                    expr: Expr [15-16]:
+                                                        ty: const int
+                                                        kind: Lit: Int(5)
+                                    rhs: Expr [19-24]:
+                                        ty: const complex[float]
+                                        kind: Lit: Complex(0.0, 12.0)
+        "#]],
     );
 }
 
