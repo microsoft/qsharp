@@ -4,6 +4,7 @@
 use crate::{
     displayable_output::{DisplayableMatrix, DisplayableOutput, DisplayableState},
     fs::file_system,
+    generic_estimator::register_generic_estimator_submodule,
     interop::{
         circuit_qasm_program, compile_qasm_program_to_qir, compile_qasm_to_qsharp,
         create_filesystem_from_py, get_operation_name, get_output_semantics, get_program_type,
@@ -82,6 +83,7 @@ fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
     m.add("QSharpError", py.get_type::<QSharpError>())?;
     register_noisy_simulator_submodule(py, m)?;
+    register_generic_estimator_submodule(m)?;
     // QASM interop
     m.add("QasmError", py.get_type::<QasmError>())?;
     m.add_function(wrap_pyfunction!(resource_estimate_qasm_program, m)?)?;
