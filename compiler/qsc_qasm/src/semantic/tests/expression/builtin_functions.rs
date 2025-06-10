@@ -1824,20 +1824,20 @@ fn sqrt_float() {
     check_stmt_kinds(
         source,
         &expect![[r#"
-        ExprStmt [9-18]:
-            expr: Expr [9-17]:
-                ty: const float
-                const_value: Float(2.0)
-                kind: BuiltinFunctionCall [9-17]:
-                    fn_name_span: [9-13]
-                    name: exp
-                    function_ty: def (const float) -> const float
-                    args:
-                        Expr [14-16]:
-                            ty: const float
-                            const_value: Float(4.0)
-                            kind: Lit: Float(4.0)
-    "#]],
+            ExprStmt [9-18]:
+                expr: Expr [9-17]:
+                    ty: const float
+                    const_value: Float(2.0)
+                    kind: BuiltinFunctionCall [9-17]:
+                        fn_name_span: [9-13]
+                        name: sqrt
+                        function_ty: def (const float) -> const float
+                        args:
+                            Expr [14-16]:
+                                ty: const float
+                                const_value: Float(4.0)
+                                kind: Lit: Float(4.0)
+        "#]],
     );
 }
 
@@ -1885,7 +1885,7 @@ fn sqrt_complex() {
                     const_value: Complex(4.0, 3.0)
                     kind: BuiltinFunctionCall [9-24]:
                         fn_name_span: [9-13]
-                        name: exp
+                        name: sqrt
                         function_ty: def (const complex[float]) -> const complex[float]
                         args:
                             Expr [14-23]:
