@@ -134,7 +134,7 @@ fn check_map_all<P: Into<Arc<str>>>(
     let path = path.into();
     let mut resolver = InMemorySourceResolver::from_iter(sources);
     let source = resolver
-        .resolve(&path)
+        .resolve(&path, &path)
         .map_err(|e| vec![e])
         .expect("could not load source")
         .1;

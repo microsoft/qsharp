@@ -4,6 +4,7 @@
 mod error;
 pub use error::Error;
 pub use error::ErrorKind;
+use qsc_data_structures::span::Span;
 
 use std::sync::Arc;
 
@@ -16,7 +17,11 @@ use rustc_hash::FxHashMap;
 pub trait SourceResolver {
     fn ctx(&mut self) -> &mut SourceResolverContext;
 
-    fn resolve(&mut self, path: &Arc<str>) -> miette::Result<(Arc<str>, Arc<str>), Error>;
+    fn resolve(
+        &mut self,
+        path: &Arc<str>,
+        original_path: &Arc<str>,
+    ) -> miette::Result<(Arc<str>, Arc<str>), Error>;
 }
 
 pub struct IncludeGraphNode {
@@ -33,11 +38,15 @@ pub struct SourceResolverContext {
 }
 
 impl SourceResolverContext {
-    pub fn check_include_errors(&mut self, path: &Arc<str>) -> miette::Result<(), Error> {
+    pub fn check_include_errors(
+        &mut self,
+        path: &Arc<str>,
+        span: Span,
+    ) -> miette::Result<(), Error> {
         // If the new path makes a cycle in the include graph, we return
         // an error showing the cycle to the user.
         if let Some(cycle) = self.cycle_made_by_including_path(path) {
-            return Err(Error(ErrorKind::CyclicInclude(cycle)));
+            return Err(Error(ErrorKind::CyclicInclude(span, cycle)));
         }
 
         // If the new path doesn't make a cycle but it was already
@@ -45,6 +54,7 @@ impl SourceResolverContext {
         // error saying "<FILE> was already included in <FILE>".
         if let Some(parent_file) = self.path_was_already_included(path) {
             return Err(Error(ErrorKind::MultipleInclude(
+                span,
                 path.to_string(),
                 parent_file.to_string(),
             )));
@@ -63,6 +73,10 @@ impl SourceResolverContext {
             .and_then(|file| self.include_graph.get(file).map(|node| node.parent.clone()))
             .flatten();
         self.current_file = parent;
+    }
+
+    pub fn peek_current_file(&mut self) -> Option<Arc<str>> {
+        self.current_file.clone()
     }
 
     /// If including the path makes a cycle, returns a vector of the paths
@@ -110,11 +124,11 @@ impl SourceResolverContext {
     /// the `current_path` to `path`.
     fn add_path_to_include_graph(&mut self, path: &Arc<str>) {
         // 1. Add path to the current file children.
-        self.current_file.as_ref().and_then(|file| {
-            self.include_graph
-                .get_mut(file)
-                .map(|node| node.children.push(path.clone()))
-        });
+        if let Some(file) = self.current_file.as_ref() {
+            if let Some(node) = self.include_graph.get_mut(file) {
+                node.children.push(path.clone());
+            }
+        }
 
         // 2. Add path to the include graph.
         self.include_graph.insert(
@@ -133,7 +147,7 @@ impl SourceResolverContext {
 /// We use this struct to print a nice error message when we find a cycle.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Cycle {
-    paths: Vec<Arc<str>>,
+    pub paths: Vec<Arc<str>>,
 }
 
 impl std::fmt::Display for Cycle {
@@ -179,13 +193,17 @@ impl SourceResolver for InMemorySourceResolver {
         &mut self.ctx
     }
 
-    fn resolve(&mut self, path: &Arc<str>) -> miette::Result<(Arc<str>, Arc<str>), Error> {
-        self.ctx().check_include_errors(path)?;
+    fn resolve(
+        &mut self,
+        path: &Arc<str>,
+        original_path: &Arc<str>,
+    ) -> miette::Result<(Arc<str>, Arc<str>), Error> {
         match self.sources.get(path) {
             Some(source) => Ok((path.clone(), source.clone())),
-            None => Err(Error(ErrorKind::NotFound(format!(
-                "Could not resolve include file: {path}"
-            )))),
+            None => Err(Error(ErrorKind::NotFound(
+                Span::default(),
+                format!("Could not resolve include file: {original_path}"),
+            ))),
         }
     }
 }
