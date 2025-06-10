@@ -1,6 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+// Clippy is failing in this module with `clippy::large_stack_arrays`.
+// We tried to track down the error, but it is non-deterministic. Our assumpution,
+// is that clippy is running out of stack memory because of how many, and how large
+// the static strings in this module are.
+//
+// Decision: Based on this, we decided to disable clippy for this testing module.
+//           <https://doc.rust-lang.org/nightly/clippy/configuration.html#disabling-evaluation-of-certain-code>.
+#![cfg(not(clippy))]
+
 mod arccos;
 mod arcsin;
 mod arctan;
