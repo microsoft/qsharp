@@ -16,11 +16,8 @@ pub struct Complex {
 }
 
 impl Complex {
-    pub fn new(real_value: f64, imaginary_value: f64) -> Self {
-        Self {
-            real: real_value,
-            imag: imaginary_value,
-        }
+    pub fn new(real: f64, imag: f64) -> Self {
+        Self { real, imag }
     }
 
     pub fn real(real: f64) -> Self {
