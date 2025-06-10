@@ -18,7 +18,7 @@ import { createUUID } from "./utils";
 import { gateHeight, minGateWidth, minToolboxHeight, svgNS } from "./constants";
 import { createDropzones } from "./draggable";
 import { enableEvents } from "./events";
-import { createPanel } from "./panel";
+import { createPanel, enableRunButton } from "./panel";
 
 /**
  * Contains render data for visualization.
@@ -54,11 +54,13 @@ export class Sqore {
    * @param circuitGroup Group of circuits to be visualized.
    * @param isEditable Whether the circuit is editable.
    * @param editCallback Callback function to be called when the circuit is edited.
+   * @param runCallback Callback function to be called when the circuit is run.
    */
   constructor(
     public circuitGroup: CircuitGroup,
     readonly isEditable = false,
     private editCallback?: (circuitGroup: CircuitGroup) => void,
+    private runCallback?: () => void,
   ) {
     if (
       this.circuitGroup == null ||
@@ -147,6 +149,10 @@ export class Sqore {
     if (this.isEditable) {
       createDropzones(container, this);
       createPanel(container);
+      if (this.runCallback != undefined) {
+        const callback = this.runCallback;
+        enableRunButton(container, callback);
+      }
       enableEvents(container, this, () => this.renderCircuit(container));
       if (this.editCallback != undefined) {
         this.editCallback(this.minimizeCircuits(this.circuitGroup));
