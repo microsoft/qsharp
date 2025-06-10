@@ -15,7 +15,7 @@ use crate::{
     },
     parser::ast::List,
     semantic::symbols::SymbolId,
-    stdlib::angle::Angle,
+    stdlib::{angle::Angle, complex::Complex},
 };
 
 use crate::parser::ast as syntax;
@@ -1246,7 +1246,7 @@ pub enum LiteralKind {
     Bool(bool),
     Duration(f64, TimeUnit),
     Float(f64),
-    Complex(f64, f64),
+    Complex(Complex),
     Int(i64),
     BigInt(BigInt),
     String(Rc<str>),
@@ -1264,7 +1264,7 @@ impl Display for LiteralKind {
             LiteralKind::Angle(a) => write!(f, "Angle({a})"),
             LiteralKind::Bit(b) => write!(f, "Bit({:?})", u8::from(*b)),
             LiteralKind::Bool(b) => write!(f, "Bool({b:?})"),
-            LiteralKind::Complex(real, imag) => write!(f, "Complex({real:?}, {imag:?})"),
+            LiteralKind::Complex(value) => write!(f, "Complex({value})"),
             LiteralKind::Duration(value, unit) => {
                 write!(f, "Duration({value:?}, {unit:?})")
             }

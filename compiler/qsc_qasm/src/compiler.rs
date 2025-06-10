@@ -47,6 +47,7 @@ use crate::{
         symbols::{IOKind, Symbol, SymbolId, SymbolTable},
         types::{promote_types, Type},
     },
+    stdlib::complex::Complex,
     CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QasmCompileUnit,
     QubitSemantics,
 };
@@ -1395,7 +1396,7 @@ impl QasmCompiler {
                 self.compile_duration_literal(*value, *time_unit, span)
             }
             LiteralKind::Float(value) => Self::compile_float_literal(*value, span),
-            LiteralKind::Complex(real, imag) => Self::compile_complex_literal(*real, *imag, span),
+            LiteralKind::Complex(value) => Self::compile_complex_literal(*value, span),
             LiteralKind::Int(value) => Self::compile_int_literal(*value, span),
             LiteralKind::BigInt(value) => Self::compile_bigint_literal(value, span),
             LiteralKind::String(value) => self.compile_string_literal(value, span),
@@ -1585,8 +1586,8 @@ impl QasmCompiler {
         build_lit_result_array_expr(values, span)
     }
 
-    fn compile_complex_literal(real: f64, imag: f64, span: Span) -> qsast::Expr {
-        build_lit_complex_expr(crate::types::Complex::new(real, imag), span)
+    fn compile_complex_literal(value: Complex, span: Span) -> qsast::Expr {
+        build_lit_complex_expr(crate::types::Complex::new(value.real, value.imag), span)
     }
 
     fn compile_float_literal(value: f64, span: Span) -> qsast::Expr {

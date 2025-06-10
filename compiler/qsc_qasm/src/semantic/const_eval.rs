@@ -26,6 +26,9 @@ pub enum ConstEvalError {
     #[error("division by zero error during const evaluation")]
     #[diagnostic(code("Qasm.Lowerer.DivisionByZero"))]
     DivisionByZero(#[label] Span),
+    #[error("{0}")]
+    #[diagnostic(code("Qasm.Lowerer.DomainError"))]
+    DomainError(String, #[label] Span),
     #[error("expression must be const")]
     #[diagnostic(code("Qasm.Lowerer.ExprMustBeConst"))]
     ExprMustBeConst(#[label] Span),

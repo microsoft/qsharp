@@ -36,6 +36,7 @@ use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
 use crate::stdlib::angle::Angle;
 use crate::stdlib::builtin_functions;
+use crate::stdlib::complex::Complex;
 
 use super::ast as semantic;
 use crate::parser::ast as syntax;
@@ -807,7 +808,7 @@ impl Lowerer {
                 Type::Float(None, true),
             ),
             syntax::LiteralKind::Imaginary(value) => (
-                semantic::ExprKind::Lit(semantic::LiteralKind::Complex(0.0, *value)),
+                semantic::ExprKind::Lit(Complex::imag(*value).into()),
                 Type::Complex(None, true),
             ),
             syntax::LiteralKind::String(_) => {
@@ -1668,12 +1669,22 @@ impl Lowerer {
             .collect();
 
         let output = match name {
+            "arccos" => builtin_functions::arccos(&inputs, name_span, call_span, self),
+            "arcsin" => builtin_functions::arcsin(&inputs, name_span, call_span, self),
+            "arctan" => builtin_functions::arctan(&inputs, name_span, call_span, self),
+            "ceiling" => builtin_functions::ceiling(&inputs, name_span, call_span, self),
+            "cos" => builtin_functions::cos(&inputs, name_span, call_span, self),
+            "exp" => builtin_functions::exp(&inputs, name_span, call_span, self),
+            "floor" => builtin_functions::floor(&inputs, name_span, call_span, self),
+            "log" => builtin_functions::log(&inputs, name_span, call_span, self),
             "mod" => builtin_functions::mod_(&inputs, name_span, call_span, self),
-            "arccos" | "arcsin" | "arctan" | "ceiling" | "cos" | "exp" | "floor" | "log"
-            | "popcount" | "pow" | "rotl" | "rotr" | "sin" | "sqrt" | "tan" => {
-                self.push_unimplemented_error_message(format!("{name} builtin"), call_span);
-                None
-            }
+            "popcount" => builtin_functions::popcount(&inputs, name_span, call_span, self),
+            "pow" => builtin_functions::pow(&inputs, name_span, call_span, self),
+            "rotl" => builtin_functions::rotl(&inputs, name_span, call_span, self),
+            "rotr" => builtin_functions::rotr(&inputs, name_span, call_span, self),
+            "sin" => builtin_functions::sin(&inputs, name_span, call_span, self),
+            "sqrt" => builtin_functions::sqrt(&inputs, name_span, call_span, self),
+            "tan" => builtin_functions::tan(&inputs, name_span, call_span, self),
             _ => unreachable!(),
         };
 
@@ -2838,7 +2849,7 @@ impl Lowerer {
             Type::Int(_, _) | Type::UInt(_, _) => Some(from_lit_kind(LiteralKind::Int(0))),
             Type::Bool(_) => Some(from_lit_kind(LiteralKind::Bool(false))),
             Type::Float(_, _) => Some(from_lit_kind(LiteralKind::Float(0.0))),
-            Type::Complex(_, _) => Some(from_lit_kind(LiteralKind::Complex(0.0, 0.0))),
+            Type::Complex(_, _) => Some(from_lit_kind(Complex::default().into())),
             Type::Stretch(_) => {
                 let message = "stretch default values";
                 self.push_unsupported_error_message(message, span);
@@ -3091,10 +3102,10 @@ impl Lowerer {
                 None
             }
             (Type::Complex(..), Type::Complex(..)) => {
-                if let semantic::LiteralKind::Complex(real, imag) = kind {
+                if let semantic::LiteralKind::Complex(value) = kind {
                     return Some(semantic::Expr::new(
                         span,
-                        semantic::ExprKind::Lit(semantic::LiteralKind::Complex(*real, *imag)),
+                        semantic::ExprKind::Lit(semantic::LiteralKind::Complex(*value)),
                         lhs_ty.as_const(),
                     ));
                 }
@@ -3104,7 +3115,7 @@ impl Lowerer {
                 if let semantic::LiteralKind::Float(value) = kind {
                     return Some(semantic::Expr::new(
                         span,
-                        semantic::ExprKind::Lit(semantic::LiteralKind::Complex(*value, 0.0)),
+                        semantic::ExprKind::Lit(Complex::real(*value).into()),
                         lhs_ty.as_const(),
                     ));
                 }
@@ -3117,7 +3128,7 @@ impl Lowerer {
                     if let Some(value) = safe_i64_to_f64(*value) {
                         return Some(semantic::Expr::new(
                             span,
-                            semantic::ExprKind::Lit(semantic::LiteralKind::Complex(value, 0.0)),
+                            semantic::ExprKind::Lit(Complex::real(value).into()),
                             lhs_ty.as_const(),
                         ));
                     }
@@ -3329,7 +3340,7 @@ impl Lowerer {
             Type::Complex(..) => {
                 // Even though the spec doesn't say it, we need to allow
                 // casting from float to complex, else this kind of expression
-                // would be invalid: 2.0 + sin(pi) + 1.0i
+                // would be invalid: 2.0 + sin(pi) + 1.0 im
                 Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone()))
             }
             _ => None,
