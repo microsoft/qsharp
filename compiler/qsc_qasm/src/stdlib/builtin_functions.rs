@@ -144,6 +144,22 @@ fn try_implicit_cast_inputs(
     Some(new_inputs)
 }
 
+/// The Display method for [`Type`] doesn't include the name of the function.
+/// So, we have this custom formatter to print better errors in this module.
+fn format_function_signature(name: &str, signature: Type) -> String {
+    let Type::Function(params_ty, return_ty) = signature else {
+        panic!();
+    };
+
+    let params_ty_str = params_ty
+        .iter()
+        .map(std::string::ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    format!("def {name}({params_ty_str}) -> {return_ty}")
+}
+
 /// Builds an error message explaining to the user that there is no
 /// valid overload matching the inputs they provided, and showing them
 /// the available overloads for the function they tried to call.
@@ -170,7 +186,12 @@ fn no_valid_overload_error(
     write!(error_msg, "\nOverloads available are:").expect("write should succeed");
 
     for (signature, _) in fn_table {
-        write!(error_msg, "\n    {signature}").expect("write should succeed");
+        write!(
+            error_msg,
+            "\n    {}",
+            format_function_signature(name, signature)
+        )
+        .expect("write should succeed");
     }
 
     ConstEvalError::NoValidOverloadForBuiltinFunction(error_msg, call_span)
@@ -197,8 +218,8 @@ fn no_valid_overload_rot_error(name: &str, call_span: Span, inputs: &[Expr]) -> 
 
     write!(error_msg, "({inputs_str})").expect("write should succeed");
     write!(error_msg, "\nOverloads available are:").expect("write should succeed");
-    write!(error_msg, "\n    fn (bit[n], int) -> bit[n]").expect("write should succeed");
-    write!(error_msg, "\n    fn (uint[n], int) -> uint[n]").expect("write should succeed");
+    write!(error_msg, "\n    fn {name}(bit[n], int) -> bit[n]").expect("write should succeed");
+    write!(error_msg, "\n    fn {name}(uint[n], int) -> uint[n]").expect("write should succeed");
 
     ConstEvalError::NoValidOverloadForBuiltinFunction(error_msg, call_span)
 }
@@ -224,7 +245,7 @@ fn no_valid_overload_popcount_error(call_span: Span, inputs: &[Expr]) -> ConstEv
 
     write!(error_msg, "({inputs_str})").expect("write should succeed");
     write!(error_msg, "\nOverloads available are:").expect("write should succeed");
-    write!(error_msg, "\n    fn (bit[n]) -> uint").expect("write should succeed");
+    write!(error_msg, "\n    fn popcount(bit[n]) -> uint").expect("write should succeed");
 
     ConstEvalError::NoValidOverloadForBuiltinFunction(error_msg, call_span)
 }

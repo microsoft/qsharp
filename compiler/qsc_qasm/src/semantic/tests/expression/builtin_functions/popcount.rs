@@ -73,24 +73,24 @@ fn popcount_unsized_type_error() {
     check_stmt_kinds(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-21]:
-                    annotations: <empty>
-                    kind: Err
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-21]:
+                        annotations: <empty>
+                        kind: Err
 
-        [Qasm.Lowerer.NoValidOverloadForBuiltinFunction
+            [Qasm.Lowerer.NoValidOverloadForBuiltinFunction
 
-          x There is no valid overload of `popcount` for inputs: (const int)
-          | Overloads available are:
-          |     fn (bit[n]) -> uint
-           ,-[test:2:9]
-         1 | 
-         2 |         popcount(2);
-           :         ^^^^^^^^^^^
-         3 |     
-           `----
-        ]"#]],
+              x There is no valid overload of `popcount` for inputs: (const int)
+              | Overloads available are:
+              |     fn popcount(bit[n]) -> uint
+               ,-[test:2:9]
+             1 | 
+             2 |         popcount(2);
+               :         ^^^^^^^^^^^
+             3 |     
+               `----
+            ]"#]],
     );
 }

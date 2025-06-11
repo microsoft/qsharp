@@ -55,8 +55,8 @@ fn builtin_call_with_invalid_input_types_fails() {
 
               x There is no valid overload of `mod` for inputs: (const int, const bool)
               | Overloads available are:
-              |     def (const int, const int) -> const int
-              |     def (const float, const float) -> const float
+              |     def mod(const int, const int) -> const int
+              |     def mod(const float, const float) -> const float
                ,-[test:2:9]
              1 | 
              2 |         mod(9, true);
@@ -87,8 +87,8 @@ fn builtin_call_with_zero_arguments_fails() {
 
               x There is no valid overload of `mod` for inputs: ()
               | Overloads available are:
-              |     def (const int, const int) -> const int
-              |     def (const float, const float) -> const float
+              |     def mod(const int, const int) -> const int
+              |     def mod(const float, const float) -> const float
                ,-[test:2:9]
              1 | 
              2 |         mod();
@@ -119,8 +119,8 @@ fn builtin_call_with_lower_arity_fails() {
 
               x There is no valid overload of `mod` for inputs: (const int)
               | Overloads available are:
-              |     def (const int, const int) -> const int
-              |     def (const float, const float) -> const float
+              |     def mod(const int, const int) -> const int
+              |     def mod(const float, const float) -> const float
                ,-[test:2:9]
              1 | 
              2 |         mod(9);
@@ -152,8 +152,8 @@ fn builtin_call_with_higher_arity_fails() {
               x There is no valid overload of `mod` for inputs: (const int, const int,
               | const int)
               | Overloads available are:
-              |     def (const int, const int) -> const int
-              |     def (const float, const float) -> const float
+              |     def mod(const int, const int) -> const int
+              |     def mod(const float, const float) -> const float
                ,-[test:2:9]
              1 | 
              2 |         mod(9, 7, 2);

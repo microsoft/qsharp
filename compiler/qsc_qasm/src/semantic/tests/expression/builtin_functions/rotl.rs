@@ -249,25 +249,25 @@ fn rotl_unsized_type_error() {
     check_stmt_kinds(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-21]:
-                    annotations: <empty>
-                    kind: Err
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-21]:
+                        annotations: <empty>
+                        kind: Err
 
-        [Qasm.Lowerer.NoValidOverloadForBuiltinFunction
+            [Qasm.Lowerer.NoValidOverloadForBuiltinFunction
 
-          x There is no valid overload of `rotl` for inputs: (const int, const int)
-          | Overloads available are:
-          |     fn (bit[n], int) -> bit[n]
-          |     fn (uint[n], int) -> uint[n]
-           ,-[test:2:9]
-         1 | 
-         2 |         rotl(17, 2);
-           :         ^^^^^^^^^^^
-         3 |     
-           `----
-        ]"#]],
+              x There is no valid overload of `rotl` for inputs: (const int, const int)
+              | Overloads available are:
+              |     fn rotl(bit[n], int) -> bit[n]
+              |     fn rotl(uint[n], int) -> uint[n]
+               ,-[test:2:9]
+             1 | 
+             2 |         rotl(17, 2);
+               :         ^^^^^^^^^^^
+             3 |     
+               `----
+            ]"#]],
     );
 }
