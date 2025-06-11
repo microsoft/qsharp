@@ -122,7 +122,7 @@ fn including_stdgates_multiple_times_causes_symbol_redifintion_errors() {
 
     let errors: Vec<_> = errors.iter().map(|e| format!("{e}")).collect();
     let errors_string = errors.join("\n");
-    expect!["Not Found Could not resolve include file: main.qasm"].assert_eq(&errors_string);
+    expect!["Not Found: Could not resolve include file: main.qasm"].assert_eq(&errors_string);
 }
 
 #[test]

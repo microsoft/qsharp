@@ -3,7 +3,6 @@
 
 use crate::{DirEntry, EntryType, FileSystemAsync};
 use async_trait::async_trait;
-use miette::Error;
 use std::{convert::Infallible, path::PathBuf, sync::Arc};
 
 #[derive(Debug)]
@@ -29,7 +28,7 @@ impl DirEntry for JSFileEntry {
 pub trait JSProjectHost {
     async fn read_file(&self, uri: &str) -> miette::Result<(Arc<str>, Arc<str>)>;
     async fn list_directory(&self, dir_uri: &str) -> Vec<JSFileEntry>;
-    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>>;
+    async fn resolve_path(&self, base: &str, path: &str) -> miette::Result<Arc<str>>;
     async fn fetch_github(
         &self,
         owner: &str,
@@ -67,7 +66,11 @@ where
         let res = self
             .resolve_path(&base.to_string_lossy(), &path.to_string_lossy())
             .await
-            .ok_or(Error::msg("Path could not be resolved"))?;
+            .map_err(|e| {
+                miette::Error::msg(format!(
+                    "Failed to resolve path ${base:?} and ${path:?}: ${e}"
+                ))
+            })?;
         return Ok(PathBuf::from(res.to_string()));
     }
 

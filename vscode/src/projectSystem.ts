@@ -247,12 +247,7 @@ async function singleFileProject(
 }
 
 export function resolvePath(base: string, relative: string): string | null {
-  try {
-    return Utils.resolvePath(URI.parse(base, true), relative).toString();
-  } catch (e) {
-    log.warn(`Failed to resolve path ${base} and ${relative}: ${e}`);
-    return null;
-  }
+  return Utils.resolvePath(URI.parse(base, true), relative).toString();
 }
 
 let githubEndpoint = "https://raw.githubusercontent.com";

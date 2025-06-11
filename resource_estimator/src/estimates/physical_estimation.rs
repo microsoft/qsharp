@@ -599,7 +599,12 @@ impl<
 
         // Perform logical depth scaling if given by constraint
         if let Some(logical_depth_scaling) = self.logical_depth_factor {
-            // TODO: error handling if value is <= 1.0
+            if logical_depth_scaling < 1.0 {
+                return Err(Error::LogicalDepthScalingFactorTooSmall(
+                    logical_depth_scaling,
+                ));
+            }
+
             num_cycles = ((num_cycles as f64) * logical_depth_scaling).ceil() as u64;
         }
 

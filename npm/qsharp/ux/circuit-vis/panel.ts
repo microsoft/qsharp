@@ -64,6 +64,23 @@ const createPanel = (container: HTMLElement): void => {
 };
 
 /**
+ * Enable the run button in the toolbox panel.
+ * This function makes the run button visible and adds a click event listener.
+ * @param container     HTML element containing the toolbox panel
+ * @param callback      Callback function to execute when the run button is clicked
+ */
+const enableRunButton = (
+  container: HTMLElement,
+  callback: () => void,
+): void => {
+  const runButton = container.querySelector(".svg-run-button");
+  if (runButton && runButton.getAttribute("visibility") !== "visible") {
+    runButton.setAttribute("visibility", "visible");
+    runButton.addEventListener("click", callback);
+  }
+};
+
+/**
  * Function to produce panel element
  * @param context       Context object to manage extension state
  * @returns             HTML element for panel
@@ -108,12 +125,58 @@ const _createToolbox = (): HTMLElement => {
   svgElem.classList.add("toolbox-panel-svg");
   _childrenSvg(svgElem, gateElems);
 
+  // Append run button
+  const runButtonGroup = _createRunButton(prefixY + gateHeight + 20);
+  svgElem.appendChild(runButtonGroup);
+
   // Generate toolbox panel
   const toolboxElem = _elem("div", "toolbox-panel");
   _children(toolboxElem, [_title("Toolbox")]);
   toolboxElem.appendChild(svgElem);
 
   return toolboxElem;
+};
+
+/**
+ * Function to create the run button in the toolbox panel
+ * @param buttonY      Y coordinate for the top of the button
+ * @returns            SVG group element containing the run button
+ */
+const _createRunButton = (buttonY: number): SVGGElement => {
+  const buttonWidth = minGateWidth * 2 + horizontalGap;
+  const buttonHeight = gateHeight;
+  const buttonX = 1;
+
+  const runButtonGroup = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "g",
+  );
+  runButtonGroup.setAttribute("class", "svg-run-button");
+  runButtonGroup.setAttribute("tabindex", "0");
+  runButtonGroup.setAttribute("role", "button");
+
+  // Rectangle background
+  const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  rect.setAttribute("x", buttonX.toString());
+  rect.setAttribute("y", buttonY.toString());
+  rect.setAttribute("width", buttonWidth.toString());
+  rect.setAttribute("height", buttonHeight.toString());
+  rect.setAttribute("class", "svg-run-button-rect");
+
+  // Text label
+  const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  text.setAttribute("x", (buttonX + buttonWidth / 2).toString());
+  text.setAttribute("y", (buttonY + buttonHeight / 2).toString());
+  text.setAttribute("class", "svg-run-button-text");
+  text.textContent = "Run";
+
+  // Add elements to group
+  runButtonGroup.appendChild(rect);
+  runButtonGroup.appendChild(text);
+
+  // The run button should be hidden by default
+  runButtonGroup.setAttribute("visibility", "hidden");
+  return runButtonGroup;
 };
 
 /**
@@ -331,4 +394,4 @@ toolboxGateDictionary["RX"].params = [{ name: "theta", type: "Double" }];
 toolboxGateDictionary["RY"].params = [{ name: "theta", type: "Double" }];
 toolboxGateDictionary["RZ"].params = [{ name: "theta", type: "Double" }];
 
-export { createPanel, toolboxGateDictionary, toRenderData };
+export { createPanel, enableRunButton, toolboxGateDictionary, toRenderData };

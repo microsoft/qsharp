@@ -208,12 +208,11 @@ impl JSProjectHost for TestProjectHost {
         self.fs.borrow().list_directory(uri.to_string())
     }
 
-    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>> {
+    async fn resolve_path(&self, base: &str, path: &str) -> miette::Result<Arc<str>> {
         self.fs
             .borrow()
             .resolve_path(PathBuf::from(base).as_path(), PathBuf::from(path).as_path())
             .map(|p| p.to_string_lossy().into())
-            .ok()
     }
 
     async fn find_manifest_directory(&self, doc_uri: &str) -> Option<Arc<str>> {

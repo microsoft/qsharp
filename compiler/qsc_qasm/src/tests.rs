@@ -1,12 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::compiler::parse_and_compile_to_qsharp_ast_with_config;
 use crate::io::{InMemorySourceResolver, SourceResolver};
 use crate::semantic::{parse_source, QasmSemanticParseResult};
-use crate::{
-    compile_to_qsharp_ast_with_config, CompilerConfig, OutputSemantics, ProgramType,
-    QasmCompileUnit, QubitSemantics,
-};
+use crate::{CompilerConfig, OutputSemantics, ProgramType, QasmCompileUnit, QubitSemantics};
 use expect_test::Expect;
 use miette::Report;
 use qsc::compile::compile_ast;
@@ -197,8 +195,12 @@ fn compile_qasm_best_effort(source: &str, profile: Profile) {
         None,
     );
 
-    let unit =
-        compile_to_qsharp_ast_with_config(source, "source.qasm", Some(&mut resolver), config);
+    let unit = parse_and_compile_to_qsharp_ast_with_config(
+        source,
+        "source.qasm",
+        Some(&mut resolver),
+        config,
+    );
     let (sources, _, package, _) = unit.into_tuple();
 
     let dependencies = vec![(PackageId::CORE, None), (stdid, None)];
@@ -250,7 +252,10 @@ pub(crate) fn parse_all<P: Into<Arc<str>>>(
 ) -> miette::Result<QasmSemanticParseResult, Vec<Report>> {
     let path = path.into();
     let mut resolver = InMemorySourceResolver::from_iter(sources);
-    let source = resolver.resolve(&path).map_err(|e| vec![Report::new(e)])?.1;
+    let source = resolver
+        .resolve(&path, &path)
+        .map_err(|e| vec![Report::new(e)])?
+        .1;
     let res = parse_source(source, path, &mut resolver);
     if res.source.has_errors() {
         let errors = res
@@ -446,7 +451,7 @@ pub(crate) fn compare_qasm_and_qasharp_asts(source: &str) {
         None,
     );
     let mut resolver = crate::io::InMemorySourceResolver::from_iter([]);
-    let unit = crate::compile_to_qsharp_ast_with_config(
+    let unit = parse_and_compile_to_qsharp_ast_with_config(
         source,
         "source.qasm",
         Some(&mut resolver),

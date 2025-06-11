@@ -88,6 +88,8 @@ pub const HIDDENSHIFT_EXPECT_DEBUG: Expect = expect![[r#"
     [170, 512, 999]"#]];
 pub const HIDDENSHIFTNISQ_EXPECT: Expect = expect!["[One, Zero, Zero, Zero, Zero, One]"];
 pub const HIDDENSHIFTNISQ_EXPECT_DEBUG: Expect = expect!["[One, Zero, Zero, Zero, Zero, One]"];
+pub const PHASEESTIMATION_EXPECT: Expect = expect![[r#"(1.0, 1.0799224746714913)"#]];
+pub const PHASEESTIMATION_EXPECT_DEBUG: Expect = expect![[r#"(1.0, 1.0799224746714913)"#]];
 pub const PHASEFLIPCODE_EXPECT: Expect = expect![[r#"
     STATE:
     |000⟩: 0.4743+0.0000𝑖
@@ -134,8 +136,6 @@ pub const QRNG_EXPECT: Expect = expect![[r#"
 pub const QRNG_EXPECT_DEBUG: Expect = expect![[r#"
     Sampling a random number between 0 and 100:
     46"#]];
-pub const QRNGNISQ_EXPECT: Expect = expect!["[Zero, Zero, One, One, One]"];
-pub const QRNGNISQ_EXPECT_DEBUG: Expect = expect!["[Zero, Zero, One, One, One]"];
 pub const SHOR_EXPECT: Expect = expect![[r#"
     *** Factorizing 187, attempt 1.
     Estimating period of 182.

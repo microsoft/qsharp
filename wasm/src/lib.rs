@@ -678,7 +678,7 @@ fn get_configured_interpreter_from_openqasm(
     let mut resolver = sources.iter().cloned().collect::<InMemorySourceResolver>();
 
     let CompileRawQasmResult(store, source_package_id, dependencies, sig, errors) =
-        qsc::qasm::compile_raw_qasm(
+        qsc::qasm::parse_and_compile_raw_qasm(
             source.clone(),
             file.clone(),
             Some(&mut resolver),
