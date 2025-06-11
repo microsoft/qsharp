@@ -29,17 +29,21 @@ import { copyFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { copyWasmToVsCode, watchVsCode } from "./vscode/build.mjs";
-import { buildPlayground, copyWasmToPlayground } from "./playground/build.js";
+import { copyWasmToVsCode, watchVsCode } from "./qdk_source/vscode/build.mjs";
+import {
+  buildPlayground,
+  copyWasmToPlayground,
+} from "./qdk_source/playground/build.js";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
+const qdkSrcDir = join(thisDir, "qdk_source");
 
 // Watch the source directories directly to avoid notification noise from .git, __pycache__, node_modules, target, etc.
-const coreDir = join(thisDir, "compiler");
+const coreDir = join(qdkSrcDir, "compiler");
 const libsDir = join(thisDir, "library");
-const vslsDir = join(thisDir, "language_service");
-const wasmDir = join(thisDir, "wasm");
-const npmDir = join(thisDir, "npm", "qsharp");
+const vslsDir = join(qdkSrcDir, "language_service");
+const wasmDir = join(qdkSrcDir, "wasm");
+const npmDir = join(qdkSrcDir, "npm", "qsharp");
 const katasDir = join(thisDir, "katas");
 const samplesDir = join(thisDir, "samples");
 
@@ -178,14 +182,14 @@ function runWatcher(dir, name, watchTask = "tsc:watch") {
 runWatcher(npmDir, "npm");
 
 // VSCode and playground are built by esbuild, but run the type checker in watch mode
-runWatcher(join(thisDir, "vscode"), "vscode");
-runWatcher(join(thisDir, "vscode"), "vscode webview", "tsc:watch:view");
+runWatcher(join(qdkSrcDir, "vscode"), "vscode");
+runWatcher(join(qdkSrcDir, "vscode"), "vscode webview", "tsc:watch:view");
 runWatcher(
-  join(thisDir, "vscode"),
+  join(qdkSrcDir, "vscode"),
   "vscode copilot webview",
   "tsc:watch:copilotView",
 );
-runWatcher(join(thisDir, "playground"), "playground");
+runWatcher(join(qdkSrcDir, "playground"), "playground");
 
 // Kick off watch mode builds (this will detect changes in the npm package it depends on) also
 watchVsCode();
