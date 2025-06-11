@@ -944,16 +944,16 @@
   "scripts": {
     "build": "npm run tsc:check && node build.mjs",
     "build:watch": "node build.mjs --watch",
-    "start": "npm exec --no -- @vscode/test-web --extensionDevelopmentPath . ../samples",
+    "start": "npm exec --no -- @vscode/test-web --extensionDevelopmentPath . ../../samples",
     "test": "node ./test/runTests.mjs -- ",
     "pretest": "npm exec --no playwright install chromium && node ./test/buildTests.mjs",
-    "tsc:check:main": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
-    "tsc:check:view": "node ../node_modules/typescript/bin/tsc -p ./src/webview/tsconfig.json",
-    "tsc:check:copilotView": "node ../node_modules/typescript/bin/tsc -p ./src/copilot/webview/tsconfig.json",
+    "tsc:check:main": "node ../../node_modules/typescript/bin/tsc -p ./tsconfig.json",
+    "tsc:check:view": "node ../../node_modules/typescript/bin/tsc -p ./src/webview/tsconfig.json",
+    "tsc:check:copilotView": "node ../../node_modules/typescript/bin/tsc -p ./src/copilot/webview/tsconfig.json",
     "tsc:check": "npm run tsc:check:main && npm run tsc:check:view && npm run tsc:check:copilotView",
-    "tsc:watch": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json --watch --preserveWatchOutput",
-    "tsc:watch:view": "node ../node_modules/typescript/bin/tsc -p ./src/webview/tsconfig.json --watch --preserveWatchOutput",
-    "tsc:watch:copilotView": "node ../node_modules/typescript/bin/tsc -p ./src/copilot/webview/tsconfig.json --watch --preserveWatchOutput"
+    "tsc:watch": "node ../../node_modules/typescript/bin/tsc -p ./tsconfig.json --watch --preserveWatchOutput",
+    "tsc:watch:view": "node ../../node_modules/typescript/bin/tsc -p ./src/webview/tsconfig.json --watch --preserveWatchOutput",
+    "tsc:watch:copilotView": "node ../../node_modules/typescript/bin/tsc -p ./src/copilot/webview/tsconfig.json --watch --preserveWatchOutput"
   },
   "repository": {
     "type": "git",

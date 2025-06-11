@@ -7,12 +7,19 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import qSharpSampleList from "../../samples/samples.mjs";
-import openQasmSampleList from "../../samples/OpenQASM/samples.mjs";
+import qSharpSampleList from "../../../samples/samples.mjs";
+import openQasmSampleList from "../../../samples/OpenQASM/samples.mjs";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
-const qSharpSampleDir = join(thisDir, "..", "..", "samples");
-const openQasmSampleDir = join(thisDir, "..", "..", "samples", "OpenQASM");
+const qSharpSampleDir = join(thisDir, "..", "..", "..", "samples");
+const openQasmSampleDir = join(
+  thisDir,
+  "..",
+  "..",
+  "..",
+  "samples",
+  "OpenQASM",
+);
 
 const tsDir = join(thisDir, "src");
 const qSharpGeneratedTsPath = join(tsDir, "samples.generated.ts");

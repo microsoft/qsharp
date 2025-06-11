@@ -49,7 +49,14 @@ const forceRegeneration =
   process.argv.includes("--force") || process.argv.includes("-f");
 
 const scriptDirPath = dirname(fileURLToPath(import.meta.url));
-const katasContentPath = join(scriptDirPath, "..", "..", "katas", "content");
+const katasContentPath = join(
+  scriptDirPath,
+  "..",
+  "..",
+  "..",
+  "katas",
+  "content",
+);
 const katasGeneratedContentPath = join(scriptDirPath, "src");
 const contentFileNames = {
   katasIndex: "index.json",

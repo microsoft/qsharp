@@ -27,7 +27,7 @@
   "scripts": {
     "build": "jlpm run build:lib && jlpm run build:labextension:prod",
     "build:dev": "jlpm run build:lib && jlpm run build:labextension:dev",
-    "build:lib": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
+    "build:lib": "node ../../node_modules/typescript/bin/tsc -p ./tsconfig.json",
     "build:labextension:dev": "jupyter labextension build --development True .",
     "build:labextension:prod": "jupyter labextension build ."
   },

@@ -1,9 +1,9 @@
 {
   "name": "qsc-workspace",
   "workspaces": [
-    "./npm/qsharp",
-    "./playground",
-    "./vscode"
+    "./qdk_source/npm/qsharp",
+    "./qdk_source/playground",
+    "./qdk_source/vscode"
   ],
   "license": "MIT",
   "engines": {

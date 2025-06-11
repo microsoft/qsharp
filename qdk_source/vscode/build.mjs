@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { build, context } from "esbuild";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
-const libsDir = join(thisDir, "..", "node_modules");
+const libsDir = join(thisDir, "..", "..", "node_modules");
 
 /** @type {import("esbuild").BuildOptions} */
 const buildOptions = {
