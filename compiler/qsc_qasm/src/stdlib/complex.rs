@@ -56,12 +56,9 @@ impl Add for Complex {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        let real_value = self.real + rhs.real;
-        let imaginary_value = self.imag + rhs.imag;
-        Self {
-            real: real_value,
-            imag: imaginary_value,
-        }
+        let real = self.real + rhs.real;
+        let imag = self.imag + rhs.imag;
+        Self { real, imag }
     }
 }
 
@@ -69,12 +66,9 @@ impl Sub for Complex {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        let real_value = self.real - rhs.real;
-        let imaginary_value = self.imag - rhs.imag;
-        Self {
-            real: real_value,
-            imag: imaginary_value,
-        }
+        let real = self.real - rhs.real;
+        let imag = self.imag - rhs.imag;
+        Self { real, imag }
     }
 }
 
@@ -84,13 +78,9 @@ impl Mul for Complex {
     fn mul(self, rhs: Self) -> Self::Output {
         let a = self;
         let b = rhs;
-        let real_value = a.real * b.real - a.imag * b.imag;
-        let imaginary_value = a.real * b.imag + a.imag * b.real;
-
-        Self {
-            real: real_value,
-            imag: imaginary_value,
-        }
+        let real = a.real * b.real - a.imag * b.imag;
+        let imag = a.real * b.imag + a.imag * b.real;
+        Self { real, imag }
     }
 }
 
@@ -111,13 +101,9 @@ impl Div for Complex {
         let a = self;
         let b = rhs;
         let sq_norm = b.real * b.real + b.imag * b.imag;
-        let real_value = (a.real * b.real + a.imag * b.imag) / sq_norm;
-        let imaginary_value = (a.imag * b.real - a.real * b.imag) / sq_norm;
-
-        Self {
-            real: real_value,
-            imag: imaginary_value,
-        }
+        let real = (a.real * b.real + a.imag * b.imag) / sq_norm;
+        let imag = (a.imag * b.real - a.real * b.imag) / sq_norm;
+        Self { real, imag }
     }
 }
 
@@ -130,7 +116,6 @@ impl Complex {
         let base_sq_norm = a * a + b * b;
         let base_norm = base_sq_norm.sqrt();
         let base_arg = b.atan2(a);
-
         let magnitude = base_norm.powf(c) / f64::consts::E.powf(d * base_arg);
         let angle = d * base_norm.ln() + c * base_arg;
 
