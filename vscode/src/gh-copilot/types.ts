@@ -13,11 +13,6 @@ export class CopilotToolError extends Error {
 }
 
 /**
- * State that can be shared between tool calls in a conversation.
- */
-export type ToolState = Record<string, any>;
-
-/**
  * Histogram data for displaying results
  */
 export type HistogramData = {

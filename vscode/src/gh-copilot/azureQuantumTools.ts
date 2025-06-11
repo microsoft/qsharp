@@ -17,7 +17,7 @@ import {
 import { getJobFiles, submitJob } from "../azure/workspaceActions.js";
 import { HistogramData } from "./types.js";
 import { getQirForVisibleSource } from "../qirGeneration.js";
-import { CopilotToolError, ToolState } from "./types.js";
+import { CopilotToolError } from "./types.js";
 import { sendMessageToPanel } from "../webviewPanel.js";
 
 export type ToolResult<T = any> = { result: T };
@@ -30,39 +30,9 @@ import {
 } from "../telemetry.js";
 
 /**
- * These tool definitions correspond to the ones declared
- * service side. Their names and arguments *must* be kept
- * in sync with the service.
- *
- * The return types can be updated independently from the
- * service as they don't have to adhere to a strict schema.
+ * State that can be shared between tool calls in a conversation.
  */
-export const azqToolDefinitions: {
-  [key: string]: (
-    conversationState: ToolState,
-    args?: any,
-  ) => Promise<ToolResult>;
-} = {
-  GetJobs: getJobs,
-  GetJob: getJob,
-  ConnectToWorkspace: connectToWorkspace,
-  DownloadJobResults: renderHistogramForJobResults,
-  GetWorkspaces: getWorkspaces,
-  SubmitToTarget: submitToTargetWithConfirmation,
-  GetActiveWorkspace: getActiveWorkspace,
-  SetActiveWorkspace: setActiveWorkspace,
-  GetProviders: getProviders,
-  GetTarget: getTarget,
-};
-
-/**
- * Filters out unknown tool names that may come back from the service.
- */
-export function knownToolNameOrDefault(toolName: string): string {
-  return Object.keys(azqToolDefinitions).indexOf(toolName) !== -1
-    ? toolName
-    : "unknown";
-}
+export type ToolState = Record<string, any>;
 
 /**
  * Gets the first available workspace connection, or throws if there are none.
@@ -340,22 +310,6 @@ export async function downloadJobResults(
 }
 
 /**
- * This is the same as `downloadJobResults`, except it hides the histogram
- * values from the tool output, and instead returns a simple user-facing message.
- * The client UI is expected to be able to render the actual histogram in `widgetData`.
- */
-async function renderHistogramForJobResults(
-  toolState: ToolState,
-  args: { job_id: string },
-): Promise<DownloadJobResult> {
-  const result = await downloadJobResults(toolState, args);
-  return {
-    result: "Results were successfully rendered.",
-    widgetData: result.widgetData,
-  };
-}
-
-/**
  * Convert raw output data from a job to the histogram buckets
  * format we use for display.
  */
@@ -421,7 +375,6 @@ export async function submitToTarget(
     target_id: target_id,
     number_of_shots: numberOfShots,
   }: { job_name: string; target_id: string; number_of_shots: number },
-  confirmation: boolean,
 ): Promise<{ result: string }> {
   const associationId = getRandomGuid();
   const start = performance.now();
@@ -461,11 +414,6 @@ export async function submitToTarget(
     if (!qir) throw new CopilotToolError("Failed to generate QIR.");
 
     const quantumUris = new QuantumUris(workspace.endpointUri, workspace.id);
-
-    if (confirmation) {
-      // For GitHub Copilot tools, confirmation is handled at the tool level
-      // This parameter is kept for API compatibility but not used
-    }
 
     try {
       const token = await getTokenForWorkspace(workspace);
@@ -511,16 +459,6 @@ export async function submitToTarget(
 
     throw e;
   }
-}
-
-/**
- * `submitToTarget` with confirmation via the Copilot webview UI.
- */
-async function submitToTargetWithConfirmation(
-  toolState: ToolState,
-  args: { job_name: string; target_id: string; number_of_shots: number },
-): Promise<{ result: string }> {
-  return submitToTarget(toolState, args, true);
 }
 
 /**

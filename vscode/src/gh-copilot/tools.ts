@@ -8,7 +8,8 @@ import { getRandomGuid } from "../utils";
 import * as azqTools from "./azureQuantumTools";
 import { updateCopilotInstructions } from "./instructions";
 import { QSharpTools } from "./qsharpTools";
-import { CopilotToolError, ToolState } from "./types";
+import { CopilotToolError } from "./types";
+import { ToolState } from "./azureQuantumTools";
 
 // state
 const workspaceState: ToolState = {};
@@ -50,7 +51,7 @@ const toolDefinitions: {
       job_name: string;
       target_id: string;
       number_of_shots: number;
-    }) => (await azqTools.submitToTarget(workspaceState, input, false)).result,
+    }) => (await azqTools.submitToTarget(workspaceState, input)).result,
     confirm: (input: {
       job_name: string;
       target_id: string;
