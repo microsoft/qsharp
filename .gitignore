@@ -1,6 +1,6 @@
 /target
-/widgets/dist/
-/widgets/src/qsharp_widgets/static/
+/src/widgets/dist/
+/src/widgets/src/qsharp_widgets/static/
 node_modules/
 __pycache__/
 .venv/
@@ -10,12 +10,12 @@ __pycache__/
 *.pem
 !.vscode/*.shared.json
 !.vscode/extensions.json
-/fuzz/target
-/fuzz/corpus
-/fuzz/artifacts
-/fuzz/coverage
-/fuzz/Cargo.lock
-/samples_test/src/tests/*_generated.rs
+/src/fuzz/target
+/src/fuzz/corpus
+/src/fuzz/artifacts
+/src/fuzz/coverage
+/src/fuzz/Cargo.lock
+/src/samples_test/src/tests/*_generated.rs
 .mypy_cache/
 .pytest_cache/
 .idea/
