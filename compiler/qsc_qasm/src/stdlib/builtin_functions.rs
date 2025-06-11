@@ -19,6 +19,7 @@ use core::f64;
 use num_bigint::BigInt;
 use qsc_data_structures::span::Span;
 use std::fmt::Write;
+use std::sync::LazyLock;
 
 // ---------------------------------------------------
 // Dispatch mechanism for polymorphic function calls.
@@ -36,15 +37,20 @@ type PolymorphicFunctionOutput = Option<Expr>;
 // they appear.
 type FnTable = Vec<(
     Type,
-    Box<dyn Fn(&[Expr], Span) -> Result<LiteralKind, ConstEvalError>>,
+    Box<dyn Fn(&[Expr], Span) -> Result<LiteralKind, ConstEvalError> + Sync + Send>,
 )>;
+
+type FnTableRef<'a> = &'a [(
+    Type,
+    Box<dyn Fn(&[Expr], Span) -> Result<LiteralKind, ConstEvalError> + Sync + Send>,
+)];
 
 fn dispatch(
     name: &str,
     name_span: Span,
     call_span: Span,
     inputs: &[Expr],
-    fn_table: FnTable,
+    fn_table: FnTableRef,
     ctx: &mut Lowerer,
 ) -> PolymorphicFunctionOutput {
     // All the builtin functions take const expressions as inputs
@@ -60,7 +66,7 @@ fn dispatch(
     // the link above where all given operands can be implicitly cast to the valid input types.
     // The output type is not considered when choosing an overload. It is an error if there is
     // no valid overload for a given sequence of operands.
-    for (signature, function) in &fn_table {
+    for (signature, function) in fn_table {
         if let Some(new_inputs) = try_implicit_cast_inputs(inputs, signature, ctx) {
             let output = function(&new_inputs, call_span);
             match output {
@@ -146,7 +152,7 @@ fn try_implicit_cast_inputs(
 
 /// The Display method for [`Type`] doesn't include the name of the function.
 /// So, we have this custom formatter to print better errors in this module.
-fn format_function_signature(name: &str, signature: Type) -> String {
+fn format_function_signature(name: &str, signature: &Type) -> String {
     let Type::Function(params_ty, return_ty) = signature else {
         panic!();
     };
@@ -167,7 +173,7 @@ fn no_valid_overload_error(
     name: &str,
     call_span: Span,
     inputs: &[Expr],
-    fn_table: FnTable,
+    fn_table: FnTableRef,
 ) -> ConstEvalError {
     let mut error_msg = String::new();
     write!(
@@ -251,7 +257,7 @@ fn no_valid_overload_popcount_error(call_span: Span, inputs: &[Expr]) -> ConstEv
 }
 
 // ---------------------------------------
-// Helper functions to reduce boilerplate
+// Helper macro to reduce boilerplate
 // when initializing the function tables.
 // ---------------------------------------
 
@@ -259,32 +265,61 @@ pub fn fun(inputs: &[Type], output: Type) -> Type {
     Type::Function(inputs.into(), output.into())
 }
 
-pub fn int() -> Type {
-    Type::Int(None, true)
+macro_rules! ty {
+    (int) => {
+        Type::Int(None, true)
+    };
+    (uint [$n:expr]) => {
+        Type::UInt(Some($n), true)
+    };
+    (uint) => {
+        Type::UInt(None, true)
+    };
+    (float) => {
+        Type::Float(None, true)
+    };
+    (angle) => {
+        Type::Angle(None, true)
+    };
+    (complex) => {
+        Type::Complex(None, true)
+    };
+    (bit [$n:expr]) => {
+        Type::BitArray($n, true)
+    };
 }
 
-pub fn uint() -> Type {
-    Type::UInt(None, true)
+/// This macro is used to create symbol tables for popcount, rotl, and rotr which
+/// cannot be static since they depend on the width of the inputs and outputs.
+macro_rules! fn_table {
+    ($( ($($arg:tt $([$arg_witdh:expr])?),+) -> $output:tt $([$output_width:expr])? : $fun:expr),+) => {
+        vec![
+            $(
+                (fun(
+                    &[$(ty!($arg $([$arg_witdh])?)),+],
+                    ty!($output $([$output_width])?)
+                ), Box::new($fun))
+            ),+
+        ]
+    };
 }
 
-pub fn sized_uint(n: u32) -> Type {
-    Type::UInt(Some(n), true)
-}
-
-pub fn float() -> Type {
-    Type::Float(None, true)
-}
-
-pub fn angle() -> Type {
-    Type::Angle(None, true)
-}
-
-pub fn complex() -> Type {
-    Type::Complex(None, true)
-}
-
-pub fn bitarray(n: u32) -> Type {
-    Type::BitArray(n, true)
+/// This macro is used to create static symbol tables for most of the builtin functions,
+/// except for popcount, rotl, and rotr which cannot be static since they depend on the
+/// width of the inputs and outputs.
+macro_rules! static_fn_table {
+    ($( ($($arg:tt),+) -> $output:tt : $fun:expr),+) => {
+        static FN_TABLE: LazyLock<FnTable> =
+        LazyLock::new(|| vec![
+                $(
+                    (fun(
+                        &[$(ty!($arg)),+],
+                        ty!($output)
+                    ), Box::new($fun))
+                ),+
+            ]
+        );
+    };
 }
 
 // --------------------------------------------
@@ -386,8 +421,11 @@ pub(crate) fn arccos(
     call_span: Span,
     ctx: &mut Lowerer,
 ) -> PolymorphicFunctionOutput {
-    let fn_table: FnTable = vec![(fun(&[float()], float()), Box::new(arccos_float))];
-    dispatch("arccos", name_span, call_span, inputs, fn_table, ctx)
+    static_fn_table! {
+        (float) -> float : arccos_float
+    }
+
+    dispatch("arccos", name_span, call_span, inputs, &FN_TABLE, ctx)
 }
 
 fn arccos_float(inputs: &[Expr], span: Span) -> Result<LiteralKind, ConstEvalError> {
@@ -412,8 +450,10 @@ pub(crate) fn arcsin(
     call_span: Span,
     ctx: &mut Lowerer,
 ) -> PolymorphicFunctionOutput {
-    let fn_table: FnTable = vec![(fun(&[float()], float()), Box::new(arcsin_float))];
-    dispatch("arcsin", name_span, call_span, inputs, fn_table, ctx)
+    static_fn_table! {
+        (float) -> float : arcsin_float
+    }
+    dispatch("arcsin", name_span, call_span, inputs, &FN_TABLE, ctx)
 }
 
 fn arcsin_float(inputs: &[Expr], span: Span) -> Result<LiteralKind, ConstEvalError> {
@@ -438,8 +478,10 @@ pub(crate) fn arctan(
     call_span: Span,
     ctx: &mut Lowerer,
 ) -> PolymorphicFunctionOutput {
-    let fn_table: FnTable = vec![(fun(&[float()], float()), Box::new(arctan_float))];
-    dispatch("arctan", name_span, call_span, inputs, fn_table, ctx)
+    static_fn_table! {
+        (float) -> float : arctan_float
+    }
+    dispatch("arctan", name_span, call_span, inputs, &FN_TABLE, ctx)
 }
 
 fn arctan_float(inputs: &[Expr], _: Span) -> Result<LiteralKind, ConstEvalError> {
@@ -456,8 +498,10 @@ pub(crate) fn ceiling(
     call_span: Span,
     ctx: &mut Lowerer,
 ) -> PolymorphicFunctionOutput {
-    let fn_table: FnTable = vec![(fun(&[float()], float()), Box::new(ceiling_float))];
-    dispatch("ceiling", name_span, call_span, inputs, fn_table, ctx)
+    static_fn_table! {
+        (float) -> float : ceiling_float
+    }
+    dispatch("ceiling", name_span, call_span, inputs, &FN_TABLE, ctx)
 }
 
 fn ceiling_float(inputs: &[Expr], _: Span) -> Result<LiteralKind, ConstEvalError> {
@@ -474,11 +518,11 @@ pub(crate) fn cos(
     call_span: Span,
     ctx: &mut Lowerer,
 ) -> PolymorphicFunctionOutput {
-    let fn_table: FnTable = vec![
-        (fun(&[float()], float()), Box::new(cos_float)),
-        (fun(&[angle()], float()), Box::new(cos_angle)),
-    ];
-    dispatch("cos", name_span, call_span, inputs, fn_table, ctx)
+    static_fn_table! {
+        (float) -> float : cos_float,
+        (angle) -> float : cos_angle
+    }
+    dispatch("cos", name_span, call_span, inputs, &FN_TABLE, ctx)
 }
 
 fn cos_float(inputs: &[Expr], _: Span) -> Result<LiteralKind, ConstEvalError> {
@@ -508,11 +552,11 @@ pub(crate) fn exp(
     call_span: Span,
     ctx: &mut Lowerer,
 ) -> PolymorphicFunctionOutput {
-    let fn_table: FnTable = vec![
-        (fun(&[float()], float()), Box::new(exp_float)),
-        (fun(&[complex()], complex()), Box::new(exp_complex)),
-    ];
-    dispatch("exp", name_span, call_span, inputs, fn_table, ctx)
+    static_fn_table! {
+        (float) -> float : exp_float,
+        (complex) -> complex : exp_complex
+    }
+    dispatch("exp", name_span, call_span, inputs, &FN_TABLE, ctx)
 }
 
 fn exp_float(inputs: &[Expr], _: Span) -> Result<LiteralKind, ConstEvalError> {
@@ -535,8 +579,10 @@ pub(crate) fn floor(
     call_span: Span,
     ctx: &mut Lowerer,
 ) -> PolymorphicFunctionOutput {
-    let fn_table: FnTable = vec![(fun(&[float()], float()), Box::new(floor_float))];
-    dispatch("floor", name_span, call_span, inputs, fn_table, ctx)
+    static_fn_table! {
+        (float) -> float : floor_float
+    }
+    dispatch("floor", name_span, call_span, inputs, &FN_TABLE, ctx)
 }
 
 fn floor_float(inputs: &[Expr], _: Span) -> Result<LiteralKind, ConstEvalError> {
@@ -553,8 +599,10 @@ pub(crate) fn log(
     call_span: Span,
     ctx: &mut Lowerer,
 ) -> PolymorphicFunctionOutput {
-    let fn_table: FnTable = vec![(fun(&[float()], float()), Box::new(log_float))];
-    dispatch("log", name_span, call_span, inputs, fn_table, ctx)
+    static_fn_table! {
+        (float) -> float : log_float
+    }
+    dispatch("log", name_span, call_span, inputs, &FN_TABLE, ctx)
 }
 
 fn log_float(inputs: &[Expr], _: Span) -> Result<LiteralKind, ConstEvalError> {
@@ -571,12 +619,11 @@ pub(crate) fn mod_(
     call_span: Span,
     ctx: &mut Lowerer,
 ) -> PolymorphicFunctionOutput {
-    let fn_table: FnTable = vec![
-        (fun(&[int(), int()], int()), Box::new(mod_int)),
-        (fun(&[float(), float()], float()), Box::new(mod_float)),
-    ];
-
-    dispatch("mod", name_span, call_span, inputs, fn_table, ctx)
+    static_fn_table! {
+        (int, int) -> int : mod_int,
+        (float, float) -> float : mod_float
+    }
+    dispatch("mod", name_span, call_span, inputs, &FN_TABLE, ctx)
 }
 
 fn mod_int(inputs: &[Expr], span: Span) -> Result<LiteralKind, ConstEvalError> {
@@ -615,8 +662,11 @@ pub(crate) fn popcount(
         return None;
     };
 
-    let fn_table: FnTable = vec![(fun(&[bitarray(n)], uint()), Box::new(popcount_bitarray))];
-    dispatch("popcount", name_span, call_span, inputs, fn_table, ctx)
+    let fn_table: FnTable = fn_table! {
+        (bit[n]) -> uint : popcount_bitarray
+    };
+
+    dispatch("popcount", name_span, call_span, inputs, &fn_table, ctx)
 }
 
 fn popcount_bitarray(inputs: &[Expr], _: Span) -> Result<LiteralKind, ConstEvalError> {
@@ -633,15 +683,12 @@ pub(crate) fn pow(
     call_span: Span,
     ctx: &mut Lowerer,
 ) -> PolymorphicFunctionOutput {
-    let fn_table: FnTable = vec![
-        (fun(&[int(), uint()], int()), Box::new(pow_int_uint)),
-        (fun(&[float(), float()], float()), Box::new(pow_float)),
-        (
-            fun(&[complex(), complex()], complex()),
-            Box::new(pow_complex),
-        ),
-    ];
-    dispatch("pow", name_span, call_span, inputs, fn_table, ctx)
+    static_fn_table! {
+        (int, uint) -> float : pow_int_uint,
+        (float, float) -> float : pow_float,
+        (complex, complex) -> complex : pow_complex
+    }
+    dispatch("pow", name_span, call_span, inputs, &FN_TABLE, ctx)
 }
 
 fn pow_int_uint(inputs: &[Expr], span: Span) -> Result<LiteralKind, ConstEvalError> {
@@ -685,17 +732,12 @@ pub(crate) fn rotl(
         return None;
     };
 
-    let fn_table: FnTable = vec![
-        (
-            fun(&[bitarray(n), int()], bitarray(n)),
-            Box::new(rotl_bitarray),
-        ),
-        (
-            fun(&[sized_uint(n), int()], sized_uint(n)),
-            Box::new(rotl_uint),
-        ),
-    ];
-    dispatch("rotl", name_span, call_span, inputs, fn_table, ctx)
+    let fn_table: FnTable = fn_table! {
+        (bit[n], int) -> bit[n] : rotl_bitarray,
+        (uint[n], int) -> uint[n] : rotl_uint
+    };
+
+    dispatch("rotl", name_span, call_span, inputs, &fn_table, ctx)
 }
 
 fn rotl_bitarray(inputs: &[Expr], _: Span) -> Result<LiteralKind, ConstEvalError> {
@@ -744,17 +786,12 @@ pub(crate) fn rotr(
         return None;
     };
 
-    let fn_table: FnTable = vec![
-        (
-            fun(&[bitarray(n), int()], bitarray(n)),
-            Box::new(rotr_bitarray),
-        ),
-        (
-            fun(&[sized_uint(n), int()], sized_uint(n)),
-            Box::new(rotr_uint),
-        ),
-    ];
-    dispatch("rotr", name_span, call_span, inputs, fn_table, ctx)
+    let fn_table: FnTable = fn_table! {
+        (bit[n], int) -> bit[n] : rotr_bitarray,
+        (uint[n], int) -> uint[n] : rotr_uint
+    };
+
+    dispatch("rotr", name_span, call_span, inputs, &fn_table, ctx)
 }
 
 fn rotr_bitarray(inputs: &[Expr], _: Span) -> Result<LiteralKind, ConstEvalError> {
@@ -798,11 +835,11 @@ pub(crate) fn sin(
     call_span: Span,
     ctx: &mut Lowerer,
 ) -> PolymorphicFunctionOutput {
-    let fn_table: FnTable = vec![
-        (fun(&[float()], float()), Box::new(sin_float)),
-        (fun(&[angle()], float()), Box::new(sin_angle)),
-    ];
-    dispatch("sin", name_span, call_span, inputs, fn_table, ctx)
+    static_fn_table! {
+        (float) -> float : sin_float,
+        (angle) -> float : sin_angle
+    }
+    dispatch("sin", name_span, call_span, inputs, &FN_TABLE, ctx)
 }
 
 fn sin_float(inputs: &[Expr], _: Span) -> Result<LiteralKind, ConstEvalError> {
@@ -832,11 +869,11 @@ pub(crate) fn sqrt(
     call_span: Span,
     ctx: &mut Lowerer,
 ) -> PolymorphicFunctionOutput {
-    let fn_table: FnTable = vec![
-        (fun(&[float()], float()), Box::new(sqrt_float)),
-        (fun(&[complex()], complex()), Box::new(sqrt_complex)),
-    ];
-    dispatch("sqrt", name_span, call_span, inputs, fn_table, ctx)
+    static_fn_table! {
+        (float) -> float : sqrt_float,
+        (complex) -> complex : sqrt_complex
+    }
+    dispatch("sqrt", name_span, call_span, inputs, &FN_TABLE, ctx)
 }
 
 fn sqrt_float(inputs: &[Expr], span: Span) -> Result<LiteralKind, ConstEvalError> {
@@ -865,11 +902,11 @@ pub(crate) fn tan(
     call_span: Span,
     ctx: &mut Lowerer,
 ) -> PolymorphicFunctionOutput {
-    let fn_table: FnTable = vec![
-        (fun(&[float()], float()), Box::new(tan_float)),
-        (fun(&[angle()], float()), Box::new(tan_angle)),
-    ];
-    dispatch("tan", name_span, call_span, inputs, fn_table, ctx)
+    static_fn_table! {
+        (float) -> float : tan_float,
+        (angle) -> float : tan_angle
+    }
+    dispatch("tan", name_span, call_span, inputs, &FN_TABLE, ctx)
 }
 
 fn tan_float(inputs: &[Expr], _: Span) -> Result<LiteralKind, ConstEvalError> {

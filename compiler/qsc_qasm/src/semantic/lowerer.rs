@@ -4,6 +4,7 @@
 use std::ops::ShlAssign;
 use std::rc::Rc;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use super::const_eval::ConstEvalError;
 use super::symbols::ScopeKind;
@@ -1254,10 +1255,10 @@ impl Lowerer {
             let tydef = syntax::TypeDef::Scalar(*ty.clone());
             let ty = self.get_semantic_type_from_tydef(&tydef, false);
             let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
-            (Rc::new(ty), qsharp_ty)
+            (Arc::new(ty), qsharp_ty)
         } else {
             (
-                Rc::new(crate::semantic::types::Type::Void),
+                Arc::new(crate::semantic::types::Type::Void),
                 crate::types::Type::Tuple(Default::default()),
             )
         };
@@ -1508,10 +1509,10 @@ impl Lowerer {
             let tydef = syntax::TypeDef::Scalar(ty.clone());
             let ty = self.get_semantic_type_from_tydef(&tydef, false);
             let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
-            (Rc::new(ty), qsharp_ty)
+            (Arc::new(ty), qsharp_ty)
         } else {
             (
-                Rc::new(crate::semantic::types::Type::Void),
+                Arc::new(crate::semantic::types::Type::Void),
                 crate::types::Type::Tuple(Default::default()),
             )
         };
@@ -1702,7 +1703,7 @@ impl Lowerer {
             (params_ty.clone(), (**return_ty).clone())
         } else {
             self.push_semantic_error(SemanticErrorKind::CannotCallNonFunction(expr.span));
-            (Rc::default(), crate::semantic::types::Type::Err)
+            (Arc::default(), crate::semantic::types::Type::Err)
         };
 
         // 4. Lower the args. There are three cases.

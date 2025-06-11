@@ -4,7 +4,7 @@
 use core::f64;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use rustc_hash::FxHashMap;
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use super::{
     ast::{Expr, ExprKind, LiteralKind},
@@ -289,7 +289,7 @@ pub enum ScopeKind {
     Global,
     /// Function scopes need to remember their return type, so that `return` stmts
     /// can do an implicit cast to the correct type, if any;
-    Function(Rc<Type>),
+    Function(Arc<Type>),
     Gate,
     Block,
     Loop,
@@ -518,7 +518,7 @@ impl SymbolTable {
     /// Returns `None` if the current scope is not rooted in a subroutine.
     /// Otherwise, returns the return type of the subroutine.
     #[must_use]
-    pub fn get_subroutine_return_ty(&self) -> Option<Rc<Type>> {
+    pub fn get_subroutine_return_ty(&self) -> Option<Arc<Type>> {
         for scope in self.scopes.iter().rev() {
             if let ScopeKind::Function(return_ty) = &scope.kind {
                 return Some(return_ty.clone());
