@@ -14,5 +14,5 @@ echo "BASE_IMAGE: ${BASE_IMAGE}"
 VOLUME_ROOT=$(realpath ${SCRIPT_DIR}/../..)
 echo "VOLUME_ROOT: ${VOLUME_ROOT}"
 
-echo "docker run --platform linux/arm64/v8 -v ${VOLUME_ROOT}:/qsharp -e WHEEL_DIR='/qsharp/target/wheels' ${BASE_IMAGE} bash /qsharp/docker/linux-aarch64/entrypoint.sh"
-docker run --platform linux/arm64/v8 -v ${VOLUME_ROOT}:/qsharp -e WHEEL_DIR='/qsharp/target/wheels' ${BASE_IMAGE} bash /qsharp/docker/linux-aarch64/entrypoint.sh
+echo "docker run --platform linux/arm64/v8 -v ${VOLUME_ROOT}:/qsharp -e WHEEL_DIR='/qsharp/target/wheels' ${BASE_IMAGE} bash /qsharp/.ado/docker/linux-aarch64/entrypoint.sh"
+docker run --platform linux/arm64/v8 -v ${VOLUME_ROOT}:/qsharp -e WHEEL_DIR='/qsharp/target/wheels' ${BASE_IMAGE} bash /qsharp/.ado/docker/linux-aarch64/entrypoint.sh
