@@ -113,17 +113,17 @@ build_type = "debug" if args.debug else "release"
 run_tests = args.test
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
-src = os.path.join(root_dir, "src")
-wasm_src = os.path.join(src, "wasm")
+qdk_src = os.path.join(root_dir, "qdk_source")
+wasm_src = os.path.join(qdk_src, "wasm")
 wasm_bld = os.path.join(root_dir, "target", "wasm32", build_type)
 samples_src = os.path.join(root_dir, "samples")
-npm_src = os.path.join(src, "npm", "qsharp")
-play_src = os.path.join(src, "playground")
-pip_src = os.path.join(src, "pip")
-widgets_src = os.path.join(src, "widgets")
+npm_src = os.path.join(qdk_src, "npm", "qsharp")
+play_src = os.path.join(qdk_src, "playground")
+pip_src = os.path.join(qdk_src, "pip")
+widgets_src = os.path.join(qdk_src, "widgets")
 wheels_dir = os.path.join(root_dir, "target", "wheels")
-vscode_src = os.path.join(src, "vscode")
-jupyterlab_src = os.path.join(src, "jupyterlab")
+vscode_src = os.path.join(qdk_src, "vscode")
+jupyterlab_src = os.path.join(qdk_src, "jupyterlab")
 
 
 def step_start(description):
