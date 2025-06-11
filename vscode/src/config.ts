@@ -56,3 +56,9 @@ export function getPauliNoiseModel(): number[] {
   ];
   return noiseTuple;
 }
+
+export function getShowDevDiagnostics(): boolean {
+  return vscode.workspace
+    .getConfiguration("Q#")
+    .get<boolean>("dev.showDevDiagnostics", false);
+}

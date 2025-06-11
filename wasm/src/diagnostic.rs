@@ -88,6 +88,9 @@ impl VSDiagnostic {
         match err {
             qsls::protocol::ErrorKind::Compile(e) => Self::from_compile_error(source_name, e),
             qsls::protocol::ErrorKind::Project(e) => Self::new(Vec::new(), source_name, e),
+            e @ qsls::protocol::ErrorKind::DocumentStatus { .. } => {
+                Self::new(Vec::new(), source_name, e)
+            }
         }
     }
 

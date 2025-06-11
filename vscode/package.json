@@ -140,6 +140,14 @@
               "description": "The probability of a phase flip error occurring"
             }
           }
+        },
+        "Q#.dev.showDevDiagnostics": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show dev diagnostics in Problems view for each open document. This is for internal development and testing purposes.",
+          "tags": [
+            "hidden"
+          ]
         }
       }
     },

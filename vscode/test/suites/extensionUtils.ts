@@ -45,6 +45,14 @@ export async function activateExtension() {
     console.log(`qsharp: [${level}] ${args.join(" ")}`);
   });
 
+  // Enable dev diagnostics in the Problems view
+  const config = vscode.workspace.getConfiguration("Q#");
+  await config.update(
+    "dev.showDevDiagnostics",
+    true,
+    vscode.ConfigurationTarget.Global,
+  );
+
   console.log(
     `qsharp-tests: activate() completed in ${performance.now() - start}ms`,
   );
@@ -111,4 +119,110 @@ export async function delay(timeoutMs: number) {
   } catch {
     // expected
   }
+}
+
+/**
+ * Waits for diagnostics to meet a specific condition using the onDidChangeDiagnostics event.
+ *
+ * @param uri The URI to get diagnostics for
+ * @param condition A function that returns true when the diagnostics meet the expected condition
+ * @param timeoutMs Timeout for waiting for the condition to be met
+ * @param timeoutErrorMsg Custom error message if timeout is reached
+ */
+async function waitForDiagnostics(
+  uri: vscode.Uri,
+  condition: (diagnostics: vscode.Diagnostic[]) => boolean,
+  timeoutMs: number = 2000,
+  timeoutErrorMsg: string = "Diagnostics condition not met within timeout",
+): Promise<vscode.Diagnostic[]> {
+  await waitForCondition(
+    () => {
+      const diagnostics = vscode.languages.getDiagnostics(uri);
+      return condition(diagnostics);
+    },
+    vscode.languages.onDidChangeDiagnostics,
+    timeoutMs,
+    timeoutErrorMsg,
+  );
+
+  // Return the diagnostics that met the condition
+  return vscode.languages.getDiagnostics(uri);
+}
+
+/**
+ * Waits for diagnostics to appear (non-empty) for a specific URI.
+ * Ignores the document status diagnostic.
+ *
+ * @param uri The URI to wait for diagnostics on
+ * @param timeoutMs Timeout for waiting
+ */
+export async function waitForDiagnosticsToAppear(
+  uri: vscode.Uri,
+  timeoutMs: number = 2000,
+): Promise<vscode.Diagnostic[]> {
+  const diagnostics = await waitForDiagnostics(
+    uri,
+    (diagnostics) =>
+      // Filter out the dev diagnostics to return only real diagnostics
+      diagnostics.filter((d) => d.code !== "Qdk.Dev.DocumentStatus").length > 0,
+    timeoutMs,
+    `Expected diagnostics to appear for ${uri.path} within timeout`,
+  );
+
+  return diagnostics.filter((d) => d.code !== "Qdk.Dev.DocumentStatus");
+}
+
+/**
+ * Waits for diagnostics to be empty for a specific URI.
+ * Ignores the document status diagnostic.
+ *
+ * @param uri The URI to wait for empty diagnostics on
+ * @param timeoutMs Timeout for waiting
+ */
+export async function waitForDiagnosticsToBeEmpty(
+  uri: vscode.Uri,
+  timeoutMs: number = 2000,
+): Promise<void> {
+  await waitForDiagnostics(
+    uri,
+    (diagnostics) =>
+      // Filter out the dev diagnostics to return only real diagnostics
+      diagnostics.filter((d) => d.code !== "Qdk.Dev.DocumentStatus").length ===
+      0,
+    timeoutMs,
+    `Expected diagnostics to be empty for ${uri.path} within timeout`,
+  );
+}
+
+/**
+ * Opens a single document and waits for it to be processed by the language service.
+ * The language service signals that it processed this version of the document by
+ * publishing an info diagnostic on the document with its known status.
+ * (This diagnostic is not visible in the product, but only enabled via a
+ * configuration setting in tests.)
+ *
+ * @param documentUri The URI of the document to open
+ * @param timeoutMs Timeout for waiting for the document to be processed
+ */
+export async function openDocumentAndWaitForProcessing(
+  documentUri: vscode.Uri,
+  timeoutMs: number = 2000,
+): Promise<vscode.TextDocument> {
+  const doc = await vscode.workspace.openTextDocument(documentUri);
+  const version = doc.version;
+
+  // Wait for the status diagnostic to appear, indicating the document is loaded
+  await waitForDiagnostics(
+    documentUri,
+    (diagnostics) =>
+      diagnostics.some(
+        (d) =>
+          d.code === "Qdk.Dev.DocumentStatus" &&
+          d.message.includes(`version=${version}`),
+      ),
+    timeoutMs,
+    `Document ${documentUri.path} was not processed within timeout ${timeoutMs}ms`,
+  );
+
+  return doc;
 }

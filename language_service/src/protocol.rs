@@ -16,6 +16,7 @@ pub struct WorkspaceConfigurationUpdate {
     pub package_type: Option<PackageType>,
     pub language_features: Option<LanguageFeatures>,
     pub lints_config: Option<Vec<LintOrGroupConfig>>,
+    pub dev_diagnostics: Option<bool>,
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -26,6 +27,21 @@ pub enum ErrorKind {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Project(#[from] project::Error),
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    DocumentStatus(#[from] DocumentStatusDiagnostic),
+}
+
+/// Document status is a non-user facing, info-level diagnostic meant for
+/// development and debugging purposes.
+/// When enabled, this diagnostic is always published for open documents,
+/// and communicates the status of the document as understood by the language service.
+#[derive(Clone, Debug, Diagnostic, Error)]
+#[error("[qdk-status] compilation={compilation_name}, version={document_version}")]
+#[diagnostic(severity(info), code("Qdk.Dev.DocumentStatus"))]
+pub struct DocumentStatusDiagnostic {
+    pub(crate) compilation_name: String,
+    pub(crate) document_version: u32,
 }
 
 #[derive(Debug)]
