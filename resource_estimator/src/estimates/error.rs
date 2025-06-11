@@ -58,6 +58,12 @@ pub enum Error {
     #[error("No solution found for the provided maximum number of physical qubits.")]
     #[diagnostic(code("Qsc.Estimates.MaxPhysicalQubitsTooSmall"))]
     MaxPhysicalQubitsTooSmall,
+    /// Logical depth scaling factor is too small
+    ///
+    /// 🧑‍💻 This indicates a user error
+    #[error("Logical depth scaling factor is too small, it must be at least 1: {0}")]
+    #[diagnostic(code("Qsc.Estimates.LogicalDepthScalingFactorTooSmall"))]
+    LogicalDepthScalingFactorTooSmall(f64),
     /// Resource estimation failed to find factories
     ///
     /// ✅ This error cannot be triggered by the system.
