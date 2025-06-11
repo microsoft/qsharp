@@ -292,6 +292,11 @@ pub fn bitarray(n: u32) -> Type {
 // i.e.: `popcount`, `rotl`, and `rotr`.
 // --------------------------------------------
 
+/// Returns the width of a type.
+/// [`Type::width`] doesn't return the width of `BitArary`,
+/// since that is treated as an array size in the rest of
+/// the compiler. Therefore, we need this helper function
+/// for this module.
 fn get_ty_width(ty: &Type) -> Option<u32> {
     match ty {
         Type::Angle(w, _)
