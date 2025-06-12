@@ -414,7 +414,7 @@ impl<'a> CompilationStateUpdater<'a> {
                     .map(|manifest| manifest.lints)
                     .unwrap_or_default(),
             };
-            let configuration = merge_configurations(&notebook_configuration, &configuration);
+            let configuration = merge_configurations_for_notebook(&notebook_configuration, &configuration);
 
             // Compile the notebook and add each cell into the document map
             let compilation = Compilation::new_notebook(
@@ -735,6 +735,55 @@ fn merge_configurations(
         target_profile: compilation_overrides
             .target_profile
             .unwrap_or(workspace_scope.target_profile),
+        package_type: compilation_overrides
+            .package_type
+            .unwrap_or(workspace_scope.package_type),
+        language_features: compilation_overrides
+            .language_features
+            .unwrap_or(workspace_scope.language_features),
+        lints_config: merged_lints,
+    }
+}
+
+fn merge_configurations_for_notebook(
+    compilation_overrides: &PartialConfiguration,
+    workspace_scope: &Configuration,
+) -> Configuration {
+    let mut merged_lints = workspace_scope.lints_config.clone();
+    let mut override_lints = compilation_overrides.lints_config.clone();
+    override_lints.retain(|override_lint| {
+        for merged_lint in &mut merged_lints {
+            match (merged_lint, override_lint) {
+                (
+                    LintOrGroupConfig::Lint(lint_config),
+                    LintOrGroupConfig::Lint(lint_config_override),
+                ) => {
+                    if lint_config.kind == lint_config_override.kind {
+                        lint_config.level = lint_config_override.level;
+                        return false;
+                    }
+                }
+                (
+                    LintOrGroupConfig::Group(group_config),
+                    LintOrGroupConfig::Group(group_config_override),
+                ) => {
+                    if group_config.lint_group == group_config_override.lint_group {
+                        group_config.level = group_config_override.level;
+                        return false;
+                    }
+                }
+                _ => (),
+            }
+        }
+        true
+    });
+    merged_lints.extend(override_lints);
+
+    Configuration {
+        // For notebooks, default to Unrestricted instead of workspace target profile
+        target_profile: compilation_overrides
+            .target_profile
+            .unwrap_or(Profile::Unrestricted),
         package_type: compilation_overrides
             .package_type
             .unwrap_or(workspace_scope.package_type),
