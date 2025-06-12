@@ -27,4 +27,4 @@ jobs:
       - name: Prereqs
         run: python ./prereqs.py --install
       - name: First build
-        run: python ./build.py --no-check --no-test
+        run: python ./build.py --no-check --no-test --integration-tests
