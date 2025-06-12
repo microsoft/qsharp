@@ -1,6 +1,37 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+// When running `build.py` on the repo, clippy fails in this module with
+// `clippy::large_stack_arrays`. Note that the `build.py` script runs the command
+// `cargo clippy --all-targets --all-features -- -D warnings`. Just running
+// `cargo clippy` won't trigger the failure. If you want to reproduce the failure
+// with the minimal command possible, you can run `cargo clippy --test -- -D warnings`.
+//
+// We tried to track down the error, but it is non-deterministic. Our assumpution
+// is that clippy is running out of stack memory because of how many and how large
+// the static strings in this module are.
+//
+// Decision: Based on this, we decided to disable clippy for this testing module.
+//           <https://doc.rust-lang.org/nightly/clippy/configuration.html#disabling-evaluation-of-certain-code>.
+#![cfg(not(clippy))]
+
+mod arccos;
+mod arcsin;
+mod arctan;
+mod ceiling;
+mod cos;
+mod exp;
+mod floor;
+mod log;
+mod mod_;
+mod popcount;
+mod pow;
+mod rotl;
+mod rotr;
+mod sin;
+mod sqrt;
+mod tan;
+
 use crate::semantic::tests::check_stmt_kinds;
 use expect_test::expect;
 
@@ -24,8 +55,8 @@ fn builtin_call_with_invalid_input_types_fails() {
 
               x There is no valid overload of `mod` for inputs: (const int, const bool)
               | Overloads available are:
-              |     def (const int, const int) -> const int
-              |     def (const float, const float) -> const float
+              |     def mod(const int, const int) -> const int
+              |     def mod(const float, const float) -> const float
                ,-[test:2:9]
              1 | 
              2 |         mod(9, true);
@@ -56,8 +87,8 @@ fn builtin_call_with_zero_arguments_fails() {
 
               x There is no valid overload of `mod` for inputs: ()
               | Overloads available are:
-              |     def (const int, const int) -> const int
-              |     def (const float, const float) -> const float
+              |     def mod(const int, const int) -> const int
+              |     def mod(const float, const float) -> const float
                ,-[test:2:9]
              1 | 
              2 |         mod();
@@ -88,8 +119,8 @@ fn builtin_call_with_lower_arity_fails() {
 
               x There is no valid overload of `mod` for inputs: (const int)
               | Overloads available are:
-              |     def (const int, const int) -> const int
-              |     def (const float, const float) -> const float
+              |     def mod(const int, const int) -> const int
+              |     def mod(const float, const float) -> const float
                ,-[test:2:9]
              1 | 
              2 |         mod(9);
@@ -121,8 +152,8 @@ fn builtin_call_with_higher_arity_fails() {
               x There is no valid overload of `mod` for inputs: (const int, const int,
               | const int)
               | Overloads available are:
-              |     def (const int, const int) -> const int
-              |     def (const float, const float) -> const float
+              |     def mod(const int, const int) -> const int
+              |     def mod(const float, const float) -> const float
                ,-[test:2:9]
              1 | 
              2 |         mod(9, 7, 2);
@@ -241,123 +272,5 @@ fn nested_builtin_call_succeeds() {
                                             const_value: Int(7)
                                             kind: SymbolId(9)
         "#]],
-    );
-}
-
-#[test]
-fn mod_int() {
-    let source = "
-        mod(9, 7);
-    ";
-
-    check_stmt_kinds(
-        source,
-        &expect![[r#"
-            ExprStmt [9-19]:
-                expr: Expr [9-18]:
-                    ty: const int
-                    const_value: Int(2)
-                    kind: BuiltinFunctionCall [9-18]:
-                        fn_name_span: [9-12]
-                        name: mod
-                        function_ty: def (const int, const int) -> const int
-                        args:
-                            Expr [13-14]:
-                                ty: const int
-                                const_value: Int(9)
-                                kind: Lit: Int(9)
-                            Expr [16-17]:
-                                ty: const int
-                                const_value: Int(7)
-                                kind: Lit: Int(7)
-        "#]],
-    );
-}
-
-#[test]
-fn mod_int_divide_by_zero_error() {
-    let source = "
-        mod(9, 0);
-    ";
-
-    check_stmt_kinds(
-        source,
-        &expect![[r#"
-            Program:
-                version: <none>
-                statements:
-                    Stmt [9-19]:
-                        annotations: <empty>
-                        kind: Err
-
-            [Qasm.Lowerer.DivisionByZero
-
-              x division by zero error during const evaluation
-               ,-[test:2:9]
-             1 | 
-             2 |         mod(9, 0);
-               :         ^^^^^^^^^
-             3 |     
-               `----
-            ]"#]],
-    );
-}
-
-#[test]
-fn mod_float() {
-    let source = "
-        mod(9, 7.);
-    ";
-
-    check_stmt_kinds(
-        source,
-        &expect![[r#"
-            ExprStmt [9-20]:
-                expr: Expr [9-19]:
-                    ty: const float
-                    const_value: Float(2.0)
-                    kind: BuiltinFunctionCall [9-19]:
-                        fn_name_span: [9-12]
-                        name: mod
-                        function_ty: def (const float, const float) -> const float
-                        args:
-                            Expr [13-14]:
-                                ty: const int
-                                const_value: Int(9)
-                                kind: Lit: Int(9)
-                            Expr [16-18]:
-                                ty: const float
-                                const_value: Float(7.0)
-                                kind: Lit: Float(7.0)
-        "#]],
-    );
-}
-
-#[test]
-fn mod_float_divide_by_zero_error() {
-    let source = "
-        mod(9., 0.);
-    ";
-
-    check_stmt_kinds(
-        source,
-        &expect![[r#"
-            Program:
-                version: <none>
-                statements:
-                    Stmt [9-21]:
-                        annotations: <empty>
-                        kind: Err
-
-            [Qasm.Lowerer.DivisionByZero
-
-              x division by zero error during const evaluation
-               ,-[test:2:9]
-             1 | 
-             2 |         mod(9., 0.);
-               :         ^^^^^^^^^^^
-             3 |     
-               `----
-            ]"#]],
     );
 }

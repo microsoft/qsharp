@@ -3,6 +3,8 @@
 
 use std::ops::ShlAssign;
 use std::rc::Rc;
+use std::str::FromStr;
+use std::sync::Arc;
 
 use super::const_eval::ConstEvalError;
 use super::symbols::ScopeKind;
@@ -36,6 +38,7 @@ use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
 use crate::stdlib::angle::Angle;
 use crate::stdlib::builtin_functions;
+use crate::stdlib::complex::Complex;
 
 use super::ast as semantic;
 use crate::parser::ast as syntax;
@@ -807,7 +810,7 @@ impl Lowerer {
                 Type::Float(None, true),
             ),
             syntax::LiteralKind::Imaginary(value) => (
-                semantic::ExprKind::Lit(semantic::LiteralKind::Complex(0.0, *value)),
+                semantic::ExprKind::Lit(Complex::imag(*value).into()),
                 Type::Complex(None, true),
             ),
             syntax::LiteralKind::String(_) => {
@@ -1252,10 +1255,10 @@ impl Lowerer {
             let tydef = syntax::TypeDef::Scalar(*ty.clone());
             let ty = self.get_semantic_type_from_tydef(&tydef, false);
             let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
-            (Rc::new(ty), qsharp_ty)
+            (Arc::new(ty), qsharp_ty)
         } else {
             (
-                Rc::new(crate::semantic::types::Type::Void),
+                Arc::new(crate::semantic::types::Type::Void),
                 crate::types::Type::Tuple(Default::default()),
             )
         };
@@ -1281,7 +1284,7 @@ impl Lowerer {
         let qsharp_ty = crate::types::Type::Callable(kind, arity, 0);
 
         // Check that the name isn't a builtin function.
-        let symbol_id = if Self::is_builtin_function(&name) {
+        let symbol_id = if BuiltinFunction::from_str(&name).is_ok() {
             self.push_semantic_error(SemanticErrorKind::RedefinedBuiltinFunction(
                 name.as_ref().to_string(),
                 stmt.name.span,
@@ -1506,10 +1509,10 @@ impl Lowerer {
             let tydef = syntax::TypeDef::Scalar(ty.clone());
             let ty = self.get_semantic_type_from_tydef(&tydef, false);
             let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
-            (Rc::new(ty), qsharp_ty)
+            (Arc::new(ty), qsharp_ty)
         } else {
             (
-                Rc::new(crate::semantic::types::Type::Void),
+                Arc::new(crate::semantic::types::Type::Void),
                 crate::types::Type::Tuple(Default::default()),
             )
         };
@@ -1635,30 +1638,13 @@ impl Lowerer {
         })
     }
 
-    fn is_builtin_function(name: &str) -> bool {
-        matches!(
-            name,
-            "arccos"
-                | "arcsin"
-                | "arctan"
-                | "ceiling"
-                | "cos"
-                | "exp"
-                | "floor"
-                | "log"
-                | "mod"
-                | "popcount"
-                | "pow"
-                | "rotl"
-                | "rotr"
-                | "sin"
-                | "sqrt"
-                | "tan"
-        )
-    }
+    fn lower_builtin_function_call_expr(
+        &mut self,
+        expr: &syntax::FunctionCall,
+        builtin_fn: BuiltinFunction,
+    ) -> semantic::Expr {
+        use BuiltinFunction::*;
 
-    fn lower_builtin_function_call_expr(&mut self, expr: &syntax::FunctionCall) -> semantic::Expr {
-        let name = &*expr.name.name;
         let name_span = expr.name.span;
         let call_span = expr.span;
         let inputs: Vec<_> = expr
@@ -1667,14 +1653,23 @@ impl Lowerer {
             .map(|e| self.lower_expr(e).with_const_value(self))
             .collect();
 
-        let output = match name {
-            "mod" => builtin_functions::mod_(&inputs, name_span, call_span, self),
-            "arccos" | "arcsin" | "arctan" | "ceiling" | "cos" | "exp" | "floor" | "log"
-            | "popcount" | "pow" | "rotl" | "rotr" | "sin" | "sqrt" | "tan" => {
-                self.push_unimplemented_error_message(format!("{name} builtin"), call_span);
-                None
-            }
-            _ => unreachable!(),
+        let output = match builtin_fn {
+            Arccos => builtin_functions::arccos(&inputs, name_span, call_span, self),
+            Arcsin => builtin_functions::arcsin(&inputs, name_span, call_span, self),
+            Arctan => builtin_functions::arctan(&inputs, name_span, call_span, self),
+            Ceiling => builtin_functions::ceiling(&inputs, name_span, call_span, self),
+            Cos => builtin_functions::cos(&inputs, name_span, call_span, self),
+            Exp => builtin_functions::exp(&inputs, name_span, call_span, self),
+            Floor => builtin_functions::floor(&inputs, name_span, call_span, self),
+            Log => builtin_functions::log(&inputs, name_span, call_span, self),
+            Mod => builtin_functions::mod_(&inputs, name_span, call_span, self),
+            Popcount => builtin_functions::popcount(&inputs, name_span, call_span, self),
+            Pow => builtin_functions::pow(&inputs, name_span, call_span, self),
+            Rotl => builtin_functions::rotl(&inputs, name_span, call_span, self),
+            Rotr => builtin_functions::rotr(&inputs, name_span, call_span, self),
+            Sin => builtin_functions::sin(&inputs, name_span, call_span, self),
+            Sqrt => builtin_functions::sqrt(&inputs, name_span, call_span, self),
+            Tan => builtin_functions::tan(&inputs, name_span, call_span, self),
         };
 
         output.unwrap_or_else(|| err_expr!(Type::Err, call_span))
@@ -1683,8 +1678,8 @@ impl Lowerer {
     fn lower_function_call_expr(&mut self, expr: &syntax::FunctionCall) -> semantic::Expr {
         // 1. If the name refers to a builtin function, we defer
         //    the lowering to `lower_builtin_function_call_expr`.
-        if Self::is_builtin_function(&expr.name.name) {
-            return self.lower_builtin_function_call_expr(expr);
+        if let Ok(builtin_fn) = BuiltinFunction::from_str(&expr.name.name) {
+            return self.lower_builtin_function_call_expr(expr, builtin_fn);
         }
 
         // 2. Check that the function name actually refers to a function
@@ -1708,7 +1703,7 @@ impl Lowerer {
             (params_ty.clone(), (**return_ty).clone())
         } else {
             self.push_semantic_error(SemanticErrorKind::CannotCallNonFunction(expr.span));
-            (Rc::default(), crate::semantic::types::Type::Err)
+            (Arc::default(), crate::semantic::types::Type::Err)
         };
 
         // 4. Lower the args. There are three cases.
@@ -2838,7 +2833,7 @@ impl Lowerer {
             Type::Int(_, _) | Type::UInt(_, _) => Some(from_lit_kind(LiteralKind::Int(0))),
             Type::Bool(_) => Some(from_lit_kind(LiteralKind::Bool(false))),
             Type::Float(_, _) => Some(from_lit_kind(LiteralKind::Float(0.0))),
-            Type::Complex(_, _) => Some(from_lit_kind(LiteralKind::Complex(0.0, 0.0))),
+            Type::Complex(_, _) => Some(from_lit_kind(Complex::default().into())),
             Type::Stretch(_) => {
                 let message = "stretch default values";
                 self.push_unsupported_error_message(message, span);
@@ -3091,10 +3086,10 @@ impl Lowerer {
                 None
             }
             (Type::Complex(..), Type::Complex(..)) => {
-                if let semantic::LiteralKind::Complex(real, imag) = kind {
+                if let semantic::LiteralKind::Complex(value) = kind {
                     return Some(semantic::Expr::new(
                         span,
-                        semantic::ExprKind::Lit(semantic::LiteralKind::Complex(*real, *imag)),
+                        semantic::ExprKind::Lit(semantic::LiteralKind::Complex(*value)),
                         lhs_ty.as_const(),
                     ));
                 }
@@ -3104,7 +3099,7 @@ impl Lowerer {
                 if let semantic::LiteralKind::Float(value) = kind {
                     return Some(semantic::Expr::new(
                         span,
-                        semantic::ExprKind::Lit(semantic::LiteralKind::Complex(*value, 0.0)),
+                        semantic::ExprKind::Lit(Complex::real(*value).into()),
                         lhs_ty.as_const(),
                     ));
                 }
@@ -3117,7 +3112,7 @@ impl Lowerer {
                     if let Some(value) = safe_i64_to_f64(*value) {
                         return Some(semantic::Expr::new(
                             span,
-                            semantic::ExprKind::Lit(semantic::LiteralKind::Complex(value, 0.0)),
+                            semantic::ExprKind::Lit(Complex::real(value).into()),
                             lhs_ty.as_const(),
                         ));
                     }
@@ -3329,7 +3324,7 @@ impl Lowerer {
             Type::Complex(..) => {
                 // Even though the spec doesn't say it, we need to allow
                 // casting from float to complex, else this kind of expression
-                // would be invalid: 2.0 + sin(pi) + 1.0i
+                // would be invalid: 2.0 + sin(pi) + 1.0 im
                 Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone()))
             }
             _ => None,
@@ -4116,5 +4111,51 @@ fn try_get_qsharp_name_and_implicit_modifiers<S: AsRef<str>>(
         "CX" => Some(("x".to_string(), make_modifier(Ctrl(ctrl_expr)))),
         "cphase" => Some(("phase".to_string(), make_modifier(Ctrl(ctrl_expr)))),
         _ => None,
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum BuiltinFunction {
+    Arccos,
+    Arcsin,
+    Arctan,
+    Ceiling,
+    Cos,
+    Exp,
+    Floor,
+    Log,
+    Mod,
+    Popcount,
+    Pow,
+    Rotl,
+    Rotr,
+    Sin,
+    Sqrt,
+    Tan,
+}
+
+impl FromStr for BuiltinFunction {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "arccos" => Ok(Self::Arccos),
+            "arcsin" => Ok(Self::Arcsin),
+            "arctan" => Ok(Self::Arctan),
+            "ceiling" => Ok(Self::Ceiling),
+            "cos" => Ok(Self::Cos),
+            "exp" => Ok(Self::Exp),
+            "floor" => Ok(Self::Floor),
+            "log" => Ok(Self::Log),
+            "mod" => Ok(Self::Mod),
+            "popcount" => Ok(Self::Popcount),
+            "pow" => Ok(Self::Pow),
+            "rotl" => Ok(Self::Rotl),
+            "rotr" => Ok(Self::Rotr),
+            "sin" => Ok(Self::Sin),
+            "sqrt" => Ok(Self::Sqrt),
+            "tan" => Ok(Self::Tan),
+            _ => Err(()),
+        }
     }
 }
