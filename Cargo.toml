@@ -27,7 +27,7 @@ members = [
     "qdk_source/backend/resource_estimator",
     "qdk_source/backend/samples_test",
     "qdk_source/backend/wasm",
-    "qdk_source/frontend/pip",
+    "qdk_source/pip",
 ]
 resolver = "2"
 

@@ -19,7 +19,7 @@
 				"base": "$tsc-watch",
 				"fileLocation":[
 					"relative",
-					"${workspaceFolder}/qdk_source/frontend/npm"
+					"${workspaceFolder}/qdk_source/npm"
 				]
 			},
 			"isBackground": true
@@ -34,7 +34,7 @@
 				"base": "$tsc-watch",
 				"fileLocation":[
 					"relative",
-					"${workspaceFolder}/qdk_source/frontend/playground"
+					"${workspaceFolder}/qdk_source/playground"
 				]
 			},
 			"isBackground": true
@@ -48,7 +48,7 @@
 				"owner": "esbuild",
 				"fileLocation":[
 					"relative",
-					"${workspaceFolder}/qdk_source/frontend/playground"
+					"${workspaceFolder}/qdk_source/playground"
 				],
 				"pattern":[
 					{

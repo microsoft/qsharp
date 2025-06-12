@@ -29,25 +29,22 @@ import { copyFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import {
-  copyWasmToVsCode,
-  watchVsCode,
-} from "./qdk_source/frontend/vscode/build.mjs";
+import { copyWasmToVsCode, watchVsCode } from "./qdk_source/vscode/build.mjs";
 import {
   buildPlayground,
   copyWasmToPlayground,
-} from "./qdk_source/frontend/playground/build.js";
+} from "./qdk_source/playground/build.js";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
-const backendDir = join(thisDir, "qdk_source", "backend");
-const frontendDir = join(thisDir, "qdk_source", "frontend");
+const qdkSrcDir = join(thisDir, "qdk_source");
+const backendDir = join(qdkSrcDir, "backend");
 
 // Watch the source directories directly to avoid notification noise from .git, __pycache__, node_modules, target, etc.
 const coreDir = join(backendDir, "compiler");
 const libsDir = join(thisDir, "library");
 const vslsDir = join(backendDir, "language_service");
 const wasmDir = join(backendDir, "wasm");
-const npmDir = join(frontendDir, "npm", "qsharp");
+const npmDir = join(qdkSrcDir, "npm", "qsharp");
 const katasDir = join(thisDir, "katas");
 const samplesDir = join(thisDir, "samples");
 
@@ -186,14 +183,14 @@ function runWatcher(dir, name, watchTask = "tsc:watch") {
 runWatcher(npmDir, "npm");
 
 // VSCode and playground are built by esbuild, but run the type checker in watch mode
-runWatcher(join(frontendDir, "vscode"), "vscode");
-runWatcher(join(frontendDir, "vscode"), "vscode webview", "tsc:watch:view");
+runWatcher(join(qdkSrcDir, "vscode"), "vscode");
+runWatcher(join(qdkSrcDir, "vscode"), "vscode webview", "tsc:watch:view");
 runWatcher(
-  join(frontendDir, "vscode"),
+  join(qdkSrcDir, "vscode"),
   "vscode copilot webview",
   "tsc:watch:copilotView",
 );
-runWatcher(join(frontendDir, "playground"), "playground");
+runWatcher(join(qdkSrcDir, "playground"), "playground");
 
 // Kick off watch mode builds (this will detect changes in the npm package it depends on) also
 watchVsCode();

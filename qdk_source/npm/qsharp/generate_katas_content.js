@@ -54,7 +54,6 @@ const katasContentPath = join(
   "..",
   "..",
   "..",
-  "..",
   "katas",
   "content",
 );
