@@ -69,10 +69,10 @@ parser.add_argument(
 )
 
 parser.add_argument(
-        "--ci-bench",
-        action=argparse.BooleanOptionalAction,
-        default=False,
-        help="Run the benchmarking script that is run in CI (default is --no-ci-bench)",
+    "--ci-bench",
+    action=argparse.BooleanOptionalAction,
+    default=False,
+    help="Run the benchmarking script that is run in CI (default is --no-ci-bench)",
 )
 
 args = parser.parse_args()
@@ -174,7 +174,11 @@ if npm_install_needed:
 
 if args.check:
     step_start("Running eslint and prettier checks")
-    subprocess.run([npm_cmd, "run", "check"], check=True, text=True, cwd=root_dir)
+    try:
+        subprocess.run([npm_cmd, "run", "check"], check=True, text=True, cwd=root_dir)
+    except subprocess.CalledProcessError:
+        print("Consider running 'npm run prettier:fix' to fix prettier errors.")
+        raise
 
     if build_wasm or build_cli:
         # If we're going to check the Rust code, do this before we try to compile it
@@ -303,24 +307,45 @@ def run_python_integration_tests(cwd, interpreter):
 def run_ci_historic_benchmark():
     branch = "main"
     output = subprocess.check_output(
-        ["git", "rev-list", "--since=1 week ago", "--pretty=format:%ad__%h", "--date=short", branch]
+        [
+            "git",
+            "rev-list",
+            "--since=1 week ago",
+            "--pretty=format:%ad__%h",
+            "--date=short",
+            branch,
+        ]
     ).decode("utf-8")
-    print('\n'.join([line for i, line in enumerate(output.split('\n')) if i % 2 == 1]))
+    print("\n".join([line for i, line in enumerate(output.split("\n")) if i % 2 == 1]))
 
     output = subprocess.check_output(
-        ["git", "rev-list", "--since=1 week ago", "--pretty=format:%ad__%h", "--date=short", branch]
+        [
+            "git",
+            "rev-list",
+            "--since=1 week ago",
+            "--pretty=format:%ad__%h",
+            "--date=short",
+            branch,
+        ]
     ).decode("utf-8")
-    date_and_commits = [line for i, line in enumerate(output.split('\n')) if i % 2 == 1]
+    date_and_commits = [line for i, line in enumerate(output.split("\n")) if i % 2 == 1]
 
     for date_and_commit in date_and_commits:
         print("benching commit", date_and_commit)
         result = subprocess.run(
-            ["cargo", "criterion", "--message-format=json", "--history-id", date_and_commit],
+            [
+                "cargo",
+                "criterion",
+                "--message-format=json",
+                "--history-id",
+                date_and_commit,
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
         with open(f"{date_and_commit}.json", "w") as f:
             f.write(result.stdout)
+
 
 if build_pip:
     step_start("Building the pip package")
@@ -514,6 +539,7 @@ if build_pip and build_widgets and args.integration_tests:
         "ipykernel",
         "nbconvert",
         "pandas",
+        "qutip",
         "qiskit>=1.3.0,<2.0.0",
     ]
     subprocess.run(pip_install_args, check=True, text=True, cwd=root_dir, env=pip_env)

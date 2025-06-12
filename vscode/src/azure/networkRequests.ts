@@ -25,6 +25,7 @@ export async function azureRequest(
 
   try {
     log.debug(`Fetching ${uri} with method ${method}`);
+    log.trace("Request headers & body: ", headers, body);
     const response = await fetch(uri, {
       headers,
       method,

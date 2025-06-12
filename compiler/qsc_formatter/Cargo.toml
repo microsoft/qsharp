@@ -17,6 +17,9 @@ qsc_frontend = { path = "../qsc_frontend" }
 expect-test = { workspace = true }
 indoc = { workspace = true }
 
+[lints]
+workspace = true
+
 [lib]
 doctest = false
 
@@ -24,4 +27,3 @@ doctest = false
 name = "qsc_formatter"
 bench = false
 test = false
-

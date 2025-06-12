@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::{
-    circuit::{Circuit, Operation, Register},
+    circuit::{operation_list_to_grid, Circuit, Ket, Measurement, Operation, Register, Unitary},
     Config,
 };
 use num_bigint::BigUint;
@@ -17,7 +17,7 @@ use std::{fmt::Write, mem::take, rc::Rc};
 /// Backend implementation that builds a circuit representation.
 pub struct Builder {
     max_ops_exceeded: bool,
-    circuit: Circuit,
+    operations: Vec<Operation>,
     config: Config,
     remapper: Remapper,
 }
@@ -56,81 +56,67 @@ impl Backend for Builder {
     }
 
     fn m(&mut self, q: usize) -> Self::ResultType {
-        if self.config.base_profile {
-            // defer the measurement and reset the qubit
-            self.remapper.mreset(q)
-        } else {
-            let mapped_q = self.map(q);
-            // In the Circuit schema, result id is per-qubit
-            let res_id = self.num_measurements_for_qubit(mapped_q);
-            let id = self.remapper.m(q);
+        let mapped_q = self.map(q);
+        // In the Circuit schema, result id is per-qubit
+        let res_id = self.num_measurements_for_qubit(mapped_q);
+        let id = self.remapper.m(q);
 
-            self.push_gate(measurement_gate(mapped_q.0, res_id));
-            id
-        }
+        self.push_gate(measurement_gate(mapped_q.0, res_id));
+        id
     }
 
     fn mresetz(&mut self, q: usize) -> Self::ResultType {
-        if self.config.base_profile {
-            // defer the measurement
-            self.remapper.mreset(q)
-        } else {
-            let mapped_q = self.map(q);
-            // In the Circuit schema, result id is per-qubit
-            let res_id = self.num_measurements_for_qubit(mapped_q);
-            // We don't actually need the Remapper since we're not
-            // remapping any qubits, but it's handy for keeping track of measurements
-            let id = self.remapper.m(q);
+        let mapped_q = self.map(q);
+        // In the Circuit schema, result id is per-qubit
+        let res_id = self.num_measurements_for_qubit(mapped_q);
+        // We don't actually need the Remapper since we're not
+        // remapping any qubits, but it's handy for keeping track of measurements
+        let id = self.remapper.m(q);
 
-            // Ideally MResetZ would be atomic but we don't currently have
-            // a way to visually represent that. So decompose it into
-            // a measurement and a reset gate.
-            self.push_gate(measurement_gate(mapped_q.0, res_id));
-            self.push_gate(gate(KET_ZERO, [mapped_q]));
-            id
-        }
+        // Ideally MResetZ would be atomic but we don't currently have
+        // a way to visually represent that. So decompose it into
+        // a measurement and a reset gate.
+        self.push_gate(measurement_gate(mapped_q.0, res_id));
+        self.push_gate(ket_gate("0", [mapped_q]));
+        id
     }
 
     fn reset(&mut self, q: usize) {
-        if self.config.base_profile {
-            self.remapper.reset(q);
-        } else {
-            let mapped_q = self.map(q);
-            self.push_gate(gate(KET_ZERO, [mapped_q]));
-        }
+        let mapped_q = self.map(q);
+        self.push_gate(ket_gate("0", [mapped_q]));
     }
 
     fn rx(&mut self, theta: f64, q: usize) {
         let q = self.map(q);
-        self.push_gate(rotation_gate("rx", theta, [q]));
+        self.push_gate(rotation_gate("Rx", theta, [q]));
     }
 
     fn rxx(&mut self, theta: f64, q0: usize, q1: usize) {
         let q0 = self.map(q0);
         let q1 = self.map(q1);
-        self.push_gate(rotation_gate("rxx", theta, [q0, q1]));
+        self.push_gate(rotation_gate("Rxx", theta, [q0, q1]));
     }
 
     fn ry(&mut self, theta: f64, q: usize) {
         let q = self.map(q);
-        self.push_gate(rotation_gate("ry", theta, [q]));
+        self.push_gate(rotation_gate("Ry", theta, [q]));
     }
 
     fn ryy(&mut self, theta: f64, q0: usize, q1: usize) {
         let q0 = self.map(q0);
         let q1 = self.map(q1);
-        self.push_gate(rotation_gate("ryy", theta, [q0, q1]));
+        self.push_gate(rotation_gate("Ryy", theta, [q0, q1]));
     }
 
     fn rz(&mut self, theta: f64, q: usize) {
         let q = self.map(q);
-        self.push_gate(rotation_gate("rz", theta, [q]));
+        self.push_gate(rotation_gate("Rz", theta, [q]));
     }
 
     fn rzz(&mut self, theta: f64, q0: usize, q1: usize) {
         let q0 = self.map(q0);
         let q1 = self.map(q1);
-        self.push_gate(rotation_gate("rzz", theta, [q0, q1]));
+        self.push_gate(rotation_gate("Rzz", theta, [q0, q1]));
     }
 
     fn sadj(&mut self, q: usize) {
@@ -141,6 +127,11 @@ impl Backend for Builder {
     fn s(&mut self, q: usize) {
         let q = self.map(q);
         self.push_gate(gate("S", [q]));
+    }
+
+    fn sx(&mut self, q: usize) {
+        let q = self.map(q);
+        self.push_gate(gate("SX", [q]));
     }
 
     fn swap(&mut self, q0: usize, q1: usize) {
@@ -207,9 +198,9 @@ impl Backend for Builder {
             name,
             &qubit_args,
             if classical_args.is_empty() {
-                None
+                vec![]
             } else {
-                Some(classical_args)
+                vec![classical_args]
             },
         ));
 
@@ -227,7 +218,7 @@ impl Builder {
     pub fn new(config: Config) -> Self {
         Builder {
             max_ops_exceeded: false,
-            circuit: Circuit::default(),
+            operations: vec![],
             config,
             remapper: Remapper::default(),
         }
@@ -235,14 +226,14 @@ impl Builder {
 
     #[must_use]
     pub fn snapshot(&self) -> Circuit {
-        let circuit = self.circuit.clone();
-        self.finish_circuit(circuit)
+        let operations = self.operations.clone();
+        self.finish_circuit(operations)
     }
 
     #[must_use]
     pub fn finish(mut self) -> Circuit {
-        let circuit = take(&mut self.circuit);
-        self.finish_circuit(circuit)
+        let operations = take(&mut self.operations);
+        self.finish_circuit(operations)
     }
 
     fn map(&mut self, qubit: usize) -> WireId {
@@ -250,12 +241,12 @@ impl Builder {
     }
 
     fn push_gate(&mut self, gate: Operation) {
-        if self.max_ops_exceeded || self.circuit.operations.len() >= self.config.max_operations {
+        if self.max_ops_exceeded || self.operations.len() >= self.config.max_operations {
             // Stop adding gates and leave the circuit as is
             self.max_ops_exceeded = true;
             return;
         }
-        self.circuit.operations.push(gate);
+        self.operations.push(gate);
     }
 
     fn num_measurements_for_qubit(&self, qubit: WireId) -> usize {
@@ -266,29 +257,22 @@ impl Builder {
             .unwrap_or_default()
     }
 
-    fn finish_circuit(&self, mut circuit: Circuit) -> Circuit {
-        // add deferred measurements
-        if self.config.base_profile {
-            for (qubit, _) in &self.remapper.qubit_measurement_counts {
-                if self.max_ops_exceeded || circuit.operations.len() >= self.config.max_operations {
-                    break;
-                }
-
-                // guaranteed one measurement per qubit, so result is always 0
-                circuit.operations.push(measurement_gate(qubit.0, 0));
-            }
-        }
+    fn finish_circuit(&self, operations: Vec<Operation>) -> Circuit {
+        let mut qubits = vec![];
 
         // add qubit declarations
         for i in 0..self.remapper.num_qubits() {
             let num_measurements = self.num_measurements_for_qubit(WireId(i));
-            circuit.qubits.push(crate::circuit::Qubit {
+            qubits.push(crate::circuit::Qubit {
                 id: i,
-                num_children: num_measurements,
+                num_results: num_measurements,
             });
         }
 
-        circuit
+        Circuit {
+            component_grid: operation_list_to_grid(operations, qubits.len()),
+            qubits,
+        }
     }
 
     /// Splits the qubit arguments from classical arguments so that the qubits
@@ -349,7 +333,7 @@ impl Builder {
     /// classical values into `classical_args` as comma-separated values.
     fn push_vals(&mut self, vals: &[Value], qubits: &mut Vec<WireId>, classical_args: &mut String) {
         let mut any = false;
-        for v in vals.iter() {
+        for v in vals {
             let start = classical_args.len();
             self.push_val(v, qubits, classical_args);
             if classical_args.len() > start {
@@ -408,16 +392,6 @@ impl Remapper {
         id
     }
 
-    fn mreset(&mut self, q: usize) -> usize {
-        let id = self.m(q);
-        self.reset(q);
-        id
-    }
-
-    fn reset(&mut self, q: usize) {
-        self.qubit_map.remove(q);
-    }
-
     fn qubit_allocate(&mut self) -> usize {
         let id = self.next_qubit_id;
         self.next_qubit_id += 1;
@@ -464,33 +438,26 @@ impl From<WireId> for usize {
     }
 }
 
-#[allow(clippy::unicode_not_nfc)]
-static KET_ZERO: &str = "|0〉";
-
 fn gate<const N: usize>(name: &str, targets: [WireId; N]) -> Operation {
-    Operation {
+    Operation::Unitary(Unitary {
         gate: name.into(),
-        display_args: None,
-        is_controlled: false,
+        args: vec![],
         is_adjoint: false,
-        is_measurement: false,
         controls: vec![],
         targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
-    }
+    })
 }
 
 fn adjoint_gate<const N: usize>(name: &str, targets: [WireId; N]) -> Operation {
-    Operation {
+    Operation::Unitary(Unitary {
         gate: name.into(),
-        display_args: None,
-        is_controlled: false,
+        args: vec![],
         is_adjoint: true,
-        is_measurement: false,
         controls: vec![],
         targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
-    }
+    })
 }
 
 fn controlled_gate<const M: usize, const N: usize>(
@@ -498,53 +465,53 @@ fn controlled_gate<const M: usize, const N: usize>(
     controls: [WireId; M],
     targets: [WireId; N],
 ) -> Operation {
-    Operation {
+    Operation::Unitary(Unitary {
         gate: name.into(),
-        display_args: None,
-        is_controlled: true,
+        args: vec![],
         is_adjoint: false,
-        is_measurement: false,
         controls: controls.iter().map(|q| Register::quantum(q.0)).collect(),
         targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
-    }
+    })
 }
 
 fn measurement_gate(qubit: usize, result: usize) -> Operation {
-    Operation {
+    Operation::Measurement(Measurement {
         gate: "Measure".into(),
-        display_args: None,
-        is_controlled: false,
-        is_adjoint: false,
-        is_measurement: true,
-        controls: vec![Register::quantum(qubit)],
-        targets: vec![Register::classical(qubit, result)],
+        args: vec![],
+        qubits: vec![Register::quantum(qubit)],
+        results: vec![Register::classical(qubit, result)],
         children: vec![],
-    }
+    })
+}
+
+fn ket_gate<const N: usize>(name: &str, targets: [WireId; N]) -> Operation {
+    Operation::Ket(Ket {
+        gate: name.into(),
+        args: vec![],
+        targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
+        children: vec![],
+    })
 }
 
 fn rotation_gate<const N: usize>(name: &str, theta: f64, targets: [WireId; N]) -> Operation {
-    Operation {
+    Operation::Unitary(Unitary {
         gate: name.into(),
-        display_args: Some(format!("{theta:.4}")),
-        is_controlled: false,
+        args: vec![format!("{theta:.4}")],
         is_adjoint: false,
-        is_measurement: false,
         controls: vec![],
         targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
-    }
+    })
 }
 
-fn custom_gate(name: &str, targets: &[WireId], display_args: Option<String>) -> Operation {
-    Operation {
+fn custom_gate(name: &str, targets: &[WireId], args: Vec<String>) -> Operation {
+    Operation::Unitary(Unitary {
         gate: name.into(),
-        display_args,
-        is_controlled: false,
+        args,
         is_adjoint: false,
-        is_measurement: false,
         controls: vec![],
         targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
-    }
+    })
 }

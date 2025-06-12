@@ -363,7 +363,7 @@ pub fn get_state_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) ->
             }
             if let RealNumber::Decimal(_) = &cartesian.imaginary_part {
                 bad_term_count += 1;
-            };
+            }
             if bad_term_count > 2 {
                 return None;
             }

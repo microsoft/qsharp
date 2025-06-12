@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from textwrap import dedent
 import pytest
 import qsharp
 import qsharp.code
@@ -315,10 +316,95 @@ def test_compile_qir_input_data() -> None:
 
 def test_compile_qir_str() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Base)
-    qsharp.eval("operation Program() : Result { use q = Qubit(); return M(q) }")
+    qsharp.eval("operation Program() : Result { use q = Qubit(); return MResetZ(q); }")
     operation = qsharp.compile("Program()")
     qir = str(operation)
     assert "define void @ENTRYPOINT__main()" in qir
+    assert '"required_num_qubits"="1" "required_num_results"="1"' in qir
+
+
+def test_compile_qir_str_from_python_callable() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Base)
+    qsharp.eval("operation Program() : Result { use q = Qubit(); return MResetZ(q); }")
+    operation = qsharp.compile(qsharp.code.Program)
+    qir = str(operation)
+    assert "define void @ENTRYPOINT__main()" in qir
+    assert '"required_num_qubits"="1" "required_num_results"="1"' in qir
+
+
+def test_compile_qir_str_from_python_callable_with_single_arg() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Base)
+    qsharp.eval(
+        "operation Program(nQubits : Int) : Result[] { use qs = Qubit[nQubits]; MResetEachZ(qs) }"
+    )
+    operation = qsharp.compile(qsharp.code.Program, 5)
+    qir = str(operation)
+    assert "define void @ENTRYPOINT__main()" in qir
+    assert (
+        "call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 4 to %Result*), i8* null)"
+        in qir
+    )
+    assert '"required_num_qubits"="5" "required_num_results"="5"' in qir
+
+
+def test_compile_qir_str_from_python_callable_with_array_arg() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Base)
+    qsharp.eval(
+        "operation Program(nQubits : Int[]) : Result[] { use qs = Qubit[nQubits[1]]; MResetEachZ(qs) }"
+    )
+    operation = qsharp.compile(qsharp.code.Program, [5, 3])
+    qir = str(operation)
+    assert "define void @ENTRYPOINT__main()" in qir
+    assert (
+        "call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 2 to %Result*), i8* null)"
+        in qir
+    )
+    assert (
+        "call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 4 to %Result*), i8* null)"
+        not in qir
+    )
+    assert '"required_num_qubits"="3" "required_num_results"="3"' in qir
+
+
+def test_compile_qir_str_from_python_callable_with_multiple_args() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Base)
+    qsharp.eval(
+        "operation Program(nQubits : Int, nResults : Int) : Result[] { use qs = Qubit[nQubits]; MResetEachZ(qs)[...nResults-1] }"
+    )
+    operation = qsharp.compile(qsharp.code.Program, 5, 3)
+    qir = str(operation)
+    assert "define void @ENTRYPOINT__main()" in qir
+    assert (
+        "call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 2 to %Result*), i8* null)"
+        in qir
+    )
+    assert (
+        "call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 4 to %Result*), i8* null)"
+        not in qir
+    )
+    assert '"required_num_qubits"="5" "required_num_results"="5"' in qir
+
+
+def test_compile_qir_str_from_python_callable_with_multiple_args_passed_as_tuple() -> (
+    None
+):
+    qsharp.init(target_profile=qsharp.TargetProfile.Base)
+    qsharp.eval(
+        "operation Program(nQubits : Int, nResults : Int) : Result[] { use qs = Qubit[nQubits]; MResetEachZ(qs)[...nResults-1] }"
+    )
+    args = (5, 3)
+    operation = qsharp.compile(qsharp.code.Program, args)
+    qir = str(operation)
+    assert "define void @ENTRYPOINT__main()" in qir
+    assert (
+        "call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 2 to %Result*), i8* null)"
+        in qir
+    )
+    assert (
+        "call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 4 to %Result*), i8* null)"
+        not in qir
+    )
+    assert '"required_num_qubits"="5" "required_num_results"="5"' in qir
 
 
 def test_init_from_provider_name() -> None:
@@ -338,6 +424,29 @@ def test_run_with_result(capsys) -> None:
     qsharp.init()
     qsharp.eval('operation Foo() : Result { Message("Hello, world!"); Zero }')
     results = qsharp.run("Foo()", 3)
+    assert results == [qsharp.Result.Zero, qsharp.Result.Zero, qsharp.Result.Zero]
+    stdout = capsys.readouterr().out
+    assert stdout == "Hello, world!\nHello, world!\nHello, world!\n"
+
+
+def test_run_with_result_from_callable(capsys) -> None:
+    qsharp.init()
+    qsharp.eval(
+        'operation Foo() : Result { Message("Hello, world!"); use q = Qubit(); M(q) }'
+    )
+    results = qsharp.run(qsharp.code.Foo, 3)
+    assert results == [qsharp.Result.Zero, qsharp.Result.Zero, qsharp.Result.Zero]
+    stdout = capsys.readouterr().out
+    assert stdout == "Hello, world!\nHello, world!\nHello, world!\n"
+
+
+def test_run_with_result_from_callable_while_global_qubits_allocated(capsys) -> None:
+    qsharp.init()
+    qsharp.eval("use q = Qubit();")
+    qsharp.eval(
+        'operation Foo() : Result { Message("Hello, world!"); use q = Qubit(); M(q) }'
+    )
+    results = qsharp.run(qsharp.code.Foo, 3)
     assert results == [qsharp.Result.Zero, qsharp.Result.Zero, qsharp.Result.Zero]
     stdout = capsys.readouterr().out
     assert stdout == "Hello, world!\nHello, world!\nHello, world!\n"
@@ -363,54 +472,44 @@ def test_run_with_result_callback(capsys) -> None:
     assert called
 
 
+def test_run_with_result_callback_from_callable_with_args(capsys) -> None:
+    def on_result(result):
+        nonlocal called
+        called = True
+        assert result["result"] == [qsharp.Result.Zero, qsharp.Result.Zero]
+        assert str(result["events"]) == "[Hello, world!]"
+
+    called = False
+    qsharp.init()
+    qsharp.eval(
+        'operation Foo(nResults : Int) : Result[] { Message("Hello, world!"); Repeated(Zero, nResults) }'
+    )
+    results = qsharp.run(qsharp.code.Foo, 3, 2, on_result=on_result, save_events=True)
+    assert (
+        str(results)
+        == "[{'result': [Zero, Zero], 'events': [Hello, world!], 'messages': ['Hello, world!'], 'matrices': [], 'dumps': []}, {'result': [Zero, Zero], 'events': [Hello, world!], 'messages': ['Hello, world!'], 'matrices': [], 'dumps': []}, {'result': [Zero, Zero], 'events': [Hello, world!], 'messages': ['Hello, world!'], 'matrices': [], 'dumps': []}]"
+    )
+    stdout = capsys.readouterr().out
+    assert stdout == ""
+    assert called
+
+
 def test_run_with_invalid_shots_produces_error() -> None:
     qsharp.init()
     qsharp.eval('operation Foo() : Result { Message("Hello, world!"); Zero }')
     try:
         qsharp.run("Foo()", -1)
-    except qsharp.QSharpError as e:
+    except ValueError as e:
         assert str(e) == "The number of shots must be greater than 0."
     else:
         assert False
 
     try:
         qsharp.run("Foo()", 0)
-    except qsharp.QSharpError as e:
+    except ValueError as e:
         assert str(e) == "The number of shots must be greater than 0."
     else:
         assert False
-
-
-def test_target_profile_str_values_match_enum_values() -> None:
-    target_profile = qsharp.TargetProfile.Base
-    str_value = str(target_profile)
-    assert str_value == "Base"
-    target_profile = qsharp.TargetProfile.Adaptive_RI
-    str_value = str(target_profile)
-    assert str_value == "Adaptive_RI"
-    target_profile = qsharp.TargetProfile.Adaptive_RIF
-    str_value = str(target_profile)
-    assert str_value == "Adaptive_RIF"
-    target_profile = qsharp.TargetProfile.Unrestricted
-    str_value = str(target_profile)
-    assert str_value == "Unrestricted"
-
-
-def test_target_profile_from_str_match_enum_values() -> None:
-    target_profile = qsharp.TargetProfile.Base
-    str_value = str(target_profile)
-    assert qsharp.TargetProfile.from_str(str_value) == target_profile
-    target_profile = qsharp.TargetProfile.Adaptive_RI
-    str_value = str(target_profile)
-    assert qsharp.TargetProfile.from_str(str_value) == target_profile
-    target_profile = qsharp.TargetProfile.Adaptive_RIF
-    str_value = str(target_profile)
-    assert qsharp.TargetProfile.from_str(str_value) == target_profile
-    target_profile = qsharp.TargetProfile.Unrestricted
-    str_value = str(target_profile)
-    assert qsharp.TargetProfile.from_str(str_value) == target_profile
-    with pytest.raises(ValueError):
-        qsharp.TargetProfile.from_str("Invalid")
 
 
 def test_callables_exposed_into_env() -> None:
@@ -615,3 +714,68 @@ def test_lambdas_not_exposed_into_env() -> None:
     assert not hasattr(qsharp.code, "<lambda>")
     qsharp.eval("q => I(q)")
     assert not hasattr(qsharp.code, "<lambda>")
+
+
+def test_circuit_from_callable() -> None:
+    qsharp.init()
+    qsharp.eval(
+        """
+    operation Foo() : Unit {
+        use q1 = Qubit();
+        use q2 = Qubit();
+        X(q1);
+    }
+    """
+    )
+    circuit = qsharp.circuit(qsharp.code.Foo)
+    assert str(circuit) == dedent(
+        """\
+        q_0    ── X ──
+        q_1    ───────
+        """
+    )
+
+
+def test_circuit_from_callable_with_args() -> None:
+    qsharp.init()
+    qsharp.eval(
+        """
+    operation Foo(nQubits : Int) : Unit {
+        use qs = Qubit[nQubits];
+        ApplyToEach(X, qs);
+    }
+    """
+    )
+    circuit = qsharp.circuit(qsharp.code.Foo, 2)
+    assert str(circuit) == dedent(
+        """\
+        q_0    ── X ──
+        q_1    ── X ──
+        """
+    )
+
+
+def test_circuit_with_measure_from_callable() -> None:
+    qsharp.init()
+    qsharp.eval("operation Foo() : Result { use q = Qubit(); H(q); return M(q) }")
+    circuit = qsharp.circuit(qsharp.code.Foo)
+    assert str(circuit) == dedent(
+        """\
+        q_0    ── H ──── M ──
+                         ╘═══
+        """
+    )
+
+
+def test_swap_label_circuit_from_callable() -> None:
+    qsharp.init()
+    qsharp.eval(
+        "operation Foo() : Unit { use q1 = Qubit(); use q2 = Qubit(); X(q1); Relabel([q1, q2], [q2, q1]); X(q2); }"
+    )
+    circuit = qsharp.circuit(qsharp.code.Foo)
+    assert str(circuit) == dedent(
+        """\
+        q_0    ── X ──── X ──
+        q_1    ──────────────
+        """
+    )

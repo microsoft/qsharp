@@ -387,6 +387,9 @@ pub fn compile_ast(
     cond_compile.visit_package(&mut ast_package);
     let dropped_names = cond_compile.into_names();
 
+    let mut remove_spans = preprocess::RemoveCircuitSpans::new(&sources);
+    remove_spans.visit_package(&mut ast_package);
+
     let mut ast_assigner = AstAssigner::new();
     ast_assigner.visit_package(&mut ast_package);
     AstValidator::default().visit_package(&ast_package);
@@ -489,7 +492,8 @@ pub fn std(store: &PackageStore, capabilities: TargetCapabilityFlags) -> Compile
     unit
 }
 
-fn parse_all(
+#[must_use]
+pub fn parse_all(
     sources: &SourceMap,
     features: LanguageFeatures,
 ) -> (ast::Package, Vec<qsc_parse::Error>) {
@@ -557,7 +561,7 @@ fn resolve_all(
         if let Err(errs) = globals.add_external_package(*id, &unit.package, store, alias.as_deref())
         {
             errors.extend(errs);
-        };
+        }
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 

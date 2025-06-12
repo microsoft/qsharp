@@ -17,3 +17,21 @@ fn compute_code_distance() -> Result<(), String> {
 
     Ok(())
 }
+
+#[test]
+fn compute_distance_is_inverse() -> Result<(), String> {
+    let qubit = PhysicalQubit::default();
+    let mut ftp = surface_code_gate_based();
+
+    for distance_coefficient_power in [0, 1, 2] {
+        ftp.set_distance_coefficient_power(distance_coefficient_power);
+
+        for code_distance in (1..=49).step_by(2) {
+            let error_rate = ftp.logical_error_rate(&qubit, &code_distance)?;
+            let computed_distance = ftp.compute_code_parameter(&qubit, error_rate)?;
+            assert_eq!(computed_distance, code_distance);
+        }
+    }
+
+    Ok(())
+}

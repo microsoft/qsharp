@@ -125,7 +125,7 @@ fn noisy_measurement() {
                                       // sim.m sometimes applies X before measuring
         if sim.m(q) {
             true_count += 1;
-        };
+        }
         sim.qubit_release(q);
     }
     assert!(

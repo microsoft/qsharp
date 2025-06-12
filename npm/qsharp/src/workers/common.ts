@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { type IQSharpError } from "../../lib/web/qsc_wasm.js";
 import { CancellationToken } from "../cancellation.js";
+import { QdkDiagnostics } from "../diagnostics.js";
 import { TelemetryEvent, log } from "../log.js";
 type Wasm = typeof import("../../lib/web/qsc_wasm.js");
 
@@ -206,7 +208,7 @@ export function createProxyInternal<
     }
     if (!curr) {
       // Nothing else queued, signal that we're now idle and exit.
-      log.debug("Proxy: Worker queue is empty");
+      log.trace("Proxy: Worker queue is empty");
       setState("idle");
       return;
     }
@@ -216,7 +218,7 @@ export function createProxyInternal<
       setState("busy");
     }
 
-    log.debug("Proxy: Posting message to worker: %o", msg);
+    log.trace("Proxy: Posting message to worker: %o", msg);
     postMessage(msg);
   }
 
@@ -227,7 +229,7 @@ export function createProxyInternal<
       | CommonEventMessage,
   ) {
     if (log.getLogLevel() >= 4)
-      log.debug("Proxy: Received message from worker: %s", JSON.stringify(msg));
+      log.trace("Proxy: Received message from worker: %s", JSON.stringify(msg));
 
     if (msg.messageType === "common-event") {
       const commonEvent = msg; // assignment is necessary here for TypeScript to narrow the type
@@ -249,7 +251,7 @@ export function createProxyInternal<
       const event = new Event(msg.type) as Event & TServiceEventMsg;
       event.detail = msg.detail;
 
-      log.debug("Proxy: Posting event: %o", msg);
+      log.trace("Proxy: Posting event: %o", msg);
       // Post to a currently attached event target if there's a "requestWithProgress"
       // in progress
       curr?.requestEventTarget?.dispatchEvent(event);
@@ -269,7 +271,12 @@ export function createProxyInternal<
         curr = undefined;
         doNextRequest();
       } else {
-        curr.reject(result.data);
+        let err = result.data;
+
+        // The error may be a serialized error object.
+        err = deserializeIfError(err);
+
+        curr.reject(err);
         curr = undefined;
         doNextRequest();
       }
@@ -323,7 +330,7 @@ export function createProxyInternal<
     // Kill the worker without a chance to shutdown. May be needed if it is not responding.
     log.info("Proxy: Terminating the worker");
     if (curr) {
-      log.debug(
+      log.trace(
         "Proxy: Terminating running worker item of type: %s",
         curr.type,
       );
@@ -332,7 +339,7 @@ export function createProxyInternal<
     // Reject any outstanding items
     while (queue.length) {
       const item = queue.shift();
-      log.debug(
+      log.trace(
         "Proxy: Terminating outstanding work item of type: %s",
         item?.type,
       );
@@ -366,12 +373,12 @@ function createDispatcher<
   methods: MethodMap<TService>,
   eventNames: TServiceEventMsg["type"][],
 ): (req: RequestMessage<TService>) => Promise<void> {
-  log.debug("Worker: Constructing WorkerEventHandler");
+  log.trace("Worker: Constructing WorkerEventHandler");
 
   function logAndPost(
     msg: ResponseMessage<TService> | EventMessage<TServiceEventMsg>,
   ) {
-    log.debug(
+    log.trace(
       "Worker: Sending %s message from worker: %o",
       msg.messageType,
       msg,
@@ -419,7 +426,10 @@ function createDispatcher<
           result: { success: true, result },
         }),
       )
-      .catch((err: any) =>
+      .catch((err: any) => {
+        // Serialize the error if it's a known type.
+        err = serializeIfError(err);
+
         logAndPost({
           // If this happens then the wasm code likely threw an exception/panicked rather than
           // completing gracefully and fullfilling the promise. Communicate to the client
@@ -427,8 +437,8 @@ function createDispatcher<
           messageType: "response",
           type: req.type,
           result: { success: false, error: err },
-        }),
-      );
+        });
+      });
   };
 }
 
@@ -511,4 +521,45 @@ export function initService<
     serviceProtocol.methods,
     serviceProtocol.eventNames,
   );
+}
+
+/**
+ * Serializes an error, if it is a known type, so that it can be sent between threads.
+ *
+ * By default, browsers can only send certain types of errors between the main thread and a worker.
+ * See: https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm#error_types
+ *
+ * Serializing our own custom errors allows us to send them between threads.
+ */
+function serializeIfError(err: unknown) {
+  // Currently `QdkDiagnostics` is the only custom error type,
+  // but this could be extended to handle others.
+  if (err instanceof QdkDiagnostics) {
+    err = { name: err.name, data: err.diagnostics };
+  }
+  return err;
+}
+
+/**
+ * Deserializes an error if it is a known type.
+ *
+ * By default, browsers can only send certain types of errors between the main thread and a worker.
+ * See: https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm#error_types
+ *
+ * Serializing our own custom errors allows us to send them between threads.
+ */
+function deserializeIfError(err: unknown) {
+  // Currently `QdkDiagnostics` is the only custom error type,
+  // but this could be extended to handle others.
+  if (
+    err !== null &&
+    typeof err === "object" &&
+    "name" in err &&
+    err.name === "QdkDiagnostics" &&
+    "data" in err
+  ) {
+    // If it is, deserialize it
+    err = new QdkDiagnostics(err.data as IQSharpError[]);
+  }
+  return err;
 }

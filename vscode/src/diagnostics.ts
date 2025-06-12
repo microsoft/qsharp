@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { IQSharpError, log, qsharpLibraryUriScheme } from "qsharp-lang";
+import { log, QdkDiagnostics } from "qsharp-lang";
 import * as vscode from "vscode";
 import {
   qsharpExtensionId,
   qsharpLanguageId,
   toVsCodeDiagnostic,
 } from "./common.js";
+import { getSourceUri } from "./utils.js";
 
 /**
  * Initialize diagnostics for `qsharp.json` files and failures
@@ -97,17 +98,18 @@ function startCommandDiagnostics(): vscode.Disposable[] {
     {
       provideCodeActions(doc, range, context): vscode.CodeAction[] | undefined {
         const commandErrors = context.diagnostics.filter((d) =>
-          d.message.startsWith("Q# command error: "),
+          d.message.startsWith("QDK command error: "),
         );
 
         if (commandErrors.length > 0) {
           const action = new vscode.CodeAction(
-            "Dismiss errors for the last run Q# command",
+            "Dismiss errors for the last run QDK command",
+            vscode.CodeActionKind.QuickFix, // makes the lightbulb reliably show up
           );
           action.diagnostics = commandErrors;
           action.command = {
             command: `${qsharpExtensionId}.dismissCommandDiagnostics`,
-            title: "Dismiss errors for the last run Q# command",
+            title: "Dismiss errors for the last run QDK command",
           };
           action.isPreferred = true;
           return [action];
@@ -134,91 +136,75 @@ export function clearCommandDiagnostics() {
  */
 export async function invokeAndReportCommandDiagnostics<T>(
   fn: () => T | Promise<T>,
+  options: {
+    showModalError?: boolean;
+    populateProblemsView?: boolean;
+  },
 ): Promise<T> {
   try {
     // Clear the diagnostics from the last command run.
     clearCommandDiagnostics();
     return await fn();
   } catch (e: unknown) {
-    reportIfQSharpErrors(e);
+    reportIfQSharpErrors(e, options);
     throw e;
   }
 }
 
 /**
- * Given an exception, checks if it's a JSON string representation of IQSharpError[],
+ * Given an exception, checks if it's an instance of `QdkDiagnostics`,
  * and if so, reports the diagnostics to VS Code.
  *
  * @param e an exception originating from the qsharp-lang package
  */
-function reportIfQSharpErrors(e: unknown) {
+function reportIfQSharpErrors(
+  e: unknown,
+  options: {
+    showModalError?: boolean;
+    populateProblemsView?: boolean;
+  },
+) {
   if (!commandDiagnostics) {
     log.warn(`diagnostic collection for commands was not initialized`);
     return;
   }
 
-  let qsharpErrors: IQSharpError[] | undefined;
-  if (typeof e === "string") {
-    try {
-      const errors = JSON.parse(e);
-      // Check for the shape of IQSharpError[]
-      if (Array.isArray(errors) && errors.length > 0 && errors[0].document) {
-        qsharpErrors = errors;
+  if (e instanceof QdkDiagnostics) {
+    if (options.populateProblemsView) {
+      const byUri = new Map<vscode.Uri, vscode.Diagnostic[]>();
+
+      for (const error of e.diagnostics) {
+        const uri = getSourceUri(error.document);
+
+        const diagnostics = byUri.get(uri) || [];
+        error.diagnostic.message = `QDK command error: ${error.diagnostic.message}`;
+        diagnostics.push(toVsCodeDiagnostic(error.diagnostic));
+        byUri.set(uri, diagnostics);
       }
-    } catch {
-      // Couldn't parse the error as JSON.
-      log.warn(`could not parse error string ${e}`);
-    }
-  }
 
-  if (qsharpErrors) {
-    const byUri = new Map<vscode.Uri, vscode.Diagnostic[]>();
-
-    for (const error of qsharpErrors) {
-      const uri = getSourceUri(error.document);
-
-      const diagnostics = byUri.get(uri) || [];
-      error.diagnostic.message = `Q# command error: ${error.diagnostic.message}`;
-      diagnostics.push(toVsCodeDiagnostic(error.diagnostic));
-      byUri.set(uri, diagnostics);
+      for (const [uri, diags] of byUri) {
+        commandDiagnostics.set(uri, diags);
+      }
     }
 
-    for (const [uri, diags] of byUri) {
-      commandDiagnostics.set(uri, diags);
+    if (options.showModalError) {
+      // fire and forget
+      showModalError(e.message);
     }
-
-    // Focus on Problems view
-    vscode.commands.executeCommand("workbench.action.problems.focus");
-
-    vscode.window.showErrorMessage(
-      "The Q# command returned errors. Please see the Problems view.",
-      { modal: true },
-    );
   }
 }
 
-/**
- * This is temporary until we're able to report proper stdlib and project URIs from
- * the wasm layer. See https://github.com/microsoft/qsharp/blob/f8d344b32a1f1f918f3c91edf58c975db10f4370/wasm/src/diagnostic.rs
- *
- * @param maybeUri A source name returned from a Q# diagnostic
- * @returns A VS code URI that's okay to use in a Diagnostic object
- */
-function getSourceUri(maybeUri: string): vscode.Uri {
-  // An error without a span (e.g. "no entrypoint found") gets reported as a "project-level" error.
-  // See: https://github.com/microsoft/qsharp/blob/f8d344b32a1f1f918f3c91edf58c975db10f4370/wasm/src/diagnostic.rs#L191
-  // Ideally this would be a proper URI pointing to the project root or root document.
-  // For now, make up a fake file path for display purposes.
-  if (maybeUri === "<project>") {
-    return vscode.Uri.file("Q# project");
-  }
-
-  try {
-    return vscode.Uri.parse(maybeUri, true);
-  } catch {
-    // Not a URI, assume it's a filename from the stdlib
-    // This URI should ideally be properly propagated from
-    // https://github.com/microsoft/qsharp/blob/f8d344b32a1f1f918f3c91edf58c975db10f4370/wasm/src/diagnostic.rs#L105
-    return vscode.Uri.from({ scheme: qsharpLibraryUriScheme, path: maybeUri });
-  }
+async function showModalError(errorMsg: string) {
+  const choice = await vscode.window.showErrorMessage(
+    "The command returned errors. Please see the Problems view.\n\n" + errorMsg,
+    { modal: true },
+    {
+      title: "Show Problems",
+      isCloseAffordance: true,
+    },
+  );
+  await vscode.commands.executeCommand(
+    "workbench.action.problems.focus",
+    choice,
+  );
 }

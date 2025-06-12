@@ -53,7 +53,7 @@ suite("Q# Language Service Tests", function suite() {
     await vscode.workspace.openTextDocument(hasBadDepMainQs);
 
     // Give the language service a tiny bit of time to settle
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Bring up Problems view for when we want to visually inspect what's going on
     vscode.commands.executeCommand("workbench.action.problems.focus");
@@ -227,7 +227,7 @@ suite("Q# Language Service Tests", function suite() {
       doc.uri,
     )) as vscode.CodeLens[];
 
-    assert.lengthOf(actualCodeLenses, 5);
+    assert.lengthOf(actualCodeLenses, 4);
 
     for (const lens of actualCodeLenses) {
       assert.include(doc.getText(lens.range), "function Test()");

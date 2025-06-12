@@ -10,7 +10,6 @@ import {
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { URI, Utils } from "vscode-uri";
-import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 import { sendTelemetryEvent, EventType } from "./telemetry";
 
 /** Returns the manifest document if one is found
@@ -23,6 +22,14 @@ async function findManifestDocument(
   // or, e.g. in vscode on a virtual file system,
   // vscode-vfs://github%2B7b2276223a312c22726566223a7b2274797065223a332c226964223a22383439227d7d/microsoft/qsharp/samples/shor.qs
   const currentDocumentUri = URI.parse(currentDocumentUriString);
+
+  // if this document is itself a manifest file, then we've found it
+  if (currentDocumentUri.path.endsWith("qsharp.json")) {
+    return {
+      directory: Utils.dirname(currentDocumentUri),
+      manifest: currentDocumentUri,
+    };
+  }
 
   // Untitled documents don't have a file location, thus can't have a manifest
   if (currentDocumentUri.scheme === "untitled") return null;
@@ -179,11 +186,36 @@ export async function loadProject(
     });
   }
 
-  const project = invokeAndReportCommandDiagnostics(
-    async () =>
-      await projectLoader!.load_project_with_deps(
-        manifestDocument.directory.toString(),
-      ),
+  const project = await projectLoader!.loadQSharpProject(
+    manifestDocument.directory.toString(),
+  );
+
+  return project;
+}
+
+/**
+ * Given an OpenQASM Document URI, returns the configuration and list of complete source files
+ * associated with that document.
+ *
+ * @param documentUri An OpenQASM document.
+ * @returns The project configuration for that document.
+ * @throws Error if the qsharp.json cannot be parsed.
+ */
+export async function loadOpenQasmProject(
+  documentUri: vscode.Uri,
+): Promise<IProjectConfig> {
+  if (!projectLoader) {
+    projectLoader = await getProjectLoader({
+      findManifestDirectory,
+      readFile,
+      listDirectory,
+      fetchGithub: fetchGithubRaw,
+      resolvePath: async (a, b) => resolvePath(a, b),
+    });
+  }
+
+  const project = await projectLoader!.loadOpenQasmProject(
+    documentUri.toString(),
   );
 
   return project;
@@ -210,16 +242,12 @@ async function singleFileProject(
     },
     lints: [],
     errors: [],
+    projectType: "qsharp",
   };
 }
 
 export function resolvePath(base: string, relative: string): string | null {
-  try {
-    return Utils.resolvePath(URI.parse(base, true), relative).toString();
-  } catch (e) {
-    log.warn(`Failed to resolve path ${base} and ${relative}: ${e}`);
-    return null;
-  }
+  return Utils.resolvePath(URI.parse(base, true), relative).toString();
 }
 
 let githubEndpoint = "https://raw.githubusercontent.com";

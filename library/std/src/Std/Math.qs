@@ -11,7 +11,7 @@ import Std.Diagnostics.*;
 
 /// # Summary
 /// Returns a double-precision approximation of the
-/// matematical constant 𝝅 ≈ 3.14159265358979323846
+/// mathematical constant 𝝅 ≈ 3.14159265358979323846
 ///
 /// # Remarks
 /// Mathematical constant 𝝅 represents the ratio of the circumference
@@ -396,16 +396,27 @@ function Floor(value : Double) : Int {
 }
 
 /// # Summary
-/// Returns the nearest integer to the specified number.
-/// For example: Round(3.7) = 4; Round(-3.7) = -4
+/// Returns the nearest integer to the specified number. Half is rounded towards zero.
+/// For example: Round(3.7) = 4; Round(-3.7) = -4; Round(3.5) = 3;
+///
+/// # References
+/// [Wikipedia article - Rounding](https://en.wikipedia.org/wiki/Rounding#Rounding_half_toward_zero)
 function Round(value : Double) : Int {
     let (truncated, remainder, isPositive) = ExtendedTruncation(value);
-    if AbsD(remainder) <= 1e-15 {
-        truncated
-    } else {
-        let abs = AbsD(remainder);
-        truncated + (abs <= 0.5 ? 0 | (isPositive ? 1 | -1))
-    }
+    let abs = AbsD(remainder);
+    truncated + (abs <= 0.5 ? 0 | (isPositive ? 1 | -1))
+}
+
+/// # Summary
+/// Returns the nearest integer to the specified number. Half is rounded away from zero.
+/// For example: RoundHalfAwayFromZero(-3.7) = -4, RoundHalfAwayFromZero(3.5) = 4;
+///
+/// # References
+/// [Wikipedia article - Rounding](https://en.wikipedia.org/wiki/Rounding#Rounding_half_away_from_zero)
+function RoundHalfAwayFromZero(value : Double) : Int {
+    let (truncated, remainder, isPositive) = ExtendedTruncation(value);
+    let abs = AbsD(remainder);
+    truncated + (abs < 0.5 ? 0 | (isPositive ? 1 | -1))
 }
 
 //
@@ -1493,6 +1504,7 @@ export
     Ceiling,
     Floor,
     Round,
+    RoundHalfAwayFromZero,
     DivRemI,
     DivRemL,
     ModulusI,

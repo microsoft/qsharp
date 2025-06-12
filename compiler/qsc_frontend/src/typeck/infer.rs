@@ -12,12 +12,14 @@ use qsc_hir::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{
+    cell::RefCell,
     collections::{hash_map::Entry, BTreeSet, VecDeque},
     fmt::Debug,
     rc::Rc,
 };
 
 const MAX_TY_RECURSION_DEPTH: i8 = 100;
+const MAX_TY_SIZE: usize = 100;
 
 #[derive(Debug, Default)]
 struct Solution {
@@ -723,10 +725,15 @@ impl Solver {
                     )));
                 }
 
-                let mut constraints = self.unify(&arrow1.input, &arrow2.input, span);
-                constraints.append(&mut self.unify(&arrow1.output, &arrow2.output, span));
+                let mut constraints =
+                    self.unify(&arrow1.input.borrow(), &arrow2.input.borrow(), span);
+                constraints.append(&mut self.unify(
+                    &arrow1.output.borrow(),
+                    &arrow2.output.borrow(),
+                    span,
+                ));
 
-                match (arrow1.functors, arrow2.functors) {
+                match (*arrow1.functors.borrow(), *arrow2.functors.borrow()) {
                     (FunctorSet::Value(value1), FunctorSet::Value(value2))
                         if value2.satisfies(&value1) => {}
                     (FunctorSet::Infer(infer1), FunctorSet::Infer(infer2)) if infer1 == infer2 => {}
@@ -735,8 +742,8 @@ impl Solver {
                     }
                     _ => {
                         self.errors.push(Error(ErrorKind::FunctorMismatch(
-                            arrow1.functors,
-                            arrow2.functors,
+                            *arrow1.functors.borrow(),
+                            *arrow2.functors.borrow(),
                             span,
                         )));
                     }
@@ -745,7 +752,7 @@ impl Solver {
                 constraints
             }
             (Ty::Infer(infer1), Ty::Infer(infer2)) if infer1 == infer2 => Vec::new(),
-            (&Ty::Infer(infer), ty) | (ty, &Ty::Infer(infer)) if !contains_infer_ty(infer, ty) => {
+            (&Ty::Infer(infer), ty) | (ty, &Ty::Infer(infer)) => {
                 self.bind_ty(infer, ty.clone(), span)
             }
             (
@@ -761,6 +768,10 @@ impl Solver {
                 },
             ) if id1 == id2 => {
                 // concat the two sets of bounds
+                #[allow(
+                    clippy::mutable_key_type,
+                    reason = "the BTreeSet is temporary and not used across mutations of the types"
+                )]
                 let bounds: BTreeSet<ClassConstraint> = bounds1
                     .0
                     .iter()
@@ -807,6 +818,15 @@ impl Solver {
     }
 
     fn bind_ty(&mut self, infer: InferTyId, ty: Ty, span: Span) -> Vec<Constraint> {
+        if ty.size() > MAX_TY_SIZE {
+            self.errors
+                .push(Error(ErrorKind::TySizeLimitExceeded(ty.display(), span)));
+            return Vec::new();
+        } else if links_to_infer_ty(&self.solution.tys, infer, &ty) {
+            self.errors
+                .push(Error(ErrorKind::RecursiveTypeConstraint(span)));
+            return Vec::new();
+        }
         self.solution.tys.insert(infer, ty.clone());
         let mut constraint = vec![Constraint::Eq {
             expected: ty,
@@ -875,9 +895,32 @@ fn substitute_ty(solution: &Solution, ty: &mut Ty) -> bool {
             Ty::Err | Ty::Param { .. } | Ty::Prim(_) | Ty::Udt(_, _) => true,
             Ty::Array(item) => substitute_ty_recursive(solution, item, limit - 1),
             Ty::Arrow(arrow) => {
-                let a = substitute_ty_recursive(solution, &mut arrow.input, limit - 1);
-                let b = substitute_ty_recursive(solution, &mut arrow.output, limit - 1);
-                substitute_functor(solution, &mut arrow.functors);
+                // These updates require borrowing the values inside the RefCells mutably.
+                // This should be safe because no other code should be borrowing these values at the same time,
+                // but it will panic at runtime if any other borrows occur.
+                let a = substitute_ty_recursive(
+                    solution,
+                    &mut arrow
+                        .input
+                        .try_borrow_mut()
+                        .expect("should have unique access to arrow.input"),
+                    limit - 1,
+                );
+                let b = substitute_ty_recursive(
+                    solution,
+                    &mut arrow
+                        .output
+                        .try_borrow_mut()
+                        .expect("should have unique access to arrow.output"),
+                    limit - 1,
+                );
+                substitute_functor(
+                    solution,
+                    &mut arrow
+                        .functors
+                        .try_borrow_mut()
+                        .expect("should have unique access to arrow.functors"),
+                );
                 a && b
             }
             Ty::Tuple(items) => {
@@ -931,15 +974,28 @@ fn unknown_ty(solved_types: &IndexMap<InferTyId, Ty>, given_type: &Ty) -> Option
     }
 }
 
-fn contains_infer_ty(id: InferTyId, ty: &Ty) -> bool {
+/// Checks whether the given inference type is eventually pointed to by the given type,
+/// indicating a recursive type constraint.
+fn links_to_infer_ty(solution_tys: &IndexMap<InferTyId, Ty>, id: InferTyId, ty: &Ty) -> bool {
     match ty {
         Ty::Err | Ty::Param { .. } | Ty::Prim(_) | Ty::Udt(_, _) => false,
-        Ty::Array(item) => contains_infer_ty(id, item),
+        Ty::Array(item) => links_to_infer_ty(solution_tys, id, item),
         Ty::Arrow(arrow) => {
-            contains_infer_ty(id, &arrow.input) || contains_infer_ty(id, &arrow.output)
+            links_to_infer_ty(solution_tys, id, &arrow.input.borrow())
+                || links_to_infer_ty(solution_tys, id, &arrow.output.borrow())
         }
-        Ty::Infer(other_id) => id == *other_id,
-        Ty::Tuple(items) => items.iter().any(|ty| contains_infer_ty(id, ty)),
+        Ty::Infer(other_id) => {
+            // if the other id is the same as the one we are checking, then this is a recursive type
+            id == *other_id
+                // OR if the other id is in the solutions tys, we need to continue the check
+                // through the pointed to type.
+                || solution_tys
+                    .get(*other_id)
+                    .is_some_and(|ty| links_to_infer_ty(solution_tys, id, ty))
+        }
+        Ty::Tuple(items) => items
+            .iter()
+            .any(|ty| links_to_infer_ty(solution_tys, id, ty)),
     }
 }
 
@@ -959,7 +1015,7 @@ fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         Ty::Arrow(arrow) => (
             vec![Constraint::Superset {
                 expected: FunctorSetValue::Adj,
-                actual: arrow.functors,
+                actual: *arrow.functors.borrow(),
                 span,
             }],
             Vec::new(),
@@ -982,23 +1038,23 @@ fn check_call(callee: Ty, input: &ArgTy, output: Ty, span: Span) -> (Vec<Constra
     // generate constraints for the arg ty that correspond to any class constraints specified in
     // the parameters
 
-    let mut app = input.apply(&arrow.input, span);
+    let mut app = input.apply(&arrow.input.borrow(), span);
     let expected = if app.holes.len() > 1 {
-        Ty::Arrow(Box::new(Arrow {
+        Ty::Arrow(Rc::new(Arrow {
             kind: arrow.kind,
-            input: Box::new(Ty::Tuple(app.holes)),
-            output: arrow.output,
-            functors: arrow.functors,
+            input: RefCell::new(Ty::Tuple(app.holes)),
+            output: arrow.output.clone(),
+            functors: arrow.functors.clone(),
         }))
     } else if let Some(hole) = app.holes.pop() {
-        Ty::Arrow(Box::new(Arrow {
+        Ty::Arrow(Rc::new(Arrow {
             kind: arrow.kind,
-            input: Box::new(hole),
-            output: arrow.output,
-            functors: arrow.functors,
+            input: RefCell::new(hole),
+            output: arrow.output.clone(),
+            functors: arrow.functors.clone(),
         }))
     } else {
-        *arrow.output
+        arrow.output.borrow().clone()
     };
 
     app.constraints.push(Constraint::Eq {
@@ -1018,20 +1074,21 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
     };
 
     let qubit_array = Ty::Array(Box::new(Ty::Prim(Prim::Qubit)));
-    let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *arrow.input]));
+    let ctl_input = RefCell::new(Ty::Tuple(vec![qubit_array, arrow.input.borrow().clone()]));
+    let actual = *arrow.functors.borrow();
     (
         vec![
             Constraint::Superset {
                 expected: FunctorSetValue::Ctl,
-                actual: arrow.functors,
+                actual,
                 span,
             },
             Constraint::Eq {
-                expected: Ty::Arrow(Box::new(Arrow {
+                expected: Ty::Arrow(Rc::new(Arrow {
                     kind: arrow.kind,
                     input: ctl_input,
-                    output: arrow.output,
-                    functors: arrow.functors,
+                    output: arrow.output.clone(),
+                    functors: arrow.functors.clone(),
                 })),
                 actual: with_ctls,
                 span,

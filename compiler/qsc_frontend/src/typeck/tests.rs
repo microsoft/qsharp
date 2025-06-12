@@ -243,6 +243,53 @@ fn return_semi() {
 }
 
 #[test]
+fn explicit_type_in_let_binding() {
+    check(
+        "",
+        "{ let x : Int = 4; }",
+        &expect![[r##"
+            #1 0-20 "{ let x : Int = 4; }" : Unit
+            #2 0-20 "{ let x : Int = 4; }" : Unit
+            #4 6-13 "x : Int" : Int
+            #9 16-17 "4" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn incorrect_explicit_type_in_let_binding_error() {
+    check(
+        "",
+        "{ let x : Int = 4.0; }",
+        &expect![[r##"
+            #1 0-22 "{ let x : Int = 4.0; }" : Unit
+            #2 0-22 "{ let x : Int = 4.0; }" : Unit
+            #4 6-13 "x : Int" : Int
+            #9 16-19 "4.0" : Double
+            Error(Type(Error(TyMismatch("Int", "Double", Span { lo: 16, hi: 19 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn incorrect_explicit_type_in_let_binding_used_later_correctly() {
+    check(
+        "",
+        "{ let x : Int = 4.0; x + 1}",
+        &expect![[r##"
+            #1 0-27 "{ let x : Int = 4.0; x + 1}" : Int
+            #2 0-27 "{ let x : Int = 4.0; x + 1}" : Int
+            #4 6-13 "x : Int" : Int
+            #9 16-19 "4.0" : Double
+            #11 21-26 "x + 1" : Int
+            #12 21-22 "x" : Int
+            #15 25-26 "1" : Int
+            Error(Type(Error(TyMismatch("Int", "Double", Span { lo: 16, hi: 19 }))))
+        "##]],
+    );
+}
+
+#[test]
 fn return_var() {
     check(
         indoc! {"
@@ -926,6 +973,41 @@ fn for_loop_body_should_be_unit_error() {
         #10 21-22 "4" : Int
         Error(Type(Error(TyMismatch("Unit", "Int", Span { lo: 19, hi: 24 }))))
     "##]],
+    );
+}
+
+#[test]
+fn for_loop_correct_explicit_type_works() {
+    check(
+        "",
+        "for i : Int in 0..1 { i; }",
+        &expect![[r##"
+            #1 0-26 "for i : Int in 0..1 { i; }" : Unit
+            #2 4-11 "i : Int" : Int
+            #7 15-19 "0..1" : Range
+            #8 15-16 "0" : Int
+            #9 18-19 "1" : Int
+            #10 20-26 "{ i; }" : Unit
+            #12 22-23 "i" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn for_loop_incorrect_explicit_type_error() {
+    check(
+        "",
+        "for i : Double in 0..1 { i; }",
+        &expect![[r##"
+            #1 0-29 "for i : Double in 0..1 { i; }" : Unit
+            #2 4-14 "i : Double" : Double
+            #7 18-22 "0..1" : Range
+            #8 18-19 "0" : Int
+            #9 21-22 "1" : Int
+            #10 23-29 "{ i; }" : Unit
+            #12 25-26 "i" : Double
+            Error(Type(Error(TyMismatch("Int", "Double", Span { lo: 18, hi: 22 }))))
+        "##]],
     );
 }
 
@@ -3127,7 +3209,7 @@ fn infinite() {
             }
         "},
         "",
-        &expect![[r#"
+        &expect![[r##"
             #6 30-32 "()" : Unit
             #8 38-97 "{\n        let x = invalid;\n        let xs = [x, [x]];\n    }" : Unit
             #10 52-53 "x" : ?0
@@ -3138,9 +3220,9 @@ fn infinite() {
             #22 86-89 "[x]" : ?0[]
             #23 87-88 "x" : ?0
             Error(Resolve(NotFound("invalid", Span { lo: 56, hi: 63 })))
-            Error(Type(Error(TyMismatch("?", "?[]", Span { lo: 86, hi: 89 }))))
+            Error(Type(Error(RecursiveTypeConstraint(Span { lo: 86, hi: 89 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 52, hi: 53 }))))
-        "#]],
+        "##]],
     );
 }
 
@@ -3164,8 +3246,8 @@ fn lambda_inner_return() {
             #12 54-55 "f" : (Unit -> Int)
             #14 58-98 "() -> {\n            return 42;\n        }" : (Unit -> Int)
             #15 58-60 "()" : Unit
-            #16 64-98 "{\n            return 42;\n        }" : Unit
-            #17 64-98 "{\n            return 42;\n        }" : Unit
+            #16 64-98 "{\n            return 42;\n        }" : Int
+            #17 64-98 "{\n            return 42;\n        }" : Int
             #19 78-87 "return 42" : Unit
             #20 85-87 "42" : Int
             #22 112-113 "r" : Int
@@ -3197,8 +3279,8 @@ fn lambda_inner_return_without_call_ambiguous() {
             #15 58-64 "(a, b)" : (?2, ?2)
             #16 59-60 "a" : ?2
             #18 62-63 "b" : ?2
-            #20 68-105 "{\n            return a + b;\n        }" : Unit
-            #21 68-105 "{\n            return a + b;\n        }" : Unit
+            #20 68-105 "{\n            return a + b;\n        }" : ?2
+            #21 68-105 "{\n            return a + b;\n        }" : ?2
             #23 82-94 "return a + b" : Unit
             #24 89-94 "a + b" : ?2
             #25 89-90 "a" : ?2
@@ -3224,17 +3306,17 @@ fn lambda_implicit_return_without_call_ambiguous() {
         &expect![[r#"
             #6 30-32 "()" : Unit
             #10 40-104 "{\n        let f = (a, b) -> {\n            a + b\n        };\n    }" : Unit
-            #12 54-55 "f" : ((?2, ?2) -> ?2)
-            #14 58-97 "(a, b) -> {\n            a + b\n        }" : ((?2, ?2) -> ?2)
-            #15 58-64 "(a, b)" : (?2, ?2)
-            #16 59-60 "a" : ?2
-            #18 62-63 "b" : ?2
-            #20 68-97 "{\n            a + b\n        }" : ?2
-            #21 68-97 "{\n            a + b\n        }" : ?2
-            #23 82-87 "a + b" : ?2
-            #24 82-83 "a" : ?2
-            #27 86-87 "b" : ?2
-            Error(Type(Error(AmbiguousTy(Span { lo: 62, hi: 63 }))))
+            #12 54-55 "f" : ((?3, ?3) -> ?3)
+            #14 58-97 "(a, b) -> {\n            a + b\n        }" : ((?3, ?3) -> ?3)
+            #15 58-64 "(a, b)" : (?3, ?3)
+            #16 59-60 "a" : ?3
+            #18 62-63 "b" : ?3
+            #20 68-97 "{\n            a + b\n        }" : ?3
+            #21 68-97 "{\n            a + b\n        }" : ?3
+            #23 82-87 "a + b" : ?3
+            #24 82-83 "a" : ?3
+            #27 86-87 "b" : ?3
+            Error(Type(Error(AmbiguousTy(Span { lo: 68, hi: 97 }))))
         "#]],
     );
 }
@@ -4319,12 +4401,16 @@ fn inference_infinite_recursion_should_fail() {
             #27 102-125 "y : (('T2, 'U2) -> 'T2)" : ((Param<"'T2": 0>, Param<"'U2": 1>) -> Param<"'T2": 0>)
             #40 133-140 "{\n    }" : Unit
             #44 161-163 "()" : Unit
-            #48 170-193 "{\n        A and B\n    }" : (((?2[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?3) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])
-            #50 180-187 "A and B" : (((?2[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?3) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])
-            #51 180-181 "A" : (((?2[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?3) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])
-            #54 186-187 "B" : (((?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?3) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?2[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])
+            #48 170-193 "{\n        A and B\n    }" : (((?2, ?3) -> ?2) -> ?2[])
+            #50 180-187 "A and B" : (((?2, ?3) -> ?2) -> ?2[])
+            #51 180-181 "A" : (((?2, ?3) -> ?2) -> ?2[])
+            #54 186-187 "B" : (((?2, ?3) -> ?2) -> ?2)
             Error(Type(Error(TyMismatch("Unit", "'U1[]", Span { lo: 62, hi: 67 }))))
             Error(Type(Error(TyMismatch("Unit", "'T2", Span { lo: 129, hi: 132 }))))
+            Error(Type(Error(RecursiveTypeConstraint(Span { lo: 186, hi: 187 }))))
+            Error(Type(Error(TyMismatch("Bool", "(((?, ?) -> ?) -> ?[])", Span { lo: 180, hi: 181 }))))
+            Error(Type(Error(TyMismatch("Unit", "(((?, ?) -> ?) -> ?[])", Span { lo: 180, hi: 187 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 186, hi: 187 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 186, hi: 187 }))))
         "##]],
     );
@@ -4692,6 +4778,37 @@ fn field_access_not_ident() {
             #29 108-119 "b.\n        " : ?
             #30 108-109 "b" : UDT<"B": Item 1>
             #32 119-122 "123" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn type_exceeding_size_limit_is_not_propaged_and_generates_error() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Unit {
+                    let tooBig : ((((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ())))) -> ((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))))) -> (((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ())))) -> ((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))))))[] = [];
+                    let x = tooBig[0];
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 30-32 "()" : Unit
+            #10 40-610 "{\n        let tooBig : ((((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ())))) -> ((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))))) -> (((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ())))) -> ((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))))))[] = [];\n        let x = tooBig[0];\n    }" : Unit
+            #12 54-571 "tooBig : ((((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ())))) -> ((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))))) -> (((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ())))) -> ((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))))))[]" : ((((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))) -> (((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))))[]
+            #205 574-576 "[]" : ?0[]
+            #207 590-591 "x" : ?2
+            #209 594-603 "tooBig[0]" : ?2
+            #210 594-600 "tooBig" : ((((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))) -> (((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))))[]
+            #213 601-602 "0" : Int
+            Error(Type(Error(TySizeLimitExceeded("((((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))) -> (((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))))", Span { lo: 574, hi: 576 }))))
+            Error(Type(Error(TySizeLimitExceeded("((((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))) -> (((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))))", Span { lo: 594, hi: 600 }))))
+            Error(Type(Error(TySizeLimitExceeded("((((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))) -> (((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))))", Span { lo: 594, hi: 603 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 574, hi: 576 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 594, hi: 603 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 594, hi: 600 }))))
         "##]],
     );
 }

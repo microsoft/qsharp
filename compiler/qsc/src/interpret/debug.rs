@@ -10,6 +10,7 @@ use qsc_frontend::compile::PackageStore;
 use qsc_hir::hir;
 use qsc_hir::hir::{Item, ItemKind};
 use qsc_lowerer::map_fir_package_to_hir;
+use std::fmt::Write;
 use std::rc::Rc;
 
 #[must_use]
@@ -20,7 +21,7 @@ pub(crate) fn format_call_stack(
     error: &dyn std::error::Error,
 ) -> String {
     let mut trace = String::new();
-    trace.push_str(&format!("Error: {error}\n"));
+    writeln!(trace, "Error: {error}").expect("writing to string should succeed");
     trace.push_str("Call stack:\n");
 
     let mut frames = frames;
@@ -36,20 +37,19 @@ pub(crate) fn format_call_stack(
             trace.push_str("Adjoint ");
         }
         if frame.functor.controlled > 0 {
-            trace.push_str(&format!("Controlled({}) ", frame.functor.controlled));
+            write!(trace, "Controlled({}) ", frame.functor.controlled)
+                .expect("writing to string should succeed");
         }
         if let Some(item) = get_item_parent(store, frame.id) {
             if let Some(ns) = get_ns_name(&item) {
-                trace.push_str(&format!("{ns}."));
+                write!(trace, "{ns}.").expect("writing to string should succeed");
             }
         }
-        trace.push_str(&format!("{}", call.name.name));
+        write!(trace, "{}", call.name.name).expect("writing to string should succeed");
 
         let name = get_item_file_name(store, frame.id);
-        trace.push_str(&format!(
-            " in {}",
-            name.unwrap_or("<expression>".to_string())
-        ));
+        write!(trace, " in {}", name.unwrap_or("<expression>".to_string()))
+            .expect("writing to string should succeed");
 
         trace.push('\n');
     }

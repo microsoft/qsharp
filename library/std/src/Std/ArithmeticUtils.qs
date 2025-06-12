@@ -138,9 +138,9 @@ operation HalfAdderForInc(x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj 
         use helper = Qubit();
 
         within {
-            ApplyAndAssuming0Target(x, y, helper);
+            AND(x, y, helper);
         } apply {
-            ApplyAndAssuming0Target(ctl, helper, carryOut);
+            AND(ctl, helper, carryOut);
         }
         CCNOT(ctl, x, y);
     }
@@ -178,7 +178,7 @@ operation FullAdderForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubi
 operation FullAdder(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj {
     CNOT(x, y);
     CNOT(x, carryIn);
-    ApplyAndAssuming0Target(y, carryIn, carryOut);
+    AND(y, carryIn, carryOut);
     CNOT(x, y);
     CNOT(x, carryOut);
     CNOT(y, carryIn);
@@ -190,7 +190,7 @@ operation CarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit) :
     body (...) {
         CNOT(carryIn, x);
         CNOT(carryIn, y);
-        ApplyAndAssuming0Target(x, y, carryOut);
+        AND(x, y, carryOut);
         CNOT(carryIn, carryOut);
     }
     adjoint auto;
@@ -209,7 +209,7 @@ operation CarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit) :
 operation UncarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj + Ctl {
     body (...) {
         CNOT(carryIn, carryOut);
-        Adjoint ApplyAndAssuming0Target(x, y, carryOut);
+        Adjoint AND(x, y, carryOut);
         CNOT(carryIn, x);
         CNOT(x, y);
     }
@@ -220,7 +220,7 @@ operation UncarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit)
         let ctl = ctls[0];
 
         CNOT(carryIn, carryOut);
-        Adjoint ApplyAndAssuming0Target(x, y, carryOut);
+        Adjoint AND(x, y, carryOut);
         CCNOT(ctl, x, y); // Controlled X(ctls + [x], y);
         CNOT(carryIn, x);
         CNOT(carryIn, y);
@@ -228,89 +228,21 @@ operation UncarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit)
     controlled adjoint auto;
 }
 
-/// # Summary
-/// Applies AND gate between `control1` and `control2` and stores the result
-/// in `target` assuming `target` is in |0> state.
-///
-/// # Description
-/// Inverts `target` if and only if both controls are 1, but assumes that
-/// `target` is in state 0. The operation has T-count 4, T-depth 2 and
-/// requires no helper qubit, and may therefore be preferable to a CCNOT
-/// operation, if `target` is known to be 0.
-/// The adjoint of this operation is measurement based and requires no T
-/// gates (but requires target to support branching on measurements).
-/// Although the Toffoli gate (CCNOT) will perform faster in simulations,
-/// this version has lower T gate requirements.
-/// # References
-/// - Cody Jones: "Novel constructions for the fault-tolerant Toffoli gate",
-///   Phys. Rev. A 87, 022328, 2013
-///   [arXiv:1212.5069](https://arxiv.org/abs/1212.5069)
-///   doi:10.1103/PhysRevA.87.022328
-@Config(Adaptive)
-operation ApplyAndAssuming0Target(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
-    // NOTE: Eventually this operation will be public and intrinsic.
-    body (...) {
-        CCNOT(control1, control2, target);
-    }
-    adjoint (...) {
-        H(target);
-        if M(target) == One {
-            Reset(target);
-            CZ(control1, control2);
-        }
-    }
-}
-
 operation ApplyOrAssuming0Target(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
     within {
         X(control1);
         X(control2);
     } apply {
-        ApplyAndAssuming0Target(control1, control2, target);
+        AND(control1, control2, target);
         X(target);
     }
-}
-
-/// # Summary
-/// Applies AND gate between `control1` and `control2` and stores the result
-/// in `target` assuming `target` is in |0> state.
-///
-/// # Description
-/// Inverts `target` if and only if both controls are 1, but assumes that
-/// `target` is in state 0. The operation has T-count 4, T-depth 2 and
-/// requires no helper qubit, and may therefore be preferable to a CCNOT
-/// operation, if `target` is known to be 0.
-/// This version is suitable for Base profile.
-/// Although the Toffoli gate (CCNOT) will perform faster in simulations,
-/// this version has lower T gate requirements.
-/// # References
-/// - Cody Jones: "Novel constructions for the fault-tolerant Toffoli gate",
-///   Phys. Rev. A 87, 022328, 2013
-///   [arXiv:1212.5069](https://arxiv.org/abs/1212.5069)
-///   doi:10.1103/PhysRevA.87.022328
-@Config(not Adaptive)
-operation ApplyAndAssuming0Target(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
-    H(target);
-    T(target);
-    CNOT(control1, target);
-    CNOT(control2, target);
-    within {
-        CNOT(target, control1);
-        CNOT(target, control2);
-    } apply {
-        Adjoint T(control1);
-        Adjoint T(control2);
-        T(target);
-    }
-    H(target);
-    S(target);
 }
 
 /// # Summary
 /// Computes carries for the look-ahead adder
 operation ComputeCarries(ps : Qubit[], gs : Qubit[]) : Unit is Adj {
     let n = Length(gs);
-    Fact(Length(ps) + 1 == n, "Register gs must be one qubit longer than register gs.");
+    Fact(Length(ps) + 1 == n, "Register gs must be one qubit longer than register ps.");
 
     let T = Floor(Lg(IntAsDouble(n)));
     use qs = Qubit[n - HammingWeightI(n) - T];
@@ -318,6 +250,8 @@ operation ComputeCarries(ps : Qubit[], gs : Qubit[]) : Unit is Adj {
     let registerPartition = MappedOverRange(t -> Floor(IntAsDouble(n) / IntAsDouble(2^t)) - 1, 1..T - 1);
     let pWorkspace = [ps] + Partitioned(registerPartition, qs);
 
+    // Note that we cannot use AND gate targeting gs[0] as it may not be in the 0 state.
+    // We use regular CCNOT in GRounds and CRounds.
     within {
         PRounds(pWorkspace);
     } apply {
@@ -352,7 +286,7 @@ operation PRounds(pWorkspace : Qubit[][]) : Unit is Adj {
         let (current, next) = (Rest(ws[0]), ws[1]);
 
         for m in IndexRange(next) {
-            ApplyAndAssuming0Target(current[2 * m], current[2 * m + 1], next[m]);
+            AND(current[2 * m], current[2 * m + 1], next[m]);
         }
     }
 }
@@ -445,7 +379,7 @@ operation ApplyActionIfGreaterThanOrEqualConstant<'T>(
 
         within {
             for i in 0..Length(cs1) - 1 {
-                let op = cNormalized &&& (1L <<< (i + 1)) != 0L ? ApplyAndAssuming0Target | ApplyOrAssuming0Target;
+                let op = cNormalized &&& (1L <<< (i + 1)) != 0L ? AND | ApplyOrAssuming0Target;
                 op(cs1[i], xNormalized[i + 1], qs[i]);
             }
         } apply {
@@ -508,7 +442,7 @@ operation CarryWith1CarryIn(
     body (...) {
         X(x);
         X(y);
-        ApplyAndAssuming0Target(x, y, carryOut);
+        AND(x, y, carryOut);
         X(carryOut);
     }
 
@@ -566,10 +500,10 @@ operation LogDepthAndChain(ctls : Qubit[], tgts : Qubit[]) : Unit is Adj {
     Fact(lc == lt + 1, $"There must be exactly one more control qubit than target qubits (got {lc}, {lt})");
 
     if lt == 1 {
-        ApplyAndAssuming0Target(ctls[0], ctls[1], tgts[0]);
+        AND(ctls[0], ctls[1], tgts[0]);
     } elif lt == 2 {
-        ApplyAndAssuming0Target(ctls[0], ctls[1], tgts[0]);
-        ApplyAndAssuming0Target(ctls[2], tgts[0], tgts[1]);
+        AND(ctls[0], ctls[1], tgts[0]);
+        AND(ctls[2], tgts[0], tgts[1]);
     } else {
         let left = lc / 2;
         let right = lc - left;
@@ -582,6 +516,6 @@ operation LogDepthAndChain(ctls : Qubit[], tgts : Qubit[]) : Unit is Adj {
 
         LogDepthAndChain(ctlsLeft, tgtsLeft);
         LogDepthAndChain(ctlsRight, tgtsRight);
-        ApplyAndAssuming0Target(Tail(tgtsLeft), Tail(tgtsRight), Tail(tgts));
+        AND(Tail(tgtsLeft), Tail(tgtsRight), Tail(tgts));
     }
 }

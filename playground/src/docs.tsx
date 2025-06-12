@@ -53,9 +53,5 @@ export function DocumentationDisplay(props: {
 }) {
   const docsMd = props.documentation?.get(props.currentNamespace) ?? "";
 
-  return (
-    <div class="markdown-body doc-container">
-      <Markdown markdown={docsMd} className="doc-container" />
-    </div>
-  );
+  return <Markdown markdown={docsMd} />;
 }

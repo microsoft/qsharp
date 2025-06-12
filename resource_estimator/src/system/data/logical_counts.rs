@@ -52,30 +52,32 @@ pub struct LogicalResourceCounts {
 /// gates per rotation are specified.
 impl Overhead for LogicalResourceCounts {
     // number of qubits per one logical qubit (part of Q in paper)
-    fn logical_qubits(&self) -> u64 {
+    fn logical_qubits(&self) -> Result<u64, String> {
         // number of logical qubits for padding (part of Q in paper)
         let qubit_padding = ((8 * self.num_qubits) as f64).sqrt().ceil() as u64 + 1;
 
-        2 * self.num_qubits + qubit_padding
+        Ok(2 * self.num_qubits + qubit_padding)
     }
 
-    fn logical_depth(&self, budget: &ErrorBudget) -> u64 {
-        (self.measurement_count + self.rotation_count + self.t_count) * NUM_MEASUREMENTS_PER_R
-            + (self.ccz_count + self.ccix_count) * NUM_MEASUREMENTS_PER_TOF
-            + self
-                .num_ts_per_rotation(budget.rotations())
-                .unwrap_or_default()
-                * self.rotation_depth
-                * NUM_MEASUREMENTS_PER_R
+    fn logical_depth(&self, budget: &ErrorBudget) -> Result<u64, String> {
+        Ok(
+            (self.measurement_count + self.rotation_count + self.t_count) * NUM_MEASUREMENTS_PER_R
+                + (self.ccz_count + self.ccix_count) * NUM_MEASUREMENTS_PER_TOF
+                + self
+                    .num_ts_per_rotation(budget.rotations())
+                    .unwrap_or_default()
+                    * self.rotation_depth
+                    * NUM_MEASUREMENTS_PER_R,
+        )
     }
 
-    fn num_magic_states(&self, budget: &ErrorBudget, _index: usize) -> u64 {
-        4 * (self.ccz_count + self.ccix_count)
+    fn num_magic_states(&self, budget: &ErrorBudget, _index: usize) -> Result<u64, String> {
+        Ok(4 * (self.ccz_count + self.ccix_count)
             + self.t_count
             + self
                 .num_ts_per_rotation(budget.rotations())
                 .unwrap_or_default()
-                * self.rotation_count
+                * self.rotation_count)
     }
 
     fn prune_error_budget(&self, budget: &mut ErrorBudget, strategy: ErrorBudgetStrategy) {

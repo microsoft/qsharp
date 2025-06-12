@@ -5,11 +5,15 @@ pub(crate) mod ast;
 pub(crate) mod hir;
 
 use self::{ast::run_ast_lints, hir::run_hir_lints};
-use crate::lints::{ast::AstLint, hir::HirLint};
+use crate::{
+    lints::{ast::AstLint, hir::HirLint},
+    GroupConfig,
+};
 use miette::{Diagnostic, LabeledSpan};
 use qsc_data_structures::span::Span;
 use qsc_frontend::compile::{CompileUnit, PackageStore};
 use qsc_hir::hir::{Item, ItemId};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -19,20 +23,78 @@ use std::fmt::Display;
 pub fn run_lints(
     package_store: &PackageStore,
     compile_unit: &CompileUnit,
-    config: Option<&[LintConfig]>,
+    config: Option<&[LintOrGroupConfig]>,
+) -> Vec<Lint> {
+    let mut lints = run_lints_without_deduplication(package_store, compile_unit, config);
+    remove_duplicates(&mut lints);
+    lints
+}
+
+/// This function is used by our unit tests, to make sure lints aren't duplicated under
+/// normal circunstances. The `run_lints` functions deduplicates the lints to take care
+/// of a few special cases where the same expression (referring to the same span in the
+/// source code) appears referenced in multiple places in the HIR.
+pub(crate) fn run_lints_without_deduplication(
+    package_store: &PackageStore,
+    compile_unit: &CompileUnit,
+    config: Option<&[LintOrGroupConfig]>,
 ) -> Vec<Lint> {
     let compilation = Compilation {
         package_store,
         compile_unit,
     };
 
-    let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config, compilation);
-    let mut hir_lints = run_hir_lints(&compile_unit.package, config, compilation);
+    let unfolded_config = config.map(unfold_groups);
+
+    let mut ast_lints = run_ast_lints(
+        &compile_unit.ast.package,
+        unfolded_config.as_deref(),
+        compilation,
+    );
+    let mut hir_lints = run_hir_lints(
+        &compile_unit.package,
+        unfolded_config.as_deref(),
+        compilation,
+    );
 
     let mut lints = Vec::new();
     lints.append(&mut ast_lints);
     lints.append(&mut hir_lints);
     lints
+}
+
+/// Unfolds groups into lists of lints. Specific lints override group configs.
+pub(crate) fn unfold_groups(config: &[LintOrGroupConfig]) -> Vec<LintConfig> {
+    let mut config_map: FxHashMap<LintKind, LintLevel> = FxHashMap::default();
+
+    // Unfold groups in the order they appear.
+    for elt in config {
+        if let LintOrGroupConfig::Group(group) = elt {
+            for lint in group.lint_group.unfold() {
+                config_map.insert(lint, group.level);
+            }
+        }
+    }
+
+    // Specific lints override group configs.
+    for elt in config {
+        if let LintOrGroupConfig::Lint(lint) = elt {
+            config_map.insert(lint.kind, lint.level);
+        }
+    }
+
+    config_map
+        .iter()
+        .map(|(kind, level)| LintConfig {
+            kind: *kind,
+            level: *level,
+        })
+        .collect()
+}
+
+pub(crate) fn remove_duplicates<T: Eq + std::hash::Hash + Clone>(vec: &mut Vec<T>) {
+    let mut seen = rustc_hash::FxHashSet::default();
+    vec.retain(|x| seen.insert(x.clone()));
 }
 
 #[derive(Clone, Copy)]
@@ -117,6 +179,21 @@ pub struct Lint {
     pub code_action_edits: Vec<(String, Span)>,
 }
 
+impl std::hash::Hash for Lint {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.span.hash(state);
+        self.kind.hash(state);
+    }
+}
+
+impl std::cmp::PartialEq for Lint {
+    fn eq(&self, other: &Self) -> bool {
+        self.span == other.span && self.kind == other.kind
+    }
+}
+
+impl std::cmp::Eq for Lint {}
+
 impl std::fmt::Display for Lint {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.message)
@@ -177,18 +254,28 @@ impl Display for LintLevel {
     }
 }
 
-/// End-user configuration for each lint level.
+/// End-user configuration for a specific lint or a lint group.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum LintOrGroupConfig {
+    /// An specific lint configuration.
+    Lint(LintConfig),
+    /// A lint group configuration.
+    Group(GroupConfig),
+}
+
+/// End-user configuration for a specific lint.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct LintConfig {
     #[serde(rename = "lint")]
-    /// Represents the lint name.
+    /// The lint name.
     pub kind: LintKind,
     /// The lint level.
     pub level: LintLevel,
 }
 
 /// Represents a lint name.
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(untagged)]
 pub enum LintKind {
     /// AST lint name.

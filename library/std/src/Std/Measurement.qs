@@ -34,7 +34,7 @@ operation MeasureAllZ(register : Qubit[]) : Result {
 ///
 /// # Description
 /// Measures each qubit in a register in the `Z` basis
-/// and retuns the result of each measurement.
+/// and returns the result of each measurement.
 /// This operation does not reset the measured qubits to the |0⟩ state,
 /// leaving them in the state that corresponds to the measurement results.
 ///
@@ -46,9 +46,9 @@ operation MeasureAllZ(register : Qubit[]) : Result {
 ///
 /// # Remarks
 /// Please note the following differences:
-/// - Operation `MeasureEachZ` performs one measurement for each qubit and retuns
+/// - Operation `MeasureEachZ` performs one measurement for each qubit and returns
 ///   an array of results. The operation does not reset the qubits.
-/// - Operation `MResetEachZ` performs one measurement for each qubit and retuns
+/// - Operation `MResetEachZ` performs one measurement for each qubit and returns
 ///   an array of results. The operation resets all qubits to |0⟩ state.
 /// - Operation `MeasureAllZ` performs a joint measurement on all qubits
 ///   and returns one result. The operation does not reset the qubits.

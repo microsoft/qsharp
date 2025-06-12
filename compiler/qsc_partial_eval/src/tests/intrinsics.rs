@@ -192,6 +192,26 @@ fn call_to_intrinsic_adjoint_s_adds_callable_and_generates_instruction() {
 }
 
 #[test]
+fn call_to_intrinsic_sx_adds_callable_and_generates_instruction() {
+    check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__sx__body",
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__sx__body
+                call_type: Regular
+                input_type:
+                    [0]: Qubit
+                output_type: <VOID>
+                body: <NONE>"#]],
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
 fn call_to_intrinsic_t_adds_callable_and_generates_instruction() {
     check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction(
         "__quantum__qis__t__body",
@@ -1151,4 +1171,151 @@ fn call_to_operation_with_codegen_intrinsic_override_should_skip_impl() {
             Call id(3), args( Integer(0), Pointer, )
             Return"#]],
     );
+}
+
+#[test]
+fn call_to_intrinsic_operation_that_returns_bool_value_should_produce_variable_usage() {
+    let program = get_rir_program(indoc! {"
+        namespace Test {
+            operation Op1() : Bool {
+                body intrinsic;
+            }
+            @EntryPoint()
+            operation Main() : Bool {
+                Op1()
+            }
+        }
+    "});
+
+    let op1_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        op1_callable_id,
+        &expect![[r#"
+            Callable:
+                name: Op1
+                call_type: Regular
+                input_type: <VOID>
+                output_type: Boolean
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Variable(0, Boolean) = Call id(1), args( )
+                Call id(2), args( Variable(0, Boolean), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn call_to_intrinsic_operation_that_returns_int_value_should_produce_variable_usage() {
+    let program = get_rir_program(indoc! {"
+        namespace Test {
+            operation Op1() : Int {
+                body intrinsic;
+            }
+            @EntryPoint()
+            operation Main() : Int {
+                Op1()
+            }
+        }
+    "});
+
+    let op1_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        op1_callable_id,
+        &expect![[r#"
+            Callable:
+                name: Op1
+                call_type: Regular
+                input_type: <VOID>
+                output_type: Integer
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Variable(0, Integer) = Call id(1), args( )
+                Call id(2), args( Variable(0, Integer), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn call_to_intrinsic_operation_that_returns_double_value_should_produce_variable_usage() {
+    let program = get_rir_program(indoc! {"
+        namespace Test {
+            operation Op1() : Double {
+                body intrinsic;
+            }
+            @EntryPoint()
+            operation Main() : Double {
+                Op1()
+            }
+        }
+    "});
+
+    let op1_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        op1_callable_id,
+        &expect![[r#"
+            Callable:
+                name: Op1
+                call_type: Regular
+                input_type: <VOID>
+                output_type: Double
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Variable(0, Double) = Call id(1), args( )
+                Call id(2), args( Variable(0, Double), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+#[should_panic(
+    expected = "partial evaluation failed: UnexpectedDynamicIntrinsicReturnType(\"Result\", PackageSpan { package: PackageId(2), span: Span { lo: 137, hi: 140 } })"
+)]
+fn call_to_intrinsic_operation_that_returns_result_value_should_fail() {
+    let _ = get_rir_program(indoc! {"
+        namespace Test {
+            operation Op1() : Result {
+                body intrinsic;
+            }
+            @EntryPoint()
+            operation Main() : Result {
+                Op1()
+            }
+        }
+    "});
+}
+
+#[test]
+#[should_panic(
+    expected = "partial evaluation failed: UnexpectedDynamicIntrinsicReturnType(\"Qubit\", PackageSpan { package: PackageId(2), span: Span { lo: 142, hi: 145 } })"
+)]
+fn call_to_intrinsic_operation_that_returns_qubit_value_should_fail() {
+    let _ = get_rir_program(indoc! {"
+        namespace Test {
+            operation Op1() : Qubit {
+                body intrinsic;
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                let q = Op1();
+            }
+        }
+    "});
 }

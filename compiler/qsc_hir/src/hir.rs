@@ -9,6 +9,7 @@ use indenter::{indented, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
+    cell::RefCell,
     cmp::Ordering,
     fmt::{self, Debug, Display, Formatter, Write},
     hash::{Hash, Hasher},
@@ -279,6 +280,58 @@ impl Display for Package {
     }
 }
 
+/// The name of a test callable, including its parent namespace.
+pub type TestCallableName = String;
+
+impl Package {
+    /// Returns a collection of the fully qualified names of any callables annotated with `@Test()`
+    pub fn get_test_callables(&self) -> Vec<(TestCallableName, Span)> {
+        let items_with_test_attribute = self
+            .items
+            .iter()
+            .filter(|(_, item)| item.attrs.iter().any(|attr| *attr == Attr::Test));
+
+        let callables = items_with_test_attribute
+            .filter(|(_, item)| matches!(item.kind, ItemKind::Callable(_)));
+
+        let callable_names = callables
+            .filter_map(|(_, item)| -> Option<_> {
+                if let ItemKind::Callable(callable) = &item.kind {
+                    if !callable.generics.is_empty()
+                        || callable.input.kind != PatKind::Tuple(vec![])
+                    {
+                        return None;
+                    }
+
+                    // this is indeed a test callable, so let's grab its parent name
+                    let (name, span) = match item.parent {
+                        None => Default::default(),
+                        Some(parent_id) => {
+                            let parent_item = self
+                                .items
+                                .get(parent_id)
+                                .expect("Parent item did not exist in package");
+                            let name = if let ItemKind::Namespace(ns, _) = &parent_item.kind {
+                                format!("{}.{}", ns.name(), callable.name.name)
+                            } else {
+                                callable.name.name.to_string()
+                            };
+                            let span = callable.name.span;
+                            (name, span)
+                        }
+                    };
+
+                    Some((name, span))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        callable_names
+    }
+}
+
 /// An item.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Item {
@@ -403,9 +456,9 @@ impl CallableDecl {
             self.generics.clone(),
             Box::new(Arrow {
                 kind: self.kind,
-                input: Box::new(self.input.ty.clone()),
-                output: Box::new(self.output.clone()),
-                functors: FunctorSet::Value(self.functors),
+                input: RefCell::new(self.input.ty.clone()),
+                output: RefCell::new(self.output.clone()),
+                functors: RefCell::new(FunctorSet::Value(self.functors)),
             }),
         )
     }
@@ -1365,6 +1418,8 @@ pub enum Attr {
     /// Indicates that an intrinsic callable is a reset. This means that the operation will be marked as
     /// "irreversible" in the generated QIR.
     Reset,
+    /// Indicates that a callable is a test case.
+    Test,
 }
 
 impl Attr {
@@ -1382,6 +1437,7 @@ The `not` operator is also supported to negate the attribute, e.g. `not Adaptive
             Attr::SimulatableIntrinsic => "Indicates that an item should be treated as an intrinsic callable for QIR code generation and any implementation should only be used during simulation.",
             Attr::Measurement => "Indicates that an intrinsic callable is a measurement. This means that the operation will be marked as \"irreversible\" in the generated QIR, and output Result types will be moved to the arguments.",
             Attr::Reset => "Indicates that an intrinsic callable is a reset. This means that the operation will be marked as \"irreversible\" in the generated QIR.",
+            Attr::Test =>  "Indicates that a callable is a test case.",
         }
     }
 }
@@ -1397,6 +1453,7 @@ impl FromStr for Attr {
             "SimulatableIntrinsic" => Ok(Self::SimulatableIntrinsic),
             "Measurement" => Ok(Self::Measurement),
             "Reset" => Ok(Self::Reset),
+            "Test" => Ok(Self::Test),
             _ => Err(()),
         }
     }

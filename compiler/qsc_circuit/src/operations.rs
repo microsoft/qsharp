@@ -33,7 +33,7 @@ pub enum Error {
 /// If the item is not a callable, returns `None`.
 /// If the callable takes any non-qubit parameters, returns `None`.
 ///
-/// If the callable only takes qubit parameters, (including qubit arrays):
+/// If the callable only takes qubit parameters (including qubit arrays) or no parameters:
 ///
 /// The first element of the return tuple is a vector,
 /// where each element corresponds to a parameter, and the
@@ -47,6 +47,11 @@ pub enum Error {
 #[must_use]
 pub fn qubit_param_info(item: &Item) -> Option<(Vec<u32>, u32)> {
     if let ItemKind::Callable(decl) = &item.kind {
+        if decl.input.ty == Ty::UNIT {
+            // Support no parameters by allocating 0 qubits.
+            return Some((vec![], 0));
+        }
+
         let (qubit_param_dimensions, total_num_qubits) = get_qubit_param_info(&decl.input.ty);
 
         if !qubit_param_dimensions.is_empty() {

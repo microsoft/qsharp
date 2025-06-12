@@ -141,7 +141,7 @@ impl Visitor<'_> for Renamer<'_> {
                     self.aliases.insert(vec![alias.name.clone()], ns_id);
                 } else {
                     return;
-                };
+                }
             }
             ItemKind::ImportOrExport(export) => {
                 for item in export.items() {
@@ -1582,6 +1582,30 @@ fn for_loop_var() {
                 function item1(local8 : Int[]) : Unit {
                     for local20 in local8 {
                         let _ = local20;
+                    }
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn for_loop_explicit_type() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    for i : Int in 0..9 {
+                        let _ = i;
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace3 {
+                function item1() : Unit {
+                    for local14 : Int in 0..9 {
+                        let _ = local14;
                     }
                 }
             }

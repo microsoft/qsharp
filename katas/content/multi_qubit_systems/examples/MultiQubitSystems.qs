@@ -24,7 +24,7 @@ namespace Kata {
         // The next lines entangle the qubits (don't worry about what exactly they do for now).
         H(qs[1]);
         CNOT(qs[0], qs[1]);
-        Message("The system in now in entangled state 0.5(|00⟩ - |11⟩):");
+        Message("The system in now in entangled state (1/sqrt(2))(|00⟩ - |11⟩):");
         DumpMachine();
 
         // This returns the system into state |00⟩.

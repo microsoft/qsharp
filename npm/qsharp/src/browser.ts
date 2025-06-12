@@ -5,7 +5,11 @@
 // the "./main.js" module is the entry point.
 
 import * as wasm from "../lib/web/qsc_wasm.js";
-import initWasm, { IProjectHost, TargetProfile } from "../lib/web/qsc_wasm.js";
+import initWasm, {
+  IProjectHost,
+  ProjectType,
+  TargetProfile,
+} from "../lib/web/qsc_wasm.js";
 import {
   Compiler,
   ICompiler,
@@ -27,6 +31,7 @@ import {
   qsharpLibraryUriScheme,
 } from "./language-service/language-service.js";
 import { LogLevel, log } from "./log.js";
+import { ProjectLoader } from "./project.js";
 import { createProxy } from "./workers/browser.js";
 
 export { qsharpGithubUriScheme, qsharpLibraryUriScheme };
@@ -106,9 +111,9 @@ export async function getDebugService(): Promise<IDebugService> {
 
 export async function getProjectLoader(
   host: IProjectHost,
-): Promise<wasm.ProjectLoader> {
+): Promise<ProjectLoader> {
   await instantiateWasm();
-  return new wasm.ProjectLoader(host);
+  return new ProjectLoader(wasm, host);
 }
 
 // Create the debugger inside a WebWorker and proxy requests.
@@ -166,16 +171,25 @@ export type {
   IRange,
   IStackFrame,
   IStructStepResult,
+  ITestDescriptor,
   IWorkspaceEdit,
-  ProjectLoader,
   VSDiagnostic,
 } from "../lib/web/qsc_wasm.js";
 export { type Dump, type ShotResult } from "./compiler/common.js";
 export { type CompilerState, type ProgramConfig } from "./compiler/compiler.js";
 export { QscEventTarget } from "./compiler/events.js";
-export type { LanguageServiceEvent } from "./language-service/language-service.js";
+export { QdkDiagnostics } from "./diagnostics.js";
+export type {
+  LanguageServiceDiagnosticEvent,
+  LanguageServiceEvent,
+  LanguageServiceTestCallablesEvent,
+} from "./language-service/language-service.js";
+export { default as openqasm_samples } from "./openqasm-samples.generated.js";
+export type { ProjectLoader } from "./project.js";
 export { default as samples } from "./samples.generated.js";
-export { log, type LogLevel, type TargetProfile };
+export type { CircuitGroup as CircuitData } from "./data-structures/circuit.js";
+export * as utils from "./utils.js";
+export { log, type LogLevel, type ProjectType, type TargetProfile };
 export type {
   ICompiler,
   ICompilerWorker,
@@ -184,5 +198,3 @@ export type {
   ILanguageService,
   ILanguageServiceWorker,
 };
-
-export * as utils from "./utils.js";

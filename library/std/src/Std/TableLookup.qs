@@ -12,8 +12,7 @@ import
     Std.Convert.IntAsDouble,
     Std.Arrays.*,
     Std.ResourceEstimation.BeginEstimateCaching,
-    Std.ResourceEstimation.EndEstimateCaching,
-    Std.ArithmeticUtils.ApplyAndAssuming0Target;
+    Std.ResourceEstimation.EndEstimateCaching;
 
 /// # Summary
 /// Performs table lookup using a SELECT network
@@ -123,7 +122,7 @@ operation SinglyControlledSelect(
             within {
                 X(tail);
             } apply {
-                ApplyAndAssuming0Target(ctl, tail, helper);
+                AND(ctl, tail, helper);
             }
 
             SinglyControlledSelect(helper, parts[0], most, target);
@@ -132,7 +131,7 @@ operation SinglyControlledSelect(
 
             SinglyControlledSelect(helper, parts[1], most, target);
 
-            Adjoint ApplyAndAssuming0Target(ctl, tail, helper);
+            Adjoint AND(ctl, tail, helper);
         }
 
         EndEstimateCaching();
@@ -176,29 +175,34 @@ operation Unlookup(
     select : Qubit[],
     target : Qubit[]
 ) : Unit {
-    let numBits = Length(target);
-    let numAddressBits = Length(select);
+    // No measurement-based uncomputation when there is only one address
+    if Length(data) == 1 {
+        WriteMemoryContents(Head(data), target);
+    } else {
+        let numBits = Length(target);
+        let numAddressBits = Length(select);
 
-    let l = MinI(Floor(Lg(IntAsDouble(numBits))), numAddressBits - 1);
-    Fact(
-        l < numAddressBits,
-        $"l = {l} must be smaller than {numAddressBits}"
-    );
+        let l = MinI(Floor(Lg(IntAsDouble(numBits))), numAddressBits - 1);
+        Fact(
+            l < numAddressBits,
+            $"l = {l} must be smaller than {numAddressBits}"
+        );
 
-    let res = Mapped(r -> r == One, ForEach(MResetX, target));
+        let res = Mapped(r -> r == One, ForEach(MResetX, target));
 
-    let dataFixup = Chunks(2^l, Padded(-2^numAddressBits, false, Mapped(MustBeFixed(res, _), data)));
+        let dataFixup = Chunks(2^l, Padded(-2^numAddressBits, false, Mapped(MustBeFixed(res, _), data)));
 
-    let numAddressBitsFixup = numAddressBits - l;
+        let numAddressBitsFixup = numAddressBits - l;
 
-    let selectParts = Partitioned([l], select);
-    let targetFixup = target[...2^l - 1];
+        let selectParts = Partitioned([l], select);
+        let targetFixup = target[...2^l - 1];
 
-    within {
-        EncodeUnary(selectParts[0], targetFixup);
-        ApplyToEachA(H, targetFixup);
-    } apply {
-        lookup(dataFixup, selectParts[1], targetFixup);
+        within {
+            EncodeUnary(selectParts[0], targetFixup);
+            ApplyToEachA(H, targetFixup);
+        } apply {
+            lookup(dataFixup, selectParts[1], targetFixup);
+        }
     }
 }
 
@@ -240,7 +244,7 @@ operation EncodeUnary(
             // targets are the first and second 2^i qubits of the target register
             let split = Partitioned([2^i, 2^i], target);
             for j in IndexRange(split[0]) {
-                ApplyAndAssuming0Target(input[i], split[0][j], split[1][j]);
+                AND(input[i], split[0][j], split[1][j]);
                 CNOT(split[1][j], split[0][j]);
             }
         }
@@ -275,7 +279,7 @@ operation AndChainOperation(ctls : Qubit[], helper : Qubit[], target : Qubit) : 
         let tgts = helper + [target];
 
         for idx in IndexRange(tgts) {
-            ApplyAndAssuming0Target(ctls1[idx], ctls2[idx], tgts[idx]);
+            AND(ctls1[idx], ctls2[idx], tgts[idx]);
         }
     }
 }

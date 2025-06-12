@@ -2646,3 +2646,221 @@ fn ssa_transform_allows_point_in_time_copy_of_dynamic_variable() {
             num_qubits: 0
             num_results: 0"#]].assert_eq(&program.to_string());
 }
+
+#[test]
+fn ssa_transform_propagates_phi_var_to_successor_blocks_across_sequential_branches() {
+    let mut program = new_program();
+    program.callables.insert(
+        CallableId(1),
+        Callable {
+            name: "dynamic_bool".to_string(),
+            input_type: Vec::new(),
+            output_type: Some(Ty::Boolean),
+            body: None,
+            call_type: CallableType::Regular,
+        },
+    );
+    program.callables.insert(
+        CallableId(2),
+        Callable {
+            name: "record_bool".to_string(),
+            input_type: vec![Ty::Boolean],
+            output_type: None,
+            body: None,
+            call_type: CallableType::OutputRecording,
+        },
+    );
+
+    program.blocks.insert(
+        BlockId(0),
+        Block(vec![
+            Instruction::Call(
+                CallableId(1),
+                Vec::new(),
+                Some(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Store(
+                Operand::Literal(Literal::Bool(true)),
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Branch(
+                Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                },
+                BlockId(1),
+                BlockId(2),
+            ),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(1),
+        Block(vec![
+            Instruction::Store(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(3),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Branch(
+                Variable {
+                    variable_id: VariableId(3),
+                    ty: Ty::Boolean,
+                },
+                BlockId(4),
+                BlockId(5),
+            ),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(2),
+        Block(vec![
+            Instruction::Call(
+                CallableId(1),
+                Vec::new(),
+                Some(Variable {
+                    variable_id: VariableId(2),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Store(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(2),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Jump(BlockId(1)),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(3),
+        Block(vec![
+            Instruction::Call(
+                CallableId(2),
+                vec![Operand::Variable(Variable {
+                    variable_id: VariableId(3),
+                    ty: Ty::Boolean,
+                })],
+                None,
+            ),
+            Instruction::Return,
+        ]),
+    );
+    program
+        .blocks
+        .insert(BlockId(4), Block(vec![Instruction::Jump(BlockId(3))]));
+    program
+        .blocks
+        .insert(BlockId(5), Block(vec![Instruction::Jump(BlockId(3))]));
+
+    // Before
+    expect![[r#"
+        Program:
+            entry: 0
+            callables:
+                Callable 0: Callable:
+                    name: main
+                    call_type: Regular
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
+                Callable 1: Callable:
+                    name: dynamic_bool
+                    call_type: Regular
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
+                Callable 2: Callable:
+                    name: record_bool
+                    call_type: OutputRecording
+                    input_type:
+                        [0]: Boolean
+                    output_type: <VOID>
+                    body: <NONE>
+            blocks:
+                Block 0: Block:
+                    Variable(0, Boolean) = Call id(1), args( )
+                    Variable(1, Boolean) = Store Bool(true)
+                    Branch Variable(0, Boolean), 1, 2
+                Block 1: Block:
+                    Variable(3, Boolean) = Store Variable(1, Boolean)
+                    Branch Variable(3, Boolean), 4, 5
+                Block 2: Block:
+                    Variable(2, Boolean) = Call id(1), args( )
+                    Variable(1, Boolean) = Store Variable(2, Boolean)
+                    Jump(1)
+                Block 3: Block:
+                    Call id(2), args( Variable(3, Boolean), )
+                    Return
+                Block 4: Block:
+                    Jump(3)
+                Block 5: Block:
+                    Jump(3)
+            config: Config:
+                capabilities: Base
+            num_qubits: 0
+            num_results: 0"#]]
+    .assert_eq(&program.to_string());
+
+    // After
+    transform_program(&mut program);
+    expect![[r#"
+        Program:
+            entry: 0
+            callables:
+                Callable 0: Callable:
+                    name: main
+                    call_type: Regular
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
+                Callable 1: Callable:
+                    name: dynamic_bool
+                    call_type: Regular
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
+                Callable 2: Callable:
+                    name: record_bool
+                    call_type: OutputRecording
+                    input_type:
+                        [0]: Boolean
+                    output_type: <VOID>
+                    body: <NONE>
+            blocks:
+                Block 0: Block:
+                    Variable(0, Boolean) = Call id(1), args( )
+                    Branch Variable(0, Boolean), 2, 1
+                Block 1: Block:
+                    Variable(2, Boolean) = Call id(1), args( )
+                    Jump(2)
+                Block 2: Block:
+                    Variable(4, Boolean) = Phi ( [Bool(true), 0], [Variable(2, Boolean), 1], )
+                    Branch Variable(4, Boolean), 3, 4
+                Block 3: Block:
+                    Jump(5)
+                Block 4: Block:
+                    Jump(5)
+                Block 5: Block:
+                    Call id(2), args( Variable(4, Boolean), )
+                    Return
+            config: Config:
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
+            num_qubits: 0
+            num_results: 0"#]]
+    .assert_eq(&program.to_string());
+}

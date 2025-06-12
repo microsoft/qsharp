@@ -183,6 +183,7 @@ pub(crate) fn call(
         "__quantum__qis__h__body" => one_qubit_gate(|q| sim.h(q), arg, arg_span),
         "__quantum__qis__s__body" => one_qubit_gate(|q| sim.s(q), arg, arg_span),
         "__quantum__qis__s__adj" => one_qubit_gate(|q| sim.sadj(q), arg, arg_span),
+        "__quantum__qis__sx__body" => one_qubit_gate(|q| sim.sx(q), arg, arg_span),
         "__quantum__qis__t__body" => one_qubit_gate(|q| sim.t(q), arg, arg_span),
         "__quantum__qis__t__adj" => one_qubit_gate(|q| sim.tadj(q), arg, arg_span),
         "__quantum__qis__x__body" => one_qubit_gate(|q| sim.x(q), arg, arg_span),

@@ -36,7 +36,7 @@ pub fn search_for_code_distances(
             mid[cur_round - 1]
         };
         while left[cur_round] + 1 < right[cur_round] {
-            mid[cur_round] = (left[cur_round] + right[cur_round]) / 2;
+            mid[cur_round] = usize::midpoint(left[cur_round], right[cur_round]);
             if check_if_can_improve_with_increasing_code_distances(&mid) {
                 left[cur_round] = mid[cur_round] + 1;
             } else {

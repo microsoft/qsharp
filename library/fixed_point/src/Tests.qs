@@ -3,17 +3,13 @@
 
 import Init.PrepareFxP;
 import Types.FixedPoint;
-import Measurement.MeasureFxP;
 import Std.Diagnostics.Fact;
 import Std.Convert.IntAsDouble;
 import Std.Math.AbsD;
 import Operations.*;
 
-operation Main() : Unit {
-    FxpMeasurementTest();
-    FxpOperationTests();
-}
-
+@Config(Unrestricted)
+@Test()
 operation FxpMeasurementTest() : Unit {
     for numQubits in 3..12 {
         for numIntBits in 2..numQubits {
@@ -33,7 +29,9 @@ operation FxpMeasurementTest() : Unit {
     }
 }
 
+@Config(Unrestricted)
 operation TestConstantMeasurement(constant : Double, registerWidth : Int, integerWidth : Int, epsilon : Double) : Unit {
+    import Measurement.MeasureFxP;
     use register = Qubit[registerWidth];
     let newFxp = new FixedPoint { IntegerBits = integerWidth, Register = register };
     PrepareFxP(constant, newFxp);
@@ -43,6 +41,8 @@ operation TestConstantMeasurement(constant : Double, registerWidth : Int, intege
     ResetAll(register);
 }
 
+@Config(Unrestricted)
+@Test()
 operation FxpOperationTests() : Unit {
     for i in 0..10 {
         let constant1 = 0.2 * IntAsDouble(i);
@@ -54,7 +54,9 @@ operation FxpOperationTests() : Unit {
         TestSquare(constant1);
     }
 }
+@Config(Unrestricted)
 operation TestSquare(a : Double) : Unit {
+    import Measurement.MeasureFxP;
     Message($"Testing Square({a})");
     use resultRegister = Qubit[30];
     let resultFxp = new FixedPoint { IntegerBits = 8, Register = resultRegister };
@@ -71,8 +73,10 @@ operation TestSquare(a : Double) : Unit {
     ResetAll(aRegister);
 }
 
+@Config(Unrestricted)
 // assume the second register that `op` takes is the result register
 operation TestOperation(a : Double, b : Double, op : (FixedPoint, FixedPoint) => (), reference : (Double, Double) -> Double, name : String) : Unit {
+    import Measurement.MeasureFxP;
     Message($"Testing {name}({a}, {b})");
     use register1 = Qubit[20];
     let aFxp = new FixedPoint { IntegerBits = 8, Register = register1 };
@@ -91,8 +95,11 @@ operation TestOperation(a : Double, b : Double, op : (FixedPoint, FixedPoint) =>
     ResetAll(register1 + register2);
 }
 
+@Config(Unrestricted)
 // assume the third register that `op` takes is the result register
 operation TestOperation3(a : Double, b : Double, op : (FixedPoint, FixedPoint, FixedPoint) => (), reference : (Double, Double) -> Double, name : String) : Unit {
+    import Measurement.MeasureFxP;
+
     Message($"Testing {name}({a}, {b})");
     use register1 = Qubit[24];
     let aFxp = new FixedPoint { IntegerBits = 8, Register = register1 };

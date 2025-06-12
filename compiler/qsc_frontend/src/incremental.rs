@@ -86,7 +86,7 @@ impl Compiler {
                 resolve_globals.add_external_package(*id, &unit.package, store, alias.as_deref())
             {
                 errors.append(&mut errs);
-            };
+            }
             typeck_globals.add_external_package(*id, &unit.package, store);
             dropped_names.extend(unit.dropped_names.iter().cloned());
         }

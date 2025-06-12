@@ -2311,3 +2311,95 @@ fn if_expression_with_dynamic_operand_from_hybrid_doubles_array() {
                 Jump(6)"#]],
     );
 }
+
+#[test]
+fn if_expression_with_implicit_return_in_callable_supported() {
+    let program = get_rir_program(indoc! {r#"
+        function Choose(r : Result) : Int {
+            if r == One {
+                1
+            } else {
+                0
+            }
+        }
+        @EntryPoint()
+        operation Main() : Int {
+            use q = Qubit();
+            Choose(MResetZ(q))
+        }
+        "#
+    });
+
+    assert_blocks(
+        &program,
+        &expect![[r#"
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Store Variable(0, Boolean)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Variable(3, Integer) = Store Variable(2, Integer)
+                Call id(3), args( Variable(3, Integer), Pointer, )
+                Return
+            Block 2:Block:
+                Variable(2, Integer) = Store Integer(1)
+                Jump(1)
+            Block 3:Block:
+                Variable(2, Integer) = Store Integer(0)
+                Jump(1)"#]],
+    );
+}
+
+#[test]
+fn if_expression_with_explicit_return_in_callable_fails() {
+    let error = get_partial_evaluation_error(indoc! {r#"
+        function Choose(r : Result) : Int {
+            if r == One {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+        @EntryPoint()
+        operation Main() : Int {
+            use q = Qubit();
+            Choose(MResetZ(q))
+        }
+        "#
+    });
+
+    assert_error(
+        &error,
+        &expect![[
+            r#"Unimplemented("early return", PackageSpan { package: PackageId(2), span: Span { lo: 53, hi: 78 } })"#
+        ]],
+    );
+}
+
+#[test]
+fn if_expression_with_explicit_return_in_one_branch_and_fallthrough_else_in_callable_fails() {
+    let error = get_partial_evaluation_error(indoc! {r#"
+        function Choose(r : Result) : Int {
+            if r == One {
+                return 1;
+            }
+
+            return 3;
+        }
+        @EntryPoint()
+        operation Main() : Int {
+            use q = Qubit();
+            Choose(MResetZ(q))
+        }
+        "#
+    });
+
+    assert_error(
+        &error,
+        &expect![[
+            r#"Unimplemented("early return", PackageSpan { package: PackageId(2), span: Span { lo: 53, hi: 78 } })"#
+        ]],
+    );
+}

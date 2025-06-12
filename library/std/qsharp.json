@@ -19,6 +19,9 @@
     "src/Std/Arithmetic.qs",
     "src/Std/ArithmeticUtils.qs",
     "src/Std/StatePreparation.qs",
-    "src/Std/TableLookup.qs"
+    "src/Std/TableLookup.qs",
+    "src/Std/OpenQASM/Angle.qs",
+    "src/Std/OpenQASM/Convert.qs",
+    "src/Std/OpenQASM/Intrinsic.qs"
   ]
 }

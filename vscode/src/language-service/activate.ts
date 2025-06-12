@@ -9,8 +9,9 @@ import {
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import {
-  isQsharpDocument,
-  isQsharpNotebookCell,
+  isNotebookCell,
+  isQdkDocument,
+  openqasmLanguageId,
   qsharpLanguageId,
 } from "../common.js";
 import { getTarget } from "../config.js";
@@ -22,23 +23,31 @@ import {
   resolvePath,
 } from "../projectSystem.js";
 import {
+  determineDocumentType,
   EventType,
   QsharpDocumentType,
   sendTelemetryEvent,
 } from "../telemetry.js";
 import { createCodeActionsProvider } from "./codeActions.js";
-import { createCodeLensProvider } from "./codeLens.js";
+import { createQdkCodeLensProvider } from "./codeLens.js";
 import { createCompletionItemProvider } from "./completion.js";
 import { createDefinitionProvider } from "./definition.js";
 import { startLanguageServiceDiagnostics } from "./diagnostics.js";
 import { createFormattingProvider } from "./format.js";
 import { createHoverProvider } from "./hover.js";
-import { registerQSharpNotebookCellUpdateHandlers } from "./notebook.js";
+import { registerQdkNotebookCellUpdateHandlers } from "./notebook.js";
 import { createReferenceProvider } from "./references.js";
 import { createRenameProvider } from "./rename.js";
 import { createSignatureHelpProvider } from "./signature.js";
+import { startTestDiscovery } from "./testExplorer.js";
 
-export async function activateLanguageService(extensionUri: vscode.Uri) {
+/**
+ * Returns all of the subscriptions that should be registered for the language service.
+ */
+export async function activateLanguageService(
+  context: vscode.ExtensionContext,
+): Promise<vscode.Disposable[]> {
+  const extensionUri = context.extensionUri;
   const subscriptions: vscode.Disposable[] = [];
 
   const languageService = await loadLanguageService(extensionUri);
@@ -46,13 +55,14 @@ export async function activateLanguageService(extensionUri: vscode.Uri) {
   // diagnostics
   subscriptions.push(...startLanguageServiceDiagnostics(languageService));
 
+  // test explorer
+  subscriptions.push(...startTestDiscovery(languageService, context));
+
   // synchronize document contents
   subscriptions.push(...registerDocumentUpdateHandlers(languageService));
 
   // synchronize notebook cell contents
-  subscriptions.push(
-    ...registerQSharpNotebookCellUpdateHandlers(languageService),
-  );
+  subscriptions.push(...registerQdkNotebookCellUpdateHandlers(languageService));
 
   // synchronize configuration
   subscriptions.push(registerConfigurationChangeHandlers(languageService));
@@ -81,6 +91,15 @@ export async function activateLanguageService(extensionUri: vscode.Uri) {
       // Trigger characters should be kept in sync with the ones in `playground/src/main.tsx`
       "@",
       ".",
+    ),
+  );
+
+  subscriptions.push(
+    vscode.languages.registerCompletionItemProvider(
+      openqasmLanguageId,
+      createCompletionItemProvider(languageService),
+      "@",
+      "[",
     ),
   );
 
@@ -130,7 +149,7 @@ export async function activateLanguageService(extensionUri: vscode.Uri) {
   subscriptions.push(
     vscode.languages.registerCodeLensProvider(
       qsharpLanguageId,
-      createCodeLensProvider(languageService),
+      createQdkCodeLensProvider(languageService),
     ),
   );
 
@@ -141,13 +160,23 @@ export async function activateLanguageService(extensionUri: vscode.Uri) {
     ),
   );
 
+  // code lens for openqasm
+  subscriptions.push(
+    vscode.languages.registerCodeLensProvider(
+      openqasmLanguageId,
+      createQdkCodeLensProvider(languageService),
+    ),
+  );
+
   // add the language service dispose handler as well
   subscriptions.push(languageService);
 
   return subscriptions;
 }
 
-async function loadLanguageService(baseUri: vscode.Uri) {
+async function loadLanguageService(
+  baseUri: vscode.Uri,
+): Promise<ILanguageService> {
   const start = performance.now();
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
@@ -168,34 +197,28 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   );
   return languageService;
 }
-function registerDocumentUpdateHandlers(languageService: ILanguageService) {
+
+/**
+ * This function returns all of the subscriptions that should be registered for the language service.
+ * Additionally, if an `eventEmitter` is passed in, will fire an event when a document is updated.
+ */
+function registerDocumentUpdateHandlers(
+  languageService: ILanguageService,
+): vscode.Disposable[] {
   vscode.workspace.textDocuments.forEach((document) => {
-    updateIfQsharpDocument(document);
+    updateIfQdkDocument(document);
   });
 
   // we manually send an OpenDocument telemetry event if this is a Q# document, because the
   // below subscriptions won't fire for documents that are already open when the extension is activated
   vscode.workspace.textDocuments.forEach((document) => {
-    if (isQsharpDocument(document)) {
-      const documentType = isQsharpNotebookCell(document)
-        ? QsharpDocumentType.JupyterCell
-        : QsharpDocumentType.Qsharp;
-      sendTelemetryEvent(
-        EventType.OpenedDocument,
-        { documentType },
-        { linesOfCode: document.lineCount },
-      );
-    }
+    sendDocumentOpenedEvent(document);
   });
 
   const subscriptions = [];
   subscriptions.push(
     vscode.workspace.onDidOpenTextDocument((document) => {
-      const documentType = isQsharpNotebookCell(document)
-        ? QsharpDocumentType.JupyterCell
-        : isQsharpDocument(document)
-          ? QsharpDocumentType.Qsharp
-          : QsharpDocumentType.Other;
+      const documentType = determineDocumentType(document);
       if (documentType !== QsharpDocumentType.Other) {
         sendTelemetryEvent(
           EventType.OpenedDocument,
@@ -203,20 +226,23 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
           { linesOfCode: document.lineCount },
         );
       }
-      updateIfQsharpDocument(document);
+      updateIfQdkDocument(document);
     }),
   );
 
   subscriptions.push(
     vscode.workspace.onDidChangeTextDocument((evt) => {
-      updateIfQsharpDocument(evt.document);
+      updateIfQdkDocument(evt.document);
     }),
   );
 
   subscriptions.push(
     vscode.workspace.onDidCloseTextDocument((document) => {
-      if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
-        languageService.closeDocument(document.uri.toString());
+      if (isQdkDocument(document) && !isNotebookCell(document)) {
+        languageService.closeDocument(
+          document.uri.toString(),
+          document.languageId,
+        );
       }
     }),
   );
@@ -252,24 +278,37 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
           // Check that the document is on the same project as the manifest.
           document.fileName.startsWith(project_folder)
         ) {
-          updateIfQsharpDocument(document);
+          updateIfQdkDocument(document);
         }
       });
     }
   }
 
-  function updateIfQsharpDocument(document: vscode.TextDocument) {
-    if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
-      // Regular (not notebook) Q# document.
+  async function updateIfQdkDocument(document: vscode.TextDocument) {
+    if (isQdkDocument(document) && !isNotebookCell(document)) {
+      const content = document.getText();
+
       languageService.updateDocument(
         document.uri.toString(),
         document.version,
-        document.getText(),
+        content,
+        document.languageId,
       );
     }
   }
 
   return subscriptions;
+}
+
+function sendDocumentOpenedEvent(document: vscode.TextDocument) {
+  if (isQdkDocument(document)) {
+    const documentType = determineDocumentType(document);
+    sendTelemetryEvent(
+      EventType.OpenedDocument,
+      { documentType },
+      { linesOfCode: document.lineCount },
+    );
+  }
 }
 
 function registerConfigurationChangeHandlers(

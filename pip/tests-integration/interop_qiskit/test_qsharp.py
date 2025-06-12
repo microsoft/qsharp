@@ -26,9 +26,9 @@ def test_qsharp_smoke() -> None:
     backend = QSharpBackend()
     res = backend._qsharp(circuit)
     assert res is not None
-    assert "qasm3_import" in res
+    assert "qasm_import" in res
     assert "operation smoke() : Result[]" in res
-    assert "Microsoft.Quantum.Arrays.Reversed" in res
+    assert "Std.Arrays.Reversed" in res
 
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
@@ -56,4 +56,4 @@ def test_qsharp_openqasm_output_semantics() -> None:
     output_semantics = OutputSemantics.OpenQasm
 
     res = backend._qsharp(circuit, output_semantics=output_semantics)
-    assert "Microsoft.Quantum.Arrays.Reversed" not in res
+    assert "Std.Arrays.Reversed" not in res

@@ -69,8 +69,30 @@ def test_estimate_qiskit_rgqft_multiplier() -> None:
         {
             "numQubits": 16,
             "tCount": 90,
-            "rotationCount": 1002,
-            "rotationDepth": 680,
+            "rotationCount": 972,
+            "rotationDepth": 666,
+            "cczCount": 0,
+            "ccixCount": 0,
+            "measurementCount": 0,
+        }
+    )
+
+
+@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
+def test_estimate_qiskit_rgqft_multiplier_without_tranpspile() -> None:
+    bitwidth = 4
+    circuit = RGQFTMultiplier(num_state_qubits=bitwidth)
+    params = EstimatorParams()
+    sim = ResourceEstimatorBackend(skip_transpilation=True)
+    job = sim.run(circuit, params=params, optimization_level=0)
+    res = job.result()
+    assert res["status"] == "success"
+    assert res.logical_counts == LogicalCounts(
+        {
+            "numQubits": 16,
+            "tCount": 76,
+            "rotationCount": 936,
+            "rotationDepth": 665,
             "cczCount": 0,
             "ccixCount": 0,
             "measurementCount": 0,
@@ -94,8 +116,8 @@ def test_estimate_qiskit_rgqft_multiplier_in_threadpool() -> None:
         {
             "numQubits": 16,
             "tCount": 90,
-            "rotationCount": 1002,
-            "rotationDepth": 680,
+            "rotationCount": 972,
+            "rotationDepth": 666,
             "cczCount": 0,
             "ccixCount": 0,
             "measurementCount": 0,

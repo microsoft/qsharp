@@ -253,7 +253,7 @@ at the math involved in applying Hadamard gates to multiple qubits.
 
 When you apply an $H$ gate to a single qubit in the basis state $\ket{x}$, you can write the result as the following sum:
 
-$$H\ket{x} = \frac1{\sqrt2} (\ket{0} + (-1)^{x} \ket{1}) = \frac1{\sqrt2} \sum_{z \in {0, 1}} (-1)^{x \cdot z} \ket{z}$$
+$$H\ket{x} = \frac1{\sqrt2} (\ket{0} + (-1)^{x} \ket{1}) = \frac1{\sqrt2} \sum_{z \in \{0, 1\}} (-1)^{x \cdot z} \ket{z}$$
 
 If you use this representation to spell out the result of applying an $H$ gate to each qubit of an $N$-qubit basis state 
 $\ket{x} = \ket{x_0}\ket{x_1} \dots \ket{x_{N-1}}$, you get:
@@ -279,20 +279,20 @@ $$\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} (-1)^{f(x)} \ket{x}$$
 
 Now, once you apply the Hadamard gates to each qubit, the system state becomes:
 
-$$\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} \sum_{z=0}^{2^N-1} (-1)^{f(x) + x \cdot z} \ket{z}$$
+$$\frac{1}{2^N} \sum_{x=0}^{2^N-1} \sum_{z=0}^{2^N-1} (-1)^{f(x) + x \cdot z} \ket{z}$$
 
 > In Deutsch-Jozsa algorithm, you looked at the amplitude of the $\ket{0}$ state in this expression, which was 
-> $\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} (-1)^{f(x)}$.
+> $\frac{1}{2^N} \sum_{x=0}^{2^N-1} (-1)^{f(x)}$.
 
 Now, let's take a look at the amplitude of the $\ket{s}$ state - the state that encodes the hidden bit string you're looking for.
 This amplitude is 
 
-$$\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} (-1)^{f(x) + x \cdot s}$$
+$$\frac{1}{2^N} \sum_{x=0}^{2^N-1} (-1)^{f(x) + x \cdot s}$$
 
 Since $f(x) = x \cdot s$, for all values of $x$ $f(x) + x \cdot s = 2 x \cdot s$, and $(-1)^{f(x) + x \cdot s} = 1$.
 Overall the amplitude of $\ket{s}$ is 
 
-$$\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} 1 = \frac{1}{\sqrt{2^N}} 2^N = 1$$
+$$\frac{1}{2^N} \sum_{x=0}^{2^N-1} 1 = \frac{1}{2^N} 2^N = 1$$
 
 This means that the state after applying the Hadamard gates is just $\ket{s}$, and measuring it gives you the bit string $s$!
 And, same as Deutsch-Jozsa algorithm, Bernstein-Vazirani algorithm takes only one oracle call.

@@ -90,7 +90,7 @@ function DumpRegister(register : Qubit[]) : Unit {
 /// the matrix displayed may reflect any global phase that has accumulated from operations
 /// on those other qubits.
 @SimulatableIntrinsic()
-operation DumpOperation(nQubits : Int, op : Qubit[] => Unit is Adj) : Unit {
+operation DumpOperation(nQubits : Int, op : Qubit[] => Unit) : Unit {
     use (targets, extra) = (Qubit[nQubits], Qubit[nQubits]);
     for i in 0..nQubits - 1 {
         H(targets[i]);

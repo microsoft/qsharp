@@ -557,7 +557,15 @@ impl Lowerer {
                 let arg = self.lower_expr(arg);
                 fir::ExprKind::Call(call, arg)
             }
-            hir::ExprKind::Fail(message) => fir::ExprKind::Fail(self.lower_expr(message)),
+            hir::ExprKind::Fail(message) => {
+                // Ensure the right-hand side expression is lowered first so that it
+                // is executed before the fail node, if any.
+                let fail = fir::ExprKind::Fail(self.lower_expr(message));
+                if self.enable_debug {
+                    self.exec_graph.push(ExecGraphNode::Fail);
+                }
+                fail
+            }
             hir::ExprKind::Field(container, field) => {
                 let container = self.lower_expr(container);
                 let field = lower_field(field);
@@ -716,6 +724,17 @@ impl Lowerer {
             | fir::ExprKind::Return(..)
             | fir::ExprKind::While(..) => {}
 
+            fir::ExprKind::Assign(..)
+            | fir::ExprKind::AssignField(..)
+            | fir::ExprKind::AssignIndex(..)
+            | fir::ExprKind::AssignOp(..) => {
+                // Assignments are expressions that always produce the value `Unit`,
+                // so we need to push the expr first and then follow up with an explicit
+                // `Unit` node.
+                self.exec_graph.push(ExecGraphNode::Expr(id));
+                self.exec_graph.push(ExecGraphNode::Unit);
+            }
+
             // All other expressions should be added to the execution graph.
             _ => self.exec_graph.push(ExecGraphNode::Expr(id)),
         }
@@ -844,9 +863,9 @@ impl Lowerer {
     fn lower_arrow(&mut self, arrow: &qsc_hir::ty::Arrow) -> Arrow {
         Arrow {
             kind: lower_callable_kind(arrow.kind),
-            input: Box::new(self.lower_ty(&arrow.input)),
-            output: Box::new(self.lower_ty(&arrow.output)),
-            functors: lower_functor_set(&arrow.functors),
+            input: Box::new(self.lower_ty(&arrow.input.borrow())),
+            output: Box::new(self.lower_ty(&arrow.output.borrow())),
+            functors: lower_functor_set(&arrow.functors.borrow()),
         }
     }
 
@@ -943,7 +962,10 @@ fn lower_attrs(attrs: &[hir::Attr]) -> Vec<fir::Attr> {
             hir::Attr::EntryPoint => Some(fir::Attr::EntryPoint),
             hir::Attr::Measurement => Some(fir::Attr::Measurement),
             hir::Attr::Reset => Some(fir::Attr::Reset),
-            hir::Attr::SimulatableIntrinsic | hir::Attr::Unimplemented | hir::Attr::Config => None,
+            hir::Attr::SimulatableIntrinsic
+            | hir::Attr::Unimplemented
+            | hir::Attr::Config
+            | hir::Attr::Test => None,
         })
         .collect()
 }

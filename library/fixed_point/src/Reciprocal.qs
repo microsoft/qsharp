@@ -21,6 +21,7 @@ import Std.Math.Min;
 /// Fixed-point number to be inverted.
 /// ## result
 /// Fixed-point number that will hold the result. Must be initialized to $\ket{0.0}$.
+@Config(Unrestricted)
 operation ComputeReciprocalFxP(x : FixedPoint, result : FixedPoint) : Unit is Adj {
     body (...) {
         Controlled ComputeReciprocalFxP([], (x, result));

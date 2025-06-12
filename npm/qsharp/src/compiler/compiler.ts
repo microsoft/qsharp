@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib/circuit.js";
+import {
+  CURRENT_VERSION,
+  type CircuitGroup as CircuitData,
+} from "../data-structures/circuit.js";
 import {
   IDocFile,
   IOperationInfo,
@@ -9,6 +12,7 @@ import {
   IProgramConfig as wasmIProgramConfig,
   TargetProfile,
   type VSDiagnostic,
+  ProjectType,
 } from "../../lib/web/qsc_wasm.js";
 import { log } from "../log.js";
 import {
@@ -23,6 +27,7 @@ import {
   QscEvents,
   makeEvent,
 } from "./events.js";
+import { callAndTransformExceptions } from "../diagnostics.js";
 
 // The wasm types generated for the node.js bundle are just the exported APIs,
 // so use those as the set used by the shared compiler
@@ -64,7 +69,11 @@ export interface ICompiler {
 
   getQir(program: ProgramConfig): Promise<string>;
 
-  getEstimates(program: ProgramConfig, params: string): Promise<string>;
+  getEstimates(
+    program: ProgramConfig,
+    expr: string,
+    params: string,
+  ): Promise<string>;
 
   getCircuit(
     program: ProgramConfig,
@@ -99,6 +108,8 @@ export type ProgramConfig = (
 ) & {
   /** Target compilation profile. */
   profile?: TargetProfile;
+  /** The type of project. This is used to determine how to load the project. */
+  projectType?: ProjectType;
 };
 
 // WebWorker also support being explicitly terminated to tear down the worker thread
@@ -123,6 +134,9 @@ export class Compiler implements ICompiler {
       (uri: string, version: number | undefined, errors: VSDiagnostic[]) => {
         diags = errors;
       },
+      () => {
+        // do nothing; test callables are not reported in checkCode
+      },
       {
         readFile: async () => null,
         listDirectory: async () => [],
@@ -131,7 +145,7 @@ export class Compiler implements ICompiler {
         findManifestDirectory: async () => null,
       },
     );
-    languageService.update_document("code", 1, code);
+    languageService.update_document("code", 1, code, "qsharp");
     // Yield to let the language service background worker handle the update
     await Promise.resolve();
     languageService.stop_background_work();
@@ -161,7 +175,7 @@ export class Compiler implements ICompiler {
       program,
       program.profile || "adaptive_ri",
     );
-    return this.wasm.get_rir(config);
+    return callAndTransformExceptions(async () => this.wasm.get_rir(config));
   }
 
   async run(
@@ -173,11 +187,13 @@ export class Compiler implements ICompiler {
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
     // entry expression or similar), it may throw on run. The caller should expect this promise
     // may reject without all shots running or events firing.
-    this.wasm.run(
-      toWasmProgramConfig(program, "unrestricted"),
-      expr,
-      (msg: string) => onCompilerEvent(msg, eventHandler!),
-      shots!,
+    await callAndTransformExceptions(async () =>
+      this.wasm.run(
+        toWasmProgramConfig(program, "unrestricted"),
+        expr,
+        (msg: string) => onCompilerEvent(msg, eventHandler!),
+        shots!,
+      ),
     );
   }
 
@@ -188,23 +204,34 @@ export class Compiler implements ICompiler {
     pauliNoise: number[],
     eventHandler: IQscEventTarget,
   ): Promise<void> {
-    this.wasm.runWithPauliNoise(
-      toWasmProgramConfig(program, "unrestricted"),
-      expr,
-      (msg: string) => onCompilerEvent(msg, eventHandler!),
-      shots!,
-      pauliNoise,
+    await callAndTransformExceptions(async () =>
+      this.wasm.runWithPauliNoise(
+        toWasmProgramConfig(program, "unrestricted"),
+        expr,
+        (msg: string) => onCompilerEvent(msg, eventHandler!),
+        shots!,
+        pauliNoise,
+      ),
     );
   }
 
   async getQir(program: ProgramConfig): Promise<string> {
-    return this.wasm.get_qir(toWasmProgramConfig(program, "base"));
+    return callAndTransformExceptions(async () =>
+      this.wasm.get_qir(toWasmProgramConfig(program, "base")),
+    );
   }
 
-  async getEstimates(program: ProgramConfig, params: string): Promise<string> {
-    return this.wasm.get_estimates(
-      toWasmProgramConfig(program, "unrestricted"),
-      params,
+  async getEstimates(
+    program: ProgramConfig,
+    expr: string,
+    params: string,
+  ): Promise<string> {
+    return callAndTransformExceptions(async () =>
+      this.wasm.get_estimates(
+        toWasmProgramConfig(program, "unrestricted"),
+        expr,
+        params,
+      ),
     );
   }
 
@@ -213,11 +240,17 @@ export class Compiler implements ICompiler {
     simulate: boolean,
     operation?: IOperationInfo,
   ): Promise<CircuitData> {
-    return this.wasm.get_circuit(
-      toWasmProgramConfig(program, "unrestricted"),
-      simulate,
-      operation,
+    const circuit = await callAndTransformExceptions(async () =>
+      this.wasm.get_circuit(
+        toWasmProgramConfig(program, "unrestricted"),
+        simulate,
+        operation,
+      ),
     );
+    return {
+      circuits: [circuit],
+      version: CURRENT_VERSION,
+    };
   }
 
   // Returns all autogenerated documentation files for the standard library
@@ -273,7 +306,11 @@ export function toWasmProgramConfig(
     packageGraphSources = program.packageGraphSources;
   }
 
-  return { packageGraphSources, profile: program.profile || defaultProfile };
+  return {
+    packageGraphSources,
+    profile: program.profile || defaultProfile,
+    projectType: program.projectType || "qsharp",
+  };
 }
 
 export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {

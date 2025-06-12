@@ -443,6 +443,18 @@ impl With<'_> {
                     None
                 }
             },
+            Ok(hir::Attr::Test) => {
+                // verify that no args are passed to the attribute
+                match &*attr.arg.kind {
+                    ast::ExprKind::Tuple(args) if args.is_empty() => {}
+                    _ => {
+                        self.lowerer
+                            .errors
+                            .push(Error::InvalidAttrArgs("()".to_string(), attr.arg.span));
+                    }
+                }
+                Some(hir::Attr::Test)
+            }
             Err(()) => {
                 self.lowerer.errors.push(Error::UnknownAttr(
                     attr.name.name.to_string(),
@@ -631,7 +643,7 @@ impl With<'_> {
                 return Some(self.lower_pat(&items[0]));
             }
             _ => self.lowerer.errors.push(Error::InvalidSpecPat(pat.span)),
-        };
+        }
 
         None
     }
@@ -727,7 +739,7 @@ impl With<'_> {
             ast::ExprKind::Block(block) => hir::ExprKind::Block(self.lower_block(block)),
             ast::ExprKind::Call(callee, arg) => match &ty {
                 Ty::Arrow(arrow) if is_partial_app(arg) => hir::ExprKind::Block(
-                    self.lower_partial_app(callee, arg, (**arrow).clone(), expr.span),
+                    self.lower_partial_app(callee, arg, arrow.clone(), expr.span),
                 ),
                 _ => hir::ExprKind::Call(
                     Box::new(self.lower_expr(callee)),
@@ -767,6 +779,7 @@ impl With<'_> {
                 let functors = if let Ty::Arrow(arrow) = &ty {
                     arrow
                         .functors
+                        .borrow()
                         .expect_value("lambda type should have concrete functors")
                 } else {
                     FunctorSetValue::Empty
@@ -869,7 +882,7 @@ impl With<'_> {
         &mut self,
         callee: &ast::Expr,
         arg: &ast::Expr,
-        arrow: Arrow,
+        arrow: Rc<Arrow>,
         span: Span,
     ) -> hir::Block {
         let callee = self.lower_expr(callee);

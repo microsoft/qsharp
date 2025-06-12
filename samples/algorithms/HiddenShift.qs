@@ -33,7 +33,7 @@ operation Main() : Int[] {
         );
         let hiddenShift = ResultArrayAsInt(hiddenShiftBitString);
         Message($"Found {shift} successfully!");
-        set hiddenShifts += [hiddenShift];
+        hiddenShifts += [hiddenShift];
     }
 
     // Note: returned array should match shifts array

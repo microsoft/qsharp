@@ -227,8 +227,10 @@ class EstimatorQecScheme(AutoValidatingParams):
     name: Optional[str] = None
     error_correction_threshold: Optional[float] = validating_field(_check_error_rate)
     crossing_prefactor: Optional[float] = None
+    distance_coefficient_power: Optional[int] = None
     logical_cycle_time: Optional[str] = None
     physical_qubits_per_logical_qubit: Optional[str] = None
+    max_code_distance: Optional[int] = None
 
 
 @dataclass

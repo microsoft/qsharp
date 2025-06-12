@@ -8,6 +8,7 @@ import numpy.typing as npt
 import qsharp
 from argparse import ArgumentParser
 from dataclasses import dataclass
+from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlretrieve
 
@@ -459,7 +460,8 @@ structure = FCIDumpFileContent.from_file(args.fcidumpfile)
 df = DoubleFactorization.process_fcidump(structure, 0.001)
 
 # Load Q# project
-qsharp.init(project_root=".")
+this_dir = Path(__file__).parent
+qsharp.init(project_root=this_dir)
 
 # Construct the Q# operation call for which we need to perform resource estimate
 str_one_body_eigenvalues = np.array2string(df.one_body_eigenvalues, separator=",")

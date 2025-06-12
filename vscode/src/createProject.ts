@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import * as vscode from "vscode";
 import { log, samples } from "qsharp-lang";
-import { EventType, sendTelemetryEvent } from "./telemetry";
+import * as vscode from "vscode";
 import { qsharpExtensionId } from "./common";
+import registryJson from "./registry.json";
+import { EventType, sendTelemetryEvent } from "./telemetry";
+import { updateCopilotInstructions } from "./gh-copilot/instructions";
 
 export async function initProjectCreator(context: vscode.ExtensionContext) {
   context.subscriptions.push(
@@ -40,7 +42,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
 
         const sample = samples.find((elem) => elem.title === "Minimal");
         if (!sample) {
-          // Should never happen.
+          // Should never happen, because we bake this sample in.
           log.error("Unable to find the Minimal sample");
           return;
         }
@@ -61,6 +63,9 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
             "Unable to create the project. Check the project files don't already exist and that the file system is writable",
           );
         }
+
+        // Call updateCopilotInstructions to update the Copilot instructions file
+        await updateCopilotInstructions("Project", context);
       },
     ),
   );
@@ -122,7 +127,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
           return;
         }
 
-        async function getQsFilesInDir(dir: vscode.Uri) {
+        async function getSourceFilesInDir(dir: vscode.Uri) {
           const dirFiles = (await vscode.workspace.fs.readDirectory(dir)).sort(
             (a, b) => {
               // To order the list, put files before directories, then sort alphabetically
@@ -131,15 +136,20 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
             },
           );
           for (const [name, type] of dirFiles) {
-            if (type === vscode.FileType.File && name.endsWith(".qs")) {
+            if (
+              type === vscode.FileType.File &&
+              (name.endsWith(".qs") || name.endsWith(".qsc")) &&
+              name !== ".qs" &&
+              name !== ".qsc"
+            ) {
               files.push(vscode.Uri.joinPath(dir, name).toString());
             } else if (type === vscode.FileType.Directory) {
-              await getQsFilesInDir(vscode.Uri.joinPath(dir, name));
+              await getSourceFilesInDir(vscode.Uri.joinPath(dir, name));
             }
           }
           return files;
         }
-        await getQsFilesInDir(srcDir);
+        await getSourceFilesInDir(srcDir);
 
         // Update the files property of the qsharp.json and write back to the document
         const srcDirPrefix = srcDir.toString() + "";
@@ -177,22 +187,11 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
       repo: string;
       ref: string;
       path?: string; // Optional, defaults to the root of the repo
+      refs: undefined;
     };
   };
 
   type Dependency = LocalProjectRef | GitHubProjectRef;
-
-  // TODO: Replace with a list of legitimate known Q# projects on GitHub
-  const githubProjects: { [name: string]: GitHubProjectRef } = {
-    // Add a template to the end of the list users can use to easily add their own
-    "<id>": {
-      github: {
-        owner: "<owner>",
-        repo: "<project>",
-        ref: "<commit>",
-      },
-    },
-  };
 
   // Given two directory paths, return the relative path from the first to the second
   function getRelativeDirPath(from: string, to: string): string {
@@ -265,93 +264,168 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
           return;
         }
 
-        // Find all the other Q# projects in the workspace
-        const projectFiles = (
-          await vscode.workspace.findFiles("**/qsharp.json")
-        ).filter((file) => file.toString() !== qsharpJsonUri.toString());
-
-        const projectChoices: Array<{ name: string; ref: Dependency }> = [];
-
-        projectFiles.forEach((file) => {
-          const dirName = file.path.slice(0, -"/qsharp.json".length);
-          const relPath = getRelativeDirPath(qsharpJsonDir.path, dirName);
-          projectChoices.push({
-            name: dirName.slice(dirName.lastIndexOf("/") + 1),
-            ref: {
-              path: relPath,
-            },
-          });
-        });
-
-        Object.keys(githubProjects).forEach((name) => {
-          projectChoices.push({
-            name: name,
-            ref: githubProjects[name],
-          });
-        });
-
-        // Convert any spaces, dashes, dots, tildes, or quotes in project names
-        // to underscores. (Leave more 'exotic' non-identifier patterns to the user to fix)
-        //
-        // Note: At some point we may want to detect/avoid duplicate names, e.g. if the user already
-        // references a project via 'foo', and they add a reference to a 'foo' on GitHub or in another dir.
-        projectChoices.forEach(
-          (val, idx, arr) =>
-            (arr[idx].name = val.name.replace(/[- "'.~]/g, "_")),
+        const importChoice = await vscode.window.showQuickPick(
+          ["Import from GitHub", "Import from local directory"],
+          { placeHolder: "Pick a source to import from" },
         );
 
-        const folderIcon = new vscode.ThemeIcon("folder");
-        const githubIcon = new vscode.ThemeIcon("github");
-
-        // Ask the user to pick a project to add as a reference
-        const projectChoice = await vscode.window.showQuickPick(
-          projectChoices.map((choice) => {
-            if ("github" in choice.ref) {
-              return {
-                label: choice.name,
-                detail: `github://${choice.ref.github.owner}/${choice.ref.github.repo}#${choice.ref.github.ref}`,
-                iconPath: githubIcon,
-                ref: choice.ref,
-              };
-            } else {
-              return {
-                label: choice.name,
-                detail: choice.ref.path,
-                iconPath: folderIcon,
-                ref: choice.ref,
-              };
-            }
-          }),
-          { placeHolder: "Pick a project to add as a reference" },
-        );
-
-        if (!projectChoice) {
-          log.info("User cancelled project choice");
+        if (!importChoice) {
+          log.info("User cancelled import choice");
           return;
         }
 
-        log.info("User picked project: ", projectChoice);
-
-        if (!manifestObj["dependencies"]) manifestObj["dependencies"] = {};
-        manifestObj["dependencies"][projectChoice.label] = projectChoice.ref;
-
-        // Apply the edits to the qsharp.json
-        const edit = new vscode.WorkspaceEdit();
-        edit.replace(
-          qsharpJsonUri,
-          new vscode.Range(0, 0, qsharpJsonDoc.lineCount, 0),
-          JSON.stringify(manifestObj, null, 2),
-        );
-        if (!(await vscode.workspace.applyEdit(edit))) {
-          vscode.window.showErrorMessage(
-            "Unable to update the qsharp.json file. Check the file is writable",
+        if (importChoice === "Import from GitHub") {
+          await importPackage(qsharpJsonDoc, qsharpJsonUri, manifestObj, true);
+        } else {
+          await importPackage(
+            qsharpJsonDoc,
+            qsharpJsonUri,
+            manifestObj,
+            false,
+            qsharpJsonDir,
           );
-          return;
         }
-
-        // Bring the qsharp.json to the front for the user to save
-        await vscode.window.showTextDocument(qsharpJsonDoc);
       },
     ),
   );
+
+  async function importPackage(
+    qsharpJsonDoc: vscode.TextDocument,
+    qsharpJsonUri: vscode.Uri,
+    manifestObj: any,
+    isGitHub: boolean,
+    qsharpJsonDir?: vscode.Uri,
+  ) {
+    let dependencyRef: Dependency;
+    let label: string;
+
+    if (isGitHub) {
+      const packageChoice = await vscode.window.showQuickPick(
+        registryJson.knownPackages.map(
+          (pkg: { name: string; description: string; dependency: object }) => ({
+            label: pkg.name,
+            description: pkg.description,
+          }),
+        ),
+        { placeHolder: "Pick a package to import" },
+      );
+
+      if (!packageChoice) {
+        log.info("User cancelled package choice");
+        return;
+      }
+
+      const chosenPackage = registryJson.knownPackages.find(
+        (pkg: { name: string; description: string; dependency: object }) =>
+          pkg.name === packageChoice.label,
+      )!;
+
+      const versionChoice = await vscode.window.showQuickPick(
+        chosenPackage.dependency.github.refs.map(({ ref, notes }) => ({
+          label: ref,
+          description: notes,
+        })),
+        { placeHolder: "Pick a version to import" },
+      );
+
+      if (!versionChoice) {
+        log.info("User cancelled version choice");
+        return;
+      }
+
+      dependencyRef = {
+        github: {
+          ref: versionChoice.label,
+          ...chosenPackage.dependency.github,
+          refs: undefined,
+        },
+      };
+
+      label = packageChoice.label;
+    } else {
+      // Find all the other Q# projects in the workspace
+      const projectFiles = (
+        await vscode.workspace.findFiles("**/qsharp.json")
+      ).filter((file) => file.toString() !== qsharpJsonUri.toString());
+
+      // Convert any spaces, dashes, dots, tildes, or quotes in project names
+      // to underscores. (Leave more 'exotic' non-identifier patterns to the user to fix)
+      //
+      // Note: At some point we may want to detect/avoid duplicate names, e.g. if the user already
+      // references a project via 'foo', and they add a reference to a 'foo' on GitHub or in another dir.
+
+      const projectChoices = projectFiles.map((file) => {
+        // normalize the path using the vscode Uri API
+        const dirUri = vscode.Uri.joinPath(file, "..");
+        const relPath = getRelativeDirPath(qsharpJsonDir!.path, dirUri.path);
+        return {
+          name: dirUri.path.split("/").pop()!,
+          ref: {
+            path: relPath,
+          },
+        };
+      });
+
+      projectChoices.forEach(
+        (val, idx, arr) => (arr[idx].name = val.name.replace(/[- "'.~]/g, "_")),
+      );
+
+      const folderIcon = new vscode.ThemeIcon("folder");
+
+      // Ask the user to pick a project to add as a reference
+      const projectChoice = await vscode.window.showQuickPick(
+        projectChoices.map((choice) => ({
+          label: choice.name,
+          detail: choice.ref.path,
+          iconPath: folderIcon,
+          ref: choice.ref,
+        })),
+        { placeHolder: "Pick a project to add as a reference" },
+      );
+
+      if (!projectChoice) {
+        log.info("User cancelled project choice");
+        return;
+      }
+
+      dependencyRef = projectChoice.ref;
+      label = projectChoice.label;
+    }
+
+    await updateManifestAndSave(
+      qsharpJsonDoc,
+      qsharpJsonUri,
+      manifestObj,
+      label,
+      dependencyRef,
+    );
+  }
+
+  async function updateManifestAndSave(
+    qsharpJsonDoc: vscode.TextDocument,
+    qsharpJsonUri: vscode.Uri,
+    manifestObj: any,
+    label: string,
+    ref: Dependency,
+  ) {
+    if (!manifestObj["dependencies"]) manifestObj["dependencies"] = {};
+    manifestObj["dependencies"][label] = ref;
+
+    // Apply the edits to the qsharp.json
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(
+      qsharpJsonUri,
+      new vscode.Range(0, 0, qsharpJsonDoc.lineCount, 0),
+      JSON.stringify(manifestObj, null, 4),
+    );
+    if (!(await vscode.workspace.applyEdit(edit))) {
+      await vscode.window.showErrorMessage(
+        "Unable to update the qsharp.json file. Check the file is writable",
+      );
+      return;
+    }
+
+    // Bring the qsharp.json to the front for the user to save
+    await vscode.window.showTextDocument(qsharpJsonDoc);
+  }
 }

@@ -238,6 +238,61 @@ fn block_let_bind_tuple_expr() {
 }
 
 #[test]
+fn block_let_bind_assign_expr_is_unit() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable a = 0;
+            let b = a = 1;
+            (a, b)
+        }"},
+        &expect!["(1, ())"],
+    );
+}
+
+#[test]
+fn block_let_bind_assign_field_expr_is_unit() {
+    check_expr(
+        "",
+        indoc! {"{
+            struct S {
+                inner : Int,
+            }
+            mutable a = new S { inner = 0 };
+            let b = a w/= inner <- 1;
+            (a.inner, b)
+        }"},
+        &expect!["(1, ())"],
+    );
+}
+
+#[test]
+fn block_let_bind_assign_index_expr_is_unit() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable a = [0];
+            let b = a[0] = 1;
+            (a, b)
+        }"},
+        &expect!["([1], ())"],
+    );
+}
+
+#[test]
+fn block_let_bind_assign_op_expr_is_unit() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable a = 0;
+            let b = a += 1;
+            (a, b)
+        }"},
+        &expect!["(1, ())"],
+    );
+}
+
+#[test]
 fn block_mutable_expr() {
     check_expr(
         "",

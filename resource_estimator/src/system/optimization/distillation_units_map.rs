@@ -110,7 +110,7 @@ impl<'a> DistillationUnitsMap<'a> {
                 .min()
             {
                 min_valid_code_distance_indexes[idx] = min_valid_code_distance_index;
-            };
+            }
         }
 
         Self {

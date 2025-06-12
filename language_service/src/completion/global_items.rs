@@ -281,6 +281,12 @@ impl<'a> Globals<'a> {
                     if !is_user_package && candidate_ns == ["Main".into()] {
                         return None;
                     }
+                    // filter out QASM namespaces
+                    if !is_user_package
+                        && namespace.name().to_lowercase().starts_with("std.openqasm")
+                    {
+                        return None;
+                    }
 
                     let prefix_stripped = candidate_ns.strip_prefix(ns_prefix);
                     if let Some(end) = prefix_stripped {
@@ -494,7 +500,11 @@ impl<'a> Globals<'a> {
                     if matches!(item.visibility, Visibility::Internal) && !is_user_package {
                         return None; // ignore item if not in the user's package
                     }
-
+                    if !is_user_package
+                        && namespace.name().to_lowercase().starts_with("std.openqasm")
+                    {
+                        return None; // ignore item if in a QASM namespace
+                    }
                     return match &item.kind {
                         ItemKind::Callable(callable_decl) if include_callables => {
                             Some(RelevantItem {
@@ -687,7 +697,7 @@ fn fully_qualify_name(
     // qualified name.
     if !(item_comes_from_main_of_external_project) {
         fully_qualified_name.append(&mut namespace.to_vec());
-    };
+    }
 
     if let Some(name) = name {
         fully_qualified_name.push(name.into());
@@ -793,7 +803,7 @@ impl ImportItem {
     fn from_import_or_export_item(decl: &qsc::ast::ImportOrExportDecl) -> Vec<Self> {
         if decl.is_export() {
             return vec![];
-        };
+        }
         let mut buf = Vec::with_capacity(decl.items.len());
         for item in &decl.items {
             let PathKind::Ok(path) = &item.path else {

@@ -3,8 +3,11 @@
 
 use super::lint;
 use crate::linter::{ast::declare_ast_lints, Compilation};
-use qsc_ast::ast::{BinOp, Block, Expr, ExprKind, Item, ItemKind, Lit, NodeId, Stmt, StmtKind};
+use qsc_ast::ast::{
+    BinOp, Block, Expr, ExprKind, Item, ItemKind, Lit, NodeId, Stmt, StmtKind, TernOp,
+};
 use qsc_data_structures::span::Span;
+use qsc_hir::ty::Ty;
 
 // Read Me:
 //  To add a new lint add a new tuple to this structure. The tuple has four elements:
@@ -30,6 +33,8 @@ declare_ast_lints! {
     (DeprecatedNewtype, LintLevel::Allow, "deprecated `newtype` declarations", "`newtype` declarations are deprecated, use `struct` instead"),
     (DeprecatedSet, LintLevel::Allow, "deprecated use of `set` keyword", "the `set` keyword is deprecated for assignments and can be removed"),
     (DiscourageChainAssignment, LintLevel::Warn, "discouraged use of chain assignment", "assignment expressions always return `Unit`, so chaining them may not be useful"),
+    (DeprecatedAssignUpdateExpr, LintLevel::Allow, "deprecated use of update assignment expressions", "update assignment expressions \"a w/= b <- c\" are deprecated; consider using explicit assignment instead \"a[b] = c\""),
+    (DeprecatedUpdateExpr, LintLevel::Allow, "deprecated use of update expressions", "update expressions \"a w/ b <- c\" are deprecated; consider using explicit assignment instead"),
 }
 
 #[derive(Default)]
@@ -256,6 +261,43 @@ impl AstLintPass for DiscourageChainAssignment {
                 }
             }
             _ => {}
+        }
+    }
+}
+
+#[derive(Default)]
+struct DeprecatedAssignUpdateExpr {
+    level: LintLevel,
+}
+
+impl AstLintPass for DeprecatedAssignUpdateExpr {
+    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, compilation: Compilation) {
+        if let ExprKind::AssignUpdate(record, index, value) = expr.kind.as_ref() {
+            if let Some(Ty::Array(_)) = compilation.compile_unit.ast.tys.terms.get(record.id) {
+                let record_src = compilation.get_source_code(record.span);
+                let index_src = compilation.get_source_code(index.span);
+                let value_src = compilation.get_source_code(value.span);
+                let edit = vec![(
+                    format!("{record_src}[{index_src}] = {value_src}"),
+                    expr.span,
+                )];
+                buffer.push(lint!(self, expr.span, edit));
+            }
+        }
+    }
+}
+
+#[derive(Default)]
+struct DeprecatedUpdateExpr {
+    level: LintLevel,
+}
+
+impl AstLintPass for DeprecatedUpdateExpr {
+    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, compilation: Compilation) {
+        if let ExprKind::TernOp(TernOp::Update, record, ..) = expr.kind.as_ref() {
+            if let Some(Ty::Array(_)) = compilation.compile_unit.ast.tys.terms.get(record.id) {
+                buffer.push(lint!(self, expr.span));
+            }
         }
     }
 }

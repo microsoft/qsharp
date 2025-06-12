@@ -143,7 +143,7 @@ class QSharpBackend(BackendBase):
         exec_results: List[Tuple[Compilation, Dict[str, Any]]] = [
             (
                 program,
-                _run_qasm3(program.qasm, vars(self.options).copy(), **input_params),
+                _run_qasm(program.qasm, vars(self.options).copy(), **input_params),
             )
             for program in programs
         ]
@@ -202,7 +202,7 @@ class QSharpBackend(BackendBase):
         return job
 
 
-def _run_qasm3(
+def _run_qasm(
     qasm: str,
     default_options: Options,
     **options,
@@ -221,7 +221,7 @@ def _run_qasm3(
         - target_profile (TargetProfile): The target profile to use for the compilation.
         - output_semantics (OutputSemantics, optional): The output semantics for the compilation.
         - name (str): The name of the circuit. This is used as the entry point for the program. Defaults to 'program'.
-        - search_path (str): The optional search path for resolving qasm3 imports.
+        - search_path (str): The optional search path for resolving qasm imports.
         - shots (int): The number of shots to run the program for. Defaults to 1.
         - seed (int): The seed to use for the random number generator.
         - output_fn (Optional[Callable[[Output], None]]): A callback function that will be called with each output. Defaults to None.
@@ -232,8 +232,7 @@ def _run_qasm3(
     :raises QasmError: If there is an error generating, parsing, or compiling QASM.
     """
 
-    from ...._native import Output
-    from ...._native import run_qasm3
+    from ...._native import run_qasm_program, Output  # type: ignore
     from ...._fs import read_file, list_directory, resolve
     from ...._http import fetch_github
 
@@ -263,9 +262,10 @@ def _run_qasm3(
     if seed := value_or_default("seed"):
         args["seed"] = seed
 
-    return run_qasm3(
+    return run_qasm_program(
         qasm,
         output_fn,
+        None,
         read_file,
         list_directory,
         resolve,

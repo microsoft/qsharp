@@ -3,33 +3,37 @@
 
 import { ILanguageService, log } from "qsharp-lang";
 import * as vscode from "vscode";
-import { isQsharpNotebookCell } from "../common.js";
-import { findQSharpCellMagic, jupyterNotebookType } from "../notebook.js";
+import { isQdkNotebookCell } from "../common.js";
+import {
+  findOpenQasmCellMagic,
+  findQSharpCellMagic,
+  jupyterNotebookType,
+} from "../notebook.js";
 
 const qsharpConfigMimeType = "application/x.qsharp-config";
 
-const openQSharpNotebooks = new Set<string>();
+const openQdkNotebooks = new Set<string>();
 
 /**
  * Document update handlers for syncing notebook cell contents with the language service.
  */
-export function registerQSharpNotebookCellUpdateHandlers(
+export function registerQdkNotebookCellUpdateHandlers(
   languageService: ILanguageService,
 ) {
   vscode.workspace.notebookDocuments.forEach((notebook) => {
-    updateIfQsharpNotebook(notebook);
+    updateIfQdkNotebook(notebook);
   });
 
   const subscriptions = [];
   subscriptions.push(
     vscode.workspace.onDidOpenNotebookDocument((notebook) => {
-      updateIfQsharpNotebook(notebook);
+      updateIfQdkNotebook(notebook);
     }),
   );
 
   subscriptions.push(
     vscode.workspace.onDidChangeNotebookDocument((event) => {
-      updateIfQsharpNotebook(event.notebook);
+      updateIfQdkNotebook(event.notebook);
     }),
   );
 
@@ -39,18 +43,18 @@ export function registerQSharpNotebookCellUpdateHandlers(
     }),
   );
 
-  function updateIfQsharpNotebook(notebook: vscode.NotebookDocument) {
+  function updateIfQdkNotebook(notebook: vscode.NotebookDocument) {
     if (notebook.notebookType === jupyterNotebookType) {
       const qsharpMetadata = getQSharpConfigMetadata(notebook);
-      const qsharpCells = getQSharpCells(notebook);
+      const qdkCells = getQdkCells(notebook);
       const notebookUri = notebook.uri.toString();
-      if (qsharpCells.length > 0) {
-        openQSharpNotebooks.add(notebookUri);
+      if (qdkCells.length > 0) {
+        openQdkNotebooks.add(notebookUri);
         languageService.updateNotebookDocument(
           notebookUri,
           notebook.version,
           qsharpMetadata,
-          qsharpCells.map((cell) => {
+          qdkCells.map((cell) => {
             return {
               uri: cell.document.uri.toString(),
               version: cell.document.version,
@@ -67,23 +71,23 @@ export function registerQSharpNotebookCellUpdateHandlers(
 
   function closeIfKnownQsharpNotebook(notebook: vscode.NotebookDocument) {
     const notebookUri = notebook.uri.toString();
-    if (openQSharpNotebooks.has(notebookUri)) {
+    if (openQdkNotebooks.has(notebookUri)) {
       languageService.closeNotebookDocument(notebookUri);
-      openQSharpNotebooks.delete(notebook.uri.toString());
+      openQdkNotebooks.delete(notebook.uri.toString());
     }
   }
 
-  function getQSharpCells(notebook: vscode.NotebookDocument) {
+  function getQdkCells(notebook: vscode.NotebookDocument) {
     return notebook
       .getCells()
-      .filter((cell) => isQsharpNotebookCell(cell.document));
+      .filter((cell) => isQdkNotebookCell(cell.document));
   }
 
   function getQSharpText(document: vscode.TextDocument) {
-    const magicRange = findQSharpCellMagic(document);
-    if (magicRange) {
-      const magicStartOffset = document.offsetAt(magicRange.start);
-      const magicEndOffset = document.offsetAt(magicRange.end);
+    const qsharpMagicRange = findQSharpCellMagic(document);
+    if (qsharpMagicRange) {
+      const magicStartOffset = document.offsetAt(qsharpMagicRange.start);
+      const magicEndOffset = document.offsetAt(qsharpMagicRange.end);
       // Erase the %%qsharp magic line if it's there.
       // Replace it with a comment so that document offsets remain the same.
       // This will save us from having to map offsets later when
@@ -94,17 +98,32 @@ export function registerQSharpNotebookCellUpdateHandlers(
         "//qsharp" +
         text.substring(magicEndOffset)
       );
+    }
+
+    const magicRange = findOpenQasmCellMagic(document);
+    if (magicRange) {
+      return extractQSharpText(document, magicRange);
     } else {
-      // No %%qsharp magic. This can happen if the user manually sets the
-      // cell language to Q#. Python won't recognize the cell as a Q# cell,
+      // No %%qsharp/%%openqasm magic. This can happen if the user manually sets the
+      // cell language to Q#/OpenQASM. Python won't recognize the cell as a QDK cell,
       // so this will fail at runtime, but as the language service we respect
-      // the manually set cell language, so we treat this as any other
-      // Q# cell. We could consider raising a warning here to help the user.
+      // the manually set cell language, so we treat this as a Q# cell.
+      // We could consider raising a warning here to help the user.
       log.info(
-        "found Q# cell without %%qsharp magic: " + document.uri.toString(),
+        "found QDK cell without correct magic: " + document.uri.toString(),
       );
       return document.getText();
     }
+  }
+
+  // placeoholder for openqasm cell preprocessing
+  function extractQSharpText(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    document: vscode.TextDocument,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    magicRange: vscode.Range,
+  ): string {
+    return "";
   }
 
   return subscriptions;

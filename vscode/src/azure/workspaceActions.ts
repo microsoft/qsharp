@@ -10,13 +10,18 @@ import {
   ResponseTypes,
   storageRequest,
 } from "./networkRequests";
-import { WorkspaceConnection } from "./treeView";
+import { Job, WorkspaceConnection } from "./treeView";
 import {
   shouldExcludeProvider,
   shouldExcludeTarget,
 } from "./providerProperties";
 import { getRandomGuid } from "../utils";
-import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
+import {
+  EventType,
+  sendTelemetryEvent,
+  UserFlowStatus,
+  UserTaskInvocationType,
+} from "../telemetry";
 import { getTenantIdAndToken, getTokenForWorkspace } from "./auth";
 
 export function getAzurePortalWorkspaceLink(workspace: WorkspaceConnection) {
@@ -104,7 +109,7 @@ export function getPythonCodeForWorkspace(
 
   const pythonCode = `# If developing locally, on first run this will open a browser to authenticate the
 # connection with Azure. In remote scenarios, such as SSH or Codespaces, it may
-# be necesssary to install the Azure CLI and run 'az login --use-device-code' to
+# be necessary to install the Azure CLI and run 'az login --use-device-code' to
 # authenticate. For unattended scenarios, such as batch jobs, a service principal
 # should be configured and used for authentication. For more information, see
 # https://learn.microsoft.com/en-us/azure/developer/python/sdk/authentication-overview
@@ -389,9 +394,9 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
     return {
       providerId: provider.id,
       currentAvailability: provider.currentAvailability,
-      targets: provider.targets.filter(
-        (target) => !shouldExcludeTarget(target.id),
-      ),
+      targets: provider.targets
+        .map((target) => ({ ...target, providerId: provider.id }))
+        .filter((target) => !shouldExcludeTarget(target.id)),
     };
   });
 
@@ -431,7 +436,7 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
   // Sort by creation time from newest to oldest
   workspace.jobs = jobs.value
     .sort((a, b) => (a.creationTime < b.creationTime ? 1 : -1))
-    .map((job) => ({ ...job }));
+    .map(responseJobToJob);
 
   sendTelemetryEvent(
     EventType.QueryWorkspaceEnd,
@@ -440,6 +445,35 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
   );
 
   return;
+}
+
+// Drop properties we don't care to track and clean up the types.
+function responseJobToJob(job: ResponseTypes.Job): Job {
+  return {
+    id: job.id,
+    name: job.name,
+    target: job.target,
+    status: job.status,
+    outputDataUri: job.outputDataUri,
+    count: numberOrUndefined(job.inputParams.count),
+    shots: numberOrUndefined(job.inputParams.shots),
+    creationTime: job.creationTime,
+    beginExecutionTime: job.beginExecutionTime,
+    endExecutionTime: job.endExecutionTime,
+    cancellationTime: job.cancellationTime,
+    costEstimate: job.costEstimate,
+    errorData: job.errorData,
+  };
+}
+
+function numberOrUndefined(i: unknown): number | undefined {
+  if (typeof i === "string") {
+    const c = parseInt(i);
+    return isNaN(c) ? undefined : c;
+  } else if (typeof i === "number") {
+    return i;
+  }
+  return undefined;
 }
 
 export async function getJobFiles(
@@ -499,45 +533,57 @@ export async function submitJob(
   qirFile: Uint8Array | string,
   providerId: string,
   target: string,
+  jobName?: string | undefined,
+  numberOfShots?: number | undefined,
 ) {
   const associationId = getRandomGuid();
   const start = performance.now();
-  sendTelemetryEvent(EventType.SubmitToAzureStart, { associationId }, {});
+  sendTelemetryEvent(
+    EventType.SubmitToAzureStart,
+    { associationId, invocationType: UserTaskInvocationType.Command },
+    {},
+  );
 
   const containerName = getRandomGuid();
-  const jobName = await vscode.window.showInputBox({
-    prompt: "Job name",
-    value: new Date().toISOString(),
-  });
-  if (!jobName) return; // TODO: Log a telemetry event for this?
+  if (!jobName) {
+    jobName = await vscode.window.showInputBox({
+      prompt: "Job name",
+      value: new Date().toISOString(),
+    });
+    if (!jobName) return; // TODO: Log a telemetry event for this?
+  }
 
-  // validator for the user-provided number of shots input
-  const validateShotsInput = (input: string) => {
-    const result = parseFloat(input);
-    if (isNaN(result) || Math.floor(result) !== result) {
-      return "Number of shots must be an integer";
-    }
-  };
+  if (!numberOfShots) {
+    // validator for the user-provided number of shots input
+    const validateShotsInput = (input: string) => {
+      const result = parseFloat(input);
+      if (isNaN(result) || Math.floor(result) !== result) {
+        return "Number of shots must be an integer";
+      }
+    };
 
-  const numberOfShots =
-    (await vscode.window.showInputBox({
+    // prompt the user for the number of shots
+    const numberOfShotsPrompted = await vscode.window.showInputBox({
       value: "100",
       prompt: "Number of shots",
       validateInput: validateShotsInput,
-    })) || "100";
+    });
 
-  // abort if the user hits <Esc> during shots entry
-  if (numberOfShots === undefined) {
-    sendTelemetryEvent(
-      EventType.SubmitToAzureEnd,
-      {
-        associationId,
-        reason: "undefined number of shots",
-        flowStatus: UserFlowStatus.Aborted,
-      },
-      { timeToCompleteMs: performance.now() - start },
-    );
-    return;
+    // abort if the user hits <Esc> during shots entry
+    if (numberOfShotsPrompted === undefined) {
+      sendTelemetryEvent(
+        EventType.SubmitToAzureEnd,
+        {
+          associationId,
+          reason: "undefined number of shots",
+          flowStatus: UserFlowStatus.Aborted,
+        },
+        { timeToCompleteMs: performance.now() - start },
+      );
+      return;
+    }
+
+    numberOfShots = parseInt(numberOfShotsPrompted);
   }
 
   // Get a sasUri for the container
@@ -604,8 +650,8 @@ export async function submitJob(
     inputParams: {
       entryPoint: "ENTRYPOINT__main",
       arguments: [],
-      count: parseInt(numberOfShots),
-      shots: parseInt(numberOfShots),
+      count: numberOfShots,
+      shots: numberOfShots,
     },
   };
   await azureRequest(

@@ -58,6 +58,23 @@ def on_run_end(durationMs: float, shots: int) -> None:
     )
 
 
+def on_run_qasm(shots: int) -> None:
+    log_telemetry(
+        "qsharp.run_qasm",
+        1,
+        properties={"shots": get_next_power_of_ten_bucket(shots)},
+    )
+
+
+def on_run_qasm_end(durationMs: float, shots: int) -> None:
+    log_telemetry(
+        "qsharp.run_qasm.durationMs",
+        durationMs,
+        properties={"shots": get_next_power_of_ten_bucket(shots)},
+        type="histogram",
+    )
+
+
 def on_eval() -> None:
     log_telemetry(
         "qsharp.eval",
@@ -68,6 +85,21 @@ def on_eval() -> None:
 def on_eval_end(durationMs: float) -> None:
     log_telemetry(
         "qsharp.eval.durationMs",
+        durationMs,
+        type="histogram",
+    )
+
+
+def on_import_qasm() -> None:
+    log_telemetry(
+        "qsharp.import_qasm",
+        1,
+    )
+
+
+def on_import_qasm_end(durationMs: float) -> None:
+    log_telemetry(
+        "qsharp.import_qasm.durationMs",
         durationMs,
         type="histogram",
     )
@@ -101,6 +133,19 @@ def on_compile_end(durationMs: float, profile: str) -> None:
     )
 
 
+def on_compile_qasm(profile: str) -> None:
+    log_telemetry("qsharp.compile_qasm", 1, properties={"profile": profile})
+
+
+def on_compile_qasm_end(durationMs: float, profile: str) -> None:
+    log_telemetry(
+        "qsharp.compile_qasm.durationMs",
+        durationMs,
+        properties={"profile": profile},
+        type="histogram",
+    )
+
+
 def on_estimate() -> None:
     log_telemetry(
         "qsharp.estimate",
@@ -113,6 +158,52 @@ def on_estimate_end(durationMs: float, qubits: Union[str, int]) -> None:
         "qsharp.estimate.durationMs",
         durationMs,
         properties={"qubits": get_qubits_bucket(qubits)},
+        type="histogram",
+    )
+
+
+def on_estimate_qasm() -> None:
+    log_telemetry(
+        "qsharp.estimate_qasm",
+        1,
+    )
+
+
+def on_estimate_qasm_end(durationMs: float, qubits: Union[str, int]) -> None:
+    log_telemetry(
+        "qsharp.estimate_qasm.durationMs",
+        durationMs,
+        properties={"qubits": get_qubits_bucket(qubits)},
+        type="histogram",
+    )
+
+
+def on_circuit() -> None:
+    log_telemetry(
+        "qsharp.circuit",
+        1,
+    )
+
+
+def on_circuit_end(durationMs: float) -> None:
+    log_telemetry(
+        "qsharp.circuit.durationMs",
+        durationMs,
+        type="histogram",
+    )
+
+
+def on_circuit_qasm() -> None:
+    log_telemetry(
+        "qsharp.circuit_qasm",
+        1,
+    )
+
+
+def on_circuit_qasm_end(durationMs: float) -> None:
+    log_telemetry(
+        "qsharp.circuit_qasm.durationMs",
+        durationMs,
         type="histogram",
     )
 

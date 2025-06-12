@@ -1,0 +1,115 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "openqasm",
+  "scopeName": "source.openqasm",
+  "fileTypes": ["qasm", "inc"],
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#types"
+    },
+    {
+      "include": "#constants"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#brackets"
+    },
+    {
+      "include": "#variables"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.openqasm",
+          "match": "\\b(in|for|return|if|else|switch|while)\\b"
+        },
+        {
+          "name": "keyword.other.openqasm",
+          "match": "\\b(OPENQASM|include|qubit|reset|mutable|readonly|#dim|stretch|delay|barrier|box|input|output|int|float|bit|bool|uint|angle|complex|const|defcal|def|gate|array|duration|let|measure|pragma|defcalgrammar|cal|qreg|creg|extern|port|frame|waveform)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.other.operator.openqasm",
+          "match": "\\b(=)|(!)|(<)|(>)|(\\+)|(-)|(\\*)|(\\*\\*)|(\\/)|(\\^)|(%)|(\\|)|(\\&)|(\\&\\&)|(\\~)|(\\|\\|)|(<<)|(>>)"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.openqasm",
+          "match": "\\b(angle|bit|bool|complex|duration|float|int|stretch|uint|qreg|creg)(\\[[a-zA-Z_][a-zA-Z0-9_]*\\])?\\b"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.openqasm",
+          "match": "\\b(true|false|theta|pi|θ|π|ℇ|τ|euler|tau|λ|lambda|φ|phi|@)\\b"
+        },
+        {
+          "comment": "integers and decimals",
+          "name": "constant.numeric.openqasm",
+          "match": "\\b[\\d_]*\\.?[\\d_](im|dt|ns|us|ms|s|)?\\b"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.openqasm",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.openqasm",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "brackets": {
+      "patterns": [
+        {
+          "name": "punctuation.bracket.openqasm",
+          "match": "[\\[\\]\\(\\)\\{\\}]"
+        }
+      ]
+    },
+    "variables": {
+      "patterns": [
+        {
+          "name": "variable.other.openqasm",
+          "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\b"
+        }
+      ]
+    }
+  }
+}

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { QscEventTarget } from "qsharp-lang";
+import { QscEventTarget, VSDiagnostic } from "qsharp-lang";
 
 function formatComplex(real: number, imag: number) {
   // Format -0 as 0
@@ -12,8 +12,11 @@ function formatComplex(real: number, imag: number) {
   return `${r}${i}`;
 }
 
-export function createDebugConsoleEventTarget(out: (message: string) => void) {
-  const eventTarget = new QscEventTarget(false);
+export function createDebugConsoleEventTarget(
+  out: (message: string) => void,
+  captureEvents: boolean = false,
+) {
+  const eventTarget = new QscEventTarget(captureEvents);
 
   eventTarget.addEventListener("Message", (evt) => {
     out(evt.detail + "\n");
@@ -72,7 +75,12 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
   });
 
   eventTarget.addEventListener("Result", (evt) => {
-    out(`${evt.detail.value}`);
+    // sometimes these are VS Diagnostics
+    if ((evt.detail.value as VSDiagnostic).message !== undefined) {
+      out(`${(evt.detail.value as VSDiagnostic).message}`);
+    } else {
+      out(`${evt.detail.value}`);
+    }
   });
 
   return eventTarget;

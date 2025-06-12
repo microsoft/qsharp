@@ -11,7 +11,7 @@
             "request": "launch",
             "runtimeExecutable": "${execPath}",
             "args": [
-                "--disable-extensions",
+                "--profile=dev",
                 "--extensionDevelopmentPath=${workspaceFolder}/vscode",
                 "${workspaceFolder}/samples/"
             ]

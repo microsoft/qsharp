@@ -10,10 +10,9 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-clap = { workspace = true, features = ["derive", "cargo"] }
 env_logger = { workspace = true }
 log = { workspace = true }
-miette = { workspace = true, features = ["fancy-no-syscall"] }
+miette = { workspace = true }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
 qsc_codegen = { path = "../qsc_codegen" }
@@ -31,6 +30,7 @@ qsc_passes = { path = "../qsc_passes" }
 qsc_parse = { path = "../qsc_parse" }
 qsc_partial_eval = { path = "../qsc_partial_eval" }
 qsc_project = { path = "../qsc_project", features = ["fs"] }
+qsc_qasm = { path = "../qsc_qasm" }
 qsc_rca = { path = "../qsc_rca" }
 qsc_circuit = { path = "../qsc_circuit" }
 rustc-hash = { workspace = true }
@@ -48,16 +48,6 @@ workspace = true
 [lib]
 bench = false
 doctest = false
-
-[[bin]]
-name = "qsc"
-bench = false
-test = false
-
-[[bin]]
-name = "qsi"
-bench = false
-test = false
 
 [[bin]]
 name = "memtest"
@@ -78,4 +68,8 @@ harness = false
 
 [[bench]]
 name = "rca"
+harness = false
+
+[[bench]]
+name = "typeck"
 harness = false

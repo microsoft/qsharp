@@ -93,6 +93,12 @@ impl Backend for CustomSim {
         self.sim.s(q);
     }
 
+    fn sx(&mut self, q: usize) {
+        self.sim.h(q);
+        self.sim.s(q);
+        self.sim.h(q);
+    }
+
     fn swap(&mut self, q0: usize, q1: usize) {
         self.sim.swap(q0, q1);
     }
@@ -1223,6 +1229,37 @@ fn sadj_qubit_already_released_fails() {
         indoc! {"{
             let q = { use q = Qubit(); q };
             QIR.Intrinsic.__quantum__qis__s__adj(q)
+        }"},
+        &expect!["qubit used after release"],
+    );
+}
+
+#[test]
+fn sx() {
+    check_intrinsic_result(
+        "",
+        indoc! {r#"{
+            use q1 = Qubit();
+            QIR.Intrinsic.__quantum__qis__sx__body(q1);
+            if Microsoft.Quantum.Diagnostics.CheckZero(q1) {
+                fail "Qubit should be in one state.";
+            }
+            QIR.Intrinsic.__quantum__qis__sx__body(q1);
+            QIR.Intrinsic.__quantum__qis__sx__body(q1);
+            QIR.Intrinsic.__quantum__qis__sx__body(q1);
+            Microsoft.Quantum.Diagnostics.CheckZero(q1)
+        }"#},
+        &expect!["true"],
+    );
+}
+
+#[test]
+fn sx_qubit_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__sx__body(q)
         }"},
         &expect!["qubit used after release"],
     );

@@ -5,8 +5,9 @@ use crate::{
     displayable_output::{DisplayableMatrix, DisplayableOutput, DisplayableState},
     fs::file_system,
     interop::{
-        compile_qasm3_to_qir, compile_qasm3_to_qsharp, compile_qasm_enriching_errors,
-        map_entry_compilation_errors, resource_estimate_qasm3, run_ast, run_qasm3, ImportResolver,
+        circuit_qasm_program, compile_qasm_program_to_qir, compile_qasm_to_qsharp,
+        create_filesystem_from_py, get_operation_name, get_output_semantics, get_program_type,
+        get_search_path, resource_estimate_qasm_program, run_qasm_program,
     },
     noisy_simulator::register_noisy_simulator_submodule,
 };
@@ -21,6 +22,7 @@ use pyo3::{
     IntoPyObjectExt,
 };
 use qsc::{
+    error::WithSource,
     fir::{self},
     hir::ty::{Prim, Ty},
     interpret::{
@@ -29,13 +31,14 @@ use qsc::{
         CircuitEntryPoint, PauliNoise, Value,
     },
     packages::BuildableProgram,
-    project::{FileSystem, PackageCache, PackageGraphSources},
+    project::{FileSystem, PackageCache, PackageGraphSources, ProjectType},
+    qasm::{compiler::compile_to_qsharp_ast_with_config, CompilerConfig, QubitSemantics},
     target::Profile,
     LanguageFeatures, PackageType, SourceMap,
 };
 
-use resource_estimator::{self as re, estimate_expr};
-use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc, str::FromStr};
+use resource_estimator::{self as re, estimate_call, estimate_expr};
+use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc, str::FromStr, sync::Arc};
 
 /// If the classes are not Send, the Python interpreter
 /// will not be able to use them in a separate thread.
@@ -79,18 +82,19 @@ fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
     m.add("QSharpError", py.get_type::<QSharpError>())?;
     register_noisy_simulator_submodule(py, m)?;
-    // QASM3 interop
+    // QASM interop
     m.add("QasmError", py.get_type::<QasmError>())?;
-    m.add_function(wrap_pyfunction!(resource_estimate_qasm3, m)?)?;
-    m.add_function(wrap_pyfunction!(run_qasm3, m)?)?;
-    m.add_function(wrap_pyfunction!(compile_qasm3_to_qir, m)?)?;
-    m.add_function(wrap_pyfunction!(compile_qasm3_to_qsharp, m)?)?;
+    m.add_function(wrap_pyfunction!(resource_estimate_qasm_program, m)?)?;
+    m.add_function(wrap_pyfunction!(run_qasm_program, m)?)?;
+    m.add_function(wrap_pyfunction!(circuit_qasm_program, m)?)?;
+    m.add_function(wrap_pyfunction!(compile_qasm_program_to_qir, m)?)?;
+    m.add_function(wrap_pyfunction!(compile_qasm_to_qsharp, m)?)?;
     Ok(())
 }
 
 // This ordering must match the _native.pyi file.
-#[derive(Clone, Copy, PartialEq)]
-#[pyclass(eq, eq_int)]
+#[derive(Clone, Copy, Default, PartialEq)]
+#[pyclass(eq, eq_int, module = "qsharp._native")]
 #[allow(non_camel_case_types)]
 /// A Q# target profile.
 ///
@@ -100,6 +104,7 @@ pub(crate) enum TargetProfile {
     /// Target supports the minimal set of capabilities required to run a quantum program.
     ///
     /// This option maps to the Base Profile as defined by the QIR specification.
+    #[default]
     Base,
     /// Target supports the Adaptive profile with the integer computation extension.
     ///
@@ -122,6 +127,32 @@ pub(crate) enum TargetProfile {
 
 #[pymethods]
 impl TargetProfile {
+    #[new]
+    // We need to define `new` so that instances of `TargetProfile` can be created by Python
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
+
+    // called and the returned object is pickled as the contents for the instance
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    fn __getstate__(&self) -> PyResult<isize> {
+        Ok(self.__pyo3__int__())
+    }
+
+    // called with the unpickled state and the instance is updated in place
+    // This is what requires `new` to be implemented as we can't hydrate an
+    // unininitialized instance in Python.
+    fn __setstate__(&mut self, state: i32) -> PyResult<()> {
+        (*self) = match state {
+            0 => Self::Base,
+            1 => Self::Adaptive_RI,
+            2 => Self::Adaptive_RIF,
+            3 => Self::Unrestricted,
+            _ => return Err(PyValueError::new_err("invalid state")),
+        };
+        Ok(())
+    }
+
     #[allow(clippy::trivially_copy_pass_by_ref)]
     fn __str__(&self) -> String {
         Into::<Profile>::into(*self).to_str().to_owned()
@@ -162,8 +193,8 @@ impl From<TargetProfile> for Profile {
 }
 
 // This ordering must match the _native.pyi file.
-#[derive(Clone, Copy, PartialEq)]
-#[pyclass(eq, eq_int)]
+#[derive(Clone, Copy, Default, PartialEq)]
+#[pyclass(eq, eq_int, module = "qsharp._native")]
 #[allow(non_camel_case_types)]
 /// Represents the output semantics for OpenQASM 3 compilation.
 /// Each has implications on the output of the compilation
@@ -173,6 +204,7 @@ pub(crate) enum OutputSemantics {
     /// is all of the classical registers, in reverse order
     /// in which they were added to the circuit with each
     /// bit within each register in reverse order.
+    #[default]
     Qiskit,
     /// [OpenQASM 3 has two output modes](https://openqasm.com/language/directives.html#input-output)
     /// - If the programmer provides one or more `output` declarations, then
@@ -184,19 +216,47 @@ pub(crate) enum OutputSemantics {
     ResourceEstimation,
 }
 
-impl From<OutputSemantics> for qsc_qasm3::OutputSemantics {
+#[pymethods]
+impl OutputSemantics {
+    #[new]
+    // We need to define `new` so that instances of `TargetProfile` can be created by Python
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
+
+    // called and the returned object is pickled as the contents for the instance
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    fn __getstate__(&self) -> PyResult<isize> {
+        Ok(self.__pyo3__int__())
+    }
+
+    // called with the unpickled state and the instance is updated in place
+    // This is what requires `new` to be implemented as we can't hydrate an
+    // unininitialized instance in Python.
+    fn __setstate__(&mut self, state: i32) -> PyResult<()> {
+        (*self) = match state {
+            0 => Self::Qiskit,
+            1 => Self::OpenQasm,
+            2 => Self::ResourceEstimation,
+            _ => return Err(PyValueError::new_err("invalid state")),
+        };
+        Ok(())
+    }
+}
+
+impl From<OutputSemantics> for qsc::qasm::OutputSemantics {
     fn from(output_semantics: OutputSemantics) -> Self {
         match output_semantics {
-            OutputSemantics::Qiskit => qsc_qasm3::OutputSemantics::Qiskit,
-            OutputSemantics::OpenQasm => qsc_qasm3::OutputSemantics::OpenQasm,
-            OutputSemantics::ResourceEstimation => qsc_qasm3::OutputSemantics::ResourceEstimation,
+            OutputSemantics::Qiskit => qsc::qasm::OutputSemantics::Qiskit,
+            OutputSemantics::OpenQasm => qsc::qasm::OutputSemantics::OpenQasm,
+            OutputSemantics::ResourceEstimation => qsc::qasm::OutputSemantics::ResourceEstimation,
         }
     }
 }
 
 // This ordering must match the _native.pyi file.
-#[derive(Clone, PartialEq)]
-#[pyclass(eq)]
+#[derive(Clone, Copy, Default, PartialEq)]
+#[pyclass(eq, eq_int, module = "qsharp._native")]
 #[allow(non_camel_case_types)]
 /// Represents the type of compilation output to create
 pub enum ProgramType {
@@ -204,6 +264,7 @@ pub enum ProgramType {
     /// file. Inputs are lifted to the operation params. Output are lifted to
     /// the operation return type. The operation is marked as `@EntryPoint`
     /// as long as there are no input parameters.
+    #[default]
     File,
     /// Programs are compiled to a standalone function. Inputs are lifted to
     /// the operation params. Output are lifted to the operation return type.
@@ -215,12 +276,40 @@ pub enum ProgramType {
     Fragments,
 }
 
-impl From<ProgramType> for qsc_qasm3::ProgramType {
+#[pymethods]
+impl ProgramType {
+    #[new]
+    // We need to define `new` so that instances of `TargetProfile` can be created by Python
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
+
+    // called and the returned object is pickled as the contents for the instance
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    fn __getstate__(&self) -> PyResult<isize> {
+        Ok(self.__pyo3__int__())
+    }
+
+    // called with the unpickled state and the instance is updated in place
+    // This is what requires `new` to be implemented as we can't hydrate an
+    // unininitialized instance in Python.
+    fn __setstate__(&mut self, state: i32) -> PyResult<()> {
+        (*self) = match state {
+            0 => Self::File,
+            1 => Self::Operation,
+            2 => Self::Fragments,
+            _ => return Err(PyValueError::new_err("invalid state")),
+        };
+        Ok(())
+    }
+}
+
+impl From<ProgramType> for qsc::qasm::ProgramType {
     fn from(output_semantics: ProgramType) -> Self {
         match output_semantics {
-            ProgramType::File => qsc_qasm3::ProgramType::File,
-            ProgramType::Operation => qsc_qasm3::ProgramType::Operation,
-            ProgramType::Fragments => qsc_qasm3::ProgramType::Fragments,
+            ProgramType::File => qsc::qasm::ProgramType::File,
+            ProgramType::Operation => qsc::qasm::ProgramType::Operation,
+            ProgramType::Fragments => qsc::qasm::ProgramType::Fragments,
         }
     }
 }
@@ -272,8 +361,10 @@ impl Interpreter {
                 if !project.errors.is_empty() {
                     return Err(project.errors.into_py_err());
                 }
-
-                BuildableProgram::new(target, project.package_graph_sources)
+                let ProjectType::QSharp(package_graph_sources) = project.project_type else {
+                    unreachable!("Project type should be Q#")
+                };
+                BuildableProgram::new(target, package_graph_sources)
             } else {
                 panic!("file system hooks should have been passed in with a manifest descriptor")
             }
@@ -345,6 +436,112 @@ impl Interpreter {
         }
     }
 
+    /// Imports OpenQASM source code into the active Q# interpreter.
+    ///
+    /// Args:
+    ///     source (str): An OpenQASM program or fragment.
+    ///     output_fn: The function to handle the output of the execution.
+    ///     read_file: A callable that reads a file and returns its content and path.
+    ///     list_directory: A callable that lists the contents of a directory.
+    ///     resolve_path: A callable that resolves a file path given a base path and a relative path.
+    ///     fetch_github: A callable that fetches a file from GitHub.
+    ///     **kwargs: Additional keyword arguments to pass to the execution.
+    ///         - name (str): The name of the program. This is used as the entry point for the program.
+    ///         - search_path (Optional[str]): The optional search path for resolving file references.
+    ///         - output_semantics (OutputSemantics, optional): The output semantics for the compilation.
+    ///         - program_type (ProgramType, optional): The type of program compilation to perform.
+    ///
+    /// Returns:
+    ///     value: The value returned by the last statement in the source code.
+    ///
+    /// Raises:
+    ///     QasmError: If there is an error generating, parsing, or analyzing the OpenQASM source.
+    ///     QSharpError: If there is an error compiling the program.
+    ///     QSharpError: If there is an error evaluating the source code.
+    #[pyo3(signature=(input, output_fn, read_file, list_directory, resolve_path, fetch_github, **kwargs))]
+    #[allow(clippy::needless_pass_by_value)]
+    #[allow(clippy::too_many_arguments)]
+    fn import_qasm(
+        &mut self,
+        py: Python,
+        input: &str,
+        output_fn: Option<PyObject>,
+        read_file: Option<PyObject>,
+        list_directory: Option<PyObject>,
+        resolve_path: Option<PyObject>,
+        fetch_github: Option<PyObject>,
+        kwargs: Option<Bound<'_, PyDict>>,
+    ) -> PyResult<PyObject> {
+        let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
+
+        let operation_name = get_operation_name(&kwargs)?;
+        let search_path = get_search_path(&kwargs)?;
+        let program_ty = get_program_type(&kwargs, || ProgramType::Operation)?;
+        let output_semantics = get_output_semantics(&kwargs, || OutputSemantics::OpenQasm)?;
+
+        let fs =
+            create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
+        let file_path = PathBuf::from_str(&search_path)
+            .expect("from_str is infallible")
+            .join("program.qasm");
+        let project = fs.load_openqasm_project(&file_path, Some(Arc::<str>::from(input)));
+        let ProjectType::OpenQASM(sources) = project.project_type else {
+            return Err(QasmError::new_err(
+                "Expected OpenQASM project, but got a different type".to_string(),
+            ));
+        };
+
+        let config = CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            output_semantics.into(),
+            program_ty.into(),
+            Some(operation_name.into()),
+            None,
+        );
+        let res = qsc::qasm::semantic::parse_sources(&sources);
+        let unit = compile_to_qsharp_ast_with_config(res, config);
+        let (sources, errors, package, _) = unit.into_tuple();
+
+        if !errors.is_empty() {
+            let errors = errors
+                .iter()
+                .map(|e| {
+                    use qsc::compile::ErrorKind;
+                    use qsc::interpret::Error;
+                    let error = e.error().clone();
+                    let kind = ErrorKind::OpenQasm(error);
+                    let v = WithSource::from_map(&sources, kind);
+                    Error::Compile(v)
+                })
+                .collect();
+            return Err(QSharpError::new_err(format_errors(errors)));
+        }
+        let mut receiver = OptionalCallbackReceiver {
+            callback: output_fn,
+            py,
+        };
+
+        match self
+            .interpreter
+            .eval_ast_fragments(&mut receiver, input, package)
+        {
+            Ok(value) => {
+                if let Some(make_callable) = &self.make_callable {
+                    // Get any global callables from the evaluated input and add them to the environment. This will grab
+                    // every callable that was defined in the input and by previous calls that added to the open package.
+                    // This is safe because either the callable will be replaced with itself or a new callable with the
+                    // same name will shadow the previous one, which is the expected behavior.
+                    let new_items = self.interpreter.source_globals();
+                    for (namespace, name, val) in new_items {
+                        create_py_callable(py, make_callable, &namespace, &name, val)?;
+                    }
+                }
+                Ok(ValueWrapper(value).into_pyobject(py)?.unbind())
+            }
+            Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+        }
+    }
+
     /// Sets the quantum seed for the interpreter.
     #[pyo3(signature=(seed=None))]
     fn set_quantum_seed(&mut self, seed: Option<u64>) {
@@ -373,13 +570,15 @@ impl Interpreter {
         Circuit(self.interpreter.get_circuit()).into_py_any(py)
     }
 
-    #[pyo3(signature=(entry_expr=None, callback=None, noise=None))]
+    #[pyo3(signature=(entry_expr=None, callback=None, noise=None, callable=None, args=None))]
     fn run(
         &mut self,
         py: Python,
         entry_expr: Option<&str>,
         callback: Option<PyObject>,
         noise: Option<(f64, f64, f64)>,
+        callable: Option<GlobalCallable>,
+        args: Option<PyObject>,
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
 
@@ -391,7 +590,20 @@ impl Interpreter {
             },
         };
 
-        match self.interpreter.run(&mut receiver, entry_expr, noise) {
+        let result = match callable {
+            Some(callable) => {
+                let (input_ty, output_ty) = self
+                    .interpreter
+                    .global_tys(&callable.0)
+                    .ok_or(QSharpError::new_err("callable not found"))?;
+                let args = args_to_values(py, args, &input_ty, &output_ty)?;
+                self.interpreter
+                    .invoke_with_noise(&mut receiver, callable.0, args, noise)
+            }
+            _ => self.interpreter.run(&mut receiver, entry_expr, noise),
+        };
+
+        match result {
             Ok(value) => Ok(ValueWrapper(value).into_pyobject(py)?.unbind()),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -411,35 +623,7 @@ impl Interpreter {
             .global_tys(&callable.0)
             .ok_or(QSharpError::new_err("callable not found"))?;
 
-        // If the types are not supported, we can't convert the arguments or return value.
-        // Check this before trying to convert the arguments, and return an error if the types are not supported.
-        if let Some(ty) = first_unsupported_interop_ty(&input_ty) {
-            return Err(QSharpError::new_err(format!(
-                "unsupported input type: `{ty}`"
-            )));
-        }
-        if let Some(ty) = first_unsupported_interop_ty(&output_ty) {
-            return Err(QSharpError::new_err(format!(
-                "unsupported output type: `{ty}`"
-            )));
-        }
-
-        // Conver the Python arguments to Q# values, treating None as an empty tuple aka `Unit`.
-        let args = if matches!(&input_ty, Ty::Tuple(tup) if tup.is_empty()) {
-            // Special case for unit, where args should be None
-            if args.is_some() {
-                return Err(QSharpError::new_err("expected no arguments"));
-            }
-            Value::unit()
-        } else {
-            let Some(args) = args else {
-                return Err(QSharpError::new_err(format!(
-                    "expected arguments of type `{input_ty}`"
-                )));
-            };
-            // This conversion will produce errors if the types don't match or can't be converted.
-            convert_obj_with_ty(py, &args, &input_ty)?
-        };
+        let args = args_to_values(py, args, &input_ty, &output_ty)?;
 
         match self.interpreter.invoke(&mut receiver, callable.0, args) {
             Ok(value) => Ok(ValueWrapper(value).into_pyobject(py)?.unbind()),
@@ -447,10 +631,33 @@ impl Interpreter {
         }
     }
 
-    fn qir(&mut self, _py: Python, entry_expr: &str) -> PyResult<String> {
-        match self.interpreter.qirgen(entry_expr) {
-            Ok(qir) => Ok(qir),
-            Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+    #[pyo3(signature=(entry_expr=None, callable=None, args=None))]
+    fn qir(
+        &mut self,
+        py: Python,
+        entry_expr: Option<&str>,
+        callable: Option<GlobalCallable>,
+        args: Option<PyObject>,
+    ) -> PyResult<String> {
+        if let Some(entry_expr) = entry_expr {
+            match self.interpreter.qirgen(entry_expr) {
+                Ok(qir) => Ok(qir),
+                Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+            }
+        } else {
+            let callable = callable.ok_or_else(|| {
+                QSharpError::new_err("either entry_expr or callable must be specified")
+            })?;
+            let (input_ty, output_ty) = self
+                .interpreter
+                .global_tys(&callable.0)
+                .ok_or(QSharpError::new_err("callable not found"))?;
+
+            let args = args_to_values(py, args, &input_ty, &output_ty)?;
+            match self.interpreter.qirgen_from_callable(&callable.0, args) {
+                Ok(qir) => Ok(qir),
+                Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+            }
         }
     }
 
@@ -463,17 +670,31 @@ impl Interpreter {
     /// an operation of a lambda expression. The operation must take only
     /// qubits or arrays of qubits as parameters.
     ///
+    /// :param callable: A callable to synthesize.
+    ///
+    /// :param args: The arguments to pass to the callable.
+    ///
     /// :raises QSharpError: If there is an error synthesizing the circuit.
-    #[pyo3(signature=(entry_expr=None, operation=None))]
+    #[pyo3(signature=(entry_expr=None, operation=None, callable=None, args=None))]
     fn circuit(
         &mut self,
         py: Python,
         entry_expr: Option<String>,
         operation: Option<String>,
+        callable: Option<GlobalCallable>,
+        args: Option<PyObject>,
     ) -> PyResult<PyObject> {
-        let entrypoint = match (entry_expr, operation) {
-            (Some(entry_expr), None) => CircuitEntryPoint::EntryExpr(entry_expr),
-            (None, Some(operation)) => CircuitEntryPoint::Operation(operation),
+        let entrypoint = match (entry_expr, operation, callable) {
+            (Some(entry_expr), None, None) => CircuitEntryPoint::EntryExpr(entry_expr),
+            (None, Some(operation), None) => CircuitEntryPoint::Operation(operation),
+            (None, None, Some(callable)) => {
+                let (input_ty, output_ty) = self
+                    .interpreter
+                    .global_tys(&callable.0)
+                    .ok_or(QSharpError::new_err("callable not found"))?;
+                let args = args_to_values(py, args, &input_ty, &output_ty)?;
+                CircuitEntryPoint::Callable(callable.0, args)
+            }
             _ => {
                 return Err(PyException::new_err(
                     "either entry_expr or operation must be specified",
@@ -487,8 +708,29 @@ impl Interpreter {
         }
     }
 
-    fn estimate(&mut self, _py: Python, entry_expr: &str, job_params: &str) -> PyResult<String> {
-        match estimate_expr(&mut self.interpreter, entry_expr, job_params) {
+    #[pyo3(signature=(job_params, entry_expr=None, callable=None, args=None))]
+    fn estimate(
+        &mut self,
+        py: Python,
+        job_params: &str,
+        entry_expr: Option<&str>,
+        callable: Option<GlobalCallable>,
+        args: Option<PyObject>,
+    ) -> PyResult<String> {
+        let results = if let Some(entry_expr) = entry_expr {
+            estimate_expr(&mut self.interpreter, entry_expr, job_params)
+        } else {
+            let callable = callable.ok_or_else(|| {
+                QSharpError::new_err("either entry_expr or callable must be specified")
+            })?;
+            let (input_ty, output_ty) = self
+                .interpreter
+                .global_tys(&callable.0)
+                .ok_or(QSharpError::new_err("callable not found"))?;
+            let args = args_to_values(py, args, &input_ty, &output_ty)?;
+            estimate_call(&mut self.interpreter, callable.0, args, job_params)
+        };
+        match results {
             Ok(estimate) => Ok(estimate),
             Err(errors) if matches!(errors[0], re::Error::Interpreter(_)) => {
                 Err(QSharpError::new_err(format_errors(
@@ -513,72 +755,42 @@ impl Interpreter {
             )),
         }
     }
+}
 
-    #[allow(clippy::too_many_arguments)]
-    #[pyo3(
-        signature = (source, callback=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, **kwargs)
-    )]
-    pub fn _run_qasm3(
-        &mut self,
-        py: Python,
-        source: &str,
-        callback: Option<PyObject>,
-        read_file: Option<PyObject>,
-        list_directory: Option<PyObject>,
-        resolve_path: Option<PyObject>,
-        fetch_github: Option<PyObject>,
-        kwargs: Option<Bound<'_, PyDict>>,
-    ) -> PyResult<PyObject> {
-        let mut receiver = OptionalCallbackReceiver { callback, py };
+fn args_to_values(
+    py: Python,
+    args: Option<PyObject>,
+    input_ty: &Ty,
+    output_ty: &Ty,
+) -> PyResult<Value> {
+    // If the types are not supported, we can't convert the arguments or return value.
+    // Check this before trying to convert the arguments, and return an error if the types are not supported.
+    if let Some(ty) = first_unsupported_interop_ty(input_ty) {
+        return Err(QSharpError::new_err(format!(
+            "unsupported input type: `{ty}`"
+        )));
+    }
+    if let Some(ty) = first_unsupported_interop_ty(output_ty) {
+        return Err(QSharpError::new_err(format!(
+            "unsupported output type: `{ty}`"
+        )));
+    }
 
-        let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
-
-        let operation_name = crate::interop::get_operation_name(&kwargs)?;
-        let seed = crate::interop::get_seed(&kwargs);
-        let shots = crate::interop::get_shots(&kwargs)?;
-        let search_path = crate::interop::get_search_path(&kwargs)?;
-        let program_type = crate::interop::get_program_type(&kwargs)?;
-        let output_semantics = crate::interop::get_output_semantics(&kwargs)?;
-
-        let fs = crate::interop::create_filesystem_from_py(
-            py,
-            read_file,
-            list_directory,
-            resolve_path,
-            fetch_github,
-        );
-        let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
-
-        let (package, _source_map, signature) = compile_qasm_enriching_errors(
-            source,
-            &operation_name,
-            &resolver,
-            program_type.clone(),
-            output_semantics,
-            false,
-        )?;
-
-        let value = self
-            .interpreter
-            .eval_ast_fragments(&mut receiver, source, package)
-            .map_err(|errors| QSharpError::new_err(format_errors(errors)))?;
-
-        match program_type {
-            ProgramType::File => {
-                let entry_expr = signature.create_entry_expr_from_params(String::new());
-                self.interpreter
-                    .set_entry_expr(&entry_expr)
-                    .map_err(|errors| map_entry_compilation_errors(errors, &signature))?;
-
-                match run_ast(&mut self.interpreter, &mut receiver, shots, seed) {
-                    Ok(result) => {
-                        Ok(PyList::new(py, result.iter().map(|v| ValueWrapper(v.clone())))?.into())
-                    }
-                    Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
-                }
-            }
-            _ => Ok(ValueWrapper(value).into_pyobject(py)?.unbind()),
+    // Conver the Python arguments to Q# values, treating None as an empty tuple aka `Unit`.
+    if matches!(&input_ty, Ty::Tuple(tup) if tup.is_empty()) {
+        // Special case for unit, where args should be None
+        if args.is_some() {
+            return Err(QSharpError::new_err("expected no arguments"));
         }
+        Ok(Value::unit())
+    } else {
+        let Some(args) = args else {
+            return Err(QSharpError::new_err(format!(
+                "expected arguments of type `{input_ty}`"
+            )));
+        };
+        // This conversion will produce errors if the types don't match or can't be converted.
+        Ok(convert_obj_with_ty(py, &args, input_ty)?)
     }
 }
 
@@ -687,7 +899,8 @@ pub(crate) fn format_errors(errors: Vec<interpret::Error>) -> String {
     errors
         .into_iter()
         .map(|e| format_error(&e))
-        .collect::<String>()
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 pub(crate) fn format_error(e: &interpret::Error) -> String {
@@ -961,7 +1174,7 @@ impl Receiver for OptionalCallbackReceiver<'_> {
 }
 
 #[pyclass]
-struct Circuit(pub qsc::circuit::Circuit);
+pub(crate) struct Circuit(pub qsc::circuit::Circuit);
 
 #[pymethods]
 impl Circuit {

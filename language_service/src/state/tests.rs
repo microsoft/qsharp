@@ -6,77 +6,57 @@
 
 use super::{CompilationState, CompilationStateUpdater};
 use crate::{
-    protocol::{DiagnosticUpdate, ErrorKind, NotebookMetadata, WorkspaceConfigurationUpdate},
+    protocol::{DiagnosticUpdate, NotebookMetadata, TestCallables, WorkspaceConfigurationUpdate},
     tests::test_fs::{dir, file, FsNode, TestProjectHost},
 };
 use expect_test::{expect, Expect};
-use qsc::{compile, project, target::Profile, LanguageFeatures, PackageType};
-use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel};
-use std::{cell::RefCell, fmt::Write, rc::Rc};
+use miette::Diagnostic;
+use qsc::{line_column::Encoding, target::Profile, LanguageFeatures, PackageType};
+use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel, LintOrGroupConfig};
+use std::{
+    cell::RefCell,
+    fmt::{Display, Write},
+    rc::Rc,
+    str::from_utf8,
+};
 
 #[tokio::test]
 async fn no_error() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
         .update_document(
             "single/foo.qs",
             1,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+            "qsharp",
         )
         .await;
 
-    expect_errors(
-        &errors,
-        &expect![[r#"
-        []
-    "#]],
-    );
+    expect_errors(&errors, &expect!["[]"]);
 }
 
 #[tokio::test]
 async fn clear_error() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
-        .update_document("single/foo.qs", 1, "namespace {")
+        .update_document("single/foo.qs", 1, "namespace {", "qsharp")
         .await;
 
     expect_errors(
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Rule(
-                                            "identifier",
-                                            Open(
-                                                Brace,
-                                            ),
-                                            Span {
-                                                lo: 10,
-                                                hi: 11,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [
+                syntax error
+                  [single/foo.qs] [{]
+              ],
+            ]"#]],
     );
 
     updater
@@ -84,6 +64,7 @@ async fn clear_error() {
             "single/foo.qs",
             2,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+            "qsharp",
         )
         .await;
 
@@ -91,29 +72,23 @@ async fn clear_error() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        2,
-                    ),
-                    [],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(2) errors: [],
+            ]"#]],
     );
 }
 
 #[tokio::test]
 async fn close_last_doc_in_project() {
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
         .update_document(
             "project/src/other_file.qs",
             1,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+            "qsharp",
         )
         .await;
     updater
@@ -121,10 +96,13 @@ async fn close_last_doc_in_project() {
             "project/src/this_file.qs",
             1,
             "/* this should not show up in the final state */ we should not see compile errors",
+            "qsharp",
         )
         .await;
 
-    updater.close_document("project/src/this_file.qs").await;
+    updater
+        .close_document("project/src/this_file.qs", "qsharp")
+        .await;
     // now there should be one compilation and one open document
 
     check_state_and_errors(
@@ -140,64 +118,24 @@ async fn close_last_doc_in_project() {
             }
         "#]],
         &expect![[r#"
-            project/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "project/src/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 59,
-                    },
-                ],
-                common_prefix: Some(
-                    "project/src/",
-                ),
-                entry: None,
-            }
+            project/qsharp.json: [
+              "project/src/other_file.qs": "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+              "project/src/this_file.qs": "// DISK CONTENTS\n namespace Foo { }",
+            ],
         "#]],
         &expect![[r#"
             [
-                (
-                    "project/src/this_file.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Token(
-                                            Eof,
-                                            ClosedBinOp(
-                                                Slash,
-                                            ),
-                                            Span {
-                                                lo: 59,
-                                                hi: 60,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-                (
-                    "project/src/this_file.qs",
-                    None,
-                    [],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "project/src/this_file.qs" version: Some(1) errors: [
+                syntax error
+                  [project/src/this_file.qs] [/]
+              ],
+
+              uri: "project/src/this_file.qs" version: None errors: [],
+            ]"#]],
     );
-    updater.close_document("project/src/other_file.qs").await;
+    updater
+        .close_document("project/src/other_file.qs", "qsharp")
+        .await;
 
     // now there should be no file and no compilation
     check_state_and_errors(
@@ -207,120 +145,121 @@ async fn close_last_doc_in_project() {
             {}
         "#]],
         &expect![""],
+        &expect!["[]"],
+    );
+}
+
+#[tokio::test]
+async fn close_last_doc_in_openqasm_project() {
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
+
+    updater
+        .update_document(
+            "openqasm_files/self-contained.qasm",
+            1,
+            "include \"stdgates.inc\";\nqubit q;\nreset q;\nx q;\nh q;\nbit c = measure q;\n",
+            "openqasm",
+        )
+        .await;
+
+    check_state_and_errors(
+        &updater,
+        &received_errors,
         &expect![[r#"
-            []
+            {
+                "openqasm_files/self-contained.qasm": OpenDocument {
+                    version: 1,
+                    compilation: "openqasm_files/self-contained.qasm",
+                    latest_str_content: "include \"stdgates.inc\";\nqubit q;\nreset q;\nx q;\nh q;\nbit c = measure q;\n",
+                },
+            }
         "#]],
+        &expect![[r#"
+            openqasm_files/self-contained.qasm: [
+              "openqasm_files/self-contained.qasm": "include \"stdgates.inc\";\nqubit q;\nreset q;\nx q;\nh q;\nbit c = measure q;\n",
+            ],
+        "#]],
+        &expect!["[]"],
+    );
+
+    updater
+        .close_document("openqasm_files/self-contained.qasm", "openqasm")
+        .await;
+
+    // now there should be no file and no compilation
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {}
+        "#]],
+        &expect![""],
+        &expect!["[]"],
     );
 }
 
 #[tokio::test]
 async fn clear_on_document_close() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
-        .update_document("single/foo.qs", 1, "namespace {")
+        .update_document("single/foo.qs", 1, "namespace {", "qsharp")
         .await;
 
     expect_errors(
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Rule(
-                                            "identifier",
-                                            Open(
-                                                Brace,
-                                            ),
-                                            Span {
-                                                lo: 10,
-                                                hi: 11,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [
+                syntax error
+                  [single/foo.qs] [{]
+              ],
+            ]"#]],
     );
 
-    updater.close_document("single/foo.qs").await;
+    updater.close_document("single/foo.qs", "qsharp").await;
 
     expect_errors(
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    None,
-                    [],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: None errors: [],
+            ]"#]],
     );
 }
 
 #[tokio::test]
 async fn compile_error() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
-        .update_document("single/foo.qs", 1, "badsyntax")
+        .update_document("single/foo.qs", 1, "badsyntax", "qsharp")
         .await;
 
     expect_errors(
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Token(
-                                            Eof,
-                                            Ident,
-                                            Span {
-                                                lo: 0,
-                                                hi: 9,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [
+                syntax error
+                  [single/foo.qs] [badsyntax]
+              ],
+            ]"#]],
     );
 }
 
 #[tokio::test]
 async fn rca_errors_are_reported_when_compilation_succeeds() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::AdaptiveRI),
@@ -329,7 +268,7 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
     });
 
     updater
-        .update_document("single/foo.qs", 1, "namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }")
+        .update_document("single/foo.qs", 1, "namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }", "qsharp")
         .await;
 
     // we expect two errors, one for `set x = 2` and one for `x`
@@ -337,44 +276,21 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Pass(
-                            CapabilitiesCk(
-                                UseOfDynamicDouble(
-                                    Span {
-                                        lo: 106,
-                                        hi: 117,
-                                    },
-                                ),
-                            ),
-                        ),
-                        Pass(
-                            CapabilitiesCk(
-                                UseOfDynamicDouble(
-                                    Span {
-                                        lo: 121,
-                                        hi: 122,
-                                    },
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [
+                cannot use a dynamic double value
+                  [single/foo.qs] [set x = 2.0]
+                cannot use a dynamic double value
+                  [single/foo.qs] [x]
+              ],
+            ]"#]],
     );
 }
 
 #[tokio::test]
 async fn base_profile_rca_errors_are_reported_when_compilation_succeeds() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::Base),
@@ -383,7 +299,7 @@ async fn base_profile_rca_errors_are_reported_when_compilation_succeeds() {
     });
 
     updater
-        .update_document("single/foo.qs", 1, "namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }")
+        .update_document("single/foo.qs", 1, "namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }", "qsharp")
         .await;
 
     // we expect two errors, one for `set x = 2.0` and one for `x`
@@ -391,54 +307,23 @@ async fn base_profile_rca_errors_are_reported_when_compilation_succeeds() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Pass(
-                            CapabilitiesCk(
-                                UseOfDynamicBool(
-                                    Span {
-                                        lo: 86,
-                                        hi: 103,
-                                    },
-                                ),
-                            ),
-                        ),
-                        Pass(
-                            CapabilitiesCk(
-                                UseOfDynamicDouble(
-                                    Span {
-                                        lo: 106,
-                                        hi: 117,
-                                    },
-                                ),
-                            ),
-                        ),
-                        Pass(
-                            CapabilitiesCk(
-                                UseOfDynamicDouble(
-                                    Span {
-                                        lo: 121,
-                                        hi: 122,
-                                    },
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [
+                cannot use a dynamic bool value
+                  [single/foo.qs] [MResetZ(q) == One]
+                cannot use a dynamic double value
+                  [single/foo.qs] [set x = 2.0]
+                cannot use a dynamic double value
+                  [single/foo.qs] [x]
+              ],
+            ]"#]],
     );
 }
 
 #[tokio::test]
 async fn package_type_update_causes_error() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
         package_type: Some(PackageType::Lib),
@@ -450,15 +335,11 @@ async fn package_type_update_causes_error() {
             "single/foo.qs",
             1,
             "namespace Foo { operation Test() : Unit {} }",
+            "qsharp",
         )
         .await;
 
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            []
-    "#]],
-    );
+    expect_errors(&errors, &expect!["[]"]);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
         package_type: Some(PackageType::Exe),
@@ -469,29 +350,18 @@ async fn package_type_update_causes_error() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [
+                entry point not found
+              ],
+            ]"#]],
     );
 }
 
 #[tokio::test]
 async fn target_profile_update_fixes_error() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::Base),
@@ -504,6 +374,7 @@ async fn target_profile_update_fixes_error() {
             "single/foo.qs",
             1,
             r#"namespace Foo { operation Main() : Unit { use q = Qubit(); if M(q) == Zero { Message("hi") } } }"#,
+            "qsharp",
         )
         .await;
 
@@ -511,27 +382,11 @@ async fn target_profile_update_fixes_error() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Pass(
-                            CapabilitiesCk(
-                                UseOfDynamicBool(
-                                    Span {
-                                        lo: 62,
-                                        hi: 74,
-                                    },
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [
+                cannot use a dynamic bool value
+                  [single/foo.qs] [M(q) == Zero]
+              ],
+            ]"#]],
     );
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
@@ -543,36 +398,92 @@ async fn target_profile_update_fixes_error() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [],
+            ]"#]],
     );
+}
+
+#[tokio::test]
+async fn target_profile_update_updates_test_cases() {
+    let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
+
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Unrestricted),
+        package_type: Some(PackageType::Lib),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    updater
+        .update_document(
+            "single/foo.qs",
+            1,
+            r#"@Config(Base) @Test() operation BaseTest() : Unit {}"#,
+            "qsharp",
+        )
+        .await;
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [],
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
+
+    // reset accumulated test cases after each check
+    test_cases.borrow_mut().clear();
+
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Base),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [
+                    TestCallable {
+                        callable_name: "foo.BaseTest",
+                        compilation_uri: "single/foo.qs",
+                        location: Location {
+                            source: "single/foo.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 32,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 40,
+                                },
+                            },
+                        },
+                        friendly_name: "foo.qs",
+                    },
+                ],
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
 }
 
 #[tokio::test]
 async fn target_profile_update_causes_error_in_stdlib() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater.update_document(
         "single/foo.qs",
         1,
         r#"namespace Foo { @EntryPoint() operation Main() : Unit { use q = Qubit(); let r = M(q); let b = Microsoft.Quantum.Convert.ResultAsBool(r); } }"#,
+        "qsharp",
     ).await;
 
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            []
-        "#]],
-    );
+    expect_errors(&errors, &expect!["[]"]);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::Base),
@@ -583,34 +494,19 @@ async fn target_profile_update_causes_error_in_stdlib() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Pass(
-                            CapabilitiesCk(
-                                UseOfDynamicBool(
-                                    Span {
-                                        lo: 95,
-                                        hi: 136,
-                                    },
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [
+                cannot use a dynamic bool value
+                  [single/foo.qs] [Microsoft.Quantum.Convert.ResultAsBool(r)]
+              ],
+            ]"#]],
     );
 }
 
 #[tokio::test]
 async fn notebook_document_no_errors() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
         .update_notebook_document(
@@ -624,18 +520,14 @@ async fn notebook_document_no_errors() {
         )
         .await;
 
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            []
-        "#]],
-    );
+    expect_errors(&errors, &expect!["[]"]);
 }
 
 #[tokio::test]
 async fn notebook_document_errors() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
         .update_notebook_document(
@@ -653,51 +545,21 @@ async fn notebook_document_errors() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "cell2",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotFound(
-                                        "Foo",
-                                        Span {
-                                            lo: 27,
-                                            hi: 30,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Type(
-                                    Error(
-                                        AmbiguousTy(
-                                            Span {
-                                                lo: 27,
-                                                hi: 32,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "cell2" version: Some(1) errors: [
+                name error
+                  [cell2] [Foo]
+                type error
+                  [cell2] [Foo()]
+              ],
+            ]"#]],
     );
 }
 
 #[tokio::test]
 async fn notebook_document_lints() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
         .update_notebook_document(
@@ -715,71 +577,24 @@ async fn notebook_document_lints() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "cell1",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Lint(
-                            Lint {
-                                span: Span {
-                                    lo: 34,
-                                    hi: 37,
-                                },
-                                level: Warn,
-                                message: "redundant semicolons",
-                                help: "remove the redundant semicolons",
-                                kind: Ast(
-                                    RedundantSemicolons,
-                                ),
-                                code_action_edits: [
-                                    (
-                                        "",
-                                        Span {
-                                            lo: 34,
-                                            hi: 37,
-                                        },
-                                    ),
-                                ],
-                            },
-                        ),
-                    ],
-                    [],
-                ),
-                (
-                    "cell2",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Lint(
-                            Lint {
-                                span: Span {
-                                    lo: 72,
-                                    hi: 77,
-                                },
-                                level: Error,
-                                message: "attempt to divide by zero",
-                                help: "division by zero will fail at runtime",
-                                kind: Ast(
-                                    DivisionByZero,
-                                ),
-                                code_action_edits: [],
-                            },
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "cell1" version: Some(1) errors: [
+                redundant semicolons
+                  [cell1] [;;;]
+              ],
+
+              uri: "cell2" version: Some(1) errors: [
+                attempt to divide by zero
+                  [cell2] [5 / 0]
+              ],
+            ]"#]],
     );
 }
 
 #[tokio::test]
 async fn notebook_update_remove_cell_clears_errors() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
         .update_notebook_document(
@@ -797,44 +612,13 @@ async fn notebook_update_remove_cell_clears_errors() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "cell2",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotFound(
-                                        "Foo",
-                                        Span {
-                                            lo: 27,
-                                            hi: 30,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Type(
-                                    Error(
-                                        AmbiguousTy(
-                                            Span {
-                                                lo: 27,
-                                                hi: 32,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "cell2" version: Some(1) errors: [
+                name error
+                  [cell2] [Foo]
+                type error
+                  [cell2] [Foo()]
+              ],
+            ]"#]],
     );
 
     updater
@@ -849,21 +633,16 @@ async fn notebook_update_remove_cell_clears_errors() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "cell2",
-                    None,
-                    [],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "cell2" version: None errors: [],
+            ]"#]],
     );
 }
 
 #[tokio::test]
 async fn close_notebook_clears_errors() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
         .update_notebook_document(
@@ -881,44 +660,13 @@ async fn close_notebook_clears_errors() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "cell2",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotFound(
-                                        "Foo",
-                                        Span {
-                                            lo: 27,
-                                            hi: 30,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Type(
-                                    Error(
-                                        AmbiguousTy(
-                                            Span {
-                                                lo: 27,
-                                                hi: 32,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "cell2" version: Some(1) errors: [
+                name error
+                  [cell2] [Foo]
+                type error
+                  [cell2] [Foo()]
+              ],
+            ]"#]],
     );
 
     updater.close_notebook_document("notebook.ipynb");
@@ -927,14 +675,8 @@ async fn close_notebook_clears_errors() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "cell2",
-                    None,
-                    [],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "cell2" version: None errors: [],
+            ]"#]],
     );
 }
 
@@ -960,7 +702,9 @@ async fn update_notebook_with_valid_dependencies() {
 
     let fs = Rc::new(RefCell::new(fs));
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&errors, &fs);
+    let test_cases = RefCell::new(Vec::new());
+
+    let mut updater = new_updater_with_file_system(&errors, &test_cases, &fs);
 
     updater
         .update_notebook_document(
@@ -975,12 +719,7 @@ async fn update_notebook_with_valid_dependencies() {
         )
         .await;
 
-    expect_errors(
-        &errors,
-        &expect![[r#"
-        []
-    "#]],
-    );
+    expect_errors(&errors, &expect!["[]"]);
 }
 
 #[tokio::test]
@@ -1005,7 +744,9 @@ async fn update_notebook_reports_errors_from_dependencies() {
 
     let fs = Rc::new(RefCell::new(fs));
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&errors, &fs);
+    let test_cases = RefCell::new(Vec::new());
+
+    let mut updater = new_updater_with_file_system(&errors, &test_cases, &fs);
 
     updater
         .update_notebook_document(
@@ -1024,93 +765,22 @@ async fn update_notebook_reports_errors_from_dependencies() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "cell1",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotFound(
-                                        "Foo",
-                                        Span {
-                                            lo: 5,
-                                            hi: 8,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotFound(
-                                        "Foo",
-                                        Span {
-                                            lo: 5,
-                                            hi: 8,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotFound(
-                                        "Bar",
-                                        Span {
-                                            lo: 9,
-                                            hi: 12,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Type(
-                                    Error(
-                                        AmbiguousTy(
-                                            Span {
-                                                lo: 9,
-                                                hi: 14,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-                (
-                    "project/src/file.qs",
-                    None,
-                    [
-                        Frontend(
-                            Error(
-                                Type(
-                                    Error(
-                                        TyMismatch(
-                                            "Unit",
-                                            "Int",
-                                            Span {
-                                                lo: 33,
-                                                hi: 36,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "cell1" version: Some(1) errors: [
+                name error
+                  [cell1] [Foo]
+                name error
+                  [cell1] [Foo]
+                name error
+                  [cell1] [Bar]
+                type error
+                  [cell1] [Bar()]
+              ],
+
+              uri: "project/src/file.qs" version: None errors: [
+                type error
+                  [project/src/file.qs] [Int]
+              ],
+            ]"#]],
     );
 }
 
@@ -1154,7 +824,9 @@ async fn update_notebook_reports_errors_from_dependency_of_dependencies() {
 
     let fs = Rc::new(RefCell::new(fs));
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&errors, &fs);
+    let test_cases = RefCell::new(Vec::new());
+
+    let mut updater = new_updater_with_file_system(&errors, &test_cases, &fs);
 
     updater
         .update_notebook_document(
@@ -1172,45 +844,27 @@ async fn update_notebook_reports_errors_from_dependency_of_dependencies() {
     expect_errors(
         &errors,
         &expect![[r#"
-        [
-            (
-                "project2/src/file.qs",
-                None,
-                [
-                    Frontend(
-                        Error(
-                            Type(
-                                Error(
-                                    TyMismatch(
-                                        "Unit",
-                                        "Int",
-                                        Span {
-                                            lo: 33,
-                                            hi: 36,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ),
-                ],
-                [],
-            ),
-        ]
-    "#]],
+            [
+              uri: "project2/src/file.qs" version: None errors: [
+                type error
+                  [project2/src/file.qs] [Int]
+              ],
+            ]"#]],
     );
 }
 
 #[tokio::test]
 async fn update_doc_updates_project() {
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
         .update_document(
             "project/src/other_file.qs",
             1,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+            "qsharp",
         )
         .await;
     updater
@@ -1218,6 +872,7 @@ async fn update_doc_updates_project() {
             "project/src/this_file.qs",
             1,
             "namespace Foo { we should see this in the source }",
+            "qsharp",
         )
         .await;
 
@@ -1239,56 +894,225 @@ async fn update_doc_updates_project() {
             }
         "#]],
         &expect![[r#"
-            project/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "project/src/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "project/src/this_file.qs",
-                        contents: "namespace Foo { we should see this in the source }",
-                        offset: 59,
-                    },
-                ],
-                common_prefix: Some(
-                    "project/src/",
-                ),
-                entry: None,
-            }
+            project/qsharp.json: [
+              "project/src/other_file.qs": "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+              "project/src/this_file.qs": "namespace Foo { we should see this in the source }",
+            ],
         "#]],
         &expect![[r#"
             [
-                (
-                    "project/src/this_file.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Token(
-                                            Close(
-                                                Brace,
-                                            ),
-                                            Ident,
-                                            Span {
-                                                lo: 75,
-                                                hi: 77,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
+              uri: "project/src/this_file.qs" version: Some(1) errors: [
+                syntax error
+                  [project/src/this_file.qs] [we]
+              ],
+            ]"#]],
+    );
+}
+
+#[tokio::test]
+async fn file_not_in_files_list() {
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+
+    // Manifest has a "files" field.
+    // One file is listed in it, the other is not.
+    // This shouldn't block project load, but should generate an error.
+    let fs = FsNode::Dir(
+        [dir(
+            "project",
+            [
+                file(
+                    "qsharp.json",
+                    r#"{
+                        "files" : [
+                            "src/explicitly_listed.qs"
+                        ]
+                    }"#,
                 ),
-            ]
+                dir(
+                    "src",
+                    [
+                        file("explicitly_listed.qs", "// CONTENTS"),
+                        file("unlisted.qs", "// CONTENTS"),
+                    ],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
+
+    // Open the file that is listed in the files list
+    updater
+        .update_document(
+            "project/src/explicitly_listed.qs",
+            1,
+            "// CONTENTS",
+            "qsharp",
+        )
+        .await;
+
+    // The whole project should be loaded, which should generate
+    // an error about the other file that's unlisted.
+    // They are both in the compilation.
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "project/src/explicitly_listed.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/qsharp.json",
+                    latest_str_content: "// CONTENTS",
+                },
+            }
         "#]],
+        &expect![[r#"
+            project/qsharp.json: [
+              "project/src/explicitly_listed.qs": "// CONTENTS",
+              "project/src/unlisted.qs": "// CONTENTS",
+            ],
+        "#]],
+        &expect![[r#"
+            [
+              uri: "project/src/unlisted.qs" version: None errors: [
+                File src/unlisted.qs is not listed in the `files` field of the manifest
+              ],
+            ]"#]],
+    );
+
+    // Open the unlisted file as well.
+    updater
+        .update_document("project/src/unlisted.qs", 1, "// CONTENTS", "qsharp")
+        .await;
+
+    // Documents are both open and correctly associated with the project.
+    // The error about the unlisted file persists.
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "project/src/explicitly_listed.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/qsharp.json",
+                    latest_str_content: "// CONTENTS",
+                },
+                "project/src/unlisted.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/qsharp.json",
+                    latest_str_content: "// CONTENTS",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            project/qsharp.json: [
+              "project/src/explicitly_listed.qs": "// CONTENTS",
+              "project/src/unlisted.qs": "// CONTENTS",
+            ],
+        "#]],
+        &expect![[r#"
+            [
+              uri: "project/src/unlisted.qs" version: Some(1) errors: [
+                File src/unlisted.qs is not listed in the `files` field of the manifest
+              ],
+            ]"#]],
+    );
+}
+
+#[tokio::test]
+async fn file_not_under_src() {
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+
+    // One file lives under the 'src' directory, the other does not.
+    // The one that isn't under 'src' should not be associated with the project.
+    let fs = FsNode::Dir(
+        [dir(
+            "project",
+            [
+                file(
+                    "qsharp.json",
+                    r#"{
+                        "files" : [
+                            "src/under_src.qs"
+                        ]
+                    }"#,
+                ),
+                file("not_under_src.qs", "// CONTENTS"),
+                dir("src", [file("under_src.qs", "// CONTENTS")]),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
+
+    // Open the file that is not under src.
+    updater
+        .update_document("project/not_under_src.qs", 1, "// CONTENTS", "qsharp")
+        .await;
+
+    // This document is not associated with the manifest,
+    // didn't cause the manifest to be loaded,
+    // and lives in its own project by itself.
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "project/not_under_src.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/not_under_src.qs",
+                    latest_str_content: "// CONTENTS",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            project/not_under_src.qs: [
+              "project/not_under_src.qs": "// CONTENTS",
+            ],
+        "#]],
+        &expect!["[]"],
+    );
+
+    // Open the file that's properly under the "src" directory.
+    updater
+        .update_document("project/src/under_src.qs", 1, "// CONTENTS", "qsharp")
+        .await;
+
+    // The manifest is loaded, `not_under_src.qs` is still not associated with it.
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "project/not_under_src.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/not_under_src.qs",
+                    latest_str_content: "// CONTENTS",
+                },
+                "project/src/under_src.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/qsharp.json",
+                    latest_str_content: "// CONTENTS",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            project/not_under_src.qs: [
+              "project/not_under_src.qs": "// CONTENTS",
+            ],
+            project/qsharp.json: [
+              "project/src/under_src.qs": "// CONTENTS",
+            ],
+        "#]],
+        &expect!["[]"],
     );
 }
 
@@ -1301,13 +1125,15 @@ async fn update_doc_updates_project() {
 #[tokio::test]
 async fn close_doc_prioritizes_fs() {
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
         .update_document(
             "project/src/other_file.qs",
             1,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+            "qsharp",
         )
         .await;
     updater
@@ -1315,10 +1141,13 @@ async fn close_doc_prioritizes_fs() {
             "project/src/this_file.qs",
             1,
             "/* this should not show up in the final state */ we should not see compile errors",
+            "qsharp",
         )
         .await;
 
-    updater.close_document("project/src/this_file.qs").await;
+    updater
+        .close_document("project/src/this_file.qs", "qsharp")
+        .await;
 
     check_state_and_errors(
         &updater,
@@ -1333,75 +1162,35 @@ async fn close_doc_prioritizes_fs() {
             }
         "#]],
         &expect![[r#"
-            project/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "project/src/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 59,
-                    },
-                ],
-                common_prefix: Some(
-                    "project/src/",
-                ),
-                entry: None,
-            }
+            project/qsharp.json: [
+              "project/src/other_file.qs": "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+              "project/src/this_file.qs": "// DISK CONTENTS\n namespace Foo { }",
+            ],
         "#]],
         &expect![[r#"
             [
-                (
-                    "project/src/this_file.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Token(
-                                            Eof,
-                                            ClosedBinOp(
-                                                Slash,
-                                            ),
-                                            Span {
-                                                lo: 59,
-                                                hi: 60,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-                (
-                    "project/src/this_file.qs",
-                    None,
-                    [],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "project/src/this_file.qs" version: Some(1) errors: [
+                syntax error
+                  [project/src/this_file.qs] [/]
+              ],
+
+              uri: "project/src/this_file.qs" version: None errors: [],
+            ]"#]],
     );
 }
 
 #[tokio::test]
 async fn delete_manifest() {
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
         .update_document(
             "project/src/this_file.qs",
             1,
             "// DISK CONTENTS\n namespace Foo { }",
+            "qsharp",
         )
         .await;
 
@@ -1417,24 +1206,10 @@ async fn delete_manifest() {
             }
         "#]],
         &expect![[r#"
-            project/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "project/src/other_file.qs",
-                        contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 71,
-                    },
-                ],
-                common_prefix: Some(
-                    "project/src/",
-                ),
-                entry: None,
-            }
+            project/qsharp.json: [
+              "project/src/other_file.qs": "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
+              "project/src/this_file.qs": "// DISK CONTENTS\n namespace Foo { }",
+            ],
         "#]],
     );
 
@@ -1445,6 +1220,7 @@ async fn delete_manifest() {
             "project/src/this_file.qs",
             2,
             "// DISK CONTENTS\n namespace Foo { }",
+            "qsharp",
         )
         .await;
 
@@ -1460,19 +1236,9 @@ async fn delete_manifest() {
             }
         "#]],
         &expect![[r#"
-            project/src/this_file.qs: SourceMap {
-                sources: [
-                    Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 0,
-                    },
-                ],
-                common_prefix: Some(
-                    "project/src/",
-                ),
-                entry: None,
-            }
+            project/src/this_file.qs: [
+              "project/src/this_file.qs": "// DISK CONTENTS\n namespace Foo { }",
+            ],
         "#]],
     );
 }
@@ -1480,13 +1246,15 @@ async fn delete_manifest() {
 #[tokio::test]
 async fn delete_manifest_then_close() {
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
         .update_document(
             "project/src/this_file.qs",
             1,
             "// DISK CONTENTS\n namespace Foo { }",
+            "qsharp",
         )
         .await;
 
@@ -1502,30 +1270,18 @@ async fn delete_manifest_then_close() {
             }
         "#]],
         &expect![[r#"
-            project/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "project/src/other_file.qs",
-                        contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 71,
-                    },
-                ],
-                common_prefix: Some(
-                    "project/src/",
-                ),
-                entry: None,
-            }
+            project/qsharp.json: [
+              "project/src/other_file.qs": "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
+              "project/src/this_file.qs": "// DISK CONTENTS\n namespace Foo { }",
+            ],
         "#]],
     );
 
     TEST_FS.with(|fs| fs.borrow_mut().remove("project/qsharp.json"));
 
-    updater.close_document("project/src/this_file.qs").await;
+    updater
+        .close_document("project/src/this_file.qs", "qsharp")
+        .await;
 
     check_state(
         &updater,
@@ -1539,14 +1295,25 @@ async fn delete_manifest_then_close() {
 #[tokio::test]
 async fn doc_switches_project() {
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
-        .update_document("nested_projects/src/subdir/src/a.qs", 1, "namespace A {}")
+        .update_document(
+            "nested_projects/src/subdir/src/a.qs",
+            1,
+            "namespace A {}",
+            "qsharp",
+        )
         .await;
 
     updater
-        .update_document("nested_projects/src/subdir/src/b.qs", 1, "namespace B {}")
+        .update_document(
+            "nested_projects/src/subdir/src/b.qs",
+            1,
+            "namespace B {}",
+            "qsharp",
+        )
         .await;
 
     check_state(
@@ -1566,24 +1333,10 @@ async fn doc_switches_project() {
             }
         "#]],
         &expect![[r#"
-            nested_projects/src/subdir/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "nested_projects/src/subdir/src/a.qs",
-                        contents: "namespace A {}",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "nested_projects/src/subdir/src/b.qs",
-                        contents: "namespace B {}",
-                        offset: 15,
-                    },
-                ],
-                common_prefix: Some(
-                    "nested_projects/src/subdir/src/",
-                ),
-                entry: None,
-            }
+            nested_projects/src/subdir/qsharp.json: [
+              "nested_projects/src/subdir/src/a.qs": "namespace A {}",
+              "nested_projects/src/subdir/src/b.qs": "namespace B {}",
+            ],
         "#]],
     );
 
@@ -1596,11 +1349,21 @@ async fn doc_switches_project() {
     });
 
     updater
-        .update_document("nested_projects/src/subdir/src/a.qs", 2, "namespace A {}")
+        .update_document(
+            "nested_projects/src/subdir/src/a.qs",
+            2,
+            "namespace A {}",
+            "qsharp",
+        )
         .await;
 
     updater
-        .update_document("nested_projects/src/subdir/src/b.qs", 2, "namespace B {}")
+        .update_document(
+            "nested_projects/src/subdir/src/b.qs",
+            2,
+            "namespace B {}",
+            "qsharp",
+        )
         .await;
 
     // the error should now be coming from the parent qsharp.json? But the document
@@ -1622,24 +1385,10 @@ async fn doc_switches_project() {
             }
         "#]],
         &expect![[r#"
-            nested_projects/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "nested_projects/src/subdir/src/a.qs",
-                        contents: "namespace A {}",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "nested_projects/src/subdir/src/b.qs",
-                        contents: "namespace B {}",
-                        offset: 15,
-                    },
-                ],
-                common_prefix: Some(
-                    "nested_projects/src/subdir/src/",
-                ),
-                entry: None,
-            }
+            nested_projects/qsharp.json: [
+              "nested_projects/src/subdir/src/a.qs": "namespace A {}",
+              "nested_projects/src/subdir/src/b.qs": "namespace B {}",
+            ],
         "#]],
     );
 }
@@ -1647,14 +1396,25 @@ async fn doc_switches_project() {
 #[tokio::test]
 async fn doc_switches_project_on_close() {
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
-        .update_document("nested_projects/src/subdir/src/a.qs", 1, "namespace A {}")
+        .update_document(
+            "nested_projects/src/subdir/src/a.qs",
+            1,
+            "namespace A {}",
+            "qsharp",
+        )
         .await;
 
     updater
-        .update_document("nested_projects/src/subdir/src/b.qs", 1, "namespace B {}")
+        .update_document(
+            "nested_projects/src/subdir/src/b.qs",
+            1,
+            "namespace B {}",
+            "qsharp",
+        )
         .await;
 
     check_state(
@@ -1674,24 +1434,10 @@ async fn doc_switches_project_on_close() {
             }
         "#]],
         &expect![[r#"
-            nested_projects/src/subdir/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "nested_projects/src/subdir/src/a.qs",
-                        contents: "namespace A {}",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "nested_projects/src/subdir/src/b.qs",
-                        contents: "namespace B {}",
-                        offset: 15,
-                    },
-                ],
-                common_prefix: Some(
-                    "nested_projects/src/subdir/src/",
-                ),
-                entry: None,
-            }
+            nested_projects/src/subdir/qsharp.json: [
+              "nested_projects/src/subdir/src/a.qs": "namespace A {}",
+              "nested_projects/src/subdir/src/b.qs": "namespace B {}",
+            ],
         "#]],
     );
 
@@ -1704,11 +1450,16 @@ async fn doc_switches_project_on_close() {
     });
 
     updater
-        .close_document("nested_projects/src/subdir/src/a.qs")
+        .close_document("nested_projects/src/subdir/src/a.qs", "qsharp")
         .await;
 
     updater
-        .update_document("nested_projects/src/subdir/src/b.qs", 2, "namespace B {}")
+        .update_document(
+            "nested_projects/src/subdir/src/b.qs",
+            2,
+            "namespace B {}",
+            "qsharp",
+        )
         .await;
 
     check_state(
@@ -1723,24 +1474,10 @@ async fn doc_switches_project_on_close() {
             }
         "#]],
         &expect![[r#"
-            nested_projects/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "nested_projects/src/subdir/src/a.qs",
-                        contents: "namespace A {}",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "nested_projects/src/subdir/src/b.qs",
-                        contents: "namespace B {}",
-                        offset: 15,
-                    },
-                ],
-                common_prefix: Some(
-                    "nested_projects/src/subdir/src/",
-                ),
-                entry: None,
-            }
+            nested_projects/qsharp.json: [
+              "nested_projects/src/subdir/src/a.qs": "namespace A {}",
+              "nested_projects/src/subdir/src/b.qs": "namespace B {}",
+            ],
         "#]],
     );
 }
@@ -1771,25 +1508,31 @@ async fn loading_lints_config_from_manifest() {
 
     let fs = Rc::new(RefCell::new(fs));
     let received_errors = RefCell::new(Vec::new());
-    let updater = new_updater_with_file_system(&received_errors, &fs);
+    let test_cases = RefCell::new(Vec::new());
+
+    let updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
 
     // Check the LintConfig.
     check_lints_config(
         &updater,
         &expect![[r#"
             [
-                LintConfig {
-                    kind: Ast(
-                        DivisionByZero,
-                    ),
-                    level: Error,
-                },
-                LintConfig {
-                    kind: Ast(
-                        NeedlessParens,
-                    ),
-                    level: Error,
-                },
+                Lint(
+                    LintConfig {
+                        kind: Ast(
+                            DivisionByZero,
+                        ),
+                        level: Error,
+                    },
+                ),
+                Lint(
+                    LintConfig {
+                        kind: Ast(
+                            NeedlessParens,
+                        ),
+                        level: Error,
+                    },
+                ),
             ]"#]],
     )
     .await;
@@ -1823,65 +1566,27 @@ async fn lints_update_after_manifest_change() {
 
     let fs = Rc::new(RefCell::new(fs));
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&received_errors, &fs);
+    let test_cases = RefCell::new(Vec::new());
+
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
 
     // Trigger a document update.
     updater
-        .update_document("project/src/this_file.qs", 1, this_file_qs)
+        .update_document("project/src/this_file.qs", 1, this_file_qs, "qsharp")
         .await;
 
     // Check generated lints.
-    let lints: &[compile::ErrorKind] = &received_errors.take()[0].2;
-    check_lints(
-        lints,
+    expect_errors(
+        &received_errors,
         &expect![[r#"
-            [
-                Lint(
-                    Lint {
-                        span: Span {
-                            lo: 71,
-                            hi: 78,
-                        },
-                        level: Error,
-                        message: "unnecessary parentheses",
-                        help: "remove the extra parentheses for clarity",
-                        kind: Ast(
-                            NeedlessParens,
-                        ),
-                        code_action_edits: [
-                            (
-                                "",
-                                Span {
-                                    lo: 71,
-                                    hi: 72,
-                                },
-                            ),
-                            (
-                                "",
-                                Span {
-                                    lo: 77,
-                                    hi: 78,
-                                },
-                            ),
-                        ],
-                    },
-                ),
-                Lint(
-                    Lint {
-                        span: Span {
-                            lo: 63,
-                            hi: 68,
-                        },
-                        level: Error,
-                        message: "attempt to divide by zero",
-                        help: "division by zero will fail at runtime",
-                        kind: Ast(
-                            DivisionByZero,
-                        ),
-                        code_action_edits: [],
-                    },
-                ),
-            ]"#]],
+        [
+          uri: "project/src/this_file.qs" version: Some(1) errors: [
+            unnecessary parentheses
+              [project/src/this_file.qs] [(2 ^ 4)]
+            attempt to divide by zero
+              [project/src/this_file.qs] [5 / 0]
+          ],
+        ]"#]],
     );
 
     // Modify the manifest.
@@ -1892,60 +1597,20 @@ async fn lints_update_after_manifest_change() {
 
     // Trigger a document update
     updater
-        .update_document("project/src/this_file.qs", 1, this_file_qs)
+        .update_document("project/src/this_file.qs", 1, this_file_qs, "qsharp")
         .await;
 
     // Check lints again
-    let lints: &[compile::ErrorKind] = &received_errors.take()[0].2;
-    check_lints(
-        lints,
+    expect_errors(
+        &received_errors,
         &expect![[r#"
             [
-                Lint(
-                    Lint {
-                        span: Span {
-                            lo: 71,
-                            hi: 78,
-                        },
-                        level: Warn,
-                        message: "unnecessary parentheses",
-                        help: "remove the extra parentheses for clarity",
-                        kind: Ast(
-                            NeedlessParens,
-                        ),
-                        code_action_edits: [
-                            (
-                                "",
-                                Span {
-                                    lo: 71,
-                                    hi: 72,
-                                },
-                            ),
-                            (
-                                "",
-                                Span {
-                                    lo: 77,
-                                    hi: 78,
-                                },
-                            ),
-                        ],
-                    },
-                ),
-                Lint(
-                    Lint {
-                        span: Span {
-                            lo: 63,
-                            hi: 68,
-                        },
-                        level: Warn,
-                        message: "attempt to divide by zero",
-                        help: "division by zero will fail at runtime",
-                        kind: Ast(
-                            DivisionByZero,
-                        ),
-                        code_action_edits: [],
-                    },
-                ),
+              uri: "project/src/this_file.qs" version: Some(1) errors: [
+                unnecessary parentheses
+                  [project/src/this_file.qs] [(2 ^ 4)]
+                attempt to divide by zero
+                  [project/src/this_file.qs] [5 / 0]
+              ],
             ]"#]],
     );
 }
@@ -1956,41 +1621,30 @@ async fn lints_prefer_workspace_over_defaults() {
         "namespace Foo { @EntryPoint() function Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
 
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
     updater.update_configuration(WorkspaceConfigurationUpdate {
-        lints_config: Some(vec![LintConfig {
+        lints_config: Some(vec![LintOrGroupConfig::Lint(LintConfig {
             kind: LintKind::Ast(AstLint::DivisionByZero),
             level: LintLevel::Warn,
-        }]),
+        })]),
         ..WorkspaceConfigurationUpdate::default()
     });
 
     // Trigger a document update.
     updater
-        .update_document("project/src/this_file.qs", 1, this_file_qs)
+        .update_document("project/src/this_file.qs", 1, this_file_qs, "qsharp")
         .await;
 
     // Check generated lints.
-    let lints: &[compile::ErrorKind] = &received_errors.take()[0].2;
-    check_lints(
-        lints,
+    expect_errors(
+        &received_errors,
         &expect![[r#"
             [
-                Lint(
-                    Lint {
-                        span: Span {
-                            lo: 134,
-                            hi: 139,
-                        },
-                        level: Warn,
-                        message: "attempt to divide by zero",
-                        help: "division by zero will fail at runtime",
-                        kind: Ast(
-                            DivisionByZero,
-                        ),
-                        code_action_edits: [],
-                    },
-                ),
+              uri: "project/src/this_file.qs" version: Some(1) errors: [
+                attempt to divide by zero
+                  [project/src/this_file.qs] [5 / 0]
+              ],
             ]"#]],
     );
 }
@@ -2016,18 +1670,19 @@ async fn lints_prefer_manifest_over_workspace() {
 
     let fs = Rc::new(RefCell::new(fs));
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&received_errors, &fs);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
     updater.update_configuration(WorkspaceConfigurationUpdate {
-        lints_config: Some(vec![LintConfig {
+        lints_config: Some(vec![LintOrGroupConfig::Lint(LintConfig {
             kind: LintKind::Ast(AstLint::DivisionByZero),
             level: LintLevel::Warn,
-        }]),
+        })]),
         ..WorkspaceConfigurationUpdate::default()
     });
 
     // Trigger a document update.
     updater
-        .update_document("project/src/this_file.qs", 1, this_file_qs)
+        .update_document("project/src/this_file.qs", 1, this_file_qs, "qsharp")
         .await;
 
     // No lints expected ("allow" wins over "warn")
@@ -2053,29 +1708,28 @@ async fn missing_dependency_reported() {
 
     let fs = Rc::new(RefCell::new(fs));
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&received_errors, &fs);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
 
-    // Triger a document update.
+    // Trigger a document update.
     updater
-        .update_document("parent/src/main.qs", 1, "function Main() : Unit {}")
+        .update_document(
+            "parent/src/main.qs",
+            1,
+            "function Main() : Unit {}",
+            "qsharp",
+        )
         .await;
 
-    expect![[r#"
-        [
-            (
-                "parent/qsharp.json",
-                None,
-                [],
-                [
-                    FileSystem {
-                        about_path: "child/qsharp.json",
-                        error: "file not found",
-                    },
-                ],
-            ),
-        ]
-    "#]]
-    .assert_debug_eq(&received_errors.borrow());
+    expect_errors(
+        &received_errors,
+        &expect![[r#"
+            [
+              uri: "parent/qsharp.json" version: None errors: [
+                File system error: child/qsharp.json: file not found
+              ],
+            ]"#]],
+    );
 }
 
 #[tokio::test]
@@ -2106,115 +1760,614 @@ async fn error_from_dependency_reported() {
 
     let fs = Rc::new(RefCell::new(fs));
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&received_errors, &fs);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
 
-    // Triger a document update.
+    // Trigger a document update.
     updater
-        .update_document("parent/src/main.qs", 1, "function Main() : Unit {}")
+        .update_document(
+            "parent/src/main.qs",
+            1,
+            "function Main() : Unit {}",
+            "qsharp",
+        )
+        .await;
+
+    expect_errors(
+        &received_errors,
+        &expect![[r#"
+            [
+              uri: "child/src/main.qs" version: None errors: [
+                syntax error
+                  [child/src/main.qs] [broken_syntax]
+              ],
+            ]"#]],
+    );
+}
+
+#[tokio::test]
+async fn single_github_source_no_errors() {
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
+
+    updater
+        .update_document(
+            "qsharp-github-source:foo/bar/Main.qs",
+            1,
+            "badsyntax",
+            "qsharp",
+        )
+        .await;
+
+    updater
+        .update_document("/foo/bar/Main.qs", 1, "badsyntax", "qsharp")
+        .await;
+
+    // Same error exists in both files, but the github one should not be reported
+
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "qsharp-github-source:foo/bar/Main.qs": OpenDocument {
+                    version: 1,
+                    compilation: "qsharp-github-source:foo/bar/Main.qs",
+                    latest_str_content: "badsyntax",
+                },
+                "/foo/bar/Main.qs": OpenDocument {
+                    version: 1,
+                    compilation: "/foo/bar/Main.qs",
+                    latest_str_content: "badsyntax",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            qsharp-github-source:foo/bar/Main.qs: [
+              "qsharp-github-source:foo/bar/Main.qs": "badsyntax",
+            ],
+            /foo/bar/Main.qs: [
+              "/foo/bar/Main.qs": "badsyntax",
+            ],
+        "#]],
+        &expect![[r#"
+            [
+              uri: "/foo/bar/Main.qs" version: Some(1) errors: [
+                syntax error
+                  [/foo/bar/Main.qs] [badsyntax]
+              ],
+            ]"#]],
+    );
+}
+
+#[tokio::test]
+async fn test_case_detected() {
+    let fs = FsNode::Dir(
+        [dir(
+            "parent",
+            [
+                file("qsharp.json", r#"{}"#),
+                dir("src", [file("main.qs", "function MyTestCase() : Unit {}")]),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
+
+    // Trigger a document update.
+    updater
+        .update_document(
+            "parent/src/main.qs",
+            1,
+            "@Test() function MyTestCase() : Unit {}",
+            "qsharp",
+        )
         .await;
 
     expect![[r#"
         [
-            (
-                "child/src/main.qs",
-                None,
-                [
-                    Frontend(
-                        Error(
-                            Parse(
-                                Error(
-                                    Token(
-                                        Eof,
-                                        Ident,
-                                        Span {
-                                            lo: 0,
-                                            hi: 13,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ),
+            TestCallables {
+                callables: [
+                    TestCallable {
+                        callable_name: "main.MyTestCase",
+                        compilation_uri: "parent/qsharp.json",
+                        location: Location {
+                            source: "parent/src/main.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 17,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 27,
+                                },
+                            },
+                        },
+                        friendly_name: "parent",
+                    },
                 ],
-                [],
-            ),
+            },
         ]
     "#]]
-    .assert_debug_eq(&received_errors.borrow());
+    .assert_debug_eq(&test_cases.borrow());
 }
 
-type ErrorInfo = (
-    String,
-    Option<u32>,
-    Vec<compile::ErrorKind>,
-    Vec<project::Error>,
-);
+#[tokio::test]
+async fn test_case_removed() {
+    let fs = FsNode::Dir(
+        [dir(
+            "parent",
+            [
+                file("qsharp.json", r#"{}"#),
+                dir(
+                    "src",
+                    [file("main.qs", "@Test() function MyTestCase() : Unit {}")],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
 
-fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpdater<'_> {
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
+
+    // Trigger a document update.
+    updater
+        .update_document(
+            "parent/src/main.qs",
+            1,
+            "function MyTestCase() : Unit {}",
+            "qsharp",
+        )
+        .await;
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [],
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
+}
+
+#[tokio::test]
+async fn test_case_modified() {
+    let fs = FsNode::Dir(
+        [dir(
+            "parent",
+            [
+                file("qsharp.json", r#"{}"#),
+                dir(
+                    "src",
+                    [file("main.qs", "@Test() function MyTestCase() : Unit {}")],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
+
+    // Trigger a document update.
+    updater
+        .update_document(
+            "parent/src/main.qs",
+            1,
+            "@Test() function MyTestCase() : Unit {}",
+            "qsharp",
+        )
+        .await;
+
+    updater
+        .update_document(
+            "parent/src/main.qs",
+            2,
+            "@Test() function MyTestCase2() : Unit { }",
+            "qsharp",
+        )
+        .await;
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [
+                    TestCallable {
+                        callable_name: "main.MyTestCase",
+                        compilation_uri: "parent/qsharp.json",
+                        location: Location {
+                            source: "parent/src/main.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 17,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 27,
+                                },
+                            },
+                        },
+                        friendly_name: "parent",
+                    },
+                ],
+            },
+            TestCallables {
+                callables: [
+                    TestCallable {
+                        callable_name: "main.MyTestCase2",
+                        compilation_uri: "parent/qsharp.json",
+                        location: Location {
+                            source: "parent/src/main.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 17,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 28,
+                                },
+                            },
+                        },
+                        friendly_name: "parent",
+                    },
+                ],
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
+}
+
+#[tokio::test]
+async fn test_annotation_removed() {
+    let fs = FsNode::Dir(
+        [dir(
+            "parent",
+            [
+                file("qsharp.json", r#"{}"#),
+                dir(
+                    "src",
+                    [file("main.qs", "@Test() function MyTestCase() : Unit {}")],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
+
+    // Trigger a document update.
+    updater
+        .update_document(
+            "parent/src/main.qs",
+            1,
+            "@Test() function MyTestCase() : Unit {}",
+            "qsharp",
+        )
+        .await;
+
+    updater
+        .update_document(
+            "parent/src/main.qs",
+            2,
+            "function MyTestCase() : Unit {}",
+            "qsharp",
+        )
+        .await;
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [
+                    TestCallable {
+                        callable_name: "main.MyTestCase",
+                        compilation_uri: "parent/qsharp.json",
+                        location: Location {
+                            source: "parent/src/main.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 17,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 27,
+                                },
+                            },
+                        },
+                        friendly_name: "parent",
+                    },
+                ],
+            },
+            TestCallables {
+                callables: [],
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
+}
+
+#[tokio::test]
+async fn multiple_tests() {
+    let fs = FsNode::Dir(
+        [dir(
+            "parent",
+            [
+                file("qsharp.json", r#"{}"#),
+                dir(
+                    "src",
+                    [file(
+                        "main.qs",
+                        "@Test() function Test1() : Unit {} @Test() function Test2() : Unit {}",
+                    )],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
+
+    // Trigger a document update.
+    updater
+        .update_document(
+            "parent/src/main.qs",
+            1,
+            "@Test() function Test1() : Unit {} @Test() function Test2() : Unit {}",
+            "qsharp",
+        )
+        .await;
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [
+                    TestCallable {
+                        callable_name: "main.Test1",
+                        compilation_uri: "parent/qsharp.json",
+                        location: Location {
+                            source: "parent/src/main.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 17,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 22,
+                                },
+                            },
+                        },
+                        friendly_name: "parent",
+                    },
+                    TestCallable {
+                        callable_name: "main.Test2",
+                        compilation_uri: "parent/qsharp.json",
+                        location: Location {
+                            source: "parent/src/main.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 52,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 57,
+                                },
+                            },
+                        },
+                        friendly_name: "parent",
+                    },
+                ],
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
+}
+
+#[tokio::test]
+async fn test_case_in_different_files() {
+    let fs = FsNode::Dir(
+        [dir(
+            "parent",
+            [
+                file("qsharp.json", r#"{}"#),
+                dir(
+                    "src",
+                    [
+                        file("test1.qs", "@Test() function Test1() : Unit {}"),
+                        file("test2.qs", "@Test() function Test2() : Unit {}"),
+                    ],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
+
+    // Trigger a document update for the first test file.
+    updater
+        .update_document(
+            "parent/src/test1.qs",
+            1,
+            "@Test() function Test1() : Unit {}",
+            "qsharp",
+        )
+        .await;
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [
+                    TestCallable {
+                        callable_name: "test1.Test1",
+                        compilation_uri: "parent/qsharp.json",
+                        location: Location {
+                            source: "parent/src/test1.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 17,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 22,
+                                },
+                            },
+                        },
+                        friendly_name: "parent",
+                    },
+                    TestCallable {
+                        callable_name: "test2.Test2",
+                        compilation_uri: "parent/qsharp.json",
+                        location: Location {
+                            source: "parent/src/test2.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 17,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 22,
+                                },
+                            },
+                        },
+                        friendly_name: "parent",
+                    },
+                ],
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
+}
+
+impl Display for DiagnosticUpdate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let DiagnosticUpdate {
+            uri,
+            version,
+            errors,
+        } = self;
+
+        write!(f, "uri: {uri:?} version: {version:?} errors: [",)?;
+        // Formatting loosely taken from compiler/qsc/src/interpret/tests.rs
+        for error in errors {
+            write!(f, "\n    {error}")?;
+            for label in error.labels().into_iter().flatten() {
+                let span = error
+                    .source_code()
+                    .expect("expected valid source code")
+                    .read_span(label.inner(), 0, 0)
+                    .expect("expected to be able to read span");
+
+                write!(
+                    f,
+                    "\n     {} [{}] [{}]",
+                    label.label().unwrap_or(""),
+                    span.name().expect("expected source file name"),
+                    from_utf8(span.data()).expect("expected valid utf-8 string"),
+                )?;
+            }
+        }
+        if !errors.is_empty() {
+            write!(f, "\n  ")?;
+        }
+        writeln!(f, "],")?;
+
+        Ok(())
+    }
+}
+
+fn new_updater<'a>(
+    received_errors: &'a RefCell<Vec<DiagnosticUpdate>>,
+    received_test_cases: &'a RefCell<Vec<TestCallables>>,
+) -> CompilationStateUpdater<'a> {
     let diagnostic_receiver = move |update: DiagnosticUpdate| {
-        let project_errors = update.errors.iter().filter_map(|error| match error {
-            ErrorKind::Project(error) => Some(error.clone()),
-            ErrorKind::Compile(_) => None,
-        });
-        let compile_errors = update.errors.iter().filter_map(|error| match error {
-            ErrorKind::Compile(error) => Some(error.error().clone()),
-            ErrorKind::Project(_) => None,
-        });
-
         let mut v = received_errors.borrow_mut();
+        v.push(update);
+    };
 
-        v.push((
-            update.uri,
-            update.version,
-            compile_errors.collect(),
-            project_errors.collect(),
-        ));
+    let test_callable_receiver = move |update: TestCallables| {
+        let mut v = received_test_cases.borrow_mut();
+        v.push(update);
     };
 
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
+        test_callable_receiver,
         TestProjectHost {
             fs: TEST_FS.with(Clone::clone),
         },
+        Encoding::Utf8,
     )
 }
 
 fn new_updater_with_file_system<'a>(
-    received_errors: &'a RefCell<Vec<ErrorInfo>>,
+    received_errors: &'a RefCell<Vec<DiagnosticUpdate>>,
+    received_test_cases: &'a RefCell<Vec<TestCallables>>,
     fs: &Rc<RefCell<FsNode>>,
 ) -> CompilationStateUpdater<'a> {
     let diagnostic_receiver = move |update: DiagnosticUpdate| {
-        let project_errors = update.errors.iter().filter_map(|error| match error {
-            ErrorKind::Project(error) => Some(error.clone()),
-            ErrorKind::Compile(_) => None,
-        });
-        let compile_errors = update.errors.iter().filter_map(|error| match error {
-            ErrorKind::Compile(error) => Some(error.error().clone()),
-            ErrorKind::Project(_) => None,
-        });
-
         let mut v = received_errors.borrow_mut();
+        v.push(update);
+    };
 
-        v.push((
-            update.uri,
-            update.version,
-            compile_errors.collect(),
-            project_errors.collect(),
-        ));
+    let test_callable_receiver = move |update: TestCallables| {
+        let mut v = received_test_cases.borrow_mut();
+        v.push(update);
     };
 
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
+        test_callable_receiver,
         TestProjectHost { fs: fs.clone() },
+        Encoding::Utf8,
     )
 }
 
-fn expect_errors(errors: &RefCell<Vec<ErrorInfo>>, expected: &Expect) {
-    expected.assert_debug_eq(&errors.borrow());
+fn expect_errors(updates: &RefCell<Vec<DiagnosticUpdate>>, expected: &Expect) {
+    let mut buf = String::new();
+    let _ = buf.write_str("[");
+    for update in updates.borrow().iter() {
+        let _ = write!(buf, "\n  {update}");
+    }
+    let _ = buf.write_str("]");
+
+    expected.assert_eq(&buf);
+
     // reset accumulated errors after each check
-    errors.borrow_mut().clear();
+    updates.borrow_mut().clear();
 }
 
 fn assert_compilation_sources(updater: &CompilationStateUpdater<'_>, expected: &Expect) {
@@ -2225,7 +2378,11 @@ fn assert_compilation_sources(updater: &CompilationStateUpdater<'_>, expected: &
             .compilations
             .iter()
             .fold(String::new(), |mut output, (name, compilation)| {
-                let _ = writeln!(output, "{}: {:#?}", name, compilation.0.user_unit().sources);
+                let _ = writeln!(output, "{name}: [");
+                for source in compilation.0.user_unit().sources.iter() {
+                    let _ = writeln!(output, "  {:?}: {:?},", source.name, source.contents);
+                }
+                let _ = writeln!(output, "],");
                 output
             });
     expected.assert_eq(&compilation_sources);
@@ -2238,14 +2395,14 @@ fn assert_open_documents(updater: &CompilationStateUpdater<'_>, expected: &Expec
 
 fn check_state_and_errors(
     updater: &CompilationStateUpdater<'_>,
-    received_errors: &RefCell<Vec<ErrorInfo>>,
+    received_diag_updates: &RefCell<Vec<DiagnosticUpdate>>,
     expected_open_documents: &Expect,
     expected_compilation_sources: &Expect,
     expected_errors: &Expect,
 ) {
     assert_open_documents(updater, expected_open_documents);
     assert_compilation_sources(updater, expected_compilation_sources);
-    expect_errors(received_errors, expected_errors);
+    expect_errors(received_diag_updates, expected_errors);
 }
 
 fn check_state(
@@ -2268,10 +2425,6 @@ async fn check_lints_config(updater: &CompilationStateUpdater<'_>, expected_conf
     let lints_config = manifest.lints;
 
     expected_config.assert_eq(&format!("{lints_config:#?}"));
-}
-
-fn check_lints(lints: &[compile::ErrorKind], expected_lints: &Expect) {
-    expected_lints.assert_eq(&format!("{lints:#?}"));
 }
 
 thread_local! { static TEST_FS: Rc<RefCell<FsNode>> = Rc::new(RefCell::new(test_fs()))}
@@ -2315,6 +2468,17 @@ fn test_fs() -> FsNode {
                             ],
                         )],
                     ),
+                ],
+            ),
+            dir(
+                "openqasm_files",
+                [
+                    file(
+                        "self-contained.qasm",
+                        "include \"stdgates.inc\";\nqubit q;\nreset q;\nx q;\nh q;\nbit c = measure q;\n",
+                    ),
+                    file("multifile.qasm", "include \"stdgates.inc\";\ninclude \"imports.inc\";\nBar();\nBar();\nqubit q;\nh q;\nreset q;\n"),
+                    file("imports.inc", "\ndef Bar() {\n\nint c = 42;\n}\n"),
                 ],
             ),
         ]

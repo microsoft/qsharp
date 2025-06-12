@@ -33,7 +33,7 @@ pub mod ast {
 pub mod project {
     pub use qsc_project::{
         DirEntry, EntryType, Error, FileSystem, Manifest, ManifestDescriptor, PackageCache,
-        PackageGraphSources,
+        PackageGraphSources, ProjectType,
     };
 }
 
@@ -58,13 +58,18 @@ pub use qsc_eval::{
 };
 
 pub mod linter {
-    pub use qsc_linter::{run_lints, LintConfig, LintKind, LintLevel};
+    pub use qsc_linter::{
+        run_lints, GroupConfig, LintConfig, LintKind, LintLevel, LintOrGroupConfig,
+    };
 }
 
 pub use qsc_doc_gen::{display, generate_docs};
 
 pub mod circuit {
-    pub use qsc_circuit::{operations::*, Circuit, Operation};
+    pub use qsc_circuit::{
+        circuit_to_qsharp::circuits_to_qsharp, json_to_circuit::json_to_circuits, operations::*,
+        Circuit, CircuitGroup, Operation, CURRENT_VERSION,
+    };
 }
 
 pub mod parse {
@@ -74,3 +79,5 @@ pub mod parse {
 pub mod partial_eval {
     pub use qsc_partial_eval::Error;
 }
+
+pub mod qasm;

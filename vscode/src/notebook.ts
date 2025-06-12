@@ -5,10 +5,15 @@ import { log } from "qsharp-lang";
 import * as vscode from "vscode";
 import { WorkspaceTreeProvider } from "./azure/treeView.js";
 import { getPythonCodeForWorkspace } from "./azure/workspaceActions.js";
-import { qsharpExtensionId, qsharpLanguageId } from "./common.js";
+import {
+  qsharpExtensionId,
+  openqasmLanguageId,
+  qsharpLanguageId,
+} from "./common.js";
 import { notebookTemplate } from "./notebookTemplate.js";
 
 const qsharpCellMagic = "%%qsharp";
+const openqasmCellMagic = "%%openqasm";
 export const jupyterNotebookType = "jupyter-notebook";
 let defaultLanguageId: string | undefined;
 
@@ -18,13 +23,13 @@ let defaultLanguageId: string | undefined;
 export function registerQSharpNotebookHandlers() {
   vscode.workspace.notebookDocuments.forEach((notebookDocument) => {
     if (notebookDocument.notebookType === jupyterNotebookType) {
-      updateQSharpCellLanguages(notebookDocument.getCells());
+      updateQdkCellLanguages(notebookDocument.getCells());
     }
   });
 
   vscode.workspace.notebookDocuments.forEach((notebookDocument) => {
     if (notebookDocument.notebookType === jupyterNotebookType) {
-      updateQSharpCellLanguages(notebookDocument.getCells());
+      updateQdkCellLanguages(notebookDocument.getCells());
     }
   });
 
@@ -32,7 +37,7 @@ export function registerQSharpNotebookHandlers() {
   subscriptions.push(
     vscode.workspace.onDidOpenNotebookDocument((notebookDocument) => {
       if (notebookDocument.notebookType === jupyterNotebookType) {
-        updateQSharpCellLanguages(notebookDocument.getCells());
+        updateQdkCellLanguages(notebookDocument.getCells());
       }
     }),
   );
@@ -48,17 +53,17 @@ export function registerQSharpNotebookHandlers() {
           .map((change) => change.addedCells)
           .flat();
 
-        updateQSharpCellLanguages(changedCells.concat(addedCells));
+        updateQdkCellLanguages(changedCells.concat(addedCells));
       }
     }),
   );
 
-  function updateQSharpCellLanguages(cells: vscode.NotebookCell[]) {
+  function updateQdkCellLanguages(cells: vscode.NotebookCell[]) {
     for (const cell of cells) {
-      // If this is a code cell that starts with %%qsharp, and language wasn't already set to Q#, set it.
       if (cell.kind === vscode.NotebookCellKind.Code) {
         const document = cell.document;
         const currentLanguageId = document.languageId;
+        // If this is a code cell that starts with %%qsharp, and language wasn't already set to Q#, set it.
         if (findQSharpCellMagic(document)) {
           if (currentLanguageId !== qsharpLanguageId) {
             // Remember the "default" language of the notebook (this will normally be Python)
@@ -72,14 +77,18 @@ export function registerQSharpNotebookHandlers() {
             );
           }
         } else {
-          // This is not a %%qsharp cell. If the language was set to Q#,
+          // This is not a %%qsharp/%%openqasm cell. If the language was set to Q#/OpenQASM,
           // change it back to the default language.
           //
-          // If the cell language was not set to Q#, it's out of our purview and we don't
+          // If the cell language was not set to a supported language, it's out of our purview and we don't
           // want to automatically change the language settings. For example, this could
           // be a %%bash cell magic and the user may have intentionally set the language
           // to "shell".
-          if (currentLanguageId === qsharpLanguageId && defaultLanguageId) {
+          if (
+            (currentLanguageId === qsharpLanguageId ||
+              currentLanguageId === openqasmLanguageId) &&
+            defaultLanguageId
+          ) {
             vscode.languages.setTextDocumentLanguage(
               cell.document,
               defaultLanguageId,
@@ -101,21 +110,30 @@ export function registerQSharpNotebookHandlers() {
  * if it does not exist.
  */
 export function findQSharpCellMagic(document: vscode.TextDocument) {
+  return findCellMagic(document, qsharpCellMagic);
+}
+
+/**
+ * Returns the range of the `%%openqasm` cell magic, or `undefined`
+ * if it does not exist.
+ */
+export function findOpenQasmCellMagic(document: vscode.TextDocument) {
+  return findCellMagic(document, openqasmCellMagic);
+}
+
+function findCellMagic(document: vscode.TextDocument, magic: string) {
   // Ignore whitespace before the cell magic
   for (let i = 0; i < document.lineCount; i++) {
     const line = document.lineAt(i);
     if (line.isEmptyOrWhitespace) {
       continue;
     }
-    return line.text.startsWith(
-      qsharpCellMagic,
-      line.firstNonWhitespaceCharacterIndex,
-    )
+    return line.text.startsWith(magic, line.firstNonWhitespaceCharacterIndex)
       ? new vscode.Range(
           new vscode.Position(i, line.firstNonWhitespaceCharacterIndex),
           new vscode.Position(
             i,
-            line.firstNonWhitespaceCharacterIndex + qsharpCellMagic.length,
+            line.firstNonWhitespaceCharacterIndex + magic.length,
           ),
         )
       : undefined;

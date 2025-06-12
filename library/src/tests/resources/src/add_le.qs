@@ -15,33 +15,36 @@ namespace Test {
         use y = Qubit[yLen];
         use z = Qubit[zLen];
 
-        for xValue in 0..(1 <<< xLen) - 1 {
-            for yValue in 0..(1 <<< yLen) - 1 {
-                ApplyXorInPlace(xValue, x);
-                ApplyXorInPlace(yValue, y);
-                adder(x, y, z);
+        for carryIn in 0..1 {
+            for xValue in 0..(1 <<< xLen) - 1 {
+                for yValue in 0..(1 <<< yLen) - 1 {
+                    ApplyXorInPlace(xValue, x);
+                    ApplyXorInPlace(yValue, y);
+                    ApplyXorInPlace(carryIn, z);
+                    adder(x, y, z);
 
-                let xActual = MeasureInteger(x);
-                let yActual = MeasureInteger(y);
-                let zActual = MeasureInteger(z);
-                let zExpected = (xValue + yValue) % (1 <<< zLen);
+                    let xActual = MeasureInteger(x);
+                    let yActual = MeasureInteger(y);
+                    let zActual = MeasureInteger(z);
+                    let zExpected = (xValue + yValue + carryIn) % (1 <<< zLen);
 
-                Fact(
-                    xActual == xValue,
-                    $"{name}: Incorrect x={xActual}, expected={xValue}. |x|={xLen}, |y|={yLen}, |z|={zLen}, x={xValue}, y={yValue}."
-                );
-                Fact(
-                    yActual == yValue,
-                    $"{name}: Incorrect y={yActual}, expected={yValue}. |x|={xLen}, |y|={yLen}, |z|={zLen}, x={xValue}, y={yValue}."
-                );
-                Fact(
-                    zActual == zExpected,
-                    $"{name}: Incorrect z={zActual}, expected={zExpected}. |x|={xLen}, |y|={yLen}, |z|={zLen}, x={xValue}, y={yValue}."
-                );
+                    Fact(
+                        xActual == xValue,
+                        $"{name}: Incorrect x={xActual}, expected={xValue}. |x|={xLen}, |y|={yLen}, |z|={zLen}, x={xValue}, y={yValue}, z={carryIn}."
+                    );
+                    Fact(
+                        yActual == yValue,
+                        $"{name}: Incorrect y={yActual}, expected={yValue}. |x|={xLen}, |y|={yLen}, |z|={zLen}, x={xValue}, y={yValue}, z={carryIn}."
+                    );
+                    Fact(
+                        zActual == zExpected,
+                        $"{name}: Incorrect z={zActual}, expected={zExpected}. |x|={xLen}, |y|={yLen}, |z|={zLen}, x={xValue}, y={yValue}, z={carryIn}."
+                    );
 
-                ResetAll(x);
-                ResetAll(y);
-                ResetAll(z);
+                    ResetAll(x);
+                    ResetAll(y);
+                    ResetAll(z);
+                }
             }
         }
     }

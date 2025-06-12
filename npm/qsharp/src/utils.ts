@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { Operation } from "./data-structures/circuit.js";
+import { Register } from "./data-structures/register.js";
+
 export type Tick = {
   value: number;
   label: string;
@@ -198,4 +201,21 @@ export function getRanges(data: SeriesOfPoints, rangeCoefficient: number) {
     max: maxY * rangeCoefficient,
   };
   return { rangeX, rangeY };
+}
+
+/**
+ * Returns all registers (targets and controls) involved in an operation.
+ *
+ * @param operation The operation for which to get the registers.
+ * @returns An array of Register objects involved in the operation.
+ */
+export function getOperationRegisters(operation: Operation): Register[] {
+  switch (operation.kind) {
+    case "unitary":
+      return [...operation.targets, ...(operation.controls || [])];
+    case "ket":
+      return operation.targets;
+    case "measurement":
+      return [...operation.qubits, ...(operation.results || [])];
+  }
 }

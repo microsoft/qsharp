@@ -309,7 +309,7 @@ impl From<SpecializationsComputeProperties> for CallableComputeProperties {
                 FunctorSetValue::Adj => adj = Some(applications_table),
                 FunctorSetValue::Ctl => ctl = Some(applications_table),
                 FunctorSetValue::CtlAdj => ctl_adj = Some(applications_table),
-            };
+            }
         }
 
         CallableComputeProperties {

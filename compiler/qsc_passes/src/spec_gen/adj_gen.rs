@@ -35,7 +35,8 @@ impl MutVisitor for AdjDistrib {
                     Ty::Arrow(arrow) if arrow.kind == CallableKind::Operation => {
                         let functors = arrow
                             .functors
-                            .expect_value("arrow type should have concrete functors");
+                            .borrow()
+                            .expect_value("arrow type should have known functors");
 
                         if functors.contains(&Functor::Adj) {
                             *op = Box::new(Expr {

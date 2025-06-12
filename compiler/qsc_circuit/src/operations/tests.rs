@@ -62,8 +62,8 @@ fn no_params() {
     );
     let expr = entry_expr_for_qubit_operation(&item, FunctorApp::default(), &operation);
     expect![[r#"
-        Err(
-            NoQubitParameters,
+        Ok(
+            "{\n            use qs = Qubit[0];\n            (Test.Test)();\n            let r: Result[] = [];\n            r\n        }",
         )
     "#]]
     .assert_debug_eq(&expr);

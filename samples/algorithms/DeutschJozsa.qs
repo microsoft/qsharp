@@ -43,7 +43,7 @@ operation Main() : (String, Bool)[] {
 
         let isConstantStr = isConstant ? "constant" | "balanced";
         Message($"{name} is {isConstantStr}");
-        set results += [(name, isConstant)];
+        results += [(name, isConstant)];
     }
 
     return results;
@@ -105,7 +105,7 @@ operation DeutschJozsa(Uf : ((Qubit[], Qubit) => Unit), n : Int) : Bool {
     mutable result = true;
     for q in queryRegister {
         if MResetZ(q) == One {
-            set result = false;
+            result = false;
         }
     }
 

@@ -42,7 +42,7 @@ function Main() : Range {
     // The array [0, 1, 4, 9, 16, 25, 36, 49, 64, 81, 100].
     mutable array = [];
     for i in 0..10 {
-        set array += [i^2];
+        array += [i^2];
     }
     Message($"Array: {array}");
 

@@ -41,7 +41,7 @@ export function createWorker<
     switch (data.type) {
       case "init":
         {
-          wasm.initSync(data.wasmModule);
+          wasm.initSync({ module: data.wasmModule });
 
           invokeService = initService<TService, TServiceEventMsg>(
             self.postMessage.bind(self),

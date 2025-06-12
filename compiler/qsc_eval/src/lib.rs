@@ -344,6 +344,7 @@ pub enum StepResult {
     StepIn,
     StepOut,
     Return(Value),
+    Fail,
 }
 
 trait AsIndex {
@@ -599,7 +600,7 @@ impl State {
     fn leave_frame(&mut self) {
         if let Some(frame) = self.call_stack.pop_frame() {
             self.package = frame.caller;
-        };
+        }
         self.val_stack.pop();
         self.idx = self.idx_stack.pop().unwrap_or_default();
         self.exec_graph_stack.pop();
@@ -691,6 +692,10 @@ impl State {
                         Some(value) => value,
                         None => continue,
                     }
+                }
+                Some(ExecGraphNode::Fail) => {
+                    self.idx += 1;
+                    return Ok(StepResult::Fail);
                 }
                 Some(ExecGraphNode::Jump(idx)) => {
                     self.idx = *idx;

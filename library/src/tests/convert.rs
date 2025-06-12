@@ -171,6 +171,37 @@ fn check_bigint_as_bool_array() {
 }
 
 #[test]
+fn check_big_int_as_int_0() {
+    test_expression("Std.Convert.BigIntAsInt(0L)", &Value::Int(0));
+}
+
+#[test]
+fn check_big_int_as_int_1() {
+    test_expression("Std.Convert.BigIntAsInt(1L)", &Value::Int(1));
+}
+
+#[test]
+fn check_big_int_as_int_n1() {
+    test_expression("Std.Convert.BigIntAsInt(-1L)", &Value::Int(-1));
+}
+
+#[test]
+fn check_big_int_as_int_max() {
+    test_expression(
+        "Std.Convert.BigIntAsInt(9_223_372_036_854_775_807L)",
+        &Value::Int(i64::MAX),
+    );
+}
+
+#[test]
+fn check_big_int_as_int_min() {
+    test_expression(
+        "Std.Convert.BigIntAsInt(-9_223_372_036_854_775_808L)",
+        &Value::Int(i64::MIN),
+    );
+}
+
+#[test]
 fn check_bool_array_as_big_int() {
     test_expression(
         "Microsoft.Quantum.Convert.BoolArrayAsBigInt([false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false])",

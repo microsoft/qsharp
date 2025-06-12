@@ -1267,7 +1267,7 @@ impl<'a> Analyzer<'a> {
                 };
                 self.analyze_spec_decl(spec_decl, id.functor_set_value);
             }
-        };
+        }
 
         // Since we are done analyzing the specialization, pop the active item context.
         let popped_item_id = self.pop_item_context();
@@ -1812,7 +1812,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
             CallableImpl::Spec(spec_impl) => {
                 self.visit_spec_impl(spec_impl);
             }
-        };
+        }
     }
 
     fn visit_expr(&mut self, expr_id: ExprId) {
@@ -1932,7 +1932,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                     InternalItemComputeProperties::NonCallable,
                 );
             }
-        };
+        }
     }
 
     fn visit_package(&mut self, _: &'a Package, _: &PackageStore) {

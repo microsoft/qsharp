@@ -1,20 +1,23 @@
+from pathlib import Path
 from random import randint
 import pytest
 import qsharp
+
 
 @pytest.fixture(autouse=True)
 def setup():
     """Fixture to execute before a test is run"""
     # Setting the project root to current folder.
-    qsharp.init(project_root=".")
-    yield # this is where the testing happens
+    this_dir = Path(__file__).parent
+    qsharp.init(project_root=this_dir)
+    yield  # this is where the testing happens
 
 
 def test_classical_computation() -> None:
     """Test that Q# code computes f(x) = x^2 correctly using Python test code."""
     for x in range(-10, 11):
         res = qsharp.eval(f"ClassicalFunction.Square({x})")
-        assert res == x ** 2
+        assert res == x**2
 
 
 def test_classical_computation_qsharp() -> None:

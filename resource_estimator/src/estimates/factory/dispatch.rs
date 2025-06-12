@@ -76,7 +76,7 @@ impl<E: ErrorCorrection, Builder1: FactoryBuilder<E>, Builder2: FactoryBuilder<E
         magic_state_type: usize,
         output_error_rate: f64,
         max_code_parameter: &E::Parameter,
-    ) -> Option<Vec<Cow<Self::Factory>>> {
+    ) -> Result<Vec<Cow<Self::Factory>>, String> {
         match magic_state_type {
             0 => self
                 .builder1

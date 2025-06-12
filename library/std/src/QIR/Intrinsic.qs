@@ -61,6 +61,10 @@ operation __quantum__qis__s__adj(target : Qubit) : Unit {
     body intrinsic;
 }
 
+operation __quantum__qis__sx__body(target : Qubit) : Unit {
+    body intrinsic;
+}
+
 operation __quantum__qis__t__body(target : Qubit) : Unit {
     body intrinsic;
 }
@@ -115,6 +119,7 @@ export
     __quantum__qis__h__body,
     __quantum__qis__s__body,
     __quantum__qis__s__adj,
+    __quantum__qis__sx__body,
     __quantum__qis__t__body,
     __quantum__qis__t__adj,
     __quantum__qis__x__body,

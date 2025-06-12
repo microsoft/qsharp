@@ -929,6 +929,8 @@ pub enum ExecGraphNode {
     PushScope,
     /// A pop of the current scope, used when tracking variables for debugging.
     PopScope,
+    /// A failure node, inserted just before a `fail` expression to halt execution for debugging.
+    Fail,
 }
 
 /// A sequenced block of statements.

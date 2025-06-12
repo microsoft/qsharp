@@ -471,6 +471,8 @@ impl Backend for LogicalCounter {
 
     fn s(&mut self, _q: usize) {}
 
+    fn sx(&mut self, _q: usize) {}
+
     fn swap(&mut self, q0: usize, q1: usize) {
         self.schedule_two_qubit_clifford(q0, q1);
     }

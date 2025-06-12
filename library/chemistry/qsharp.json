@@ -1,0 +1,60 @@
+{
+  "lints": [
+    {
+      "lint": "deprecatedNewtype",
+      "level": "error"
+    },
+    {
+      "lint": "deprecatedFunctionConstructor",
+      "level": "error"
+    },
+    {
+      "lint": "deprecatedWithOperator",
+      "level": "error"
+    },
+    {
+      "lint": "deprecatedDoubleColonOperator",
+      "level": "error"
+    },
+    {
+      "lint": "deprecatedSet",
+      "level": "error"
+    },
+    {
+      "lint": "needlessParens",
+      "level": "error"
+    },
+    {
+      "lint": "doubleEquality",
+      "level": "error"
+    },
+    {
+      "lint": "redundantSemicolons",
+      "level": "error"
+    },
+    {
+      "lint": "discourageChainAssignment",
+      "level": "error"
+    },
+    {
+      "lint": "needlessOperation",
+      "level": "error"
+    }
+  ],
+  "files": [
+    "src/Generators.qs",
+    "src/MixedStatePreparation.qs",
+    "src/Tests.qs",
+    "src/Trotterization.qs",
+    "src/Utils.qs",
+    "src/JordanWigner/Oracles.qs",
+    "src/JordanWigner/VQE.qs",
+    "src/JordanWigner/Data.qs",
+    "src/JordanWigner/BlockEncoding.qs",
+    "src/JordanWigner/ClusterOperatorEvolutionSet.qs",
+    "src/JordanWigner/EvolutionSet.qs",
+    "src/JordanWigner/OptimizedBlockEncoding.qs",
+    "src/JordanWigner/OptimizedBEOperator.qs",
+    "src/JordanWigner/StatePreparation.qs"
+  ]
+}

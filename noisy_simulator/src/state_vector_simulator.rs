@@ -242,7 +242,7 @@ impl NoisySimulator for StateVectorSimulator {
             self.rng.gen(),
         ) {
             handle_error!(self, err);
-        };
+        }
 
         Ok(())
     }
@@ -264,7 +264,7 @@ impl NoisySimulator for StateVectorSimulator {
             self.rng.gen(),
         ) {
             handle_error!(self, err);
-        };
+        }
 
         Ok(())
     }
@@ -339,7 +339,7 @@ impl NoisySimulator for StateVectorSimulator {
             rescaled_random_sample,
         ) {
             handle_error!(self, err);
-        };
+        }
         Ok(last_non_zero_outcome)
     }
 

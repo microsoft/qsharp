@@ -911,6 +911,31 @@ fn check_rca_for_quantum_qis_s_adj() {
 }
 
 #[test]
+fn check_rca_for_quantum_qis_sx_body() {
+    let compilation_context = CompilationContext::default();
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        compilation_context.get_compute_properties(),
+        "__quantum__qis__sx__body",
+        &expect![
+            r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsGeneratorSet:
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(0x0)
+                        value_kind: Element(Static)
+                    dynamic_param_applications:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
+                            value_kind: Element(Static)
+                adj: <none>
+                ctl: <none>
+                ctl-adj: <none>"#
+        ],
+    );
+}
+
+#[test]
 fn check_rca_for_quantum_qis_t_body() {
     let compilation_context = CompilationContext::default();
     check_callable_compute_properties(

@@ -13,7 +13,7 @@ use qsc_hir::{
     visit::{self, Visitor},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::iter;
+use std::{iter, rc::Rc};
 
 pub(super) struct Lambda {
     pub(super) kind: CallableKind,
@@ -162,19 +162,20 @@ pub(super) fn partial_app_block(
     callee: Expr,
     arg: Expr,
     app: PartialApp,
-    arrow: Arrow,
+    arrow: Rc<Arrow>,
     span: Span,
 ) -> Block {
     let call = Expr {
         id: NodeId::default(),
         span,
-        ty: (*arrow.output).clone(),
+        ty: arrow.output.borrow().clone(),
         kind: ExprKind::Call(Box::new(callee), Box::new(arg)),
     };
     let lambda = Lambda {
         kind: arrow.kind,
         functors: arrow
             .functors
+            .borrow()
             .expect_value("lambda type should have concrete functors"),
         input: app.input,
         body: call,
@@ -182,7 +183,7 @@ pub(super) fn partial_app_block(
     let closure = Expr {
         id: NodeId::default(),
         span,
-        ty: Ty::Arrow(Box::new(arrow.clone())),
+        ty: Ty::Arrow(arrow.clone()),
         kind: close(lambda),
     };
 
@@ -195,7 +196,7 @@ pub(super) fn partial_app_block(
     Block {
         id: NodeId::default(),
         span,
-        ty: Ty::Arrow(Box::new(arrow)),
+        ty: Ty::Arrow(arrow),
         stmts,
     }
 }
