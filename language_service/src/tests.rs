@@ -278,11 +278,11 @@ fn create_update_worker<'a>(
         |update: DiagnosticUpdate| {
             let project_errors = update.errors.iter().filter_map(|error| match error {
                 ErrorKind::Project(error) => Some(error.clone()),
-                ErrorKind::Compile(_) => None,
+                ErrorKind::Compile(_) | ErrorKind::DocumentStatus { .. } => None,
             });
             let compile_errors = update.errors.iter().filter_map(|error| match error {
                 ErrorKind::Compile(error) => Some(error.error().clone()),
-                ErrorKind::Project(_) => None,
+                ErrorKind::Project(_) | ErrorKind::DocumentStatus { .. } => None,
             });
 
             let mut v = received_errors.borrow_mut();

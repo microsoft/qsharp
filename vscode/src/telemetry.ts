@@ -55,8 +55,6 @@ export enum EventType {
   TriggerCircuit = "Qsharp.TriggerCircuit",
   CircuitStart = "Qsharp.CircuitStart",
   CircuitEnd = "Qsharp.CircuitEnd",
-  ChatTurnStart = "Qsharp.ChatTurnStart",
-  ChatTurnEnd = "Qsharp.ChatTurnEnd",
   LanguageModelToolStart = "Qsharp.LanguageModelToolStart",
   LanguageModelToolEnd = "Qsharp.LanguageModelToolEnd",
   UpdateCopilotInstructionsStart = "Qsharp.UpdateCopilotInstructionsStart",
@@ -296,26 +294,6 @@ type EventTypes = {
       flowStatus: UserFlowStatus;
     };
     measurements: { timeToCompleteMs: number };
-  };
-  [EventType.ChatTurnStart]: {
-    properties: {
-      conversationId: string; // associates all events in conversation
-      associationId: string; // associates a start/end events for a single turn
-      serviceUrlHash: string;
-    };
-    measurements: {
-      conversationMessages: number; // includes the one just being submitted
-    };
-  };
-  [EventType.ChatTurnEnd]: {
-    properties: {
-      associationId: string;
-      flowStatus: UserFlowStatus;
-      toolCalls: string; // JSON string array of known tool names
-    };
-    measurements: {
-      timeToCompleteMs: number; // includes tool call executions
-    };
   };
   [EventType.LanguageModelToolStart]: {
     properties: {
