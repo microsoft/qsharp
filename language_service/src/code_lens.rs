@@ -11,6 +11,7 @@ use crate::{
 };
 use qsc::{
     circuit::qubit_param_info,
+    compile::ErrorKind,
     hir::{ty::Ty, CallableKind, ItemKind},
     line_column::Encoding,
 };
@@ -21,7 +22,16 @@ pub(crate) fn get_code_lenses(
     position_encoding: Encoding,
 ) -> Vec<CodeLens> {
     if matches!(compilation.kind, CompilationKind::Notebook { .. }) {
-        // entrypoint actions don't work in notebooks
+        return vec![]; // entrypoint actions don't work in notebooks
+    }
+
+    if !compilation.project_errors.is_empty()
+        || compilation
+            .compile_errors
+            .iter()
+            .any(|e| !matches!(e.error(), ErrorKind::Lint(..)))
+    {
+        // Don't show code lenses if there are any project errors or non-Lint errors in the compilation.
         return vec![];
     }
 
