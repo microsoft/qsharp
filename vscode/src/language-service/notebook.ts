@@ -149,6 +149,7 @@ function getQSharpConfigMetadata(notebook: vscode.NotebookDocument): object {
     log.trace("found Q# config metadata: " + dataString);
     return JSON.parse(dataString);
   } else {
-    return {};
+    // Default notebooks to unrestricted target profile when no explicit configuration is provided
+    return { targetProfile: "unrestricted" };
   }
 }

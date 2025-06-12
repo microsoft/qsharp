@@ -112,4 +112,43 @@ suite("Q# Notebook Tests", function suite() {
     assert.equal(location.range.start.line, 2);
     assert.equal(location.range.start.character, 10);
   });
+
+  test("Notebook defaults to unrestricted target profile", async () => {
+    const notebook = await vscode.workspace.openNotebookDocument(
+      vscode.Uri.joinPath(
+        workspaceFolderUri,
+        "test-unrestricted-default.ipynb",
+      ),
+    );
+
+    const qsharpCellUri = notebook.cellAt(1).document.uri;
+
+    // Wait for the document to be processed by the language service
+    await waitForCondition(
+      () =>
+        !!notebook
+          .getCells()
+          .find((cell) => cell.document.languageId === "qsharp"),
+      vscode.workspace.onDidChangeNotebookDocument,
+      100,
+      "timed out waiting for Q# code cell",
+    );
+
+    // Verify that there are no diagnostics, meaning the unrestricted operation is allowed
+    await waitForCondition(
+      () => {
+        const diagnostics = vscode.languages.getDiagnostics(qsharpCellUri);
+        // Filter out any unrelated diagnostics and only look for target profile related errors
+        const profileErrors = diagnostics.filter(
+          (d) =>
+            d.message.includes("dynamic bool") ||
+            d.message.includes("target profile"),
+        );
+        return profileErrors.length === 0;
+      },
+      vscode.languages.onDidChangeDiagnostics,
+      1000,
+      "expected no target profile related diagnostics for unrestricted operations",
+    );
+  });
 });
