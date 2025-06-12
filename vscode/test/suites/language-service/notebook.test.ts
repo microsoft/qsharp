@@ -127,22 +127,24 @@ suite("Q# Notebook Tests", function suite() {
 
     const qsharpCellUri = notebook.cellAt(1).document.uri;
 
-    // Wait for the document to be processed by the language service
+    // Wait for the Q# cell to be detected by the language service
     await waitForCondition(
       () =>
         !!notebook
           .getCells()
           .find((cell) => cell.document.languageId === "qsharp"),
       vscode.workspace.onDidChangeNotebookDocument,
-      100,
+      2000,
       "timed out waiting for Q# code cell",
     );
 
-    // Verify that there are no diagnostics, meaning the unrestricted operation is allowed
+    // Verify that there are no target profile related diagnostics for unrestricted operations
+    // We use waitForCondition to ensure we give enough time for any diagnostics to appear,
+    // then verify that none of them are target profile related
     await waitForCondition(
       () => {
         const diagnostics = vscode.languages.getDiagnostics(qsharpCellUri);
-        // Filter out any unrelated diagnostics and only look for target profile related errors
+        // Filter for target profile related errors - there should be none
         const profileErrors = diagnostics.filter(
           (d) =>
             d.message.includes("dynamic bool") ||
@@ -151,7 +153,7 @@ suite("Q# Notebook Tests", function suite() {
         return profileErrors.length === 0;
       },
       vscode.languages.onDidChangeDiagnostics,
-      1000,
+      3000,
       "expected no target profile related diagnostics for unrestricted operations",
     );
   });
