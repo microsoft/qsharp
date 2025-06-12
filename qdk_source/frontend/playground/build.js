@@ -12,7 +12,7 @@ import { build, context } from "esbuild";
 import { copyKatex } from "../vscode/build.mjs";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
-const libsDir = join(thisDir, "..", "..", "node_modules");
+const libsDir = join(thisDir, "..", "..", "..", "node_modules");
 
 // Use minified libraries
 const isRelease = process.argv.includes("--release");

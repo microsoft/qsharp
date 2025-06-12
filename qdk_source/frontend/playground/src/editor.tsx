@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-/// <reference types="../../../node_modules/monaco-editor/monaco.d.ts"/>
+/// <reference types="../../../../node_modules/monaco-editor/monaco.d.ts"/>
 
 import { useEffect, useRef, useState } from "preact/hooks";
 import {

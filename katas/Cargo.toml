@@ -9,7 +9,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-qsc = { path = "../qdk_source/compiler/qsc" }
+qsc = { path = "../qdk_source/backend/compiler/qsc" }
 
 [lints]
 workspace = true

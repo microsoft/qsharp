@@ -12,7 +12,7 @@ license.workspace = true
 indoc = { workspace = true }
 num-bigint = { workspace = true }
 expect-test = { workspace = true }
-qsc = { path = "../qdk_source/compiler/qsc" }
+qsc = { path = "../qdk_source/backend/compiler/qsc" }
 
 [lints]
 workspace = true

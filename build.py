@@ -113,17 +113,18 @@ build_type = "debug" if args.debug else "release"
 run_tests = args.test
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
-qdk_src = os.path.join(root_dir, "qdk_source")
-wasm_src = os.path.join(qdk_src, "wasm")
-wasm_bld = os.path.join(root_dir, "target", "wasm32", build_type)
+frontend_dir = os.path.join(root_dir, "qdk_source", "frontend")
+backend_dir = os.path.join(root_dir, "qdk_source", "backend")
+wasm_src = os.path.join(backend_dir, "wasm")
+wasm_bld = os.path.join(backend_dir, "target", "wasm32", build_type)
 samples_src = os.path.join(root_dir, "samples")
-npm_src = os.path.join(qdk_src, "npm", "qsharp")
-play_src = os.path.join(qdk_src, "playground")
-pip_src = os.path.join(qdk_src, "pip")
-widgets_src = os.path.join(qdk_src, "widgets")
+npm_src = os.path.join(frontend_dir, "npm", "qsharp")
+play_src = os.path.join(frontend_dir, "playground")
+pip_src = os.path.join(frontend_dir, "pip")
+widgets_src = os.path.join(frontend_dir, "widgets")
 wheels_dir = os.path.join(root_dir, "target", "wheels")
-vscode_src = os.path.join(qdk_src, "vscode")
-jupyterlab_src = os.path.join(qdk_src, "jupyterlab")
+vscode_src = os.path.join(frontend_dir, "vscode")
+jupyterlab_src = os.path.join(frontend_dir, "jupyterlab")
 
 
 def step_start(description):

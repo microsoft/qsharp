@@ -10,11 +10,11 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-noisy_simulator = { path = "../noisy_simulator" }
+noisy_simulator = { path = "../../backend/noisy_simulator" }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
-qsc = { path = "../compiler/qsc" }
-resource_estimator = { path = "../resource_estimator" }
+qsc = { path = "../../backend/compiler/qsc" }
+resource_estimator = { path = "../../backend/resource_estimator" }
 miette = { workspace = true, features = ["fancy"] }
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
@@ -23,7 +23,7 @@ serde_json = { workspace = true }
 workspace = true
 
 [target.'cfg(not(any(target_family = "wasm")))'.dependencies]
-allocator = { path = "../allocator" }
+allocator = { path = "../../backend/allocator" }
 
 [target.'cfg(not(any(target_os = "windows")))'.dependencies]
 pyo3 = { workspace = true, features = ["abi3-py39", "extension-module", "num-bigint", "num-complex"] }

@@ -18,10 +18,10 @@ fn main() {
 }
 
 fn create_tests_for_files(folder: &str) {
-    println!("cargo::rerun-if-changed=../../samples/{folder}/");
+    println!("cargo::rerun-if-changed=../../../samples/{folder}/");
     // Iterate through the folder and create a test for each qs file
-    let mut paths =
-        read_dir(format!("../../samples/{folder}")).expect("folder should exist and be readable");
+    let mut paths = read_dir(format!("../../../samples/{folder}"))
+        .expect("folder should exist and be readable");
     let out_dir = "./src/tests";
     let dest_path = Path::new(&out_dir).join(format!("{folder}_generated.rs"));
     let mut f = File::create(dest_path).expect("files should be creatable in ./src/tests");
@@ -68,7 +68,7 @@ use qsc::SourceMap;"#,
 #[allow(non_snake_case)]
 fn {file_stem}_src() -> SourceMap {{
     SourceMap::new(
-        vec![("{file_name}".into(), include_str!("../../../../samples/{folder}/{file_name}").into())],
+        vec![("{file_name}".into(), include_str!("../../../../../samples/{folder}/{file_name}").into())],
         None,
     )
 }}
@@ -96,10 +96,10 @@ fn debug_{file_stem}() {{
 }
 
 fn create_tests_for_files_compile_only(folder: &str) {
-    println!("cargo::rerun-if-changed=../../samples/{folder}/");
+    println!("cargo::rerun-if-changed=../../../samples/{folder}/");
     // Iterate through the folder and create a test for each qs file
-    let mut paths =
-        read_dir(format!("../../samples/{folder}")).expect("folder should exist and be readable");
+    let mut paths = read_dir(format!("../../../samples/{folder}"))
+        .expect("folder should exist and be readable");
     let out_dir = "./src/tests";
     let dest_path = Path::new(&out_dir).join(format!("{folder}_generated.rs"));
     let mut f = File::create(dest_path).expect("files should be creatable in ./src/tests");
@@ -146,7 +146,7 @@ use qsc::SourceMap;"#,
 fn compile_{file_stem}() {{
     compile(
         SourceMap::new(
-            vec![("{file_name}".into(), include_str!("../../../../samples/{folder}/{file_name}").into())],
+            vec![("{file_name}".into(), include_str!("../../../../../samples/{folder}/{file_name}").into())],
             None,
         )
     );
@@ -157,7 +157,7 @@ fn compile_{file_stem}() {{
 }
 
 fn create_tests_for_projects() {
-    let paths = collect_qsharp_project_folders(Path::new("../../samples"));
+    let paths = collect_qsharp_project_folders(Path::new("../../../samples"));
     let out_dir = "./src/tests";
     let dest_path = Path::new(&out_dir).join("project_generated.rs");
     let mut f = File::create(dest_path).expect("files should be creatable in ./src/tests");
@@ -226,10 +226,10 @@ fn collect_qsharp_project_folders(path: &Path) -> Vec<PathBuf> {
 }
 
 fn create_tests_for_qasm_files(folder: &str) {
-    println!("cargo::rerun-if-changed=../../samples/{folder}/");
+    println!("cargo::rerun-if-changed=../../../samples/{folder}/");
     // Iterate through the folder and create a test for each qs file
-    let mut paths =
-        read_dir(format!("../../samples/{folder}")).expect("folder should exist and be readable");
+    let mut paths = read_dir(format!("../../../samples/{folder}"))
+        .expect("folder should exist and be readable");
     let out_dir = "./src/tests";
     let dest_path = Path::new(&out_dir).join(format!("{folder}_generated.rs"));
     let mut f = File::create(dest_path).expect("files should be creatable in ./src/tests");
@@ -274,7 +274,7 @@ use super::{{compile_and_run_qasm, compile_and_run_debug_qasm}};"#,
             r#"
 #[allow(non_snake_case)]
 fn {file_stem}_src() -> &'static str {{
-    include_str!("../../../../samples/{folder}/{file_name}")
+    include_str!("../../../../../samples/{folder}/{file_name}")
 }}
 
 #[allow(non_snake_case)]

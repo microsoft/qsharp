@@ -12,7 +12,7 @@
             "runtimeExecutable": "${execPath}",
             "args": [
                 "--profile=dev",
-                "--extensionDevelopmentPath=${workspaceFolder}/qdk_source/vscode",
+                "--extensionDevelopmentPath=${workspaceFolder}/qdk_source/frontend/vscode",
                 "${workspaceFolder}/samples/"
             ]
         },
@@ -23,7 +23,7 @@
             "debugWebWorkerHost": true,
             "request": "launch",
             "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/qdk_source/vscode",
+                "--extensionDevelopmentPath=${workspaceFolder}/qdk_source/frontend/vscode",
                 "--extensionDevelopmentKind=web",
                 "${workspaceFolder}/samples/"
             ]
