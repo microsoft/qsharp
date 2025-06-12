@@ -7,6 +7,9 @@ import { type ExtensionApi } from "../../src/extension";
 // Q# extension log level. Increase this for debugging.
 const extensionLogLevel = "warn";
 
+// The code for the document status diagnostic.
+const documentStatusDiagnosticCode = "Qdk.Dev.DocumentStatus";
+
 export async function activateExtension() {
   // Check for pre-release or stable builds of the extension, as could be in release pipeline
   const ext =
@@ -164,12 +167,13 @@ export async function waitForDiagnosticsToAppear(
     uri,
     (diagnostics) =>
       // Filter out the dev diagnostics to return only real diagnostics
-      diagnostics.filter((d) => d.code !== "Qdk.Dev.DocumentStatus").length > 0,
+      diagnostics.filter((d) => d.code !== documentStatusDiagnosticCode)
+        .length > 0,
     timeoutMs,
     `Expected diagnostics to appear for ${uri.path} within timeout`,
   );
 
-  return diagnostics.filter((d) => d.code !== "Qdk.Dev.DocumentStatus");
+  return diagnostics.filter((d) => d.code !== documentStatusDiagnosticCode);
 }
 
 /**
@@ -187,8 +191,8 @@ export async function waitForDiagnosticsToBeEmpty(
     uri,
     (diagnostics) =>
       // Filter out the dev diagnostics to return only real diagnostics
-      diagnostics.filter((d) => d.code !== "Qdk.Dev.DocumentStatus").length ===
-      0,
+      diagnostics.filter((d) => d.code !== documentStatusDiagnosticCode)
+        .length === 0,
     timeoutMs,
     `Expected diagnostics to be empty for ${uri.path} within timeout`,
   );
@@ -217,7 +221,7 @@ export async function openDocumentAndWaitForProcessing(
     (diagnostics) =>
       diagnostics.some(
         (d) =>
-          d.code === "Qdk.Dev.DocumentStatus" &&
+          d.code === documentStatusDiagnosticCode &&
           d.message.includes(`version=${version}`),
       ),
     timeoutMs,
