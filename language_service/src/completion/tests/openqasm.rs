@@ -3,8 +3,8 @@
 
 use std::sync::Arc;
 
-use super::{get_completions, CompletionItem};
-use crate::{test_utils::get_sources_and_markers, Compilation, Encoding};
+use super::check as check_common;
+use crate::{test_utils::get_sources_and_markers, Compilation};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc::{
@@ -55,19 +55,14 @@ pub fn compile_with_markers(source_with_markers: &str) -> (Compilation, Position
 
 fn check(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
     let (compilation, cursor_position, _) = compile_with_markers(source_with_cursor);
-    let actual_completions =
-        get_completions(&compilation, "<source>", cursor_position, Encoding::Utf8);
-    let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
-        .iter()
-        .map(|comp| {
-            actual_completions
-                .items
-                .iter()
-                .find(|item| item.label == **comp)
-        })
-        .collect();
 
-    expect.assert_debug_eq(&checked_completions);
+    check_common(
+        &compilation,
+        "<source>",
+        cursor_position,
+        completions_to_check,
+        expect,
+    );
 }
 
 #[test]
@@ -78,19 +73,10 @@ fn in_empty_file_contains_openqasm() {
     }"#},
         &["OPENQASM"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "OPENQASM",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000OPENQASM",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              OPENQASM (Keyword)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
@@ -104,52 +90,19 @@ fn in_file_after_openqasm_contains_keywords_containing_i() {
     }"#},
         &["if", "include", "input", "inv"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "if",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000if",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "include",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000include",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "input",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000input",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "inv",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000inv",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              if (Keyword)
+                detail: None
+                additional_text_edits: None
+              include (Keyword)
+                detail: None
+                additional_text_edits: None
+              input (Keyword)
+                detail: None
+                additional_text_edits: None
+              inv (Keyword)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
@@ -163,19 +116,10 @@ fn in_file_after_openqasm_contains_annotations_containing_i() {
     }"#},
         &["SimulatableIntrinsic"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "SimulatableIntrinsic",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0000SimulatableIntrinsic",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              SimulatableIntrinsic (Interface)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
@@ -191,34 +135,13 @@ fn local_vars() {
     }"#},
         &["num_samples", "angle_value"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "num_samples",
-                        kind: Variable,
-                        sort_text: Some(
-                            "0100num_samples",
-                        ),
-                        detail: Some(
-                            "num_samples : Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "angle_value",
-                        kind: Variable,
-                        sort_text: Some(
-                            "0100angle_value",
-                        ),
-                        detail: Some(
-                            "angle_value : Double",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              angle_value (Variable)
+                detail: Some("angle_value : Double")
+                additional_text_edits: None
+              num_samples (Variable)
+                detail: Some("num_samples : Int")
+                additional_text_edits: None
         "#]],
     );
 }
@@ -234,22 +157,12 @@ fn local_vars_doesnt_pick_up_variables_declared_after_cursor() {
     }"#},
         &["num_samples", "angle_value"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "num_samples",
-                        kind: Variable,
-                        sort_text: Some(
-                            "0100num_samples",
-                        ),
-                        detail: Some(
-                            "num_samples : Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-            ]
+            not in list:
+              angle_value
+            in list (sorted):
+              num_samples (Variable)
+                detail: Some("num_samples : Int")
+                additional_text_edits: None
         "#]],
     );
 }
