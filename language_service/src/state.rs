@@ -4,18 +4,22 @@
 #[cfg(test)]
 mod tests;
 
+use crate::protocol::TestCallable;
+
 use super::compilation::Compilation;
-use super::protocol::{DiagnosticUpdate, NotebookMetadata};
-use crate::protocol::{ErrorKind, WorkspaceConfigurationUpdate};
+use super::protocol::{
+    DiagnosticUpdate, ErrorKind, NotebookMetadata, TestCallables, WorkspaceConfigurationUpdate,
+};
 use log::{debug, trace};
 use miette::Diagnostic;
-use qsc::{compile, project};
-use qsc::{target::Profile, LanguageFeatures, PackageType};
-use qsc_linter::LintConfig;
-use qsc_project::{FileSystemAsync, JSProjectHost, PackageCache, Project};
+use qsc::line_column::Encoding;
+use qsc::{compile, project, target::Profile, LanguageFeatures, PackageType};
+use qsc_linter::LintOrGroupConfig;
+use qsc_project::{FileSystemAsync, JSProjectHost, PackageCache, Project, ProjectType};
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::path::PathBuf;
-use std::{cell::RefCell, fmt::Debug, mem::take, rc::Rc, sync::Arc};
+
+use std::path::Path;
+use std::{cell::RefCell, fmt::Debug, mem::take, path::PathBuf, rc::Rc, sync::Arc, vec};
 
 #[derive(Default, Debug)]
 pub(super) struct CompilationState {
@@ -62,7 +66,7 @@ struct Configuration {
     pub target_profile: Profile,
     pub package_type: PackageType,
     pub language_features: LanguageFeatures,
-    pub lints_config: Vec<LintConfig>,
+    pub lints_config: Vec<LintOrGroupConfig>,
 }
 
 impl Default for Configuration {
@@ -81,7 +85,7 @@ pub struct PartialConfiguration {
     pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
     pub language_features: Option<LanguageFeatures>,
-    pub lints_config: Vec<LintConfig>,
+    pub lints_config: Vec<LintOrGroupConfig>,
 }
 
 pub(super) struct CompilationStateUpdater<'a> {
@@ -102,24 +106,32 @@ pub(super) struct CompilationStateUpdater<'a> {
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
+    /// Callback which will receive test callables whenever a (re-)compilation occurs.
+    test_callable_receiver: Box<dyn Fn(TestCallables) + 'a>,
     cache: RefCell<PackageCache>,
     /// Functions to interact with the host filesystem for project system operations.
     project_host: Box<dyn JSProjectHost>,
+    /// Encoding for converting between line/column and byte offsets.
+    position_encoding: Encoding,
 }
 
 impl<'a> CompilationStateUpdater<'a> {
     pub fn new(
         state: Rc<RefCell<CompilationState>>,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
+        test_callable_receiver: impl Fn(TestCallables) + 'a,
         project_host: impl JSProjectHost + 'static,
+        position_encoding: Encoding,
     ) -> Self {
         Self {
             state,
             configuration: Configuration::default(),
             documents_with_errors: FxHashSet::default(),
             diagnostics_receiver: Box::new(diagnostics_receiver),
+            test_callable_receiver: Box::new(test_callable_receiver),
             cache: RefCell::default(),
             project_host: Box::new(project_host),
+            position_encoding,
         }
     }
 
@@ -135,18 +147,19 @@ impl<'a> CompilationStateUpdater<'a> {
         }
     }
 
-    pub(super) async fn update_document(&mut self, uri: &str, version: u32, text: &str) {
+    pub(super) async fn update_document(
+        &mut self,
+        uri: &str,
+        version: u32,
+        text: &str,
+        language_id: &str,
+    ) {
         let doc_uri: Arc<str> = Arc::from(uri);
         let text: Arc<str> = Arc::from(text);
 
-        let project = match self.load_manifest(&doc_uri).await {
-            Ok(Some(p)) => p,
-            Ok(None) => Project::from_single_file(doc_uri.clone(), text.clone()),
-            Err(errors) => Project {
-                errors,
-                ..Project::from_single_file(doc_uri.clone(), text.clone())
-            },
-        };
+        let project = self
+            .load_project_from_doc_uri(&doc_uri, &text, language_id)
+            .await;
 
         let compilation_uri = project.path.clone();
 
@@ -174,7 +187,26 @@ impl<'a> CompilationStateUpdater<'a> {
 
         self.insert_buffer_aware_compilation(project);
 
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
+    }
+
+    async fn load_project_from_doc_uri(
+        &mut self,
+        doc_uri: &Arc<str>,
+        text: &Arc<str>,
+        language_id: &str,
+    ) -> Project {
+        match self
+            .load_manifest_or_openqasm_project(doc_uri, language_id)
+            .await
+        {
+            Ok(Some(p)) => p,
+            Ok(None) => Project::from_single_file(doc_uri.clone(), text.clone()),
+            Err(errors) => Project {
+                errors,
+                ..Project::from_single_file(doc_uri.clone(), text.clone())
+            },
+        }
     }
 
     /// Attempts to resolve a manifest for the given document uri.
@@ -187,6 +219,21 @@ impl<'a> CompilationStateUpdater<'a> {
         let dir = self.project_host.find_manifest_directory(doc_uri).await;
 
         self.load_manifest_from_dir(dir).await
+    }
+
+    async fn load_manifest_or_openqasm_project(
+        &self,
+        doc_uri: &Arc<str>,
+        language_id: &str,
+    ) -> Result<Option<Project>, Vec<project::Error>> {
+        if is_openqasm_file(language_id) {
+            return Ok(Some(
+                self.project_host
+                    .load_openqasm_project(Path::new(doc_uri.as_ref()), None)
+                    .await,
+            ));
+        }
+        self.load_manifest(doc_uri).await
     }
 
     async fn load_manifest_from_dir(
@@ -221,39 +268,59 @@ impl<'a> CompilationStateUpdater<'a> {
             // replace source with one from memory if it exists
             // this is what prioritizes open buffers over what exists on the fs for a
             // given document
-            for (ref l_uri, ref mut source) in
-                &mut loaded_project.package_graph_sources.root.sources
-            {
+            let root_sources = match loaded_project.project_type {
+                ProjectType::OpenQASM(ref mut sources) => sources,
+                ProjectType::QSharp(ref mut package_graph_sources) => {
+                    &mut package_graph_sources.root.sources
+                }
+            };
+            for (ref l_uri, ref mut source) in root_sources {
                 if let Some(doc) = state.open_documents.get(l_uri) {
                     trace!("{l_uri} is open, using source from open document");
                     *source = doc.latest_str_content.clone();
                 }
             }
 
-            let compilation_overrides = PartialConfiguration {
-                language_features: Some(
-                    loaded_project.package_graph_sources.root.language_features,
-                ),
-                lints_config: loaded_project.lints,
-                package_type: loaded_project.package_graph_sources.root.package_type.map(
-                    |x| match x {
-                        qsc_project::PackageType::Exe => qsc::PackageType::Exe,
-                        qsc_project::PackageType::Lib => qsc::PackageType::Lib,
-                    },
-                ),
-                ..PartialConfiguration::default()
+            let (configuration, compilation_overrides) = match loaded_project.project_type {
+                ProjectType::QSharp(ref package_graph_sources) => {
+                    let compilation_overrides = PartialConfiguration {
+                        language_features: Some(package_graph_sources.root.language_features),
+                        lints_config: loaded_project.lints,
+                        package_type: package_graph_sources.root.package_type.map(|x| match x {
+                            qsc_project::PackageType::Exe => qsc::PackageType::Exe,
+                            qsc_project::PackageType::Lib => qsc::PackageType::Lib,
+                        }),
+                        ..PartialConfiguration::default()
+                    };
+
+                    (
+                        merge_configurations(&compilation_overrides, &self.configuration),
+                        compilation_overrides,
+                    )
+                }
+                ProjectType::OpenQASM(..) => {
+                    (self.configuration.clone(), PartialConfiguration::default())
+                }
             };
 
-            let configuration = merge_configurations(&compilation_overrides, &self.configuration);
-
-            let compilation = Compilation::new(
-                configuration.package_type,
-                configuration.target_profile,
-                configuration.language_features,
-                &configuration.lints_config,
-                loaded_project.package_graph_sources,
-                loaded_project.errors,
-            );
+            let compilation = match loaded_project.project_type {
+                ProjectType::OpenQASM(sources) => Compilation::new_qasm(
+                    configuration.package_type,
+                    configuration.target_profile,
+                    sources,
+                    loaded_project.errors,
+                    &loaded_project.name,
+                ),
+                ProjectType::QSharp(package_graph_sources) => Compilation::new(
+                    configuration.package_type,
+                    configuration.target_profile,
+                    configuration.language_features,
+                    &configuration.lints_config,
+                    package_graph_sources,
+                    loaded_project.errors,
+                    &loaded_project.name,
+                ),
+            };
 
             state
                 .compilations
@@ -261,8 +328,10 @@ impl<'a> CompilationStateUpdater<'a> {
         });
     }
 
-    pub(super) async fn close_document(&mut self, uri: &str) {
-        let project = self.load_manifest(&uri.into()).await;
+    pub(super) async fn close_document(&mut self, uri: &str, language_id: &str) {
+        let project = self
+            .load_manifest_or_openqasm_project(&uri.into(), language_id)
+            .await;
 
         let removed_compilation = self.remove_open_document(uri);
 
@@ -275,7 +344,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
         }
 
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     /// Removes a document from the open documents map. If the
@@ -372,7 +441,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 (compilation, notebook_configuration),
             );
         });
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     pub(super) fn close_notebook_document(&mut self, notebook_uri: &str) {
@@ -390,19 +459,30 @@ impl<'a> CompilationStateUpdater<'a> {
             state.compilations.remove(notebook_uri);
         });
 
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     // It gets really messy knowing when to clear diagnostics
     // when the document changes ownership between compilations, etc.
     // So let's do it the simplest way possible. Republish all the diagnostics every time.
-    fn publish_diagnostics(&mut self) {
+    fn publish_diagnostics_and_test_callables(&mut self) {
+        self.publish_test_callables();
         let last_docs_with_errors = take(&mut self.documents_with_errors);
         let mut docs_with_errors = FxHashSet::default();
 
         self.with_state(|state| {
             for (compilation_uri, compilation) in &state.compilations {
                 trace!("publishing diagnostics for {compilation_uri}");
+
+                if compilation_uri.starts_with(qsc_project::GITHUB_SCHEME) {
+                    // If the compilation URI is a GitHub virtual document URI,
+                    // that's a signal that this is a source file from a GitHub package
+                    // that is open in the editor.
+                    // We can't discover the manifest and load the project for these files.
+                    // So they end up in their own single-file compilation.
+                    // Don't publish diagnostics for these, as they will contain spurious errors.
+                    continue;
+                }
 
                 for (uri, errors) in map_errors_to_docs(
                     compilation_uri,
@@ -415,12 +495,6 @@ impl<'a> CompilationStateUpdater<'a> {
                         // When the same document is included in multiple compilations,
                         // only report the errors for one of them, the goal being
                         // a less confusing user experience.
-                        continue;
-                    }
-                    if uri.starts_with(qsc_project::GITHUB_SCHEME) {
-                        // Don't publish diagnostics for GitHub URIs.
-                        // This is temporary workaround to avoid spurious errors when a document
-                        // is opened in single file mode that is part of a read-only GitHub project.
                         continue;
                     }
 
@@ -503,7 +577,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
         });
 
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     /// Borrows the compilation state immutably and invokes `f`.
@@ -533,6 +607,40 @@ impl<'a> CompilationStateUpdater<'a> {
         let mut state = self.state.borrow_mut();
         f(&mut state)
     }
+
+    fn publish_test_callables(&self) {
+        self.with_state(|state| {
+            // get test callables from each compilation
+            let callables: Vec<_> = state
+                .compilations
+                .iter()
+                .flat_map(|(compilation_uri, (compilation, _))| {
+                    compilation.test_cases.iter().map(move |(name, span)| {
+                        Some(TestCallable {
+                            compilation_uri: Arc::from(compilation_uri.as_ref()),
+                            callable_name: Arc::from(name.as_ref()),
+                            location: crate::qsc_utils::into_location(
+                                self.position_encoding,
+                                compilation,
+                                *span,
+                                compilation.user_package_id,
+                            ),
+                            // notebooks don't have human readable names -- we use this
+                            // to filter them out in the test explorer
+                            friendly_name: compilation.friendly_project_name()?,
+                        })
+                    })
+                })
+                .flatten()
+                .collect();
+
+            (self.test_callable_receiver)(TestCallables { callables });
+        });
+    }
+}
+
+fn is_openqasm_file(language_id: &str) -> bool {
+    language_id == "openqasm"
 }
 
 impl CompilationState {
@@ -597,9 +705,26 @@ fn merge_configurations(
     let mut override_lints = compilation_overrides.lints_config.clone();
     override_lints.retain(|override_lint| {
         for merged_lint in &mut merged_lints {
-            if merged_lint.kind == override_lint.kind {
-                merged_lint.level = override_lint.level;
-                return false;
+            match (merged_lint, override_lint) {
+                (
+                    LintOrGroupConfig::Lint(lint_config),
+                    LintOrGroupConfig::Lint(lint_config_override),
+                ) => {
+                    if lint_config.kind == lint_config_override.kind {
+                        lint_config.level = lint_config_override.level;
+                        return false;
+                    }
+                }
+                (
+                    LintOrGroupConfig::Group(group_config),
+                    LintOrGroupConfig::Group(group_config_override),
+                ) => {
+                    if group_config.lint_group == group_config_override.lint_group {
+                        group_config.level = group_config_override.level;
+                        return false;
+                    }
+                }
+                _ => (),
             }
         }
         true

@@ -83,7 +83,7 @@ impl<P: Clone> DistillationRound<P> {
         let mut upper = self.num_units;
         let mut lower = self.num_units / 2;
         while lower < upper {
-            self.num_units = (lower + upper) / 2;
+            self.num_units = u64::midpoint(lower, upper);
             let num_output_ts = self.compute_num_output_states(failure_probability);
             if num_output_ts >= output_states_needed_next {
                 upper = self.num_units;

@@ -10,12 +10,17 @@ use qsc::{
     incremental::Compiler,
     line_column::{Encoding, Position, Range},
     packages::{prepare_package_store, BuildableProgram},
-    project, resolve,
+    project,
+    qasm::{
+        compiler::compile_to_qsharp_ast_with_config, CompileRawQasmResult, CompilerConfig,
+        OutputSemantics, ProgramType, QubitSemantics,
+    },
+    resolve,
     target::Profile,
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
-use qsc_linter::{LintConfig, LintLevel};
-use qsc_project::{PackageGraphSources, Project};
+use qsc_linter::{LintLevel, LintOrGroupConfig};
+use qsc_project::{PackageGraphSources, Project, ProjectType};
 use rustc_hash::FxHashMap;
 use std::sync::Arc;
 use std::{iter::once, mem::take};
@@ -37,6 +42,7 @@ pub(crate) struct Compilation {
     pub compile_errors: Vec<compile::Error>,
     pub kind: CompilationKind,
     pub dependencies: FxHashMap<PackageId, Option<PackageAlias>>,
+    pub test_cases: Vec<(String, Span)>,
 }
 
 #[derive(Debug)]
@@ -46,11 +52,18 @@ pub(crate) enum CompilationKind {
     /// one or more sources, and a target profile.
     OpenProject {
         package_graph_sources: PackageGraphSources,
+        /// a human-readable name for the package (not a unique URI -- meant to be read by humans)
+        friendly_name: Arc<str>,
     },
     /// A Q# notebook. In a notebook compilation, the user package
     /// contains multiple `Source`s, with each source corresponding
     /// to a cell.
     Notebook { project: Option<Project> },
+    OpenQASM {
+        sources: Vec<(Arc<str>, Arc<str>)>,
+        /// a human-readable name for the package (not a unique URI -- meant to be read by humans)
+        friendly_name: Arc<str>,
+    },
 }
 
 impl Compilation {
@@ -59,9 +72,10 @@ impl Compilation {
         package_type: PackageType,
         target_profile: Profile,
         language_features: LanguageFeatures,
-        lints_config: &[LintConfig],
+        lints_config: &[LintOrGroupConfig],
         package_graph_sources: PackageGraphSources,
         project_errors: Vec<project::Error>,
+        friendly_name: &Arc<str>,
     ) -> Self {
         let mut buildable_program =
             prepare_package_store(target_profile.into(), package_graph_sources.clone());
@@ -102,15 +116,19 @@ impl Compilation {
 
         run_linter_passes(&mut compile_errors, &package_store, unit, lints_config);
 
+        let test_cases = unit.package.get_test_callables();
+
         Self {
             package_store,
             user_package_id: package_id,
             kind: CompilationKind::OpenProject {
                 package_graph_sources,
+                friendly_name: friendly_name.clone(),
             },
             compile_errors,
             project_errors,
             dependencies: user_code_dependencies.into_iter().collect(),
+            test_cases,
         }
     }
 
@@ -119,7 +137,7 @@ impl Compilation {
         cells: I,
         target_profile: Profile,
         language_features: LanguageFeatures,
-        lints_config: &[LintConfig],
+        lints_config: &[LintOrGroupConfig],
         project: Option<Project>,
     ) -> Self
     where
@@ -130,8 +148,11 @@ impl Compilation {
         let (sources, dependencies, store, mut errors) = match &project {
             Some(p) if p.errors.is_empty() => {
                 trace!("using buildable program from project");
+                let ProjectType::QSharp(sources) = &p.project_type else {
+                    unreachable!("Project type should be Q#")
+                };
                 let buildable_program =
-                    prepare_package_store(target_profile.into(), p.package_graph_sources.clone());
+                    prepare_package_store(target_profile.into(), sources.clone());
 
                 (
                     SourceMap::new(buildable_program.user_code.sources, None),
@@ -218,13 +239,73 @@ impl Compilation {
             .chain(once((source_package_id, None)))
             .collect();
 
+        let test_cases = unit.package.get_test_callables();
+
         Self {
             package_store,
             user_package_id: package_id,
             compile_errors: errors,
             project_errors: project.as_ref().map_or_else(Vec::new, |p| p.errors.clone()),
             kind: CompilationKind::Notebook { project },
+            test_cases,
             dependencies,
+        }
+    }
+
+    pub(crate) fn new_qasm(
+        package_type: PackageType,
+        target_profile: Profile,
+        sources: Vec<(Arc<str>, Arc<str>)>,
+        project_errors: Vec<project::Error>,
+        friendly_name: &Arc<str>,
+    ) -> Self {
+        let capabilities = target_profile.into();
+
+        let config = CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            OutputSemantics::OpenQasm,
+            ProgramType::File,
+            Some("program".into()),
+            None,
+        );
+        let res = qsc::qasm::semantic::parse_sources(&sources);
+        let unit = compile_to_qsharp_ast_with_config(res, config);
+        let CompileRawQasmResult(store, source_package_id, dependencies, _sig, mut compile_errors) =
+            qsc::qasm::compile_openqasm(unit, package_type, capabilities);
+
+        let compile_unit = store
+            .get(source_package_id)
+            .expect("expected to find user package");
+
+        run_fir_passes(
+            &mut compile_errors,
+            target_profile,
+            &store,
+            source_package_id,
+            compile_unit,
+        );
+
+        Self {
+            package_store: store,
+            user_package_id: source_package_id,
+            kind: CompilationKind::OpenQASM {
+                sources,
+                friendly_name: friendly_name.clone(),
+            },
+            compile_errors,
+            project_errors,
+            dependencies: dependencies.into_iter().collect(),
+            test_cases: vec![],
+        }
+    }
+
+    /// Returns a human-readable compilation name if one exists.
+    /// Notebooks don't have human-readable compilation names.
+    pub fn friendly_project_name(&self) -> Option<Arc<str>> {
+        match &self.kind {
+            CompilationKind::OpenProject { friendly_name, .. }
+            | CompilationKind::OpenQASM { friendly_name, .. } => Some(friendly_name.clone()),
+            CompilationKind::Notebook { .. } => None,
         }
     }
 
@@ -310,18 +391,12 @@ impl Compilation {
         package_type: PackageType,
         target_profile: Profile,
         language_features: LanguageFeatures,
-        lints_config: &[LintConfig],
+        lints_config: &[LintOrGroupConfig],
     ) {
-        let sources = self
-            .user_unit()
-            .sources
-            .iter()
-            .map(|source| (source.name.clone(), source.contents.clone()))
-            .collect::<Vec<_>>();
-
         let new = match self.kind {
             CompilationKind::OpenProject {
                 ref package_graph_sources,
+                ref friendly_name,
             } => Self::new(
                 package_type,
                 target_profile,
@@ -329,18 +404,38 @@ impl Compilation {
                 lints_config,
                 package_graph_sources.clone(),
                 Vec::new(), // project errors will stay the same
+                friendly_name,
             ),
-            CompilationKind::Notebook { ref project } => Self::new_notebook(
-                sources.into_iter(),
+            CompilationKind::Notebook { ref project } => {
+                let sources = self
+                    .user_unit()
+                    .sources
+                    .iter()
+                    .map(|source| (source.name.clone(), source.contents.clone()));
+
+                Self::new_notebook(
+                    sources,
+                    target_profile,
+                    language_features,
+                    lints_config,
+                    project.clone(),
+                )
+            }
+            CompilationKind::OpenQASM {
+                ref sources,
+                ref friendly_name,
+            } => Self::new_qasm(
+                package_type,
                 target_profile,
-                language_features,
-                lints_config,
-                project.clone(),
+                sources.clone(),
+                Vec::new(), // project errors will stay the same
+                friendly_name,
             ),
         };
 
         self.package_store = new.package_store;
         self.user_package_id = new.user_package_id;
+        self.test_cases = new.test_cases;
         self.compile_errors = new.compile_errors;
     }
 }
@@ -386,7 +481,7 @@ fn run_linter_passes(
     errors: &mut Vec<WithSource<compile::ErrorKind>>,
     package_store: &PackageStore,
     unit: &CompileUnit,
-    config: &[LintConfig],
+    config: &[LintOrGroupConfig],
 ) {
     if errors.is_empty() {
         let lints = qsc::linter::run_lints(package_store, unit, Some(config));

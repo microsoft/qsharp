@@ -16,11 +16,13 @@ import {
 } from "qsharp-lang/ux";
 import { HelpPage } from "./help";
 import { DocumentationView, IDocFile } from "./docview";
+import "./webview.css";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - there are no types for this
 import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
+import { setThemeStylesheet } from "./theme";
 const md = markdownIt("commonmark");
 md.use(mk, {
   enableMathBlockInHtml: true,
@@ -33,6 +35,7 @@ window.addEventListener("load", main);
 
 type HistogramState = {
   viewType: "histogram";
+  panelId: string;
   buckets: Array<[string, number]>;
   shotCount: number;
 };
@@ -47,6 +50,7 @@ type EstimatesState = {
 
 type CircuitState = {
   viewType: "circuit";
+  panelId: string;
   props: CircuitProps;
 };
 
@@ -57,67 +61,15 @@ type DocumentationState = {
 };
 
 type State =
-  | { viewType: "loading" }
+  | { viewType: "loading"; panelId: string }
   | { viewType: "help" }
   | HistogramState
   | EstimatesState
   | CircuitState
   | DocumentationState;
-const loadingState: State = { viewType: "loading" };
+const loadingState: State = { viewType: "loading", panelId: "" };
 const helpState: State = { viewType: "help" };
 let state: State = loadingState;
-
-const themeAttribute = "data-vscode-theme-kind";
-
-function updateGitHubTheme() {
-  let isDark = true;
-
-  const themeType = document.body.getAttribute(themeAttribute);
-
-  switch (themeType) {
-    case "vscode-light":
-    case "vscode-high-contrast-light":
-      isDark = false;
-      break;
-    default:
-      isDark = true;
-  }
-
-  // Update the stylesheet href
-  document.head.querySelectorAll("link").forEach((el) => {
-    const ref = el.getAttribute("href");
-    if (ref && ref.includes("github-markdown")) {
-      const newVal = ref.replace(
-        /(dark\.css)|(light\.css)/,
-        isDark ? "dark.css" : "light.css",
-      );
-      el.setAttribute("href", newVal);
-    }
-  });
-}
-
-function setThemeStylesheet() {
-  // We need to add the right Markdown style-sheet for the theme.
-
-  // For VS Code, there will be an attribute on the body called
-  // "data-vscode-theme-kind" that is "vscode-light" or "vscode-high-contrast-light"
-  // for light themes, else assume dark (will be "vscode-dark" or "vscode-high-contrast").
-
-  // Use a [MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver)
-  // to detect changes to the theme attribute.
-  const callback = (mutations: MutationRecord[]) => {
-    for (const mutation of mutations) {
-      if (mutation.attributeName === themeAttribute) {
-        updateGitHubTheme();
-      }
-    }
-  };
-  const observer = new MutationObserver(callback);
-  observer.observe(document.body, { attributeFilter: [themeAttribute] });
-
-  // Run it once for initial value
-  updateGitHubTheme();
-}
 
 function main() {
   state = (vscodeApi.getState() as any) || loadingState;
@@ -140,6 +92,7 @@ function onMessage(event: any) {
       }
       state = {
         viewType: "histogram",
+        panelId: message.panelId,
         buckets: message.buckets as Array<[string, number]>,
         shotCount: message.shotCount,
       };

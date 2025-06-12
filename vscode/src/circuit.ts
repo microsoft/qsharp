@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib";
 import { escapeHtml } from "markdown-it/lib/common/utils.mjs";
 import {
+  type CircuitData,
   ICompilerWorker,
   IOperationInfo,
   IQSharpError,
   IRange,
+  QdkDiagnostics,
   getCompilerWorker,
   log,
 } from "qsharp-lang";
@@ -15,7 +16,14 @@ import { Uri } from "vscode";
 import { getTargetFriendlyName } from "./config";
 import { clearCommandDiagnostics } from "./diagnostics";
 import { FullProgramConfig, getActiveProgram } from "./programConfig";
-import { EventType, UserFlowStatus, sendTelemetryEvent } from "./telemetry";
+import {
+  EventType,
+  QsharpDocumentType,
+  UserFlowStatus,
+  UserTaskInvocationType,
+  getActiveDocumentType,
+  sendTelemetryEvent,
+} from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { sendMessageToPanel } from "./webviewPanel";
 
@@ -32,7 +40,7 @@ type CircuitParams = {
 /**
  * Result of a circuit generation attempt.
  */
-type CircuitOrError = {
+export type CircuitOrError = {
   simulated: boolean;
 } & (
   | {
@@ -50,22 +58,36 @@ type CircuitOrError = {
 export async function showCircuitCommand(
   extensionUri: Uri,
   operation: IOperationInfo | undefined,
-) {
+  telemetryInvocationType: UserTaskInvocationType,
+  telemetryDocumentType?: QsharpDocumentType,
+  programConfig?: FullProgramConfig,
+): Promise<CircuitOrError> {
   clearCommandDiagnostics();
 
   const associationId = getRandomGuid();
-  sendTelemetryEvent(EventType.TriggerCircuit, { associationId }, {});
+  sendTelemetryEvent(
+    EventType.TriggerCircuit,
+    {
+      documentType: telemetryDocumentType || getActiveDocumentType(),
+      associationId,
+      invocationType: telemetryInvocationType,
+    },
+    {},
+  );
 
-  const program = await getActiveProgram();
-  if (!program.success) {
-    throw new Error(program.errorMsg);
+  if (!programConfig) {
+    const program = await getActiveProgram({ showModalError: true });
+    if (!program.success) {
+      throw new Error(program.errorMsg);
+    }
+    programConfig = program.programConfig;
   }
 
   sendTelemetryEvent(
     EventType.CircuitStart,
     {
       associationId,
-      targetProfile: program.programConfig.profile,
+      targetProfile: programConfig.profile,
       isOperation: (!!operation).toString(),
     },
     {},
@@ -75,7 +97,7 @@ export async function showCircuitCommand(
   // generateCircuits() takes care of handling timeouts and
   // falling back to the simulator for dynamic circuits.
   const result = await generateCircuit(extensionUri, {
-    program: program.programConfig,
+    program: programConfig,
     operation,
   });
 
@@ -105,6 +127,8 @@ export async function showCircuitCommand(
       });
     }
   }
+
+  return result;
 }
 
 /**
@@ -116,7 +140,7 @@ export async function showCircuitCommand(
  * that means this is a dynamic circuit. We fall back to using the
  * simulator in this case ("trace" mode), which is slower.
  */
-async function generateCircuit(
+export async function generateCircuit(
   extensionUri: Uri,
   params: CircuitParams,
 ): Promise<CircuitOrError> {
@@ -247,13 +271,13 @@ async function getCircuitOrError(
       simulate,
       params.operation,
     );
-    return { result: "success", simulated: simulate, circuit };
+    return { result: "success", simulated: simulate, circuit: circuit };
   } catch (e: any) {
     let errors: IQSharpError[] = [];
     let resultCompError = false;
-    if (typeof e === "string") {
+    if (e instanceof QdkDiagnostics) {
       try {
-        errors = JSON.parse(e);
+        errors = e.diagnostics;
         resultCompError = hasResultComparisonError(errors);
       } catch {
         // couldn't parse the error - would indicate a bug.
@@ -332,12 +356,12 @@ export function updateCircuitPanel(
     calculating?: boolean;
   },
 ) {
+  const panelId = params?.operation?.operation || projectName;
   const title = params?.operation
     ? `${params.operation.operation} with ${params.operation.totalNumQubits} input qubits`
     : projectName;
 
-  // Trim the Q#: prefix from the target profile name - that's meant for the ui text in the status bar
-  const target = `Target profile: ${getTargetFriendlyName(targetProfile).replace("Q#: ", "")} `;
+  const target = `Target profile: ${getTargetFriendlyName(targetProfile)} `;
 
   const props = {
     title,
@@ -349,10 +373,9 @@ export function updateCircuitPanel(
   };
 
   const message = {
-    command: "circuit",
     props,
   };
-  sendMessageToPanel("circuit", reveal, message);
+  sendMessageToPanel({ panelType: "circuit", id: panelId }, reveal, message);
 }
 
 /**

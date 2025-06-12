@@ -16,6 +16,7 @@ use qsc::line_column::Position;
 use std::fmt::Write;
 
 mod class_completions;
+mod openqasm;
 
 fn check(
     compilation: &Compilation,

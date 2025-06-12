@@ -32,7 +32,7 @@ impl<E: ErrorCorrection<Parameter = impl Clone>> FactoryBuilder<E> for NoFactori
         _magic_state_type: usize,
         _output_error_rate: f64,
         _max_code_parameter: &<E as ErrorCorrection>::Parameter,
-    ) -> Option<Vec<std::borrow::Cow<Self::Factory>>> {
+    ) -> Result<Vec<std::borrow::Cow<Self::Factory>>, String> {
         unreachable!()
     }
 

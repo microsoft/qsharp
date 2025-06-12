@@ -13,9 +13,12 @@ function Main() : Unit {
     mutable mutableInt = 43;
     Message($"Mutable Int: {mutableInt}");
 
-    // Mutable variables can be mutated with the `set` keyword:
-    set mutableInt -= 1;
+    // Mutable variables can be mutated or reassigned.
+    mutableInt -= 1;
     Message($"Mutable Int after mutation: {mutableInt}");
+
+    mutableInt = 10;
+    Message($"Mutable Int after reassignment: {mutableInt}");
 
     // This is not mutation, rather, this is declaring a new variable
     // entirely.
@@ -30,7 +33,7 @@ function Main() : Unit {
 
     // The below line copies `point`, moves the X coordinate by +1.0,
     // and reassign the new `Point3d` to `point`.
-    set point = new Point3d { ...point, X = point.X + 1.0 };
+    point = new Point3d { ...point, X = point.X + 1.0 };
 
 }
 

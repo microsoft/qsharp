@@ -7,7 +7,7 @@ use qsc::{
     interpret, LanguageFeatures, PackageStore, PauliNoise, SourceMap, TargetCapabilityFlags,
 };
 
-use crate::get_qir_;
+use crate::get_qir_from_qsharp;
 
 use super::run_internal_with_features;
 
@@ -542,5 +542,5 @@ fn code_with_errors_returns_errors() {
             "[{\"document\":\"test.qs\",\"diagnostic\":{\"range\":{\"start\":{\"line\":4,\"character\":16},\"end\":{\"line\":4,\"character\":19}},\"message\":\"syntax error: expected `;`, found keyword `let`\",\"severity\":\"error\",\"code\":\"Qsc.Parse.Token\"},\"stack\":null}]",
         )
     "#]]
-    .assert_debug_eq(&get_qir_(sources, language_features, capabilities, store, &[]));
+    .assert_debug_eq(&get_qir_from_qsharp(sources, language_features, capabilities, store, &[]));
 }

@@ -115,6 +115,7 @@ export type Provider = {
 
 export type Target = {
   id: string;
+  providerId: string;
   currentAvailability: "Available" | "Degraded" | "Unavailable";
   averageQueueTime: number; // minutes
 };
@@ -131,6 +132,8 @@ export type Job = {
     | "Finishing"
     | "Cancelled";
   outputDataUri?: string;
+  count?: number;
+  shots?: number;
   creationTime: string;
   beginExecutionTime?: string;
   endExecutionTime?: string;

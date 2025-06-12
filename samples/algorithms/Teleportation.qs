@@ -13,6 +13,7 @@ import Std.Diagnostics.*;
 import Std.Intrinsic.*;
 import Std.Measurement.*;
 
+
 operation Main() : Result[] {
     // Use the `Teleport` operation to send different quantum states.
     let stateInitializerBasisTuples = [
@@ -42,7 +43,7 @@ operation Main() : Result[] {
         // Measure target in the corresponding basis and reset the qubits to
         // continue teleporting more messages.
         let result = Measure([basis], [target]);
-        set results += [result];
+        results += [result];
         ResetAll([message, target]);
     }
 

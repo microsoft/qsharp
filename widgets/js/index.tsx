@@ -14,6 +14,7 @@ import {
   setRenderer,
 } from "qsharp-lang/ux";
 import markdownIt from "markdown-it";
+import "./widgets.css";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - there are no types for this
@@ -39,6 +40,22 @@ type RenderArgs = {
 
 export function render({ model, el }: RenderArgs) {
   const componentType = model.get("comp");
+
+  // There is an existing issue where in VS Code it always shows the widget background as white.
+  // (See https://github.com/microsoft/vscode-jupyter/issues/7161)
+  // We tried to fix this in CSS by overridding the style, but there is a race condition whereby
+  // depending on which style gets injected first (ours or ipywidgets), it may or may not work.
+
+  // The solution here is to force our own override to be last in the style list if not already.
+  // It's a bit of a hack, but it works, and I couldn't find something better that wouldn't be fragile.
+
+  if (
+    !el.ownerDocument.head.lastChild?.textContent?.includes("widget-css-fix")
+  ) {
+    const forceStyle = el.ownerDocument.createElement("style");
+    forceStyle.textContent = `/* widget-css-fix */ .cell-output-ipywidget-background {background-color: transparent !important;}`;
+    el.ownerDocument.head.appendChild(forceStyle);
+  }
 
   switch (componentType) {
     case "SpaceChart":

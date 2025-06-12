@@ -58,35 +58,27 @@ fn one_entrypoint() {
                 (
                     0,
                     [
-                        Run,
-                        Histogram,
-                        Estimate,
-                        Debug,
+                        Run(
+                            "Test.Test()",
+                        ),
+                        Histogram(
+                            "Test.Test()",
+                        ),
+                        Estimate(
+                            "Test.Test()",
+                        ),
+                        Debug(
+                            "Test.Test()",
+                        ),
                         Circuit(
-                            None,
+                            OperationInfo {
+                                operation: "Test.Test",
+                                total_num_qubits: 0,
+                            },
                         ),
                     ],
                 ),
             ]
-        "#]],
-    );
-}
-
-#[test]
-fn two_entrypoints() {
-    check(
-        r#"
-        namespace Test {
-            @EntryPoint()
-            operation Main() : Unit{
-            }
-
-            @EntryPoint()
-            operation Foo() : Unit{
-            }
-        }"#,
-        &expect![[r#"
-            []
         "#]],
     );
 }
@@ -99,20 +91,54 @@ fn main_function() {
             ◉operation Main() : Unit {
             }◉
 
-            operation Foo() : Unit{
-            }
+            ◉operation Foo() : Unit{
+            }◉
         }"#,
         &expect![[r#"
             [
                 (
                     0,
                     [
-                        Run,
-                        Histogram,
-                        Estimate,
-                        Debug,
+                        Run(
+                            "Test.Main()",
+                        ),
+                        Histogram(
+                            "Test.Main()",
+                        ),
+                        Estimate(
+                            "Test.Main()",
+                        ),
+                        Debug(
+                            "Test.Main()",
+                        ),
                         Circuit(
-                            None,
+                            OperationInfo {
+                                operation: "Test.Main",
+                                total_num_qubits: 0,
+                            },
+                        ),
+                    ],
+                ),
+                (
+                    1,
+                    [
+                        Run(
+                            "Test.Foo()",
+                        ),
+                        Histogram(
+                            "Test.Foo()",
+                        ),
+                        Estimate(
+                            "Test.Foo()",
+                        ),
+                        Debug(
+                            "Test.Foo()",
+                        ),
+                        Circuit(
+                            OperationInfo {
+                                operation: "Test.Foo",
+                                total_num_qubits: 0,
+                            },
                         ),
                     ],
                 ),
@@ -153,12 +179,10 @@ fn qubit_operation_circuit() {
                     0,
                     [
                         Circuit(
-                            Some(
-                                OperationInfo {
-                                    operation: "Test.Foo",
-                                    total_num_qubits: 1,
-                                },
-                            ),
+                            OperationInfo {
+                                operation: "Test.Foo",
+                                total_num_qubits: 1,
+                            },
                         ),
                     ],
                 ),
@@ -181,16 +205,38 @@ fn qubit_arrays_operation_circuit() {
                     0,
                     [
                         Circuit(
-                            Some(
-                                OperationInfo {
-                                    operation: "Test.Foo",
-                                    total_num_qubits: 7,
-                                },
-                            ),
+                            OperationInfo {
+                                operation: "Test.Foo",
+                                total_num_qubits: 7,
+                            },
                         ),
                     ],
                 ),
             ]
         "#]],
+    );
+}
+
+#[test]
+fn no_code_lenses_with_compilation_errors() {
+    let source = r#"
+        namespace Test {
+            operation Main() : Unit {
+                foo  // undefined variable - compilation error
+            }
+        }"#;
+
+    let (compilation, _) = compile_with_fake_stdlib_and_markers_no_cursor(source, true);
+
+    // Verify the compilation actually has errors
+    assert!(
+        !compilation.compile_errors.is_empty(),
+        "Test should have compilation errors"
+    );
+
+    let lenses = get_code_lenses(&compilation, "<source>", Encoding::Utf8);
+    assert!(
+        lenses.is_empty(),
+        "code lenses should not be present when there are compilation errors"
     );
 }

@@ -9,9 +9,13 @@ import {
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { initAzureWorkspaces } from "./azure/commands.js";
+import { CircuitEditorProvider } from "./circuitEditor.js";
+import { registerCopilotPanel } from "./copilot/webviewViewProvider.js";
 import { initProjectCreator } from "./createProject.js";
 import { activateDebugger } from "./debugger/activate.js";
 import { startOtherQSharpDiagnostics } from "./diagnostics.js";
+import { registerGhCopilotInstructionsCommand } from "./gh-copilot/instructions.js";
+import { registerLanguageModelTools } from "./gh-copilot/tools.js";
 import { activateLanguageService } from "./language-service/activate.js";
 import {
   Logging,
@@ -67,21 +71,25 @@ export async function activate(
 
   context.subscriptions.push(...activateTargetProfileStatusBarItem());
 
-  context.subscriptions.push(
-    ...(await activateLanguageService(context.extensionUri)),
-  );
+  context.subscriptions.push(...(await activateLanguageService(context)));
 
   context.subscriptions.push(...startOtherQSharpDiagnostics());
 
   context.subscriptions.push(...registerQSharpNotebookHandlers());
 
-  initAzureWorkspaces(context);
+  context.subscriptions.push(CircuitEditorProvider.register(context));
+
+  await initAzureWorkspaces(context);
   initCodegen(context);
-  activateDebugger(context);
+  await activateDebugger(context);
   registerCreateNotebookCommand(context);
   registerWebViewCommands(context);
-  initFileSystem(context);
-  initProjectCreator(context);
+  await initFileSystem(context);
+  await initProjectCreator(context);
+  registerCopilotPanel(context);
+  registerLanguageModelTools(context);
+  // fire-and-forget
+  registerGhCopilotInstructionsCommand(context);
 
   log.info("Q# extension activated.");
 

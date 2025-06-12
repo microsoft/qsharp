@@ -21,7 +21,7 @@ pub struct FunctorApp {
 
 impl Display for FunctorApp {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let controlleds = iter::repeat("Controlled").take(self.controlled.into());
+        let controlleds = std::iter::repeat_n("Controlled", self.controlled.into());
         let adjoint = iter::once("Adjoint").filter(|_| self.adjoint);
         join(f, controlleds.chain(adjoint), " ")
     }

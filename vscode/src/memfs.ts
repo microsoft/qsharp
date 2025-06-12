@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log, samples } from "qsharp-lang";
+import { log, samples, openqasm_samples } from "qsharp-lang";
 import * as vscode from "vscode";
 import { qsharpExtensionId } from "./common";
 
@@ -18,7 +18,8 @@ const playgroundReadme = `
 Welcome to the Azure Quantum Development Kit playground! An online environment to
 safely learn and explore quantum computing with the Q# language.
 
-The samples folder contains a set of common quantum algorithms written in Q#.
+The 'Samples (Q#)' folder contains a set of common quantum algorithms written in Q#.
+The 'Samples (OpenQASM)' folder contains several quantum programs written in OpenQASM.
 You can run these samples by clicking the "Run" button in the top right corner
 of the editor when you have the file open. You can also set breakpoints and
 step through the code using the Debug button at the same location to see how the
@@ -33,28 +34,49 @@ For more information about the Azure Quantum Development Kit,
 visit <https://aka.ms/AQ/Documentation>.
 `;
 
-// Put the playground in its own 'authority', so we can keep the default space clean.
-// This has the benefit of the URI https://vscode.dev/quantum/playground/ opening the playground
+// Type of a generated sample entry.
+type SampleTy = (typeof samples)[number];
+
 function populateSamples(vfs: MemFS) {
+  // Put the playground in its own 'authority', so we can keep the default space clean.
+  // This has the benefit of the URI https://vscode.dev/quantum/playground/ opening the playground
   vfs.addAuthority(playgroundAuthority);
 
   const encoder = new TextEncoder();
-  vfs.createDirectory(playgroundRootUri.with({ path: "/samples" }));
-
-  samples.forEach((sample) => {
-    const sanitized_file_name = sample.title.replace(/\W/g, ""); // Remove non-word characters
-    vfs.writeFile(
-      playgroundRootUri.with({ path: `/samples/${sanitized_file_name}.qs` }),
-      encoder.encode(sample.code),
-      { create: true, overwrite: true },
-    );
-  });
+  populateSamplesFolder(vfs, encoder, "Samples (Q#)", samples, ".qs");
+  populateSamplesFolder(
+    vfs,
+    encoder,
+    "Samples (OpenQASM)",
+    openqasm_samples,
+    ".qasm",
+  );
 
   vfs.writeFile(
     playgroundRootUri.with({ path: "/README.md" }),
     encoder.encode(playgroundReadme),
     { create: true, overwrite: true },
   );
+}
+
+function populateSamplesFolder(
+  vfs: MemFS,
+  encoder: TextEncoder,
+  folder: string,
+  samples: SampleTy[],
+  extension: string,
+) {
+  vfs.createDirectory(playgroundRootUri.with({ path: `/${folder}` }));
+  samples.forEach((sample) => {
+    const sanitized_file_name = sample.title.replace(/\W/g, ""); // Remove non-word characters
+    vfs.writeFile(
+      playgroundRootUri.with({
+        path: `/${folder}/${sanitized_file_name}${extension}`,
+      }),
+      encoder.encode(sample.code),
+      { create: true, overwrite: true },
+    );
+  });
 }
 
 export async function initFileSystem(context: vscode.ExtensionContext) {

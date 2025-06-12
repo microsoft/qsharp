@@ -26,7 +26,7 @@ use futures_util::StreamExt;
 use log::{trace, warn};
 use protocol::{
     CodeAction, CodeLens, CompletionList, DiagnosticUpdate, Hover, NotebookMetadata, SignatureHelp,
-    TextEdit, WorkspaceConfigurationUpdate,
+    TestCallables, TextEdit, WorkspaceConfigurationUpdate,
 };
 use qsc::{
     line_column::{Encoding, Position, Range},
@@ -67,6 +67,9 @@ impl LanguageService {
     pub fn create_update_worker<'a>(
         &mut self,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
+        // Callback which receives detected test callables and does something with them
+        // in the case of VS Code, updates the test explorer with them
+        test_callable_receiver: impl Fn(TestCallables) + 'a,
         project_host: impl JSProjectHost + 'static,
     ) -> UpdateWorker<'a> {
         assert!(self.state_updater.is_none());
@@ -75,7 +78,9 @@ impl LanguageService {
             updater: CompilationStateUpdater::new(
                 self.state.clone(),
                 diagnostics_receiver,
+                test_callable_receiver,
                 project_host,
+                self.position_encoding,
             ),
             recv,
         };
@@ -112,12 +117,13 @@ impl LanguageService {
     /// This is the "entry point" for the language service's logic, after its constructor.
     ///
     /// LSP: textDocument/didOpen, textDocument/didChange
-    pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
+    pub fn update_document(&mut self, uri: &str, version: u32, text: &str, language_id: &str) {
         trace!("update_document: {uri} {version}");
         self.send_update(Update::Document {
             uri: uri.into(),
             version,
             text: text.into(),
+            language_id: language_id.into(),
         });
     }
 
@@ -125,9 +131,12 @@ impl LanguageService {
     /// typically occurs when the document is closed in the editor.
     ///
     /// LSP: textDocument/didClose
-    pub fn close_document(&mut self, uri: &str) {
+    pub fn close_document(&mut self, uri: &str, language_id: &str) {
         trace!("close_document: {uri}");
-        self.send_update(Update::CloseDocument { uri: uri.into() });
+        self.send_update(Update::CloseDocument {
+            uri: uri.into(),
+            language_id: language_id.into(),
+        });
     }
 
     /// The uri refers to the notebook itself, not any of the individual cells.
@@ -419,11 +428,18 @@ fn push_update(pending_updates: &mut Vec<Update>, update: Update) {
 
 async fn apply_update(updater: &mut CompilationStateUpdater<'_>, update: Update) {
     match update {
-        Update::CloseDocument { uri } => {
-            updater.close_document(&uri).await;
+        Update::CloseDocument { uri, language_id } => {
+            updater.close_document(&uri, &language_id).await;
         }
-        Update::Document { uri, version, text } => {
-            updater.update_document(&uri, version, &text).await;
+        Update::Document {
+            uri,
+            version,
+            text,
+            language_id,
+        } => {
+            updater
+                .update_document(&uri, version, &text, &language_id)
+                .await;
         }
         Update::NotebookDocument {
             notebook_uri,
@@ -457,9 +473,11 @@ enum Update {
         uri: String,
         version: u32,
         text: String,
+        language_id: String,
     },
     CloseDocument {
         uri: String,
+        language_id: String,
     },
     NotebookDocument {
         notebook_uri: String,

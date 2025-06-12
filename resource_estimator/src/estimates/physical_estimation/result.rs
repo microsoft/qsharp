@@ -4,7 +4,7 @@
 use serde::Serialize;
 
 use crate::estimates::{
-    ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, LogicalPatch, Overhead,
+    Error, ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, LogicalPatch, Overhead,
     PhysicalResourceEstimation, RealizedOverhead,
 };
 
@@ -41,26 +41,26 @@ impl<E: ErrorCorrection<Parameter = impl Clone>, F: Factory<Parameter = E::Param
         num_cycles: u64,
         factory_parts: Vec<Option<FactoryPart<F>>>,
         required_logical_error_rate: f64,
-    ) -> Self {
+    ) -> Result<Self, Error> {
         let physical_qubits_for_factories = factory_parts
             .iter()
             .filter_map(|f| f.as_ref().map(FactoryPart::physical_qubits))
             .sum();
-        let num_logical_patches = estimation
+        let num_logical_qubits = estimation
             .layout_overhead
             .logical_qubits()
-            .div_ceil(logical_patch.logical_qubits());
+            .map_err(Error::AlgorithmicLogicalQubitsComputationFailed)?;
+        let num_logical_patches = num_logical_qubits.div_ceil(logical_patch.logical_qubits());
         let physical_qubits_for_algorithm = num_logical_patches * logical_patch.physical_qubits();
 
         let physical_qubits = physical_qubits_for_algorithm + physical_qubits_for_factories;
 
         let runtime = (logical_patch.logical_cycle_time()) * num_cycles;
 
-        let rqops = (estimation.layout_overhead().logical_qubits() as f64
-            * logical_patch.logical_cycles_per_second())
-        .ceil() as u64;
+        let rqops =
+            (num_logical_qubits as f64 * logical_patch.logical_cycles_per_second()).ceil() as u64;
 
-        Self {
+        Ok(Self {
             logical_patch,
             num_cycles,
             factory_parts,
@@ -74,9 +74,9 @@ impl<E: ErrorCorrection<Parameter = impl Clone>, F: Factory<Parameter = E::Param
                 estimation.layout_overhead(),
                 error_budget,
                 estimation.factory_builder().num_magic_state_types(),
-            ),
+            )?,
             error_budget: error_budget.clone(),
-        }
+        })
     }
 
     pub fn without_factories(
@@ -89,7 +89,7 @@ impl<E: ErrorCorrection<Parameter = impl Clone>, F: Factory<Parameter = E::Param
         error_budget: &ErrorBudget,
         num_cycles: u64,
         required_logical_patch_error_rate: f64,
-    ) -> Self {
+    ) -> Result<Self, Error> {
         Self::new(
             estimation,
             logical_patch,

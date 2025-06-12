@@ -1,0 +1,228 @@
+{
+  "version": 1,
+  "circuits": [
+    {
+      "componentGrid": [
+        {
+          "components": [
+            {
+              "kind": "unitary",
+              "gate": "X",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "controls": [
+                {
+                  "qubit": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "unitary",
+              "gate": "X",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "controls": [
+                {
+                  "qubit": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "measurement",
+              "gate": "Measure",
+              "qubits": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "results": [
+                {
+                  "qubit": 3,
+                  "result": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "ket",
+              "gate": "0",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "unitary",
+              "gate": "X",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "controls": [
+                {
+                  "qubit": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "unitary",
+              "gate": "X",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "controls": [
+                {
+                  "qubit": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "measurement",
+              "gate": "Measure",
+              "qubits": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "results": [
+                {
+                  "qubit": 3,
+                  "result": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "ket",
+              "gate": "0",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "unitary",
+              "gate": "X",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "controls": [
+                {
+                  "qubit": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "unitary",
+              "gate": "X",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "controls": [
+                {
+                  "qubit": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "measurement",
+              "gate": "Measure",
+              "qubits": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "results": [
+                {
+                  "qubit": 3,
+                  "result": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "ket",
+              "gate": "0",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "qubits": [
+        {
+          "id": 0
+        },
+        {
+          "id": 1
+        },
+        {
+          "id": 2
+        },
+        {
+          "id": 3,
+          "numResults": 3
+        }
+      ]
+    }
+  ]
+}

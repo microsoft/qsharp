@@ -61,10 +61,12 @@
 
 #![deny(missing_docs)]
 
+mod lint_groups;
 mod linter;
 mod lints;
 #[cfg(test)]
 mod tests;
 
-pub use linter::{run_lints, Lint, LintConfig, LintKind, LintLevel};
+pub use lint_groups::GroupConfig;
+pub use linter::{run_lints, Lint, LintConfig, LintKind, LintLevel, LintOrGroupConfig};
 pub use lints::{ast::AstLint, hir::HirLint};

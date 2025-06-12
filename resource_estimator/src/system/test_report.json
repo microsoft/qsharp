@@ -10,6 +10,7 @@
     "estimateType": "singlePoint",
     "qecScheme": {
       "crossingPrefactor": 0.03,
+      "distanceCoefficientPower": 0,
       "errorCorrectionThreshold": 0.01,
       "logicalCycleTime": "(4 * twoQubitGateTime + 2 * oneQubitMeasurementTime) * codeDistance",
       "maxCodeDistance": 50,

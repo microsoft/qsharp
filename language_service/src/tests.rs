@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    protocol::{DiagnosticUpdate, ErrorKind},
+    protocol::{DiagnosticUpdate, ErrorKind, TestCallables},
     Encoding, LanguageService, UpdateWorker,
 };
 use expect_test::{expect, Expect};
@@ -15,10 +15,11 @@ pub(crate) mod test_fs;
 #[tokio::test]
 async fn single_document() {
     let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
     let mut ls = LanguageService::new(Encoding::Utf8);
-    let mut worker = create_update_worker(&mut ls, &received_errors);
+    let mut worker = create_update_worker(&mut ls, &received_errors, &test_cases);
 
-    ls.update_document("foo.qs", 1, "namespace Foo { }");
+    ls.update_document("foo.qs", 1, "namespace Foo { }", "qsharp");
 
     worker.apply_pending().await;
 
@@ -49,10 +50,11 @@ async fn single_document() {
 #[allow(clippy::too_many_lines)]
 async fn single_document_update() {
     let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
     let mut ls = LanguageService::new(Encoding::Utf8);
-    let mut worker = create_update_worker(&mut ls, &received_errors);
+    let mut worker = create_update_worker(&mut ls, &received_errors, &test_cases);
 
-    ls.update_document("foo.qs", 1, "namespace Foo { }");
+    ls.update_document("foo.qs", 1, "namespace Foo { }", "qsharp");
 
     worker.apply_pending().await;
 
@@ -83,6 +85,7 @@ async fn single_document_update() {
         "foo.qs",
         1,
         "namespace Foo { @EntryPoint() operation Bar() : Unit {} }",
+        "qsharp",
     );
 
     worker.apply_pending().await;
@@ -114,10 +117,11 @@ async fn single_document_update() {
 #[allow(clippy::too_many_lines)]
 async fn document_in_project() {
     let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
     let mut ls = LanguageService::new(Encoding::Utf8);
-    let mut worker = create_update_worker(&mut ls, &received_errors);
+    let mut worker = create_update_worker(&mut ls, &received_errors, &test_cases);
 
-    ls.update_document("project/src/this_file.qs", 1, "namespace Foo { }");
+    ls.update_document("project/src/this_file.qs", 1, "namespace Foo { }", "qsharp");
 
     check_errors_and_no_compilation(
         &ls,
@@ -167,13 +171,15 @@ async fn document_in_project() {
 #[tokio::test]
 async fn completions_requested_before_document_load() {
     let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
     let mut ls = LanguageService::new(Encoding::Utf8);
-    let _worker = create_update_worker(&mut ls, &errors);
+    let _worker = create_update_worker(&mut ls, &errors, &test_cases);
 
     ls.update_document(
         "foo.qs",
         1,
         "namespace Foo { open Microsoft.Quantum.Diagnostics; @EntryPoint() operation Main() : Unit { DumpMachine() } }",
+        "qsharp"
     );
 
     // we intentionally don't await work to test how LSP features function when
@@ -195,8 +201,9 @@ async fn completions_requested_before_document_load() {
 #[tokio::test]
 async fn completions_requested_after_document_load() {
     let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
     let mut ls = LanguageService::new(Encoding::Utf8);
-    let mut worker = create_update_worker(&mut ls, &errors);
+    let mut worker = create_update_worker(&mut ls, &errors, &test_cases);
 
     // this test is a contrast to `completions_requested_before_document_load`
     // we want to ensure that completions load when the update_document call has been awaited
@@ -204,6 +211,7 @@ async fn completions_requested_after_document_load() {
         "foo.qs",
         1,
         "namespace Foo { open Microsoft.Quantum.Diagnostics; @EntryPoint() operation Main() : Unit { DumpMachine() } }",
+        "qsharp"
     );
 
     worker.apply_pending().await;
@@ -264,6 +272,7 @@ type ErrorInfo = (
 fn create_update_worker<'a>(
     ls: &mut LanguageService,
     received_errors: &'a RefCell<Vec<ErrorInfo>>,
+    received_test_cases: &'a RefCell<Vec<TestCallables>>,
 ) -> UpdateWorker<'a> {
     let worker = ls.create_update_worker(
         |update: DiagnosticUpdate| {
@@ -284,6 +293,10 @@ fn create_update_worker<'a>(
                 compile_errors.collect(),
                 project_errors.collect(),
             ));
+        },
+        move |update: TestCallables| {
+            let mut v = received_test_cases.borrow_mut();
+            v.push(update);
         },
         TestProjectHost {
             fs: TEST_FS.with(Clone::clone),

@@ -13,6 +13,27 @@ pub enum Error {
     #[error("Algorithm requires at least one magic state or measurement to estimate resources")]
     #[diagnostic(code("Qsc.Estimates.AlgorithmHasNoResources"))]
     AlgorithmHasNoResources,
+    /// The number of algorithmic logical qubits cannot be computed.
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// ✅ This error cannot be triggered by the system.
+    #[error("Cannot compute the number of algorithmic logical qubits: {0}")]
+    #[diagnostic(code("Qsc.Estimates.AlgorithmicLogicalQubitsComputationFailed"))]
+    AlgorithmicLogicalQubitsComputationFailed(String),
+    /// The algorithmic logical depth cannot be computed.
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// ✅ This error cannot be triggered by the system.
+    #[error("Cannot compute the algorithmic logical depth: {0}")]
+    #[diagnostic(code("Qsc.Estimates.AlgorithmicLogicalDepthComputationFailed"))]
+    AlgorithmicLogicalDepthComputationFailed(String),
+    /// The number of required magic states cannot be computed.
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// ✅ This error cannot be triggered by the system.
+    #[error("Cannot compute the required number of magic states: {0}")]
+    #[diagnostic(code("Qsc.Estimates.NumberOfMagicStatesComputationFailed"))]
+    NumberOfMagicStatesComputationFailed(String),
     /// Both constraints for maximal time and
     /// maximal number of qubits are provided
     ///
@@ -37,12 +58,18 @@ pub enum Error {
     #[error("No solution found for the provided maximum number of physical qubits.")]
     #[diagnostic(code("Qsc.Estimates.MaxPhysicalQubitsTooSmall"))]
     MaxPhysicalQubitsTooSmall,
-    /// Resource estimation configuration can never produce T states
+    /// Logical depth scaling factor is too small
+    ///
+    /// 🧑‍💻 This indicates a user error
+    #[error("Logical depth scaling factor is too small, it must be at least 1: {0}")]
+    #[diagnostic(code("Qsc.Estimates.LogicalDepthScalingFactorTooSmall"))]
+    LogicalDepthScalingFactorTooSmall(f64),
+    /// Resource estimation failed to find factories
     ///
     /// ✅ This error cannot be triggered by the system.
-    #[error("Resource estimation configuration can never produce T states, required magic state output error rate was {0:.3e}")]
-    #[diagnostic(code("Qsc.Estimates.CannotComputeMagicStates"))]
-    CannotComputeMagicStates(f64),
+    #[error("Resource estimation failed to find factories: {0}")]
+    #[diagnostic(code("Qsc.Estimates.FactorySearchFailed"))]
+    FactorySearchFailed(String),
     /// Constraint-based search only supports one magic state type.
     ///
     /// ✅ This error cannot be triggered by the system, since only one magic

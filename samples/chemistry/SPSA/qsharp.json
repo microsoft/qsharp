@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "Chemistry": {
+      "path": "../../../library/chemistry"
+    }
+  }
+}

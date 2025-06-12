@@ -25,7 +25,7 @@ _The Japanese word for "form", a pattern of learning and practicing new skills._
         </tr>
         <tr class="transparent" style="border:none;">
             <td style="border:none;">
-                Quantum katas are self-paced learning tutorials assisted by Copilot in Azure Quantum.
+                Quantum katas are self-paced learning tutorials assisted by Copilot in Microsoft Quantum.
             </td>
         </tr>
         <tr class="transparent" style="border:none;">

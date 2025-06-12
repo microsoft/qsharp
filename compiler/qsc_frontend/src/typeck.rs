@@ -176,6 +176,18 @@ enum ErrorKind {
         #[label]
         span: Span,
     },
+    #[error("type size limit exceeded")]
+    #[diagnostic(help(
+        "the inferred type `{0}` is large enough that it may significantly impact performance"
+    ))]
+    #[diagnostic(code("Qsc.TypeCk.TySizeLimitExceeded"))]
+    TySizeLimitExceeded(String, #[label] Span),
+    #[error("unsupported recursive type constraint")]
+    #[diagnostic(help(
+        "try using explicit type annotations to avoid this recursive constraint in type inference"
+    ))]
+    #[diagnostic(code("Qsc.TypeCk.RecursiveTypeConstraint"))]
+    RecursiveTypeConstraint(#[label] Span),
 }
 
 impl From<TyConversionError> for Error {

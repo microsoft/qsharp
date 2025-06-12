@@ -7,14 +7,17 @@ import {
   qsharpLibraryUriScheme,
 } from "qsharp-lang";
 import * as vscode from "vscode";
-import { toVscodeRange } from "../common";
+import { toVsCodeRange } from "../common";
 
-export function createCodeLensProvider(languageService: ILanguageService) {
-  return new QSharpCodeLensProvider(languageService);
+export function createQdkCodeLensProvider(languageService: ILanguageService) {
+  return new CodeLensProvider(languageService, mapCodeLens);
 }
 
-class QSharpCodeLensProvider implements vscode.CodeLensProvider {
-  constructor(public languageService: ILanguageService) {}
+class CodeLensProvider implements vscode.CodeLensProvider {
+  constructor(
+    public languageService: ILanguageService,
+    private commandMapper: (value: ICodeLens) => vscode.CodeLens,
+  ) {}
   // We could raise events when code lenses change,
   // but there's no need as the editor seems to query often enough.
   // onDidChangeCodeLenses?: vscode.Event<void> | undefined;
@@ -31,7 +34,7 @@ class QSharpCodeLensProvider implements vscode.CodeLensProvider {
       document.uri.toString(),
     );
 
-    return codeLenses.map((cl) => mapCodeLens(cl));
+    return codeLenses.map((cl) => this.commandMapper(cl));
   }
 }
 
@@ -39,7 +42,6 @@ function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
   let command;
   let title;
   let tooltip;
-  let args = undefined;
   switch (cl.command) {
     case "histogram":
       title = "Histogram";
@@ -53,28 +55,25 @@ function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
       break;
     case "debug":
       title = "Debug";
-      command = "qsharp-vscode.debugEditorContents";
-      tooltip = "Debug program";
+      command = "qsharp-vscode.debugQsharp";
+      tooltip = "Debug callable";
       break;
     case "run":
       title = "Run";
-      command = "qsharp-vscode.runEditorContents";
-      tooltip = "Run program";
+      command = "qsharp-vscode.runProgram";
+      tooltip = "Run callable";
       break;
     case "circuit":
       title = "Circuit";
       command = "qsharp-vscode.showCircuit";
       tooltip = "Show circuit";
-      if (cl.args) {
-        args = [cl.args];
-      }
       break;
   }
 
-  return new vscode.CodeLens(toVscodeRange(cl.range), {
+  return new vscode.CodeLens(toVsCodeRange(cl.range), {
     title,
     command,
-    arguments: args,
+    arguments: cl.args ?? [],
     tooltip,
   });
 }

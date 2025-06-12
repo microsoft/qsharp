@@ -5,8 +5,18 @@ import { getCompilerWorker, log } from "qsharp-lang";
 import * as vscode from "vscode";
 import { getTarget, setTarget } from "./config";
 import { invokeAndReportCommandDiagnostics } from "./diagnostics";
-import { getActiveProgram } from "./programConfig";
-import { EventType, sendTelemetryEvent } from "./telemetry";
+import {
+  FullProgramConfig,
+  getActiveProgram,
+  getVisibleProgram,
+} from "./programConfig";
+import {
+  EventType,
+  getActiveDocumentType,
+  getVisibleDocumentType,
+  QsharpDocumentType,
+  sendTelemetryEvent,
+} from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { qsharpExtensionId } from "./common";
 
@@ -21,16 +31,41 @@ export class QirGenerationError extends Error {
   }
 }
 
-export async function getQirForActiveWindow(
+export async function getQirForVisibleSource(
   targetSupportsAdaptive?: boolean, // should be true or false when submitting to Azure, undefined when generating QIR
 ): Promise<string> {
-  let result = "";
-  const program = await getActiveProgram();
+  const program = await getVisibleProgram();
   if (!program.success) {
     throw new QirGenerationError(program.errorMsg);
   }
+  return getQirForProgram(
+    program.programConfig,
+    getVisibleDocumentType(),
+    targetSupportsAdaptive,
+  );
+}
+
+export async function getQirForActiveWindow(
+  targetSupportsAdaptive?: boolean, // should be true or false when submitting to Azure, undefined when generating QIR
+): Promise<string> {
+  const program = await getActiveProgram({ showModalError: true });
+  if (!program.success) {
+    throw new QirGenerationError(program.errorMsg);
+  }
+  return getQirForProgram(
+    program.programConfig,
+    getActiveDocumentType(),
+    targetSupportsAdaptive,
+  );
+}
+
+async function getQirForProgram(
+  config: FullProgramConfig,
+  telemetryDocumentType: QsharpDocumentType,
+  targetSupportsAdaptive?: boolean,
+): Promise<string> {
+  let result = "";
   const isLocalQirGeneration = targetSupportsAdaptive === undefined;
-  const config = program.programConfig;
   const targetProfile = config.profile;
   const isUnrestricted = targetProfile === "unrestricted";
   const isUnsupportedAdaptiveSubmissionProfile =
@@ -98,7 +133,7 @@ export async function getQirForActiveWindow(
     const start = performance.now();
     sendTelemetryEvent(
       EventType.GenerateQirStart,
-      { associationId, targetProfile },
+      { associationId, targetProfile, documentType: telemetryDocumentType },
       {},
     );
 
@@ -109,15 +144,16 @@ export async function getQirForActiveWindow(
       {
         location: vscode.ProgressLocation.Notification,
         cancellable: true,
-        title: "Q#: Generating QIR",
+        title: "Generating QIR",
       },
       async (progress, token) => {
         token.onCancellationRequested(() => {
           worker.terminate();
         });
 
-        const qir = await invokeAndReportCommandDiagnostics(() =>
-          worker.getQir(config),
+        const qir = await invokeAndReportCommandDiagnostics(
+          () => worker.getQir(config),
+          { populateProblemsView: true, showModalError: true },
         );
         progress.report({ increment: 100 });
         return qir;
@@ -149,6 +185,22 @@ export async function getQirForActiveWindow(
   return result;
 }
 
+async function getQirForActiveWindowCommand() {
+  try {
+    const qir = await getQirForActiveWindow();
+    const qirDoc = await vscode.workspace.openTextDocument({
+      language: "llvm",
+      content: qir,
+    });
+    await vscode.window.showTextDocument(qirDoc);
+  } catch (e: any) {
+    log.error("QIR generation failed. ", e);
+    if (e.name === "QirGenerationError") {
+      vscode.window.showErrorMessage(e.message);
+    }
+  }
+}
+
 export function initCodegen(context: vscode.ExtensionContext) {
   compilerWorkerScriptPath = vscode.Uri.joinPath(
     context.extensionUri,
@@ -156,20 +208,9 @@ export function initCodegen(context: vscode.ExtensionContext) {
   ).toString();
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(`${qsharpExtensionId}.getQir`, async () => {
-      try {
-        const qir = await getQirForActiveWindow();
-        const qirDoc = await vscode.workspace.openTextDocument({
-          language: "llvm",
-          content: qir,
-        });
-        await vscode.window.showTextDocument(qirDoc);
-      } catch (e: any) {
-        log.error("QIR generation failed. ", e);
-        if (e.name === "QirGenerationError") {
-          vscode.window.showErrorMessage(e.message);
-        }
-      }
-    }),
+    vscode.commands.registerCommand(
+      `${qsharpExtensionId}.getQir`,
+      getQirForActiveWindowCommand,
+    ),
   );
 }

@@ -142,7 +142,7 @@ Complex numbers have a parameter called the phase. If a complex number $z = x + 
 > between $-\pi$ and $\pi$ that has $\cos \theta = x$ and $\sin \theta = y$. Unlike using $\tan^{-1}(\frac{y}{x})$, `atan2` computes
 > the correct quadrant for the angle, since it preserves information about the signs of both sine and cosine of the angle.
 
-The probability amplitudes $\alpha$ and $\beta$ are complex numbers, therefore $\alpha$ and $\beta$ have a phase. For example, consider a qubit in state $\frac{1 + i}{2}\ket{0} + \frac{1 - i}{2}\ket{1}$. If you do the math, you see that the phase of $\ket{0}$ is $atan2(\frac12, \frac12) = \frac{\pi}{4}$, and the phase of $\ket{1}$ is $atan2(\frac12, -\frac12) = -\frac{\pi}{4}$. The difference between these two phases is known as **relative phase**.
+The probability amplitudes $\alpha$ and $\beta$ are complex numbers, therefore $\alpha$ and $\beta$ have a phase. For example, consider a qubit in state $\frac{1 + i}{2}\ket{0} + \frac{1 - i}{2}\ket{1}$. If you do the math, you see that the phase of $\ket{0}$ amplitude is $atan2(\frac12, \frac12) = \frac{\pi}{4}$, and the phase of $\ket{1}$ amplitude is $atan2(-\frac12, \frac12) = -\frac{\pi}{4}$. The difference between these two phases is known as **relative phase**.
 
 Multiplying the state of the entire system by $e^{i\theta}$ doesn't affect the relative phase: $\alpha\ket{0} + \beta\ket{1}$ has the same relative phase as $e^{i\theta}\big(\alpha\ket{0} + \beta\ket{1}\big)$. In the second expression, $\theta$ is known as the system's **global phase**.
 

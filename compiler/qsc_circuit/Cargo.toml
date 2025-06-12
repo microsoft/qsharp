@@ -19,6 +19,7 @@ qsc_data_structures = { path = "../qsc_data_structures" }
 qsc_frontend = { path = "../qsc_frontend" }
 qsc_fir = { path = "../qsc_fir" }
 qsc_hir = { path = "../qsc_hir" }
+regex-lite = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
@@ -28,6 +29,9 @@ thiserror = { workspace = true }
 expect-test = { workspace = true }
 indoc = { workspace = true }
 qsc_passes = { path = "../qsc_passes" }
+
+[lints]
+workspace = true
 
 [lib]
 doctest = false

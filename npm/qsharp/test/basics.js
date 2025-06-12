@@ -497,11 +497,88 @@ test("language service diagnostics", async () => {
         return [m1];
     }
 }`,
+    "qsharp",
   );
 
   // dispose() will complete when the language service has processed all the updates.
   await languageService.dispose();
   assert(gotDiagnostics);
+});
+
+test("test callable discovery", async () => {
+  const languageService = getLanguageService();
+  let gotTests = false;
+  languageService.addEventListener("testCallables", (event) => {
+    gotTests = true;
+    assert.equal(event.type, "testCallables");
+    assert.equal(event.detail.callables.length, 1);
+    assert.equal(event.detail.callables[0].callableName, "Sample.main");
+    assert.deepStrictEqual(event.detail.callables[0].location, {
+      source: "test.qs",
+      span: {
+        end: {
+          character: 18,
+          line: 2,
+        },
+        start: {
+          character: 14,
+          line: 2,
+        },
+      },
+    });
+  });
+  await languageService.updateDocument(
+    "test.qs",
+    1,
+    `namespace Sample {
+    @Test()
+    operation main() : Unit {}
+}`,
+    "qsharp",
+  );
+
+  // dispose() will complete when the language service has processed all the updates.
+  await languageService.dispose();
+  assert(gotTests);
+});
+
+test("multiple test callable discovery", async () => {
+  const languageService = getLanguageService();
+  let gotTests = false;
+  languageService.addEventListener("testCallables", (event) => {
+    gotTests = true;
+    assert.equal(event.type, "testCallables");
+    assert.equal(event.detail.callables.length, 4);
+    assert.equal(event.detail.callables[0].callableName, "Sample.test1");
+    assert.equal(event.detail.callables[1].callableName, "Sample.test2");
+    assert.equal(event.detail.callables[2].callableName, "Sample2.test1");
+    assert.equal(event.detail.callables[3].callableName, "Sample2.test2");
+  });
+  await languageService.updateDocument(
+    "test.qs",
+    1,
+    `namespace Sample {
+    @Test()
+    operation test1() : Unit {}
+
+    @Test()
+    function test2() : Unit {}
+}
+namespace Sample2 {
+    @Test()
+    operation test1() : Unit {}
+
+    @Test()
+    function test2() : Unit {}
+  }    
+}
+`,
+    "qsharp",
+  );
+
+  // dispose() will complete when the language service has processed all the updates.
+  await languageService.dispose();
+  assert(gotTests);
 });
 
 test("diagnostics with related spans", async () => {
@@ -580,6 +657,7 @@ test("diagnostics with related spans", async () => {
         DumpMachine();
       }
     }`,
+    "qsharp",
   );
 
   // dispose() will complete when the language service has processed all the updates.
@@ -610,6 +688,7 @@ test("language service diagnostics - web worker", async () => {
         return [m1];
     }
 }`,
+    "qsharp",
   );
 
   // dispose() will complete when the language service has processed all the updates.
@@ -637,6 +716,7 @@ test("language service configuration update", async () => {
     operation Test() : Unit {
     }
 }`,
+    "qsharp",
   );
 
   // Above document should have generated a missing entrypoint error.

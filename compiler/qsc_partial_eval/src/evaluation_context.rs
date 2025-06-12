@@ -76,6 +76,13 @@ impl EvaluationContext {
     pub fn push_scope(&mut self, s: Scope) {
         self.scopes.push(s);
     }
+
+    /// Determines whether we are currently in a dynamic branch context for any scope.
+    pub fn is_currently_evaluating_any_branch(&self) -> bool {
+        self.scopes
+            .iter()
+            .any(Scope::is_currently_evaluating_branch)
+    }
 }
 
 /// Struct that represents a block node when we intepret an RIR program as a graph.
@@ -253,14 +260,6 @@ impl Arg {
             Self::Var(_, var) => var.value,
         }
     }
-}
-
-/// Represents the possible control flow options that can result from a branch.
-pub enum BranchControlFlow {
-    /// The block ID corresponding to a branch.
-    Block(BlockId),
-    /// The return value resulting from a branch.
-    Return(Value),
 }
 
 /// Represents the possible control flow options that an evaluation can have.

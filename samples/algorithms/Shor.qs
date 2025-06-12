@@ -14,7 +14,7 @@ import Std.Arithmetic.*;
 import Std.Arrays.*;
 
 operation Main() : (Int, Int) {
-    let n = 143; // 11*13;
+    let n = 187; // 11*17;
     // You can try these other examples for a lengthier computation.
     // let n = 16837; // = 113*149
     // let n = 22499; // = 149*151
@@ -62,7 +62,7 @@ operation FactorSemiprimeInteger(number : Int) : (Int, Int) {
 
             // Set the flag and factors values if the continued
             // fractions classical algorithm succeeds.
-            set (foundFactors, factors) = MaybeFactorsFromPeriod(number, generator, period);
+            (foundFactors, factors) = MaybeFactorsFromPeriod(number, generator, period);
         }
         // In this case, we guessed a divisor by accident.
         else {
@@ -72,10 +72,10 @@ operation FactorSemiprimeInteger(number : Int) : (Int, Int) {
 
             // Set the flag `foundFactors` to true, indicating that we
             // succeeded in finding factors.
-            set foundFactors = true;
-            set factors = (gcd, number / gcd);
+            foundFactors = true;
+            factors = (gcd, number / gcd);
         }
-        set attempt = attempt + 1;
+        attempt = attempt + 1;
         if (attempt > 100) {
             fail "Failed to find factors: too many attempts!";
         }
@@ -283,7 +283,7 @@ operation EstimateFrequency(generator : Int, modulus : Int, bitsize : Int) : Int
         H(c);
         if M(c) == One {
             X(c); // Reset
-            set frequencyEstimate += 1 <<< (bitsPrecision - 1 - idx);
+            frequencyEstimate += 1 <<< (bitsPrecision - 1 - idx);
         }
     }
 

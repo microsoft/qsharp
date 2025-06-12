@@ -16,6 +16,7 @@ import type {
   IWorkspaceEdit,
   LanguageService,
   VSDiagnostic,
+  ITestDescriptor,
 } from "../../lib/web/qsc_wasm.js";
 import { IProjectHost } from "../browser.js";
 import { log } from "../log.js";
@@ -26,8 +27,7 @@ import {
 } from "../workers/common.js";
 type QscWasm = typeof import("../../lib/web/qsc_wasm.js");
 
-// Only one event type for now
-export type LanguageServiceEvent = {
+export type LanguageServiceDiagnosticEvent = {
   type: "diagnostics";
   detail: {
     uri: string;
@@ -36,11 +36,27 @@ export type LanguageServiceEvent = {
   };
 };
 
+export type LanguageServiceTestCallablesEvent = {
+  type: "testCallables";
+  detail: {
+    callables: ITestDescriptor[];
+  };
+};
+
+export type LanguageServiceEvent =
+  | LanguageServiceDiagnosticEvent
+  | LanguageServiceTestCallablesEvent;
+
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ILanguageService {
   updateConfiguration(config: IWorkspaceConfiguration): Promise<void>;
-  updateDocument(uri: string, version: number, code: string): Promise<void>;
+  updateDocument(
+    uri: string,
+    version: number,
+    code: string,
+    languageId?: string,
+  ): Promise<void>;
   updateNotebookDocument(
     notebookUri: string,
     version: number,
@@ -51,7 +67,7 @@ export interface ILanguageService {
       code: string;
     }[],
   ): Promise<void>;
-  closeDocument(uri: string): Promise<void>;
+  closeDocument(uri: string, languageId?: string): Promise<void>;
   closeNotebookDocument(notebookUri: string): Promise<void>;
   getCodeActions(documentUri: string, range: IRange): Promise<ICodeAction[]>;
   getCompletions(
@@ -127,6 +143,7 @@ export class QSharpLanguageService implements ILanguageService {
 
     this.backgroundWork = this.languageService.start_background_work(
       this.onDiagnostics.bind(this),
+      this.onTestCallables.bind(this),
       host,
     );
   }
@@ -139,8 +156,14 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     version: number,
     code: string,
+    languageId?: string,
   ): Promise<void> {
-    this.languageService.update_document(documentUri, version, code);
+    this.languageService.update_document(
+      documentUri,
+      version,
+      code,
+      languageId || "qsharp",
+    );
   }
 
   async updateNotebookDocument(
@@ -152,8 +175,8 @@ export class QSharpLanguageService implements ILanguageService {
     this.languageService.update_notebook_document(notebookUri, metadata, cells);
   }
 
-  async closeDocument(documentUri: string): Promise<void> {
-    this.languageService.close_document(documentUri);
+  async closeDocument(documentUri: string, languageId?: string): Promise<void> {
+    this.languageService.close_document(documentUri, languageId || "qsharp");
   }
 
   async closeNotebookDocument(documentUri: string): Promise<void> {
@@ -263,7 +286,8 @@ export class QSharpLanguageService implements ILanguageService {
     diagnostics: VSDiagnostic[],
   ) {
     try {
-      const event = new Event("diagnostics") as LanguageServiceEvent & Event;
+      const event = new Event("diagnostics") as LanguageServiceDiagnosticEvent &
+        Event;
       event.detail = {
         uri,
         version: version ?? 0,
@@ -272,6 +296,20 @@ export class QSharpLanguageService implements ILanguageService {
       this.eventHandler.dispatchEvent(event);
     } catch (e) {
       log.error("Error in onDiagnostics", e);
+    }
+  }
+
+  async onTestCallables(callables: ITestDescriptor[]) {
+    try {
+      const event = new Event(
+        "testCallables",
+      ) as LanguageServiceTestCallablesEvent & Event;
+      event.detail = {
+        callables,
+      };
+      this.eventHandler.dispatchEvent(event);
+    } catch (e) {
+      log.error("Error in onTestCallables", e);
     }
   }
 }
@@ -283,7 +321,7 @@ export class QSharpLanguageService implements ILanguageService {
  */
 export const languageServiceProtocol: ServiceProtocol<
   ILanguageService,
-  LanguageServiceEvent
+  LanguageServiceDiagnosticEvent
 > = {
   class: QSharpLanguageService,
   methods: {

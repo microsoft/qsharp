@@ -3,8 +3,13 @@
 
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
-import { toVscodeRange } from "../common";
-import { EventType, FormatEvent, sendTelemetryEvent } from "../telemetry";
+import { toVsCodeRange } from "../common";
+import {
+  determineDocumentType,
+  EventType,
+  FormatEvent,
+  sendTelemetryEvent,
+} from "../telemetry";
 import { getRandomGuid } from "../utils";
 
 export function createFormattingProvider(languageService: ILanguageService) {
@@ -27,7 +32,11 @@ class QSharpFormattingProvider
     const associationId = getRandomGuid();
     sendTelemetryEvent(
       EventType.FormatStart,
-      { associationId, event: eventKind },
+      {
+        documentType: determineDocumentType(document),
+        associationId,
+        event: eventKind,
+      },
       {},
     );
     const start = performance.now();
@@ -50,7 +59,7 @@ class QSharpFormattingProvider
     }
 
     let edits = lsEdits.map(
-      (edit) => new vscode.TextEdit(toVscodeRange(edit.range), edit.newText),
+      (edit) => new vscode.TextEdit(toVsCodeRange(edit.range), edit.newText),
     );
 
     if (range) {

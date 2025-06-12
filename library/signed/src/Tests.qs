@@ -5,17 +5,10 @@ import Std.Diagnostics.Fact;
 import Operations.Invert2sSI;
 import Measurement.MeasureSignedInteger;
 
-/// This entrypoint runs tests for the signed integer library.
-operation Main() : Unit {
-    UnsignedOpTests();
-    Fact(Qtest.Operations.CheckAllTestCases(MeasureSignedIntTests()), "SignedInt tests failed");
-    SignedOpTests();
-
-}
-
-function MeasureSignedIntTests() : (String, Int, (Qubit[]) => (), (Qubit[]) => Int, Int)[] {
-    [
-        ("0b0001 == 1", 4, (qs) => X(qs[0]), (qs) => MeasureSignedInteger(qs, 4), 1),
+@Test()
+operation MeasureSignedIntTests() : Unit {
+    let testCases = [
+        ("0b0001 == 1", 4, (qs) => X(qs[0]), (qs) => MeasureSignedInteger(qs, 6), 1),
         ("0b1111 == -1", 4, (qs) => { X(qs[0]); X(qs[1]); X(qs[2]); X(qs[3]); }, (qs) => MeasureSignedInteger(qs, 4), -1),
         ("0b01000 == 8", 5, (qs) => X(qs[3]), (qs) => MeasureSignedInteger(qs, 5), 8),
         ("0b11110 == -2", 5, (qs) => {
@@ -25,9 +18,11 @@ function MeasureSignedIntTests() : (String, Int, (Qubit[]) => (), (Qubit[]) => I
             X(qs[4]);
         }, (qs) => MeasureSignedInteger(qs, 5), -2),
         ("0b11000 == -8", 5, (qs) => { X(qs[3]); X(qs[4]); }, (qs) => MeasureSignedInteger(qs, 5), -8)
-    ]
+    ];
+    Fact(Qtest.Operations.CheckAllTestCases(testCases), "SignedInt tests failed");
 }
 
+@Test()
 operation SignedOpTests() : Unit {
     use a = Qubit[32];
     use b = Qubit[32];
@@ -54,6 +49,7 @@ operation SignedOpTests() : Unit {
 
 }
 
+@Test()
 operation UnsignedOpTests() : Unit {
     use a = Qubit[2];
     use b = Qubit[2];

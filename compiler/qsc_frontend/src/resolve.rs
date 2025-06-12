@@ -973,9 +973,9 @@ impl Resolver {
                             span: decl_item.span,
                         });
                     }
-                };
+                }
                 continue;
-            };
+            }
 
             let local_name = decl_item_name.name.clone();
 
@@ -1290,6 +1290,7 @@ impl With<'_> {
     /// Apply `f` to self while a pattern's constituent identifiers are in scope. Removes those
     /// identifiers from the scope after `f`.
     fn with_pat(&mut self, span: Span, kind: ScopeKind, pat: &ast::Pat, f: impl FnOnce(&mut Self)) {
+        self.visit_pat(pat);
         self.with_scope(span, kind, |visitor| {
             // The bindings are valid from the beginning of the scope
             visitor.resolver.bind_pat(pat, span.lo);
@@ -1483,7 +1484,7 @@ impl AstVisitor<'_> for With<'_> {
             ast::ExprKind::Path(path) => {
                 if let Err(e) = self.resolver.resolve_path_kind(NameKind::Term, path) {
                     self.resolver.errors.push(e);
-                };
+                }
             }
             ast::ExprKind::TernOp(ast::TernOp::Update, container, index, replace)
             | ast::ExprKind::AssignUpdate(container, index, replace) => {
@@ -1502,7 +1503,7 @@ impl AstVisitor<'_> for With<'_> {
             ast::ExprKind::Struct(PathKind::Ok(path), copy, fields) => {
                 if let Err(e) = self.resolver.resolve_path(NameKind::Ty, path) {
                     self.resolver.errors.push(e);
-                };
+                }
                 copy.iter().for_each(|c| self.visit_expr(c));
                 fields.iter().for_each(|f| self.visit_field_assign(f));
             }
@@ -1626,9 +1627,11 @@ impl GlobalTable {
             global.visibility == hir::Visibility::Public
                 || matches!(&global.kind, global::Kind::Term(t) if t.intrinsic)
         }) {
-            // If the namespace is `Main`, we treat it as the root of the package, so there's no
-            // namespace prefix.
-            let global_namespace = if global.namespace.len() == 1 && &*global.namespace[0] == "Main"
+            // If the namespace is `Main` and we have an alias, we treat it as the root of the package, so there's no
+            // namespace prefix between the dependency alias and the defined items.
+            let global_namespace = if global.namespace.len() == 1
+                && &*global.namespace[0] == "Main"
+                && alias.is_some()
             {
                 vec![]
             } else {
@@ -1676,15 +1679,19 @@ impl GlobalTable {
                                 .insert_or_find_namespace(ns.iter().map(|s| s.name.clone()));
                         }
                         hir::ItemKind::Ty(..) => {
-                            self.scope
-                                .tys
-                                .get_mut_or_default(namespace)
-                                .insert(global.name.clone(), Res::ExportedItem(item_id, None));
+                            self.scope.tys.get_mut_or_default(namespace).insert(
+                                global.name.clone(),
+                                Res::Item(item_id, ItemStatus::Available),
+                            );
+                            self.scope.terms.get_mut_or_default(namespace).insert(
+                                global.name.clone(),
+                                Res::Item(item_id, ItemStatus::Available),
+                            );
                         }
                         hir::ItemKind::Export(_, _) => {
                             unreachable!("find_item will never return an Export")
                         }
-                    };
+                    }
                 }
                 (_, hir::Visibility::Internal) => {}
             }
@@ -2305,7 +2312,7 @@ fn find_symbol_in_namespace<O>(
         return;
     }
 
-    // Attempt to get the symbol from the global scope. If the namespace is None, use the candidate_namespace_id as a fallback
+    // Attempt to get the symbol from the global scope.
     let res = namespace.and_then(|ns_id| globals.get(kind, ns_id, &provided_symbol_name.name));
 
     // If a symbol was found, insert it into the candidates map

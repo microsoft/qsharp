@@ -3,9 +3,6 @@
 
 import { useRef, useState } from "preact/hooks";
 
-const enablePanning = false;
-const altKeyPans = true;
-
 const menuItems = [
   {
     category: "itemCount",
@@ -181,6 +178,21 @@ export function Histogram(props: {
   const showLabels = barBoxWidth > 5 && menuSelection["labels"] !== 2;
 
   function onWheel(e: WheelEvent): void {
+    // Ctrl+scroll is the event sent by pinch-to-zoom on a trackpad. Shift+scroll is common for
+    // panning horizontally. See https://danburzo.ro/dom-gestures/ for the messy details.
+    if (!e.ctrlKey && !e.shiftKey) return;
+
+    // When using a mouse wheel, the deltaY is the scroll amount, but if the shift key is pressed
+    // this swaps and deltaX is the scroll amount. The swap doesn't happen for trackpad scrolling.
+    // To complicate matters more, on the trackpad sometimes both deltaX and deltaY have a value.
+    // So, if the shift key is pressed and deltaY is 0, then assume mouse wheel and use deltaX.
+    let delta = e.shiftKey && !e.deltaY ? e.deltaX : e.deltaY;
+
+    // Scrolling with the wheel can result in really large deltas, so we need to cap them.
+    if (Math.abs(delta) > 20) {
+      delta = Math.sign(delta) * 20;
+    }
+
     e.preventDefault();
 
     // currentTarget is the element the listener is attached to, the main svg
@@ -207,9 +219,9 @@ export function Histogram(props: {
     let newScrollOffset = scale.offset;
     let newZoom = scale.zoom;
 
-    // *** First handle any zooming ***
-    if (!altKeyPans || !e.altKey) {
-      newZoom = scale.zoom + e.deltaY * 0.05;
+    if (!e.shiftKey) {
+      // *** Zooming ***
+      newZoom = scale.zoom - delta * 0.05;
       newZoom = Math.min(Math.max(1, newZoom), 50);
 
       // On zooming in, need to shift left to maintain mouse point, and vice verca.
@@ -220,14 +232,9 @@ export function Histogram(props: {
         newZoom * barAreaWidth - scale.zoom * barAreaWidth;
       const shiftLeftAdjust = percentRightOnChart * chartWidthGrowth;
       newScrollOffset = scale.offset - shiftLeftAdjust;
-    }
-
-    // *** Then handle any panning ***
-    if (enablePanning) {
-      newScrollOffset -= e.deltaX;
-    }
-    if (!enablePanning && altKeyPans && e.altKey) {
-      newScrollOffset -= e.deltaY;
+    } else {
+      // *** Panning ***
+      newScrollOffset -= delta;
     }
 
     // Don't allow offset > 1 (scrolls the first bar right of the left edge of the area)
@@ -414,18 +421,18 @@ export function Histogram(props: {
               Click the top-left 'settings' icon for display options.
             </tspan>
             <tspan x="10" dy="10">
-              You can zoom the chart using the mouse scroll wheel.
-            </tspan>
-            <tspan x="10" dy="7">
-              (Or using a trackpad gesture).
+              You can zoom the chart using the pinch-to-zoom gesture,
             </tspan>
             <tspan x="10" dy="10">
-              When zoomed, to pan left &amp; right, press 'Alt' while scrolling.
+              or use Ctrl+scroll wheel to zoom in/out.
+            </tspan>
+            <tspan x="10" dy="10">
+              To pan left &amp; right, press Shift while zooming.
             </tspan>
             <tspan x="10" dy="10">
               Click on a bar to filter the shot details to that result.
             </tspan>
-            <tspan x="10" dy="12">
+            <tspan x="10" dy="10">
               Click anywhere in this box to dismiss it.
             </tspan>
           </text>

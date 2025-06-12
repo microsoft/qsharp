@@ -22,7 +22,7 @@ use crate::system::{
     modeling::GateBasedPhysicalQubit,
     modeling::{PhysicalQubit, Protocol, TFactory},
     optimization::TFactoryBuilder,
-    Result,
+    Error,
 };
 
 use std::{borrow::Cow, rc::Rc};
@@ -122,16 +122,16 @@ impl TestLayoutOverhead {
 }
 
 impl Overhead for TestLayoutOverhead {
-    fn logical_qubits(&self) -> u64 {
-        self.num_qubits
+    fn logical_qubits(&self) -> Result<u64, String> {
+        Ok(self.num_qubits)
     }
 
-    fn logical_depth(&self, _: &ErrorBudget) -> u64 {
-        self.logical_depth
+    fn logical_depth(&self, _: &ErrorBudget) -> Result<u64, String> {
+        Ok(self.logical_depth)
     }
 
-    fn num_magic_states(&self, _: &ErrorBudget, _: usize) -> u64 {
-        self.num_tstates
+    fn num_magic_states(&self, _: &ErrorBudget, _: usize) -> Result<u64, String> {
+        Ok(self.num_tstates)
     }
 }
 
@@ -154,7 +154,7 @@ pub fn test_no_tstates() {
 }
 
 #[test]
-pub fn single_tstate() -> Result<()> {
+pub fn single_tstate() -> Result<(), Error> {
     let ftp = surface_code_gate_based();
     let qubit = Rc::new(PhysicalQubit::default());
 
@@ -174,7 +174,7 @@ pub fn single_tstate() -> Result<()> {
 }
 
 #[test]
-pub fn perfect_tstate() -> Result<()> {
+pub fn perfect_tstate() -> Result<(), Error> {
     let ftp = surface_code_gate_based();
     let qubit = Rc::new(PhysicalQubit::GateBased(GateBasedPhysicalQubit {
         t_gate_error_rate: 0.5e-4,
@@ -196,7 +196,7 @@ pub fn perfect_tstate() -> Result<()> {
     Ok(())
 }
 
-fn hubbard_overhead_and_partitioning() -> Result<(LogicalResourceCounts, ErrorBudget)> {
+fn hubbard_overhead_and_partitioning() -> Result<(LogicalResourceCounts, ErrorBudget), Error> {
     let logical_counts =
         serde_json::from_str(include_str!("counts.json")).map_err(IO::CannotParseJSON)?;
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
@@ -225,7 +225,7 @@ fn validate_result_invariants(result: &PhysicalResourceEstimationResult<Protocol
 
 #[allow(clippy::too_many_lines)]
 #[test]
-pub fn test_hubbard_e2e() -> Result<()> {
+pub fn test_hubbard_e2e() -> Result<(), Error> {
     let ftp = surface_code_gate_based();
     let qubit = Rc::new(PhysicalQubit::default());
     let (layout_overhead, partitioning) = hubbard_overhead_and_partitioning()?;
@@ -321,7 +321,7 @@ pub fn test_hubbard_e2e() -> Result<()> {
 
 #[allow(clippy::too_many_lines)]
 #[test]
-pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
+pub fn test_hubbard_e2e_measurement_based() -> Result<(), Error> {
     let ftp = floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
     let (layout_overhead, partitioning) = hubbard_overhead_and_partitioning()?;
@@ -414,7 +414,7 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
 }
 
 #[test]
-pub fn test_hubbard_e2e_increasing_max_duration() -> Result<()> {
+pub fn test_hubbard_e2e_increasing_max_duration() -> Result<(), Error> {
     let ftp = floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
     let (layout_overhead, partitioning) = hubbard_overhead_and_partitioning()?;
@@ -443,7 +443,7 @@ pub fn test_hubbard_e2e_increasing_max_duration() -> Result<()> {
 }
 
 #[test]
-pub fn test_hubbard_e2e_increasing_max_num_qubits() -> Result<()> {
+pub fn test_hubbard_e2e_increasing_max_num_qubits() -> Result<(), Error> {
     let ftp = floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
     let (layout_overhead, partitioning) = hubbard_overhead_and_partitioning()?;
@@ -525,7 +525,7 @@ pub fn test_chemistry_small_max_num_qubits() {
 }
 
 #[test]
-pub fn test_chemistry_based_max_duration() -> Result<()> {
+pub fn test_chemistry_based_max_duration() -> Result<(), Error> {
     let max_duration_in_nanoseconds: u64 = 365 * 24 * 3600 * 1_000_000_000_u64;
 
     let (estimation, budget) = prepare_chemistry_estimation_with_expected_majorana();
@@ -582,7 +582,7 @@ pub fn test_chemistry_based_max_duration() -> Result<()> {
 }
 
 #[test]
-pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
+pub fn test_chemistry_based_max_num_qubits() -> Result<(), Error> {
     let max_num_qubits: u64 = 4_923_120;
 
     let (estimation, budget) = prepare_chemistry_estimation_with_expected_majorana();
@@ -666,7 +666,7 @@ fn prepare_factorization_estimation_with_optimistic_majorana() -> (
 }
 
 #[test]
-pub fn test_factorization_2048_max_duration_matches_regular_estimate() -> Result<()> {
+pub fn test_factorization_2048_max_duration_matches_regular_estimate() -> Result<(), Error> {
     let (estimation, budget) = prepare_factorization_estimation_with_optimistic_majorana();
 
     let result_no_max_duration = estimation.estimate_without_restrictions(&budget)?;
@@ -718,7 +718,7 @@ pub fn test_factorization_2048_max_duration_matches_regular_estimate() -> Result
 }
 
 #[test]
-pub fn test_factorization_2048_max_num_qubits_matches_regular_estimate() -> Result<()> {
+pub fn test_factorization_2048_max_num_qubits_matches_regular_estimate() -> Result<(), Error> {
     let (estimation, budget) = prepare_factorization_estimation_with_optimistic_majorana();
 
     let result_no_max_num_qubits = estimation.estimate_without_restrictions(&budget)?;

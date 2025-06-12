@@ -320,11 +320,23 @@ pub const TERNARY_EXPECT_DEBUG: Expect = expect![[r#"
     ()"#]];
 pub const TUPLE_EXPECT: Expect = expect![[r#"
     Tuple: (Id, 0, 1.0)
+    Unpacked: Id, 0, 1.0
+    Name: Id
+    Item: 0
+    myTuple: (0,)
     Tuple: (PauliX, (3, 1))
+    Unpacked: PauliX, 3, 1
+    Inner tuple: (3, 1)
     (0, Foo)"#]];
 pub const TUPLE_EXPECT_DEBUG: Expect = expect![[r#"
     Tuple: (Id, 0, 1.0)
+    Unpacked: Id, 0, 1.0
+    Name: Id
+    Item: 0
+    myTuple: (0,)
     Tuple: (PauliX, (3, 1))
+    Unpacked: PauliX, 3, 1
+    Inner tuple: (3, 1)
     (0, Foo)"#]];
 pub const TYPEDECLARATIONS_EXPECT: Expect = expect!["()"];
 pub const TYPEDECLARATIONS_EXPECT_DEBUG: Expect = expect!["()"];
@@ -334,12 +346,14 @@ pub const VARIABLES_EXPECT: Expect = expect![[r#"
     Immutable Int: 42
     Mutable Int: 43
     Mutable Int after mutation: 42
+    Mutable Int after reassignment: 10
     Shadowed Immutable Int: 0
     ()"#]];
 pub const VARIABLES_EXPECT_DEBUG: Expect = expect![[r#"
     Immutable Int: 42
     Mutable Int: 43
     Mutable Int after mutation: 42
+    Mutable Int after reassignment: 10
     Shadowed Immutable Int: 0
     ()"#]];
 pub const WHILELOOPS_EXPECT: Expect = expect!["()"];
@@ -362,3 +376,6 @@ pub const CLASSCONSTRAINTS_EXPECT_DEBUG: Expect = expect![[r#"
     false
     true
     ()"#]];
+
+pub const TESTATTRIBUTE_EXPECT: Expect = expect!["()"];
+pub const TESTATTRIBUTE_EXPECT_DEBUG: Expect = expect!["()"];

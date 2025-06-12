@@ -18,9 +18,9 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  NODE_VERSION: "18.17.1"
+  NODE_VERSION: "20.18.2"
   PYTHON_VERSION: "3.11"
-  RUST_TOOLCHAIN_VERSION: "1.84"
+  RUST_TOOLCHAIN_VERSION: "1.86"
   RUST_TOOLCHAIN_COMPONENTS: rustfmt clippy
 
 jobs:
@@ -153,7 +153,7 @@ jobs:
 
   integration-tests:
     name: Integration tests
-    timeout-minutes: 15
+    timeout-minutes: 30
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-14]

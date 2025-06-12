@@ -10,6 +10,6 @@
 function Main() : Unit {
     mutable x = 0;
     while x < 3 {
-        set x += 1;
+        x += 1;
     }
 }

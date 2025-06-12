@@ -106,4 +106,22 @@ namespace Test {
         }
     }
 
+    operation TestPrepareUniformSuperposition(nStates : Int) : Unit {
+        use qs = Qubit[10];
+        PrepareUniformSuperposition(nStates, qs);
+        DumpMachine();
+        ResetAll(qs);
+    }
+
+    operation TestPrepareUniformSuperpositionExhaustive() : Unit {
+        let NBits = 4;
+        for NStates in 1..2^NBits-1 {
+            use qs = Qubit[NBits];
+            PrepareUniformSuperposition(NStates, qs);
+            let t = Std.Math.Sqrt(1.0 / IntAsDouble(NStates));
+            Adjoint Std.StatePreparation.PreparePureStateD(Repeated(t, NStates), Reversed(qs));
+            Fact(CheckAllZero(qs), "All qubits must be in zero state.");
+        }
+    }
+
 }

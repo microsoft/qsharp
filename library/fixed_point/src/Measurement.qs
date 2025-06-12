@@ -14,6 +14,7 @@ import Std.Convert.ResultArrayAsBoolArray;
 /// # Input
 /// ## fp
 /// Fixed-point number to measure.
+@Config(FloatingPointComputations)
 operation MeasureFxP(fp : FixedPoint) : Double {
     let measurements = MResetEachZ(fp::Register);
     let bits = ResultArrayAsBoolArray(measurements);

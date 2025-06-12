@@ -21,7 +21,7 @@ use qsc_hir::{
     ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, Prim, Scheme, Ty},
 };
 use rustc_hash::FxHashMap;
-use std::convert::identity;
+use std::{cell::RefCell, convert::identity, rc::Rc};
 
 /// An inferred partial term has a type, but may be the result of a diverging (non-terminating)
 /// computation.
@@ -101,15 +101,15 @@ impl<'a> Context<'a> {
     fn infer_ty(&mut self, ty: &ast::Ty) -> Ty {
         match &*ty.kind {
             TyKind::Array(item) => Ty::Array(Box::new(self.infer_ty(item))),
-            TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(Box::new(Arrow {
+            TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(Rc::new(Arrow {
                 kind: convert::callable_kind_from_ast(*kind),
-                input: Box::new(self.infer_ty(input)),
-                output: Box::new(self.infer_ty(output)),
-                functors: FunctorSet::Value(
+                input: RefCell::new(self.infer_ty(input)),
+                output: RefCell::new(self.infer_ty(output)),
+                functors: RefCell::new(FunctorSet::Value(
                     functors.as_ref().map_or(FunctorSetValue::Empty, |f| {
                         convert::eval_functor_expr(f.as_ref())
                     }),
-                ),
+                )),
             })),
             TyKind::Hole => self.inferrer.fresh_ty(TySource::not_divergent(ty.span)),
             TyKind::Paren(inner) => self.infer_ty(inner),
@@ -399,17 +399,13 @@ impl<'a> Context<'a> {
                     .take()
                     .expect("return type should be present");
                 self.return_ty = prev_ret_ty;
-                if !body_partial.diverges {
-                    // Only when the type of the body converges do we need to unify with the inferred output type.
-                    // Otherwise we'd get spurious errors from lambdas that use explicit return-expr rather than implicit.
-                    self.inferrer
-                        .eq(body.span, output_ty.clone(), body_partial.ty);
-                }
-                converge(Ty::Arrow(Box::new(Arrow {
+                self.inferrer
+                    .eq(body.span, body_partial.ty, output_ty.clone());
+                converge(Ty::Arrow(Rc::new(Arrow {
                     kind: convert::callable_kind_from_ast(*kind),
-                    input: Box::new(input),
-                    output: Box::new(output_ty),
-                    functors: self.inferrer.fresh_functor(),
+                    input: RefCell::new(input),
+                    output: RefCell::new(output_ty),
+                    functors: RefCell::new(self.inferrer.fresh_functor()),
                 })))
             }
             ExprKind::Lit(lit) => match lit.as_ref() {
@@ -622,7 +618,7 @@ impl<'a> Context<'a> {
                     };
                     let (ty, args) = self.inferrer.instantiate(scheme, expr.span);
                     self.table.generics.insert(expr.id, args);
-                    converge(Ty::Arrow(Box::new(ty)))
+                    converge(Ty::Arrow(Rc::new(ty)))
                 }
                 Some(&Res::Local(node)) => converge(
                     self.table
@@ -636,7 +632,7 @@ impl<'a> Context<'a> {
                     let item_scheme = self.globals.get(item).expect("item should have scheme");
                     let (ty, args) = self.inferrer.instantiate(item_scheme, expr.span);
                     self.table.generics.insert(expr.id, args);
-                    converge(Ty::Arrow(Box::new(ty)))
+                    converge(Ty::Arrow(Rc::new(ty)))
                 }
                 Some(Res::PrimTy(_) | Res::UnitTy | Res::Param { .. }) => {
                     panic!("expression should not resolve to type reference")

@@ -17,6 +17,16 @@ pub(crate) fn generated_name(name: &str) -> Rc<str> {
     Rc::from(format!("@{name}"))
 }
 
+pub(crate) fn gen_ident(assigner: &mut Assigner, label: &str, ty: Ty, span: Span) -> IdentTemplate {
+    let id = assigner.next_node();
+    IdentTemplate {
+        id,
+        span,
+        ty,
+        name: generated_name(&format!("{label}_{id}")),
+    }
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct IdentTemplate {
     pub id: NodeId,
@@ -98,7 +108,7 @@ pub(crate) fn create_gen_core_ref(
     Expr {
         id: NodeId::default(),
         span,
-        ty: Ty::Arrow(Box::new(ty)),
+        ty: Ty::Arrow(Rc::new(ty)),
         kind: ExprKind::Var(Res::Item(term.id), generics),
     }
 }

@@ -245,7 +245,7 @@ impl GeneratorSetsBuilder {
                         element_param_application.aggregate_value_kind(*value_kind);
                     });
             }
-        };
+        }
     }
 
     fn close_inherent(&mut self) -> ApplicationInstanceComputeProperties {

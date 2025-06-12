@@ -29,7 +29,6 @@ type ToC = FxHashMap<Rc<str>, Vec<Rc<Metadata>>>;
 struct Metadata {
     uid: String,
     title: String,
-    topic: String,
     kind: MetadataKind,
     package: PackageKind,
     namespace: Rc<str>,
@@ -57,12 +56,10 @@ impl Metadata {
 uid: {}
 title: {}
 description: {}
-author: {{AUTHOR}}
-ms.author: {{MS_AUTHOR}}
 ms.date: {{TIMESTAMP}}
-ms.topic: {}
+ms.topic: landing-page
 ---",
-            self.uid, self.title, self.summary, self.topic,
+            self.uid, self.title, self.summary,
         )
     }
 
@@ -80,7 +77,6 @@ uid: {}
 title: {}
 description: \"Q# {}: {}\"
 ms.date: {{TIMESTAMP}}
-ms.topic: {}
 qsharp.kind: {}
 qsharp.package: {}
 qsharp.namespace: {}
@@ -91,7 +87,6 @@ qsharp.summary: \"{}\"
             self.title,
             self.title,
             self.summary,
-            self.topic,
             kind,
             self.package,
             self.namespace,
@@ -497,7 +492,7 @@ fn generate_index_file(files: &mut FilesWithMetadata, ns: &Rc<str>, items: &mut 
         ns.as_ref()
     } else {
         ns.split('.')
-            .last()
+            .next_back()
             .expect("Namespaces should have at least one part.")
     };
 
@@ -505,7 +500,6 @@ fn generate_index_file(files: &mut FilesWithMetadata, ns: &Rc<str>, items: &mut 
     let metadata = Metadata {
         uid: format!("Qdk.{ns}-toc"),
         title: format!("{ns} namespace"),
-        topic: "landing-page".to_string(),
         kind: MetadataKind::TableOfContents,
         package: package_kind,
         namespace: ns.clone(),
@@ -522,7 +516,7 @@ fn generate_index_file(files: &mut FilesWithMetadata, ns: &Rc<str>, items: &mut 
                 "| [{}](xref:Qdk.{}) | {} |",
                 item.name,
                 item.fully_qualified_name(),
-                item.summary
+                item.summary.replace('|', "\\|")
             )
         })
         .collect::<Vec<_>>()
@@ -552,7 +546,6 @@ fn generate_top_index(files: &mut FilesWithMetadata, toc: &mut ToC) {
     let metadata = Metadata {
         uid: "Microsoft.Quantum.apiref-toc".to_string(),
         title: "Q# standard libraries for the Azure Quantum Development Kit".to_string(),
-        topic: "landing-page".to_string(),
         kind: MetadataKind::TableOfContents,
         package: PackageKind::StandardLibrary,
         namespace: empty_ns.clone(),
@@ -631,7 +624,12 @@ fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
     if name.starts_with("QIR") {
         None // We ignore "QIR" namespaces
     } else {
-        Some(name.name())
+        let name = name.name();
+        if name.to_lowercase().starts_with("std.openqasm") {
+            None // We ignore openqasm namespaces
+        } else {
+            Some(name)
+        }
     }
 }
 
@@ -698,13 +696,11 @@ fn get_metadata(
 
     let summary = parse_doc_for_summary(&item.doc)
         .replace("\r\n", " ")
-        .replace('\n', " ")
-        .replace('|', "\\|");
+        .replace('\n', " ");
 
     Some(Metadata {
         uid: format!("Qdk.{ns}.{name}"),
         title: format!("{name} {kind}"),
-        topic: "managed-reference".to_string(),
         kind,
         package: package_kind,
         namespace: ns,

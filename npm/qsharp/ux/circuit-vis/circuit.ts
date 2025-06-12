@@ -1,0 +1,21 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+export {
+  ConditionalRender,
+  type CircuitGroup,
+  type Circuit,
+  type ComponentGrid,
+  type Column,
+  type Ket,
+  type Measurement,
+  type Component,
+  type DataAttributes,
+  type Operation,
+  type Unitary,
+  type Parameter,
+  type Qubit,
+} from "../../src/data-structures/circuit";
+
+export { CURRENT_VERSION } from "../../src/data-structures/circuit";
+export { toCircuitGroup } from "../../src/data-structures/legacyCircuitUpdate";

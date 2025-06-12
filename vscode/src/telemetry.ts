@@ -6,6 +6,13 @@
 import * as vscode from "vscode";
 import TelemetryReporter from "@vscode/extension-telemetry";
 import { log } from "qsharp-lang";
+import { getActiveQdkDocument, getVisibleQdkDocument } from "./programConfig";
+import {
+  isCircuitDocument,
+  isOpenQasmDocument,
+  isQdkNotebookCell,
+  isQsharpDocument,
+} from "./common";
 
 export enum EventType {
   InitializePlugin = "Qsharp.InitializePlugin",
@@ -48,9 +55,31 @@ export enum EventType {
   TriggerCircuit = "Qsharp.TriggerCircuit",
   CircuitStart = "Qsharp.CircuitStart",
   CircuitEnd = "Qsharp.CircuitEnd",
+  ChatTurnStart = "Qsharp.ChatTurnStart",
+  ChatTurnEnd = "Qsharp.ChatTurnEnd",
+  LanguageModelToolStart = "Qsharp.LanguageModelToolStart",
+  LanguageModelToolEnd = "Qsharp.LanguageModelToolEnd",
+  UpdateCopilotInstructionsStart = "Qsharp.UpdateCopilotInstructionsStart",
+  UpdateCopilotInstructionsEnd = "Qsharp.UpdateCopilotInstructionsEnd",
 }
 
 type Empty = { [K in any]: never };
+
+/**
+ * Properties of events that are associated with
+ * a specific document, e.g. "format" or "open document"
+ */
+type DocumentEventProperties = {
+  documentType: QsharpDocumentType;
+};
+
+/**
+ * Properties of events that are associated with
+ * a user task, e.g. "histogram" or "resource estimation"
+ */
+type UserTaskProperties = {
+  invocationType: UserTaskInvocationType;
+};
 
 type EventTypes = {
   [EventType.InitializePlugin]: {
@@ -64,11 +93,14 @@ type EventTypes = {
     };
   };
   [EventType.ReturnCompletionList]: {
-    properties: Empty;
+    properties: DocumentEventProperties;
     measurements: { timeToCompletionMs: number; completionListLength: number };
   };
   [EventType.GenerateQirStart]: {
-    properties: { associationId: string; targetProfile: string };
+    properties: DocumentEventProperties & {
+      associationId: string;
+      targetProfile: string;
+    };
     measurements: Empty;
   };
   [EventType.GenerateQirEnd]: {
@@ -84,7 +116,7 @@ type EventTypes = {
     measurements: { timeToCompleteMs: number };
   };
   [EventType.SubmitToAzureStart]: {
-    properties: { associationId: string };
+    properties: UserTaskProperties & { associationId: string };
     measurements: Empty;
   };
   [EventType.SubmitToAzureEnd]: {
@@ -187,11 +219,14 @@ type EventTypes = {
     measurements: Empty;
   };
   [EventType.OpenedDocument]: {
-    properties: { documentType: QsharpDocumentType };
+    properties: DocumentEventProperties;
     measurements: { linesOfCode: number };
   };
   [EventType.TriggerResourceEstimation]: {
-    properties: { associationId: string };
+    properties: DocumentEventProperties &
+      UserTaskProperties & {
+        associationId: string;
+      };
     measurements: Empty;
   };
   [EventType.ResourceEstimationStart]: {
@@ -203,7 +238,8 @@ type EventTypes = {
     measurements: { timeToCompleteMs: number };
   };
   [EventType.TriggerHistogram]: {
-    properties: { associationId: string };
+    properties: DocumentEventProperties &
+      UserTaskProperties & { associationId: string };
     measurements: Empty;
   };
   [EventType.HistogramStart]: {
@@ -219,7 +255,10 @@ type EventTypes = {
     measurements: { timeToCompleteMs: number };
   };
   [EventType.FormatStart]: {
-    properties: { associationId: string; event: FormatEvent };
+    properties: DocumentEventProperties & {
+      associationId: string;
+      event: FormatEvent;
+    };
     measurements: Empty;
   };
   [EventType.FormatEnd]: {
@@ -235,9 +274,10 @@ type EventTypes = {
     measurements: Empty;
   };
   [EventType.TriggerCircuit]: {
-    properties: {
-      associationId: string;
-    };
+    properties: DocumentEventProperties &
+      UserTaskProperties & {
+        associationId: string;
+      };
     measurements: Empty;
   };
   [EventType.CircuitStart]: {
@@ -257,12 +297,63 @@ type EventTypes = {
     };
     measurements: { timeToCompleteMs: number };
   };
+  [EventType.ChatTurnStart]: {
+    properties: {
+      conversationId: string; // associates all events in conversation
+      associationId: string; // associates a start/end events for a single turn
+      serviceUrlHash: string;
+    };
+    measurements: {
+      conversationMessages: number; // includes the one just being submitted
+    };
+  };
+  [EventType.ChatTurnEnd]: {
+    properties: {
+      associationId: string;
+      flowStatus: UserFlowStatus;
+      toolCalls: string; // JSON string array of known tool names
+    };
+    measurements: {
+      timeToCompleteMs: number; // includes tool call executions
+    };
+  };
+  [EventType.LanguageModelToolStart]: {
+    properties: {
+      associationId: string;
+      toolName: string;
+    };
+    measurements: Empty;
+  };
+  [EventType.LanguageModelToolEnd]: {
+    properties: {
+      associationId: string;
+      reason?: string;
+      flowStatus: UserFlowStatus;
+    };
+    measurements: { timeToCompleteMs: number };
+  };
+  [EventType.UpdateCopilotInstructionsStart]: {
+    properties: {
+      trigger: "Command" | "Project" | "Activation" | "ChatToolCall";
+    };
+    measurements: Empty;
+  };
+  [EventType.UpdateCopilotInstructionsEnd]: {
+    properties: {
+      reason?: string;
+      flowStatus: UserFlowStatus;
+    };
+    measurements: Empty;
+  };
 };
 
 export enum QsharpDocumentType {
   JupyterCell = "JupyterCell",
   Qsharp = "Qsharp",
+  Circuit = "Circuit",
+  OpenQasm = "OpenQasm",
   Other = "Other",
+  Unknown = "Unknown",
 }
 
 export enum UserFlowStatus {
@@ -282,6 +373,11 @@ export enum FormatEvent {
   OnDocument = "OnDocument",
   OnRange = "OnRange",
   OnType = "OnType",
+}
+
+export enum UserTaskInvocationType {
+  Command = "Command",
+  ChatToolCall = "ChatToolCall",
 }
 
 let reporter: TelemetryReporter | undefined;
@@ -333,4 +429,34 @@ function getBrowserRelease(): string {
 
 export function getUserAgent(): string {
   return userAgentString || navigator.userAgent;
+}
+
+export function getVisibleDocumentType(): QsharpDocumentType {
+  const doc = getVisibleQdkDocument();
+  if (!doc) {
+    return QsharpDocumentType.Unknown;
+  }
+
+  return determineDocumentType(doc);
+}
+
+export function getActiveDocumentType(): QsharpDocumentType {
+  const doc = getActiveQdkDocument();
+  if (!doc) {
+    return QsharpDocumentType.Unknown;
+  }
+
+  return determineDocumentType(doc);
+}
+
+export function determineDocumentType(document: vscode.TextDocument) {
+  return isQdkNotebookCell(document)
+    ? QsharpDocumentType.JupyterCell
+    : isCircuitDocument(document)
+      ? QsharpDocumentType.Circuit
+      : isQsharpDocument(document)
+        ? QsharpDocumentType.Qsharp
+        : isOpenQasmDocument(document)
+          ? QsharpDocumentType.OpenQasm
+          : QsharpDocumentType.Other;
 }

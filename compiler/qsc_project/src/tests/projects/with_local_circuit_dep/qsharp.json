@@ -1,0 +1,8 @@
+{
+  "author": "Microsoft",
+  "dependencies": {
+    "MyDep": {
+      "path": "../circuit_files"
+    }
+  }
+}

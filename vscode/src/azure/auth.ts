@@ -12,6 +12,7 @@ import { EndEventProperties } from "./workspaceActions";
 export const scopes = {
   armMgmt: "https://management.azure.com/user_impersonation",
   quantum: "https://quantum.microsoft.com/user_impersonation",
+  chatApi: "https://api.quantum.microsoft.com/Chat.ReadWrite",
 };
 
 export async function getAuthSession(

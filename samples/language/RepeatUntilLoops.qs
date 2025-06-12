@@ -12,7 +12,7 @@ operation Main() : Unit {
     // Repeat-Until loop
     mutable x = 0;
     repeat {
-        set x += 1;
+        x += 1;
     } until x > 3;
 
     // Repeat-Until loop with fixup

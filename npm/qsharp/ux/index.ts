@@ -9,7 +9,7 @@ import "./qsharp-circuit.css";
 export {
   CreateSingleEstimateResult,
   type ReData,
-  type CircuitData,
+  type CircuitGroup,
   type CircuitProps,
 } from "./data.js";
 export { Histogram } from "./histogram.js";
