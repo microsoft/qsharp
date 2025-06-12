@@ -10,7 +10,6 @@ import {
 import * as vscode from "vscode";
 import { initAzureWorkspaces } from "./azure/commands.js";
 import { CircuitEditorProvider } from "./circuitEditor.js";
-import { registerCopilotPanel } from "./copilot/webviewViewProvider.js";
 import { initProjectCreator } from "./createProject.js";
 import { activateDebugger } from "./debugger/activate.js";
 import { startOtherQSharpDiagnostics } from "./diagnostics.js";
@@ -86,7 +85,6 @@ export async function activate(
   registerWebViewCommands(context);
   await initFileSystem(context);
   await initProjectCreator(context);
-  registerCopilotPanel(context);
   registerLanguageModelTools(context);
   // fire-and-forget
   registerGhCopilotInstructionsCommand(context);

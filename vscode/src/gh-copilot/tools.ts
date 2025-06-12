@@ -1,14 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { log } from "qsharp-lang";
 import * as vscode from "vscode";
-import * as azqTools from "../copilot/azqTools";
-import { CopilotToolError, ToolState } from "../copilot/tools";
-import { updateCopilotInstructions } from "./instructions";
-import { QSharpTools } from "./qsharpTools";
 import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
 import { getRandomGuid } from "../utils";
-import { log } from "qsharp-lang";
+import * as azqTools from "./azureQuantumTools";
+import { updateCopilotInstructions } from "./instructions";
+import { QSharpTools } from "./qsharpTools";
+import { CopilotToolError } from "./types";
+import { ToolState } from "./azureQuantumTools";
 
 // state
 const workspaceState: ToolState = {};
@@ -50,7 +51,7 @@ const toolDefinitions: {
       job_name: string;
       target_id: string;
       number_of_shots: number;
-    }) => (await azqTools.submitToTarget(workspaceState, input, false)).result,
+    }) => (await azqTools.submitToTarget(workspaceState, input)).result,
     confirm: (input: {
       job_name: string;
       target_id: string;

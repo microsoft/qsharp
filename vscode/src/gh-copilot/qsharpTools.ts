@@ -5,12 +5,9 @@ import { VSDiagnostic } from "qsharp-lang";
 import vscode from "vscode";
 import { CircuitOrError, showCircuitCommand } from "../circuit";
 import { loadCompilerWorker, toVsCodeDiagnostic } from "../common";
-import { HistogramData } from "../copilot/shared";
-import { CopilotToolError } from "../copilot/tools";
 import { createDebugConsoleEventTarget } from "../debugger/output";
 import { resourceEstimateTool } from "../estimate";
 import { FullProgramConfig, getProgramForDocument } from "../programConfig";
-import { sendMessageToPanel } from "../webviewPanel.js";
 import {
   determineDocumentType,
   EventType,
@@ -18,6 +15,8 @@ import {
   UserTaskInvocationType,
 } from "../telemetry";
 import { getRandomGuid } from "../utils";
+import { sendMessageToPanel } from "../webviewPanel.js";
+import { CopilotToolError, HistogramData } from "./types";
 
 /**
  * In general, tool calls that deal with Q# should include this project
@@ -285,10 +284,10 @@ export class QSharpTools {
         }
       }
       histogram = {
-        buckets: Array.from(buckets.entries()),
+        buckets: Array.from(buckets.entries()) as [string, number][],
         shotCount: resultCount,
       };
-      resultUpdate(histogram, failures);
+      resultUpdate(histogram!, failures);
       if (shots === resultCount || failures.length > 0) {
         // TODO: ugh
         resolvePromise();
