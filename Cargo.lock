@@ -1371,6 +1371,7 @@ dependencies = [
  "qsc",
  "resource_estimator",
  "rustc-hash",
+ "serde",
  "serde_json",
 ]
 
