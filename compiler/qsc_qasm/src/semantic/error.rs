@@ -115,6 +115,9 @@ pub enum SemanticErrorKind {
     #[error("if statement missing {0} expression")]
     #[diagnostic(code("Qasm.Lowerer.IfStmtMissingExpression"))]
     IfStmtMissingExpression(String, #[label] Span),
+    #[error("include {0} must be declared in OPENQASM {1} programs")]
+    #[diagnostic(code("Qasm.Lowerer.IncludeNotInLanguageVersion"))]
+    IncludeNotInLanguageVersion(String, String, #[label] Span),
     #[error("include {0} could not be found")]
     #[diagnostic(code("Qasm.Lowerer.IncludeNotFound"))]
     IncludeNotFound(String, #[label] Span),
