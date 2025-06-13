@@ -762,6 +762,40 @@ async fn notebook_can_override_default_unrestricted_profile() {
 }
 
 #[tokio::test]
+async fn notebook_mirrors_python_runtime_unrestricted_default() {
+    let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
+
+    // Set workspace to restrictive profile to simulate enterprise setting
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Base),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    // Notebook with typical quantum operations that work in Python by default
+    updater
+        .update_notebook_document(
+            "real_notebook.ipynb",
+            &NotebookMetadata::default(), // No qsharp.init() called yet
+            [
+                ("cell1", 1, r#"operation MakeBellState() : (Result, Result) {
+                    use (q1, q2) = (Qubit(), Qubit());
+                    H(q1);
+                    CNOT(q1, q2);
+                    return (M(q1), M(q2));
+                }"#),
+                ("cell2", 1, "MakeBellState()"),
+            ]
+            .into_iter(),
+        )
+        .await;
+
+    // Should work without errors, matching Python qsharp runtime behavior
+    expect_errors(&errors, &expect!["[]"]);
+}
+
+#[tokio::test]
 async fn update_notebook_with_valid_dependencies() {
     let fs = FsNode::Dir(
         [dir(
