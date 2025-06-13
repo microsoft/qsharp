@@ -681,6 +681,87 @@ async fn close_notebook_clears_errors() {
 }
 
 #[tokio::test]
+async fn notebook_should_use_unrestricted_profile_by_default() {
+    let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
+
+    // Set workspace configuration to base profile
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Base),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    // Create a notebook with code that works in unrestricted but fails in base profile
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata::default(), // No explicit target_profile override
+            [
+                ("cell1", 1, r#"operation TestOperation() : Unit {
+                    use q = Qubit();
+                    H(q);
+                    if (M(q) == One) {
+                        Reset(q);
+                    } else {
+                        X(q);
+                    }
+                }"#),
+            ]
+            .into_iter(),
+        )
+        .await;
+
+    // This should pass with unrestricted profile (no errors)
+    // Currently fails because it uses workspace profile (base)
+    expect_errors(&errors, &expect!["[]"]);
+}
+
+#[tokio::test]
+async fn notebook_can_override_default_unrestricted_profile() {
+    let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
+
+    // Create a notebook with explicit base profile configuration
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata {
+                target_profile: Some(Profile::Base), // Explicitly override to base
+                language_features: LanguageFeatures::default(),
+                manifest: None,
+                project_root: None,
+            },
+            [
+                ("cell1", 1, r#"operation TestOperation() : Unit {
+                    use q = Qubit();
+                    H(q);
+                    if (M(q) == One) {
+                        Reset(q);
+                    } else {
+                        X(q);
+                    }
+                }"#),
+            ]
+            .into_iter(),
+        )
+        .await;
+
+    // This should fail with base profile (dynamic bool error)
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            [
+              uri: "cell1" version: Some(1) errors: [
+                cannot use a dynamic bool value
+                  [cell1] [M(q) == One]
+              ],
+            ]"#]],
+    );
+}
+
+#[tokio::test]
 async fn update_notebook_with_valid_dependencies() {
     let fs = FsNode::Dir(
         [dir(

@@ -409,7 +409,8 @@ impl<'a> CompilationStateUpdater<'a> {
                 .retain(|_, open_doc| notebook_uri != open_doc.compilation.as_ref());
 
             let notebook_configuration = PartialConfiguration {
-                target_profile: notebook_metadata.target_profile,
+                // Default to Unrestricted profile for notebooks when no explicit configuration is provided
+                target_profile: notebook_metadata.target_profile.or(Some(Profile::Unrestricted)),
                 package_type: None,
                 language_features: Some(notebook_metadata.language_features),
                 lints_config: notebook_metadata
