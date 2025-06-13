@@ -327,6 +327,37 @@
   .ghost-opacity {
     opacity: 0.5;
   }
+
+  .svg-run-button-rect {
+    fill: var(--vscode-button-background, #007acc);
+    rx: 8;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+    transition:
+      fill 0.2s,
+      filter 0.2s;
+  }
+
+  .svg-run-button:hover .svg-run-button-rect,
+  .svg-run-button:focus .svg-run-button-rect {
+    fill: var(--vscode-button-hoverBackground, #005a9e);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
+  }
+
+  .svg-run-button-text {
+    fill: var(--vscode-button-foreground, #ffffff);
+    font-size: 16px;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-weight: bold;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    pointer-events: none;
+    letter-spacing: 1px;
+    user-select: none;
+  }
+
+  .svg-run-button {
+    cursor: pointer;
+  }
 }
 
 .context-menu {

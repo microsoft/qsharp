@@ -4,7 +4,7 @@
 use core::f64;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use rustc_hash::FxHashMap;
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use super::{
     ast::{Expr, ExprKind, LiteralKind},
@@ -222,6 +222,7 @@ impl std::fmt::Display for IOKind {
 
 /// A scope is a collection of symbols and a kind. The kind determines semantic
 /// rules for compliation as shadowing and decl rules vary by scope kind.
+#[derive(Debug, Clone)]
 pub(crate) struct Scope {
     /// A map from symbol name to symbol ID.
     name_to_id: FxHashMap<String, SymbolId>,
@@ -276,6 +277,7 @@ impl Scope {
 }
 
 /// A symbol table is a collection of scopes and manages the symbol ids.
+#[derive(Debug, Clone)]
 pub struct SymbolTable {
     scopes: Vec<Scope>,
     symbols: IndexMap<SymbolId, Rc<Symbol>>,
@@ -289,7 +291,7 @@ pub enum ScopeKind {
     Global,
     /// Function scopes need to remember their return type, so that `return` stmts
     /// can do an implicit cast to the correct type, if any;
-    Function(Rc<Type>),
+    Function(Arc<Type>),
     Gate,
     Block,
     Loop,
@@ -518,7 +520,7 @@ impl SymbolTable {
     /// Returns `None` if the current scope is not rooted in a subroutine.
     /// Otherwise, returns the return type of the subroutine.
     #[must_use]
-    pub fn get_subroutine_return_ty(&self) -> Option<Rc<Type>> {
+    pub fn get_subroutine_return_ty(&self) -> Option<Arc<Type>> {
         for scope in self.scopes.iter().rev() {
             if let ScopeKind::Function(return_ty) = &scope.kind {
                 return Some(return_ty.clone());

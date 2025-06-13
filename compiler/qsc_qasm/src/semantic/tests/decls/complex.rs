@@ -301,6 +301,7 @@ fn const_implicit_bitness_simple_double_neg_im() {
                 ty_span: [6-20]
                 init_expr: Expr [25-36]:
                     ty: const complex[float]
+                    const_value: Complex(1.1, -2.2)
                     kind: BinaryOpExpr:
                         op: Sub
                         lhs: Expr [25-28]:
@@ -361,6 +362,7 @@ fn const_implicit_bitness_simple_double_neg_real() {
                 ty_span: [6-20]
                 init_expr: Expr [25-37]:
                     ty: const complex[float]
+                    const_value: Complex(-1.1, 2.2)
                     kind: BinaryOpExpr:
                         op: Add
                         lhs: Expr [26-29]:

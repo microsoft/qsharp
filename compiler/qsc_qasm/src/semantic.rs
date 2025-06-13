@@ -3,6 +3,7 @@
 
 use crate::io::InMemorySourceResolver;
 use crate::io::SourceResolver;
+use crate::parser::QasmParseResult;
 use crate::parser::QasmSource;
 
 pub(crate) use lowerer::Lowerer;
@@ -23,6 +24,7 @@ pub mod types;
 #[cfg(test)]
 pub(crate) mod tests;
 
+#[derive(Debug, Clone)]
 pub struct QasmSemanticParseResult {
     pub source: QasmSource,
     pub source_map: SourceMap,
@@ -112,7 +114,22 @@ pub fn parse_source<R: SourceResolver, S: Into<Arc<str>>, P: Into<Arc<str>>>(
     resolver: &mut R,
 ) -> QasmSemanticParseResult {
     let res = crate::parser::parse_source(source, path, resolver);
-    let analyzer = Lowerer::new(res.source, res.source_map);
+    lower_parse_result(res)
+}
+
+#[must_use]
+pub fn parse_sources(sources: &[(Arc<str>, Arc<str>)]) -> QasmSemanticParseResult {
+    let (path, source) = sources
+        .iter()
+        .next()
+        .expect("There should be at least one source");
+    let mut resolver = sources.iter().cloned().collect::<InMemorySourceResolver>();
+    parse_source(source.clone(), path.clone(), &mut resolver)
+}
+
+#[must_use]
+pub fn lower_parse_result(parse_result: QasmParseResult) -> QasmSemanticParseResult {
+    let analyzer = Lowerer::new(parse_result.source, parse_result.source_map);
     let sem_res = analyzer.lower();
     let errors = sem_res.all_errors();
     QasmSemanticParseResult {

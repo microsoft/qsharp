@@ -12,8 +12,8 @@ use qsc::{
     compile::{compile_ast, package_store_with_stdlib},
     hir::PackageId,
     qasm::{
-        compile_to_qsharp_ast_with_config, io::InMemorySourceResolver, CompilerConfig,
-        OutputSemantics, ProgramType, QubitSemantics,
+        compiler::parse_and_compile_to_qsharp_ast_with_config, io::InMemorySourceResolver,
+        CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
     },
     target::Profile,
     PackageStore, PackageType,
@@ -36,7 +36,7 @@ fn compile(data: &[u8]) {
                 None,
             );
 
-            let unit = compile_to_qsharp_ast_with_config(
+            let unit = parse_and_compile_to_qsharp_ast_with_config(
                 fuzzed_code,
                 "fuzz.qasm",
                 Some(&mut resolver),

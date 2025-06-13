@@ -9,25 +9,37 @@ use qsc_frontend::compile::PackageStore;
 use qsc_frontend::error::WithSource;
 use qsc_hir::hir::PackageId;
 use qsc_passes::PackageType;
-use qsc_qasm::io::SourceResolver;
+use qsc_qasm::{compiler::parse_and_compile_to_qsharp_ast_with_config, io::SourceResolver};
+
 pub use qsc_qasm::{
     CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QasmCompileUnit,
     QubitSemantics,
 };
+
 pub mod io {
     pub use qsc_qasm::io::*;
 }
+
 pub mod parser {
     pub use qsc_qasm::parser::*;
 }
+
+pub mod semantic {
+    pub use qsc_qasm::semantic::*;
+}
+
 pub mod error {
     pub use qsc_qasm::Error;
     pub use qsc_qasm::ErrorKind;
 }
+
 pub mod completion {
     pub use qsc_qasm::parser::completion::*;
 }
-pub use qsc_qasm::compile_to_qsharp_ast_with_config;
+
+pub mod compiler {
+    pub use qsc_qasm::compiler::*;
+}
 
 use crate::compile::package_store_with_stdlib;
 
@@ -40,34 +52,11 @@ pub struct CompileRawQasmResult(
 );
 
 #[must_use]
-pub fn compile_raw_qasm<R: SourceResolver, S: Into<Arc<str>>>(
-    source: S,
-    path: S,
-    resolver: Option<&mut R>,
+pub fn compile_openqasm(
+    unit: QasmCompileUnit,
     package_type: PackageType,
     capabilities: TargetCapabilityFlags,
 ) -> CompileRawQasmResult {
-    let config = CompilerConfig::new(
-        QubitSemantics::Qiskit,
-        OutputSemantics::OpenQasm,
-        ProgramType::File,
-        Some("program".into()),
-        None,
-    );
-    compile_with_config(source, path, resolver, config, package_type, capabilities)
-}
-
-#[must_use]
-pub fn compile_with_config<R: SourceResolver, S: Into<Arc<str>>>(
-    source: S,
-    path: S,
-    resolver: Option<&mut R>,
-    config: CompilerConfig,
-    package_type: PackageType,
-    capabilities: TargetCapabilityFlags,
-) -> CompileRawQasmResult {
-    let unit = compile_to_qsharp_ast_with_config(source, path, resolver, config);
-
     let (source_map, openqasm_errors, package, sig) = unit.into_tuple();
 
     let (stdid, mut store) = package_store_with_stdlib(capabilities);
@@ -109,6 +98,37 @@ pub fn compile_with_config<R: SourceResolver, S: Into<Arc<str>>>(
 }
 
 #[must_use]
+pub fn parse_and_compile_raw_qasm<R: SourceResolver, S: Into<Arc<str>>>(
+    source: S,
+    path: S,
+    resolver: Option<&mut R>,
+    package_type: PackageType,
+    capabilities: TargetCapabilityFlags,
+) -> CompileRawQasmResult {
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::OpenQasm,
+        ProgramType::File,
+        Some("program".into()),
+        None,
+    );
+    parse_and_compile_with_config(source, path, resolver, config, package_type, capabilities)
+}
+
+#[must_use]
+pub fn parse_and_compile_with_config<R: SourceResolver, S: Into<Arc<str>>>(
+    source: S,
+    path: S,
+    resolver: Option<&mut R>,
+    config: CompilerConfig,
+    package_type: PackageType,
+    capabilities: TargetCapabilityFlags,
+) -> CompileRawQasmResult {
+    let unit = parse_and_compile_to_qsharp_ast_with_config(source, path, resolver, config);
+    compile_openqasm(unit, package_type, capabilities)
+}
+
+#[must_use]
 pub fn parse_raw_qasm_as_fragments<R: SourceResolver, S: Into<Arc<str>>>(
     source: S,
     path: S,
@@ -121,7 +141,7 @@ pub fn parse_raw_qasm_as_fragments<R: SourceResolver, S: Into<Arc<str>>>(
         None,
         None,
     );
-    compile_to_qsharp_ast_with_config(source, path, resolver, config)
+    parse_and_compile_to_qsharp_ast_with_config(source, path, resolver, config)
 }
 
 #[must_use]
@@ -143,5 +163,5 @@ pub fn parse_raw_qasm_as_operation<
         Some(name.into()),
         None,
     );
-    compile_to_qsharp_ast_with_config(source, path, resolver, config)
+    parse_and_compile_to_qsharp_ast_with_config(source, path, resolver, config)
 }

@@ -2270,6 +2270,228 @@ async fn test_case_in_different_files() {
     .assert_debug_eq(&test_cases.borrow());
 }
 
+#[tokio::test]
+async fn test_dev_diagnostics_configuration() {
+    let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
+
+    // First, enable test diagnostics before updating any document
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        dev_diagnostics: Some(true),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    // Now update a document with test diagnostics enabled
+    updater
+        .update_document(
+            "test/sample.qs",
+            1,
+            "namespace Test { @EntryPoint() operation Main() : Unit {} }",
+            "qsharp",
+        )
+        .await;
+
+    // Should have test diagnostic
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            [
+              uri: "test/sample.qs" version: Some(1) errors: [
+                [qdk-status] compilation=test/sample.qs, version=1
+              ],
+            ]"#]],
+    );
+
+    // Clear errors and disable test diagnostics
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        dev_diagnostics: Some(false),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    // Should have no diagnostics after disabling
+    expect_errors(
+        &errors,
+        &expect![[r#"
+        [
+          uri: "test/sample.qs" version: Some(1) errors: [],
+        ]"#]],
+    );
+}
+
+#[tokio::test]
+async fn test_show_test_diagnostics_with_real_errors() {
+    let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
+
+    // Enable test diagnostics
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        dev_diagnostics: Some(true),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    // Update document with syntax error
+    updater
+        .update_document(
+            "test/error.qs",
+            1,
+            "namespace Test { operation Main() : Unit { invalidcode } }",
+            "qsharp",
+        )
+        .await;
+
+    // Should have diagnostics with test diagnostic first, followed by actual errors
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            [
+              uri: "test/error.qs" version: Some(1) errors: [
+                name error
+                  [test/error.qs] [invalidcode]
+                [qdk-status] compilation=test/error.qs, version=1
+              ],
+            ]"#]],
+    );
+}
+
+#[tokio::test]
+async fn test_show_test_diagnostics_multi_file_project() {
+    let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+
+    // Create a multi-file project structure
+    let fs = FsNode::Dir(
+        [dir(
+            "project",
+            [
+                file("qsharp.json", r#"{ }"#),
+                dir(
+                    "src",
+                    [
+                        file(
+                            "main.qs",
+                            "namespace Main { @EntryPoint() operation Main() : Unit {} }",
+                        ),
+                        file(
+                            "helper.qs",
+                            "namespace Helper { operation HelperOp() : Unit {} }",
+                        ),
+                    ],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let mut updater = new_updater_with_file_system(&errors, &test_cases, &fs);
+
+    // Enable test diagnostics
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        dev_diagnostics: Some(true),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    // Open both files in the project
+    updater
+        .update_document(
+            "project/src/main.qs",
+            1,
+            "namespace Main { @EntryPoint() operation Main() : Unit {} }",
+            "qsharp",
+        )
+        .await;
+
+    updater
+        .update_document(
+            "project/src/helper.qs",
+            1,
+            "namespace Helper { operation HelperOp() : Unit {} }",
+            "qsharp",
+        )
+        .await;
+
+    // Both files should have test diagnostics with the same compilation name
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            [
+              uri: "project/src/main.qs" version: Some(1) errors: [
+                [qdk-status] compilation=project/qsharp.json, version=1
+              ],
+
+              uri: "project/src/main.qs" version: Some(1) errors: [
+                [qdk-status] compilation=project/qsharp.json, version=1
+              ],
+
+              uri: "project/src/helper.qs" version: Some(1) errors: [
+                [qdk-status] compilation=project/qsharp.json, version=1
+              ],
+            ]"#]],
+    );
+
+    // Close one of the files
+    updater
+        .close_document("project/src/main.qs", "qsharp")
+        .await;
+
+    // The remaining file should still have the test diagnostic
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            [
+              uri: "project/src/helper.qs" version: Some(1) errors: [
+                [qdk-status] compilation=project/qsharp.json, version=1
+              ],
+
+              uri: "project/src/main.qs" version: None errors: [],
+            ]"#]],
+    );
+}
+
+#[tokio::test]
+async fn test_show_test_diagnostics_in_notebook() {
+    let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
+
+    // First, enable test diagnostics before updating any notebook document
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        dev_diagnostics: Some(true),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    // Now update a notebook document with test diagnostics enabled
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata::default(),
+            [
+                ("cell1", 1, "operation Main() : Unit {}"),
+                ("cell2", 1, "Main()"),
+            ]
+            .into_iter(),
+        )
+        .await;
+
+    // Should have test diagnostics for both cells
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            [
+              uri: "cell1" version: Some(1) errors: [
+                [qdk-status] compilation=notebook.ipynb, version=1
+              ],
+
+              uri: "cell2" version: Some(1) errors: [
+                [qdk-status] compilation=notebook.ipynb, version=1
+              ],
+            ]"#]],
+    );
+}
+
 impl Display for DiagnosticUpdate {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let DiagnosticUpdate {

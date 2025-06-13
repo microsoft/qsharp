@@ -14,7 +14,7 @@ import {
   openqasmLanguageId,
   qsharpLanguageId,
 } from "../common.js";
-import { getTarget } from "../config.js";
+import { getTarget, getShowDevDiagnostics } from "../config.js";
 import {
   fetchGithubRaw,
   findManifestDirectory,
@@ -188,7 +188,7 @@ async function loadLanguageService(
     resolvePath: async (a, b) => resolvePath(a, b),
     fetchGithub: fetchGithubRaw,
   });
-  await updateLanguageServiceProfile(languageService);
+  await updateLanguageServiceConfiguration(languageService);
   const end = performance.now();
   sendTelemetryEvent(
     EventType.LoadLanguageService,
@@ -315,14 +315,20 @@ function registerConfigurationChangeHandlers(
   languageService: ILanguageService,
 ) {
   return vscode.workspace.onDidChangeConfiguration((event) => {
-    if (event.affectsConfiguration("Q#.qir.targetProfile")) {
-      updateLanguageServiceProfile(languageService);
+    if (
+      event.affectsConfiguration("Q#.qir.targetProfile") ||
+      event.affectsConfiguration("Q#.dev.showDevDiagnostics")
+    ) {
+      updateLanguageServiceConfiguration(languageService);
     }
   });
 }
 
-async function updateLanguageServiceProfile(languageService: ILanguageService) {
+async function updateLanguageServiceConfiguration(
+  languageService: ILanguageService,
+) {
   const targetProfile = getTarget();
+  const showDevDiagnostics = getShowDevDiagnostics();
 
   switch (targetProfile) {
     case "base":
@@ -334,9 +340,12 @@ async function updateLanguageServiceProfile(languageService: ILanguageService) {
       log.warn(`Invalid value for target profile: ${targetProfile}`);
   }
   log.debug("Target profile set to: " + targetProfile);
+  log.debug("Show dev diagnostics set to: " + showDevDiagnostics);
 
+  // Update all configuration settings
   languageService.updateConfiguration({
     targetProfile: targetProfile,
+    devDiagnostics: showDevDiagnostics,
     lints: [{ lint: "needlessOperation", level: "warn" }],
   });
 }

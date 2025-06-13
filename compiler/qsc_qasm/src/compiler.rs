@@ -46,7 +46,9 @@ use crate::{
         },
         symbols::{IOKind, Symbol, SymbolId, SymbolTable},
         types::{promote_types, Type},
+        QasmSemanticParseResult,
     },
+    stdlib::complex::Complex,
     CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QasmCompileUnit,
     QubitSemantics,
 };
@@ -65,7 +67,7 @@ fn err_expr(span: Span) -> qsast::Expr {
 }
 
 #[must_use]
-pub fn compile_to_qsharp_ast_with_config<
+pub fn parse_and_compile_to_qsharp_ast_with_config<
     R: SourceResolver,
     S: Into<Arc<str>>,
     P: Into<Arc<str>>,
@@ -80,6 +82,14 @@ pub fn compile_to_qsharp_ast_with_config<
     } else {
         crate::semantic::parse(source, path)
     };
+    compile_to_qsharp_ast_with_config(res, config)
+}
+
+#[must_use]
+pub fn compile_to_qsharp_ast_with_config(
+    res: QasmSemanticParseResult,
+    config: CompilerConfig,
+) -> QasmCompileUnit {
     let program = res.program;
 
     let compiler = crate::compiler::QasmCompiler {
@@ -111,6 +121,7 @@ impl QasmCompiler {
     /// The main entry into compilation. This function will compile the
     /// source file and build the appropriate package based on the
     /// configuration.
+    #[must_use]
     pub fn compile(mut self, program: &crate::semantic::ast::Program) -> QasmCompileUnit {
         // in non-file mode we need the runtime imports in the body
         let program_ty = self.config.program_ty.clone();
@@ -1395,7 +1406,7 @@ impl QasmCompiler {
                 self.compile_duration_literal(*value, *time_unit, span)
             }
             LiteralKind::Float(value) => Self::compile_float_literal(*value, span),
-            LiteralKind::Complex(real, imag) => Self::compile_complex_literal(*real, *imag, span),
+            LiteralKind::Complex(value) => Self::compile_complex_literal(*value, span),
             LiteralKind::Int(value) => Self::compile_int_literal(*value, span),
             LiteralKind::BigInt(value) => Self::compile_bigint_literal(value, span),
             LiteralKind::String(value) => self.compile_string_literal(value, span),
@@ -1585,8 +1596,8 @@ impl QasmCompiler {
         build_lit_result_array_expr(values, span)
     }
 
-    fn compile_complex_literal(real: f64, imag: f64, span: Span) -> qsast::Expr {
-        build_lit_complex_expr(crate::types::Complex::new(real, imag), span)
+    fn compile_complex_literal(value: Complex, span: Span) -> qsast::Expr {
+        build_lit_complex_expr(crate::types::Complex::new(value.real, value.imag), span)
     }
 
     fn compile_float_literal(value: f64, span: Span) -> qsast::Expr {

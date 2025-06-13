@@ -8,7 +8,7 @@ use qsc::{linter::LintOrGroupConfig, packages::BuildableProgram, LanguageFeature
 use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, JSProjectHost, PackageCache};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, iter::FromIterator, rc::Rc, str::FromStr, sync::Arc};
+use std::{cell::RefCell, iter::FromIterator, path::Path, rc::Rc, str::FromStr, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -44,8 +44,8 @@ extern "C" {
     #[wasm_bindgen(method, structural)]
     async fn listDirectory(this: &ProjectHost, uri: &str) -> JsValue;
 
-    #[wasm_bindgen(method, structural)]
-    async fn resolvePath(this: &ProjectHost, base: &str, path: &str) -> JsValue;
+    #[wasm_bindgen(method, structural, catch)]
+    async fn resolvePath(this: &ProjectHost, base: &str, path: &str) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(method, structural, catch)]
     async fn fetchGithub(
@@ -140,9 +140,20 @@ impl JSProjectHost for ProjectHost {
         }
     }
 
-    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>> {
-        let js_val = self.resolvePath(base, path).await;
-        js_val.as_string().map(Into::into)
+    async fn resolve_path(&self, base: &str, path: &str) -> miette::Result<Arc<str>> {
+        match self.resolvePath(base, path).await {
+            Ok(val) => Ok(val.as_string().unwrap_or_default().into()),
+            Err(js_val) => {
+                let err: js_sys::Error = js_val
+                    .dyn_into()
+                    .expect("exception should be an error type");
+                let message = err
+                    .message()
+                    .as_string()
+                    .expect("error message should be a string");
+                Err(Report::msg(message))
+            }
+        }
     }
 
     async fn fetch_github(
@@ -189,7 +200,7 @@ impl ProjectLoader {
     ) -> Result<IProjectConfig, String> {
         let package_cache = PACKAGE_CACHE.with(Clone::clone);
 
-        let dir_path = std::path::Path::new(&directory);
+        let dir_path = Path::new(&directory);
         let project_config = match self.0.load_project(dir_path, Some(&package_cache)).await {
             Ok(loaded_project) => loaded_project,
             Err(errs) => return Err(project_errors_into_qsharp_errors_json(&directory, &errs)),
@@ -199,9 +210,15 @@ impl ProjectLoader {
         project_config.try_into()
     }
 
-    pub async fn load_openqasm_project(&self, file_path: String) -> Result<IProjectConfig, String> {
-        let project_config =
-            qsc_project::openqasm::load_project(&self.0, &file_path.clone().into()).await;
+    pub async fn load_openqasm_project(
+        &self,
+        file_path: String,
+        source: Option<String>,
+    ) -> Result<IProjectConfig, String> {
+        let project_config = self
+            .0
+            .load_openqasm_project(Path::new(&file_path), source.map(Arc::<str>::from))
+            .await;
         // Will return error if project has errors
         project_config.try_into()
     }
@@ -297,11 +314,15 @@ impl TryFrom<qsc_project::Project> for IProjectConfig {
                 &value.errors,
             ));
         }
+        let project_type = match value.project_type {
+            qsc_project::ProjectType::QSharp(..) => "qsharp".into(),
+            qsc_project::ProjectType::OpenQASM(..) => "openqasm".into(),
+        };
         let package_graph_sources = match value.project_type {
-            qsc_project::ProjectType::QSharp(ref pgs) => pgs.clone(),
-            qsc_project::ProjectType::OpenQASM(ref sources) => qsc_project::PackageGraphSources {
+            qsc_project::ProjectType::QSharp(pgs) => pgs,
+            qsc_project::ProjectType::OpenQASM(res) => qsc_project::PackageGraphSources {
                 root: qsc_project::PackageInfo {
-                    sources: sources.clone(),
+                    sources: res,
                     language_features: LanguageFeatures::default(),
                     dependencies: FxHashMap::default(),
                     package_type: None,
@@ -314,10 +335,7 @@ impl TryFrom<qsc_project::Project> for IProjectConfig {
             project_uri: value.path.to_string(),
             lints: value.lints,
             package_graph_sources: package_graph_sources.into(),
-            project_type: match value.project_type {
-                qsc_project::ProjectType::QSharp(..) => "qsharp".into(),
-                qsc_project::ProjectType::OpenQASM(..) => "openqasm".into(),
-            },
+            project_type,
         };
         Ok(project_config.into())
     }

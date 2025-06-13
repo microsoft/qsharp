@@ -124,6 +124,7 @@ impl LanguageService {
                     .languageFeatures
                     .map(|features| features.iter().collect::<LanguageFeatures>()),
                 lints_config: config.lints,
+                dev_diagnostics: config.devDiagnostics,
             });
     }
 
@@ -379,13 +380,15 @@ serializable_type! {
         pub targetProfile: Option<String>,
         pub packageType: Option<String>,
         pub languageFeatures: Option<Vec<String>>,
-        pub lints: Option<Vec<LintOrGroupConfig>>
+        pub lints: Option<Vec<LintOrGroupConfig>>,
+        pub devDiagnostics: Option<bool>,
     },
     r#"export interface IWorkspaceConfiguration {
         targetProfile?: TargetProfile;
         packageType?: "exe" | "lib";
         languageFeatures?: LanguageFeatures[];
         lints?: ({ lint: string; level: string } | { group: string; level: string })[];
+        devDiagnostics?: boolean;
     }"#,
     IWorkspaceConfiguration
 }

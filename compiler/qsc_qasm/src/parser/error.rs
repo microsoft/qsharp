@@ -163,7 +163,7 @@ impl ErrorKind {
             Self::GPhaseInvalidArguments(span) => Self::GPhaseInvalidArguments(span + offset),
             Self::InvalidGateCallDesignator(span) => Self::InvalidGateCallDesignator(span + offset),
             Self::MultipleIndexOperators(span) => Self::MultipleIndexOperators(span + offset),
-            Self::IO(error) => Self::IO(error),
+            Self::IO(error) => Self::IO(error.with_offset(offset)),
         }
     }
 }

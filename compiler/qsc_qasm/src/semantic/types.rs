@@ -8,7 +8,7 @@ use super::ast::{BinOp, Expr, ExprKind, Index, LiteralKind, Range};
 use crate::parser::ast as syntax;
 use core::fmt;
 use std::fmt::{Display, Formatter};
-use std::{cmp::max, rc::Rc};
+use std::{cmp::max, sync::Arc};
 
 #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub enum Type {
@@ -43,7 +43,7 @@ pub enum Type {
 
     // realistically the sizes could be u3
     Gate(u32, u32),
-    Function(Rc<[Type]>, Rc<Type>),
+    Function(Arc<[Type]>, Arc<Type>),
     Range,
     Set,
     Void,

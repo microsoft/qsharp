@@ -26,6 +26,9 @@ pub enum ConstEvalError {
     #[error("division by zero error during const evaluation")]
     #[diagnostic(code("Qasm.Lowerer.DivisionByZero"))]
     DivisionByZero(#[label] Span),
+    #[error("{0}")]
+    #[diagnostic(code("Qasm.Lowerer.DomainError"))]
+    DomainError(String, #[label] Span),
     #[error("expression must be const")]
     #[diagnostic(code("Qasm.Lowerer.ExprMustBeConst"))]
     ExprMustBeConst(#[label] Span),
@@ -308,7 +311,7 @@ fn overflowing_shr(mut lhs: i64, mut rhs: i64) -> i64 {
 impl BinaryOpExpr {
     #[allow(clippy::too_many_lines)]
     fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
-        use LiteralKind::{Angle, Bit, Bitstring, Bool, Float, Int};
+        use LiteralKind::{Angle, Bit, Bitstring, Bool, Complex, Float, Int};
 
         let lhs = self.lhs.const_eval(ctx);
         let rhs = self.rhs.const_eval(ctx);
@@ -581,6 +584,9 @@ impl BinaryOpExpr {
                 Type::Angle(..) => {
                     rewrap_lit!((lhs, rhs), (Angle(lhs), Angle(rhs)), Angle(lhs + rhs))
                 }
+                Type::Complex(..) => {
+                    rewrap_lit!((lhs, rhs), (Complex(lhs), Complex(rhs)), Complex(lhs + rhs))
+                }
                 _ => None,
             },
             BinOp::Sub => match lhs_ty {
@@ -592,6 +598,9 @@ impl BinaryOpExpr {
                 }
                 Type::Angle(..) => {
                     rewrap_lit!((lhs, rhs), (Angle(lhs), Angle(rhs)), Angle(lhs - rhs))
+                }
+                Type::Complex(..) => {
+                    rewrap_lit!((lhs, rhs), (Complex(lhs), Complex(rhs)), Complex(lhs - rhs))
                 }
                 _ => None,
             },
@@ -624,6 +633,9 @@ impl BinaryOpExpr {
                         (Angle(lhs), Int(rhs)),
                         Angle(lhs * u64::try_from(rhs).ok()?)
                     )
+                }
+                Type::Complex(..) => {
+                    rewrap_lit!((lhs, rhs), (Complex(lhs), Complex(rhs)), Complex(lhs * rhs))
                 }
                 _ => None,
             },
@@ -671,6 +683,9 @@ impl BinaryOpExpr {
                     }
                     _ => None,
                 },
+                Type::Complex(..) => {
+                    rewrap_lit!((lhs, rhs), (Complex(lhs), Complex(rhs)), Complex(lhs / rhs))
+                }
                 _ => None,
             },
             BinOp::Mod => match lhs_ty {
@@ -703,6 +718,8 @@ impl BinaryOpExpr {
 }
 
 impl FunctionCall {
+    /// Builtin function calls, which are const, are const evaluated
+    /// in [`Lowerer::lower_builtin_function_call_expr`].
     #[allow(clippy::unused_self)]
     fn const_eval(&self, _ctx: &mut Lowerer, _ty: &Type) -> Option<LiteralKind> {
         None
@@ -719,6 +736,7 @@ impl Cast {
             Type::Angle(..) => cast_to_angle(self, ctx),
             Type::Bit(..) => cast_to_bit(self, ctx),
             Type::BitArray(..) => cast_to_bitarray(self, ctx),
+            Type::Complex(..) => cast_to_complex(self, ctx),
             _ => None,
         }
     }
@@ -945,4 +963,35 @@ fn number_of_bits(mut val: i64) -> u32 {
         bits += 1;
     }
     bits
+}
+
+/// +---------------+-----------------------------------------+
+/// | Allowed casts | Casting from                            |
+/// +---------------+------+-----+------+-------+-------+-----+
+/// | Casting to    | bool | int | uint | float | angle | bit |
+/// +---------------+------+-----+------+-------+-------+-----+
+/// | complex       | No   | Yes | Yes  | Yes   | No    | -   |
+/// +---------------+------+-----+------+-------+-------+-----+
+fn cast_to_complex(cast: &Cast, ctx: &mut Lowerer) -> Option<LiteralKind> {
+    use crate::stdlib::complex;
+    use LiteralKind::{Complex, Float, Int};
+    let lit = cast.expr.const_eval(ctx)?;
+
+    match &cast.expr.ty {
+        Type::Int(..) | Type::UInt(..) => rewrap_lit!(lit, Int(val), {
+            let Some(real) = safe_i64_to_f64(val) else {
+                ctx.push_const_eval_error(ConstEvalError::ValueOverflow(
+                    format!("{val}"),
+                    cast.ty.to_string(),
+                    cast.span,
+                ));
+                return None;
+            };
+
+            Complex(complex::Complex::real(real))
+        }),
+        Type::Float(..) => rewrap_lit!(lit, Float(val), Complex(complex::Complex::real(val))),
+        Type::Complex(..) => Some(lit),
+        _ => None,
+    }
 }

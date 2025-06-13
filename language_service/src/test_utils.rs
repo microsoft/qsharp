@@ -218,7 +218,7 @@ fn compile_project_with_markers_cursor_optional(
         &package_store,
         &dependencies,
         source_map,
-        PackageType::Exe,
+        PackageType::Lib,
         Profile::Unrestricted.into(),
         LanguageFeatures::default(),
     );

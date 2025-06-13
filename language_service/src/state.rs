@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::protocol::TestCallable;
+use crate::protocol::{DocumentStatusDiagnostic, TestCallable};
 
 use super::compilation::Compilation;
 use super::protocol::{
@@ -18,6 +18,7 @@ use qsc_linter::LintOrGroupConfig;
 use qsc_project::{FileSystemAsync, JSProjectHost, PackageCache, Project, ProjectType};
 use rustc_hash::{FxHashMap, FxHashSet};
 
+use std::path::Path;
 use std::{cell::RefCell, fmt::Debug, mem::take, path::PathBuf, rc::Rc, sync::Arc, vec};
 
 #[derive(Default, Debug)]
@@ -66,6 +67,8 @@ struct Configuration {
     pub package_type: PackageType,
     pub language_features: LanguageFeatures,
     pub lints_config: Vec<LintOrGroupConfig>,
+    /// Enables non-user-facing developer diagnostics.
+    pub dev_diagnostics: bool,
 }
 
 impl Default for Configuration {
@@ -75,6 +78,7 @@ impl Default for Configuration {
             package_type: PackageType::Lib,
             language_features: LanguageFeatures::default(),
             lints_config: Vec::default(),
+            dev_diagnostics: false,
         }
     }
 }
@@ -98,10 +102,10 @@ pub(super) struct CompilationStateUpdater<'a> {
     /// Some settings can be set both at the compilation scope and at the workspace scope.
     /// Compilation-scoped settings take precedence over workspace-scoped settings.
     configuration: Configuration,
-    /// Documents that we have previously published errors about. We need to
-    /// keep track of this so we can clear errors from them when documents are removed
+    /// Documents that we have previously published diagnostics about. We need to
+    /// keep track of this so we can clear diagnostics from them when documents are removed
     /// from a compilation or when a recompilation occurs.
-    documents_with_errors: FxHashSet<DocumentUri>,
+    documents_with_diagnostics: FxHashSet<DocumentUri>,
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
@@ -125,7 +129,7 @@ impl<'a> CompilationStateUpdater<'a> {
         Self {
             state,
             configuration: Configuration::default(),
-            documents_with_errors: FxHashSet::default(),
+            documents_with_diagnostics: FxHashSet::default(),
             diagnostics_receiver: Box::new(diagnostics_receiver),
             test_callable_receiver: Box::new(test_callable_receiver),
             cache: RefCell::default(),
@@ -227,7 +231,9 @@ impl<'a> CompilationStateUpdater<'a> {
     ) -> Result<Option<Project>, Vec<project::Error>> {
         if is_openqasm_file(language_id) {
             return Ok(Some(
-                qsc_project::openqasm::load_project(&*self.project_host, doc_uri).await,
+                self.project_host
+                    .load_openqasm_project(Path::new(doc_uri.as_ref()), None)
+                    .await,
             ));
         }
         self.load_manifest(doc_uri).await
@@ -464,8 +470,8 @@ impl<'a> CompilationStateUpdater<'a> {
     // So let's do it the simplest way possible. Republish all the diagnostics every time.
     fn publish_diagnostics_and_test_callables(&mut self) {
         self.publish_test_callables();
-        let last_docs_with_errors = take(&mut self.documents_with_errors);
-        let mut docs_with_errors = FxHashSet::default();
+        let last_docs_with_diags = take(&mut self.documents_with_diagnostics);
+        let mut docs_with_diags = FxHashSet::default();
 
         self.with_state(|state| {
             for (compilation_uri, compilation) in &state.compilations {
@@ -481,12 +487,29 @@ impl<'a> CompilationStateUpdater<'a> {
                     continue;
                 }
 
-                for (uri, errors) in map_errors_to_docs(
+                let mut compilation_diags_by_doc = map_errors_to_docs(
                     compilation_uri,
                     &compilation.0.compile_errors,
                     &compilation.0.project_errors,
-                ) {
-                    if !docs_with_errors.insert(uri.clone()) {
+                );
+
+                if self.configuration.dev_diagnostics {
+                    // Add the document status diagnostic for all open documents too
+                    for (uri, open_document) in &state.open_documents {
+                        if &open_document.compilation == compilation_uri {
+                            compilation_diags_by_doc
+                                .entry(uri.clone())
+                                .or_default()
+                                .push(ErrorKind::DocumentStatus(DocumentStatusDiagnostic {
+                                    compilation_name: open_document.compilation.to_string(),
+                                    document_version: open_document.version,
+                                }));
+                        }
+                    }
+                }
+
+                for (uri, diags) in compilation_diags_by_doc {
+                    if !docs_with_diags.insert(uri.clone()) {
                         // We already published diagnostics for this document for
                         // a different compilation.
                         // When the same document is included in multiple compilations,
@@ -495,17 +518,17 @@ impl<'a> CompilationStateUpdater<'a> {
                         continue;
                     }
 
-                    self.publish_diagnostics_for_doc(state, &uri, errors);
+                    self.publish_diagnostics_for_doc(state, &uri, diags);
                 }
             }
 
-            // Clear errors from any documents that previously had errors
-            for uri in last_docs_with_errors.difference(&docs_with_errors) {
+            // Clear diagnostics from any documents that previously had diagnostics
+            for uri in last_docs_with_diags.difference(&docs_with_diags) {
                 self.publish_diagnostics_for_doc(state, uri, vec![]);
             }
         });
 
-        self.documents_with_errors = docs_with_errors;
+        self.documents_with_diagnostics = docs_with_diags;
     }
 
     fn publish_diagnostics_for_doc(
@@ -547,6 +570,11 @@ impl<'a> CompilationStateUpdater<'a> {
         if let Some(lints_config) = configuration.lints_config {
             need_recompile |= self.configuration.lints_config != lints_config;
             self.configuration.lints_config = lints_config;
+        }
+
+        if let Some(dev_diagnostics) = configuration.dev_diagnostics {
+            need_recompile |= self.configuration.dev_diagnostics != dev_diagnostics;
+            self.configuration.dev_diagnostics = dev_diagnostics;
         }
 
         // Possible optimization: some projects will have overrides for these configurations,
@@ -739,5 +767,6 @@ fn merge_configurations(
             .language_features
             .unwrap_or(workspace_scope.language_features),
         lints_config: merged_lints,
+        dev_diagnostics: workspace_scope.dev_diagnostics,
     }
 }

@@ -3,3 +3,4 @@
 
 pub(crate) mod angle;
 pub(crate) mod builtin_functions;
+pub(crate) mod complex;

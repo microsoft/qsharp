@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import * as vscode from "vscode";
+import { startQdkDebugging } from "./debugger/activate";
 
 export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
   private static readonly viewType = "qsharp-webview.circuit";
@@ -29,7 +30,7 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     };
     webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
 
-    webviewPanel.webview.onDidReceiveMessage((e) => {
+    webviewPanel.webview.onDidReceiveMessage(async (e) => {
       switch (e.command) {
         case "update":
           this.updateTextDocument(document, e.text);
@@ -37,6 +38,15 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
         case "read":
           updateWebview();
           return;
+        case "run": {
+          const entry = await generateQubitCircuitExpression(document.uri);
+          startQdkDebugging(
+            document.uri,
+            { name: "QDK: Run Circuit File", stopOnEntry: false, entry },
+            { noDebug: true },
+          );
+          return;
+        }
       }
     });
 
@@ -163,5 +173,69 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     this.updatingDocument = true;
     await vscode.workspace.applyEdit(edit);
     this.updatingDocument = false;
+  }
+}
+
+/**
+ * Generates a Q# entry expression for simulating a circuit operation defined in a JSON circuit file.
+ * The entry expression will use the number of qubits specified in the JSON file and
+ * call the operation with these qubits. It will then dump the machine state, reset the qubits,
+ * and return the results (if any) of running the circuit.
+ *
+ * If any error occurs (invalid structure, missing fields, etc.), this function throws an error.
+ *
+ * @param resource The URI of the circuit JSON file.
+ * @returns A Q# code block as a string.
+ * @throws Error if the circuit file is invalid or required fields are missing.
+ */
+export async function generateQubitCircuitExpression(
+  resource: vscode.Uri,
+): Promise<string> {
+  let numQubits: number | undefined = undefined;
+
+  try {
+    const document = await vscode.workspace.openTextDocument(resource);
+    const text = document.getText();
+    const json = JSON.parse(text);
+
+    if (
+      !Array.isArray(json.circuits) ||
+      json.circuits.length === 0 ||
+      !Array.isArray(json.circuits[0].qubits)
+    ) {
+      throw new Error("Circuit file does not have expected structure.");
+    }
+    numQubits = json.circuits[0].qubits.length;
+    if (typeof numQubits !== "number" || numQubits < 0) {
+      throw new Error("Could not determine number of qubits.");
+    } else if (numQubits === 0) {
+      return `Message("Circuit is empty. Please add operations to the circuit.")`;
+    }
+
+    // Get operation name (file name without extension)
+    const fileName = resource.path.substring(
+      resource.path.lastIndexOf("/") + 1,
+    );
+    const operationName = fileName.replace(/\.[^/.]+$/, "");
+    if (!operationName) {
+      throw new Error("Could not determine operation name from file name.");
+    }
+
+    const namespaceName = operationName;
+
+    const expr = `{
+    import Std.Diagnostics.DumpMachine;
+    import ${namespaceName}.${operationName};
+    use qs = Qubit[${numQubits}];
+    let results = ${operationName}(qs);
+    DumpMachine();
+    ResetAll(qs);
+    results
+}`;
+    return expr;
+  } catch (err: any) {
+    throw new Error(
+      `Failed to generate Q# circuit expression: ${err?.message ?? err}`,
+    );
   }
 }
