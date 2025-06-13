@@ -8,7 +8,7 @@
 
 // stdgates.inc, gates with implied modifiers are omitted as they are mapped
 // to the base gate with modifiers in the lowerer.
-export gphase, U, p, x, y, z, h, s, sdg, t, tdg, sx, rx, ry, rz, cx, cp, swap, ccx, cu, phase, id, u1, u2, u3;
+export gphase, U, p, x, y, z, h, ch, s, sdg, t, tdg, sx, rx, ry, rz, CX, cx, cy, cz, crx, cry, crz, cp, swap, cswap, ccx, cu, phase, cphase, id, u1, u2, u3;
 
 // gates that qiskit won't emit qasm defs for that are NOT part of stgates.inc
 // but are have the _standard_gate property in Qiskit:
@@ -107,6 +107,10 @@ operation h(qubit : Qubit) : Unit is Adj + Ctl {
     Std.Intrinsic.H(qubit);
 }
 
+operation ch(ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
+    Controlled Std.Intrinsic.H([ctrl], qubit);
+}
+
 operation s(qubit : Qubit) : Unit is Adj + Ctl {
     Std.Intrinsic.S(qubit);
 }
@@ -142,8 +146,36 @@ operation rz(theta : Angle, qubit : Qubit) : Unit is Adj + Ctl {
     Std.Intrinsic.Rz(theta, qubit);
 }
 
+operation crx(theta : Angle, ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
+    let theta = AngleAsDouble(theta);
+    Controlled Std.Intrinsic.Rx([ctrl], (theta, qubit));
+}
+
+operation cry(theta : Angle, ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
+    let theta = AngleAsDouble(theta);
+    Controlled Std.Intrinsic.Ry([ctrl], (theta, qubit));
+}
+
+operation crz(theta : Angle, ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
+    let theta = AngleAsDouble(theta);
+    Controlled Std.Intrinsic.Rz([ctrl], (theta, qubit));
+}
+
+
+operation CX(ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
+    Std.Intrinsic.CNOT(ctrl, qubit);
+}
+
 operation cx(ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
     Std.Intrinsic.CNOT(ctrl, qubit);
+}
+
+operation cy(ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
+    Controlled Std.Intrinsic.Y([ctrl], qubit);
+}
+
+operation cz(ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
+    Controlled Std.Intrinsic.Z([ctrl], qubit);
 }
 
 operation cp(lambda : Angle, ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
@@ -152,6 +184,10 @@ operation cp(lambda : Angle, ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
 
 operation swap(qubit1 : Qubit, qubit2 : Qubit) : Unit is Adj + Ctl {
     Std.Intrinsic.SWAP(qubit1, qubit2);
+}
+
+operation cswap(ctrl : Qubit, qubit1 : Qubit, qubit2 : Qubit) : Unit is Adj + Ctl {
+    Controlled Std.Intrinsic.SWAP([ctrl], (qubit1, qubit2));
 }
 
 operation ccx(ctrl1 : Qubit, ctrl2 : Qubit, target : Qubit) : Unit is Adj + Ctl {
@@ -166,6 +202,10 @@ operation cu(theta : Angle, phi : Angle, lambda : Angle, gamma : Angle, qubit1 :
 // Gates for OpenQASM 2 backwards compatibility
 operation phase(lambda : Angle, qubit : Qubit) : Unit is Adj + Ctl {
     U(ZERO_ANGLE(), ZERO_ANGLE(), lambda, qubit);
+}
+
+operation cphase(ctrl : Qubit, lambda : Angle, qubit : Qubit) : Unit is Adj + Ctl {
+    Controlled phase([ctrl], (lambda, qubit));
 }
 
 operation id(qubit : Qubit) : Unit is Adj + Ctl {

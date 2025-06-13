@@ -1493,8 +1493,8 @@ fn qasm2_all_qiskit_stdgates_can_be_called_included() -> miette::Result<(), Vec<
         csdg(q[0], q[1]);
         sxdg(q[0]);
         csx(q[0], q[1]);
-        Controlled u1([q[1]], (Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI() / 2., 53), q[0]));
-        Controlled u3([q[1]], (Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI() / 2., 53), Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI() / 4., 53), Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI() / 8., 53), q[0]));
+        cu1(Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI() / 2., 53), q[1], q[0]);
+        cu3(Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI() / 2., 53), Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI() / 4., 53), Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI() / 8., 53), q[1], q[0]);
         rccx(q[0], q[1], q[2]);
         c3sqrtx(q[0], q[1], q[2], q[3]);
         c3x(q[0], q[1], q[2], q[3]);
@@ -1542,9 +1542,9 @@ fn qasm2_broadcast_two_qubit_gate() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         let ctrls = QIR.Runtime.AllocateQubitArray(3);
         let targets = QIR.Runtime.AllocateQubitArray(3);
-        Controlled x([ctrls[0]], targets[0]);
-        Controlled x([ctrls[1]], targets[1]);
-        Controlled x([ctrls[2]], targets[2]);
+        cx(ctrls[0], targets[0]);
+        cx(ctrls[1], targets[1]);
+        cx(ctrls[2], targets[2]);
     "#]]
     .assert_eq(&qsharp);
     Ok(())

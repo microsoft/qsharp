@@ -32,7 +32,6 @@ use crate::convert::safe_i64_to_f64;
 use crate::parser::ast::list_from_iter;
 use crate::parser::ast::List;
 use crate::parser::QasmSource;
-use crate::semantic::ast::Expr;
 use crate::semantic::types::base_types_equal;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
@@ -298,21 +297,29 @@ impl Lowerer {
             gate_symbol("y", 0, 1),
             gate_symbol("z", 0, 1),
             gate_symbol("h", 0, 1),
+            gate_symbol("ch", 0, 2),
             gate_symbol("s", 0, 1),
+            gate_symbol("sdg", 0, 1),
             gate_symbol("t", 0, 1),
+            gate_symbol("tdg", 0, 1),
             gate_symbol("sx", 0, 1),
             gate_symbol("rx", 1, 1),
             gate_symbol("ry", 1, 1),
             gate_symbol("rz", 1, 1),
+            gate_symbol("crx", 1, 2),
+            gate_symbol("cry", 1, 2),
+            gate_symbol("crz", 1, 2),
             gate_symbol("cx", 0, 2),
             gate_symbol("cy", 0, 2),
             gate_symbol("cz", 0, 2),
             gate_symbol("cp", 1, 2),
             gate_symbol("swap", 0, 2),
+            gate_symbol("cswap", 0, 3),
             gate_symbol("ccx", 0, 3),
             gate_symbol("cu", 4, 2),
             gate_symbol("CX", 0, 2),
             gate_symbol("phase", 1, 1),
+            gate_symbol("cphase", 1, 2),
             gate_symbol("id", 0, 1),
             gate_symbol("u1", 1, 1),
             gate_symbol("u2", 2, 1),
@@ -346,7 +353,7 @@ impl Lowerer {
             gate_symbol("u3", 3, 1),
             gate_symbol("u2", 2, 1),
             gate_symbol("u1", 1, 1),
-            //gate_symbol("cx", 0, 2), // handled as a modified x
+            gate_symbol("cx", 0, 2),
             gate_symbol("id", 0, 1),
             // --- QE Standard Gates ---
             gate_symbol("x", 0, 1),
@@ -354,22 +361,21 @@ impl Lowerer {
             gate_symbol("z", 0, 1),
             gate_symbol("h", 0, 1),
             gate_symbol("s", 0, 1),
-            // sdg handled as a modified s
+            gate_symbol("sdg", 0, 1),
             gate_symbol("t", 0, 1),
-            // tdg handled as a modified t
-
+            gate_symbol("tdg", 0, 1),
             // --- Standard rotations ---
             gate_symbol("rx", 1, 1),
             gate_symbol("ry", 1, 1),
             gate_symbol("rz", 1, 1),
             // --- QE Standard User-Defined Gates  ---
-            //gate_symbol("cz", 0, 2), // handled as a modified z
-            //gate_symbol("cy", 0, 2), // handled as a modified y
-            // ch handled as a modified h
+            gate_symbol("cz", 0, 2),
+            gate_symbol("cy", 0, 2),
+            gate_symbol("ch", 0, 2),
             gate_symbol("ccx", 0, 3),
-            // crz handled as a modified rz
-            // cu1 handled as a modified u1
-            // cu3 handled as a modified u3
+            gate_symbol("crz", 1, 2),
+            gate_symbol("cu1", 1, 2),
+            gate_symbol("cu3", 3, 2),
         ];
         for gate in gates {
             let name = gate.name.clone();
@@ -1892,18 +1898,7 @@ impl Lowerer {
             self.push_unsupported_error_message("gate call duration", duration.span);
         }
 
-        let mut name = stmt.name.name.to_string();
-        if let Some((gate_name, implicit_modifier)) =
-            self.try_get_qsharp_name_and_implicit_modifiers(&name, stmt.name.span)
-        {
-            // Override the gate name if we mapped with modifiers.
-            name = gate_name;
-
-            // 2. Get implicit modifiers and make them explicit.
-            //    Q: Do we need this during lowering?
-            //    A: Yes, we need it to check the gate_call arity.
-            modifiers.push(implicit_modifier);
-        }
+        let name = stmt.name.name.to_string();
 
         // need a workaround for qiskit generating gate calls without having declared the gate
         self.define_qiskit_standard_gate_if_needed(&name, stmt.name.span);
@@ -4128,52 +4123,6 @@ impl Lowerer {
     fn create_err(&self, kind: crate::ErrorKind) -> WithSource<crate::Error> {
         let error = crate::Error(kind);
         WithSource::from_map(&self.source_map, error)
-    }
-
-    fn try_get_qsharp_name_and_implicit_modifiers<S: AsRef<str>>(
-        &self,
-        gate_name: S,
-        name_span: Span,
-    ) -> Option<(String, semantic::QuantumGateModifier)> {
-        use semantic::GateModifierKind::*;
-
-        let make_modifier = |kind| semantic::QuantumGateModifier {
-            span: name_span,
-            modifier_keyword_span: name_span,
-            kind,
-        };
-        let ctrl_expr = Expr::uint(1, Span::default());
-
-        if self.version == Some(QASM2_VERSION) {
-            match gate_name.as_ref() {
-                "cx" => Some(("x".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-                "sdg" => Some(("s".to_string(), make_modifier(Inv))),
-                "tdg" => Some(("t".to_string(), make_modifier(Inv))),
-                "cz" => Some(("z".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-                "cy" => Some(("y".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-                "ch" => Some(("h".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-                "crz" => Some(("rz".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-                "cu1" => Some(("u1".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-                "cu3" => Some(("u3".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-                _ => None,
-            }
-        } else {
-            match gate_name.as_ref() {
-                "cy" => Some(("y".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-                "cz" => Some(("z".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-                "ch" => Some(("h".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-                "crx" => Some(("rx".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-                "cry" => Some(("ry".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-                "crz" => Some(("rz".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-                "cswap" => Some(("swap".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-                "sdg" => Some(("s".to_string(), make_modifier(Inv))),
-                "tdg" => Some(("t".to_string(), make_modifier(Inv))),
-                // Gates for OpenQASM 2 backwards compatibility
-                "CX" => Some(("x".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-                "cphase" => Some(("phase".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-                _ => None,
-            }
-        }
     }
 }
 
