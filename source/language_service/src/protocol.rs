@@ -16,6 +16,7 @@ pub struct WorkspaceConfigurationUpdate {
     pub package_type: Option<PackageType>,
     pub language_features: Option<LanguageFeatures>,
     pub lints_config: Option<Vec<LintOrGroupConfig>>,
+    pub openqasm_spec_mode: Option<bool>,
     pub dev_diagnostics: Option<bool>,
 }
 

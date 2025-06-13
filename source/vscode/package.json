@@ -15,7 +15,10 @@
   },
   "categories": [
     "Programming Languages",
-    "Notebooks"
+    "Notebooks",
+    "Debuggers",
+    "Formatters",
+    "Linters"
   ],
   "browser": "./out/extension.js",
   "virtualWorkspaces": true,
@@ -161,6 +164,11 @@
           "type": "boolean",
           "default": false,
           "description": "Suppress notifications about new QDK updates. If true, you will not be prompted about new features after updates."
+        },
+        "qdk.openqasm.enableSpecMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Only show OpenQASM syntax and semantic errors. This will disable the Q#-specific integration diagnostics and features."
         }
       }
     },
@@ -168,27 +176,27 @@
       "editor/title/run": [
         {
           "command": "qsharp-vscode.runProgram",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit",
+          "when": "(resourceLangId == qsharp || resourceLangId == qsharpcircuit) || (resourceLangId == openqasm && !config.qdk.openqasm.enableSpecMode)",
           "group": "navigation@1"
         },
         {
           "command": "qsharp-vscode.debugProgram",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit",
+          "when": "(resourceLangId == qsharp || resourceLangId == qsharpcircuit) || (resourceLangId == openqasm && !config.qdk.openqasm.enableSpecMode)",
           "group": "navigation@2"
         }
       ],
       "commandPalette": [
         {
           "command": "qsharp-vscode.runProgram",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit"
+          "when": "(resourceLangId == qsharp || resourceLangId == qsharpcircuit) || (resourceLangId == openqasm && !config.qdk.openqasm.enableSpecMode)"
         },
         {
           "command": "qsharp-vscode.debugProgram",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit"
+          "when": "(resourceLangId == qsharp || resourceLangId == qsharpcircuit) || (resourceLangId == openqasm && !config.qdk.openqasm.enableSpecMode)"
         },
         {
           "command": "qsharp-vscode.runEditorContentsWithCircuit",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
+          "when": "(resourceLangId == qsharp || resourceLangId == qsharpcircuit) || (resourceLangId == openqasm && !config.qdk.openqasm.enableSpecMode)"
         },
         {
           "command": "qsharp-vscode.targetSubmit",
@@ -212,15 +220,15 @@
         },
         {
           "command": "qsharp-vscode.getQir",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
+          "when": "(resourceLangId == qsharp || resourceLangId == qsharpcircuit) || (resourceLangId == openqasm && !config.qdk.openqasm.enableSpecMode)"
         },
         {
           "command": "qsharp-vscode.showHistogram",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
+          "when": "(resourceLangId == qsharp || resourceLangId == qsharpcircuit) || (resourceLangId == openqasm && !config.qdk.openqasm.enableSpecMode)"
         },
         {
           "command": "qsharp-vscode.showRe",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
+          "when": "(resourceLangId == qsharp || resourceLangId == qsharpcircuit) || (resourceLangId == openqasm && !config.qdk.openqasm.enableSpecMode)"
         },
         {
           "command": "qsharp-vscode.showHelp",
@@ -228,7 +236,7 @@
         },
         {
           "command": "qsharp-vscode.showCircuit",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
+          "when": "(resourceLangId == qsharp || resourceLangId == qsharpcircuit) || (resourceLangId == openqasm && !config.qdk.openqasm.enableSpecMode)"
         },
         {
           "command": "qsharp-vscode.showDocumentation",
@@ -236,7 +244,7 @@
         },
         {
           "command": "qsharp-vscode.setTargetProfile",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
+          "when": "resourceLangId == qsharp || (resourceLangId == openqasm && !config.qdk.openqasm.enableSpecMode)"
         },
         {
           "command": "qsharp-vscode.webOpener",

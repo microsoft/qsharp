@@ -4,7 +4,7 @@
 use log::trace;
 use qsc::{
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span, ast,
-    compile,
+    compile::{self, package_store_with_stdlib},
     display::Lookup,
     error::WithSource,
     hir::{self, PackageId},
@@ -63,6 +63,7 @@ pub(crate) enum CompilationKind {
         sources: Vec<(Arc<str>, Arc<str>)>,
         /// a human-readable name for the package (not a unique URI -- meant to be read by humans)
         friendly_name: Arc<str>,
+        spec_mode: bool,
     },
 }
 
@@ -255,6 +256,7 @@ impl Compilation {
     pub(crate) fn new_qasm(
         package_type: PackageType,
         target_profile: Profile,
+        openqasm_spec_mode: bool,
         sources: Vec<(Arc<str>, Arc<str>)>,
         project_errors: Vec<project::Error>,
         friendly_name: &Arc<str>,
@@ -269,21 +271,45 @@ impl Compilation {
             None,
         );
         let res = qsc::qasm::semantic::parse_sources(&sources);
-        let unit = compile_to_qsharp_ast_with_config(res, config);
-        let CompileRawQasmResult(store, source_package_id, dependencies, _sig, mut compile_errors) =
-            qsc::qasm::compile_openqasm(unit, package_type, capabilities);
+        let (compile_errors, store, source_package_id, dependencies) = if openqasm_spec_mode {
+            // these aren't really used, just to satisfy the API for now.
+            let (stdid, store) = package_store_with_stdlib(capabilities);
+            let dependencies = vec![(PackageId::CORE, None), (stdid, None)];
+            // We have OpenQASM errors, convert them to the same type as as the Q#
+            // compilation errors
+            let mut compile_errors = Vec::with_capacity(res.errors.len());
+            for error in res.errors {
+                let err = WithSource::from_map(
+                    &res.source_map,
+                    qsc::compile::ErrorKind::OpenQasm(error.into_error()),
+                );
+                compile_errors.push(err);
+            }
 
-        let compile_unit = store
-            .get(source_package_id)
-            .expect("expected to find user package");
+            (compile_errors, store, stdid, dependencies)
+        } else {
+            let unit = compile_to_qsharp_ast_with_config(res, config);
+            let CompileRawQasmResult(
+                store,
+                source_package_id,
+                dependencies,
+                _sig,
+                mut compile_errors,
+            ) = qsc::qasm::compile_openqasm(unit, package_type, capabilities);
 
-        run_fir_passes(
-            &mut compile_errors,
-            target_profile,
-            &store,
-            source_package_id,
-            compile_unit,
-        );
+            let compile_unit = store
+                .get(source_package_id)
+                .expect("expected to find user package");
+
+            run_fir_passes(
+                &mut compile_errors,
+                target_profile,
+                &store,
+                source_package_id,
+                compile_unit,
+            );
+            (compile_errors, store, source_package_id, dependencies)
+        };
 
         Self {
             package_store: store,
@@ -291,6 +317,7 @@ impl Compilation {
             kind: CompilationKind::OpenQASM {
                 sources,
                 friendly_name: friendly_name.clone(),
+                spec_mode: openqasm_spec_mode,
             },
             compile_errors,
             project_errors,
@@ -392,6 +419,7 @@ impl Compilation {
         target_profile: Profile,
         language_features: LanguageFeatures,
         lints_config: &[LintOrGroupConfig],
+        openqasm_spec_mode: bool,
     ) {
         let new = match self.kind {
             CompilationKind::OpenProject {
@@ -424,9 +452,11 @@ impl Compilation {
             CompilationKind::OpenQASM {
                 ref sources,
                 ref friendly_name,
+                ..
             } => Self::new_qasm(
                 package_type,
                 target_profile,
+                openqasm_spec_mode,
                 sources.clone(),
                 Vec::new(), // project errors will stay the same
                 friendly_name,

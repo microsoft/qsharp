@@ -124,6 +124,7 @@ impl LanguageService {
                     .languageFeatures
                     .map(|features| features.iter().collect::<LanguageFeatures>()),
                 lints_config: config.lints,
+                openqasm_spec_mode: config.openqasmSpecMode,
                 dev_diagnostics: config.devDiagnostics,
             });
     }
@@ -382,6 +383,7 @@ serializable_type! {
         pub languageFeatures: Option<Vec<String>>,
         pub lints: Option<Vec<LintOrGroupConfig>>,
         pub devDiagnostics: Option<bool>,
+        pub openqasmSpecMode: Option<bool>,
     },
     r#"export interface IWorkspaceConfiguration {
         targetProfile?: TargetProfile;
@@ -389,6 +391,7 @@ serializable_type! {
         languageFeatures?: LanguageFeatures[];
         lints?: ({ lint: string; level: string } | { group: string; level: string })[];
         devDiagnostics?: boolean;
+        openqasmSpecMode?: boolean;
     }"#,
     IWorkspaceConfiguration
 }

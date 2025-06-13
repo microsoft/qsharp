@@ -69,3 +69,9 @@ export function getShowDevDiagnostics(): boolean {
     .getConfiguration("Q#")
     .get<boolean>("dev.showDevDiagnostics", false);
 }
+
+export function getOpenQasmEnableSpecMode(): boolean {
+  return vscode.workspace
+    .getConfiguration("qdk")
+    .get<boolean>("openqasm.enableSpecMode", false);
+}
