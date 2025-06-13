@@ -15,7 +15,10 @@
   },
   "categories": [
     "Programming Languages",
-    "Notebooks"
+    "Notebooks",
+    "Debuggers",
+    "Formatters",
+    "Linters"
   ],
   "browser": "./out/extension.js",
   "virtualWorkspaces": true,
