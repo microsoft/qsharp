@@ -572,7 +572,6 @@ fn combined_import_export() {
     );
 }
 
-#[ignore = "not working yet"]
 #[test]
 fn reexport_operation() {
     multi_package_test(
@@ -633,6 +632,98 @@ fn reexport_operation_from_a_dependency() {
             @EntryPoint()
             function Main() : Unit {
                 Bar(10, true);
+            }
+        "},
+    );
+}
+
+#[test]
+fn reexport_all_item_types() {
+    // Test that reexports work for different concrete item types:
+    // operations, functions, and UDTs (these should get implicit aliases)
+    multi_package_test(
+        vec![(
+            "PackageA.qs",
+            indoc! {"
+                namespace Utils {
+                    operation DoSomething() : Unit {}
+                    function Calculate() : Int { 42 }
+                    newtype MyInt = Int;
+                    newtype MyString = String;
+                }
+
+                namespace Main {
+                    // Test concrete item reexports (should get implicit aliases)
+                    export Utils.DoSomething;         // Operation reexport
+                    export Utils.Calculate;          // Function reexport
+                    export Utils.MyInt;              // UDT reexport
+                    export Utils.MyString as Str;    // UDT reexport with explicit alias
+                }
+            "},
+        )],
+        vec![(
+            "PackageB.qs",
+            indoc! {"
+                function Main() : Unit {
+                    A.DoSomething();                  // Operation via implicit alias
+                    let x = A.Calculate();            // Function via implicit alias
+                    let y: A.MyInt = A.MyInt(123);    // UDT via implicit alias
+                    let z: A.Str = A.Str(\"hello\");   // UDT via explicit alias
+                }
+            "},
+        )],
+        &[("A", "PackageA")],
+        indoc! {"
+            function Main() : Unit {
+                // All concrete item types should be accessible via package alias
+            }
+        "},
+    );
+}
+
+#[test]
+fn reexport_namespace_behavior() {
+    // Test that namespace reexports work correctly when items are properly exported
+    // from the source namespace
+    multi_package_test(
+        vec![(
+            "PackageA.qs",
+            indoc! {"
+                namespace Utils {
+                    operation Helper() : Unit {}
+                    function Calculate() : Int { 42 }
+
+                    // Export items from Utils namespace to make them accessible
+                    export Helper, Calculate;
+                }
+
+                namespace Main {
+                    // Namespace reexport - should work for accessing exported items
+                    export Utils;
+
+                    // Also export specific items for direct access
+                    export Utils.Helper;
+                    export Utils.Calculate;
+                }
+            "},
+        )],
+        vec![(
+            "PackageB.qs",
+            indoc! {"
+                function Main() : Unit {
+                    // These work because of implicit aliases on concrete items
+                    A.Helper();
+                    let x = A.Calculate();
+
+                    // This should also work because Utils exports Calculate
+                    let y = A.Utils.Calculate();
+                }
+            "},
+        )],
+        &[("A", "PackageA")],
+        indoc! {"
+            function Main() : Unit {
+                // Both direct access and namespace access should work
             }
         "},
     );
