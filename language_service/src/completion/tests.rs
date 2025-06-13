@@ -2515,7 +2515,7 @@ fn in_trailing_comment() {
     );
 }
 
-#[ignore = "https://github.com/microsoft/qsharp/issues/1955"]
+// #[ignore = "https://github.com/microsoft/qsharp/issues/1955"]
 // `Qux` and `Baz` should appear *without* an auto-import edit since they're already in scope.
 #[test]
 fn reexport_item_from_dependency() {
@@ -2542,11 +2542,11 @@ fn reexport_item_from_dependency() {
         &["Qux", "Baz", "Bar"],
         &expect![[r#"
             in list (sorted):
-              Qux (Function)
-                detail: Some("operation Qux() : Unit")
-                additional_text_edits: None
               Baz (Function)
                 detail: Some("operation Baz() : Unit")
+                additional_text_edits: None
+              Qux (Function)
+                detail: Some("operation Qux() : Unit")
                 additional_text_edits: None
               Bar (Module)
                 detail: None
@@ -2556,7 +2556,7 @@ fn reexport_item_from_dependency() {
 }
 
 #[test]
-#[ignore = "`BazAlias` should show up in list without text edits since it's in scope"]
+// #[ignore = "`BazAlias` should show up in list without text edits since it's in scope"]
 fn reexport_item_with_alias_from_dependency() {
     check_with_dependency(
         r"
@@ -2588,7 +2588,7 @@ fn reexport_item_with_alias_from_dependency() {
 }
 
 #[test]
-#[ignore = "expect `Bar` and `Qux` but not `Foo`, I think"]
+// #[ignore = "expect `Bar` and `Qux` but not `Foo`, I think"]
 fn reexport_namespace_from_dependency_qualified() {
     check_with_dependency(
         r"
@@ -2617,7 +2617,7 @@ fn reexport_namespace_from_dependency_qualified() {
     );
 }
 
-#[ignore = "https://github.com/microsoft/qsharp/issues/1955"]
+// #[ignore = "https://github.com/microsoft/qsharp/issues/1955"]
 // `Baz` should be in the list
 #[test]
 fn reexport_item_from_dependency_qualified() {
@@ -2640,12 +2640,11 @@ fn reexport_item_from_dependency_qualified() {
         &["Qux", "Baz"],
         &expect![[r#"
             in list (sorted):
-              Qux (Function)
-                detail: Some("operation Qux() : Unit")
-                additional_text_edits: None
-
               Baz (Function)
                 detail: Some("operation Baz() : Unit")
+                additional_text_edits: None
+              Qux (Function)
+                detail: Some("operation Qux() : Unit")
                 additional_text_edits: None
         "#]],
     );

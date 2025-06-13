@@ -15,6 +15,7 @@ use qsc::{
     hir::{ty::Udt, CallableDecl, Idents, ItemKind, Package, PackageId, Visibility},
     PRELUDE,
 };
+use rustc_hash::FxHashSet;
 use std::{iter::once, rc::Rc};
 
 /// Provides the globals that are visible or importable at the cursor offset.
@@ -201,7 +202,7 @@ impl<'a> Globals<'a> {
         for (is_user_package, package_alias, package) in self.iter_all_packages() {
             // Given the package, get all completion items by iterating over its items
             // and converting any that would be valid as completions into completions
-            let completions = package
+            let mut all_items: Vec<_> = package
                 .items
                 .values()
                 .filter_map(|item| {
@@ -213,6 +214,34 @@ impl<'a> Globals<'a> {
                         is_user_package,
                     )
                 })
+                .collect();
+
+            // Sort to ensure Export items (if any) come last for deduplication purposes
+            all_items.sort_by(|a, b| {
+                use std::cmp::Ordering;
+                match a.name.cmp(&b.name) {
+                    Ordering::Equal => {
+                        // For same name, prefer non-Export items first so Export items can override them
+                        a.is_export.cmp(&b.is_export)
+                    }
+                    other => other,
+                }
+            });
+
+            // Deduplicate by name, preferring the last item (Export items due to sorting)
+            let mut seen_names = FxHashSet::default();
+            let mut deduplicated_items = Vec::new();
+
+            for item in all_items.into_iter().rev() {
+                if !seen_names.contains(&item.name) {
+                    seen_names.insert(item.name.clone());
+                    deduplicated_items.push(item);
+                }
+            }
+            deduplicated_items.reverse(); // Restore original order
+
+            let completions = deduplicated_items
+                .into_iter()
                 .filter_map(|item| {
                     let import_info = self.import_info(&item, package_alias);
                     if in_scope_only && !matches!(import_info, ImportInfo::InScope) {
@@ -238,21 +267,49 @@ impl<'a> Globals<'a> {
 
         let mut groups = Vec::new();
         for (package, is_user_package, namespaces) in &namespaces_in_packages {
-            let mut completions = Vec::new();
+            // Collect all items from all relevant namespaces in this package
+            let mut all_items = Vec::new();
 
             for namespace in namespaces {
-                completions.extend(
-                    Self::items_in_namespace(
-                        package,
-                        namespace,
-                        include_callables,
-                        include_udts,
-                        *is_user_package,
-                    )
-                    .into_iter()
-                    .map(|item| self.to_completion(&item, ImportInfo::InScope, None)),
+                let mut items = Self::items_in_namespace(
+                    package,
+                    namespace,
+                    include_callables,
+                    include_udts,
+                    *is_user_package,
                 );
+                all_items.append(&mut items);
             }
+
+            // Apply the same deduplication logic as unqualified completion
+            // Sort to ensure Export items (if any) come last for deduplication purposes
+            all_items.sort_by(|a, b| {
+                use std::cmp::Ordering;
+                match a.name.cmp(&b.name) {
+                    Ordering::Equal => {
+                        // For same name, prefer non-Export items first so Export items can override them
+                        a.is_export.cmp(&b.is_export)
+                    }
+                    other => other,
+                }
+            });
+
+            // Deduplicate by name, preferring the last item (Export items due to sorting)
+            let mut seen_names = FxHashSet::default();
+            let mut deduplicated_items = Vec::new();
+
+            for item in all_items.into_iter().rev() {
+                if !seen_names.contains(&item.name) {
+                    seen_names.insert(item.name.clone());
+                    deduplicated_items.push(item);
+                }
+            }
+            deduplicated_items.reverse(); // Restore original order
+
+            let completions = deduplicated_items
+                .into_iter()
+                .map(|item| self.to_completion(&item, ImportInfo::InScope, None))
+                .collect();
 
             groups.push(completions);
         }
@@ -347,6 +404,40 @@ impl<'a> Globals<'a> {
                     is_user_package,
                 )
             })
+            .chain(
+                // Also include Export items that have this namespace as their parent
+                // but might not be in the namespace's item list
+                package.items.values().filter_map(|item| {
+                    if let Some(parent_id) = item.parent {
+                        if let Some(parent) = package.items.get(parent_id) {
+                            if let ItemKind::Namespace(parent_ns, _) = &parent.kind {
+                                let parent_ns: Vec<Rc<str>> = parent_ns.into();
+
+                                // Check if this item's parent namespace matches our target
+                                let matches_target = if namespace.is_empty()
+                                    && parent_ns == ["Main".into()]
+                                    && !is_user_package
+                                {
+                                    true // Main namespace items for dependencies
+                                } else {
+                                    parent_ns == namespace
+                                };
+
+                                if matches_target && matches!(item.kind, ItemKind::Export(_, _)) {
+                                    return Self::is_item_relevant(
+                                        package,
+                                        item,
+                                        include_callables,
+                                        include_udts,
+                                        is_user_package,
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    None
+                }),
+            )
             .collect()
     }
 
@@ -511,13 +602,45 @@ impl<'a> Globals<'a> {
                                 name: callable_decl.name.name.clone(),
                                 namespace,
                                 kind: RelevantItemKind::Callable(callable_decl),
+                                is_export: false,
                             })
                         }
                         ItemKind::Ty(_, udt) if include_udts => Some(RelevantItem {
                             name: udt.name.clone(),
                             namespace,
                             kind: RelevantItemKind::Udt(udt),
+                            is_export: false,
                         }),
+                        ItemKind::Export(export_name, export_item_id) => {
+                            // For Export items, resolve to the underlying item for completion
+                            if export_item_id.package.is_some() {
+                                // Export references item from another package - skip for now
+                                return None;
+                            }
+
+                            // Export references item from same package - resolve it
+                            if let Some(underlying_item) = package.items.get(export_item_id.item) {
+                                match &underlying_item.kind {
+                                    ItemKind::Callable(callable_decl) if include_callables => {
+                                        Some(RelevantItem {
+                                            name: export_name.name.clone(), // Use export name (might be alias)
+                                            namespace,
+                                            kind: RelevantItemKind::Callable(callable_decl),
+                                            is_export: true,
+                                        })
+                                    }
+                                    ItemKind::Ty(_, udt) if include_udts => Some(RelevantItem {
+                                        name: export_name.name.clone(), // Use export name (might be alias)
+                                        namespace,
+                                        kind: RelevantItemKind::Udt(udt),
+                                        is_export: true,
+                                    }),
+                                    _ => None,
+                                }
+                            } else {
+                                None
+                            }
+                        }
                         _ => None,
                     };
                 }
@@ -543,6 +666,20 @@ impl<'a> Globals<'a> {
 
         if glob_import {
             return ImportInfo::InScope;
+        }
+
+        // Special case: If this item is from a dependency's Main namespace,
+        // check if there's a glob import for the package (without the Main part)
+        if let Some(package_alias) = package_alias {
+            if namespace_without_pkg_alias == ["Main".into()] {
+                let package_glob_import = self.imports.iter().any(|import_item| {
+                    import_item.path == [package_alias.into()] && import_item.is_glob
+                });
+
+                if package_glob_import {
+                    return ImportInfo::InScope;
+                }
+            }
         }
 
         // An exact import is an import that matches the namespace and item name exactly
@@ -673,6 +810,7 @@ struct RelevantItem<'a> {
     name: Rc<str>,
     kind: RelevantItemKind<'a>,
     namespace: &'a Idents,
+    is_export: bool, // True if this item comes from an Export HIR item
 }
 
 /// Format an external fully qualified name.
