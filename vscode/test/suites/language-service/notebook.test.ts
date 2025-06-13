@@ -8,6 +8,7 @@ import {
   waitForCondition,
   waitForDiagnosticsToAppear,
 } from "../extensionUtils";
+import { setTarget } from "../../../src/config.js";
 
 suite("Q# Notebook Tests", function suite() {
   const workspaceFolder =
@@ -115,5 +116,47 @@ suite("Q# Notebook Tests", function suite() {
     assert.equal(location.uri.toString(), firstQSharpCellUri.toString());
     assert.equal(location.range.start.line, 2);
     assert.equal(location.range.start.character, 10);
+  });
+
+  test("Notebook uses Unrestricted profile by default even when workspace is Base", async () => {
+    // Store the original workspace target profile to restore it later
+    const originalConfig = vscode.workspace.getConfiguration("Q#");
+    const originalTarget = originalConfig.get("qir.targetProfile");
+    
+    try {
+      // Set workspace to base profile (restrictive)
+      await setTarget("base");
+      
+      // Open a notebook with quantum operations that require unrestricted profile
+      const notebook = await vscode.workspace.openNotebookDocument(
+        vscode.Uri.joinPath(workspaceFolderUri, "test-notebook-profile.ipynb"),
+      );
+
+      const qsharpCellUri = notebook.cellAt(1).document.uri;
+
+      // Wait a moment for language service to process the notebook
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // The measurement operation M(q) == One should work in notebooks without errors
+      // even when workspace is set to base profile, because notebooks default to unrestricted
+      const diagnostics = vscode.languages.getDiagnostics(qsharpCellUri);
+      
+      // Filter out any non-error diagnostics (warnings, info, etc.) and focus on actual errors
+      const errors = diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error);
+      
+      // There should be no errors for the measurement operation
+      assert.equal(errors.length, 0, 
+        `Expected no errors in notebook with unrestricted operations, but found: ${errors.map(e => e.message).join(', ')}`);
+      
+    } finally {
+      // Restore the original workspace configuration
+      if (originalTarget !== undefined) {
+        await originalConfig.update(
+          "qir.targetProfile", 
+          originalTarget, 
+          vscode.ConfigurationTarget.Global
+        );
+      }
+    }
   });
 });

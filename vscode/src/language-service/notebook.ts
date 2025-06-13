@@ -149,6 +149,8 @@ function getQSharpConfigMetadata(notebook: vscode.NotebookDocument): object {
     log.trace("found Q# config metadata: " + dataString);
     return JSON.parse(dataString);
   } else {
-    return {};
+    // Default to Unrestricted profile for notebooks when no explicit configuration is provided
+    // This aligns with the Python qsharp runtime behavior
+    return { targetProfile: "unrestricted" };
   }
 }
