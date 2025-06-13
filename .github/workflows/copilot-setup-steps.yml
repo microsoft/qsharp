@@ -35,6 +35,8 @@ jobs:
         run: python ./prereqs.py --install
       - name: First build
         run: python ./build.py --no-check --no-test
+        continue-on-error: true
       # Run integration tests once to fetch VS Code bits from the web
       - name: Integration tests
         run: python ./build.py --no-check --no-test --vscode --integration-tests
+        continue-on-error: true
