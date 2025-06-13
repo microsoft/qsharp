@@ -84,9 +84,9 @@ fn check_lowerer_error_spans_are_correct() {
 
               x inconsistent types in alias expression: Expr [842-859]:
               |     ty: array[int, 2]
-              |     kind: SymbolId(37), Expr [863-880]:
+              |     kind: SymbolId(45), Expr [863-880]:
               |     ty: array[angle, 2]
-              |     kind: SymbolId(38)
+              |     kind: SymbolId(46)
                 ,-[Test.qasm:37:1]
              36 | array[angle, 2] alias_component_2 = {1.0, 2.0};
              37 | let alias = alias_component_1 ++ alias_component_2;
