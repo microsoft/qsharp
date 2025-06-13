@@ -148,6 +148,11 @@
           "tags": [
             "hidden"
           ]
+        },
+        "qdk.openqasm.enableSpecMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Only show OpenQASM syntax and semantic errors. This will disable the Q#-specific integration diagnostics and features."
         }
       }
     },

@@ -25,6 +25,16 @@ pub(crate) fn get_code_lenses(
         return vec![]; // entrypoint actions don't work in notebooks
     }
 
+    if matches!(
+        compilation.kind,
+        CompilationKind::OpenQASM {
+            spec_mode: true,
+            ..
+        }
+    ) {
+        return vec![]; // entrypoint actions don't work with OpenQASM in spec mode
+    }
+
     if !compilation.project_errors.is_empty()
         || compilation
             .compile_errors
