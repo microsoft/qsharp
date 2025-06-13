@@ -23,7 +23,7 @@ from ._qsharp import (
 
 telemetry_events.on_import()
 
-from ._native import Result, Pauli, QSharpError, TargetProfile, estimate_common
+from ._native import Result, Pauli, QSharpError, TargetProfile, estimate_custom
 
 # IPython notebook specific features
 try:
