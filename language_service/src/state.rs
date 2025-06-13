@@ -67,6 +67,7 @@ struct Configuration {
     pub package_type: PackageType,
     pub language_features: LanguageFeatures,
     pub lints_config: Vec<LintOrGroupConfig>,
+    pub openqasm_spec_mode: bool,
     /// Enables non-user-facing developer diagnostics.
     pub dev_diagnostics: bool,
 }
@@ -78,6 +79,7 @@ impl Default for Configuration {
             package_type: PackageType::Lib,
             language_features: LanguageFeatures::default(),
             lints_config: Vec::default(),
+            openqasm_spec_mode: false,
             dev_diagnostics: false,
         }
     }
@@ -89,6 +91,7 @@ pub struct PartialConfiguration {
     pub package_type: Option<PackageType>,
     pub language_features: Option<LanguageFeatures>,
     pub lints_config: Vec<LintOrGroupConfig>,
+    pub openqasm_spec_mode: Option<bool>,
 }
 
 pub(super) struct CompilationStateUpdater<'a> {
@@ -310,6 +313,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 ProjectType::OpenQASM(sources) => Compilation::new_qasm(
                     configuration.package_type,
                     configuration.target_profile,
+                    configuration.openqasm_spec_mode,
                     sources,
                     loaded_project.errors,
                     &loaded_project.name,
@@ -416,6 +420,7 @@ impl<'a> CompilationStateUpdater<'a> {
                     .manifest
                     .map(|manifest| manifest.lints)
                     .unwrap_or_default(),
+                openqasm_spec_mode: None,
             };
             let configuration = merge_configurations(&notebook_configuration, &configuration);
 
@@ -572,6 +577,11 @@ impl<'a> CompilationStateUpdater<'a> {
             self.configuration.lints_config = lints_config;
         }
 
+        if let Some(openqasm_spec_mode) = configuration.openqasm_spec_mode {
+            need_recompile |= self.configuration.openqasm_spec_mode != openqasm_spec_mode;
+            self.configuration.openqasm_spec_mode = openqasm_spec_mode;
+        }
+
         if let Some(dev_diagnostics) = configuration.dev_diagnostics {
             need_recompile |= self.configuration.dev_diagnostics != dev_diagnostics;
             self.configuration.dev_diagnostics = dev_diagnostics;
@@ -598,6 +608,7 @@ impl<'a> CompilationStateUpdater<'a> {
                     configuration.target_profile,
                     configuration.language_features,
                     &lints_config,
+                    configuration.openqasm_spec_mode,
                 );
             }
         });
@@ -767,6 +778,7 @@ fn merge_configurations(
             .language_features
             .unwrap_or(workspace_scope.language_features),
         lints_config: merged_lints,
+        openqasm_spec_mode: compilation_overrides.openqasm_spec_mode.unwrap_or_default(),
         dev_diagnostics: workspace_scope.dev_diagnostics,
     }
 }
