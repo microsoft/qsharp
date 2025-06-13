@@ -23,7 +23,7 @@ mod utils;
 mod tests;
 
 pub(crate) fn register_generic_estimator_submodule(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(estimate_common, m)?)?;
+    m.add_function(wrap_pyfunction!(estimate_custom, m)?)?;
     Ok(())
 }
 
@@ -49,7 +49,7 @@ pub(crate) fn register_generic_estimator_submodule(m: &Bound<'_, PyModule>) -> P
     signature = (algorithm, qubit, qec, factories = vec![], *, error_budget = 0.01, max_factories = None, logical_depth_factor = None, max_physical_qubits = None, max_duration = None, error_budget_pruning = false),
     text_signature = "(algorithm, qubit, qec, factories : List = [], *, error_budget : float = 0.01, max_factories : Optional[int] = None, logical_depth_factor : Optional[foat] = None, max_physical_qubits : Optional[int] = None, max_duration : Optional[int] = None, error_budget_pruning : bool = False)"
 )]
-fn estimate_common<'py>(
+fn estimate_custom<'py>(
     algorithm: Bound<'py, PyAny>,
     qubit: Bound<'py, PyDict>,
     qec: Bound<'py, PyAny>,
