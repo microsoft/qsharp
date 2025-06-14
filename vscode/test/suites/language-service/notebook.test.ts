@@ -122,7 +122,7 @@ suite("Q# Notebook Tests", function suite() {
     // Store the original workspace target profile to restore it later
     const config = vscode.workspace.getConfiguration("Q#");
     const originalTarget = config.get("qir.targetProfile");
-    
+
     try {
       // Set workspace to base profile (restrictive) using VS Code API
       await config.update(
@@ -130,7 +130,7 @@ suite("Q# Notebook Tests", function suite() {
         "base",
         vscode.ConfigurationTarget.Global,
       );
-      
+
       // Open a notebook with quantum operations that require unrestricted profile
       const notebook = await vscode.workspace.openNotebookDocument(
         vscode.Uri.joinPath(workspaceFolderUri, "test-notebook-profile.ipynb"),
@@ -142,13 +142,12 @@ suite("Q# Notebook Tests", function suite() {
       // even when workspace is set to base profile, because notebooks default to unrestricted
       // Use the proper helper function to wait for diagnostics to be empty (no errors)
       await waitForDiagnosticsToBeEmpty(qsharpCellUri);
-      
     } finally {
       // Restore the original workspace configuration using VS Code API
       await config.update(
-        "qir.targetProfile", 
-        originalTarget, 
-        vscode.ConfigurationTarget.Global
+        "qir.targetProfile",
+        originalTarget,
+        vscode.ConfigurationTarget.Global,
       );
     }
   });
