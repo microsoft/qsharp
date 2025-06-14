@@ -1,10 +1,3 @@
-# Intializes the environment that Copilot Coding Agent sessions run in.
-# https://docs.github.com/en/copilot/customizing-copilot/customizing-the-development-environment-for-copilot-coding-agent
-#
-# Here we ensure the prerequisites are installed, anything that needs to be
-# fetched from the web is fetched, and any build artifacts that are typically
-# expected to be on disk, are built.
-
 name: Copilot Setup Steps
 
 on:
@@ -35,8 +28,3 @@ jobs:
         run: python ./prereqs.py --install
       - name: First build
         run: python ./build.py --no-check --no-test
-        continue-on-error: true
-      # Run integration tests once to fetch VS Code bits from the web
-      - name: Integration tests
-        run: python ./build.py --no-check --no-test --vscode --integration-tests
-        continue-on-error: true
