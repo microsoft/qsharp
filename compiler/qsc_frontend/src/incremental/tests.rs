@@ -608,6 +608,113 @@ fn reexport_operation() {
 }
 
 #[test]
+fn reexport_operation_no_dep_alias() {
+    multi_package_test(
+        vec![(
+            "PackageA.qs",
+            indoc! {"
+                namespace Foo {
+                    operation Bar() : Unit {}
+                }
+
+                namespace Qux {
+                    export Foo.Bar;
+                    export Foo.Bar as Baz;
+                }
+            "},
+        )],
+        vec![(
+            "PackageB.qs",
+            indoc! {"
+                function Main() : Unit {
+                    Qux.Bar();
+                    Qux.Baz();
+                }
+            "},
+        )],
+        &[("", "PackageA")],
+        indoc! {"
+            function Main() : Unit {
+                // A.Bar();
+                // A.Baz();
+            }
+        "},
+    );
+}
+
+#[test]
+fn import_then_reexport_operation() {
+    multi_package_test(
+        vec![(
+            "PackageA.qs",
+            indoc! {"
+                namespace Foo {
+                    operation Bar() : Unit {}
+                }
+
+                namespace Main {
+                    import Foo.*;
+                    export Bar;
+                    export Bar as Baz;
+                }
+            "},
+        )],
+        vec![(
+            "PackageB.qs",
+            indoc! {"
+                function Main() : Unit {
+                    A.Bar();
+                    A.Baz();
+                }
+            "},
+        )],
+        &[("A", "PackageA")],
+        indoc! {"
+            function Main() : Unit {
+                // A.Bar();
+                // A.Baz();
+            }
+        "},
+    );
+}
+
+#[test]
+fn import_then_reexport_operation_no_dep_alias() {
+    multi_package_test(
+        vec![(
+            "PackageA.qs",
+            indoc! {"
+                namespace Foo {
+                    operation Bar() : Unit {}
+                }
+
+                namespace Qux {
+                    import Foo.*;
+                    export Bar;
+                    export Bar as Baz;
+                }
+            "},
+        )],
+        vec![(
+            "PackageB.qs",
+            indoc! {"
+                function Main() : Unit {
+                    Qux.Bar();
+                    Qux.Baz();
+                }
+            "},
+        )],
+        &[("", "PackageA")],
+        indoc! {"
+            function Main() : Unit {
+                // A.Bar();
+                // A.Baz();
+            }
+        "},
+    );
+}
+
+#[test]
 fn reexport_operation_from_a_dependency() {
     multi_package_test(
         vec![(
@@ -765,7 +872,16 @@ fn multi_package_test(
                 &store,
                 &imports
                     .iter()
-                    .map(|(alias, _)| (packages[0], Some(Arc::from(*alias))))
+                    .map(|(alias, _)| {
+                        (
+                            packages[0],
+                            if alias.is_empty() {
+                                None
+                            } else {
+                                Some(Arc::from(*alias))
+                            },
+                        )
+                    })
                     .collect::<Vec<_>>(),
                 source_map,
                 TargetCapabilityFlags::all(),
