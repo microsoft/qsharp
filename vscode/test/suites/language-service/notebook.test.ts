@@ -118,7 +118,10 @@ suite("Q# Notebook Tests", function suite() {
     assert.equal(location.range.start.character, 10);
   });
 
-  test("Notebook uses Unrestricted profile by default even when workspace is Base", async () => {
+  test("Notebook uses Unrestricted profile by default even when workspace is Base", async function () {
+    // Setting the configuration seems to take a while, so we increase the timeout
+    this.timeout(5000);
+
     // Store the original workspace target profile to restore it later
     const config = vscode.workspace.getConfiguration("Q#");
     const originalTarget = config.get("qir.targetProfile");
