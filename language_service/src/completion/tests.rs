@@ -2602,16 +2602,13 @@ fn reexport_namespace_from_dependency_qualified() {
             operation Qux() : Unit {}
             export Qux, Foo.Bar;
          }",
-        &["Qux", "Bar", "Foo"],
+        &["Bar", "Foo"],
         &expect![[r#"
             not in list:
               Foo
             in list (sorted):
               Bar (Module)
                 detail: None
-                additional_text_edits: None
-              Qux (Function)
-                detail: Some("operation Qux() : Unit")
                 additional_text_edits: None
         "#]],
     );

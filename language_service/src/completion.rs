@@ -129,15 +129,7 @@ fn collect_path_segments(
     };
 
     match path_kind {
-        PathKind::Namespace => {
-            // For namespace contexts (like open statements), include both namespaces
-            // and concrete items that can be imported
-            let mut groups = Vec::new();
-            groups.extend(globals.namespaces_in(&qualifier));
-            groups.extend(globals.expr_names_in(&qualifier));
-            groups.extend(globals.type_names_in(&qualifier));
-            groups
-        }
+        PathKind::Namespace => globals.namespaces_in(&qualifier),
         PathKind::Expr => {
             // First try treating the path as a field access, then
             // as a global.
