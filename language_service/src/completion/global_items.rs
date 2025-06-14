@@ -266,10 +266,12 @@ impl<'a> Globals<'a> {
         include_callables: bool,
         include_udts: bool,
     ) -> Vec<Vec<Completion>> {
+        eprintln!("DEBUG: items_in called with qualifier: {qualifier:?}, include_callables: {include_callables}, include_udts: {include_udts}");
         let namespaces_in_packages = self.matching_namespaces_in_packages(qualifier);
 
         let mut groups = Vec::new();
         for (package, is_user_package, namespaces) in &namespaces_in_packages {
+            eprintln!("DEBUG: processing package is_user_package: {is_user_package}, namespaces: {namespaces:?}");
             // Collect all items from all relevant namespaces in this package
             let mut all_items = Vec::new();
 

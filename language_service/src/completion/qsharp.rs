@@ -280,6 +280,7 @@ fn collect_paths(
             global_names.extend(globals.type_names(text_edit_range));
         }
         PathKind::Import => {
+            eprintln!("DEBUG: PathKind::Import - qualified completion");
             global_names.extend(globals.expr_names_in_scope_only());
             global_names.extend(globals.type_names_in_scope_only());
             global_names.push(globals.namespaces());
