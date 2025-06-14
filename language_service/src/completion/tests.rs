@@ -2518,7 +2518,7 @@ fn in_trailing_comment() {
 // #[ignore = "https://github.com/microsoft/qsharp/issues/1955"]
 // `Qux` and `Baz` should appear *without* an auto-import edit since they're already in scope.
 #[test]
-fn reexport_item_from_dependency() {
+fn reexport_item_from_dependency_unqualified() {
     check_with_dependency(
         r"
         namespace Test {

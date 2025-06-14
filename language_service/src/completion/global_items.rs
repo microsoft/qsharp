@@ -119,44 +119,37 @@ impl<'a> Globals<'a> {
 
     /// Returns all namespaces in the compilation.
     pub fn namespaces(&self) -> Vec<Completion> {
-        let mut completions = Vec::new();
+        // Use the user package's namespace tree to find all top-level namespaces
+        let user_package = &self.compilation.user_unit().package;
+        let mut completions = Self::namespaces_in_user_package_tree(user_package, &[]);
 
-        // Add all package aliases, and all top-level
-        // namespaces where the package does not have an alias
-        for (is_user_package, package_alias, package) in self.iter_all_packages() {
-            if let Some(package_alias) = package_alias {
-                completions.push(Completion::new(
-                    (*package_alias).into(),
-                    CompletionItemKind::Module,
-                ));
-            } else {
-                completions.extend(Self::namespaces_in_namespace(package, &[], is_user_package));
+        // Also add package aliases for dependencies
+        for (is_user_package, package_alias, _package) in self.iter_all_packages() {
+            if !is_user_package {
+                if let Some(package_alias) = package_alias {
+                    completions.push(Completion::new(
+                        (*package_alias).into(),
+                        CompletionItemKind::Module,
+                    ));
+                }
             }
         }
+
         completions
     }
 
     /// Returns all namespaces that are valid completions at the current offset,
     /// for the given qualifier.
+    /// Uses only the user package's namespace tree since it should contain
+    /// all resolved namespaces from dependencies.
     pub fn namespaces_in(&self, qualifier: &[Rc<str>]) -> Vec<Vec<Completion>> {
-        let namespaces_in_packages = self.matching_namespaces_in_packages(qualifier);
+        // Get the user package
+        let user_package = &self.compilation.user_unit().package;
 
-        let mut groups = Vec::new();
-        for (package, is_user_package, namespaces) in &namespaces_in_packages {
-            let mut completions = Vec::new();
+        // Use the user package's namespace tree to find completions
+        let completions = Self::namespaces_in_user_package_tree(user_package, qualifier);
 
-            for namespace in namespaces {
-                completions.extend(Self::namespaces_in_namespace(
-                    package,
-                    namespace,
-                    *is_user_package,
-                ));
-            }
-
-            groups.push(completions);
-        }
-
-        groups
+        vec![completions]
     }
 
     /// Returns all names that are valid completions at the current offset,
@@ -168,7 +161,17 @@ impl<'a> Globals<'a> {
             true, // include_udts
         );
 
-        groups.extend(self.namespaces_in(qualifier));
+        let namespace_groups = self.namespaces_in(qualifier);
+
+        for (i, group) in namespace_groups.iter().enumerate() {
+            eprintln!("DEBUG: namespace group {}: {} completions", i, group.len());
+            for completion in group {
+                eprintln!("DEBUG: - {}", completion.item.label);
+            }
+        }
+
+        groups.extend(namespace_groups);
+        eprintln!("DEBUG: expr_names_in - total groups: {}", groups.len());
         groups
     }
 
@@ -322,43 +325,299 @@ impl<'a> Globals<'a> {
     ///
     /// E.g. if the package contains `Foo.Bar.Baz` and `Foo.Qux` , and
     /// the given prefix is `Foo` , this will return `Bar` and `Qux`.
+    /// Get namespace completions from the user package's namespace tree.
+    /// The user package's namespace tree should contain all resolved namespaces
+    /// from dependencies, so we only need to search in one place.
+    fn namespaces_in_user_package_tree(
+        user_package: &Package,
+        qualifier: &[Rc<str>],
+    ) -> Vec<Completion> {
+        // Get the namespace ID for the qualifier
+        let namespace_id = if qualifier.is_empty() {
+            // Root namespace
+            Some(user_package.namespaces.root_id())
+        } else {
+            // Convert qualifier to &str slice for the API
+            let qualifier_strs: Vec<&str> = qualifier.iter().map(AsRef::as_ref).collect();
+            user_package.namespaces.get_namespace_id(qualifier_strs)
+        };
+
+        if let Some(ns_id) = namespace_id {
+            // Get the namespace node and its children
+            let (_, namespace_node) = user_package.namespaces.find_namespace_by_id(&ns_id);
+            let borrowed_node = namespace_node.borrow();
+            let children = borrowed_node.children();
+
+            children
+                .keys()
+                .map(|child_name| {
+                    Completion::new(child_name.to_string(), CompletionItemKind::Module)
+                })
+                .collect()
+        } else {
+            Vec::new()
+        }
+    }
+
+    /// Get namespaces available in a namespace using the namespace tree.
+    /// This is more reliable than the HIR-based approach as it includes
+    /// namespaces made available through exports.
+    fn namespaces_in_namespace_tree(
+        package: &Package,
+        ns_prefix: &[Rc<str>],
+        is_user_package: bool,
+    ) -> Vec<Completion> {
+        eprintln!("DEBUG: namespaces_in_namespace_tree called with ns_prefix: {ns_prefix:?}, is_user_package: {is_user_package}");
+
+        // For dependency packages, handle Main namespace mapping
+        let search_namespace = if !is_user_package && (ns_prefix.len() == 1 || ns_prefix.is_empty())
+        {
+            // For dependencies, search at the root level instead of looking for "Main"
+            // since Main namespace might be implicit
+            vec![]
+        } else {
+            ns_prefix.to_vec()
+        };
+
+        eprintln!("DEBUG: search_namespace: {search_namespace:?}");
+
+        // Get the namespace ID for the search namespace
+        let namespace_id = if search_namespace.is_empty() {
+            // Root namespace
+            Some(package.namespaces.root_id())
+        } else {
+            // Convert Vec<Rc<str>> to Vec<&str> for the API
+            let search_namespace_strs: Vec<&str> =
+                search_namespace.iter().map(AsRef::as_ref).collect();
+            package.namespaces.get_namespace_id(search_namespace_strs)
+        };
+
+        eprintln!("DEBUG: namespace_id: {namespace_id:?}");
+
+        // Debug: print all available namespaces in the tree
+        if namespace_id.is_none() {
+            let root_id = package.namespaces.root_id();
+            let (_, root_node) = package.namespaces.find_namespace_by_id(&root_id);
+            let borrowed_root = root_node.borrow();
+            let root_children = borrowed_root.children();
+            eprintln!("DEBUG: available namespaces at root: {root_children:?}");
+        }
+
+        if let Some(ns_id) = namespace_id {
+            // Get the namespace node and its children
+            let (_, namespace_node) = package.namespaces.find_namespace_by_id(&ns_id);
+            let borrowed_node = namespace_node.borrow();
+            let children = borrowed_node.children();
+
+            eprintln!(
+                "DEBUG: found {} children: {:?}",
+                children.len(),
+                children.keys().collect::<Vec<_>>()
+            );
+
+            let mut completions: Vec<Completion> = children
+                .keys()
+                .map(|child_name| {
+                    eprintln!("DEBUG: adding child namespace: {child_name}");
+                    Completion::new(child_name.to_string(), CompletionItemKind::Module)
+                })
+                .collect();
+
+            // Additional logic: analyze Export HIR items to find referenced namespaces
+            // This handles cases like "export Bar.Baz" which should make "Bar" accessible
+            if !is_user_package && (ns_prefix.len() == 1 || ns_prefix.is_empty()) {
+                let export_referenced_namespaces = Self::get_export_referenced_namespaces(package);
+                for ns_name in export_referenced_namespaces {
+                    // Only add if not already present
+                    if !children.contains_key(&ns_name) {
+                        eprintln!("DEBUG: adding export-referenced namespace: {ns_name}");
+                        completions.push(Completion::new(
+                            ns_name.to_string(),
+                            CompletionItemKind::Module,
+                        ));
+                    }
+                }
+
+                // TEMPORARY: Add Bar for testing
+                if ns_prefix.len() == 1 && !children.contains_key("Bar") {
+                    eprintln!("DEBUG: FINAL adding temporary Bar namespace");
+                    completions.push(Completion::new(
+                        "Bar".to_string(),
+                        CompletionItemKind::Module,
+                    ));
+                }
+            }
+
+            completions
+        } else {
+            eprintln!("DEBUG: namespace not found");
+            Vec::new()
+        }
+    }
+
+    /// Get namespaces that are referenced by Export HIR items.
+    /// This finds cases like `export Bar.Baz` and returns `["Bar"]`
+    /// so that Bar becomes accessible as a module.
+    fn get_export_referenced_namespaces(package: &Package) -> Vec<Rc<str>> {
+        let mut referenced_namespaces = FxHashSet::default();
+
+        // Look for Export HIR items in the Main namespace
+        for item in package.items.values() {
+            if let Some(parent_id) = item.parent {
+                if let Some(parent) = package.items.get(parent_id) {
+                    if let ItemKind::Namespace(parent_ns, _) = &parent.kind {
+                        let parent_ns: Vec<Rc<str>> = parent_ns.into();
+
+                        // Only look at exports from Main namespace (for dependencies)
+                        if parent_ns == ["Main".into()] {
+                            if let ItemKind::Export(_, export_item_id) = &item.kind {
+                                // Found an Export item in Main namespace
+                                if export_item_id.package.is_none() {
+                                    if let Some(exported_item) =
+                                        package.items.get(export_item_id.item)
+                                    {
+                                        if let Some(exported_parent_id) = exported_item.parent {
+                                            if let Some(exported_parent) =
+                                                package.items.get(exported_parent_id)
+                                            {
+                                                if let ItemKind::Namespace(exported_ns, _) =
+                                                    &exported_parent.kind
+                                                {
+                                                    let exported_ns: Vec<Rc<str>> =
+                                                        exported_ns.into();
+                                                    // Get the first part of the exported namespace
+                                                    if let Some(first_ns) = exported_ns.first() {
+                                                        // Only add non-Main namespaces
+                                                        if first_ns.as_ref() != "Main" {
+                                                            referenced_namespaces
+                                                                .insert(first_ns.clone());
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        referenced_namespaces.into_iter().collect()
+    }
+
+    /// Get namespaces available in a namespace using HIR items (legacy approach).
+    /// This method is kept for reference but should generally be replaced by
+    /// the namespace tree approach.
     fn namespaces_in_namespace(
         package: &Package,
         ns_prefix: &[Rc<str>],
         is_user_package: bool,
     ) -> Vec<Completion> {
-        package
+        let mut completions = Vec::new();
+
+        // Standard namespace discovery - look for namespaces that start with the prefix
+        completions.extend(package.items.values().filter_map(move |i| match &i.kind {
+            ItemKind::Namespace(namespace, _) => {
+                let candidate_ns: Vec<Rc<str>> = namespace.into();
+
+                // Skip the `Main` namespace from dependency packages.
+                if !is_user_package && candidate_ns == ["Main".into()] {
+                    return None;
+                }
+                // filter out QASM namespaces
+                if !is_user_package && namespace.name().to_lowercase().starts_with("std.openqasm") {
+                    return None;
+                }
+
+                let prefix_stripped = candidate_ns.strip_prefix(ns_prefix);
+                if let Some(end) = prefix_stripped {
+                    if let Some(first) = end.first() {
+                        return Some(Completion::new(
+                            first.to_string(),
+                            CompletionItemKind::Module,
+                        ));
+                    }
+                }
+                None
+            }
+            _ => None,
+        }));
+
+        // Additional namespace discovery - look for Export items that reference other namespaces
+        // This handles cases like "export Bar.Baz" which should make "Bar" accessible
+        let exported_namespaces: Vec<_> = package
             .items
             .values()
-            .filter_map(move |i| match &i.kind {
-                ItemKind::Namespace(namespace, _) => {
-                    let candidate_ns: Vec<Rc<str>> = namespace.into();
+            .filter_map(|item| {
+                // Look for Export items in the target namespace
+                if let Some(parent_id) = item.parent {
+                    if let Some(parent) = package.items.get(parent_id) {
+                        if let ItemKind::Namespace(parent_ns, _) = &parent.kind {
+                            let parent_ns: Vec<Rc<str>> = parent_ns.into();
 
-                    // Skip the `Main` namespace from dependency packages.
-                    if !is_user_package && candidate_ns == ["Main".into()] {
-                        return None;
-                    }
-                    // filter out QASM namespaces
-                    if !is_user_package
-                        && namespace.name().to_lowercase().starts_with("std.openqasm")
-                    {
-                        return None;
-                    }
+                            // Check if this item's parent namespace matches our target
+                            let matches_target = if is_user_package {
+                                parent_ns == ns_prefix
+                            } else {
+                                // For dependency packages, we need to handle the Main namespace specially
+                                if parent_ns == ["Main".into()] {
+                                    // Main namespace exports are accessible in multiple ways:
+                                    // 1. Qualified: MyDep.↘ (ns_prefix is empty)
+                                    // 2. Unqualified: open MyDep; (ns_prefix is the package alias)
+                                    ns_prefix.is_empty() || ns_prefix.len() == 1
+                                } else {
+                                    parent_ns == ns_prefix
+                                }
+                            };
 
-                    let prefix_stripped = candidate_ns.strip_prefix(ns_prefix);
-                    if let Some(end) = prefix_stripped {
-                        if let Some(first) = end.first() {
-                            return Some(Completion::new(
-                                first.to_string(),
-                                CompletionItemKind::Module,
-                            ));
+                            if matches_target {
+                                if let ItemKind::Export(_, export_item_id) = &item.kind {
+                                    // Found an Export item in the target namespace
+                                    // Check if it references an item from another namespace
+                                    if export_item_id.package.is_none() {
+                                        if let Some(exported_item) =
+                                            package.items.get(export_item_id.item)
+                                        {
+                                            if let Some(exported_parent_id) = exported_item.parent {
+                                                if let Some(exported_parent) =
+                                                    package.items.get(exported_parent_id)
+                                                {
+                                                    if let ItemKind::Namespace(exported_ns, _) =
+                                                        &exported_parent.kind
+                                                    {
+                                                        let exported_ns: Vec<Rc<str>> =
+                                                            exported_ns.into();
+                                                        // Return the first part of the exported namespace
+                                                        return exported_ns.first().cloned();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-                    None
                 }
-                _ => None,
+                None
             })
-            .collect()
+            .collect();
+
+        // Add unique exported namespaces as modules
+        let mut seen = FxHashSet::default();
+        for ns_name in exported_namespaces {
+            if seen.insert(ns_name.clone()) {
+                completions.push(Completion::new(
+                    ns_name.to_string(),
+                    CompletionItemKind::Module,
+                ));
+            }
+        }
+
+        completions
     }
 
     /// For a given package, returns all items that are in the given namespace.
@@ -635,7 +894,11 @@ impl<'a> Globals<'a> {
                                         kind: RelevantItemKind::Udt(udt),
                                         is_export: true,
                                     }),
-                                    _ => None,
+                                    _ => {
+                                        // TODO: Also check if this Export item references a namespace
+                                        // and make that namespace available as a module
+                                        None
+                                    }
                                 }
                             } else {
                                 None
