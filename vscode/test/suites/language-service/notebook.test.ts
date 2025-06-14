@@ -7,6 +7,7 @@ import {
   activateExtension,
   waitForCondition,
   waitForDiagnosticsToAppear,
+  waitForDiagnosticsToBeEmpty,
 } from "../extensionUtils";
 
 suite("Q# Notebook Tests", function suite() {
@@ -115,5 +116,42 @@ suite("Q# Notebook Tests", function suite() {
     assert.equal(location.uri.toString(), firstQSharpCellUri.toString());
     assert.equal(location.range.start.line, 2);
     assert.equal(location.range.start.character, 10);
+  });
+
+  test("Notebook uses Unrestricted profile by default even when workspace is Base", async function () {
+    // Setting the configuration seems to take a while, so we increase the timeout
+    this.timeout(5000);
+
+    // Store the original workspace target profile to restore it later
+    const config = vscode.workspace.getConfiguration("Q#");
+    const originalTarget = config.get("qir.targetProfile");
+
+    try {
+      // Set workspace to base profile (restrictive) using VS Code API
+      await config.update(
+        "qir.targetProfile",
+        "base",
+        vscode.ConfigurationTarget.Global,
+      );
+
+      // Open a notebook with quantum operations that require unrestricted profile
+      const notebook = await vscode.workspace.openNotebookDocument(
+        vscode.Uri.joinPath(workspaceFolderUri, "test-notebook-profile.ipynb"),
+      );
+
+      const qsharpCellUri = notebook.cellAt(1).document.uri;
+
+      // The measurement operation M(q) == One should work in notebooks without errors
+      // even when workspace is set to base profile, because notebooks default to unrestricted
+      // Use the proper helper function to wait for diagnostics to be empty (no errors)
+      await waitForDiagnosticsToBeEmpty(qsharpCellUri);
+    } finally {
+      // Restore the original workspace configuration using VS Code API
+      await config.update(
+        "qir.targetProfile",
+        originalTarget,
+        vscode.ConfigurationTarget.Global,
+      );
+    }
   });
 });
