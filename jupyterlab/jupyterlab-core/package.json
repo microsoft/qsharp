@@ -1,0 +1,11 @@
+{
+  "name": "@jupyterlab/core",
+  "version": "4.4.3",
+  "jupyterlab": {
+    "singletonPackages": [
+      "@codemirror/language",
+      "@jupyterlab/codemirror",
+      "@jupyterlab/notebook"
+    ]
+  }
+}

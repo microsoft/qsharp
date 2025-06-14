@@ -25,11 +25,12 @@
     "url": "https://github.com/microsoft/qsharp.git"
   },
   "scripts": {
-    "build": "jlpm run build:lib && jlpm run build:labextension:prod",
-    "build:dev": "jlpm run build:lib && jlpm run build:labextension:dev",
+    "build": "npm run build:lib && npm run build:labextension:dev",
+    "build:dev": "npm run build:lib && npm run build:labextension:dev",
+    "build:prod": "npm run build:lib && npm run build:labextension:prod",
     "build:lib": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
-    "build:labextension:dev": "jupyter labextension build --development True .",
-    "build:labextension:prod": "jupyter labextension build ."
+    "build:labextension:dev": "node node_modules/@jupyterlab/builder/lib/build-labextension.js --core-path ./jupyterlab-core --development .",
+    "build:labextension:prod": "node node_modules/@jupyterlab/builder/lib/build-labextension.js --core-path ./jupyterlab-core ."
   },
   "devDependencies": {
     "@jupyterlab/builder": "^4.0.0",
