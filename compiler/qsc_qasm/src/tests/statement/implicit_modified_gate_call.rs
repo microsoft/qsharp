@@ -19,7 +19,7 @@ fn cy_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled y([ctl], target);
+        cy(ctl, target);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -39,7 +39,7 @@ fn cz_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled z([ctl], target);
+        cz(ctl, target);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -59,7 +59,7 @@ fn ch_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled h([ctl], target);
+        ch(ctl, target);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -77,7 +77,7 @@ fn sdg_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Adjoint s(q);
+        sdg(q);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -95,7 +95,7 @@ fn tdg_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Adjoint t(q);
+        tdg(q);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -115,10 +115,10 @@ fn crx_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled rx([ctl], (new Std.OpenQASM.Angle.Angle {
+        crx(new Std.OpenQASM.Angle.Angle {
             Value = 716770142402832,
             Size = 53
-        }, target));
+        }, ctl, target);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -138,10 +138,10 @@ fn cry_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled ry([ctl], (new Std.OpenQASM.Angle.Angle {
+        cry(new Std.OpenQASM.Angle.Angle {
             Value = 716770142402832,
             Size = 53
-        }, target));
+        }, ctl, target);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -161,10 +161,10 @@ fn crz_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled rz([ctl], (new Std.OpenQASM.Angle.Angle {
+        crz(new Std.OpenQASM.Angle.Angle {
             Value = 716770142402832,
             Size = 53
-        }, target));
+        }, ctl, target);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -184,7 +184,7 @@ fn cswap_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let q = QIR.Runtime.AllocateQubitArray(2);
-        Controlled swap([ctl], (q[0], q[1]));
+        cswap(ctl, q[0], q[1]);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -204,7 +204,7 @@ fn legacy_cx_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled x([ctl], target);
+        CX(ctl, target);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -224,10 +224,10 @@ fn legacy_cphase_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled phase([ctl], (new Std.OpenQASM.Angle.Angle {
+        cphase(new Std.OpenQASM.Angle.Angle {
             Value = 1433540284805665,
             Size = 53
-        }, target));
+        }, ctl, target);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
