@@ -1136,16 +1136,23 @@ impl Resolver {
                     // For exports, be conservative and create ExportedItem unless we're certain it's a self-export
                     let scope = self.current_scope_mut();
                     let has_opens = !scope.opens.is_empty();
-                    
+
                     // Check if this is definitely a self-export by looking for the item in current scope
-                    let is_definitely_self_export = scope.terms.get(&decl_item_name.name)
+                    let is_definitely_self_export = scope
+                        .terms
+                        .get(&decl_item_name.name)
                         .is_some_and(|entry| matches!(entry.source, ItemSource::Declared))
-                        || scope.tys.get(&decl_item_name.name)
-                        .is_some_and(|entry| matches!(entry.source, ItemSource::Declared));
-                    
+                        || scope
+                            .tys
+                            .get(&decl_item_name.name)
+                            .is_some_and(|entry| matches!(entry.source, ItemSource::Declared));
+
                     // If it's not definitely a self-export AND we have opens, treat as re-export
                     if !is_definitely_self_export && has_opens {
-                        self.names.insert(decl_item_name.id, Res::ExportedItem(underlying_item_id, decl_alias));
+                        self.names.insert(
+                            decl_item_name.id,
+                            Res::ExportedItem(underlying_item_id, decl_alias),
+                        );
                     } else {
                         self.names.insert(decl_item_name.id, res);
                     }

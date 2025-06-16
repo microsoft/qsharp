@@ -261,108 +261,110 @@ impl With<'_> {
             _otherwise => None,
         };
 
-        let (id, kind) =
-            match &*item.kind {
-                ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
+        let (id, kind) = match &*item.kind {
+            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
 
-                ast::ItemKind::ImportOrExport(item) => {
-                    if item.is_import() {
-                        return None;
-                    }
-                    for item in &item.items {
-                        let Some(item_name) = item.name() else {
-                            continue;
-                        };
-                        let Some((id, alias)) = resolve_id(item_name.id) else {
-                            continue;
-                        };
-
-                        let effective_alias = if alias.is_some() {
-                            // Explicit alias or re-export with alias from resolver
-                            alias.as_ref().map(|ident| ident.name.clone())
-                        } else if id.package.is_none()
-                            && matches!(&item.path, ast::PathKind::Ok(path) if path.segments.is_some()) {
-                            // Only apply implicit alias to concrete items (callables, types), not namespaces
-                            // This fixes cross-namespace exports like "export Foo.Bar;" for operations/functions
-                            // while avoiding issues with namespace exports like "export Std.Arrays;"
-                            let should_apply_implicit_alias = if let Some(hir_item) =
-                                self.lowerer.items.iter().find(|item| item.id == id.item)
-                            {
-                                matches!(
-                                    hir_item.kind,
-                                    hir::ItemKind::Callable(_) | hir::ItemKind::Ty(_, _)
-                                )
-                            } else {
-                                // If item not found in current compilation, it's likely a namespace or external item
-                                // Don't apply implicit alias to avoid type checker issues
-                                false
-                            };
-
-                            if should_apply_implicit_alias {
-                                Some(item_name.name.clone())
-                            } else {
-                                alias.as_ref().map(|ident| ident.name.clone())
-                            }
-                        } else {
-                            alias.as_ref().map(|ident| ident.name.clone())
-                        };
-
-                        let is_reexport = id.package.is_some() || effective_alias.is_some();
-                        // if the package is Some, then this is a re-export and we
-                        // need to preserve the reference to the original `ItemId`
-                        if is_reexport {
-                            let mut name = self.lower_ident(item_name);
-                            name.id = self.assigner.next_node();
-                            let kind = hir::ItemKind::Export(name, id);
-                            self.lowerer.items.push(hir::Item {
-                                id: self.assigner.next_item(),
-                                span: item.span,
-                                parent: self.lowerer.parent,
-                                doc: "".into(),
-                                // attrs on exports not supported
-                                attrs: Vec::new(),
-                                visibility: Visibility::Public,
-                                kind,
-                            });
-                        }
-                    }
+            ast::ItemKind::ImportOrExport(item) => {
+                if item.is_import() {
                     return None;
                 }
-                ast::ItemKind::Callable(callable) => {
-                    let (id, _) = resolve_id(callable.name.id)?;
-                    let grandparent = self.lowerer.parent;
-                    self.lowerer.parent = Some(id.item);
-                    let (callable, errs) = self.lower_callable_decl(callable, &attrs);
-                    self.lowerer.errors.extend(errs.into_iter().map(|err| {
+                for item in &item.items {
+                    let Some(item_name) = item.name() else {
+                        continue;
+                    };
+                    let Some((id, alias)) = resolve_id(item_name.id) else {
+                        continue;
+                    };
+
+                    let effective_alias = if alias.is_some() {
+                        // Explicit alias or re-export with alias from resolver
+                        alias.as_ref().map(|ident| ident.name.clone())
+                    } else if id.package.is_none()
+                        && matches!(&item.path, ast::PathKind::Ok(path) if path.segments.is_some())
+                    {
+                        // Only apply implicit alias to concrete items (callables, types), not namespaces
+                        // This fixes cross-namespace exports like "export Foo.Bar;" for operations/functions
+                        // while avoiding issues with namespace exports like "export Std.Arrays;"
+                        let should_apply_implicit_alias = if let Some(hir_item) =
+                            self.lowerer.items.iter().find(|item| item.id == id.item)
+                        {
+                            matches!(
+                                hir_item.kind,
+                                hir::ItemKind::Callable(_) | hir::ItemKind::Ty(_, _)
+                            )
+                        } else {
+                            // If item not found in current compilation, it's likely a namespace or external item
+                            // Don't apply implicit alias to avoid type checker issues
+                            false
+                        };
+
+                        if should_apply_implicit_alias {
+                            Some(item_name.name.clone())
+                        } else {
+                            alias.as_ref().map(|ident| ident.name.clone())
+                        }
+                    } else {
+                        alias.as_ref().map(|ident| ident.name.clone())
+                    };
+
+                    let is_reexport = id.package.is_some() || effective_alias.is_some();
+                    // if the package is Some, then this is a re-export and we
+                    // need to preserve the reference to the original `ItemId`
+                    if is_reexport {
+                        let mut name = self.lower_ident(item_name);
+                        name.id = self.assigner.next_node();
+                        let kind = hir::ItemKind::Export(name, id);
+                        self.lowerer.items.push(hir::Item {
+                            id: self.assigner.next_item(),
+                            span: item.span,
+                            parent: self.lowerer.parent,
+                            doc: "".into(),
+                            // attrs on exports not supported
+                            attrs: Vec::new(),
+                            visibility: Visibility::Public,
+                            kind,
+                        });
+                    }
+                }
+                return None;
+            }
+            ast::ItemKind::Callable(callable) => {
+                let (id, _) = resolve_id(callable.name.id)?;
+                let grandparent = self.lowerer.parent;
+                self.lowerer.parent = Some(id.item);
+                let (callable, errs) = self.lower_callable_decl(callable, &attrs);
+                self.lowerer.errors.extend(
+                    errs.into_iter().map(|err| {
                         Into::<Error>::into(Into::<convert::TyConversionError>::into(err))
-                    }));
-                    self.lowerer.parent = grandparent;
-                    (id, hir::ItemKind::Callable(callable))
-                }
-                ast::ItemKind::Ty(name, _) => {
-                    let (id, _) = resolve_id(name.id)?;
-                    let udt = self
-                        .tys
-                        .udts
-                        .get(&id)
-                        .expect("type item should have lowered UDT");
+                    }),
+                );
+                self.lowerer.parent = grandparent;
+                (id, hir::ItemKind::Callable(callable))
+            }
+            ast::ItemKind::Ty(name, _) => {
+                let (id, _) = resolve_id(name.id)?;
+                let udt = self
+                    .tys
+                    .udts
+                    .get(&id)
+                    .expect("type item should have lowered UDT");
 
-                    (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
-                }
-                ast::ItemKind::Struct(decl) => {
-                    let (id, _) = resolve_id(decl.name.id)?;
-                    let strct = self
-                        .tys
-                        .udts
-                        .get(&id)
-                        .expect("type item should have lowered struct");
+                (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
+            }
+            ast::ItemKind::Struct(decl) => {
+                let (id, _) = resolve_id(decl.name.id)?;
+                let strct = self
+                    .tys
+                    .udts
+                    .get(&id)
+                    .expect("type item should have lowered struct");
 
-                    (
-                        id,
-                        hir::ItemKind::Ty(self.lower_ident(&decl.name), strct.clone()),
-                    )
-                }
-            };
+                (
+                    id,
+                    hir::ItemKind::Ty(self.lower_ident(&decl.name), strct.clone()),
+                )
+            }
+        };
 
         let export_info = exported_ids.iter().find(|(hir_id, _)| hir_id == &id);
         let visibility = match export_info {
