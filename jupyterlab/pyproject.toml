@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.19.0", "jupyterlab==4.0.0", "hatch-nodejs-version"]
+requires = ["hatchling>=1.19.0", "hatch-nodejs-version"]
 build-backend = "hatchling.build"
 
 [project]
@@ -51,11 +51,11 @@ ensured-targets = [
 
 [tool.hatch.build.hooks.jupyter-builder.build-kwargs]
 build_cmd = "build"
-npm = ["jlpm"]
+npm = ["npm"]
 
 [tool.hatch.build.hooks.jupyter-builder.editable-build-kwargs]
 build_cmd = "build:dev"
-npm = ["jlpm"]
+npm = ["npm"]
 source_dir = "src"
 build_dir = "qsharp-jupyterlab/labextension"
 
