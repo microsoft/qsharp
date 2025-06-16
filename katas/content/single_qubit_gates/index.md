@@ -394,6 +394,7 @@ The identity gate is mostly here for completeness, at least for now. It will com
 The **Hadamard** gate is an extremely important quantum gate. Unlike the previous gates, applying the Hadamard gate to a qubit in a computational basis state puts that qubit into a superposition.
 Like the Pauli gates, the Hadamard gate is self-adjoint.
 
+<div class="table-with-latex">
 <table>
 <tr>
 <th>Gate</th>
@@ -415,6 +416,7 @@ $H\ket{i} = e^{i\pi/4}\ket{-i}$ <br>
 $H\ket{-i} = e^{-i\pi/4}\ket{i} $ <br>
 </tr>
 </table>
+</div>
 
 > As a reminder, $e^{i\pi/4} = \frac{1}{\sqrt2} (1 + i)$ and $e^{-i\pi/4} = \frac{1}{\sqrt2} (1 - i)$. This is an application of Euler's formula, $e^{i\theta} = \cos \theta + i\sin \theta$, where $\theta$ is measured in radians.
 > See this [Wikipedia article](https://en.wikipedia.org/wiki/Euler%27s_formula) for an explanation of Euler's formula and/or [this video](https://youtu.be/v0YEaeIClKY) for a more intuitive explanation.
@@ -501,54 +503,56 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
 > Unfortunately, this visualization isn't very useful beyond single-qubit states, which is why this kata doesn't go into details.
 > If you're curious about it, you can learn more in <a href="https://en.wikipedia.org/wiki/Bloch_sphere" target="_blank">this Wikipedia article</a>.
 
-<table>
-  <tr>
-    <th>Gate</th>
-    <th>Matrix</th>
-    <th>Applying to $\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$</th>
-    <th>Applying to basis states</th>
-   </tr>
-  <tr>
-    <td>$R_x(\theta)$</td>
-    <td>
-    $$
-    \begin{bmatrix} \cos\frac{\theta}{2} & -i\sin\frac{\theta}{2} \\ -i\sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}
-    $$
-    </td>
-    <td>$R_x(\theta)\ket{\psi} = (\alpha\cos\frac{\theta}{2} - i\beta\sin\frac{\theta}{2})\ket{0} + (\beta\cos\frac{\theta}{2} - i\alpha\sin\frac{\theta}{2})\ket{1}$</td>
-    <td>
-      $R_x(\theta)\ket{0} = \cos\frac{\theta}{2}\ket{0} - i\sin\frac{\theta}{2}\ket{1}$<br>
-      $R_x(\theta)\ket{1} = \cos\frac{\theta}{2}\ket{1} - i\sin\frac{\theta}{2}\ket{0}$
-    </td>
-   </tr>
-  <tr>
-    <td>$R_y(\theta)$</td>
-    <td>$\begin{bmatrix} \cos\frac{\theta}{2} & -\sin\frac{\theta}{2} \\ \sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}$</td>
-    <td>$R_y(\theta)\ket{\psi} = (\alpha\cos\frac{\theta}{2} - \beta\sin\frac{\theta}{2})\ket{0} + (\beta\cos\frac{\theta}{2} + \alpha\sin\frac{\theta}{2})\ket{1}$</td>
-    <td>
-      $R_y(\theta)\ket{0} = \cos\frac{\theta}{2}\ket{0} + \sin\frac{\theta}{2}\ket{1}$<br>
-      $R_y(\theta)\ket{1} = \cos\frac{\theta}{2}\ket{1} - \sin\frac{\theta}{2}\ket{0}$
-    </td>
+<div class="table-with-latex">
+  <table>
+    <tr>
+      <th>Gate</th>
+      <th>Matrix</th>
+      <th>Applying to $\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$</th>
+      <th>Applying to basis states</th>
+     </tr>
+    <tr>
+      <td>$R_x(\theta)$</td>
+      <td>
+      $$
+      \begin{bmatrix} \cos\frac{\theta}{2} & -i\sin\frac{\theta}{2} \\ -i\sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}
+      $$
+      </td>
+      <td>$R_x(\theta)\ket{\psi} = (\alpha\cos\frac{\theta}{2} - i\beta\sin\frac{\theta}{2})\ket{0} + (\beta\cos\frac{\theta}{2} - i\alpha\sin\frac{\theta}{2})\ket{1}$</td>
+      <td>
+        $R_x(\theta)\ket{0} = \cos\frac{\theta}{2}\ket{0} - i\sin\frac{\theta}{2}\ket{1}$<br>
+        $R_x(\theta)\ket{1} = \cos\frac{\theta}{2}\ket{1} - i\sin\frac{\theta}{2}\ket{0}$
+      </td>
+     </tr>
+    <tr>
+      <td>$R_y(\theta)$</td>
+      <td>$\begin{bmatrix} \cos\frac{\theta}{2} & -\sin\frac{\theta}{2} \\ \sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}$</td>
+      <td>$R_y(\theta)\ket{\psi} = (\alpha\cos\frac{\theta}{2} - \beta\sin\frac{\theta}{2})\ket{0} + (\beta\cos\frac{\theta}{2} + \alpha\sin\frac{\theta}{2})\ket{1}$</td>
+      <td>
+        $R_y(\theta)\ket{0} = \cos\frac{\theta}{2}\ket{0} + \sin\frac{\theta}{2}\ket{1}$<br>
+        $R_y(\theta)\ket{1} = \cos\frac{\theta}{2}\ket{1} - \sin\frac{\theta}{2}\ket{0}$
+      </td>
+      </tr>
+    <tr>
+      <td>$R_z(\theta)$</td>
+      <td>$\begin{bmatrix} e^{-i\theta/2} & 0 \\ 0 & e^{i\theta/2} \end{bmatrix}$</td>
+      <td>$R_z(\theta)\ket{\psi} = \alpha e^{-i\theta/2}\ket{0} + \beta e^{i\theta/2}\ket{1}$</td>
+      <td>
+        $R_z(\theta)\ket{0} = e^{-i\theta/2}\ket{0}$<br>
+        $R_z(\theta)\ket{1} = e^{i\theta/2}\ket{1}$
+      </td>
     </tr>
-  <tr>
-    <td>$R_z(\theta)$</td>
-    <td>$\begin{bmatrix} e^{-i\theta/2} & 0 \\ 0 & e^{i\theta/2} \end{bmatrix}$</td>
-    <td>$R_z(\theta)\ket{\psi} = \alpha e^{-i\theta/2}\ket{0} + \beta e^{i\theta/2}\ket{1}$</td>
-    <td>
-      $R_z(\theta)\ket{0} = e^{-i\theta/2}\ket{0}$<br>
-      $R_z(\theta)\ket{1} = e^{i\theta/2}\ket{1}$
-    </td>
-  </tr>
-  <tr>
-    <td>$R_1(\theta)$</td>
-    <td>$\begin{bmatrix} 1 & 0 \\ 0 & e^{i\theta} \end{bmatrix}$</td>
-    <td>$R_1(\theta)\ket{\psi} = \alpha\ket{0} + \beta e^{i\theta}\ket{1}$</td>
-    <td>
-      $R_1(\theta)\ket{0} = \ket{0}$<br>
-      $R_1(\theta)\ket{1} = e^{i\theta}\ket{1}$
-    </td>  
-  </tr>
-</table>
+    <tr>
+      <td>$R_1(\theta)$</td>
+      <td>$\begin{bmatrix} 1 & 0 \\ 0 & e^{i\theta} \end{bmatrix}$</td>
+      <td>$R_1(\theta)\ket{\psi} = \alpha\ket{0} + \beta e^{i\theta}\ket{1}$</td>
+      <td>
+        $R_1(\theta)\ket{0} = \ket{0}$<br>
+        $R_1(\theta)\ket{1} = e^{i\theta}\ket{1}$
+      </td>  
+    </tr>
+  </table>
+</div>
 
 You have already encountered some special cases of the $R_1$ gate:
 
