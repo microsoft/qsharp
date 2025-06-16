@@ -25,7 +25,7 @@
     "url": "https://github.com/microsoft/qsharp.git"
   },
   "scripts": {
-    "build": "npm run build:lib && npm run build:labextension:dev",
+    "build": "npm run build:lib && npm run build:labextension:prod",
     "build:dev": "npm run build:lib && npm run build:labextension:dev",
     "build:prod": "npm run build:lib && npm run build:labextension:prod",
     "build:lib": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
