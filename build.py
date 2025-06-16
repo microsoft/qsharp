@@ -114,9 +114,8 @@ run_tests = args.test
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
 qdk_src_dir = os.path.join(root_dir, "qdk_source")
-backend_dir = os.path.join(qdk_src_dir, "backend")
-wasm_src = os.path.join(backend_dir, "wasm")
-wasm_bld = os.path.join(backend_dir, "target", "wasm32", build_type)
+wasm_src = os.path.join(qdk_src_dir, "wasm")
+wasm_bld = os.path.join(qdk_src_dir, "target", "wasm32", build_type)
 samples_src = os.path.join(root_dir, "samples")
 npm_src = os.path.join(qdk_src_dir, "npm", "qsharp")
 play_src = os.path.join(qdk_src_dir, "playground")

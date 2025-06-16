@@ -12,7 +12,7 @@ use qsc::SourceMap;
 #[allow(non_snake_case)]
 fn BellPair_src() -> SourceMap {
     SourceMap::new(
-        vec![("BellPair.qs".into(), include_str!("../../../../../samples/getting_started/BellPair.qs").into())],
+        vec![("BellPair.qs".into(), include_str!("../../../../samples/getting_started/BellPair.qs").into())],
         None,
     )
 }
@@ -38,7 +38,7 @@ fn debug_BellPair() {
 #[allow(non_snake_case)]
 fn BellStates_src() -> SourceMap {
     SourceMap::new(
-        vec![("BellStates.qs".into(), include_str!("../../../../../samples/getting_started/BellStates.qs").into())],
+        vec![("BellStates.qs".into(), include_str!("../../../../samples/getting_started/BellStates.qs").into())],
         None,
     )
 }
@@ -64,7 +64,7 @@ fn debug_BellStates() {
 #[allow(non_snake_case)]
 fn CatStates_src() -> SourceMap {
     SourceMap::new(
-        vec![("CatStates.qs".into(), include_str!("../../../../../samples/getting_started/CatStates.qs").into())],
+        vec![("CatStates.qs".into(), include_str!("../../../../samples/getting_started/CatStates.qs").into())],
         None,
     )
 }
@@ -90,7 +90,7 @@ fn debug_CatStates() {
 #[allow(non_snake_case)]
 fn Entanglement_src() -> SourceMap {
     SourceMap::new(
-        vec![("Entanglement.qs".into(), include_str!("../../../../../samples/getting_started/Entanglement.qs").into())],
+        vec![("Entanglement.qs".into(), include_str!("../../../../samples/getting_started/Entanglement.qs").into())],
         None,
     )
 }
@@ -116,7 +116,7 @@ fn debug_Entanglement() {
 #[allow(non_snake_case)]
 fn JointMeasurement_src() -> SourceMap {
     SourceMap::new(
-        vec![("JointMeasurement.qs".into(), include_str!("../../../../../samples/getting_started/JointMeasurement.qs").into())],
+        vec![("JointMeasurement.qs".into(), include_str!("../../../../samples/getting_started/JointMeasurement.qs").into())],
         None,
     )
 }
@@ -142,7 +142,7 @@ fn debug_JointMeasurement() {
 #[allow(non_snake_case)]
 fn Measurement_src() -> SourceMap {
     SourceMap::new(
-        vec![("Measurement.qs".into(), include_str!("../../../../../samples/getting_started/Measurement.qs").into())],
+        vec![("Measurement.qs".into(), include_str!("../../../../samples/getting_started/Measurement.qs").into())],
         None,
     )
 }
@@ -168,7 +168,7 @@ fn debug_Measurement() {
 #[allow(non_snake_case)]
 fn QuantumHelloWorld_src() -> SourceMap {
     SourceMap::new(
-        vec![("QuantumHelloWorld.qs".into(), include_str!("../../../../../samples/getting_started/QuantumHelloWorld.qs").into())],
+        vec![("QuantumHelloWorld.qs".into(), include_str!("../../../../samples/getting_started/QuantumHelloWorld.qs").into())],
         None,
     )
 }
@@ -194,7 +194,7 @@ fn debug_QuantumHelloWorld() {
 #[allow(non_snake_case)]
 fn RandomBits_src() -> SourceMap {
     SourceMap::new(
-        vec![("RandomBits.qs".into(), include_str!("../../../../../samples/getting_started/RandomBits.qs").into())],
+        vec![("RandomBits.qs".into(), include_str!("../../../../samples/getting_started/RandomBits.qs").into())],
         None,
     )
 }
@@ -220,7 +220,7 @@ fn debug_RandomBits() {
 #[allow(non_snake_case)]
 fn SimpleTeleportation_src() -> SourceMap {
     SourceMap::new(
-        vec![("SimpleTeleportation.qs".into(), include_str!("../../../../../samples/getting_started/SimpleTeleportation.qs").into())],
+        vec![("SimpleTeleportation.qs".into(), include_str!("../../../../samples/getting_started/SimpleTeleportation.qs").into())],
         None,
     )
 }
@@ -246,7 +246,7 @@ fn debug_SimpleTeleportation() {
 #[allow(non_snake_case)]
 fn Superposition_src() -> SourceMap {
     SourceMap::new(
-        vec![("Superposition.qs".into(), include_str!("../../../../../samples/getting_started/Superposition.qs").into())],
+        vec![("Superposition.qs".into(), include_str!("../../../../samples/getting_started/Superposition.qs").into())],
         None,
     )
 }

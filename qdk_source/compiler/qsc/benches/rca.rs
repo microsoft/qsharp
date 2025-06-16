@@ -10,8 +10,8 @@ use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_passes::PackageType;
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
 
-const TELEPORT: &str = include_str!("../../../../../samples/algorithms/Teleportation.qs");
-const DEUTSCHJOZSA: &str = include_str!("../../../../../samples/algorithms/DeutschJozsa.qs");
+const TELEPORT: &str = include_str!("../../../../samples/algorithms/Teleportation.qs");
+const DEUTSCHJOZSA: &str = include_str!("../../../../samples/algorithms/DeutschJozsa.qs");
 const LARGE: &str = include_str!("./large.qs");
 
 pub fn core_and_std(c: &mut Criterion) {

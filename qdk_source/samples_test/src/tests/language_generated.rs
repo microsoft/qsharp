@@ -12,7 +12,7 @@ use qsc::SourceMap;
 #[allow(non_snake_case)]
 fn ArithmeticOperators_src() -> SourceMap {
     SourceMap::new(
-        vec![("ArithmeticOperators.qs".into(), include_str!("../../../../../samples/language/ArithmeticOperators.qs").into())],
+        vec![("ArithmeticOperators.qs".into(), include_str!("../../../../samples/language/ArithmeticOperators.qs").into())],
         None,
     )
 }
@@ -38,7 +38,7 @@ fn debug_ArithmeticOperators() {
 #[allow(non_snake_case)]
 fn Array_src() -> SourceMap {
     SourceMap::new(
-        vec![("Array.qs".into(), include_str!("../../../../../samples/language/Array.qs").into())],
+        vec![("Array.qs".into(), include_str!("../../../../samples/language/Array.qs").into())],
         None,
     )
 }
@@ -64,7 +64,7 @@ fn debug_Array() {
 #[allow(non_snake_case)]
 fn BigInt_src() -> SourceMap {
     SourceMap::new(
-        vec![("BigInt.qs".into(), include_str!("../../../../../samples/language/BigInt.qs").into())],
+        vec![("BigInt.qs".into(), include_str!("../../../../samples/language/BigInt.qs").into())],
         None,
     )
 }
@@ -90,7 +90,7 @@ fn debug_BigInt() {
 #[allow(non_snake_case)]
 fn BitwiseOperators_src() -> SourceMap {
     SourceMap::new(
-        vec![("BitwiseOperators.qs".into(), include_str!("../../../../../samples/language/BitwiseOperators.qs").into())],
+        vec![("BitwiseOperators.qs".into(), include_str!("../../../../samples/language/BitwiseOperators.qs").into())],
         None,
     )
 }
@@ -116,7 +116,7 @@ fn debug_BitwiseOperators() {
 #[allow(non_snake_case)]
 fn Bool_src() -> SourceMap {
     SourceMap::new(
-        vec![("Bool.qs".into(), include_str!("../../../../../samples/language/Bool.qs").into())],
+        vec![("Bool.qs".into(), include_str!("../../../../samples/language/Bool.qs").into())],
         None,
     )
 }
@@ -142,7 +142,7 @@ fn debug_Bool() {
 #[allow(non_snake_case)]
 fn ClassConstraints_src() -> SourceMap {
     SourceMap::new(
-        vec![("ClassConstraints.qs".into(), include_str!("../../../../../samples/language/ClassConstraints.qs").into())],
+        vec![("ClassConstraints.qs".into(), include_str!("../../../../samples/language/ClassConstraints.qs").into())],
         None,
     )
 }
@@ -168,7 +168,7 @@ fn debug_ClassConstraints() {
 #[allow(non_snake_case)]
 fn Comments_src() -> SourceMap {
     SourceMap::new(
-        vec![("Comments.qs".into(), include_str!("../../../../../samples/language/Comments.qs").into())],
+        vec![("Comments.qs".into(), include_str!("../../../../samples/language/Comments.qs").into())],
         None,
     )
 }
@@ -194,7 +194,7 @@ fn debug_Comments() {
 #[allow(non_snake_case)]
 fn ComparisonOperators_src() -> SourceMap {
     SourceMap::new(
-        vec![("ComparisonOperators.qs".into(), include_str!("../../../../../samples/language/ComparisonOperators.qs").into())],
+        vec![("ComparisonOperators.qs".into(), include_str!("../../../../samples/language/ComparisonOperators.qs").into())],
         None,
     )
 }
@@ -220,7 +220,7 @@ fn debug_ComparisonOperators() {
 #[allow(non_snake_case)]
 fn ConditionalBranching_src() -> SourceMap {
     SourceMap::new(
-        vec![("ConditionalBranching.qs".into(), include_str!("../../../../../samples/language/ConditionalBranching.qs").into())],
+        vec![("ConditionalBranching.qs".into(), include_str!("../../../../samples/language/ConditionalBranching.qs").into())],
         None,
     )
 }
@@ -246,7 +246,7 @@ fn debug_ConditionalBranching() {
 #[allow(non_snake_case)]
 fn CopyAndUpdateOperator_src() -> SourceMap {
     SourceMap::new(
-        vec![("CopyAndUpdateOperator.qs".into(), include_str!("../../../../../samples/language/CopyAndUpdateOperator.qs").into())],
+        vec![("CopyAndUpdateOperator.qs".into(), include_str!("../../../../samples/language/CopyAndUpdateOperator.qs").into())],
         None,
     )
 }
@@ -272,7 +272,7 @@ fn debug_CopyAndUpdateOperator() {
 #[allow(non_snake_case)]
 fn CustomMeasurements_src() -> SourceMap {
     SourceMap::new(
-        vec![("CustomMeasurements.qs".into(), include_str!("../../../../../samples/language/CustomMeasurements.qs").into())],
+        vec![("CustomMeasurements.qs".into(), include_str!("../../../../samples/language/CustomMeasurements.qs").into())],
         None,
     )
 }
@@ -298,7 +298,7 @@ fn debug_CustomMeasurements() {
 #[allow(non_snake_case)]
 fn DataTypes_src() -> SourceMap {
     SourceMap::new(
-        vec![("DataTypes.qs".into(), include_str!("../../../../../samples/language/DataTypes.qs").into())],
+        vec![("DataTypes.qs".into(), include_str!("../../../../samples/language/DataTypes.qs").into())],
         None,
     )
 }
@@ -324,7 +324,7 @@ fn debug_DataTypes() {
 #[allow(non_snake_case)]
 fn Diagnostics_src() -> SourceMap {
     SourceMap::new(
-        vec![("Diagnostics.qs".into(), include_str!("../../../../../samples/language/Diagnostics.qs").into())],
+        vec![("Diagnostics.qs".into(), include_str!("../../../../samples/language/Diagnostics.qs").into())],
         None,
     )
 }
@@ -350,7 +350,7 @@ fn debug_Diagnostics() {
 #[allow(non_snake_case)]
 fn Double_src() -> SourceMap {
     SourceMap::new(
-        vec![("Double.qs".into(), include_str!("../../../../../samples/language/Double.qs").into())],
+        vec![("Double.qs".into(), include_str!("../../../../samples/language/Double.qs").into())],
         None,
     )
 }
@@ -376,7 +376,7 @@ fn debug_Double() {
 #[allow(non_snake_case)]
 fn EntryPoint_src() -> SourceMap {
     SourceMap::new(
-        vec![("EntryPoint.qs".into(), include_str!("../../../../../samples/language/EntryPoint.qs").into())],
+        vec![("EntryPoint.qs".into(), include_str!("../../../../samples/language/EntryPoint.qs").into())],
         None,
     )
 }
@@ -402,7 +402,7 @@ fn debug_EntryPoint() {
 #[allow(non_snake_case)]
 fn FailStatement_src() -> SourceMap {
     SourceMap::new(
-        vec![("FailStatement.qs".into(), include_str!("../../../../../samples/language/FailStatement.qs").into())],
+        vec![("FailStatement.qs".into(), include_str!("../../../../samples/language/FailStatement.qs").into())],
         None,
     )
 }
@@ -428,7 +428,7 @@ fn debug_FailStatement() {
 #[allow(non_snake_case)]
 fn ForLoops_src() -> SourceMap {
     SourceMap::new(
-        vec![("ForLoops.qs".into(), include_str!("../../../../../samples/language/ForLoops.qs").into())],
+        vec![("ForLoops.qs".into(), include_str!("../../../../samples/language/ForLoops.qs").into())],
         None,
     )
 }
@@ -454,7 +454,7 @@ fn debug_ForLoops() {
 #[allow(non_snake_case)]
 fn Functions_src() -> SourceMap {
     SourceMap::new(
-        vec![("Functions.qs".into(), include_str!("../../../../../samples/language/Functions.qs").into())],
+        vec![("Functions.qs".into(), include_str!("../../../../samples/language/Functions.qs").into())],
         None,
     )
 }
@@ -480,7 +480,7 @@ fn debug_Functions() {
 #[allow(non_snake_case)]
 fn GettingStarted_src() -> SourceMap {
     SourceMap::new(
-        vec![("GettingStarted.qs".into(), include_str!("../../../../../samples/language/GettingStarted.qs").into())],
+        vec![("GettingStarted.qs".into(), include_str!("../../../../samples/language/GettingStarted.qs").into())],
         None,
     )
 }
@@ -506,7 +506,7 @@ fn debug_GettingStarted() {
 #[allow(non_snake_case)]
 fn Int_src() -> SourceMap {
     SourceMap::new(
-        vec![("Int.qs".into(), include_str!("../../../../../samples/language/Int.qs").into())],
+        vec![("Int.qs".into(), include_str!("../../../../samples/language/Int.qs").into())],
         None,
     )
 }
@@ -532,7 +532,7 @@ fn debug_Int() {
 #[allow(non_snake_case)]
 fn LambdaExpression_src() -> SourceMap {
     SourceMap::new(
-        vec![("LambdaExpression.qs".into(), include_str!("../../../../../samples/language/LambdaExpression.qs").into())],
+        vec![("LambdaExpression.qs".into(), include_str!("../../../../samples/language/LambdaExpression.qs").into())],
         None,
     )
 }
@@ -558,7 +558,7 @@ fn debug_LambdaExpression() {
 #[allow(non_snake_case)]
 fn LogicalOperators_src() -> SourceMap {
     SourceMap::new(
-        vec![("LogicalOperators.qs".into(), include_str!("../../../../../samples/language/LogicalOperators.qs").into())],
+        vec![("LogicalOperators.qs".into(), include_str!("../../../../samples/language/LogicalOperators.qs").into())],
         None,
     )
 }
@@ -584,7 +584,7 @@ fn debug_LogicalOperators() {
 #[allow(non_snake_case)]
 fn Namespaces_src() -> SourceMap {
     SourceMap::new(
-        vec![("Namespaces.qs".into(), include_str!("../../../../../samples/language/Namespaces.qs").into())],
+        vec![("Namespaces.qs".into(), include_str!("../../../../samples/language/Namespaces.qs").into())],
         None,
     )
 }
@@ -610,7 +610,7 @@ fn debug_Namespaces() {
 #[allow(non_snake_case)]
 fn Operations_src() -> SourceMap {
     SourceMap::new(
-        vec![("Operations.qs".into(), include_str!("../../../../../samples/language/Operations.qs").into())],
+        vec![("Operations.qs".into(), include_str!("../../../../samples/language/Operations.qs").into())],
         None,
     )
 }
@@ -636,7 +636,7 @@ fn debug_Operations() {
 #[allow(non_snake_case)]
 fn PartialApplication_src() -> SourceMap {
     SourceMap::new(
-        vec![("PartialApplication.qs".into(), include_str!("../../../../../samples/language/PartialApplication.qs").into())],
+        vec![("PartialApplication.qs".into(), include_str!("../../../../samples/language/PartialApplication.qs").into())],
         None,
     )
 }
@@ -662,7 +662,7 @@ fn debug_PartialApplication() {
 #[allow(non_snake_case)]
 fn Pauli_src() -> SourceMap {
     SourceMap::new(
-        vec![("Pauli.qs".into(), include_str!("../../../../../samples/language/Pauli.qs").into())],
+        vec![("Pauli.qs".into(), include_str!("../../../../samples/language/Pauli.qs").into())],
         None,
     )
 }
@@ -688,7 +688,7 @@ fn debug_Pauli() {
 #[allow(non_snake_case)]
 fn QuantumMemory_src() -> SourceMap {
     SourceMap::new(
-        vec![("QuantumMemory.qs".into(), include_str!("../../../../../samples/language/QuantumMemory.qs").into())],
+        vec![("QuantumMemory.qs".into(), include_str!("../../../../samples/language/QuantumMemory.qs").into())],
         None,
     )
 }
@@ -714,7 +714,7 @@ fn debug_QuantumMemory() {
 #[allow(non_snake_case)]
 fn Qubit_src() -> SourceMap {
     SourceMap::new(
-        vec![("Qubit.qs".into(), include_str!("../../../../../samples/language/Qubit.qs").into())],
+        vec![("Qubit.qs".into(), include_str!("../../../../samples/language/Qubit.qs").into())],
         None,
     )
 }
@@ -740,7 +740,7 @@ fn debug_Qubit() {
 #[allow(non_snake_case)]
 fn Range_src() -> SourceMap {
     SourceMap::new(
-        vec![("Range.qs".into(), include_str!("../../../../../samples/language/Range.qs").into())],
+        vec![("Range.qs".into(), include_str!("../../../../samples/language/Range.qs").into())],
         None,
     )
 }
@@ -766,7 +766,7 @@ fn debug_Range() {
 #[allow(non_snake_case)]
 fn RepeatUntilLoops_src() -> SourceMap {
     SourceMap::new(
-        vec![("RepeatUntilLoops.qs".into(), include_str!("../../../../../samples/language/RepeatUntilLoops.qs").into())],
+        vec![("RepeatUntilLoops.qs".into(), include_str!("../../../../samples/language/RepeatUntilLoops.qs").into())],
         None,
     )
 }
@@ -792,7 +792,7 @@ fn debug_RepeatUntilLoops() {
 #[allow(non_snake_case)]
 fn Result_src() -> SourceMap {
     SourceMap::new(
-        vec![("Result.qs".into(), include_str!("../../../../../samples/language/Result.qs").into())],
+        vec![("Result.qs".into(), include_str!("../../../../samples/language/Result.qs").into())],
         None,
     )
 }
@@ -818,7 +818,7 @@ fn debug_Result() {
 #[allow(non_snake_case)]
 fn ReturnStatement_src() -> SourceMap {
     SourceMap::new(
-        vec![("ReturnStatement.qs".into(), include_str!("../../../../../samples/language/ReturnStatement.qs").into())],
+        vec![("ReturnStatement.qs".into(), include_str!("../../../../samples/language/ReturnStatement.qs").into())],
         None,
     )
 }
@@ -844,7 +844,7 @@ fn debug_ReturnStatement() {
 #[allow(non_snake_case)]
 fn Specializations_src() -> SourceMap {
     SourceMap::new(
-        vec![("Specializations.qs".into(), include_str!("../../../../../samples/language/Specializations.qs").into())],
+        vec![("Specializations.qs".into(), include_str!("../../../../samples/language/Specializations.qs").into())],
         None,
     )
 }
@@ -870,7 +870,7 @@ fn debug_Specializations() {
 #[allow(non_snake_case)]
 fn String_src() -> SourceMap {
     SourceMap::new(
-        vec![("String.qs".into(), include_str!("../../../../../samples/language/String.qs").into())],
+        vec![("String.qs".into(), include_str!("../../../../samples/language/String.qs").into())],
         None,
     )
 }
@@ -896,7 +896,7 @@ fn debug_String() {
 #[allow(non_snake_case)]
 fn Ternary_src() -> SourceMap {
     SourceMap::new(
-        vec![("Ternary.qs".into(), include_str!("../../../../../samples/language/Ternary.qs").into())],
+        vec![("Ternary.qs".into(), include_str!("../../../../samples/language/Ternary.qs").into())],
         None,
     )
 }
@@ -922,7 +922,7 @@ fn debug_Ternary() {
 #[allow(non_snake_case)]
 fn TestAttribute_src() -> SourceMap {
     SourceMap::new(
-        vec![("TestAttribute.qs".into(), include_str!("../../../../../samples/language/TestAttribute.qs").into())],
+        vec![("TestAttribute.qs".into(), include_str!("../../../../samples/language/TestAttribute.qs").into())],
         None,
     )
 }
@@ -948,7 +948,7 @@ fn debug_TestAttribute() {
 #[allow(non_snake_case)]
 fn Tuple_src() -> SourceMap {
     SourceMap::new(
-        vec![("Tuple.qs".into(), include_str!("../../../../../samples/language/Tuple.qs").into())],
+        vec![("Tuple.qs".into(), include_str!("../../../../samples/language/Tuple.qs").into())],
         None,
     )
 }
@@ -974,7 +974,7 @@ fn debug_Tuple() {
 #[allow(non_snake_case)]
 fn TypeDeclarations_src() -> SourceMap {
     SourceMap::new(
-        vec![("TypeDeclarations.qs".into(), include_str!("../../../../../samples/language/TypeDeclarations.qs").into())],
+        vec![("TypeDeclarations.qs".into(), include_str!("../../../../samples/language/TypeDeclarations.qs").into())],
         None,
     )
 }
@@ -1000,7 +1000,7 @@ fn debug_TypeDeclarations() {
 #[allow(non_snake_case)]
 fn Unit_src() -> SourceMap {
     SourceMap::new(
-        vec![("Unit.qs".into(), include_str!("../../../../../samples/language/Unit.qs").into())],
+        vec![("Unit.qs".into(), include_str!("../../../../samples/language/Unit.qs").into())],
         None,
     )
 }
@@ -1026,7 +1026,7 @@ fn debug_Unit() {
 #[allow(non_snake_case)]
 fn Variables_src() -> SourceMap {
     SourceMap::new(
-        vec![("Variables.qs".into(), include_str!("../../../../../samples/language/Variables.qs").into())],
+        vec![("Variables.qs".into(), include_str!("../../../../samples/language/Variables.qs").into())],
         None,
     )
 }
@@ -1052,7 +1052,7 @@ fn debug_Variables() {
 #[allow(non_snake_case)]
 fn WhileLoops_src() -> SourceMap {
     SourceMap::new(
-        vec![("WhileLoops.qs".into(), include_str!("../../../../../samples/language/WhileLoops.qs").into())],
+        vec![("WhileLoops.qs".into(), include_str!("../../../../samples/language/WhileLoops.qs").into())],
         None,
     )
 }
@@ -1078,7 +1078,7 @@ fn debug_WhileLoops() {
 #[allow(non_snake_case)]
 fn WithinApply_src() -> SourceMap {
     SourceMap::new(
-        vec![("WithinApply.qs".into(), include_str!("../../../../../samples/language/WithinApply.qs").into())],
+        vec![("WithinApply.qs".into(), include_str!("../../../../samples/language/WithinApply.qs").into())],
         None,
     )
 }

@@ -13,7 +13,7 @@ use qsc::SourceMap;
 fn compile_Dynamics() {
     compile(
         SourceMap::new(
-            vec![("Dynamics.qs".into(), include_str!("../../../../../samples/estimation/Dynamics.qs").into())],
+            vec![("Dynamics.qs".into(), include_str!("../../../../samples/estimation/Dynamics.qs").into())],
             None,
         )
     );
@@ -24,7 +24,7 @@ fn compile_Dynamics() {
 fn compile_EkeraHastadFactoring() {
     compile(
         SourceMap::new(
-            vec![("EkeraHastadFactoring.qs".into(), include_str!("../../../../../samples/estimation/EkeraHastadFactoring.qs").into())],
+            vec![("EkeraHastadFactoring.qs".into(), include_str!("../../../../samples/estimation/EkeraHastadFactoring.qs").into())],
             None,
         )
     );
@@ -35,7 +35,7 @@ fn compile_EkeraHastadFactoring() {
 fn compile_Precalculated() {
     compile(
         SourceMap::new(
-            vec![("Precalculated.qs".into(), include_str!("../../../../../samples/estimation/Precalculated.qs").into())],
+            vec![("Precalculated.qs".into(), include_str!("../../../../samples/estimation/Precalculated.qs").into())],
             None,
         )
     );
@@ -46,7 +46,7 @@ fn compile_Precalculated() {
 fn compile_ShorRE() {
     compile(
         SourceMap::new(
-            vec![("ShorRE.qs".into(), include_str!("../../../../../samples/estimation/ShorRE.qs").into())],
+            vec![("ShorRE.qs".into(), include_str!("../../../../samples/estimation/ShorRE.qs").into())],
             None,
         )
     );

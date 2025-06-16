@@ -37,13 +37,12 @@ import {
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
 const qdkSrcDir = join(thisDir, "qdk_source");
-const backendDir = join(qdkSrcDir, "backend");
 
 // Watch the source directories directly to avoid notification noise from .git, __pycache__, node_modules, target, etc.
-const coreDir = join(backendDir, "compiler");
+const coreDir = join(qdkSrcDir, "compiler");
 const libsDir = join(thisDir, "library");
-const vslsDir = join(backendDir, "language_service");
-const wasmDir = join(backendDir, "wasm");
+const vslsDir = join(qdkSrcDir, "language_service");
+const wasmDir = join(qdkSrcDir, "wasm");
 const npmDir = join(qdkSrcDir, "npm", "qsharp");
 const katasDir = join(thisDir, "katas");
 const samplesDir = join(thisDir, "samples");

@@ -12,7 +12,7 @@ use qsc::SourceMap;
 #[allow(non_snake_case)]
 fn BernsteinVazirani_src() -> SourceMap {
     SourceMap::new(
-        vec![("BernsteinVazirani.qs".into(), include_str!("../../../../../samples/algorithms/BernsteinVazirani.qs").into())],
+        vec![("BernsteinVazirani.qs".into(), include_str!("../../../../samples/algorithms/BernsteinVazirani.qs").into())],
         None,
     )
 }
@@ -38,7 +38,7 @@ fn debug_BernsteinVazirani() {
 #[allow(non_snake_case)]
 fn BernsteinVaziraniNISQ_src() -> SourceMap {
     SourceMap::new(
-        vec![("BernsteinVaziraniNISQ.qs".into(), include_str!("../../../../../samples/algorithms/BernsteinVaziraniNISQ.qs").into())],
+        vec![("BernsteinVaziraniNISQ.qs".into(), include_str!("../../../../samples/algorithms/BernsteinVaziraniNISQ.qs").into())],
         None,
     )
 }
@@ -64,7 +64,7 @@ fn debug_BernsteinVaziraniNISQ() {
 #[allow(non_snake_case)]
 fn BitFlipCode_src() -> SourceMap {
     SourceMap::new(
-        vec![("BitFlipCode.qs".into(), include_str!("../../../../../samples/algorithms/BitFlipCode.qs").into())],
+        vec![("BitFlipCode.qs".into(), include_str!("../../../../samples/algorithms/BitFlipCode.qs").into())],
         None,
     )
 }
@@ -90,7 +90,7 @@ fn debug_BitFlipCode() {
 #[allow(non_snake_case)]
 fn DeutschJozsa_src() -> SourceMap {
     SourceMap::new(
-        vec![("DeutschJozsa.qs".into(), include_str!("../../../../../samples/algorithms/DeutschJozsa.qs").into())],
+        vec![("DeutschJozsa.qs".into(), include_str!("../../../../samples/algorithms/DeutschJozsa.qs").into())],
         None,
     )
 }
@@ -116,7 +116,7 @@ fn debug_DeutschJozsa() {
 #[allow(non_snake_case)]
 fn DeutschJozsaNISQ_src() -> SourceMap {
     SourceMap::new(
-        vec![("DeutschJozsaNISQ.qs".into(), include_str!("../../../../../samples/algorithms/DeutschJozsaNISQ.qs").into())],
+        vec![("DeutschJozsaNISQ.qs".into(), include_str!("../../../../samples/algorithms/DeutschJozsaNISQ.qs").into())],
         None,
     )
 }
@@ -142,7 +142,7 @@ fn debug_DeutschJozsaNISQ() {
 #[allow(non_snake_case)]
 fn DotProductViaPhaseEstimation_src() -> SourceMap {
     SourceMap::new(
-        vec![("DotProductViaPhaseEstimation.qs".into(), include_str!("../../../../../samples/algorithms/DotProductViaPhaseEstimation.qs").into())],
+        vec![("DotProductViaPhaseEstimation.qs".into(), include_str!("../../../../samples/algorithms/DotProductViaPhaseEstimation.qs").into())],
         None,
     )
 }
@@ -168,7 +168,7 @@ fn debug_DotProductViaPhaseEstimation() {
 #[allow(non_snake_case)]
 fn Grover_src() -> SourceMap {
     SourceMap::new(
-        vec![("Grover.qs".into(), include_str!("../../../../../samples/algorithms/Grover.qs").into())],
+        vec![("Grover.qs".into(), include_str!("../../../../samples/algorithms/Grover.qs").into())],
         None,
     )
 }
@@ -194,7 +194,7 @@ fn debug_Grover() {
 #[allow(non_snake_case)]
 fn HiddenShift_src() -> SourceMap {
     SourceMap::new(
-        vec![("HiddenShift.qs".into(), include_str!("../../../../../samples/algorithms/HiddenShift.qs").into())],
+        vec![("HiddenShift.qs".into(), include_str!("../../../../samples/algorithms/HiddenShift.qs").into())],
         None,
     )
 }
@@ -220,7 +220,7 @@ fn debug_HiddenShift() {
 #[allow(non_snake_case)]
 fn HiddenShiftNISQ_src() -> SourceMap {
     SourceMap::new(
-        vec![("HiddenShiftNISQ.qs".into(), include_str!("../../../../../samples/algorithms/HiddenShiftNISQ.qs").into())],
+        vec![("HiddenShiftNISQ.qs".into(), include_str!("../../../../samples/algorithms/HiddenShiftNISQ.qs").into())],
         None,
     )
 }
@@ -246,7 +246,7 @@ fn debug_HiddenShiftNISQ() {
 #[allow(non_snake_case)]
 fn PhaseEstimation_src() -> SourceMap {
     SourceMap::new(
-        vec![("PhaseEstimation.qs".into(), include_str!("../../../../../samples/algorithms/PhaseEstimation.qs").into())],
+        vec![("PhaseEstimation.qs".into(), include_str!("../../../../samples/algorithms/PhaseEstimation.qs").into())],
         None,
     )
 }
@@ -272,7 +272,7 @@ fn debug_PhaseEstimation() {
 #[allow(non_snake_case)]
 fn PhaseFlipCode_src() -> SourceMap {
     SourceMap::new(
-        vec![("PhaseFlipCode.qs".into(), include_str!("../../../../../samples/algorithms/PhaseFlipCode.qs").into())],
+        vec![("PhaseFlipCode.qs".into(), include_str!("../../../../samples/algorithms/PhaseFlipCode.qs").into())],
         None,
     )
 }
@@ -298,7 +298,7 @@ fn debug_PhaseFlipCode() {
 #[allow(non_snake_case)]
 fn QRNG_src() -> SourceMap {
     SourceMap::new(
-        vec![("QRNG.qs".into(), include_str!("../../../../../samples/algorithms/QRNG.qs").into())],
+        vec![("QRNG.qs".into(), include_str!("../../../../samples/algorithms/QRNG.qs").into())],
         None,
     )
 }
@@ -324,7 +324,7 @@ fn debug_QRNG() {
 #[allow(non_snake_case)]
 fn Shor_src() -> SourceMap {
     SourceMap::new(
-        vec![("Shor.qs".into(), include_str!("../../../../../samples/algorithms/Shor.qs").into())],
+        vec![("Shor.qs".into(), include_str!("../../../../samples/algorithms/Shor.qs").into())],
         None,
     )
 }
@@ -350,7 +350,7 @@ fn debug_Shor() {
 #[allow(non_snake_case)]
 fn SimplePhaseEstimation_src() -> SourceMap {
     SourceMap::new(
-        vec![("SimplePhaseEstimation.qs".into(), include_str!("../../../../../samples/algorithms/SimplePhaseEstimation.qs").into())],
+        vec![("SimplePhaseEstimation.qs".into(), include_str!("../../../../samples/algorithms/SimplePhaseEstimation.qs").into())],
         None,
     )
 }
@@ -376,7 +376,7 @@ fn debug_SimplePhaseEstimation() {
 #[allow(non_snake_case)]
 fn SimpleVQE_src() -> SourceMap {
     SourceMap::new(
-        vec![("SimpleVQE.qs".into(), include_str!("../../../../../samples/algorithms/SimpleVQE.qs").into())],
+        vec![("SimpleVQE.qs".into(), include_str!("../../../../samples/algorithms/SimpleVQE.qs").into())],
         None,
     )
 }
@@ -402,7 +402,7 @@ fn debug_SimpleVQE() {
 #[allow(non_snake_case)]
 fn SuperdenseCoding_src() -> SourceMap {
     SourceMap::new(
-        vec![("SuperdenseCoding.qs".into(), include_str!("../../../../../samples/algorithms/SuperdenseCoding.qs").into())],
+        vec![("SuperdenseCoding.qs".into(), include_str!("../../../../samples/algorithms/SuperdenseCoding.qs").into())],
         None,
     )
 }
@@ -428,7 +428,7 @@ fn debug_SuperdenseCoding() {
 #[allow(non_snake_case)]
 fn Teleportation_src() -> SourceMap {
     SourceMap::new(
-        vec![("Teleportation.qs".into(), include_str!("../../../../../samples/algorithms/Teleportation.qs").into())],
+        vec![("Teleportation.qs".into(), include_str!("../../../../samples/algorithms/Teleportation.qs").into())],
         None,
     )
 }
@@ -454,7 +454,7 @@ fn debug_Teleportation() {
 #[allow(non_snake_case)]
 fn ThreeQubitRepetitionCode_src() -> SourceMap {
     SourceMap::new(
-        vec![("ThreeQubitRepetitionCode.qs".into(), include_str!("../../../../../samples/algorithms/ThreeQubitRepetitionCode.qs").into())],
+        vec![("ThreeQubitRepetitionCode.qs".into(), include_str!("../../../../samples/algorithms/ThreeQubitRepetitionCode.qs").into())],
         None,
     )
 }

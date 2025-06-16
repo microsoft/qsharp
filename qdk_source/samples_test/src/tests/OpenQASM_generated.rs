@@ -10,7 +10,7 @@ use super::{compile_and_run_qasm, compile_and_run_debug_qasm};
 
 #[allow(non_snake_case)]
 fn BellPair_src() -> &'static str {
-    include_str!("../../../../../samples/OpenQASM/BellPair.qasm")
+    include_str!("../../../../samples/OpenQASM/BellPair.qasm")
 }
 
 #[allow(non_snake_case)]
@@ -33,7 +33,7 @@ fn debug_BellPair() {
 
 #[allow(non_snake_case)]
 fn BernsteinVazirani_src() -> &'static str {
-    include_str!("../../../../../samples/OpenQASM/BernsteinVazirani.qasm")
+    include_str!("../../../../samples/OpenQASM/BernsteinVazirani.qasm")
 }
 
 #[allow(non_snake_case)]
@@ -56,7 +56,7 @@ fn debug_BernsteinVazirani() {
 
 #[allow(non_snake_case)]
 fn Grover_src() -> &'static str {
-    include_str!("../../../../../samples/OpenQASM/Grover.qasm")
+    include_str!("../../../../samples/OpenQASM/Grover.qasm")
 }
 
 #[allow(non_snake_case)]
@@ -79,7 +79,7 @@ fn debug_Grover() {
 
 #[allow(non_snake_case)]
 fn OpenQasmHelloWorld_src() -> &'static str {
-    include_str!("../../../../../samples/OpenQASM/OpenQasmHelloWorld.qasm")
+    include_str!("../../../../samples/OpenQASM/OpenQasmHelloWorld.qasm")
 }
 
 #[allow(non_snake_case)]
@@ -102,7 +102,7 @@ fn debug_OpenQasmHelloWorld() {
 
 #[allow(non_snake_case)]
 fn RandomNumber_src() -> &'static str {
-    include_str!("../../../../../samples/OpenQASM/RandomNumber.qasm")
+    include_str!("../../../../samples/OpenQASM/RandomNumber.qasm")
 }
 
 #[allow(non_snake_case)]
@@ -125,7 +125,7 @@ fn debug_RandomNumber() {
 
 #[allow(non_snake_case)]
 fn Simple1dIsingOrder1_src() -> &'static str {
-    include_str!("../../../../../samples/OpenQASM/Simple1dIsingOrder1.qasm")
+    include_str!("../../../../samples/OpenQASM/Simple1dIsingOrder1.qasm")
 }
 
 #[allow(non_snake_case)]
@@ -148,7 +148,7 @@ fn debug_Simple1dIsingOrder1() {
 
 #[allow(non_snake_case)]
 fn Teleportation_src() -> &'static str {
-    include_str!("../../../../../samples/OpenQASM/Teleportation.qasm")
+    include_str!("../../../../samples/OpenQASM/Teleportation.qasm")
 }
 
 #[allow(non_snake_case)]

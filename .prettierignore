@@ -10,9 +10,8 @@ __pycache__/
 .venv/
 /katas/**/*.md
 /library/
-/qdk_source/backend/allocator/
-/qdk_source/backend/compiler/
-/qdk_source/backend/wasm/
+/qdk_source/allocator/
+/qdk_source/compiler/
 /qdk_source/jupyterlab/lib/
 /qdk_source/jupyterlab/qsharp-jupyterlab/labextension/
 /qdk_source/npm/qsharp/dist/
@@ -25,6 +24,7 @@ __pycache__/
 /qdk_source/vscode/out/
 /qdk_source/vscode/test/out/
 /qdk_source/vscode/test/**/test-workspace/
+/qdk_source/wasm/
 /samples/
 /target/
 .config/1espt/PipelineAutobaseliningConfig.yml
