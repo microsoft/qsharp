@@ -3,6 +3,8 @@
 
 use std::ops::ShlAssign;
 use std::rc::Rc;
+use std::str::FromStr;
+use std::sync::Arc;
 
 use super::const_eval::ConstEvalError;
 use super::symbols::ScopeKind;
@@ -36,6 +38,7 @@ use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
 use crate::stdlib::angle::Angle;
 use crate::stdlib::builtin_functions;
+use crate::stdlib::complex::Complex;
 
 use super::ast as semantic;
 use crate::parser::ast as syntax;
@@ -58,6 +61,18 @@ macro_rules! err_expr {
     };
 }
 
+const SWITCH_MINIMUM_SUPPORTED_VERSION: semantic::Version = semantic::Version {
+    major: 3,
+    minor: Some(1),
+    span: Span { lo: 0, hi: 0 },
+};
+
+const QASM2_VERSION: semantic::Version = semantic::Version {
+    major: 2,
+    minor: Some(0),
+    span: Span { lo: 0, hi: 0 },
+};
+
 pub(crate) struct Lowerer {
     /// The root QASM source to compile.
     pub source: QasmSource,
@@ -69,13 +84,29 @@ pub(crate) struct Lowerer {
     /// when we are done with the file.
     /// This allows us to report errors with the correct file path.
     pub symbols: SymbolTable,
+    /// The version of the QASM source. Used to determine the base gate set
+    /// and other features.
     pub version: Option<Version>,
     pub stmts: Vec<Stmt>,
 }
 
 impl Lowerer {
     pub fn new(source: QasmSource, source_map: SourceMap) -> Self {
-        let symbols = SymbolTable::default();
+        // do a quick check for the version to set up the symbol table
+        // lowering and validation come later
+        let version = source.program().version;
+        let symbols = if let Some(version) = version {
+            if version.major == 2 && version.minor == Some(0) {
+                SymbolTable::new_qasm2()
+            } else {
+                SymbolTable::default()
+            }
+        } else {
+            SymbolTable::default()
+        };
+
+        // we don't set the version here, as we need to check
+        // for allowed version during lowering
         let version = None;
         let stmts = Vec::new();
         let errors = Vec::new();
@@ -117,6 +148,9 @@ impl Lowerer {
 
     fn lower_version(&mut self, version: Option<syntax::Version>) -> Option<Version> {
         if let Some(version) = version {
+            if version.major == 2 && version.minor == Some(0) {
+                return Some(QASM2_VERSION);
+            }
             if version.major != 3 {
                 self.push_semantic_error(SemanticErrorKind::UnsupportedVersion(
                     format!("{version}"),
@@ -163,7 +197,24 @@ impl Lowerer {
                 // special case for stdgates.inc
                 // it won't be in the includes list
                 if include.filename.to_lowercase() == "stdgates.inc" {
+                    if self.version == Some(QASM2_VERSION) {
+                        self.push_semantic_error(SemanticErrorKind::IncludeNotInLanguageVersion(
+                            include.filename.to_string(),
+                            "3.0".to_string(),
+                            include.span,
+                        ));
+                    }
                     self.define_stdgates(include.span);
+                    continue;
+                } else if include.filename.to_lowercase() == "qelib1.inc" {
+                    if self.version != Some(QASM2_VERSION) {
+                        self.push_semantic_error(SemanticErrorKind::IncludeNotInLanguageVersion(
+                            include.filename.to_string(),
+                            "2.0".to_string(),
+                            include.span,
+                        ));
+                    }
+                    self.define_qelib1_gates(include.span);
                     continue;
                 }
 
@@ -266,6 +317,59 @@ impl Lowerer {
             gate_symbol("u1", 1, 1),
             gate_symbol("u2", 2, 1),
             gate_symbol("u3", 3, 1),
+        ];
+        for gate in gates {
+            let name = gate.name.clone();
+            if self.symbols.insert_symbol(gate).is_err() {
+                self.push_redefined_symbol_error(name.as_str(), span);
+            }
+        }
+    }
+
+    /// Define the standard gates in the symbol table.
+    /// The sdg, tdg, crx, cry, crz, and ch are defined
+    /// as their bare gates, and modifiers are applied
+    /// when calling them.
+    fn define_qelib1_gates(&mut self, span: Span) {
+        fn gate_symbol(name: &str, cargs: u32, qargs: u32) -> Symbol {
+            Symbol::new(
+                name,
+                Span::default(),
+                Type::Gate(cargs, qargs),
+                Default::default(),
+                Default::default(),
+            )
+        }
+
+        let gates = vec![
+            // --- QE Hardware primitives ---
+            gate_symbol("u3", 3, 1),
+            gate_symbol("u2", 2, 1),
+            gate_symbol("u1", 1, 1),
+            //gate_symbol("cx", 0, 2), // handled as a modified x
+            gate_symbol("id", 0, 1),
+            // --- QE Standard Gates ---
+            gate_symbol("x", 0, 1),
+            gate_symbol("y", 0, 1),
+            gate_symbol("z", 0, 1),
+            gate_symbol("h", 0, 1),
+            gate_symbol("s", 0, 1),
+            // sdg handled as a modified s
+            gate_symbol("t", 0, 1),
+            // tdg handled as a modified t
+
+            // --- Standard rotations ---
+            gate_symbol("rx", 1, 1),
+            gate_symbol("ry", 1, 1),
+            gate_symbol("rz", 1, 1),
+            // --- QE Standard User-Defined Gates  ---
+            //gate_symbol("cz", 0, 2), // handled as a modified z
+            //gate_symbol("cy", 0, 2), // handled as a modified y
+            // ch handled as a modified h
+            gate_symbol("ccx", 0, 3),
+            // crz handled as a modified rz
+            // cu1 handled as a modified u1
+            // cu3 handled as a modified u3
         ];
         for gate in gates {
             let name = gate.name.clone();
@@ -807,7 +911,7 @@ impl Lowerer {
                 Type::Float(None, true),
             ),
             syntax::LiteralKind::Imaginary(value) => (
-                semantic::ExprKind::Lit(semantic::LiteralKind::Complex(0.0, *value)),
+                semantic::ExprKind::Lit(Complex::imag(*value).into()),
                 Type::Complex(None, true),
             ),
             syntax::LiteralKind::String(_) => {
@@ -1252,10 +1356,10 @@ impl Lowerer {
             let tydef = syntax::TypeDef::Scalar(*ty.clone());
             let ty = self.get_semantic_type_from_tydef(&tydef, false);
             let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
-            (Rc::new(ty), qsharp_ty)
+            (Arc::new(ty), qsharp_ty)
         } else {
             (
-                Rc::new(crate::semantic::types::Type::Void),
+                Arc::new(crate::semantic::types::Type::Void),
                 crate::types::Type::Tuple(Default::default()),
             )
         };
@@ -1281,7 +1385,7 @@ impl Lowerer {
         let qsharp_ty = crate::types::Type::Callable(kind, arity, 0);
 
         // Check that the name isn't a builtin function.
-        let symbol_id = if Self::is_builtin_function(&name) {
+        let symbol_id = if BuiltinFunction::from_str(&name).is_ok() {
             self.push_semantic_error(SemanticErrorKind::RedefinedBuiltinFunction(
                 name.as_ref().to_string(),
                 stmt.name.span,
@@ -1506,10 +1610,10 @@ impl Lowerer {
             let tydef = syntax::TypeDef::Scalar(ty.clone());
             let ty = self.get_semantic_type_from_tydef(&tydef, false);
             let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
-            (Rc::new(ty), qsharp_ty)
+            (Arc::new(ty), qsharp_ty)
         } else {
             (
-                Rc::new(crate::semantic::types::Type::Void),
+                Arc::new(crate::semantic::types::Type::Void),
                 crate::types::Type::Tuple(Default::default()),
             )
         };
@@ -1635,30 +1739,13 @@ impl Lowerer {
         })
     }
 
-    fn is_builtin_function(name: &str) -> bool {
-        matches!(
-            name,
-            "arccos"
-                | "arcsin"
-                | "arctan"
-                | "ceiling"
-                | "cos"
-                | "exp"
-                | "floor"
-                | "log"
-                | "mod"
-                | "popcount"
-                | "pow"
-                | "rotl"
-                | "rotr"
-                | "sin"
-                | "sqrt"
-                | "tan"
-        )
-    }
+    fn lower_builtin_function_call_expr(
+        &mut self,
+        expr: &syntax::FunctionCall,
+        builtin_fn: BuiltinFunction,
+    ) -> semantic::Expr {
+        use BuiltinFunction::*;
 
-    fn lower_builtin_function_call_expr(&mut self, expr: &syntax::FunctionCall) -> semantic::Expr {
-        let name = &*expr.name.name;
         let name_span = expr.name.span;
         let call_span = expr.span;
         let inputs: Vec<_> = expr
@@ -1667,14 +1754,23 @@ impl Lowerer {
             .map(|e| self.lower_expr(e).with_const_value(self))
             .collect();
 
-        let output = match name {
-            "mod" => builtin_functions::mod_(&inputs, name_span, call_span, self),
-            "arccos" | "arcsin" | "arctan" | "ceiling" | "cos" | "exp" | "floor" | "log"
-            | "popcount" | "pow" | "rotl" | "rotr" | "sin" | "sqrt" | "tan" => {
-                self.push_unimplemented_error_message(format!("{name} builtin"), call_span);
-                None
-            }
-            _ => unreachable!(),
+        let output = match builtin_fn {
+            Arccos => builtin_functions::arccos(&inputs, name_span, call_span, self),
+            Arcsin => builtin_functions::arcsin(&inputs, name_span, call_span, self),
+            Arctan => builtin_functions::arctan(&inputs, name_span, call_span, self),
+            Ceiling => builtin_functions::ceiling(&inputs, name_span, call_span, self),
+            Cos => builtin_functions::cos(&inputs, name_span, call_span, self),
+            Exp => builtin_functions::exp(&inputs, name_span, call_span, self),
+            Floor => builtin_functions::floor(&inputs, name_span, call_span, self),
+            Log => builtin_functions::log(&inputs, name_span, call_span, self),
+            Mod => builtin_functions::mod_(&inputs, name_span, call_span, self),
+            Popcount => builtin_functions::popcount(&inputs, name_span, call_span, self),
+            Pow => builtin_functions::pow(&inputs, name_span, call_span, self),
+            Rotl => builtin_functions::rotl(&inputs, name_span, call_span, self),
+            Rotr => builtin_functions::rotr(&inputs, name_span, call_span, self),
+            Sin => builtin_functions::sin(&inputs, name_span, call_span, self),
+            Sqrt => builtin_functions::sqrt(&inputs, name_span, call_span, self),
+            Tan => builtin_functions::tan(&inputs, name_span, call_span, self),
         };
 
         output.unwrap_or_else(|| err_expr!(Type::Err, call_span))
@@ -1683,8 +1779,8 @@ impl Lowerer {
     fn lower_function_call_expr(&mut self, expr: &syntax::FunctionCall) -> semantic::Expr {
         // 1. If the name refers to a builtin function, we defer
         //    the lowering to `lower_builtin_function_call_expr`.
-        if Self::is_builtin_function(&expr.name.name) {
-            return self.lower_builtin_function_call_expr(expr);
+        if let Ok(builtin_fn) = BuiltinFunction::from_str(&expr.name.name) {
+            return self.lower_builtin_function_call_expr(expr, builtin_fn);
         }
 
         // 2. Check that the function name actually refers to a function
@@ -1708,7 +1804,7 @@ impl Lowerer {
             (params_ty.clone(), (**return_ty).clone())
         } else {
             self.push_semantic_error(SemanticErrorKind::CannotCallNonFunction(expr.span));
-            (Rc::default(), crate::semantic::types::Type::Err)
+            (Arc::default(), crate::semantic::types::Type::Err)
         };
 
         // 4. Lower the args. There are three cases.
@@ -1798,7 +1894,7 @@ impl Lowerer {
 
         let mut name = stmt.name.name.to_string();
         if let Some((gate_name, implicit_modifier)) =
-            try_get_qsharp_name_and_implicit_modifiers(&name, stmt.name.span)
+            self.try_get_qsharp_name_and_implicit_modifiers(&name, stmt.name.span)
         {
             // Override the gate name if we mapped with modifiers.
             name = gate_name;
@@ -2407,11 +2503,6 @@ impl Lowerer {
         // We push a semantic error on switch statements if version is less than 3.1,
         // as they were introduced in 3.1.
         if let Some(ref version) = self.version {
-            const SWITCH_MINIMUM_SUPPORTED_VERSION: semantic::Version = semantic::Version {
-                major: 3,
-                minor: Some(1),
-                span: Span { lo: 0, hi: 0 },
-            };
             if version < &SWITCH_MINIMUM_SUPPORTED_VERSION {
                 self.push_unsuported_in_this_version_error_message(
                     "switch statements",
@@ -2838,7 +2929,7 @@ impl Lowerer {
             Type::Int(_, _) | Type::UInt(_, _) => Some(from_lit_kind(LiteralKind::Int(0))),
             Type::Bool(_) => Some(from_lit_kind(LiteralKind::Bool(false))),
             Type::Float(_, _) => Some(from_lit_kind(LiteralKind::Float(0.0))),
-            Type::Complex(_, _) => Some(from_lit_kind(LiteralKind::Complex(0.0, 0.0))),
+            Type::Complex(_, _) => Some(from_lit_kind(Complex::default().into())),
             Type::Stretch(_) => {
                 let message = "stretch default values";
                 self.push_unsupported_error_message(message, span);
@@ -3091,10 +3182,10 @@ impl Lowerer {
                 None
             }
             (Type::Complex(..), Type::Complex(..)) => {
-                if let semantic::LiteralKind::Complex(real, imag) = kind {
+                if let semantic::LiteralKind::Complex(value) = kind {
                     return Some(semantic::Expr::new(
                         span,
-                        semantic::ExprKind::Lit(semantic::LiteralKind::Complex(*real, *imag)),
+                        semantic::ExprKind::Lit(semantic::LiteralKind::Complex(*value)),
                         lhs_ty.as_const(),
                     ));
                 }
@@ -3104,7 +3195,7 @@ impl Lowerer {
                 if let semantic::LiteralKind::Float(value) = kind {
                     return Some(semantic::Expr::new(
                         span,
-                        semantic::ExprKind::Lit(semantic::LiteralKind::Complex(*value, 0.0)),
+                        semantic::ExprKind::Lit(Complex::real(*value).into()),
                         lhs_ty.as_const(),
                     ));
                 }
@@ -3117,7 +3208,7 @@ impl Lowerer {
                     if let Some(value) = safe_i64_to_f64(*value) {
                         return Some(semantic::Expr::new(
                             span,
-                            semantic::ExprKind::Lit(semantic::LiteralKind::Complex(value, 0.0)),
+                            semantic::ExprKind::Lit(Complex::real(value).into()),
                             lhs_ty.as_const(),
                         ));
                     }
@@ -3329,7 +3420,7 @@ impl Lowerer {
             Type::Complex(..) => {
                 // Even though the spec doesn't say it, we need to allow
                 // casting from float to complex, else this kind of expression
-                // would be invalid: 2.0 + sin(pi) + 1.0i
+                // would be invalid: 2.0 + sin(pi) + 1.0 im
                 Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone()))
             }
             _ => None,
@@ -4038,6 +4129,52 @@ impl Lowerer {
         let error = crate::Error(kind);
         WithSource::from_map(&self.source_map, error)
     }
+
+    fn try_get_qsharp_name_and_implicit_modifiers<S: AsRef<str>>(
+        &self,
+        gate_name: S,
+        name_span: Span,
+    ) -> Option<(String, semantic::QuantumGateModifier)> {
+        use semantic::GateModifierKind::*;
+
+        let make_modifier = |kind| semantic::QuantumGateModifier {
+            span: name_span,
+            modifier_keyword_span: name_span,
+            kind,
+        };
+        let ctrl_expr = Expr::uint(1, Span::default());
+
+        if self.version == Some(QASM2_VERSION) {
+            match gate_name.as_ref() {
+                "cx" => Some(("x".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+                "sdg" => Some(("s".to_string(), make_modifier(Inv))),
+                "tdg" => Some(("t".to_string(), make_modifier(Inv))),
+                "cz" => Some(("z".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+                "cy" => Some(("y".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+                "ch" => Some(("h".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+                "crz" => Some(("rz".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+                "cu1" => Some(("u1".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+                "cu3" => Some(("u3".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+                _ => None,
+            }
+        } else {
+            match gate_name.as_ref() {
+                "cy" => Some(("y".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+                "cz" => Some(("z".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+                "ch" => Some(("h".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+                "crx" => Some(("rx".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+                "cry" => Some(("ry".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+                "crz" => Some(("rz".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+                "cswap" => Some(("swap".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+                "sdg" => Some(("s".to_string(), make_modifier(Inv))),
+                "tdg" => Some(("t".to_string(), make_modifier(Inv))),
+                // Gates for OpenQASM 2 backwards compatibility
+                "CX" => Some(("x".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+                "cphase" => Some(("phase".to_string(), make_modifier(Ctrl(ctrl_expr)))),
+                _ => None,
+            }
+        }
+    }
 }
 
 fn wrap_expr_in_cast_expr(ty: Type, rhs: semantic::Expr) -> semantic::Expr {
@@ -4088,33 +4225,48 @@ fn get_identifier_name(identifier: &syntax::IdentOrIndexedIdent) -> std::rc::Rc<
     }
 }
 
-fn try_get_qsharp_name_and_implicit_modifiers<S: AsRef<str>>(
-    gate_name: S,
-    name_span: Span,
-) -> Option<(String, semantic::QuantumGateModifier)> {
-    use semantic::GateModifierKind::*;
+#[derive(Debug, Clone, Copy)]
+enum BuiltinFunction {
+    Arccos,
+    Arcsin,
+    Arctan,
+    Ceiling,
+    Cos,
+    Exp,
+    Floor,
+    Log,
+    Mod,
+    Popcount,
+    Pow,
+    Rotl,
+    Rotr,
+    Sin,
+    Sqrt,
+    Tan,
+}
 
-    let make_modifier = |kind| semantic::QuantumGateModifier {
-        span: name_span,
-        modifier_keyword_span: name_span,
-        kind,
-    };
+impl FromStr for BuiltinFunction {
+    type Err = ();
 
-    let ctrl_expr = Expr::uint(1, Span::default());
-
-    match gate_name.as_ref() {
-        "cy" => Some(("y".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        "cz" => Some(("z".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        "ch" => Some(("h".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        "crx" => Some(("rx".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        "cry" => Some(("ry".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        "crz" => Some(("rz".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        "cswap" => Some(("swap".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        "sdg" => Some(("s".to_string(), make_modifier(Inv))),
-        "tdg" => Some(("t".to_string(), make_modifier(Inv))),
-        // Gates for OpenQASM 2 backwards compatibility
-        "CX" => Some(("x".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        "cphase" => Some(("phase".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        _ => None,
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "arccos" => Ok(Self::Arccos),
+            "arcsin" => Ok(Self::Arcsin),
+            "arctan" => Ok(Self::Arctan),
+            "ceiling" => Ok(Self::Ceiling),
+            "cos" => Ok(Self::Cos),
+            "exp" => Ok(Self::Exp),
+            "floor" => Ok(Self::Floor),
+            "log" => Ok(Self::Log),
+            "mod" => Ok(Self::Mod),
+            "popcount" => Ok(Self::Popcount),
+            "pow" => Ok(Self::Pow),
+            "rotl" => Ok(Self::Rotl),
+            "rotr" => Ok(Self::Rotr),
+            "sin" => Ok(Self::Sin),
+            "sqrt" => Ok(Self::Sqrt),
+            "tan" => Ok(Self::Tan),
+            _ => Err(()),
+        }
     }
 }

@@ -3,7 +3,11 @@
 
 import * as vscode from "vscode";
 import { assert } from "chai";
-import { activateExtension, waitForCondition } from "../extensionUtils";
+import {
+  activateExtension,
+  waitForCondition,
+  waitForDiagnosticsToAppear,
+} from "../extensionUtils";
 
 suite("Q# Notebook Tests", function suite() {
   const workspaceFolder =
@@ -83,7 +87,7 @@ suite("Q# Notebook Tests", function suite() {
     const thirdQSharpCellUri = notebook.cellAt(3).document.uri;
 
     // Verify diagnostics in Q# cell
-    const diagnostics = vscode.languages.getDiagnostics(thirdQSharpCellUri);
+    const diagnostics = await waitForDiagnosticsToAppear(thirdQSharpCellUri);
     assert.lengthOf(diagnostics, 1);
 
     assert.include(diagnostics[0].message, "syntax error");

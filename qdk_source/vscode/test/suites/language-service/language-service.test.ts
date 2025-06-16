@@ -3,7 +3,12 @@
 
 import { assert } from "chai";
 import * as vscode from "vscode";
-import { activateExtension } from "../extensionUtils";
+import {
+  activateExtension,
+  openDocumentAndWaitForProcessing,
+  waitForDiagnosticsToAppear,
+  waitForDiagnosticsToBeEmpty,
+} from "../extensionUtils";
 
 suite("Q# Language Service Tests", function suite() {
   const workspaceFolder =
@@ -35,32 +40,12 @@ suite("Q# Language Service Tests", function suite() {
   this.beforeAll(async () => {
     await activateExtension();
 
-    // Pre-open the text documents that are going to be interacted with in
-    // the tests. This just gives the language a service a bit of time to load
-    // fully in the background before the test cases run.
-    //
-    // This isn't great, but we don't currently have a way to await background
-    // language service tasks in tests.
-    // This is the best we can do to ensure the features have been initialized
-    // before we start testing.
-    await vscode.workspace.openTextDocument(testQs);
-    await vscode.workspace.openTextDocument(noErrorsQs);
-    await vscode.workspace.openTextDocument(mainPackageMainQs);
-    await vscode.workspace.openTextDocument(depPackageMainQs);
-    await vscode.workspace.openTextDocument(missingDepMainQs);
-    await vscode.workspace.openTextDocument(badManifestMainQs);
-    await vscode.workspace.openTextDocument(circularDepMainQs);
-    await vscode.workspace.openTextDocument(hasBadDepMainQs);
-
-    // Give the language service a tiny bit of time to settle
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
     // Bring up Problems view for when we want to visually inspect what's going on
     vscode.commands.executeCommand("workbench.action.problems.focus");
   });
 
   test("Q# language is registered", async () => {
-    const doc = await vscode.workspace.openTextDocument(testQs);
+    const doc = await openDocumentAndWaitForProcessing(testQs);
     assert.equal(
       doc.languageId,
       "qsharp",
@@ -69,6 +54,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Completions", async () => {
+    await openDocumentAndWaitForProcessing(testQs);
     const actualCompletionList = (await vscode.commands.executeCommand(
       "vscode.executeCompletionItemProvider",
       testQs,
@@ -87,6 +73,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Completions - don't include samples when syntactically inappropriate", async () => {
+    await openDocumentAndWaitForProcessing(testQs);
     const actualCompletionList = (await vscode.commands.executeCommand(
       "vscode.executeCompletionItemProvider",
       testQs,
@@ -100,7 +87,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Definition", async () => {
-    const doc = await vscode.workspace.openTextDocument(testQs);
+    const doc = await openDocumentAndWaitForProcessing(testQs);
     const text = doc.getText(
       new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19)),
     );
@@ -120,7 +107,8 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Diagnostics", async () => {
-    const actualDiagnostics = vscode.languages.getDiagnostics(testQs);
+    await openDocumentAndWaitForProcessing(testQs);
+    const actualDiagnostics = await waitForDiagnosticsToAppear(testQs);
     assert.lengthOf(actualDiagnostics, 1);
 
     assert.include(actualDiagnostics[0].message, "syntax error");
@@ -128,7 +116,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Hover", async () => {
-    const doc = await vscode.workspace.openTextDocument(testQs);
+    const doc = await openDocumentAndWaitForProcessing(testQs);
     const text = doc.getText(
       new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19)),
     );
@@ -148,7 +136,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Signature Help", async () => {
-    const doc = await vscode.workspace.openTextDocument(testQs);
+    const doc = await openDocumentAndWaitForProcessing(testQs);
     const text = doc.getText(
       new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19)),
     );
@@ -169,7 +157,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Format Document", async () => {
-    await vscode.workspace.openTextDocument(testQs);
+    await openDocumentAndWaitForProcessing(testQs);
 
     const actualFormatEdits = (await vscode.commands.executeCommand(
       "vscode.executeFormatDocumentProvider",
@@ -185,7 +173,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Format Document Range", async () => {
-    await vscode.workspace.openTextDocument(testQs);
+    await openDocumentAndWaitForProcessing(testQs);
 
     const noEditRange = new vscode.Range(
       new vscode.Position(7, 24),
@@ -220,7 +208,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Code Lens", async () => {
-    const doc = await vscode.workspace.openTextDocument(noErrorsQs);
+    const doc = await openDocumentAndWaitForProcessing(noErrorsQs);
 
     const actualCodeLenses = (await vscode.commands.executeCommand(
       "vscode.executeCodeLensProvider",
@@ -235,16 +223,10 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Package dependencies", async () => {
-    const doc = await vscode.workspace.openTextDocument(mainPackageMainQs);
+    const doc = await openDocumentAndWaitForProcessing(mainPackageMainQs);
 
     // No errors if package dependencies are properly resolved
-    const actualDiagnostics =
-      vscode.languages.getDiagnostics(mainPackageMainQs);
-
-    assert.isEmpty(
-      actualDiagnostics,
-      `Expected no diagnostics, but got ${JSON.stringify(actualDiagnostics)}`,
-    );
+    await waitForDiagnosticsToBeEmpty(mainPackageMainQs);
 
     // Sanity check the test setup - is this the correct position?
     const text = doc.getText(
@@ -276,7 +258,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Web package dependencies", async () => {
-    const doc = await vscode.workspace.openTextDocument(mainPackageMainQs);
+    const doc = await openDocumentAndWaitForProcessing(mainPackageMainQs);
 
     // Sanity check the test setup - is this the correct position?
     const text = doc.getText(
@@ -306,16 +288,14 @@ suite("Q# Language Service Tests", function suite() {
     assert.equal(location.range.start.character, 13);
 
     // No errors if package dependencies are properly resolved
-    const actualDiagnostics =
-      vscode.languages.getDiagnostics(mainPackageMainQs);
-    assert.isEmpty(actualDiagnostics);
+    await waitForDiagnosticsToBeEmpty(mainPackageMainQs);
   });
 
   test("Manifest errors should be reported", async () => {
     // Can't parse qsharp.json
-    vscode.workspace.openTextDocument(badManifestMainQs);
+    await openDocumentAndWaitForProcessing(badManifestMainQs);
     const actualDiagnostics =
-      vscode.languages.getDiagnostics(badManifestManifest);
+      await waitForDiagnosticsToAppear(badManifestManifest);
     assert.lengthOf(
       actualDiagnostics,
       1,
@@ -330,8 +310,9 @@ suite("Q# Language Service Tests", function suite() {
 
   test("Package resolution errors should be reported", async () => {
     // Dependency missing
-    vscode.workspace.openTextDocument(missingDepMainQs);
-    let actualDiagnostics = vscode.languages.getDiagnostics(missingDepManifest);
+    await openDocumentAndWaitForProcessing(missingDepMainQs);
+    let actualDiagnostics =
+      await waitForDiagnosticsToAppear(missingDepManifest);
     assert.lengthOf(
       actualDiagnostics,
       1,
@@ -344,8 +325,8 @@ suite("Q# Language Service Tests", function suite() {
     );
 
     // Circular dependency
-    vscode.workspace.openTextDocument(circularDepMainQs);
-    actualDiagnostics = vscode.languages.getDiagnostics(circularDepManifest);
+    await openDocumentAndWaitForProcessing(circularDepMainQs);
+    actualDiagnostics = await waitForDiagnosticsToAppear(circularDepManifest);
     assert.lengthOf(
       actualDiagnostics,
       1,
@@ -363,9 +344,9 @@ suite("Q# Language Service Tests", function suite() {
 
     // For a meaningful test, DON'T open the dependency source.
     // Ensure dependency errors are still reported if the parent package is built.
-    vscode.workspace.openTextDocument(hasBadDepMainQs);
+    await openDocumentAndWaitForProcessing(hasBadDepMainQs);
 
-    const actualDiagnostics = vscode.languages.getDiagnostics(
+    const actualDiagnostics = await waitForDiagnosticsToAppear(
       withSyntaxErrorMainQs,
     );
     assert.lengthOf(

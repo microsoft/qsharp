@@ -4,7 +4,7 @@
 use core::f64;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use rustc_hash::FxHashMap;
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use super::{
     ast::{Expr, ExprKind, LiteralKind},
@@ -291,7 +291,7 @@ pub enum ScopeKind {
     Global,
     /// Function scopes need to remember their return type, so that `return` stmts
     /// can do an implicit cast to the correct type, if any;
-    Function(Rc<Type>),
+    Function(Arc<Type>),
     Gate,
     Block,
     Loop,
@@ -336,7 +336,52 @@ impl Default for SymbolTable {
         })
         .unwrap_or_else(|_| panic!("Failed to insert symbol: gphase"));
 
-        // Define global constants.
+        slf.define_global_constants();
+
+        slf
+    }
+}
+
+impl SymbolTable {
+    /// U and CX are the only gates in QASM2
+    /// all others in the std lib are defined
+    /// in terms of U and CX gates.
+    #[must_use]
+    pub fn new_qasm2() -> Self {
+        let global = Scope::new(ScopeKind::Global);
+
+        let mut slf = Self {
+            scopes: vec![global],
+            symbols: IndexMap::default(),
+            current_id: SymbolId::default(),
+        };
+
+        slf.insert_symbol(Symbol {
+            name: "U".to_string(),
+            span: Span::default(),
+            ty: Type::Gate(3, 1),
+            qsharp_ty: crate::types::Type::Callable(crate::types::CallableKind::Operation, 3, 1),
+            io_kind: IOKind::Default,
+            const_expr: None,
+        })
+        .unwrap_or_else(|_| panic!("Failed to insert symbol: U"));
+
+        slf.insert_symbol(Symbol {
+            name: "CX".to_string(),
+            span: Span::default(),
+            ty: Type::Gate(0, 2),
+            qsharp_ty: crate::types::Type::Callable(crate::types::CallableKind::Operation, 0, 2),
+            io_kind: IOKind::Default,
+            const_expr: None,
+        })
+        .unwrap_or_else(|_| panic!("Failed to insert symbol: CX"));
+
+        slf.define_global_constants();
+
+        slf
+    }
+
+    fn define_global_constants(&mut self) {
         for (symbol, val) in BUILTIN_SYMBOLS {
             let ty = Type::Float(None, true);
             let expr = Expr {
@@ -346,7 +391,7 @@ impl Default for SymbolTable {
                 const_value: Some(LiteralKind::Float(val)),
             };
 
-            slf.insert_symbol(Symbol {
+            self.insert_symbol(Symbol {
                 name: symbol.to_string(),
                 span: Span::default(),
                 ty,
@@ -356,12 +401,8 @@ impl Default for SymbolTable {
             })
             .unwrap_or_else(|_| panic!("Failed to insert symbol: {symbol}"));
         }
-
-        slf
     }
-}
 
-impl SymbolTable {
     pub fn push_scope(&mut self, kind: ScopeKind) {
         assert!(kind != ScopeKind::Global, "Cannot push a global scope");
         self.scopes.push(Scope::new(kind));
@@ -520,7 +561,7 @@ impl SymbolTable {
     /// Returns `None` if the current scope is not rooted in a subroutine.
     /// Otherwise, returns the return type of the subroutine.
     #[must_use]
-    pub fn get_subroutine_return_ty(&self) -> Option<Rc<Type>> {
+    pub fn get_subroutine_return_ty(&self) -> Option<Arc<Type>> {
         for scope in self.scopes.iter().rev() {
             if let ScopeKind::Function(return_ty) = &scope.kind {
                 return Some(return_ty.clone());

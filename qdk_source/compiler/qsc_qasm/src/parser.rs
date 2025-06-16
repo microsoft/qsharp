@@ -365,7 +365,10 @@ where
             let file_path = &include.filename;
             // Skip the standard gates include file.
             // Handling of this file is done by the compiler.
-            if file_path.to_lowercase() == "stdgates.inc" {
+            if matches!(
+                file_path.to_lowercase().as_ref(),
+                "stdgates.inc" | "qelib1.inc"
+            ) {
                 continue;
             }
             let source = match parse_qasm_file(file_path, resolver, stmt.span) {
