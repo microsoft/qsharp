@@ -134,32 +134,34 @@ Recall that kets represent column vectors; a bra is a ket's row vector counterpa
 
 Some examples:
 
-<table>
-  <tr>
-    <th>Ket</th>
-    <th>Bra</th>
-  </tr>
-  <tr>
-    <td>$\ket{0} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$</td>
-    <td>$\bra{0} = \begin{bmatrix} 1 & 0 \end{bmatrix}$</td>
-  </tr>
-  <tr>
-    <td>$\ket{1} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$</td>
-    <td>$\bra{1} = \begin{bmatrix} 0 & 1 \end{bmatrix}$</td>
-  </tr>
-  <tr>
-    <td>$\ket{i} = \begin{bmatrix} \frac{1}{\sqrt{2}} \\ \frac{i}{\sqrt{2}} \end{bmatrix}$</td>
-    <td>$\bra{ i} = \begin{bmatrix} \frac{1}{\sqrt{2}} & -\frac{i}{\sqrt{2}} \end{bmatrix}$</td>
-  </tr>
-  <tr>
-    <td>$\ket{\psi} = \begin{bmatrix} \alpha \\ \beta \end{bmatrix}$</td>
-    <td>$\bra{\psi} = \begin{bmatrix} \overline{\alpha} & \overline{\beta} \end{bmatrix}$</td>
-  </tr>
-  <tr>
-    <td>$\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$</td>
-    <td>$\bra{\psi} = \overline{\alpha}\bra{0} + \overline{\beta}\bra{1}$</td>
-  </tr>
-</table>
+<div class="table-with-latex">
+  <table>
+    <tr>
+      <th>Ket</th>
+      <th>Bra</th>
+    </tr>
+    <tr>
+      <td>$\ket{0} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$</td>
+      <td>$\bra{0} = \begin{bmatrix} 1 & 0 \end{bmatrix}$</td>
+    </tr>
+    <tr>
+      <td>$\ket{1} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$</td>
+      <td>$\bra{1} = \begin{bmatrix} 0 & 1 \end{bmatrix}$</td>
+    </tr>
+    <tr>
+      <td>$\ket{i} = \begin{bmatrix} \frac{1}{\sqrt{2}} \\ \frac{i}{\sqrt{2}} \end{bmatrix}$</td>
+      <td>$\bra{ i} = \begin{bmatrix} \frac{1}{\sqrt{2}} & -\frac{i}{\sqrt{2}} \end{bmatrix}$</td>
+    </tr>
+    <tr>
+      <td>$\ket{\psi} = \begin{bmatrix} \alpha \\ \beta \end{bmatrix}$</td>
+      <td>$\bra{\psi} = \begin{bmatrix} \overline{\alpha} & \overline{\beta} \end{bmatrix}$</td>
+    </tr>
+    <tr>
+      <td>$\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$</td>
+      <td>$\bra{\psi} = \overline{\alpha}\bra{0} + \overline{\beta}\bra{1}$</td>
+    </tr>
+  </table>
+</div>
 
 Kets and bras give us a neat way to express inner and outer products. The inner product of $\ket{\phi}$ and $\ket{\psi}$ is the matrix product of $\bra{\phi}$ and $\ket{\psi}$, denoted as $\braket{\phi|\psi}$, and their outer product is the matrix product of $\ket{\phi}$ and $\bra{\psi}$, denoted as $\ket{\phi}\bra{\psi}$. Notice that the norm of $\ket{\psi}$ is $\sqrt{\braket{\psi|\psi}}$.
 
@@ -229,70 +231,74 @@ You can use a tool called <a href="https://algassert.com/quirk" target="_blank">
 
 This section relies on the following notation:
 
-<table>
-  <tr>
-    <td>$\ket{+} = \frac{1}{\sqrt{2}}\big(\ket{0} + \ket{1}\big)$</td>
-    <td>$\ket{-} = \frac{1}{\sqrt{2}}\big(\ket{0} - \ket{1}\big)$</td>
-  </tr>
-  <tr>
-    <td>$\ket{i} = \frac{1}{\sqrt{2}}\big(\ket{0} + i\ket{1}\big)$</td>
-    <td>$\ket{-i} = \frac{1}{\sqrt{2}}\big(\ket{0} - i\ket{1}\big)$</td>
-  </tr>
-</table>
+<div class="table-with-latex">
+  <table>
+    <tr>
+      <td>$\ket{+} = \frac{1}{\sqrt{2}}\big(\ket{0} + \ket{1}\big)$</td>
+      <td>$\ket{-} = \frac{1}{\sqrt{2}}\big(\ket{0} - \ket{1}\big)$</td>
+    </tr>
+    <tr>
+      <td>$\ket{i} = \frac{1}{\sqrt{2}}\big(\ket{0} + i\ket{1}\big)$</td>
+      <td>$\ket{-i} = \frac{1}{\sqrt{2}}\big(\ket{0} - i\ket{1}\big)$</td>
+    </tr>
+  </table>
+</div>
 
 The Pauli gates, named after <a href="https://en.wikipedia.org/wiki/Wolfgang_Pauli" target="_blank">Wolfgang Pauli</a>, are based on the so-called **Pauli matrices**, $X$, $Y$ and $Z$. All three Pauli gates are **self-adjoint**, meaning that each one is its own inverse, $XX = \mathbb{I}$.
 
-<table>
-  <tr>
-    <th>Gate</th>
-    <th>Matrix</th>
-    <th>Ket-Bra</th>
-    <th>Applying to $\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$</th>
-    <th>Applying to basis states</th>
-  </tr>
-  <tr>
-    <td>$X$</td>
-    <td>$\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}$</td>
-    <td>$\ket{0}\bra{1} + \ket{1}\bra{0}$</td>
-    <td>$X\ket{\psi} = \alpha\ket{1} + \beta\ket{0}$</td>
-    <td>
-      $X\ket{0} = \ket{1}$<br>
-      $X\ket{1} = \ket{0}$<br>
-      $X\ket{+} = \ket{+}$<br>
-      $X\ket{-} = -\ket{-}$<br>
-      $X\ket{i} = i\ket{-i}$<br>
-      $X\ket{-i} = -i\ket{i}$
-    </td>
-  </tr>
-  <tr>
-    <td>$Y$</td>
-    <td>$\begin{bmatrix} 0 & -i \\ i & 0 \end{bmatrix}$</td>
-    <td>$i(\ket{1}\bra{0} - \ket{0}\bra{1})$</td>
-    <td>$Y\ket{\psi} = i\big(\alpha\ket{1} - \beta\ket{0}\big)$</td>
-    <td>
-      $Y\ket{0} = i\ket{1}$<br>
-      $Y\ket{1} = -i\ket{0}$<br>
-      $Y\ket{+} = -i\ket{-}$<br>
-      $Y\ket{-} = i\ket{+}$<br>
-      $Y\ket{i} = \ket{i}$<br>
-      $Y\ket{-i} = -\ket{-i}$<br>
-    </td>
-  </tr>
-  <tr>
-    <td>$Z$</td>
-    <td>$\begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$</td>
-    <td>$\ket{0}\bra{0} - \ket{1}\bra{1}$</td>
-    <td>$Z\ket{\psi} = \alpha\ket{0} - \beta\ket{1}$</td>
-    <td>
-      $Z\ket{0} = \ket{0}$<br>
-      $Z\ket{1} = -\ket{1}$<br>
-      $Z\ket{+} = \ket{-}$<br>
-      $Z\ket{-} = \ket{+}$<br>
-      $Z\ket{i} = \ket{-i}$<br>
-      $Z\ket{-i} = \ket{i}$<br>
-    </td>
-  </tr>
-</table>
+<div class="table-with-latex">
+  <table>
+    <tr>
+      <th>Gate</th>
+      <th>Matrix</th>
+      <th>Ket-Bra</th>
+      <th>Applying to $\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$</th>
+      <th>Applying to basis states</th>
+    </tr>
+    <tr>
+      <td>$X$</td>
+      <td>$\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}$</td>
+      <td>$\ket{0}\bra{1} + \ket{1}\bra{0}$</td>
+      <td>$X\ket{\psi} = \alpha\ket{1} + \beta\ket{0}$</td>
+      <td>
+        $X\ket{0} = \ket{1}$<br>
+        $X\ket{1} = \ket{0}$<br>
+        $X\ket{+} = \ket{+}$<br>
+        $X\ket{-} = -\ket{-}$<br>
+        $X\ket{i} = i\ket{-i}$<br>
+        $X\ket{-i} = -i\ket{i}$
+      </td>
+    </tr>
+    <tr>
+      <td>$Y$</td>
+      <td>$\begin{bmatrix} 0 & -i \\ i & 0 \end{bmatrix}$</td>
+      <td>$i(\ket{1}\bra{0} - \ket{0}\bra{1})$</td>
+      <td>$Y\ket{\psi} = i\big(\alpha\ket{1} - \beta\ket{0}\big)$</td>
+      <td>
+        $Y\ket{0} = i\ket{1}$<br>
+        $Y\ket{1} = -i\ket{0}$<br>
+        $Y\ket{+} = -i\ket{-}$<br>
+        $Y\ket{-} = i\ket{+}$<br>
+        $Y\ket{i} = \ket{i}$<br>
+        $Y\ket{-i} = -\ket{-i}$<br>
+      </td>
+    </tr>
+    <tr>
+      <td>$Z$</td>
+      <td>$\begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$</td>
+      <td>$\ket{0}\bra{0} - \ket{1}\bra{1}$</td>
+      <td>$Z\ket{\psi} = \alpha\ket{0} - \beta\ket{1}$</td>
+      <td>
+        $Z\ket{0} = \ket{0}$<br>
+        $Z\ket{1} = -\ket{1}$<br>
+        $Z\ket{+} = \ket{-}$<br>
+        $Z\ket{-} = \ket{+}$<br>
+        $Z\ket{i} = \ket{-i}$<br>
+        $Z\ket{-i} = \ket{i}$<br>
+      </td>
+    </tr>
+  </table>
+</div>
 
 > The $X$ gate is sometimes referred to as the **bit flip** gate, or the **NOT** gate, because it acts like the classical NOT gate on the computational basis.
 >
@@ -371,20 +377,22 @@ All the basic gates covered in this kata are part of the Intrinsic namespace. Ad
 
 The identity gate is mostly here for completeness, at least for now. It will come in handy when dealing with multi-qubit systems and multi-qubit gates. It's represented by the identity matrix, and doesn't affect the state of the qubit.
 
-<table>
-<tr>
-<th>Gate</th>
-<th>Matrix</th>
-<th>Ket-Bra</th>
-<th>Applying to $\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$</th>
-</tr>
-<tr>
-<td>$I$</td>
-<td>$\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}$</td>
-<td>$\ket{0}\bra{0} + \ket{1}\bra{1}$</td>
-<td>$I\ket{\psi} = \ket{\psi}$</td>
-</tr>
-</table>
+<div class="table-with-latex">
+  <table>
+    <tr>
+      <th>Gate</th>
+      <th>Matrix</th>
+      <th>Ket-Bra</th>
+      <th>Applying to $\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$</th>
+    </tr>
+    <tr>
+      <td>$I$</td>
+      <td>$\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}$</td>
+      <td>$\ket{0}\bra{0} + \ket{1}\bra{1}$</td>
+      <td>$I\ket{\psi} = \ket{\psi}$</td>
+    </tr>
+  </table>
+</div>
 
 @[section]({
     "id": "hadamard_gate",
@@ -395,27 +403,27 @@ The **Hadamard** gate is an extremely important quantum gate. Unlike the previou
 Like the Pauli gates, the Hadamard gate is self-adjoint.
 
 <div class="table-with-latex">
-<table>
-<tr>
-<th>Gate</th>
-<th>Matrix</th>
-<th>Ket-Bra</th>
-<th>Applying to $\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$</th>
-<th>Applying to basis states</th>
-</tr>
-<tr>
-<td>$H$</td>
-<td>$\begin{bmatrix} \frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}} \end{bmatrix} = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$</td>
-<td>$\ket{0}\bra{+} + \ket{1}\bra{-}$</td>
-<td>$H\ket{\psi} = \alpha\ket{+} + \beta\ket{-} = \frac{\alpha + \beta}{\sqrt{2}}\ket{0} + \frac{\alpha - \beta}{\sqrt{2}}\ket{1}$</td>
-<td>$H\ket{0} = \ket{+}$ <br>
-$H\ket{1} = \ket{-}$ <br>
-$H\ket{+} = \ket{0}$ <br>
-$H\ket{-} = \ket{1}$ <br>
-$H\ket{i} = e^{i\pi/4}\ket{-i}$ <br>
-$H\ket{-i} = e^{-i\pi/4}\ket{i} $ <br>
-</tr>
-</table>
+  <table>
+    <tr>
+      <th>Gate</th>
+      <th>Matrix</th>
+      <th>Ket-Bra</th>
+      <th>Applying to $\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$</th>
+      <th>Applying to basis states</th>
+    </tr>
+    <tr>
+      <td>$H$</td>
+      <td>$\begin{bmatrix} \frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}} \end{bmatrix} = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$</td>
+      <td>$\ket{0}\bra{+} + \ket{1}\bra{-}$</td>
+      <td>$H\ket{\psi} = \alpha\ket{+} + \beta\ket{-} = \frac{\alpha + \beta}{\sqrt{2}}\ket{0} + \frac{\alpha - \beta}{\sqrt{2}}\ket{1}$</td>
+      <td>$H\ket{0} = \ket{+}$ <br>
+      $H\ket{1} = \ket{-}$ <br>
+      $H\ket{+} = \ket{0}$ <br>
+      $H\ket{-} = \ket{1}$ <br>
+      $H\ket{i} = e^{i\pi/4}\ket{-i}$ <br>
+      $H\ket{-i} = e^{-i\pi/4}\ket{i} $ <br>
+    </tr>
+  </table>
 </div>
 
 > As a reminder, $e^{i\pi/4} = \frac{1}{\sqrt2} (1 + i)$ and $e^{-i\pi/4} = \frac{1}{\sqrt2} (1 - i)$. This is an application of Euler's formula, $e^{i\theta} = \cos \theta + i\sin \theta$, where $\theta$ is measured in radians.
@@ -441,39 +449,41 @@ $H\ket{-i} = e^{-i\pi/4}\ket{i} $ <br>
 
 The next two gates are known as **phase shift gates**. They apply a phase to the $\ket{1}$ state, and leave the $\ket{0}$ state unchanged.
 
-<table>
-  <tr>
-    <th>Gate</th>
-    <th>Matrix</th>
-    <th>Ket-Bra</th>
-    <th>Applying to $\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$</th>
-    <th>Applying to basis states</th>
+<div class="table-with-latex">
+  <table>
+    <tr>
+      <th>Gate</th>
+      <th>Matrix</th>
+      <th>Ket-Bra</th>
+      <th>Applying to $\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$</th>
+      <th>Applying to basis states</th>
+      </tr>
+    <tr>
+      <td>$S$</td>
+      <td>$\begin{bmatrix} 1 & 0 \\ 0 & i \end{bmatrix}$</td>
+      <td>$\ket{0}\bra{0} + i\ket{1}\bra{1}$</td>
+      <td>$S\ket{\psi} = \alpha\ket{0} + i\beta\ket{1}$</td>
+      <td>
+        $S\ket{0} = \ket{0}$<br>
+        $S\ket{1} = i\ket{1}$<br>
+        $S\ket{+} = \ket{i}$<br>
+        $S\ket{-} = \ket{-i}$<br>
+        $S\ket{i} = \ket{-}$<br>
+        $S\ket{-i} = \ket{+}$<br>
+      </td>
+      </tr>
+    <tr>
+      <td>$T$</td>
+      <td>$\begin{bmatrix} 1 & 0 \\ 0 & e^{i\pi/4} \end{bmatrix}$</td>
+      <td>$\ket{0}\bra{0} + e^{i\pi/4}\ket{1}$$\bra{1}$</td>
+      <td>$T\ket{\psi} = \alpha\ket{0} + e^{i\pi/4} \beta \ket{1}$</td>
+      <td>
+        $T\ket{0} = \ket{0}$<br>
+        $T\ket{1} = e^{i\pi/4}\ket{1}$
+      </td>
     </tr>
-  <tr>
-    <td>$S$</td>
-    <td>$\begin{bmatrix} 1 & 0 \\ 0 & i \end{bmatrix}$</td>
-    <td>$\ket{0}\bra{0} + i\ket{1}\bra{1}$</td>
-    <td>$S\ket{\psi} = \alpha\ket{0} + i\beta\ket{1}$</td>
-    <td>
-      $S\ket{0} = \ket{0}$<br>
-      $S\ket{1} = i\ket{1}$<br>
-      $S\ket{+} = \ket{i}$<br>
-      $S\ket{-} = \ket{-i}$<br>
-      $S\ket{i} = \ket{-}$<br>
-      $S\ket{-i} = \ket{+}$<br>
-    </td>
-    </tr>
-  <tr>
-    <td>$T$</td>
-    <td>$\begin{bmatrix} 1 & 0 \\ 0 & e^{i\pi/4} \end{bmatrix}$</td>
-    <td>$\ket{0}\bra{0} + e^{i\pi/4}\ket{1}$$\bra{1}$</td>
-    <td>$T\ket{\psi} = \alpha\ket{0} + e^{i\pi/4} \beta \ket{1}$</td>
-    <td>
-      $T\ket{0} = \ket{0}$<br>
-      $T\ket{1} = e^{i\pi/4}\ket{1}$
-    </td>
-  </tr>
-</table>
+  </table>
+</div>
 
 > Notice that applying the $T$ gate twice is equivalent to applying the $S$ gate, and applying the $S$ gate twice is equivalent to applying the $Z$ gate:
 $$T^2 = S, S^2 = Z$$
