@@ -277,10 +277,7 @@ impl Lowerer {
         }]
     }
 
-    /// Define the standard gates in the symbol table.
-    /// The sdg, tdg, crx, cry, crz, and ch are defined
-    /// as their bare gates, and modifiers are applied
-    /// when calling them.
+    /// Define the `OpenQASM` 3.0 standard gates in the symbol table.
     fn define_stdgates(&mut self, span: Span) {
         fn gate_symbol(name: &str, cargs: u32, qargs: u32) -> Symbol {
             Symbol::new(
@@ -333,10 +330,7 @@ impl Lowerer {
         }
     }
 
-    /// Define the standard gates in the symbol table.
-    /// The sdg, tdg, crx, cry, crz, and ch are defined
-    /// as their bare gates, and modifiers are applied
-    /// when calling them.
+    /// Define the `OpenQASM` 2.0 standard gates in the symbol table.
     fn define_qelib1_gates(&mut self, span: Span) {
         fn gate_symbol(name: &str, cargs: u32, qargs: u32) -> Symbol {
             Symbol::new(

@@ -105,7 +105,7 @@ operation U(theta : Angle, phi : Angle, lambda : Angle, qubit : Qubit) : Unit is
     controlled adjoint auto;
 }
 operation CX(ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
-    Std.Intrinsic.CNOT(ctrl, qubit);
+    Std.Canon.CX(ctrl, qubit);
 }
 
 operation p(lambda : Angle, qubit : Qubit) : Unit is Adj + Ctl {
@@ -145,7 +145,7 @@ operation tdg(qubit : Qubit) : Unit is Adj + Ctl {
 }
 
 operation sx(qubit : Qubit) : Unit is Adj + Ctl {
-    SX(qubit);
+    Std.Intrinsic.SX(qubit);
 }
 
 operation rx(theta : Angle, qubit : Qubit) : Unit is Adj + Ctl {
@@ -164,15 +164,15 @@ operation rz(theta : Angle, qubit : Qubit) : Unit is Adj + Ctl {
 }
 
 operation cx(ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
-    Std.Intrinsic.CNOT(ctrl, qubit);
+    Std.Canon.CX(ctrl, qubit);
 }
 
 operation cy(ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
-    Controlled Std.Intrinsic.Y([ctrl], qubit);
+    Std.Canon.CY(ctrl, qubit);
 }
 
 operation cz(ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
-    Controlled Std.Intrinsic.Z([ctrl], qubit);
+    Std.Canon.CZ(ctrl, qubit);
 }
 
 operation cp(lambda : Angle, ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
