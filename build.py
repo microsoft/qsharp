@@ -113,7 +113,7 @@ build_type = "debug" if args.debug else "release"
 run_tests = args.test
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
-qdk_src_dir = os.path.join(root_dir, "qdk_source")
+qdk_src_dir = os.path.join(root_dir, "source")
 wasm_src = os.path.join(qdk_src_dir, "wasm")
 wasm_bld = os.path.join(qdk_src_dir, "target", "wasm32", build_type)
 samples_src = os.path.join(root_dir, "samples")

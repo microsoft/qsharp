@@ -1,6 +1,6 @@
 path_classifiers:
   library:
-    - qdk_source/allocator/mimalloc-sys/mimalloc
+    - source/allocator/mimalloc-sys/mimalloc
     - "**/node_modules/**"
   test:
     - test

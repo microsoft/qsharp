@@ -29,14 +29,14 @@ import { copyFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { copyWasmToVsCode, watchVsCode } from "./qdk_source/vscode/build.mjs";
+import { copyWasmToVsCode, watchVsCode } from "./source/vscode/build.mjs";
 import {
   buildPlayground,
   copyWasmToPlayground,
-} from "./qdk_source/playground/build.js";
+} from "./source/playground/build.js";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
-const qdkSrcDir = join(thisDir, "qdk_source");
+const qdkSrcDir = join(thisDir, "source");
 
 // Watch the source directories directly to avoid notification noise from .git, __pycache__, node_modules, target, etc.
 const coreDir = join(qdkSrcDir, "compiler");
