@@ -1,6 +1,6 @@
 /target
-/qdk_source/backend/widgets/dist/
-/qdk_source/backend/widgets/src/qsharp_widgets/static/
+/qdk_source/widgets/dist/
+/qdk_source/widgets/src/qsharp_widgets/static/
 node_modules/
 __pycache__/
 .venv/
@@ -10,12 +10,12 @@ __pycache__/
 *.pem
 !.vscode/*.shared.json
 !.vscode/extensions.json
-/qdk_source/backend/fuzz/target
-/qdk_source/backend/fuzz/corpus
-/qdk_source/backend/fuzz/artifacts
-/qdk_source/backend/fuzz/coverage
-/qdk_source/backend/fuzz/Cargo.lock
-/qdk_source/backend/samples_test/src/tests/*_generated.rs
+/qdk_source/fuzz/target
+/qdk_source/fuzz/corpus
+/qdk_source/fuzz/artifacts
+/qdk_source/fuzz/coverage
+/qdk_source/fuzz/Cargo.lock
+/qdk_source/samples_test/src/tests/*_generated.rs
 .mypy_cache/
 .pytest_cache/
 .idea/
