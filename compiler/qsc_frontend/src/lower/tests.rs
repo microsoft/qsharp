@@ -2648,3 +2648,164 @@ fn ignore_item_in_attribute() {
                         ctl-adj: <none>"#]],
     );
 }
+
+// Tests for GitHub Issue #1955: Export HIR generation behavior
+// These tests verify when Export HIR items should and shouldn't be created
+
+#[test]
+fn export_hir_self_export() {
+    // HYPOTHESIS: Self-exports should NOT create Export HIR items
+    // Case: export Length; where Length is declared in the same namespace
+    // EXPECTED: Only namespace + function, NO Export HIR item (Item 2 should not exist)
+    check_hir(
+        indoc! {"
+            namespace Test {
+                function Length() : Int { 42 }
+                export Length;
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-72] (Public):
+                    Namespace (Ident 9 [10-14] "Test"): Item 1
+                Item 1 [21-51] (Public):
+                    Parent: 0
+                    Callable 0 [21-51] (function):
+                        name: Ident 1 [30-36] "Length"
+                        input: Pat 2 [36-38] [Type Unit]: Unit
+                        output: Int
+                        functors: empty set
+                        body: SpecDecl 3 [21-51]: Impl:
+                            Block 4 [45-51] [Type Int]:
+                                Stmt 5 [47-49]: Expr: Expr 6 [47-49] [Type Int]: Lit: Int(42)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                # EXPECTED: NO Item 2 Export should exist for self-exports!
+        "#]],
+    );
+}
+
+#[test]
+fn export_hir_import_then_reexport() {
+    // HYPOTHESIS: Import + re-export SHOULD create Export HIR items  
+    // Case: import Foo.*; export Bar; where Bar was imported
+    // EXPECTED: Should contain Export HIR item pointing to imported Bar
+    check_hir(
+        indoc! {"
+            namespace Foo {
+                function Bar() : Int { 1 }
+            }
+            namespace Test {
+                import Foo.*;
+                export Bar;
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-48] (Public):
+                    Namespace (Ident 7 [10-13] "Foo"): Item 1
+                Item 1 [20-46] (Internal):
+                    Parent: 0
+                    Callable 0 [20-46] (function):
+                        name: Ident 1 [29-32] "Bar"
+                        input: Pat 2 [32-34] [Type Unit]: Unit
+                        output: Int
+                        functors: empty set
+                        body: SpecDecl 3 [20-46]: Impl:
+                            Block 4 [41-46] [Type Int]:
+                                Stmt 5 [43-44]: Expr: Expr 6 [43-44] [Type Int]: Lit: Int(1)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 2 [49-101] (Public):
+                    Namespace (Ident 10 [59-63] "Test"): <empty>
+                Item 3 [95-98] (Public):
+                    Parent: 2
+                    Export (Ident 9 [95-98] "Bar"): Item 1
+                # EXPECTED: Item 3 Export is CORRECT for imported re-exports
+        "#]],
+    );
+}
+
+#[test]
+fn export_hir_cross_namespace_export() {
+    // HYPOTHESIS: Cross-namespace exports SHOULD create Export HIR items
+    // Case: export Foo.Bar; (direct qualified export)
+    // EXPECTED: Should contain Export HIR item with implicit alias
+    check_hir(
+        indoc! {"
+            namespace Foo {
+                function Bar() : Int { 1 }
+            }
+            namespace Test {
+                export Foo.Bar;
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-48] (Public):
+                    Namespace (Ident 7 [10-13] "Foo"): Item 1
+                Item 1 [20-46] (Internal):
+                    Parent: 0
+                    Callable 0 [20-46] (function):
+                        name: Ident 1 [29-32] "Bar"
+                        input: Pat 2 [32-34] [Type Unit]: Unit
+                        output: Int
+                        functors: empty set
+                        body: SpecDecl 3 [20-46]: Impl:
+                            Block 4 [41-46] [Type Int]:
+                                Stmt 5 [43-44]: Expr: Expr 6 [43-44] [Type Int]: Lit: Int(1)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 2 [49-87] (Public):
+                    Namespace (Ident 10 [59-63] "Test"): <empty>
+                Item 3 [77-84] (Public):
+                    Parent: 2
+                    Export (Ident 9 [81-84] "Bar"): Item 1
+                # EXPECTED: Item 3 Export is CORRECT for cross-namespace exports
+        "#]],
+    );
+}
+
+#[test]
+fn export_hir_aliased_export() {
+    // HYPOTHESIS: Aliased exports SHOULD create Export HIR items (already working)
+    // Case: export Foo.Bar as Baz;
+    // EXPECTED: Should contain Export HIR item with explicit alias "Baz"
+    check_hir(
+        indoc! {"
+            namespace Foo {
+                function Bar() : Int { 1 }
+            }
+            namespace Test {
+                export Foo.Bar as Baz;
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-48] (Public):
+                    Namespace (Ident 7 [10-13] "Foo"): Item 1
+                Item 1 [20-46] (Internal):
+                    Parent: 0
+                    Callable 0 [20-46] (function):
+                        name: Ident 1 [29-32] "Bar"
+                        input: Pat 2 [32-34] [Type Unit]: Unit
+                        output: Int
+                        functors: empty set
+                        body: SpecDecl 3 [20-46]: Impl:
+                            Block 4 [41-46] [Type Int]:
+                                Stmt 5 [43-44]: Expr: Expr 6 [43-44] [Type Int]: Lit: Int(1)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 2 [49-94] (Public):
+                    Namespace (Ident 10 [59-63] "Test"): <empty>
+                Item 3 [77-91] (Public):
+                    Parent: 2
+                    Export (Ident 9 [88-91] "Baz"): Item 1
+                # EXPECTED: Item 3 Export is CORRECT for aliased exports
+        "#]],
+    );
+}
