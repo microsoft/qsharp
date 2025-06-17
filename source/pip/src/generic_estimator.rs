@@ -27,27 +27,10 @@ pub(crate) fn register_generic_estimator_submodule(m: &Bound<'_, PyModule>) -> P
     Ok(())
 }
 
-/// Estimates quantum resources for a given algorithm, qubit, and code.
-///
-/// Args:
-///     algorithm: Python object representing the algorithm.
-///     qubit: The qubit properties as a dictionary.
-///     qec: Python object representing the quantum error correction code.
-///     factories (List): List of python objects representing factories. Default: [].
-///     error_budget (float): The total error budget, which is uniformly distributed. Default: 0.01.
-///     max_factories (Optional[int]): Constrains the number of factories. Default: None.
-///     logical_depth_factor (Optional[float]): Extends algorithmic logical depth by a factor >= 1. Default: None.
-///     max_physical_qubits (Optional[int]): Forces estimator to not exceed provided number of physical qubits, may fail. Default: None.
-///     max_duration (Optional[int]): Allows estimator to run for given runtime in nanoseconds, may fail. Default: None.
-///     error_budget_pruning (bool): Will try to prune the error budget to increase magic state error budget. Default: False.
-///
-/// Returns:
-///     dict: A dictionary with resource estimation results.
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(
     signature = (algorithm, qubit, qec, factories = vec![], *, error_budget = 0.01, max_factories = None, logical_depth_factor = None, max_physical_qubits = None, max_duration = None, error_budget_pruning = false),
-    text_signature = "(algorithm, qubit, qec, factories : List = [], *, error_budget : float = 0.01, max_factories : Optional[int] = None, logical_depth_factor : Optional[foat] = None, max_physical_qubits : Optional[int] = None, max_duration : Optional[int] = None, error_budget_pruning : bool = False)"
 )]
 fn estimate_custom<'py>(
     algorithm: Bound<'py, PyAny>,
