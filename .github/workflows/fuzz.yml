@@ -51,9 +51,8 @@ jobs:
 
       - name: Gather the Seed Inputs
         if: matrix.target_name == 'qsharp'
+        working-directory: ${{ env.OWNER_RDPATH }}
         run: |
-          cd $OWNER_RDPATH                    # Enter the dir containing the fuzzing infra.
-
           # Clone the submodules of QDK:
           REPOS="Quantum Quantum-NC QuantumKatas QuantumLibraries iqsharp qdk-python qsharp-compiler qsharp-runtime"
           for REPO in $REPOS ; do
@@ -67,9 +66,8 @@ jobs:
 
       - name: Gather the Seed Inputs (qasm)
         if: matrix.target_name == 'qasm'
+        working-directory: ${{ env.OWNER_RDPATH }}
         run: |
-          cd $OWNER_RDPATH                    # Enter the dir containing the fuzzing infra.
-
           # Clone openqasm repo for samples:
           git clone --depth 1 --single-branch --no-tags --recurse-submodules --shallow-submodules --jobs 4 \
             https://github.com/openqasm/openqasm.git $SEEDS_RDPATH/${{ matrix.target_name }}/openqasm
@@ -82,8 +80,8 @@ jobs:
             $SEEDS_RDPATH/${{ matrix.target_name }}/$SEEDS_FNAME
 
       - name: Build and Run the Fuzz Target
+        working-directory: ${{ env.OWNER_RDPATH }}
         run: |
-          cd $OWNER_RDPATH               # Enter the dir containing the fuzzing infra.
           cargo fuzz build --release --sanitizer=none --features do_fuzz ${{ matrix.target_name }}  # Build the fuzz target.
 
           # Run fuzzing for specified number of seconds and redirect the `stderr` to a file
@@ -98,9 +96,8 @@ jobs:
 
       - name: "If Fuzzing Failed: Collect Failure Info"
         if: failure()
+        working-directory: ${{ env.OWNER_RDPATH }}
         run: |
-          cd $OWNER_RDPATH               # Enter the dir containing the fuzzing infra.
-
           # Extract from stderr log the panic message:
           PANIC_MESSAGE=`cat $STDERR_LOG_FNAME |
             grep "panicked at" | sed "s|thread '<unnamed>' panicked at '\([^']*\).*|\1|"`
