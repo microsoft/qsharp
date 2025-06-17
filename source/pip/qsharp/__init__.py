@@ -47,7 +47,7 @@ __all__ = [
     "compile",
     "circuit",
     "estimate",
-    "estimate_common",
+    "estimate_custom",
     "Result",
     "Pauli",
     "QSharpError",
