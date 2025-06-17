@@ -12,7 +12,7 @@
             "runtimeExecutable": "${execPath}",
             "args": [
                 "--profile=dev",
-                "--extensionDevelopmentPath=${workspaceFolder}/vscode",
+                "--extensionDevelopmentPath=${workspaceFolder}/source/vscode",
                 "${workspaceFolder}/samples/"
             ]
         },
@@ -23,7 +23,7 @@
             "debugWebWorkerHost": true,
             "request": "launch",
             "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/vscode",
+                "--extensionDevelopmentPath=${workspaceFolder}/source/vscode",
                 "--extensionDevelopmentKind=web",
                 "${workspaceFolder}/samples/"
             ]

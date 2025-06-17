@@ -130,7 +130,7 @@ extends:
               mkdir -p $(System.DefaultWorkingDirectory)/target/npm/qsharp
               npm pack --pack-destination $(System.DefaultWorkingDirectory)/target/npm/qsharp
             displayName: Pack NPM Package
-            workingDirectory: $(System.DefaultWorkingDirectory)/npm/qsharp
+            workingDirectory: $(System.DefaultWorkingDirectory)/source/npm/qsharp
 
       - job: "VSCode"
         pool:
@@ -184,7 +184,7 @@ extends:
             mv *.vsix $(System.DefaultWorkingDirectory)/target/vscode
           condition: and(succeeded(), eq(variables['BUILD_TYPE'], 'dev'))
           displayName: Pack pre-release VSCode Extension
-          workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/source/vscode'
 
         - script: |
             vsce package
@@ -192,7 +192,7 @@ extends:
             mv *.vsix $(System.DefaultWorkingDirectory)/target/vscode
           condition: and(succeeded(), ne(variables['BUILD_TYPE'], 'dev'))
           displayName: Pack VSCode Extension
-          workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/source/vscode'
 
       - job: "JupyterLab"
         pool:
@@ -301,8 +301,8 @@ extends:
             displayName: Install Prereqs and set version
 
           - script: |
-              chmod +x ./docker/linux-aarch64/install_prereqs.sh
-              sudo ./docker/linux-aarch64/install_prereqs.sh
+              chmod +x ./.ado/docker/linux-aarch64/install_prereqs.sh
+              sudo ./.ado/docker/linux-aarch64/install_prereqs.sh
             displayName: Install Linux aarch64 cross prereqs
             condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))
 
@@ -329,9 +329,9 @@ extends:
             condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))
 
           - script: |
-              chmod +x ./docker/linux-aarch64/run.sh
+              chmod +x ./.ado/docker/linux-aarch64/run.sh
 
-              ./docker/linux-aarch64/run.sh
+              ./.ado/docker/linux-aarch64/run.sh
             displayName: Run auditwheel and python tests for Linux aarch64 Wheels
             condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))
 

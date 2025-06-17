@@ -14,10 +14,10 @@ echo "WHEEL_ARCH: ${WHEEL_ARCH}"
 WHEEL_PLATFORM="${WHEEL_PLATFORM:-manylinux_2_35_${WHEEL_ARCH}}"
 echo "WHEEL_PLATFORM: ${WHEEL_PLATFORM}"
 
-PIP_DIR="${PIP_DIR:-${SCRIPT_DIR}/../../pip}"
+PIP_DIR="${PIP_DIR:-${SCRIPT_DIR}/../../../source/pip}"
 echo "PIP_DIR: ${PIP_DIR}"
 
-WHEEL_DIR="${WHEEL_DIR:-${SCRIPT_DIR}/../../target/wheels}"
+WHEEL_DIR="${WHEEL_DIR:-${SCRIPT_DIR}/../../../target/wheels}"
 echo "WHEEL_DIR: ${WHEEL_DIR}"
 
 echo "Setting up the virtual environment"
