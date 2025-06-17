@@ -82,11 +82,11 @@ jobs:
       - name: Build and Run the Fuzz Target
         working-directory: ${{ env.OWNER_RDPATH }}
         run: |
-          cargo fuzz build --release --sanitizer=none --features do_fuzz ${{ matrix.target_name }}  # Build the fuzz target.
+          cargo fuzz build  --fuzz-dir source/fuzz --release --sanitizer=none --features do_fuzz ${{ matrix.target_name }}  # Build the fuzz target.
 
           # Run fuzzing for specified number of seconds and redirect the `stderr` to a file
           # whose name is specified by the STDERR_LOG_FNAME env var:
-          RUST_BACKTRACE=1 cargo fuzz run --release --sanitizer=none --features do_fuzz ${{ matrix.target_name }} -- \
+          RUST_BACKTRACE=1 cargo fuzz run  --fuzz-dir source/fuzz --release --sanitizer=none --features do_fuzz ${{ matrix.target_name }} -- \
             -seed_inputs=@$SEEDS_RDPATH/${{ matrix.target_name }}/$SEEDS_FNAME \
             -max_total_time=$DURATION_SEC \
             -rss_limit_mb=4096 \
@@ -144,7 +144,7 @@ jobs:
             echo "TO_MINIMIZE_FNAME: $TO_MINIMIZE_FNAME"
 
             # Minimize the input:
-            ( cargo fuzz tmin --release --sanitizer=none --features do_fuzz -r 10000 ${{ matrix.target_name }} $ARTIFACTS_RDPATH/${{ matrix.target_name }}/$TO_MINIMIZE_FNAME 2>&1 ) > \
+            ( cargo fuzz --fuzz-dir source/fuzz tmin --release --sanitizer=none --features do_fuzz -r 10000 ${{ matrix.target_name }} $ARTIFACTS_RDPATH/${{ matrix.target_name }}/$TO_MINIMIZE_FNAME 2>&1 ) > \
               $TMIN_LOG_FNAME || MINIMIZATION_FAILED=1
 
             # Get the minimized input relative faile path:
