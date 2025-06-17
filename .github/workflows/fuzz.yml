@@ -1,7 +1,7 @@
 name: fuzz
 run-name: Fuzz
 env:
-  OWNER_RDPATH: .                             # Rel path to the dir that contains the fuzzing infra (contains "fuzz" dir).
+  OWNER_RDPATH: ./source                      # Rel path to the dir that contains the fuzzing infra (contains "fuzz" dir).
   DURATION_SEC: 7200                          # Fuzzing run duration in seconds.
   STDERR_LOG_FNAME: fuzz.stderr.log           # File name to redirect the fuzzing run's stderr to.
   TMIN_LOG_FNAME: fuzz.tmin.log               # File name to redirect the fuzzing input minimization log to.
@@ -16,13 +16,13 @@ on:
     branches:
       - main                                  # Development runs against main branch.
     paths:
-      - 'compiler/**'                         # Run if the compiler was changed.
-      - 'fuzz/**'                             # Run if the fuzzing infra was changed.
+      - 'source/compiler/**'                  # Run if the compiler was changed.
+      - 'source/fuzz/**'                      # Run if the fuzzing infra was changed.
       - '.github/ISSUE_TEMPLATE/fuzz_bug_report.md'
                                               # Run if the GitHub issue template was changed.
       - '.github/workflows/fuzz.yml'          # Run if the workflow itself was changed.
-      - '!compiler/qsc_eval/**'               # Exclude the qsc_eval dir.
-      - '!compiler/qsc_codegen/**'            # Exclude the qsc_codegen dir.
+      - '!source/compiler/qsc_eval/**'        # Exclude the qsc_eval dir.
+      - '!source/compiler/qsc_codegen/**'     # Exclude the qsc_codegen dir.
 
 jobs:
   fuzz:
