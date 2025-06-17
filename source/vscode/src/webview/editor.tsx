@@ -39,12 +39,13 @@ function onMessage(event: any) {
     case "error": {
       const sanitizedMessage = DOMPurify.sanitize(message.props.message);
       const sanitizedTitle = DOMPurify.sanitize(message.props.title);
-      document.body.innerHTML = `
+      const innerHTML = `
         <div class="error">
           <h1>${sanitizedTitle}</h1>
           <p>${sanitizedMessage}</p>
         </div>
       `;
+      document.body.innerHTML = innerHTML; // CodeQL [SM04949] message data is not untrusted, handler is running in an extension, and is sanitized.
       return;
     }
     case "circuit":
