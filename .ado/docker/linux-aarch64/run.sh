@@ -11,7 +11,7 @@ echo "SCRIPT_DIR: ${SCRIPT_DIR}"
 BASE_IMAGE="${BASE_IMAGE:-mcr.microsoft.com/cbl-mariner/base/python:3.9}"
 echo "BASE_IMAGE: ${BASE_IMAGE}"
 
-VOLUME_ROOT=$(realpath ${SCRIPT_DIR}/../..)
+VOLUME_ROOT=$(realpath ${SCRIPT_DIR}/../../..)
 echo "VOLUME_ROOT: ${VOLUME_ROOT}"
 
 echo "docker run --platform linux/arm64/v8 -v ${VOLUME_ROOT}:/qsharp -e WHEEL_DIR='/qsharp/target/wheels' ${BASE_IMAGE} bash /qsharp/.ado/docker/linux-aarch64/entrypoint.sh"

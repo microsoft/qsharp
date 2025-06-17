@@ -4,6 +4,7 @@ test/**
 .artifactignore
 tsconfig.json
 **/*.map
+../../**/*
 ../**/*
 build.mjs
 BUILDING.md

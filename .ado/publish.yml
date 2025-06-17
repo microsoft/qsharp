@@ -130,7 +130,7 @@ extends:
               mkdir -p $(System.DefaultWorkingDirectory)/target/npm/qsharp
               npm pack --pack-destination $(System.DefaultWorkingDirectory)/target/npm/qsharp
             displayName: Pack NPM Package
-            workingDirectory: $(System.DefaultWorkingDirectory)/npm/qsharp
+            workingDirectory: $(System.DefaultWorkingDirectory)/source/npm/qsharp
 
       - job: "VSCode"
         pool:
@@ -184,7 +184,7 @@ extends:
             mv *.vsix $(System.DefaultWorkingDirectory)/target/vscode
           condition: and(succeeded(), eq(variables['BUILD_TYPE'], 'dev'))
           displayName: Pack pre-release VSCode Extension
-          workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/source/vscode'
 
         - script: |
             vsce package
@@ -192,7 +192,7 @@ extends:
             mv *.vsix $(System.DefaultWorkingDirectory)/target/vscode
           condition: and(succeeded(), ne(variables['BUILD_TYPE'], 'dev'))
           displayName: Pack VSCode Extension
-          workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/source/vscode'
 
       - job: "JupyterLab"
         pool:

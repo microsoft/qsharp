@@ -10,6 +10,7 @@ import re
 major_minor = "1.17"
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
+source_dir = os.path.join(root_dir, "source")
 
 
 def update_file(file: str, old_text: str, new_text: str, is_regex: bool = False):
@@ -51,7 +52,7 @@ if len(os.sys.argv) > 1 and os.sys.argv[1] == "--set":
 
     # Collect the files to update that have a full version reference
     # Update the pre-populated manifest references to the new version
-    update_list = [os.path.join(root_dir, "vscode/src/registry.json")]
+    update_list = [os.path.join(source_dir, "vscode/src/registry.json")]
 
     # Collect any file named "qsharp.json" under the /library directory
     for root, dirs, files in os.walk(os.path.join(root_dir, "library")):
@@ -103,19 +104,19 @@ print("Npm version: {}".format(npm_version))
 print("VS Code version: {}".format(version_triple))
 
 update_file(
-    os.path.join(root_dir, "pip/pyproject.toml"),
+    os.path.join(source_dir, "pip/pyproject.toml"),
     r'version = "0.0.0"',
     r'version = "{}"'.format(pip_version),
 )
 
 update_file(
-    os.path.join(root_dir, "pip/qsharp/telemetry.py"),
+    os.path.join(source_dir, "pip/qsharp/telemetry.py"),
     r'QSHARP_VERSION = "0.0.0.dev0"',
     r'QSHARP_VERSION = "{}"'.format(pip_version),
 )
 
 update_file(
-    os.path.join(root_dir, "widgets/pyproject.toml"),
+    os.path.join(source_dir, "widgets/pyproject.toml"),
     r'version = "0.0.0"',
     r'version = "{}"'.format(pip_version),
 )
@@ -123,19 +124,19 @@ update_file(
 # Publish the jupyterlab extension without the 'pre-release' tagging for rc builds.
 # It is already stable and the prior publishing (and yanking) of release versions causes issues.
 update_file(
-    os.path.join(root_dir, "jupyterlab/pyproject.toml"),
+    os.path.join(source_dir, "jupyterlab/pyproject.toml"),
     r'version = "0.0.0"',
     r'version = "{}"'.format(pip_version if BUILD_TYPE == "dev" else version_triple),
 )
 
 update_file(
-    os.path.join(root_dir, "npm/qsharp/package.json"),
+    os.path.join(source_dir, "npm/qsharp/package.json"),
     r'"version": "0.0.0",',
     r'"version": "{}",'.format(npm_version),
 )
 
 update_file(
-    os.path.join(root_dir, "vscode/package.json"),
+    os.path.join(source_dir, "vscode/package.json"),
     r'"version": "0.0.0",',
     r'"version": "{}",'.format(version_triple),
 )
@@ -143,12 +144,12 @@ update_file(
 # If not a 'dev' build, update the VS Code extension identifier to be the non-dev version
 if BUILD_TYPE != "dev":
     update_file(
-        os.path.join(root_dir, "vscode/package.json"),
+        os.path.join(source_dir, "vscode/package.json"),
         r'"name": "qsharp-lang-vscode-dev",',
         r'"name": "qsharp-lang-vscode",',
     )
     update_file(
-        os.path.join(root_dir, "vscode/package.json"),
+        os.path.join(source_dir, "vscode/package.json"),
         r"[DEV BUILD] Azure Quantum Development Kit",
         r"Azure Quantum Development Kit",
     )
@@ -156,8 +157,8 @@ if BUILD_TYPE != "dev":
 else:
     # Update the README to contain the dev version contents
     with open(
-        os.path.join(root_dir, "vscode/README-DEV.md"), "r", newline=""
+        os.path.join(source_dir, "vscode/README-DEV.md"), "r", newline=""
     ) as dev_readme:
         contents = dev_readme.read()
-    with open(os.path.join(root_dir, "vscode/README.md"), "w", newline="") as readme:
+    with open(os.path.join(source_dir, "vscode/README.md"), "w", newline="") as readme:
         readme.write(contents)
