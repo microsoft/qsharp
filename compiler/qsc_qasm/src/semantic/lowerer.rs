@@ -32,7 +32,6 @@ use crate::convert::safe_i64_to_f64;
 use crate::parser::ast::list_from_iter;
 use crate::parser::ast::List;
 use crate::parser::QasmSource;
-use crate::semantic::ast::Expr;
 use crate::semantic::types::base_types_equal;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
@@ -61,6 +60,18 @@ macro_rules! err_expr {
     };
 }
 
+const SWITCH_MINIMUM_SUPPORTED_VERSION: semantic::Version = semantic::Version {
+    major: 3,
+    minor: Some(1),
+    span: Span { lo: 0, hi: 0 },
+};
+
+const QASM2_VERSION: semantic::Version = semantic::Version {
+    major: 2,
+    minor: Some(0),
+    span: Span { lo: 0, hi: 0 },
+};
+
 pub(crate) struct Lowerer {
     /// The root QASM source to compile.
     pub source: QasmSource,
@@ -72,13 +83,29 @@ pub(crate) struct Lowerer {
     /// when we are done with the file.
     /// This allows us to report errors with the correct file path.
     pub symbols: SymbolTable,
+    /// The version of the QASM source. Used to determine the base gate set
+    /// and other features.
     pub version: Option<Version>,
     pub stmts: Vec<Stmt>,
 }
 
 impl Lowerer {
     pub fn new(source: QasmSource, source_map: SourceMap) -> Self {
-        let symbols = SymbolTable::default();
+        // do a quick check for the version to set up the symbol table
+        // lowering and validation come later
+        let version = source.program().version;
+        let symbols = if let Some(version) = version {
+            if version.major == 2 && version.minor == Some(0) {
+                SymbolTable::new_qasm2()
+            } else {
+                SymbolTable::default()
+            }
+        } else {
+            SymbolTable::default()
+        };
+
+        // we don't set the version here, as we need to check
+        // for allowed version during lowering
         let version = None;
         let stmts = Vec::new();
         let errors = Vec::new();
@@ -120,6 +147,9 @@ impl Lowerer {
 
     fn lower_version(&mut self, version: Option<syntax::Version>) -> Option<Version> {
         if let Some(version) = version {
+            if version.major == 2 && version.minor == Some(0) {
+                return Some(QASM2_VERSION);
+            }
             if version.major != 3 {
                 self.push_semantic_error(SemanticErrorKind::UnsupportedVersion(
                     format!("{version}"),
@@ -166,7 +196,24 @@ impl Lowerer {
                 // special case for stdgates.inc
                 // it won't be in the includes list
                 if include.filename.to_lowercase() == "stdgates.inc" {
+                    if self.version == Some(QASM2_VERSION) {
+                        self.push_semantic_error(SemanticErrorKind::IncludeNotInLanguageVersion(
+                            include.filename.to_string(),
+                            "3.0".to_string(),
+                            include.span,
+                        ));
+                    }
                     self.define_stdgates(include.span);
+                    continue;
+                } else if include.filename.to_lowercase() == "qelib1.inc" {
+                    if self.version != Some(QASM2_VERSION) {
+                        self.push_semantic_error(SemanticErrorKind::IncludeNotInLanguageVersion(
+                            include.filename.to_string(),
+                            "2.0".to_string(),
+                            include.span,
+                        ));
+                    }
+                    self.define_qelib1_gates(include.span);
                     continue;
                 }
 
@@ -230,10 +277,7 @@ impl Lowerer {
         }]
     }
 
-    /// Define the standard gates in the symbol table.
-    /// The sdg, tdg, crx, cry, crz, and ch are defined
-    /// as their bare gates, and modifiers are applied
-    /// when calling them.
+    /// Define the `OpenQASM` 3.0 standard gates in the symbol table.
     fn define_stdgates(&mut self, span: Span) {
         fn gate_symbol(name: &str, cargs: u32, qargs: u32) -> Symbol {
             Symbol::new(
@@ -250,25 +294,82 @@ impl Lowerer {
             gate_symbol("y", 0, 1),
             gate_symbol("z", 0, 1),
             gate_symbol("h", 0, 1),
+            gate_symbol("ch", 0, 2),
             gate_symbol("s", 0, 1),
+            gate_symbol("sdg", 0, 1),
             gate_symbol("t", 0, 1),
+            gate_symbol("tdg", 0, 1),
             gate_symbol("sx", 0, 1),
             gate_symbol("rx", 1, 1),
             gate_symbol("ry", 1, 1),
             gate_symbol("rz", 1, 1),
+            gate_symbol("crx", 1, 2),
+            gate_symbol("cry", 1, 2),
+            gate_symbol("crz", 1, 2),
             gate_symbol("cx", 0, 2),
             gate_symbol("cy", 0, 2),
             gate_symbol("cz", 0, 2),
             gate_symbol("cp", 1, 2),
             gate_symbol("swap", 0, 2),
+            gate_symbol("cswap", 0, 3),
             gate_symbol("ccx", 0, 3),
             gate_symbol("cu", 4, 2),
             gate_symbol("CX", 0, 2),
             gate_symbol("phase", 1, 1),
+            gate_symbol("cphase", 1, 2),
             gate_symbol("id", 0, 1),
             gate_symbol("u1", 1, 1),
             gate_symbol("u2", 2, 1),
             gate_symbol("u3", 3, 1),
+        ];
+        for gate in gates {
+            let name = gate.name.clone();
+            if self.symbols.insert_symbol(gate).is_err() {
+                self.push_redefined_symbol_error(name.as_str(), span);
+            }
+        }
+    }
+
+    /// Define the `OpenQASM` 2.0 standard gates in the symbol table.
+    fn define_qelib1_gates(&mut self, span: Span) {
+        fn gate_symbol(name: &str, cargs: u32, qargs: u32) -> Symbol {
+            Symbol::new(
+                name,
+                Span::default(),
+                Type::Gate(cargs, qargs),
+                Default::default(),
+                Default::default(),
+            )
+        }
+
+        let gates = vec![
+            // --- QE Hardware primitives ---
+            gate_symbol("u3", 3, 1),
+            gate_symbol("u2", 2, 1),
+            gate_symbol("u1", 1, 1),
+            gate_symbol("cx", 0, 2),
+            gate_symbol("id", 0, 1),
+            // --- QE Standard Gates ---
+            gate_symbol("x", 0, 1),
+            gate_symbol("y", 0, 1),
+            gate_symbol("z", 0, 1),
+            gate_symbol("h", 0, 1),
+            gate_symbol("s", 0, 1),
+            gate_symbol("sdg", 0, 1),
+            gate_symbol("t", 0, 1),
+            gate_symbol("tdg", 0, 1),
+            // --- Standard rotations ---
+            gate_symbol("rx", 1, 1),
+            gate_symbol("ry", 1, 1),
+            gate_symbol("rz", 1, 1),
+            // --- QE Standard User-Defined Gates  ---
+            gate_symbol("cz", 0, 2),
+            gate_symbol("cy", 0, 2),
+            gate_symbol("ch", 0, 2),
+            gate_symbol("ccx", 0, 3),
+            gate_symbol("crz", 1, 2),
+            gate_symbol("cu1", 1, 2),
+            gate_symbol("cu3", 3, 2),
         ];
         for gate in gates {
             let name = gate.name.clone();
@@ -1791,18 +1892,7 @@ impl Lowerer {
             self.push_unsupported_error_message("gate call duration", duration.span);
         }
 
-        let mut name = stmt.name.name.to_string();
-        if let Some((gate_name, implicit_modifier)) =
-            try_get_qsharp_name_and_implicit_modifiers(&name, stmt.name.span)
-        {
-            // Override the gate name if we mapped with modifiers.
-            name = gate_name;
-
-            // 2. Get implicit modifiers and make them explicit.
-            //    Q: Do we need this during lowering?
-            //    A: Yes, we need it to check the gate_call arity.
-            modifiers.push(implicit_modifier);
-        }
+        let name = stmt.name.name.to_string();
 
         // need a workaround for qiskit generating gate calls without having declared the gate
         self.define_qiskit_standard_gate_if_needed(&name, stmt.name.span);
@@ -2402,11 +2492,6 @@ impl Lowerer {
         // We push a semantic error on switch statements if version is less than 3.1,
         // as they were introduced in 3.1.
         if let Some(ref version) = self.version {
-            const SWITCH_MINIMUM_SUPPORTED_VERSION: semantic::Version = semantic::Version {
-                major: 3,
-                minor: Some(1),
-                span: Span { lo: 0, hi: 0 },
-            };
             if version < &SWITCH_MINIMUM_SUPPORTED_VERSION {
                 self.push_unsuported_in_this_version_error_message(
                     "switch statements",
@@ -4080,37 +4165,6 @@ fn get_identifier_name(identifier: &syntax::IdentOrIndexedIdent) -> std::rc::Rc<
     match identifier {
         syntax::IdentOrIndexedIdent::Ident(ident) => ident.name.clone(),
         syntax::IdentOrIndexedIdent::IndexedIdent(ident) => ident.ident.name.clone(),
-    }
-}
-
-fn try_get_qsharp_name_and_implicit_modifiers<S: AsRef<str>>(
-    gate_name: S,
-    name_span: Span,
-) -> Option<(String, semantic::QuantumGateModifier)> {
-    use semantic::GateModifierKind::*;
-
-    let make_modifier = |kind| semantic::QuantumGateModifier {
-        span: name_span,
-        modifier_keyword_span: name_span,
-        kind,
-    };
-
-    let ctrl_expr = Expr::uint(1, Span::default());
-
-    match gate_name.as_ref() {
-        "cy" => Some(("y".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        "cz" => Some(("z".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        "ch" => Some(("h".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        "crx" => Some(("rx".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        "cry" => Some(("ry".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        "crz" => Some(("rz".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        "cswap" => Some(("swap".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        "sdg" => Some(("s".to_string(), make_modifier(Inv))),
-        "tdg" => Some(("t".to_string(), make_modifier(Inv))),
-        // Gates for OpenQASM 2 backwards compatibility
-        "CX" => Some(("x".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        "cphase" => Some(("phase".to_string(), make_modifier(Ctrl(ctrl_expr)))),
-        _ => None,
     }
 }
 
