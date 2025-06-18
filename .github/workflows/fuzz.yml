@@ -106,7 +106,7 @@ jobs:
             #     to the next command.
             # `grep "panicked at" |`: Filter out (drop) all the lines except the ones containing "panicked at",
             #     the script expects that there is only one such line, pass that line to the next command. Line example:
-            # thread '<unnamed>' panicked at 'global item should have type', . . ./source/compiler/qsc_frontend/src/typeck/rules.rs:300:26
+            # thread '<unnamed>' panicked at 'global item should have type', . . ./compiler/qsc_frontend/src/typeck/rules.rs:300:26
             # `sed "s|thread '<unnamed>' panicked at '\([^']*\).*|\1|"`: `sed` - stream editor.
             #     `s` after quote: search command. After `s` there are two sections, each between a pair of '|'.
             #     First section:
