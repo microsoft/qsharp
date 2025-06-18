@@ -118,7 +118,7 @@ fn readonly_array_arg_with_int_dims() {
                 kind: ExternDecl [0-40]:
                     ident: Ident [7-8] "x"
                     parameters:
-                        [9-38]: ArrayReferenceType [9-38]:
+                        [9-38]: StaticArrayReferenceType [9-38]:
                             mutability: ReadOnly
                             base_type: ArrayBaseTypeKind IntType [24-30]:
                                 size: Expr [28-29]: Lit: Int(8)
@@ -141,13 +141,11 @@ fn readonly_array_arg_with_dim() {
                 kind: ExternDecl [0-43]:
                     ident: Ident [7-8] "x"
                     parameters:
-                        [9-41]: ArrayReferenceType [9-41]:
+                        [9-41]: DynArrayReferenceType [9-41]:
                             mutability: ReadOnly
                             base_type: ArrayBaseTypeKind IntType [24-30]:
                                 size: Expr [28-29]: Lit: Int(8)
-                            dimensions:
-                                Expr [39-40]: Lit: Int(1)
-
+                            dimensions: Expr [39-40]: Lit: Int(1)
                     return_type: <none>"#]],
     );
 }
@@ -163,13 +161,11 @@ fn mutable_array_arg() {
                 kind: ExternDecl [0-42]:
                     ident: Ident [7-8] "x"
                     parameters:
-                        [9-40]: ArrayReferenceType [9-40]:
+                        [9-40]: DynArrayReferenceType [9-40]:
                             mutability: Mutable
                             base_type: ArrayBaseTypeKind IntType [23-29]:
                                 size: Expr [27-28]: Lit: Int(8)
-                            dimensions:
-                                Expr [38-39]: Lit: Int(1)
-
+                            dimensions: Expr [38-39]: Lit: Int(1)
                     return_type: <none>"#]],
     );
 }
