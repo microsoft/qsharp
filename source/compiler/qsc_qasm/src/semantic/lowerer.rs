@@ -1374,7 +1374,7 @@ impl Lowerer {
         let has_qubit_params = stmt
             .params
             .iter()
-            .any(|arg| matches!(&**arg, syntax::TypedParameter::Quantum(..)));
+            .any(|arg| matches!(&*arg.ty, syntax::DefParameterType::Qubit(..)));
 
         let kind = if has_qubit_params {
             crate::types::CallableKind::Operation
@@ -1489,23 +1489,24 @@ impl Lowerer {
         }
     }
 
-    fn lower_typed_parameter(&mut self, typed_param: &syntax::TypedParameter) -> Symbol {
-        match typed_param {
-            syntax::TypedParameter::ArrayReference(param) => {
-                self.lower_array_reference_parameter(param)
+    fn lower_typed_parameter(&mut self, typed_param: &syntax::DefParameter) -> Symbol {
+        let (ty, qsharp_ty) = match &*typed_param.ty {
+            syntax::DefParameterType::ArrayReference(ty) => {
+                let tydef = syntax::TypeDef::ArrayReference(ty.clone());
+                let ty = self.get_semantic_type_from_tydef(&tydef, false);
+                let qsharp_ty =
+                    self.convert_semantic_type_to_qsharp_type(&ty, typed_param.ty.span());
+                (ty, qsharp_ty)
             }
-            syntax::TypedParameter::Quantum(param) => self.lower_quantum_parameter(param),
-            syntax::TypedParameter::Scalar(param) => self.lower_scalar_parameter(param),
-        }
-    }
-
-    fn lower_array_reference_parameter(
-        &mut self,
-        typed_param: &syntax::ArrayTypedParameter,
-    ) -> Symbol {
-        let tydef = syntax::TypeDef::ArrayReference(*typed_param.ty.clone());
-        let ty = self.get_semantic_type_from_tydef(&tydef, false);
-        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, typed_param.ty.span);
+            syntax::DefParameterType::Qubit(ty) => self.lower_qubit_type(ty),
+            syntax::DefParameterType::Scalar(ty) => {
+                let tydef = syntax::TypeDef::Scalar(ty.clone());
+                let ty = self.get_semantic_type_from_tydef(&tydef, false);
+                let qsharp_ty =
+                    self.convert_semantic_type_to_qsharp_type(&ty, typed_param.ty.span());
+                (ty, qsharp_ty)
+            }
+        };
 
         Symbol::new(
             &typed_param.ident.name,
@@ -1516,8 +1517,11 @@ impl Lowerer {
         )
     }
 
-    fn lower_quantum_parameter(&mut self, typed_param: &syntax::QuantumTypedParameter) -> Symbol {
-        let (ty, qsharp_ty) = if let Some(size) = &typed_param.size {
+    fn lower_qubit_type(
+        &mut self,
+        typed_param: &syntax::QubitType,
+    ) -> (crate::semantic::types::Type, crate::types::Type) {
+        if let Some(size) = &typed_param.size {
             let size = self.const_eval_array_size_designator_expr(size);
             if let Some(size) = size {
                 let size = size.get_const_u32().expect("const evaluation succeeded");
@@ -1534,29 +1538,7 @@ impl Lowerer {
                 crate::semantic::types::Type::Qubit,
                 crate::types::Type::Qubit,
             )
-        };
-
-        Symbol::new(
-            &typed_param.ident.name,
-            typed_param.ident.span,
-            ty,
-            qsharp_ty,
-            IOKind::Default,
-        )
-    }
-
-    fn lower_scalar_parameter(&mut self, typed_param: &syntax::ScalarTypedParameter) -> Symbol {
-        let tydef = syntax::TypeDef::Scalar(*typed_param.ty.clone());
-        let ty = self.get_semantic_type_from_tydef(&tydef, false);
-        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, typed_param.ty.span);
-
-        Symbol::new(
-            &typed_param.ident.name,
-            typed_param.ident.span,
-            ty,
-            qsharp_ty,
-            IOKind::Default,
-        )
+        }
     }
 
     fn lower_def_cal(&mut self, stmt: &syntax::DefCalStmt) -> semantic::StmtKind {
@@ -2351,7 +2333,7 @@ impl Lowerer {
         }
 
         // If there wasn't an explicit size, infer the size to be 1.
-        let (ty, size_and_span) = if let Some(size_expr) = &stmt.size {
+        let (ty, size_and_span) = if let Some(size_expr) = &stmt.ty.size {
             let span = size_expr.span;
             let size_expr = self.const_eval_quantum_register_size_expr(size_expr);
 
@@ -2383,7 +2365,7 @@ impl Lowerer {
         };
 
         let name = stmt.qubit.name.clone();
-        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty_span);
+        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty.span);
 
         let symbol = Symbol::new(
             &name,
@@ -2838,7 +2820,7 @@ impl Lowerer {
     ) -> crate::semantic::types::Type {
         self.push_unimplemented_error_message(
             "semantic type from array refence type",
-            array_ref_ty.span,
+            array_ref_ty.span(),
         );
         crate::semantic::types::Type::Err
     }
