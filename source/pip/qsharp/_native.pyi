@@ -591,3 +591,36 @@ def run_qasm_program(
         QSharpError: If there is an error interpreting the input.
     """
     ...
+
+def estimate_custom(
+    algorithm,
+    qubit,
+    qec,
+    factories: List = [],
+    *,
+    error_budget: float = 0.01,
+    max_factories: Optional[int] = None,
+    logical_depth_factor: Optional[float] = None,
+    max_physical_qubits: Optional[int] = None,
+    max_duration: Optional[int] = None,
+    error_budget_pruning: bool = False
+) -> Dict:
+    """
+    Estimates quantum resources for a given algorithm, qubit, and code.
+
+    Args:
+        algorithm: Python object representing the algorithm.
+        qubit: The qubit properties as a dictionary.
+        qec: Python object representing the quantum error correction code.
+        factories (List): List of python objects representing factories. Default: [].
+        error_budget (float): The total error budget, which is uniformly distributed. Default: 0.01.
+        max_factories (Optional[int]): Constrains the number of factories. Default: None.
+        logical_depth_factor (Optional[float]): Extends algorithmic logical depth by a factor >= 1. Default: None.
+        max_physical_qubits (Optional[int]): Forces estimator to not exceed provided number of physical qubits, may fail. Default: None.
+        max_duration (Optional[int]): Allows estimator to run for given runtime in nanoseconds, may fail. Default: None.
+        error_budget_pruning (bool): Will try to prune the error budget to increase magic state error budget. Default: False.
+
+    Returns:
+        Dict: A dictionary with resource estimation results.
+    """
+    ...
