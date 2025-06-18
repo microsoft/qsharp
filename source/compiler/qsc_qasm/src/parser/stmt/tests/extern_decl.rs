@@ -125,7 +125,6 @@ fn readonly_array_arg_with_int_dims() {
                             dimensions:
                                 Expr [32-33]: Lit: Int(2)
                                 Expr [35-37]: Lit: Int(10)
-
                     return_type: <none>"#]],
     );
 }

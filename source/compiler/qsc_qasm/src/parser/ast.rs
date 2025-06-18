@@ -1057,7 +1057,7 @@ impl Display for StaticArrayReferenceType {
         writeln_header(f, "StaticArrayReferenceType", self.span)?;
         writeln_field(f, "mutability", &self.mutability)?;
         writeln_field(f, "base_type", &self.base_type)?;
-        writeln_list_field(f, "dimensions", &self.dimensions)
+        write_list_field(f, "dimensions", &self.dimensions)
     }
 }
 
