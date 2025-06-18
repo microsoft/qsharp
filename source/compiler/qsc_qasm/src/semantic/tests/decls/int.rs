@@ -60,7 +60,7 @@ fn implicit_bitness_int_default() {
             ClassicalDeclarationStmt [0-6]:
                 symbol_id: 8
                 ty_span: [0-3]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [0-6]:
                     ty: const int
                     kind: Lit: Int(0)
             [8] Symbol [4-5]:
@@ -314,7 +314,7 @@ fn explicit_bitness_int_default() {
             ClassicalDeclarationStmt [0-10]:
                 symbol_id: 8
                 ty_span: [0-7]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [0-10]:
                     ty: const int[10]
                     kind: Lit: Int(0)
             [8] Symbol [8-9]:

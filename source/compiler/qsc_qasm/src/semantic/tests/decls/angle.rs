@@ -13,7 +13,7 @@ fn implicit_bitness_default() {
             ClassicalDeclarationStmt [0-8]:
                 symbol_id: 8
                 ty_span: [0-5]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [0-8]:
                     ty: const angle
                     kind: Lit: Angle(0)
             [8] Symbol [6-7]:

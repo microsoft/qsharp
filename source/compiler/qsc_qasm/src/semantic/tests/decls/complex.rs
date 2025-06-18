@@ -13,7 +13,7 @@ fn implicit_bitness_default() {
             ClassicalDeclarationStmt [0-17]:
                 symbol_id: 8
                 ty_span: [0-14]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [0-17]:
                     ty: const complex[float]
                     kind: Lit: Complex(0.0, 0.0)
             [8] Symbol [15-16]:
@@ -32,7 +32,7 @@ fn explicit_bitness_default() {
             ClassicalDeclarationStmt [0-21]:
                 symbol_id: 8
                 ty_span: [0-18]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [0-21]:
                     ty: const complex[float[42]]
                     kind: Lit: Complex(0.0, 0.0)
             [8] Symbol [19-20]:

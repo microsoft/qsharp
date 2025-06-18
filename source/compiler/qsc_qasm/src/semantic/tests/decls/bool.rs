@@ -13,7 +13,7 @@ fn with_no_init_expr_has_generated_lit_expr() {
             ClassicalDeclarationStmt [0-7]:
                 symbol_id: 8
                 ty_span: [0-4]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [0-7]:
                     ty: const bool
                     kind: Lit: Bool(false)
             [8] Symbol [5-6]:
@@ -32,19 +32,19 @@ fn array_with_no_init_expr_has_generated_lit_expr() {
             ClassicalDeclarationStmt [0-17]:
                 symbol_id: 8
                 ty_span: [0-14]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [0-17]:
                     ty: array[bool, 4]
                     kind: Lit:     array:
-                            Expr [0-0]:
+                            Expr [0-17]:
                                 ty: const bool
                                 kind: Lit: Bool(false)
-                            Expr [0-0]:
+                            Expr [0-17]:
                                 ty: const bool
                                 kind: Lit: Bool(false)
-                            Expr [0-0]:
+                            Expr [0-17]:
                                 ty: const bool
                                 kind: Lit: Bool(false)
-                            Expr [0-0]:
+                            Expr [0-17]:
                                 ty: const bool
                                 kind: Lit: Bool(false)
             [8] Symbol [15-16]:
