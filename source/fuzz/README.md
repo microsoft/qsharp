@@ -60,7 +60,7 @@ The fuzzing run `cargo fuzz run compile`, if hits a panic, reports the panic mes
 
 ```log
 thread '<unnamed>' panicked at 'local variable should have inferred type', \
-    .../qsharp/compiler/qsc_frontend/src/typeck/rules.rs:326:30
+    .../qsharp/source/compiler/qsc_frontend/src/typeck/rules.rs:326:30
 ```
 
 Among the last few lines the log lists the following commands of interest:
@@ -116,7 +116,7 @@ RUST_BACKTRACE=1 cargo fuzz run compile --features do_fuzz fuzz/artifacts/compil
 <details><summary>Example (click this line).</summary>
 
 ```log
-thread 'unnamed' panicked at 'local variable should have inferred type', /mnt/c/ed/dev/QSharpCompiler/qsharp-runtime/qsharp/compiler/qsc_frontend/src/typeck/rules.rs:326:30
+thread 'unnamed' panicked at 'local variable should have inferred type', /mnt/c/ed/dev/QSharpCompiler/qsharp-runtime/qsharp/source/compiler/qsc_frontend/src/typeck/rules.rs:326:30
 stack backtrace:
    0: rust_begin_unwind
              at /rustc/88fb1b922b047981fc0cfc62aa1418b4361ae72e/library/std/src/panicking.rs:577:5
@@ -187,17 +187,17 @@ stack backtrace:
   33: {qsc_frontend::typeck::check::Checker as qsc_ast::visit::Visitor}::visit_callable_decl
              at ./src/typeck/check.rs:131:48
   34: qsc_ast::visit::walk_item
-             at /mnt/c/ed/dev/QSharpCompiler/qsharp-runtime/qsharp/compiler/qsc_ast/src/visit.rs:94:37
+             at /mnt/c/ed/dev/QSharpCompiler/qsharp-runtime/qsharp/source/compiler/qsc_ast/src/visit.rs:94:37
   35: qsc_ast::visit::Visitor::visit_item
-             at /mnt/c/ed/dev/QSharpCompiler/qsharp-runtime/qsharp/compiler/qsc_ast/src/visit.rs:20:9
+             at /mnt/c/ed/dev/QSharpCompiler/qsharp-runtime/qsharp/source/compiler/qsc_ast/src/visit.rs:20:9
   36: qsc_ast::visit::walk_namespace::{{closure}}
-             at /mnt/c/ed/dev/QSharpCompiler/qsharp-runtime/qsharp/compiler/qsc_ast/src/visit.rs:86:41
+             at /mnt/c/ed/dev/QSharpCompiler/qsharp-runtime/qsharp/source/compiler/qsc_ast/src/visit.rs:86:41
   37: {core::slice::iter::Iter{T} as core::iter::traits::iterator::Iterator}::for_each
              at /rustc/88fb1b922b047981fc0cfc62aa1418b4361ae72e/library/core/src/slice/iter/macros.rs:201:21
   38: qsc_ast::visit::walk_namespace
-             at /mnt/c/ed/dev/QSharpCompiler/qsharp-runtime/qsharp/compiler/qsc_ast/src/visit.rs:86:5
+             at /mnt/c/ed/dev/QSharpCompiler/qsharp-runtime/qsharp/source/compiler/qsc_ast/src/visit.rs:86:5
   39: qsc_ast::visit::Visitor::visit_namespace
-             at /mnt/c/ed/dev/QSharpCompiler/qsharp-runtime/qsharp/compiler/qsc_ast/src/visit.rs:16:9
+             at /mnt/c/ed/dev/QSharpCompiler/qsharp-runtime/qsharp/source/compiler/qsc_ast/src/visit.rs:16:9
   40: {qsc_frontend::typeck::check::Checker as qsc_ast::visit::Visitor}::visit_package
              at ./src/typeck/check.rs:118:13
   41: qsc_frontend::compile::typeck_all

@@ -28,6 +28,6 @@ To log issues, contribute to the project, or build the extension yourself, visit
 ## Data and telemetry
 
 This extension collects usage data and sends it to Microsoft to help improve our products and services.
-Details of the telemetry sent can be seen in the source file at <https://github.com/microsoft/qsharp/blob/main/vscode/src/telemetry.ts>.
+Details of the telemetry sent can be seen in the source file at <https://github.com/microsoft/qsharp/blob/main/source/vscode/src/telemetry.ts>.
 This extension respects the `telemetry.enableTelemetry` setting which you can learn more about at
 <https://code.visualstudio.com/docs/supporting/faq#_how-to-disable-telemetry-reporting>.

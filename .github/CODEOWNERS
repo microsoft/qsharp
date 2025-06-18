@@ -2,26 +2,26 @@
 
 /.github/ISSUE_TEMPLATE/fuzz_bug_report.md @billti @idavis @swernli
 /.github/workflows/fuzz.yml @billti @idavis @swernli
-/compiler @idavis @minestarks @swernli
-/compiler/qsc_codegen @idavis @swernli
-/compiler/qsc_doc_gen @billti @DmitryVasilevsky @ScottCarda-MS
-/compiler/qsc_formatter @billti @minestarks @ScottCarda-MS
-/compiler/qsc_project @idavis @minestarks @swernli
-/compiler/qsc_partial_eval @idavis @swernli
-/compiler/qsc_rca @idavis @swernli
-/compiler/qsc_rir @idavis @swernli
-/fuzz  @billti @idavis @swernli
+/source/compiler @idavis @minestarks @swernli
+/source/compiler/qsc_codegen @idavis @swernli
+/source/compiler/qsc_doc_gen @billti @DmitryVasilevsky @ScottCarda-MS
+/source/compiler/qsc_formatter @billti @minestarks @ScottCarda-MS
+/source/compiler/qsc_project @idavis @minestarks @swernli
+/source/compiler/qsc_partial_eval @idavis @swernli
+/source/compiler/qsc_rca @idavis @swernli
+/source/compiler/qsc_rir @idavis @swernli
+/source/fuzz  @billti @idavis @swernli
 /katas @billti @DmitryVasilevsky @swernli
-/jupyterlab @billti @idavis @minestarks
-/language_service @billti @idavis @minestarks @ScottCarda-MS
+/source/jupyterlab @billti @idavis @minestarks
+/source/language_service @billti @idavis @minestarks @ScottCarda-MS
 /library @DmitryVasilevsky @swernli
-/npm @billti @DmitryVasilevsky @minestarks
-/pip @billti @idavis @minestarks
-/playground @billti @minestarks
-/resource_estimator @billti @ivanbasov @swernli
+/source/npm @billti @DmitryVasilevsky @minestarks
+/source/pip @billti @idavis @minestarks
+/source/playground @billti @minestarks
+/source/resource_estimator @billti @ivanbasov @swernli
 /samples @DmitryVasilevsky @minestarks @swernli
-/vscode @billti @idavis @minestarks
-/wasm @billti @idavis @swernli
+/source/vscode @billti @idavis @minestarks
+/source/wasm @billti @idavis @swernli
 
 /Cargo.lock @idavis @minestarks @swernli
 /Cargo.toml @idavis @minestarks @swernli
