@@ -23,7 +23,7 @@ from ._qsharp import (
 
 telemetry_events.on_import()
 
-from ._native import Result, Pauli, QSharpError, TargetProfile
+from ._native import Result, Pauli, QSharpError, TargetProfile, estimate_custom
 
 # IPython notebook specific features
 try:
@@ -47,6 +47,7 @@ __all__ = [
     "compile",
     "circuit",
     "estimate",
+    "estimate_custom",
     "Result",
     "Pauli",
     "QSharpError",
