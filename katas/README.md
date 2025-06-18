@@ -12,7 +12,7 @@ Visit [Learn with Microsoft Quantum katas](https://quantum.microsoft.com/experie
 
 ## Build Katas Locally
 
-We need to build the `playground` module to see the built katas locally. For the detailed instructions, refer to [Building Playground Locally](../playground/README.md#building-the-playground-locally).
+We need to build the `playground` module to see the built katas locally. For the detailed instructions, refer to [Building Playground Locally](../source/playground/README.md#building-the-playground-locally).
 
 ## Rust crate
 

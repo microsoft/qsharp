@@ -4,18 +4,18 @@ Welcome to the Azure Quantum Development Kit!
 
 This repository contains tooling for the Q# language, specifically:
 
-- **[compiler](./compiler/qsc/)**: core compiler logic and command-line tooling
-- **[fuzz](./fuzz/)**: fuzz testing infrastructure
-- **[jupyterlab](./jupyterlab/)**: JupyterLab extension
-- **[language_service](./language_service/)**: Q# language service and editor features
+- **[compiler](./source/compiler/qsc/)**: core compiler logic and command-line tooling
+- **[fuzz](./source/fuzz/)**: fuzz testing infrastructure
+- **[jupyterlab](./source/jupyterlab/)**: JupyterLab extension
+- **[language_service](./source/language_service/)**: Q# language service and editor features
 - **[library](./library/)**: Q# standard library
-- **[npm](./npm/)**: Q# npm package
-- **[pip](./pip/)**: Q# Python pip package
-- **[playground](./playground/)**: simple website for interacting with Q#
-- **[resource_estimator](./resource_estimator)**: Implementation for the Azure Quantum Resource Estimator
-- **[vscode](./vscode/)**: Visual Studio Code extension
-- **[wasm](./wasm/)**: The bindings and logic for the WebAssembly module
-- **[widgets](./widgets)**: The Q# Jupyter widgets Python package
+- **[npm](./source/npm/)**: Q# npm package
+- **[pip](./source/pip/)**: Q# Python pip package
+- **[playground](./source/playground/)**: simple website for interacting with Q#
+- **[resource_estimator](./source/resource_estimator)**: Implementation for the Azure Quantum Resource Estimator
+- **[vscode](./source/vscode/)**: Visual Studio Code extension
+- **[wasm](./source/wasm/)**: The bindings and logic for the WebAssembly module
+- **[widgets](./source/widgets)**: The Q# Jupyter widgets Python package
 
 There are also the tutorials and samples in the `./katas` and `./samples` directories, respectively.
 
@@ -51,13 +51,13 @@ build of each project, including running tests and checks such as linting. Run w
 
 The `playground` is a small website that loads the Q# editor, compiler, samples, katas, and documentation for the standard library. It's a way to manually validate any changes you make to these components.
 
-To see instructions for building the playground, refer to [Building the Playground Locally](./playground/README.md#building-the-playground-locally).
+To see instructions for building the playground, refer to [Building the Playground Locally](./source/playground/README.md#building-the-playground-locally).
 
 ### Python
 
 When building the Python packages (`pip` and `jupyterlab`), if the build script does not detect
-a current Python virtual environment, it will automatically create one under `pip/.venv` or
-`jupyterlab/.venv`. When developing locally, you can use these virtual environments to run the
+a current Python virtual environment, it will automatically create one under `source/pip/.venv` or
+`source/jupyterlab/.venv`. When developing locally, you can use these virtual environments to run the
 tests by running `source .venv/bin/activate` (Linux/MacOS) or `.venv/Scripts/activate.bat` (Windows).
 
 ## Code editing
