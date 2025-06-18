@@ -42,6 +42,7 @@ fn mock_program() -> Project {
         path: "project/qsharp.json".into(),
         name: "project".into(),
         project_type: qsc_project::ProjectType::QSharp(package_graph_sources),
+        target_profile: qsc_data_structures::target::Profile::Unrestricted,
     }
 }
 
