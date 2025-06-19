@@ -30,7 +30,7 @@ fn bit_to_bool() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-15]:
                     ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-32]:
@@ -57,7 +57,7 @@ fn bitarray_to_bool() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-19]:
                     ty: const bit[32]
                     kind: Lit: Bitstring("00000000000000000000000000000000")
             ExprStmt [28-36]:
@@ -93,7 +93,7 @@ fn bit_to_duration_fails() {
                         kind: ClassicalDeclarationStmt [9-15]:
                             symbol_id: 8
                             ty_span: [9-12]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-15]:
                                 ty: const bit
                                 kind: Lit: Bit(0)
                     Stmt [24-36]:
@@ -133,7 +133,7 @@ fn bitarray_to_duration_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-40]:
@@ -172,7 +172,7 @@ fn bit_to_int() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-15]:
                     ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-31]:
@@ -199,7 +199,7 @@ fn bit_to_sized_int() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-15]:
                     ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-35]:
@@ -268,7 +268,7 @@ fn bitarray_to_sized_int() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-19]:
                     ty: const bit[32]
                     kind: Lit: Bitstring("00000000000000000000000000000000")
             ExprStmt [28-39]:
@@ -300,7 +300,7 @@ fn bitarray_to_sized_int_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-39]:
@@ -340,7 +340,7 @@ fn bitarray_to_sized_int_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-39]:
@@ -379,7 +379,7 @@ fn bit_to_uint() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-15]:
                     ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-32]:
@@ -406,7 +406,7 @@ fn bit_to_sized_uint() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-15]:
                     ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-36]:
@@ -475,7 +475,7 @@ fn bitarray_to_sized_uint() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-19]:
                     ty: const bit[32]
                     kind: Lit: Bitstring("00000000000000000000000000000000")
             ExprStmt [28-40]:
@@ -507,7 +507,7 @@ fn bitarray_to_sized_uint_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-40]:
@@ -547,7 +547,7 @@ fn bitarray_to_sized_uint_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-40]:
@@ -586,7 +586,7 @@ fn bit_to_float() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-15]:
                     ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-33]:
@@ -613,7 +613,7 @@ fn bit_to_sized_float() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-15]:
                     ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-37]:
@@ -645,7 +645,7 @@ fn bitarray_to_float_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-37]:
@@ -685,7 +685,7 @@ fn bitarray_to_sized_float_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-41]:
@@ -725,7 +725,7 @@ fn bitarray_to_sized_float_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-41]:
@@ -765,7 +765,7 @@ fn bitarray_to_sized_float_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-41]:
@@ -809,7 +809,7 @@ fn bit_to_angle_fails() {
                         kind: ClassicalDeclarationStmt [9-15]:
                             symbol_id: 8
                             ty_span: [9-12]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-15]:
                                 ty: const bit
                                 kind: Lit: Bit(0)
                     Stmt [24-33]:
@@ -849,7 +849,7 @@ fn bit_to_sized_angle_fails() {
                         kind: ClassicalDeclarationStmt [9-15]:
                             symbol_id: 8
                             ty_span: [9-12]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-15]:
                                 ty: const bit
                                 kind: Lit: Bit(0)
                     Stmt [24-37]:
@@ -889,7 +889,7 @@ fn bitarray_to_angle_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-37]:
@@ -924,7 +924,7 @@ fn bitarray_to_sized_angle() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-19]:
                     ty: const bit[32]
                     kind: Lit: Bitstring("00000000000000000000000000000000")
             ExprStmt [28-41]:
@@ -956,7 +956,7 @@ fn bitarray_to_sized_angle_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-41]:
@@ -996,7 +996,7 @@ fn bitarray_to_sized_angle_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-41]:
@@ -1040,7 +1040,7 @@ fn bit_to_complex_fails() {
                         kind: ClassicalDeclarationStmt [9-15]:
                             symbol_id: 8
                             ty_span: [9-12]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-15]:
                                 ty: const bit
                                 kind: Lit: Bit(0)
                     Stmt [24-35]:
@@ -1080,7 +1080,7 @@ fn bit_to_sized_complex_fails() {
                         kind: ClassicalDeclarationStmt [9-15]:
                             symbol_id: 8
                             ty_span: [9-12]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-15]:
                                 ty: const bit
                                 kind: Lit: Bit(0)
                     Stmt [24-46]:
@@ -1120,7 +1120,7 @@ fn bitarray_to_complex_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-39]:
@@ -1160,7 +1160,7 @@ fn bitarray_to_sized_complex_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-50]:
@@ -1200,7 +1200,7 @@ fn bitarray_to_sized_complex_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-50]:
@@ -1240,7 +1240,7 @@ fn bitarray_to_sized_complex_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-50]:
@@ -1279,7 +1279,7 @@ fn bit_to_bit() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-15]:
                     ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-31]:
@@ -1302,7 +1302,7 @@ fn bit_to_bitarray() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-15]:
                     ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-35]:
@@ -1329,7 +1329,7 @@ fn bitarray_to_bit() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-19]:
                     ty: const bit[32]
                     kind: Lit: Bitstring("00000000000000000000000000000000")
             ExprStmt [28-35]:
@@ -1356,7 +1356,7 @@ fn bitarray_to_bitarray() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-19]:
                     ty: const bit[32]
                     kind: Lit: Bitstring("00000000000000000000000000000000")
             ExprStmt [28-39]:
@@ -1384,7 +1384,7 @@ fn bitarray_to_bitarray_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-39]:
@@ -1424,7 +1424,7 @@ fn bitarray_to_bitarray_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-19]:
                                 ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-39]:

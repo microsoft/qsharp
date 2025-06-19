@@ -2892,8 +2892,7 @@ impl Lowerer {
         use semantic::Expr;
         use semantic::ExprKind;
         use semantic::LiteralKind;
-        let from_lit_kind =
-            |kind| -> Expr { Expr::new(Span::default(), ExprKind::Lit(kind), ty.as_const()) };
+        let from_lit_kind = |kind| -> Expr { Expr::new(span, ExprKind::Lit(kind), ty.as_const()) };
         let expr = match ty {
             Type::Angle(_, _) => Some(from_lit_kind(LiteralKind::Angle(Default::default()))),
             Type::Bit(_) => Some(from_lit_kind(LiteralKind::Bit(false))),
