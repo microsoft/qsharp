@@ -243,6 +243,7 @@ async function singleFileProject(
     lints: [],
     errors: [],
     projectType: "qsharp",
+    profile: "unrestricted",
   };
 }
 
