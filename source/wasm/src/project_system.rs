@@ -330,7 +330,7 @@ impl TryFrom<qsc_project::Project> for IProjectConfig {
                 packages: FxHashMap::default(),
             },
         };
-        let profile = value.target_profile.to_str().to_string();
+        let profile = value.target_profile.to_str().to_string().to_lowercase();
         let project_config = ProjectConfig {
             project_name: value.name.to_string(),
             project_uri: value.path.to_string(),
