@@ -148,7 +148,9 @@ fn indexed_angle_with_step() {
         a[0:2:3] = "00";
     "#;
 
-    check_qasm_to_qsharp(source, &expect![[r#"
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         mutable a = Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI(), 4);
         set a = {
@@ -156,5 +158,6 @@ fn indexed_angle_with_step() {
             set bitarray[0..2..3] = [Zero, Zero];
             Std.OpenQASM.Angle.ResultArrayAsAngleBE(bitarray)
         };
-    "#]]);
+    "#]],
+    );
 }
