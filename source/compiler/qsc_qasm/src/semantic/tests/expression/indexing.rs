@@ -22,21 +22,20 @@ fn simple_array_slice_has_correct_size() {
                     ty: const bit[8]
                     kind: Lit: Bitstring("00010000")
             ExprStmt [32-39]:
-                expr: Expr [32-38]:
+                expr: Expr [32-37]:
                     ty: bit[3]
-                    kind: IndexExpr [32-38]:
+                    kind: IndexedExpr [32-37]:
                         collection: Expr [32-33]:
                             ty: bit[8]
                             kind: SymbolId(8)
-                        indices:
-                            Range [34-37]:
-                                start: Expr [34-35]:
-                                    ty: const int
-                                    kind: Lit: Int(1)
-                                step: <none>
-                                end: Expr [36-37]:
-                                    ty: const int
-                                    kind: Lit: Int(3)
+                        index: Range [34-37]:
+                            start: Expr [34-35]:
+                                ty: const int
+                                kind: Lit: Int(1)
+                            step: <none>
+                            end: Expr [36-37]:
+                                ty: const int
+                                kind: Lit: Int(3)
         "#]],
     );
 }
@@ -58,21 +57,20 @@ fn array_slice_with_negative_start_has_correct_size() {
                     ty: const bit[8]
                     kind: Lit: Bitstring("00010000")
             ExprStmt [32-40]:
-                expr: Expr [32-39]:
+                expr: Expr [32-38]:
                     ty: bit[6]
-                    kind: IndexExpr [32-39]:
+                    kind: IndexedExpr [32-38]:
                         collection: Expr [32-33]:
                             ty: bit[8]
                             kind: SymbolId(8)
-                        indices:
-                            Range [34-38]:
-                                start: Expr [35-36]:
-                                    ty: const int
-                                    kind: Lit: Int(-7)
-                                step: <none>
-                                end: Expr [37-38]:
-                                    ty: const int
-                                    kind: Lit: Int(6)
+                        index: Range [34-38]:
+                            start: Expr [35-36]:
+                                ty: const int
+                                kind: Lit: Int(-7)
+                            step: <none>
+                            end: Expr [37-38]:
+                                ty: const int
+                                kind: Lit: Int(6)
         "#]],
     );
 }
@@ -94,21 +92,20 @@ fn array_slice_with_negative_end_has_correct_size() {
                     ty: const bit[8]
                     kind: Lit: Bitstring("00010000")
             ExprStmt [32-40]:
-                expr: Expr [32-39]:
+                expr: Expr [32-38]:
                     ty: bit[6]
-                    kind: IndexExpr [32-39]:
+                    kind: IndexedExpr [32-38]:
                         collection: Expr [32-33]:
                             ty: bit[8]
                             kind: SymbolId(8)
-                        indices:
-                            Range [34-38]:
-                                start: Expr [34-35]:
-                                    ty: const int
-                                    kind: Lit: Int(1)
-                                step: <none>
-                                end: Expr [37-38]:
-                                    ty: const int
-                                    kind: Lit: Int(-2)
+                        index: Range [34-38]:
+                            start: Expr [34-35]:
+                                ty: const int
+                                kind: Lit: Int(1)
+                            step: <none>
+                            end: Expr [37-38]:
+                                ty: const int
+                                kind: Lit: Int(-2)
         "#]],
     );
 }
@@ -130,23 +127,22 @@ fn array_slice_with_non_exact_divisor_step_has_correct_size() {
                     ty: const bit[8]
                     kind: Lit: Bitstring("00010000")
             ExprStmt [32-41]:
-                expr: Expr [32-40]:
+                expr: Expr [32-39]:
                     ty: bit[3]
-                    kind: IndexExpr [32-40]:
+                    kind: IndexedExpr [32-39]:
                         collection: Expr [32-33]:
                             ty: bit[8]
                             kind: SymbolId(8)
-                        indices:
-                            Range [34-39]:
-                                start: Expr [34-35]:
-                                    ty: const int
-                                    kind: Lit: Int(0)
-                                step: Expr [36-37]:
-                                    ty: const int
-                                    kind: Lit: Int(3)
-                                end: Expr [38-39]:
-                                    ty: const int
-                                    kind: Lit: Int(7)
+                        index: Range [34-39]:
+                            start: Expr [34-35]:
+                                ty: const int
+                                kind: Lit: Int(0)
+                            step: Expr [36-37]:
+                                ty: const int
+                                kind: Lit: Int(3)
+                            end: Expr [38-39]:
+                                ty: const int
+                                kind: Lit: Int(7)
         "#]],
     );
 }
@@ -168,23 +164,22 @@ fn array_slice_with_exact_divisor_step_has_correct_size() {
                     ty: const bit[8]
                     kind: Lit: Bitstring("00010000")
             ExprStmt [32-41]:
-                expr: Expr [32-40]:
+                expr: Expr [32-39]:
                     ty: bit[3]
-                    kind: IndexExpr [32-40]:
+                    kind: IndexedExpr [32-39]:
                         collection: Expr [32-33]:
                             ty: bit[8]
                             kind: SymbolId(8)
-                        indices:
-                            Range [34-39]:
-                                start: Expr [34-35]:
-                                    ty: const int
-                                    kind: Lit: Int(0)
-                                step: Expr [36-37]:
-                                    ty: const int
-                                    kind: Lit: Int(3)
-                                end: Expr [38-39]:
-                                    ty: const int
-                                    kind: Lit: Int(6)
+                        index: Range [34-39]:
+                            start: Expr [34-35]:
+                                ty: const int
+                                kind: Lit: Int(0)
+                            step: Expr [36-37]:
+                                ty: const int
+                                kind: Lit: Int(3)
+                            end: Expr [38-39]:
+                                ty: const int
+                                kind: Lit: Int(6)
         "#]],
     );
 }
@@ -206,23 +201,22 @@ fn array_slice_with_negative_step_has_correct_size() {
                     ty: const bit[8]
                     kind: Lit: Bitstring("00010000")
             ExprStmt [32-42]:
-                expr: Expr [32-41]:
+                expr: Expr [32-40]:
                     ty: bit[3]
-                    kind: IndexExpr [32-41]:
+                    kind: IndexedExpr [32-40]:
                         collection: Expr [32-33]:
                             ty: bit[8]
                             kind: SymbolId(8)
-                        indices:
-                            Range [34-40]:
-                                start: Expr [34-35]:
-                                    ty: const int
-                                    kind: Lit: Int(6)
-                                step: Expr [37-38]:
-                                    ty: const int
-                                    kind: Lit: Int(-3)
-                                end: Expr [39-40]:
-                                    ty: const int
-                                    kind: Lit: Int(0)
+                        index: Range [34-40]:
+                            start: Expr [34-35]:
+                                ty: const int
+                                kind: Lit: Int(6)
+                            step: Expr [37-38]:
+                                ty: const int
+                                kind: Lit: Int(-3)
+                            end: Expr [39-40]:
+                                ty: const int
+                                kind: Lit: Int(0)
         "#]],
     );
 }

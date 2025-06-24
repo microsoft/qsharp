@@ -7,8 +7,8 @@
 //! paths that are implemented.
 
 use super::ast::{
-    BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, Index, IndexExpr, IndexedIdent,
-    LiteralKind, UnaryOp, UnaryOpExpr,
+    BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, Index, IndexedExpr, LiteralKind,
+    UnaryOp, UnaryOpExpr,
 };
 use super::symbols::SymbolId;
 use super::types::compute_slice_components;
@@ -96,14 +96,13 @@ impl Expr {
 
         match &*self.kind {
             ExprKind::Ident(symbol_id) => symbol_id.const_eval(ctx),
-            ExprKind::IndexedIdent(indexed_ident) => indexed_ident.const_eval(ctx),
             ExprKind::UnaryOp(unary_op_expr) => unary_op_expr.const_eval(ctx),
             ExprKind::BinaryOp(binary_op_expr) => binary_op_expr.const_eval(ctx),
             ExprKind::Lit(literal_kind) => Some(literal_kind.clone()),
             ExprKind::FunctionCall(function_call) => function_call.const_eval(ctx, ty),
             ExprKind::BuiltinFunctionCall(_) => self.get_const_value(),
             ExprKind::Cast(cast) => cast.const_eval(ctx),
-            ExprKind::IndexExpr(index_expr) => index_expr.const_eval(ctx, ty),
+            ExprKind::IndexedExpr(index_expr) => index_expr.const_eval(ctx, ty),
             ExprKind::Paren(expr) => expr.const_eval(ctx),
             // Measurements are non-const, so we don't need to implement them.
             ExprKind::Measure(_) | ExprKind::Err => None,
@@ -132,21 +131,8 @@ impl LiteralKind {
     ///      as a `LiteralKind`.
     ///
     /// So, in general we can return `Expr` from this function.
-    fn index_array(
-        self,
-        ctx: &mut Lowerer,
-        indices: &[Index],
-        collection_span: Span,
-    ) -> Option<Self> {
+    fn index_array(self, ctx: &mut Lowerer, index: &Index, collection_span: Span) -> Option<Self> {
         if let LiteralKind::Bitstring(value, size) = self {
-            // A bit array accepts a single index.
-            if indices.len() != 1 {
-                ctx.push_const_eval_error(ConstEvalError::TooManyIndices(collection_span));
-                return None;
-            }
-
-            let index = indices.first().expect("there is exactly one index");
-
             Self::index_bitarray(ctx, value, size, index)
         } else {
             ctx.push_const_eval_error(ConstEvalError::ExprMustBeIndexable(collection_span));
@@ -205,21 +191,10 @@ impl LiteralKind {
     }
 }
 
-impl IndexedIdent {
-    fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
-        let expr = ctx.symbols[self.symbol_id].get_const_expr()?;
-        let value = expr.const_eval(ctx)?;
-        let indices: Vec<_> = self.indices.iter().map(|idx| (**idx).clone()).collect();
-        value.index_array(ctx, &indices, self.name_span)
-    }
-}
-
-impl IndexExpr {
-    #[allow(clippy::unused_self)]
+impl IndexedExpr {
     fn const_eval(&self, ctx: &mut Lowerer, _ty: &Type) -> Option<LiteralKind> {
         let value = self.collection.const_eval(ctx)?;
-        let indices: Vec<_> = self.indices.iter().map(|idx| (**idx).clone()).collect();
-        value.index_array(ctx, &indices, self.collection.span)
+        value.index_array(ctx, &self.index, self.collection.span)
     }
 }
 

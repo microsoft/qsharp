@@ -4,8 +4,11 @@
 #[cfg(test)]
 mod tests;
 
+use qsc_data_structures::span::Span;
+
 use super::ast::{BinOp, Expr, ExprKind, Index, LiteralKind, Range};
 use crate::parser::ast as syntax;
+use crate::semantic::Lowerer;
 use core::fmt;
 use std::fmt::{Display, Formatter};
 use std::{cmp::max, sync::Arc};
@@ -182,8 +185,7 @@ impl Display for Type {
 }
 
 impl Type {
-    #[must_use]
-    pub fn is_array(&self) -> bool {
+    pub(crate) fn is_array(&self) -> bool {
         matches!(
             self,
             Type::AngleArray(..)
@@ -321,11 +323,17 @@ impl Type {
     /// If the type is `Int`, the indexed type is `None`.
     ///
     /// This is useful for determining the type of an array element.
-    #[allow(clippy::too_many_lines)]
-    #[must_use]
-    pub fn get_indexed_type(&self, indices: &[super::ast::Index]) -> Option<Self> {
-        let ty = match self {
-            Type::BitArray(size, constness) => indexed_type_builder(
+    pub(crate) fn get_indexed_type(
+        &self,
+        ctx: &mut Lowerer,
+        index: &super::ast::Index,
+        span: Span,
+    ) -> Self {
+        match self {
+            Type::Angle(Some(size), constness)
+            | Type::Int(Some(size), constness)
+            | Type::UInt(Some(size), constness)
+            | Type::BitArray(size, constness) => indexed_type_builder(
                 || Type::Bit(*constness),
                 |d| {
                     let ArrayDimensions::One(size) = d else {
@@ -334,7 +342,7 @@ impl Type {
                     Type::BitArray(size, *constness)
                 },
                 &ArrayDimensions::One(*size),
-                indices,
+                index,
             ),
             Type::QubitArray(size) => indexed_type_builder(
                 || Type::Qubit,
@@ -345,47 +353,50 @@ impl Type {
                     Type::QubitArray(size)
                 },
                 &ArrayDimensions::One(*size),
-                indices,
+                index,
             ),
             Type::BoolArray(dims) => {
-                indexed_type_builder(|| Type::Bool(false), Type::BoolArray, dims, indices)
+                indexed_type_builder(|| Type::Bool(false), Type::BoolArray, dims, index)
             }
             Type::AngleArray(size, dims) => indexed_type_builder(
                 || Type::Angle(*size, false),
                 |d| Type::AngleArray(*size, d),
                 dims,
-                indices,
+                index,
             ),
             Type::ComplexArray(size, dims) => indexed_type_builder(
                 || Type::Complex(*size, false),
                 |d| Type::ComplexArray(*size, d),
                 dims,
-                indices,
+                index,
             ),
             Type::DurationArray(dims) => {
-                indexed_type_builder(|| Type::Duration(false), Type::DurationArray, dims, indices)
+                indexed_type_builder(|| Type::Duration(false), Type::DurationArray, dims, index)
             }
             Type::FloatArray(size, dims) => indexed_type_builder(
                 || Type::Float(*size, false),
                 |d| Type::FloatArray(*size, d),
                 dims,
-                indices,
+                index,
             ),
             Type::IntArray(size, dims) => indexed_type_builder(
                 || Type::Int(*size, false),
                 |d| Type::IntArray(*size, d),
                 dims,
-                indices,
+                index,
             ),
             Type::UIntArray(size, dims) => indexed_type_builder(
                 || Type::UInt(*size, false),
                 |d| Type::UIntArray(*size, d),
                 dims,
-                indices,
+                index,
             ),
-            _ => return None,
-        };
-        Some(ty)
+            _ => {
+                let kind = super::error::SemanticErrorKind::CannotIndexType(self.to_string(), span);
+                ctx.push_semantic_error(kind);
+                super::types::Type::Err
+            }
+        }
     }
 
     pub(crate) fn as_const(&self) -> Type {
@@ -443,40 +454,27 @@ fn indexed_type_builder(
     base_ty_builder: impl Fn() -> Type,
     array_ty_builder: impl Fn(ArrayDimensions) -> Type,
     dims: &ArrayDimensions,
-    indices: &[super::ast::Index],
+    index: &super::ast::Index,
 ) -> Type {
     if matches!(dims, ArrayDimensions::Err) {
         return Type::Err;
     }
 
-    // By this point it's guaranteed that the number of indices is
-    // less or equal to the number of dims.
-    assert!(dims.num_dims() >= indices.len());
+    let mut dims = dims.clone().into_iter();
+    let first_dim = dims.next().expect("there is at least one dimension");
 
-    let mut indexed_dims = Vec::new();
+    let dims_vec = match index {
+        Index::Expr(..) => dims.collect::<Vec<_>>(),
 
-    for (dim, index) in dims.clone().into_iter().clone().zip(indices) {
-        match index {
-            Index::Expr(..) => (),
-
-            // If we have a range we need to compute the size of the slice
-            Index::Range(range) => {
-                if let Some(slice_size) = compute_slice_size(range, dim) {
-                    indexed_dims.push(slice_size);
-                } else {
-                    return Type::Err;
-                }
+        // If we have a range we need to compute the size of the slice
+        Index::Range(range) => {
+            if let Some(slice_size) = compute_slice_size(range, first_dim) {
+                [slice_size].into_iter().chain(dims).collect::<Vec<_>>()
+            } else {
+                return Type::Err;
             }
         }
-    }
-
-    // These are the remaining dimensions after applying all indices.
-    let not_indexed_dims = dims.clone().into_iter().skip(indices.len());
-
-    let dims_vec = indexed_dims
-        .into_iter()
-        .chain(not_indexed_dims)
-        .collect::<Vec<_>>();
+    };
 
     if dims_vec.is_empty() {
         base_ty_builder()

@@ -82,6 +82,9 @@ pub enum SemanticErrorKind {
     #[error("designator is too large")]
     #[diagnostic(code("Qasm.Lowerer.DesignatorTooLarge"))]
     DesignatorTooLarge(#[label] Span),
+    #[error("index operator must contain at least one index")]
+    #[diagnostic(code("Qasm.Lowerer.EmptyIndexOperator"))]
+    EmptyIndexOperator(#[label] Span),
     #[error("{0} must be a const expression")]
     #[diagnostic(code("Qasm.Lowerer.ExprMustBeConst"))]
     ExprMustBeConst(String, #[label] Span),
@@ -245,9 +248,6 @@ pub enum SemanticErrorKind {
     #[error("this statement is not yet handled during OpenQASM 3 import: {0}")]
     #[diagnostic(code("Qasm.Lowerer.Unimplemented"))]
     Unimplemented(String, #[label] Span),
-    #[error("unknown index operation kind")]
-    #[diagnostic(code("Qasm.Lowerer.UnknownIndexedOperatorKind"))]
-    UnknownIndexedOperatorKind(#[label] Span),
     #[error("unsupported version: '{0}'")]
     #[diagnostic(code("Qasm.Lowerer.UnsupportedVersion"))]
     UnsupportedVersion(String, #[label] Span),

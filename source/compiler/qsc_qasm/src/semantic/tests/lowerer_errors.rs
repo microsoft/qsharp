@@ -127,16 +127,6 @@ fn check_lowerer_error_spans_are_correct() {
                 `----
               help: mutable variables must be declared without the keyword `const`
 
-            Qasm.Lowerer.CannotCastLiteral
-
-              x cannot cast literal expression of type const int to type const bit
-                ,-[Test.qasm:51:1]
-             50 | // CannotUpdateConstVariable in indexed assign_op
-             51 | const_bitarray[1] += 7;
-                : ^^^^^^^^^^^^^^^^^^^^^^^
-             52 | 
-                `----
-
             Qasm.Lowerer.CannotUpdateConstVariable
 
               x cannot update const variable const_bitarray
@@ -704,20 +694,20 @@ fn check_lowerer_error_spans_are_correct() {
             Qasm.Lowerer.CannotIndexType
 
               x cannot index variables of type bit
-                 ,-[Test.qasm:245:1]
+                 ,-[Test.qasm:245:15]
              244 | bit non_indexable;
              245 | non_indexable[1];
-                 : ^^^^^^^^^^^^^^^^
+                 :               ^
              246 | 
                  `----
 
-            Qasm.Lowerer.TooManyIndices
+            Qasm.Lowerer.CannotIndexType
 
-              x too many indices specified
-                 ,-[Test.qasm:248:1]
+              x cannot index variables of type qubit
+                 ,-[Test.qasm:248:11]
              247 | // TooManyIndices
              248 | qreg_1[1, 2];
-                 : ^^^^^^^^^^^^
+                 :           ^
              249 | 
                  `----
 
@@ -733,10 +723,10 @@ fn check_lowerer_error_spans_are_correct() {
             Qasm.Lowerer.CannotIndexType
 
               x cannot index variables of type unknown
-                 ,-[Test.qasm:252:1]
+                 ,-[Test.qasm:252:16]
              251 | // Missing symbol in lower_indexed_ident_expr(...)
              252 | missing_symbol[2];
-                 : ^^^^^^^^^^^^^^^^^
+                 :                ^
                  `----
         "#]],
     );

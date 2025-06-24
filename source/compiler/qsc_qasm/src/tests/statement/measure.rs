@@ -58,7 +58,7 @@ fn indexed_single_qubit_can_be_measured_into_indexed_bit_register(
         import Std.OpenQASM.Intrinsic.*;
         mutable c = [Zero];
         let q = QIR.Runtime.AllocateQubitArray(1);
-        set c w/= 0 <- Std.Intrinsic.M(q[0]);
+        set c[0] = Std.Intrinsic.M(q[0]);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -78,7 +78,7 @@ fn range_indexed_qubit_register_can_be_measured_into_indexed_bit_register(
         import Std.OpenQASM.Intrinsic.*;
         mutable c = [Zero, Zero, Zero, Zero, Zero];
         let q = QIR.Runtime.AllocateQubitArray(5);
-        set c w/= 1..3 <- Std.Measurement.MeasureEachZ(q[2..4]);
+        set c[1..3] = Std.Measurement.MeasureEachZ(q[2..4]);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -230,7 +230,7 @@ fn range_indexed_qubit_register_measure_arrow_into_indexed_bit_register(
         import Std.OpenQASM.Intrinsic.*;
         mutable c = [Zero, Zero, Zero, Zero, Zero];
         let q = QIR.Runtime.AllocateQubitArray(5);
-        set c w/= 1..3 <- Std.Measurement.MeasureEachZ(q[2..4]);
+        set c[1..3] = Std.Measurement.MeasureEachZ(q[2..4]);
     "#]]
     .assert_eq(&qsharp);
     Ok(())

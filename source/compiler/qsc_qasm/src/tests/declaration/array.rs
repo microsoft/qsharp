@@ -229,15 +229,15 @@ fn assign_to_simple_arrays() -> miette::Result<(), Vec<Report>> {
         }];
         mutable e = [0., 0., 0.];
         mutable f = [Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.)];
-        set a w/= 1 <- true;
-        set b w/= 1 <- 4;
-        set c w/= 1 <- 4;
-        set d w/= 1 <- new Std.OpenQASM.Angle.Angle {
+        set a[1] = true;
+        set b[1] = 4;
+        set c[1] = 4;
+        set d[1] = new Std.OpenQASM.Angle.Angle {
             Value = 5734161139222659,
             Size = 53
         };
-        set e w/= 1 <- 4.;
-        set f w/= 1 <- Std.Math.Complex(4., 0.);
+        set e[1] = 4.;
+        set f[1] = Std.Math.Complex(4., 0.);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -288,15 +288,15 @@ fn assign_to_multidimensional_arrays() -> miette::Result<(), Vec<Report>> {
         }]];
         mutable e = [[0., 0.], [0., 0.], [0., 0.]];
         mutable f = [[Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.)], [Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.)], [Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.)]];
-        set a w/= 2 <- (a[2] w/ 1 <- true);
-        set b w/= 2 <- (b[2] w/ 1 <- 4);
-        set c w/= 2 <- (c[2] w/ 1 <- 4);
-        set d w/= 2 <- (d[2] w/ 1 <- new Std.OpenQASM.Angle.Angle {
+        set a[2][1] = true;
+        set b[2][1] = 4;
+        set c[2][1] = 4;
+        set d[2][1] = new Std.OpenQASM.Angle.Angle {
             Value = 5734161139222659,
             Size = 53
-        });
-        set e w/= 2 <- (e[2] w/ 1 <- 4.);
-        set f w/= 2 <- (f[2] w/ 1 <- Std.Math.Complex(4., 0.));
+        };
+        set e[2][1] = 4.;
+        set f[2][1] = Std.Math.Complex(4., 0.);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -315,7 +315,7 @@ fn assign_slice() -> miette::Result<(), Vec<Report>> {
         import Std.OpenQASM.Intrinsic.*;
         mutable a = [0, 0, 0];
         mutable b = [5, 6];
-        set a w/= 1..2 <- b;
+        set a[1..2] = b;
     "#]]
     .assert_eq(&qsharp);
     Ok(())

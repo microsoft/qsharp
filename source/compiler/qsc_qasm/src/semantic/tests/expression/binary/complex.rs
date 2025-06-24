@@ -108,8 +108,9 @@ fn addition_assign_op() {
                     ty: const complex[float]
                     kind: Lit: Complex(0.0, 0.0)
             AssignStmt [66-73]:
-                symbol_id: 9
-                lhs_span: [66-67]
+                lhs: Expr [66-67]:
+                    ty: complex[float]
+                    kind: SymbolId(9)
                 rhs: Expr [66-73]:
                     ty: complex[float]
                     kind: BinaryOpExpr:
@@ -176,8 +177,9 @@ fn subtraction_assign_op() {
                     ty: const complex[float]
                     kind: Lit: Complex(0.0, 0.0)
             AssignStmt [66-73]:
-                symbol_id: 9
-                lhs_span: [66-67]
+                lhs: Expr [66-67]:
+                    ty: complex[float]
+                    kind: SymbolId(9)
                 rhs: Expr [66-73]:
                     ty: complex[float]
                     kind: BinaryOpExpr:
@@ -244,8 +246,9 @@ fn multiplication_assign_op() {
                     ty: const complex[float]
                     kind: Lit: Complex(0.0, 0.0)
             AssignStmt [66-73]:
-                symbol_id: 9
-                lhs_span: [66-67]
+                lhs: Expr [66-67]:
+                    ty: complex[float]
+                    kind: SymbolId(9)
                 rhs: Expr [66-73]:
                     ty: complex[float]
                     kind: BinaryOpExpr:
@@ -312,8 +315,9 @@ fn division_assign_op() {
                     ty: const complex[float]
                     kind: Lit: Complex(0.0, 0.0)
             AssignStmt [66-73]:
-                symbol_id: 9
-                lhs_span: [66-67]
+                lhs: Expr [66-67]:
+                    ty: complex[float]
+                    kind: SymbolId(9)
                 rhs: Expr [66-73]:
                     ty: complex[float]
                     kind: BinaryOpExpr:
@@ -380,8 +384,9 @@ fn power_assign_op() {
                     ty: const complex[float]
                     kind: Lit: Complex(0.0, 0.0)
             AssignStmt [66-74]:
-                symbol_id: 9
-                lhs_span: [66-67]
+                lhs: Expr [66-67]:
+                    ty: complex[float]
+                    kind: SymbolId(9)
                 rhs: Expr [66-74]:
                     ty: complex[float]
                     kind: BinaryOpExpr:
