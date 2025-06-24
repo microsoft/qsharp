@@ -705,24 +705,17 @@ impl Lowerer {
             })),
         };
 
-        let implicit_return_expr = self.cast_expr_to_type(&lhs.ty, &temp_var_expr);
-        let implicit_return = semantic::Stmt {
-            span: block_span,
-            annotations: Box::default(),
-            kind: Box::new(semantic::StmtKind::ImplicitReturn(implicit_return_expr)),
-        };
+        let updated_var_expr = self.cast_expr_to_type(&lhs.ty, &temp_var_expr);
 
         self.symbols.pop_scope();
-
-        let rhs = semantic::Block {
-            span: block_span,
-            stmts: list_from_iter(vec![temp_var_stmt, update_stmt, implicit_return]),
-        };
 
         semantic::StmtKind::IndexedClassicalTypeAssign(semantic::IndexedClassicalTypeAssignStmt {
             span,
             lhs,
-            rhs,
+            rhs_span: rhs.span,
+            temp_var_stmt,
+            update_stmt,
+            updated_var_expr,
         })
     }
 

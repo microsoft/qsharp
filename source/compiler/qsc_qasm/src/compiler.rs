@@ -451,7 +451,6 @@ impl QasmCompiler {
             semast::StmtKind::For(stmt) => self.compile_for_stmt(stmt),
             semast::StmtKind::If(stmt) => self.compile_if_stmt(stmt),
             semast::StmtKind::GateCall(stmt) => self.compile_gate_call_stmt(stmt),
-            semast::StmtKind::ImplicitReturn(expr) => self.compile_implicit_return_stmt(expr),
             semast::StmtKind::Include(stmt) => self.compile_include_stmt(stmt),
             semast::StmtKind::IndexedClassicalTypeAssign(stmt) => {
                 self.compile_indexed_classical_type_assign_stmt(stmt)
@@ -494,12 +493,20 @@ impl QasmCompiler {
     ) -> Option<qsast::Stmt> {
         let lhs = self.compile_expr(&stmt.lhs);
 
+        let block = qsast::Block {
+            id: Default::default(),
+            span: stmt.rhs_span,
+            stmts: list_from_iter(vec![
+                self.compile_stmt(&stmt.temp_var_stmt)?,
+                self.compile_stmt(&stmt.update_stmt)?,
+                build_implicit_return_stmt(self.compile_expr(&stmt.updated_var_expr)),
+            ]),
+        };
+
         let rhs = qsast::Expr {
             id: Default::default(),
-            span: stmt.rhs.span,
-            kind: Box::new(qsast::ExprKind::Block(Box::new(
-                self.compile_block(&stmt.rhs),
-            ))),
+            span: stmt.rhs_span,
+            kind: Box::new(qsast::ExprKind::Block(Box::new(block))),
         };
 
         Some(build_assignment_statement(lhs, rhs, stmt.span))
@@ -984,11 +991,6 @@ impl QasmCompiler {
             build_reset_call(operand, stmt.reset_token_span, operand_span)
         };
         Some(build_stmt_semi_from_expr(expr))
-    }
-
-    fn compile_implicit_return_stmt(&mut self, expr: &semast::Expr) -> Option<qsast::Stmt> {
-        let expr = self.compile_expr(expr);
-        Some(build_implicit_return_stmt(expr))
     }
 
     fn compile_return_stmt(&mut self, stmt: &semast::ReturnStmt) -> Option<qsast::Stmt> {

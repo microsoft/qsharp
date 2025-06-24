@@ -279,7 +279,6 @@ pub enum StmtKind {
     For(ForStmt),
     GateCall(GateCall),
     If(IfStmt),
-    ImplicitReturn(Expr),
     Include(IncludeStmt),
     IndexedClassicalTypeAssign(IndexedClassicalTypeAssignStmt),
     InputDeclaration(InputDeclaration),
@@ -319,7 +318,6 @@ impl Display for StmtKind {
             StmtKind::For(for_stmt) => write!(f, "{for_stmt}"),
             StmtKind::GateCall(gate_call) => write!(f, "{gate_call}"),
             StmtKind::If(if_stmt) => write!(f, "{if_stmt}"),
-            StmtKind::ImplicitReturn(expr) => write!(f, "ImplicitReturn: {expr}"),
             StmtKind::IndexedClassicalTypeAssign(stmt) => write!(f, "{stmt}"),
             StmtKind::Include(include) => write!(f, "{include}"),
             StmtKind::InputDeclaration(io) => write!(f, "{io}"),
@@ -1168,14 +1166,20 @@ impl Display for AssignStmt {
 pub struct IndexedClassicalTypeAssignStmt {
     pub span: Span,
     pub lhs: Expr,
-    pub rhs: Block,
+    pub rhs_span: Span,
+    pub temp_var_stmt: Stmt,
+    pub update_stmt: Stmt,
+    pub updated_var_expr: Expr,
 }
 
 impl Display for IndexedClassicalTypeAssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "IndexedClassicalTypeAssignStmt", self.span)?;
         writeln_field(f, "lhs", &self.lhs)?;
-        write_field(f, "rhs", &self.rhs)
+        writeln_field(f, "rhs_span", &self.rhs_span)?;
+        writeln_field(f, "temp_var_stmt", &self.temp_var_stmt)?;
+        writeln_field(f, "update_stmt", &self.update_stmt)?;
+        write_field(f, "updated_var_expr", &self.updated_var_expr)
     }
 }
 
