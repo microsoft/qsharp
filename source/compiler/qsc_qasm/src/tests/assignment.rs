@@ -161,3 +161,28 @@ fn indexed_angle_with_step() {
     "#]],
     );
 }
+
+#[test]
+fn index_into_array_and_then_into_int() {
+    let source = r#"
+        array[int[4], 3] a = {1, 2, 3};
+        a[1][1] = 1;
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = [1, 2, 3];
+            set a[1] = {
+                mutable bitarray = Std.OpenQASM.Convert.IntAsResultArrayBE(a[1], 4);
+                set bitarray[1] = if 1 == 0 {
+                    One
+                } else {
+                    Zero
+                };
+                Std.OpenQASM.Convert.ResultArrayAsIntBE(bitarray)
+            };
+        "#]],
+    );
+}

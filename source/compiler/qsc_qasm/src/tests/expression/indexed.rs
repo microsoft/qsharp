@@ -345,3 +345,20 @@ fn indexed_const_angle_with_step() {
         "#]],
     );
 }
+
+#[test]
+fn index_into_array_and_then_into_int() {
+    let source = r#"
+        array[int[4], 3] a = {1, 2, 3};
+        bit b = a[1][1];
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = [1, 2, 3];
+            mutable b = Std.OpenQASM.Convert.IntAsResultArrayBE(a[1], 4)[1];
+        "#]],
+    );
+}
