@@ -120,10 +120,10 @@ impl SymbolId {
 }
 
 impl LiteralKind {
-    /// Indexes an array given a list of indices.
+    /// Indexes an array given an index.
     ///
     /// The result of indexing an array is either:
-    ///   1. An array, this happens when we use slices
+    ///   1. An array, this happens when we use a slice
     ///      or don't index all the dimensions. This
     ///      can be expressed as an `LiteralKind::Array`.
     ///   2. A non-array, this happens when we index
