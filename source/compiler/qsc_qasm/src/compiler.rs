@@ -541,7 +541,7 @@ impl QasmCompiler {
         // 2. Fully index the temp_var and assign the rhs to it.
         // 2.1 Finish indexing the lhs with the classical indices.
         let mut update_stmt_lhs = temp_var_expr.clone();
-        for index in &stmt.classical_indices {
+        for index in &stmt.indices {
             let index = self.compile_index(index);
             update_stmt_lhs = build_index_expr(update_stmt_lhs, index, lhs.span);
         }

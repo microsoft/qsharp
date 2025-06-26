@@ -1167,7 +1167,7 @@ impl Display for AssignStmt {
 pub struct IndexedClassicalTypeAssignStmt {
     pub span: Span,
     pub lhs: Expr,
-    pub classical_indices: VecDeque<Index>,
+    pub indices: VecDeque<Index>,
     pub rhs: Expr,
 }
 
@@ -1176,7 +1176,7 @@ impl Display for IndexedClassicalTypeAssignStmt {
         writeln_header(f, "IndexedClassicalTypeAssignStmt", self.span)?;
         writeln_field(f, "lhs", &self.lhs)?;
         writeln_field(f, "rhs", &self.rhs)?;
-        write_list_field(f, "classical_indices", &self.classical_indices)
+        write_list_field(f, "indices", &self.indices)
     }
 }
 

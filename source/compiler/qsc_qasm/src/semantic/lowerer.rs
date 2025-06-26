@@ -654,10 +654,10 @@ impl Lowerer {
         lhs: semantic::Expr,
         rhs: &semantic::Expr,
         span: Span,
-        classical_indices: VecDeque<semantic::Index>,
+        indices: VecDeque<semantic::Index>,
     ) -> semantic::StmtKind {
         // We need to check that we can assign the rhs to the fully indexed lhs.
-        let fully_indexed_lhs = self.lower_index_expr_rec(lhs.clone(), classical_indices.clone());
+        let fully_indexed_lhs = self.lower_index_expr_rec(lhs.clone(), indices.clone());
         let indexed_ty = &fully_indexed_lhs.ty;
         let Some(rhs) = Self::try_cast_expr_to_type(indexed_ty, rhs) else {
             self.push_invalid_cast_error(indexed_ty, &rhs.ty, span);
@@ -669,7 +669,7 @@ impl Lowerer {
         semantic::StmtKind::IndexedClassicalTypeAssign(semantic::IndexedClassicalTypeAssignStmt {
             span,
             lhs,
-            classical_indices,
+            indices,
             rhs,
         })
     }
