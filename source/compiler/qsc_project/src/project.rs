@@ -8,12 +8,13 @@ use crate::{
 use async_trait::async_trait;
 use futures::FutureExt;
 use miette::Diagnostic;
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::Profile};
 use qsc_linter::LintOrGroupConfig;
 use rustc_hash::FxHashMap;
 use std::{
     cell::RefCell,
     path::{Path, PathBuf},
+    str::FromStr,
     sync::Arc,
 };
 use thiserror::Error;
@@ -46,6 +47,10 @@ pub struct Project {
     pub errors: Vec<Error>,
     /// The type of project. This is used to determine how to load the project.
     pub project_type: ProjectType,
+    /// QIR target profile for this project (from manifest or default)
+    pub target_profile: Profile,
+    /// Whether this project is a single file (i.e. no manifest file).
+    pub is_single_file: bool,
 }
 
 impl Project {
@@ -71,6 +76,8 @@ impl Project {
             lints: Vec::default(),
             errors: Vec::default(),
             project_type: ProjectType::QSharp(source),
+            target_profile: Profile::Unrestricted,
+            is_single_file: true,
         }
     }
 }
@@ -386,6 +393,12 @@ pub trait FileSystemAsync {
             name,
             path: manifest_path,
             project_type: ProjectType::QSharp(PackageGraphSources { root, packages }),
+            target_profile: manifest
+                .target_profile
+                .as_deref()
+                .and_then(|s| Profile::from_str(s).ok())
+                .unwrap_or(Profile::Unrestricted),
+            is_single_file: false,
         })
     }
 
