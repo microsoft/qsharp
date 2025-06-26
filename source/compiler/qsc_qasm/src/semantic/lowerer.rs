@@ -656,66 +656,21 @@ impl Lowerer {
         span: Span,
         classical_indices: VecDeque<semantic::Index>,
     ) -> semantic::StmtKind {
-        let block_span = rhs.span;
-        self.symbols.push_scope(ScopeKind::Block);
-
-        let width = lhs
-            .ty
-            .width()
-            .expect("we got here if ty was a sized int, uint, or angle");
-
-        let temp_var_symbol = Symbol::new(
-            "bitarray",
-            block_span,
-            Type::BitArray(width, false),
-            self.convert_semantic_type_to_qsharp_type(&lhs.ty, block_span),
-            IOKind::Default,
-        );
-        let temp_var_symbol_symbol_id =
-            self.try_insert_or_get_existing_symbol_id("bitarray", temp_var_symbol);
-        let temp_var_init_expr = self.cast_expr_to_type(&Type::BitArray(width, false), &lhs);
-        let temp_var_stmt = semantic::Stmt {
-            span,
-            annotations: Box::default(),
-            kind: Box::new(semantic::StmtKind::ClassicalDecl(
-                semantic::ClassicalDeclarationStmt {
-                    span: block_span,
-                    ty_span: block_span,
-                    symbol_id: temp_var_symbol_symbol_id,
-                    init_expr: Box::new(temp_var_init_expr),
-                },
-            )),
-        };
-        let temp_var_expr = self.lower_ident_expr(&syntax::Ident {
-            span: block_span,
-            name: "bitarray".into(),
-        });
-
-        let update_stmt_lhs = self.lower_index_expr_rec(temp_var_expr.clone(), classical_indices);
-        let indexed_ty = &update_stmt_lhs.ty;
-        let update_stmt_rhs = self.cast_expr_to_type(indexed_ty, rhs);
-
-        let update_stmt = semantic::Stmt {
-            span: block_span,
-            annotations: Box::default(),
-            kind: Box::new(semantic::StmtKind::Assign(semantic::AssignStmt {
-                span: block_span,
-                lhs: update_stmt_lhs,
-                rhs: update_stmt_rhs,
-            })),
+        // We need to check that we can assign the rhs to the fully indexed lhs.
+        let fully_indexed_lhs = self.lower_index_expr_rec(lhs.clone(), classical_indices.clone());
+        let indexed_ty = &fully_indexed_lhs.ty;
+        let Some(rhs) = Self::try_cast_expr_to_type(indexed_ty, rhs) else {
+            self.push_invalid_cast_error(indexed_ty, &rhs.ty, span);
+            return semantic::StmtKind::Err;
         };
 
-        let updated_var_expr = self.cast_expr_to_type(&lhs.ty, &temp_var_expr);
-
-        self.symbols.pop_scope();
-
+        // We return the rhs already casted to the type of the fully indexed lhs.
+        // So, if return here, it is guaranteed that the assignment will succeed.
         semantic::StmtKind::IndexedClassicalTypeAssign(semantic::IndexedClassicalTypeAssignStmt {
             span,
             lhs,
-            rhs_span: rhs.span,
-            temp_var_stmt,
-            update_stmt,
-            updated_var_expr,
+            classical_indices,
+            rhs,
         })
     }
 

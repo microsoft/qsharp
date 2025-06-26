@@ -4,6 +4,7 @@
 use num_bigint::BigInt;
 use qsc_data_structures::span::Span;
 use std::{
+    collections::VecDeque,
     fmt::{self, Display, Formatter},
     rc::Rc,
 };
@@ -1166,20 +1167,15 @@ impl Display for AssignStmt {
 pub struct IndexedClassicalTypeAssignStmt {
     pub span: Span,
     pub lhs: Expr,
-    pub rhs_span: Span,
-    pub temp_var_stmt: Stmt,
-    pub update_stmt: Stmt,
-    pub updated_var_expr: Expr,
+    pub classical_indices: VecDeque<Index>,
+    pub rhs: Expr,
 }
 
 impl Display for IndexedClassicalTypeAssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "IndexedClassicalTypeAssignStmt", self.span)?;
         writeln_field(f, "lhs", &self.lhs)?;
-        writeln_field(f, "rhs_span", &self.rhs_span)?;
-        writeln_field(f, "temp_var_stmt", &self.temp_var_stmt)?;
-        writeln_field(f, "update_stmt", &self.update_stmt)?;
-        write_field(f, "updated_var_expr", &self.updated_var_expr)
+        write_field(f, "lhs", &self.rhs)
     }
 }
 

@@ -491,21 +491,87 @@ impl QasmCompiler {
         &mut self,
         stmt: &semast::IndexedClassicalTypeAssignStmt,
     ) -> Option<qsast::Stmt> {
+        // Invariant: The lowerer ensures that we only get here if the
+        //            rhs can be assigned to the fully indexed rhs.
+
+        // Compile the partially indexed lhs.
         let lhs = self.compile_expr(&stmt.lhs);
 
+        // Compile the rhs, which already was casted to the type of the fully indexed lhs.
+        let rhs = self.compile_expr(&stmt.rhs);
+        let rhs_span = stmt.rhs.span;
+
+        // Now we build a Block expr in which we will:
+        //  1. Create a temp_var initialized to the partially indexed rhs casted to bitarray.
+        //  2. Fully index the temp_var and assign the rhs to it.
+        //  3. Return the modified temp_var casted back to the type of the partially indexed lhs.
+
+        // 1. Create a temp_var initialized to the partially indexed lhs casted to bitarray.
+        let width = stmt
+            .lhs
+            .ty
+            .width()
+            .expect("we only got here if ty is a sized int, uint, or angle");
+        // 1.1 First we cast the partially indexed lhs to bitarray.
+        let temp_var_stmt_init_expr = self.compile_expr(&semast::Expr {
+            span: rhs_span,
+            kind: Box::new(semast::ExprKind::Cast(semast::Cast {
+                span: stmt.rhs.span,
+                ty: Type::BitArray(width, false),
+                expr: stmt.lhs.clone(),
+            })),
+            const_value: None,
+            ty: Type::BitArray(width, false),
+        });
+        // 1.2 Then we build the temp_var.
+        let temp_var_stmt = build_classical_decl(
+            "bitarray",
+            false,
+            rhs_span,
+            rhs_span,
+            rhs_span,
+            &crate::types::Type::ResultArray(
+                crate::types::ArrayDimensions::One(width as usize),
+                false,
+            ),
+            temp_var_stmt_init_expr,
+        );
+        let temp_var_expr = build_path_ident_expr("bitarray", rhs_span, rhs_span);
+
+        // 2. Fully index the temp_var and assign the rhs to it.
+        // 2.1 Finish indexing the lhs with the classical indices.
+        let mut update_stmt_lhs = temp_var_expr.clone();
+        for index in &stmt.classical_indices {
+            let index = self.compile_index(index);
+            update_stmt_lhs = build_index_expr(update_stmt_lhs, index, lhs.span);
+        }
+
+        // 2.2 Assign the rhs to the fully indexed temp_var.
+        let update_stmt = build_assignment_statement(update_stmt_lhs, rhs, stmt.span);
+
+        // 3. Return the modified temp_var casted back to the type of the partially indexed lhs.
+        // 3.1 First we cast the temp_var back to the lhs type.
+        let output_expr = Self::cast_bit_array_expr_to_ty(
+            temp_var_expr,
+            &Type::BitArray(width, false),
+            &stmt.lhs.ty,
+            width,
+            rhs_span,
+        );
+
+        // 3.2 Then we build the implicit return.
+        let implicit_return = build_implicit_return_stmt(output_expr);
+
+        // Finally we build the Block expr.
         let block = qsast::Block {
             id: Default::default(),
-            span: stmt.rhs_span,
-            stmts: list_from_iter(vec![
-                self.compile_stmt(&stmt.temp_var_stmt)?,
-                self.compile_stmt(&stmt.update_stmt)?,
-                build_implicit_return_stmt(self.compile_expr(&stmt.updated_var_expr)),
-            ]),
+            span: rhs_span,
+            stmts: list_from_iter(vec![temp_var_stmt, update_stmt, implicit_return]),
         };
 
         let rhs = qsast::Expr {
             id: Default::default(),
-            span: stmt.rhs_span,
+            span: rhs_span,
             kind: Box::new(qsast::ExprKind::Block(Box::new(block))),
         };
 
@@ -1116,9 +1182,7 @@ impl QasmCompiler {
                 self.compile_literal_expr(&value, expr.span)
             }
             semast::ExprKind::Cast(cast) => self.compile_cast_expr(cast),
-            semast::ExprKind::IndexedExpr(index_expr) => {
-                self.compile_indexed_array_expr(index_expr)
-            }
+            semast::ExprKind::IndexedExpr(index_expr) => self.compile_indexed_expr(index_expr),
             semast::ExprKind::Paren(pexpr) => self.compile_paren_expr(pexpr, expr.span),
             semast::ExprKind::Measure(mexpr) => self.compile_measure_expr(mexpr, &expr.ty),
         }
@@ -1352,14 +1416,10 @@ impl QasmCompiler {
         cast_expr
     }
 
-    fn compile_indexed_array_expr(&mut self, index_expr: &IndexedExpr) -> qsast::Expr {
+    fn compile_indexed_expr(&mut self, index_expr: &IndexedExpr) -> qsast::Expr {
         let expr = self.compile_expr(&index_expr.collection);
         let index = self.compile_index(&index_expr.index);
-        let span = Span {
-            lo: expr.span.lo,
-            hi: index.span.hi,
-        };
-        build_index_expr(expr, index, span)
+        build_index_expr(expr, index, index_expr.span)
     }
 
     fn compile_paren_expr(&mut self, paren: &Expr, span: Span) -> qsast::Expr {
