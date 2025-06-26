@@ -7,6 +7,7 @@
 
 mod harness;
 
+use crate::Project;
 use expect_test::expect;
 use harness::{check, check_files_in_project};
 
@@ -46,6 +47,8 @@ fn basic_manifest() {
                         packages: {},
                     },
                 ),
+                target_profile: Unrestricted,
+                is_single_file: false,
             }"#]],
     );
 }
@@ -129,6 +132,8 @@ fn circular_imports() {
                         packages: {},
                     },
                 ),
+                target_profile: Unrestricted,
+                is_single_file: false,
             }"#]],
     );
 }
@@ -169,6 +174,8 @@ fn different_files_same_manifest() {
                         packages: {},
                     },
                 ),
+                target_profile: Unrestricted,
+                is_single_file: false,
             }"#]],
     );
 }
@@ -201,6 +208,8 @@ fn empty_manifest() {
                         packages: {},
                     },
                 ),
+                target_profile: Unrestricted,
+                is_single_file: false,
             }"#]],
     );
 }
@@ -245,6 +254,8 @@ fn folder_structure() {
                         packages: {},
                     },
                 ),
+                target_profile: Unrestricted,
+                is_single_file: false,
             }"#]],
     );
 }
@@ -284,6 +295,8 @@ fn hidden_files() {
                         packages: {},
                     },
                 ),
+                target_profile: Unrestricted,
+                is_single_file: false,
             }"#]],
     );
 }
@@ -327,6 +340,8 @@ fn peer_file() {
                         packages: {},
                     },
                 ),
+                target_profile: Unrestricted,
+                is_single_file: false,
             }"#]],
     );
 }
@@ -359,6 +374,8 @@ fn language_feature() {
                         packages: {},
                     },
                 ),
+                target_profile: Unrestricted,
+                is_single_file: false,
             }"#]],
     );
 }
@@ -407,6 +424,8 @@ fn with_local_dep() {
                         },
                     },
                 ),
+                target_profile: Unrestricted,
+                is_single_file: false,
             }"#]],
     );
 }
@@ -470,6 +489,8 @@ fn transitive_dep() {
                         },
                     },
                 ),
+                target_profile: Unrestricted,
+                is_single_file: false,
             }"#]],
     );
 }
@@ -506,6 +527,8 @@ fn explicit_files_list() {
                         packages: {},
                     },
                 ),
+                target_profile: Unrestricted,
+                is_single_file: false,
             }"#]],
     );
 }
@@ -547,6 +570,8 @@ fn explicit_files_list_missing_entry() {
                         packages: {},
                     },
                 ),
+                target_profile: Unrestricted,
+                is_single_file: false,
             }"#]],
     );
 }
@@ -586,6 +611,17 @@ fn circular_dep() {
                         packages: {},
                     },
                 ),
+                target_profile: Unrestricted,
+                is_single_file: false,
             }"#]],
+    );
+}
+
+#[test]
+fn single_file_sets_is_single_file_true() {
+    let project = Project::from_single_file("Test".into(), "namespace Test {}".into());
+    assert!(
+        project.is_single_file,
+        "Expected is_single_file to be true for single-file scenario"
     );
 }

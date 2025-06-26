@@ -338,6 +338,7 @@ impl TryFrom<qsc_project::Project> for IProjectConfig {
             package_graph_sources: package_graph_sources.into(),
             project_type,
             profile,
+            is_single_file: value.is_single_file,
         };
         Ok(project_config.into())
     }
@@ -352,6 +353,7 @@ serializable_type! {
         pub lints: Vec<LintOrGroupConfig>,
         pub project_type: String,
         pub profile: String,
+        pub is_single_file: bool,
     },
     r#"export interface IProjectConfig {
         /**
@@ -373,6 +375,10 @@ serializable_type! {
          * QIR target profile for the project, as set in qsharp.json.
          */
         profile: TargetProfile;
+        /**
+         * True if this config represents a single-file program, false if it's a project.
+         */
+        isSingleFile: boolean;
     }"#,
     IProjectConfig
 }

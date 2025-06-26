@@ -76,6 +76,11 @@ async function getQirForProgram(
 ): Promise<string> {
   let result = "";
   const isLocalQirGeneration = targetSupportsAdaptive === undefined;
+  if (config.isSingleFile) {
+    // Single-file profile is inferred from the target.
+    config.profile =
+      isLocalQirGeneration || !targetSupportsAdaptive ? "base" : "adaptive_ri";
+  }
   let targetProfile = config.profile;
   const isUnrestricted = targetProfile === "unrestricted";
   const isUnsupportedAdaptiveSubmissionProfile =

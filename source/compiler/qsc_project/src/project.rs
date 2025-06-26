@@ -49,6 +49,8 @@ pub struct Project {
     pub project_type: ProjectType,
     /// QIR target profile for this project (from manifest or default)
     pub target_profile: Profile,
+    /// Whether this project is a single file (i.e. no manifest file).
+    pub is_single_file: bool,
 }
 
 impl Project {
@@ -75,6 +77,7 @@ impl Project {
             errors: Vec::default(),
             project_type: ProjectType::QSharp(source),
             target_profile: Profile::Unrestricted,
+            is_single_file: true,
         }
     }
 }
@@ -395,6 +398,7 @@ pub trait FileSystemAsync {
                 .as_deref()
                 .and_then(|s| Profile::from_str(s).ok())
                 .unwrap_or(Profile::Unrestricted),
+            is_single_file: false,
         })
     }
 

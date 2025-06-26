@@ -244,6 +244,7 @@ async function singleFileProject(
     errors: [],
     projectType: "qsharp",
     profile: "unrestricted",
+    isSingleFile: true,
   };
 }
 
