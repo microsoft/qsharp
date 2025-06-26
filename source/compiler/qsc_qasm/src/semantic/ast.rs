@@ -1175,7 +1175,8 @@ impl Display for IndexedClassicalTypeAssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "IndexedClassicalTypeAssignStmt", self.span)?;
         writeln_field(f, "lhs", &self.lhs)?;
-        write_field(f, "lhs", &self.rhs)
+        writeln_field(f, "rhs", &self.rhs)?;
+        write_list_field(f, "classical_indices", &self.classical_indices)
     }
 }
 
