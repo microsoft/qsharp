@@ -247,6 +247,9 @@ non_indexable[1];
 // TooManyIndices
 qreg_1[1, 2];
 
-
 // Missing symbol in lower_indexed_ident_expr(...)
 missing_symbol[2];
+
+// EmptyIndexOperator
+bit[4] empty_index;
+empty_index[];

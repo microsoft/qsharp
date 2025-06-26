@@ -714,19 +714,30 @@ fn check_lowerer_error_spans_are_correct() {
             Qasm.Lowerer.UndefinedSymbol
 
               x undefined symbol: missing_symbol
-                 ,-[Test.qasm:252:1]
-             251 | // Missing symbol in lower_indexed_ident_expr(...)
-             252 | missing_symbol[2];
+                 ,-[Test.qasm:251:1]
+             250 | // Missing symbol in lower_indexed_ident_expr(...)
+             251 | missing_symbol[2];
                  : ^^^^^^^^^^^^^^
+             252 | 
                  `----
 
             Qasm.Lowerer.CannotIndexType
 
               x cannot index variables of type unknown
-                 ,-[Test.qasm:252:16]
-             251 | // Missing symbol in lower_indexed_ident_expr(...)
-             252 | missing_symbol[2];
+                 ,-[Test.qasm:251:16]
+             250 | // Missing symbol in lower_indexed_ident_expr(...)
+             251 | missing_symbol[2];
                  :                ^
+             252 | 
+                 `----
+
+            Qasm.Lowerer.EmptyIndexOperator
+
+              x index operator must contain at least one index
+                 ,-[Test.qasm:255:13]
+             254 | bit[4] empty_index;
+             255 | empty_index[];
+                 :             ^
                  `----
         "#]],
     );
