@@ -53,7 +53,6 @@ pub(super) fn check_classical_decls<S: Into<Arc<str>>>(input: S, expect: &Expect
             let (symbol_id, str) = match kind {
                 super::ast::StmtKind::ClassicalDecl(decl) => (decl.symbol_id, decl.to_string()),
                 super::ast::StmtKind::OutputDeclaration(decl) => (decl.symbol_id, decl.to_string()),
-                super::ast::StmtKind::Assign(stmt) => (stmt.symbol_id, stmt.to_string()),
                 _ => panic!("unsupported stmt type {kind}"),
             };
 

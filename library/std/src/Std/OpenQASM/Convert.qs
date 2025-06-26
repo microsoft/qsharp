@@ -130,4 +130,4 @@ function DoubleAsResult(value : Double) : Result {
     }
 }
 
-export BoolAsResult, BoolAsInt, BoolAsBigInt, BoolAsDouble, ResultAsBool, ResultAsInt, ResultAsBigInt, IntAsResultArrayBE, ResultArrayAsIntBE,;
+export BoolAsResult, BoolAsInt, BoolAsBigInt, BoolAsDouble, ResultAsBool, ResultAsInt, ResultAsBigInt, ResultAsDouble, ResultArrayAsBool, ResultArrayAsResultBE, IntAsResultArrayBE, BoolAsResultArrayBE, ResultAsResultArrayBE, ResultArrayAsIntBE, DoubleAsResult;

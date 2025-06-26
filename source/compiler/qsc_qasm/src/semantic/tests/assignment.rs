@@ -79,31 +79,20 @@ fn too_many_indices_in_indexed_assignment() {
                     Stmt [89-113]:
                         annotations: <empty>
                         kind: AssignStmt [89-113]:
-                            indexed_ident: IndexedIdent [89-106]:
-                                symbol_id: 8
-                                name_span: [89-97]
-                                index_span: [97-106]
-                                indices:
-                                    Expr [98-99]:
-                                        ty: const int
-                                        kind: Lit: Int(1)
-                                    Expr [101-102]:
-                                        ty: const int
-                                        kind: Lit: Int(1)
-                                    Expr [104-105]:
-                                        ty: const int
-                                        kind: Lit: Int(3)
+                            lhs: Expr [89-102]:
+                                ty: unknown
+                                kind: Err
                             rhs: Expr [89-113]:
                                 ty: unknown
                                 kind: Err
 
-            [Qasm.Lowerer.TooManyIndices
+            [Qasm.Lowerer.CannotIndexType
 
-              x too many indices specified
-               ,-[test:3:9]
+              x cannot index variables of type float[32]
+               ,-[test:3:24]
              2 |         array[float[32], 3, 2] multiDim = {{1.1, 1.2}, {2.1, 2.2}, {3.1, 3.2}};
              3 |         multiDim[1, 1, 3] = 2.3;
-               :         ^^^^^^^^^^^^^^^^^
+               :                        ^
              4 |         
                `----
             ]"#]],

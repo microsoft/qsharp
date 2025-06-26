@@ -3,7 +3,8 @@
 
 mod alias;
 
-use crate::tests::{compile_fragments, fail_on_compilation_errors};
+use crate::tests::{check_qasm_to_qsharp, compile_fragments, fail_on_compilation_errors};
+use expect_test::expect;
 use miette::Report;
 
 #[test]
@@ -67,4 +68,121 @@ fn classical_old_style_decls() -> miette::Result<(), Vec<Report>> {
     let unit = compile_fragments(source)?;
     fail_on_compilation_errors(&unit);
     Ok(())
+}
+
+#[test]
+fn indexed_uint() {
+    let source = r#"
+        uint[4] a = 0b1111;
+        a[1] = 0;
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = 15;
+            set a = {
+                mutable bitarray = Std.OpenQASM.Convert.IntAsResultArrayBE(a, 4);
+                set bitarray[1] = if 0 == 0 {
+                    One
+                } else {
+                    Zero
+                };
+                Std.OpenQASM.Convert.ResultArrayAsIntBE(bitarray)
+            };
+        "#]],
+    );
+}
+
+#[test]
+fn indexed_uint_with_step() {
+    let source = r#"
+        uint[4] a = 0b1111;
+        a[0:2:3] = "00";
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = 15;
+            set a = {
+                mutable bitarray = Std.OpenQASM.Convert.IntAsResultArrayBE(a, 4);
+                set bitarray[0..2..3] = [Zero, Zero];
+                Std.OpenQASM.Convert.ResultArrayAsIntBE(bitarray)
+            };
+        "#]],
+    );
+}
+
+#[test]
+fn indexed_angle() {
+    let source = r#"
+        angle[4] a = pi;
+        a[1] = 0;
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI(), 4);
+            set a = {
+                mutable bitarray = Std.OpenQASM.Angle.AngleAsResultArrayBE(a);
+                set bitarray[1] = if 0 == 0 {
+                    One
+                } else {
+                    Zero
+                };
+                Std.OpenQASM.Angle.ResultArrayAsAngleBE(bitarray)
+            };
+        "#]],
+    );
+}
+
+#[test]
+fn indexed_angle_with_step() {
+    let source = r#"
+        angle[4] a = pi;
+        a[0:2:3] = "00";
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        mutable a = Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI(), 4);
+        set a = {
+            mutable bitarray = Std.OpenQASM.Angle.AngleAsResultArrayBE(a);
+            set bitarray[0..2..3] = [Zero, Zero];
+            Std.OpenQASM.Angle.ResultArrayAsAngleBE(bitarray)
+        };
+    "#]],
+    );
+}
+
+#[test]
+fn index_into_array_and_then_into_int() {
+    let source = r#"
+        array[int[4], 3] a = {1, 2, 3};
+        a[1][1] = 1;
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = [1, 2, 3];
+            set a[1] = {
+                mutable bitarray = Std.OpenQASM.Convert.IntAsResultArrayBE(a[1], 4);
+                set bitarray[1] = if 1 == 0 {
+                    One
+                } else {
+                    Zero
+                };
+                Std.OpenQASM.Convert.ResultArrayAsIntBE(bitarray)
+            };
+        "#]],
+    );
 }

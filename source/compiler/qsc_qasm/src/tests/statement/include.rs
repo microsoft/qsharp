@@ -50,7 +50,7 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
                 mutable c = [Zero];
                 let q = QIR.Runtime.AllocateQubitArray(1);
                 my_gate(q[0]);
-                set c w/= 0 <- Std.Intrinsic.M(q[0]);
+                set c[0] = Std.Intrinsic.M(q[0]);
                 Std.Arrays.Reversed(c)
             }
         }"#]]

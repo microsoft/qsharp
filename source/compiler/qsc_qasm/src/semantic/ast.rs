@@ -4,6 +4,7 @@
 use num_bigint::BigInt;
 use qsc_data_structures::span::Span;
 use std::{
+    collections::VecDeque,
     fmt::{self, Display, Formatter},
     rc::Rc,
 };
@@ -263,7 +264,6 @@ impl Display for AliasDeclStmt {
 pub enum StmtKind {
     Alias(AliasDeclStmt),
     Assign(AssignStmt),
-    IndexedAssign(IndexedAssignStmt),
     Barrier(BarrierStmt),
     Box(BoxStmt),
     Block(Box<Block>),
@@ -278,9 +278,10 @@ pub enum StmtKind {
     ExprStmt(ExprStmt),
     ExternDecl(ExternDecl),
     For(ForStmt),
-    If(IfStmt),
     GateCall(GateCall),
+    If(IfStmt),
     Include(IncludeStmt),
+    IndexedClassicalTypeAssign(IndexedClassicalTypeAssignStmt),
     InputDeclaration(InputDeclaration),
     OutputDeclaration(OutputDeclaration),
     MeasureArrow(MeasureArrowStmt),
@@ -318,8 +319,8 @@ impl Display for StmtKind {
             StmtKind::For(for_stmt) => write!(f, "{for_stmt}"),
             StmtKind::GateCall(gate_call) => write!(f, "{gate_call}"),
             StmtKind::If(if_stmt) => write!(f, "{if_stmt}"),
+            StmtKind::IndexedClassicalTypeAssign(stmt) => write!(f, "{stmt}"),
             StmtKind::Include(include) => write!(f, "{include}"),
-            StmtKind::IndexedAssign(assign) => write!(f, "{assign}"),
             StmtKind::InputDeclaration(io) => write!(f, "{io}"),
             StmtKind::OutputDeclaration(io) => write!(f, "{io}"),
             StmtKind::MeasureArrow(measure) => write!(f, "{measure}"),
@@ -440,25 +441,6 @@ pub struct ContinueStmt {
 impl Display for ContinueStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write_header(f, "ContinueStmt", self.span)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct IndexedIdent {
-    pub span: Span,
-    pub name_span: Span,
-    pub index_span: Span,
-    pub symbol_id: SymbolId,
-    pub indices: List<Index>,
-}
-
-impl Display for IndexedIdent {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "IndexedIdent", self.span)?;
-        writeln_field(f, "symbol_id", &self.symbol_id)?;
-        writeln_field(f, "name_span", &self.name_span)?;
-        writeln_field(f, "index_span", &self.index_span)?;
-        write_list_field(f, "indices", &self.indices)
     }
 }
 
@@ -883,7 +865,7 @@ impl Display for BoxStmt {
 pub struct MeasureArrowStmt {
     pub span: Span,
     pub measurement: MeasureExpr,
-    pub target: Option<Box<IndexedIdent>>,
+    pub target: Option<Box<Expr>>,
 }
 
 impl Display for MeasureArrowStmt {
@@ -1065,14 +1047,13 @@ pub enum ExprKind {
     #[default]
     Err,
     Ident(SymbolId),
-    IndexedIdent(IndexedIdent),
     UnaryOp(UnaryOpExpr),
     BinaryOp(BinaryOpExpr),
     Lit(LiteralKind),
     FunctionCall(FunctionCall),
     BuiltinFunctionCall(BuiltinFunctionCall),
     Cast(Cast),
-    IndexExpr(IndexExpr),
+    IndexedExpr(IndexedExpr),
     Paren(Expr),
     Measure(MeasureExpr),
 }
@@ -1082,14 +1063,13 @@ impl Display for ExprKind {
         match self {
             ExprKind::Err => write!(f, "Err"),
             ExprKind::Ident(id) => write!(f, "SymbolId({id})"),
-            ExprKind::IndexedIdent(id) => write!(f, "{id}"),
             ExprKind::UnaryOp(expr) => write!(f, "{expr}"),
             ExprKind::BinaryOp(expr) => write!(f, "{expr}"),
             ExprKind::Lit(lit) => write!(f, "Lit: {lit}"),
             ExprKind::FunctionCall(call) => write!(f, "{call}"),
             ExprKind::BuiltinFunctionCall(call) => write!(f, "{call}"),
             ExprKind::Cast(expr) => write!(f, "{expr}"),
-            ExprKind::IndexExpr(expr) => write!(f, "{expr}"),
+            ExprKind::IndexedExpr(expr) => write!(f, "{expr}"),
             ExprKind::Paren(expr) => write!(f, "Paren {expr}"),
             ExprKind::Measure(expr) => write!(f, "{expr}"),
         }
@@ -1099,32 +1079,32 @@ impl Display for ExprKind {
 #[derive(Clone, Debug)]
 pub struct AssignStmt {
     pub span: Span,
-    pub symbol_id: SymbolId,
-    pub lhs_span: Span,
+    pub lhs: Expr,
     pub rhs: Expr,
 }
 
 impl Display for AssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AssignStmt", self.span)?;
-        writeln_field(f, "symbol_id", &self.symbol_id)?;
-        writeln_field(f, "lhs_span", &self.lhs_span)?;
+        writeln_field(f, "lhs", &self.lhs)?;
         write_field(f, "rhs", &self.rhs)
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct IndexedAssignStmt {
+pub struct IndexedClassicalTypeAssignStmt {
     pub span: Span,
-    pub indexed_ident: IndexedIdent,
+    pub lhs: Expr,
+    pub indices: VecDeque<Index>,
     pub rhs: Expr,
 }
 
-impl Display for IndexedAssignStmt {
+impl Display for IndexedClassicalTypeAssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "AssignStmt", self.span)?;
-        writeln_field(f, "indexed_ident", &self.indexed_ident)?;
-        write_field(f, "rhs", &self.rhs)
+        writeln_header(f, "IndexedClassicalTypeAssignStmt", self.span)?;
+        writeln_field(f, "lhs", &self.lhs)?;
+        writeln_field(f, "rhs", &self.rhs)?;
+        write_list_field(f, "indices", &self.indices)
     }
 }
 
@@ -1224,17 +1204,17 @@ impl Display for Cast {
 }
 
 #[derive(Clone, Debug)]
-pub struct IndexExpr {
+pub struct IndexedExpr {
     pub span: Span,
-    pub collection: Expr,
-    pub indices: List<Index>,
+    pub collection: Box<Expr>,
+    pub index: Box<Index>,
 }
 
-impl Display for IndexExpr {
+impl Display for IndexedExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "IndexExpr", self.span)?;
+        writeln_header(f, "IndexedExpr", self.span)?;
         writeln_field(f, "collection", &self.collection)?;
-        write_list_field(f, "indices", &self.indices)
+        write_field(f, "index", &self.index)
     }
 }
 
