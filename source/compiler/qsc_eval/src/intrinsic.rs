@@ -191,23 +191,25 @@ pub(crate) fn call(
         "__quantum__qis__z__body" => one_qubit_gate(|q| sim.z(q), arg, arg_span),
         "__quantum__qis__swap__body" => two_qubit_gate(|q0, q1| sim.swap(q0, q1), arg, arg_span),
         "__quantum__qis__reset__body" => one_qubit_gate(|q| sim.reset(q), arg, arg_span),
-        "__quantum__qis__m__body" => Ok(Value::Result(
-            sim.m(arg
-                .unwrap_qubit()
+        "__quantum__qis__m__body" => match sim.m(arg
+            .unwrap_qubit()
+            .try_deref()
+            .ok_or(Error::QubitUsedAfterRelease(arg_span))?
+            .0)
+        {
+            Some(r) => Ok(Value::Result(r.into())),
+            None => Ok(Value::Result(val::Result::Loss)),
+        },
+        "__quantum__qis__mresetz__body" => match sim.mresetz(
+            arg.unwrap_qubit()
                 .try_deref()
                 .ok_or(Error::QubitUsedAfterRelease(arg_span))?
-                .0)
-                .into(),
-        )),
-        "__quantum__qis__mresetz__body" => Ok(Value::Result(
-            sim.mresetz(
-                arg.unwrap_qubit()
-                    .try_deref()
-                    .ok_or(Error::QubitUsedAfterRelease(arg_span))?
-                    .0,
-            )
-            .into(),
-        )),
+                .0,
+        ) {
+            Some(r) => Ok(Value::Result(r.into())),
+            None => Ok(Value::Result(val::Result::Loss)),
+        },
+        "__quantum__rt__read_loss" => Ok(Value::Bool(arg == Value::Result(val::Result::Loss))),
         _ => {
             let qubits = arg.qubits();
             let qubits_len = qubits.len();

@@ -55,17 +55,17 @@ impl Backend for Builder {
         self.push_gate(gate("H", [q]));
     }
 
-    fn m(&mut self, q: usize) -> Self::ResultType {
+    fn m(&mut self, q: usize) -> Option<Self::ResultType> {
         let mapped_q = self.map(q);
         // In the Circuit schema, result id is per-qubit
         let res_id = self.num_measurements_for_qubit(mapped_q);
         let id = self.remapper.m(q);
 
         self.push_gate(measurement_gate(mapped_q.0, res_id));
-        id
+        Some(id)
     }
 
-    fn mresetz(&mut self, q: usize) -> Self::ResultType {
+    fn mresetz(&mut self, q: usize) -> Option<Self::ResultType> {
         let mapped_q = self.map(q);
         // In the Circuit schema, result id is per-qubit
         let res_id = self.num_measurements_for_qubit(mapped_q);
@@ -78,7 +78,7 @@ impl Backend for Builder {
         // a measurement and a reset gate.
         self.push_gate(measurement_gate(mapped_q.0, res_id));
         self.push_gate(ket_gate("0", [mapped_q]));
-        id
+        Some(id)
     }
 
     fn reset(&mut self, q: usize) {

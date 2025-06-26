@@ -49,11 +49,11 @@ impl Backend for CustomSim {
         self.sim.h(q);
     }
 
-    fn m(&mut self, q: usize) -> Self::ResultType {
+    fn m(&mut self, q: usize) -> Option<Self::ResultType> {
         self.sim.m(q)
     }
 
-    fn mresetz(&mut self, q: usize) -> Self::ResultType {
+    fn mresetz(&mut self, q: usize) -> Option<Self::ResultType> {
         self.sim.mresetz(q)
     }
 
@@ -1906,6 +1906,871 @@ fn check_pauli_noise() {
         &expect![[r#"
             STATE:
             |1⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn qubit_loss_generates_loss_result() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            MResetZ(q)
+        }"},
+        &expect!["Loss"],
+    );
+}
+
+#[test]
+fn checked_measurement_with_normal_qubit_returns_false() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            MResetZChecked(q)
+        }"},
+        &expect!["(Zero, false)"],
+    );
+}
+
+#[test]
+fn checked_measurement_with_lost_qubit_returns_true() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            MResetZChecked(q)
+        }"},
+        &expect!["(Loss, true)"],
+    );
+}
+
+#[test]
+fn comparison_of_loss_result_runtime_error() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            MResetZ(q) == One
+        }"},
+        &expect!["cannot compare measurement result from qubit loss"],
+    );
+}
+
+#[test]
+fn ccx_on_lost_target_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2, q3) = (Qubit(), Qubit(), Qubit());
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q3);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            X(q1);
+            X(q2);
+            Std.Diagnostics.DumpMachine();
+            CCNOT(q1, q2, q3);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2, q3]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |110⟩: 1.0000+0.0000𝑖
+            STATE:
+            |110⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn ccx_with_lost_ctrl1_is_cx() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2, q3) = (Qubit(), Qubit(), Qubit());
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q1);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            X(q1);
+            X(q2);
+            Std.Diagnostics.DumpMachine();
+            CCNOT(q1, q2, q3);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2, q3]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |010⟩: 1.0000+0.0000𝑖
+            STATE:
+            |011⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn ccx_with_lost_ctrl2_is_cx() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2, q3) = (Qubit(), Qubit(), Qubit());
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q2);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            X(q1);
+            X(q2);
+            Std.Diagnostics.DumpMachine();
+            CCNOT(q1, q2, q3);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2, q3]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |100⟩: 1.0000+0.0000𝑖
+            STATE:
+            |101⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn ccx_with_both_ctrls_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2, q3) = (Qubit(), Qubit(), Qubit());
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q1);
+            Std.Diagnostics.ApplyIdleNoise(q2);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            X(q1);
+            X(q2);
+            Std.Diagnostics.DumpMachine();
+            CCNOT(q1, q2, q3);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2, q3]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |000⟩: 1.0000+0.0000𝑖
+            STATE:
+            |000⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn cx_with_target_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q2);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            X(q1);
+            Std.Diagnostics.DumpMachine();
+            CNOT(q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |10⟩: 1.0000+0.0000𝑖
+            STATE:
+            |10⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn cx_with_ctrl_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q1);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            X(q1);
+            Std.Diagnostics.DumpMachine();
+            CNOT(q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |00⟩: 1.0000+0.0000𝑖
+            STATE:
+            |00⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn cy_with_target_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q2);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            X(q1);
+            Std.Diagnostics.DumpMachine();
+            CY(q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |10⟩: 1.0000+0.0000𝑖
+            STATE:
+            |10⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn cy_with_ctrl_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q1);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            X(q1);
+            Std.Diagnostics.DumpMachine();
+            CY(q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |00⟩: 1.0000+0.0000𝑖
+            STATE:
+            |00⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn cz_with_target_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q2);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            X(q1);
+            X(q2);
+            Std.Diagnostics.DumpMachine();
+            CZ(q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |10⟩: 1.0000+0.0000𝑖
+            STATE:
+            |10⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn cz_with_ctrl_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q1);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            X(q1);
+            X(q2);
+            Std.Diagnostics.DumpMachine();
+            CZ(q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |01⟩: 1.0000+0.0000𝑖
+            STATE:
+            |01⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn h_with_target_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            H(q);
+            Std.Diagnostics.DumpMachine();
+            Reset(q);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn rx_with_target_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Rx(Microsoft.Quantum.Math.PI(), q);
+            Std.Diagnostics.DumpMachine();
+            Reset(q);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn rxx_with_first_qubit_lost_is_rx() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q1);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Rxx(Microsoft.Quantum.Math.PI(), q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |01⟩: 0.0000−1.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn rxx_with_second_qubit_lost_is_rx() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q2);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Rxx(Microsoft.Quantum.Math.PI(), q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |10⟩: 0.0000−1.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn rxx_with_both_qubits_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q1);
+            Std.Diagnostics.ApplyIdleNoise(q2);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Rxx(Microsoft.Quantum.Math.PI(), q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |00⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn ry_with_target_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Ry(Microsoft.Quantum.Math.PI(), q);
+            Std.Diagnostics.DumpMachine();
+            Reset(q);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn ryy_with_first_qubit_lost_is_ry() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q1);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Ryy(Microsoft.Quantum.Math.PI(), q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |01⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn ryy_with_second_qubit_lost_is_ry() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q2);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Ryy(Microsoft.Quantum.Math.PI(), q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |10⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn ryy_with_both_qubits_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q1);
+            Std.Diagnostics.ApplyIdleNoise(q2);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Ryy(Microsoft.Quantum.Math.PI(), q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |00⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn rz_with_target_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            X(q);
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Rz(Microsoft.Quantum.Math.PI(), q);
+            Std.Diagnostics.DumpMachine();
+            Reset(q);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn rzz_with_first_qubit_lost_is_rz() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            X(q1);
+            X(q2);
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q1);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Rzz(Microsoft.Quantum.Math.PI(), q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |01⟩: 0.0000+1.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn rzz_with_second_qubit_lost_is_rz() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            X(q1);
+            X(q2);
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q2);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Rzz(Microsoft.Quantum.Math.PI(), q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |10⟩: 0.0000+1.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn rzz_with_both_qubits_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            X(q1);
+            X(q2);
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q1);
+            Std.Diagnostics.ApplyIdleNoise(q2);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Rzz(Microsoft.Quantum.Math.PI(), q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |00⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn sadj_with_target_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            H(q);
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Adjoint S(q);
+            Std.Diagnostics.DumpMachine();
+            Reset(q);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn s_with_target_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            H(q);
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            S(q);
+            Std.Diagnostics.DumpMachine();
+            Reset(q);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn sx_with_target_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            SX(q);
+            Std.Diagnostics.DumpMachine();
+            Reset(q);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn swap_with_first_qubit_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            X(q2);
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q1);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            SWAP(q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |01⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn swap_with_second_qubit_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            X(q1);
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q2);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            SWAP(q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |10⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn swap_with_both_qubits_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            X(q2);
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q1);
+            Std.Diagnostics.ApplyIdleNoise(q2);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            SWAP(q1, q2);
+            Std.Diagnostics.DumpMachine();
+            ResetAll([q1, q2]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |00⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn tadj_with_target_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            H(q);
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Adjoint T(q);
+            Std.Diagnostics.DumpMachine();
+            Reset(q);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn t_with_target_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            H(q);
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            T(q);
+            Std.Diagnostics.DumpMachine();
+            Reset(q);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn x_with_target_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            X(q);
+            Std.Diagnostics.DumpMachine();
+            Reset(q);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn y_with_target_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Y(q);
+            Std.Diagnostics.DumpMachine();
+            Reset(q);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn z_with_target_lost_is_noop() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            X(q);
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Z(q);
+            Std.Diagnostics.DumpMachine();
+            Reset(q);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn m_reloads_lost_qubit_for_further_use() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            H(q);
+            Std.Diagnostics.DumpMachine();
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Std.Diagnostics.DumpMachine();
+            H(q);
+            Std.Diagnostics.DumpMachine();
+            M(q);
+            H(q);
+            Std.Diagnostics.DumpMachine();
+            Reset(q);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 0.7071+0.0000𝑖
+            |1⟩: 0.7071+0.0000𝑖
+            STATE:
+            |0⟩: 1.0000+0.0000𝑖
+            STATE:
+            |0⟩: 1.0000+0.0000𝑖
+            STATE:
+            |0⟩: 0.7071+0.0000𝑖
+            |1⟩: 0.7071+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn mresetz_reloads_lost_qubit_for_further_use() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            H(q);
+            Std.Diagnostics.DumpMachine();
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            Std.Diagnostics.ApplyIdleNoise(q);
+            Std.Diagnostics.ConfigureQubitLoss(0.0);
+            Std.Diagnostics.DumpMachine();
+            H(q);
+            Std.Diagnostics.DumpMachine();
+            MResetZ(q);
+            H(q);
+            Std.Diagnostics.DumpMachine();
+            Reset(q);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 0.7071+0.0000𝑖
+            |1⟩: 0.7071+0.0000𝑖
+            STATE:
+            |0⟩: 1.0000+0.0000𝑖
+            STATE:
+            |0⟩: 1.0000+0.0000𝑖
+            STATE:
+            |0⟩: 0.7071+0.0000𝑖
+            |1⟩: 0.7071+0.0000𝑖
         "#]],
     );
 }

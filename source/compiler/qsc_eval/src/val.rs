@@ -50,6 +50,7 @@ pub struct Range {
 pub enum Result {
     Val(bool),
     Id(usize),
+    Loss,
 }
 
 impl Result {
@@ -60,7 +61,7 @@ impl Result {
     pub fn unwrap_bool(self) -> bool {
         match self {
             Self::Val(v) => v,
-            Self::Id(_) => panic!("cannot unwrap Result::Id as bool"),
+            Self::Id(_) | Self::Loss => panic!("cannot unwrap Result as bool"),
         }
     }
 
@@ -70,7 +71,7 @@ impl Result {
     #[must_use]
     pub fn unwrap_id(self) -> usize {
         match self {
-            Self::Val(_) => panic!("cannot unwrap Result::Val as id"),
+            Self::Val(_) | Self::Loss => panic!("cannot unwrap Result as id"),
             Self::Id(v) => v,
         }
     }
@@ -196,6 +197,7 @@ impl Display for Value {
             },
             Value::Result(v) => match v {
                 Result::Id(id) => write!(f, "Result({id})"),
+                Result::Loss => write!(f, "Loss"),
                 Result::Val(val) => {
                     if *val {
                         write!(f, "One")
@@ -382,17 +384,6 @@ impl Value {
             panic!("value should be Range, got {}", self.type_name());
         };
         (inner.start, inner.step, inner.end)
-    }
-
-    /// Convert the [Value] into a measurement result
-    /// # Panics
-    /// This will panic if the [Value] is not a [`Value::Result`].
-    #[must_use]
-    pub fn unwrap_result(self) -> bool {
-        let Value::Result(v) = self else {
-            panic!("value should be Result, got {}", self.type_name());
-        };
-        v.unwrap_bool()
     }
 
     /// Convert the [Value] into a string
