@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { log } from "qsharp-lang";
 import * as vscode from "vscode";
 
 export function getTargetFriendlyName(targetProfile?: string) {
@@ -14,6 +15,7 @@ export function getTargetFriendlyName(targetProfile?: string) {
     case "unrestricted":
       return "QIR unrestricted";
     default:
+      log.error("invalid target profile found");
       return "QIR invalid";
   }
 }

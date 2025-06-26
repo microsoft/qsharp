@@ -15,7 +15,7 @@ import { sendTelemetryEvent, EventType } from "./telemetry";
 /** Returns the manifest document if one is found
  * returns null otherwise
  */
-export async function findManifestDocument(
+async function findManifestDocument(
   currentDocumentUriString: string,
 ): Promise<{ directory: URI; manifest: URI } | null> {
   // file://home/foo/bar/src/document.qs

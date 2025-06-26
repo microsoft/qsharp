@@ -28,7 +28,6 @@ import {
 } from "./notebook.js";
 import { getGithubSourceContent, setGithubEndpoint } from "./projectSystem.js";
 import { initCodegen } from "./qirGeneration.js";
-// import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initTelemetry } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
 
@@ -67,8 +66,6 @@ export async function activate(
       },
     ),
   );
-
-  // context.subscriptions.push(...activateTargetProfileStatusBarItem());
 
   context.subscriptions.push(...(await activateLanguageService(context)));
 

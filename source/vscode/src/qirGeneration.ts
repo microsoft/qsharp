@@ -21,7 +21,7 @@ import {
 } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { qsharpExtensionId } from "./common";
-import { updateManifestProfile, findManifestDocument } from "./projectSystem";
+import { updateManifestProfile } from "./projectSystem";
 
 const generateQirTimeoutMs = 120000;
 
@@ -41,7 +41,6 @@ export async function getQirForVisibleSource(
   if (!program.success) {
     throw new QirGenerationError(program.errorMsg);
   }
-  // Use the visible document's URI
   const docUri = getVisibleQdkDocumentUri();
   return getQirForProgram(
     program.programConfig,
@@ -58,7 +57,6 @@ export async function getQirForActiveWindow(
   if (!program.success) {
     throw new QirGenerationError(program.errorMsg);
   }
-  // Use the active document's URI
   const docUri = getActiveQdkDocumentUri();
   return getQirForProgram(
     program.programConfig,
@@ -81,11 +79,10 @@ async function getQirForProgram(
     config.profile =
       isLocalQirGeneration || !targetSupportsAdaptive ? "base" : "adaptive_ri";
   }
-  let targetProfile = config.profile;
-  const isUnrestricted = targetProfile === "unrestricted";
+  const isUnrestricted = config.profile === "unrestricted";
   const isUnsupportedAdaptiveSubmissionProfile =
-    targetProfile === "adaptive_rif";
-  const isTargetProfileBase = targetProfile === "base";
+    config.profile === "adaptive_rif";
+  const isTargetProfileBase = config.profile === "base";
   const isSubmittingAdaptiveToBaseAzureTarget =
     !isTargetProfileBase && targetSupportsAdaptive === false;
   const isSubmittingUnsupportedAdaptiveProfile =
@@ -113,17 +110,6 @@ async function getQirForProgram(
     isSubmittingAdaptiveToBaseAzureTarget ||
     isSubmittingUnsupportedAdaptiveProfile
   ) {
-    // Check if this is a single-file (no manifest) scenario
-    let isSingleFile = false;
-    if (documentUri) {
-      const manifestInfo = await findManifestDocument(documentUri.toString());
-      isSingleFile = !manifestInfo;
-    }
-    if (isSingleFile) {
-      throw new QirGenerationError(
-        "QIR generation is not supported for single-file (non-project) code. Please open or create a Q# project with a qsharp.json manifest.",
-      );
-    }
     const title =
       "Set the QIR target profile to " +
       (targetSupportsAdaptive ? "Adaptive_RI" : "Base") +
@@ -140,8 +126,7 @@ async function getQirForProgram(
     );
     if (result?.action !== "set") {
       throw new QirGenerationError(
-        error_msg +
-          " Please update the QIR target via the qsharp.json to continue.",
+        error_msg + " Please update the QIR target via the qsharp.json.",
       );
     } else {
       // Try to update the qsharp.json manifest automatically.
@@ -162,8 +147,7 @@ async function getQirForProgram(
             vscode.window.showInformationMessage(
               `Updated 'profile' in qsharp.json to '${targetSupportsAdaptive ? "adaptive_ri" : "base"}'.`,
             );
-            targetProfile = targetSupportsAdaptive ? "adaptive_ri" : "base";
-            config.profile = targetProfile; // Update the config profile to match the new target
+            config.profile = targetSupportsAdaptive ? "adaptive_ri" : "base";
           } catch (e: any) {
             vscode.window.showErrorMessage(
               "Failed to update qsharp.json: " + (e?.message ?? e),
@@ -190,7 +174,11 @@ async function getQirForProgram(
     const start = performance.now();
     sendTelemetryEvent(
       EventType.GenerateQirStart,
-      { associationId, targetProfile, documentType: telemetryDocumentType },
+      {
+        associationId,
+        targetProfile: config.profile,
+        documentType: telemetryDocumentType,
+      },
       {},
     );
 
