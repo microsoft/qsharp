@@ -1922,18 +1922,7 @@ impl QasmCompiler {
                     expr_span,
                 )
             }
-            Type::Bit(..) => {
-                let expr_span = expr.span;
-                let const_int_zero_expr = build_lit_int_expr(0, expr.span);
-                let qsop = qsast::BinOp::Eq;
-                let cond = build_binary_expr(false, qsop, expr, const_int_zero_expr, expr_span);
-                build_if_expr_then_expr_else_expr(
-                    cond,
-                    build_lit_result_expr(qsast::Result::One, expr_span),
-                    build_lit_result_expr(qsast::Result::Zero, expr_span),
-                    expr_span,
-                )
-            }
+            Type::Bit(..) => build_convert_call_expr(expr, "IntAsResult"),
             Type::Complex(..) => {
                 let expr = build_convert_call_expr(expr, "IntAsDouble");
                 build_complex_from_expr(expr)
