@@ -657,7 +657,7 @@ fn int_to_bit() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
-            Std.Convert.IntAsResult(a);
+            Std.OpenQASM.Convert.IntAsResult(a);
         "#]],
     );
 }
@@ -695,7 +695,7 @@ fn sized_int_to_bit() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
-            Std.Convert.IntAsResult(a);
+            Std.OpenQASM.Convert.IntAsResult(a);
         "#]],
     );
 }

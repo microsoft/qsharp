@@ -82,7 +82,7 @@ fn implicit_cast_to_function_return_type() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
         function square(a : Int) : Result {
-            return Std.Convert.IntAsResult(a);
+            return Std.OpenQASM.Convert.IntAsResult(a);
         }
     "#]]
     .assert_eq(&qsharp);
@@ -200,9 +200,9 @@ fn return_from_if_with_else() {
             import Std.OpenQASM.Intrinsic.*;
             function square(a : Int) : Result {
                 if a == 0 {
-                    return Std.Convert.IntAsResult(0);
+                    return Std.OpenQASM.Convert.IntAsResult(0);
                 } else {
-                    return Std.Convert.IntAsResult(1);
+                    return Std.OpenQASM.Convert.IntAsResult(1);
                 };
             }
         "#]],
@@ -305,7 +305,7 @@ fn return_from_for_loop() {
             import Std.OpenQASM.Intrinsic.*;
             function square(a : Int) : Result {
                 for i : Int in [1, 2] {
-                    return Std.Convert.IntAsResult(1);
+                    return Std.OpenQASM.Convert.IntAsResult(1);
                 }
             }
         "#]],
@@ -352,7 +352,7 @@ fn return_from_while_loop() {
             import Std.OpenQASM.Intrinsic.*;
             function square(a : Int) : Result {
                 while true {
-                    return Std.Convert.IntAsResult(1);
+                    return Std.OpenQASM.Convert.IntAsResult(1);
                 }
             }
         "#]],
@@ -400,9 +400,9 @@ fn return_from_switch() {
             import Std.OpenQASM.Intrinsic.*;
             function square(a : Int) : Result {
                 if a == 0 {
-                    return Std.Convert.IntAsResult(1);
+                    return Std.OpenQASM.Convert.IntAsResult(1);
                 } elif a == 1 {
-                    return Std.Convert.IntAsResult(0);
+                    return Std.OpenQASM.Convert.IntAsResult(0);
                 };
             }
         "#]],
@@ -479,7 +479,7 @@ fn return_from_block() {
             import Std.OpenQASM.Intrinsic.*;
             function square(a : Int) : Result {
                 {
-                    return Std.Convert.IntAsResult(1);
+                    return Std.OpenQASM.Convert.IntAsResult(1);
                 };
             }
         "#]],

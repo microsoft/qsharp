@@ -27,13 +27,14 @@ use crate::{
         build_lit_result_array_expr, build_lit_result_expr, build_managed_qubit_alloc,
         build_math_call_from_exprs, build_math_call_no_params, build_measure_call,
         build_measureeachz_call, build_operation_with_stmts, build_path_ident_expr,
-        build_path_ident_ty, build_qasm_import_decl, build_qasm_import_items,
-        build_qasmstd_convert_call_with_two_params, build_range_expr, build_reset_all_call,
-        build_reset_call, build_return_expr, build_return_unit, build_stmt_semi_from_expr,
-        build_stmt_semi_from_expr_with_span, build_top_level_ns_with_items, build_tuple_expr,
-        build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
-        build_while_stmt, build_wrapped_block_expr, managed_qubit_alloc_array,
-        map_qsharp_type_to_ast_ty, wrap_expr_in_parens,
+        build_path_ident_ty, build_qasm_convert_call_with_one_param, build_qasm_import_decl,
+        build_qasm_import_items, build_qasmstd_convert_call_with_two_params, build_range_expr,
+        build_reset_all_call, build_reset_call, build_return_expr, build_return_unit,
+        build_stmt_semi_from_expr, build_stmt_semi_from_expr_with_span,
+        build_top_level_ns_with_items, build_tuple_expr, build_unary_op_expr,
+        build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array, build_while_stmt,
+        build_wrapped_block_expr, managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
+        wrap_expr_in_parens,
     },
     io::SourceResolver,
     parser::ast::{list_from_iter, List},
@@ -1922,7 +1923,10 @@ impl QasmCompiler {
                     expr_span,
                 )
             }
-            Type::Bit(..) => build_convert_call_expr(expr, "IntAsResult"),
+            Type::Bit(..) => {
+                let operand_span = expr.span;
+                build_qasm_convert_call_with_one_param("IntAsResult", expr, span, operand_span)
+            }
             Type::Complex(..) => {
                 let expr = build_convert_call_expr(expr, "IntAsDouble");
                 build_complex_from_expr(expr)

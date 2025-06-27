@@ -17,7 +17,7 @@ fn to_bit_implicitly() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         mutable x = 42;
-        mutable y = Std.Convert.IntAsResult(x);
+        mutable y = Std.OpenQASM.Convert.IntAsResult(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())

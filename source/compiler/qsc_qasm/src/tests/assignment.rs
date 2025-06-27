@@ -84,7 +84,7 @@ fn indexed_uint() {
             mutable a = 15;
             set a = {
                 mutable bitarray = Std.OpenQASM.Convert.IntAsResultArrayBE(a, 4);
-                set bitarray[1] = Std.Convert.IntAsResult(0);
+                set bitarray[1] = Std.OpenQASM.Convert.IntAsResult(0);
                 Std.OpenQASM.Convert.ResultArrayAsIntBE(bitarray)
             };
         "#]],
@@ -126,7 +126,7 @@ fn indexed_angle() {
             mutable a = Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI(), 4);
             set a = {
                 mutable bitarray = Std.OpenQASM.Angle.AngleAsResultArrayBE(a);
-                set bitarray[1] = Std.Convert.IntAsResult(0);
+                set bitarray[1] = Std.OpenQASM.Convert.IntAsResult(0);
                 Std.OpenQASM.Angle.ResultArrayAsAngleBE(bitarray)
             };
         "#]],
@@ -168,7 +168,7 @@ fn index_into_array_and_then_into_int() {
             mutable a = [1, 2, 3];
             set a[1] = {
                 mutable bitarray = Std.OpenQASM.Convert.IntAsResultArrayBE(a[1], 4);
-                set bitarray[1] = Std.Convert.IntAsResult(1);
+                set bitarray[1] = Std.OpenQASM.Convert.IntAsResult(1);
                 Std.OpenQASM.Convert.ResultArrayAsIntBE(bitarray)
             };
         "#]],
