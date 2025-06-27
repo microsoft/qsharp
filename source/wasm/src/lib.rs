@@ -389,6 +389,7 @@ fn run_internal_with_features<F>(
     store: PackageStore,
     dependencies: &Dependencies,
     pauliNoise: &PauliNoise,
+    qubitLoss: f64,
 ) -> Result<(), Box<interpret::Error>>
 where
     F: FnMut(&str),
@@ -422,8 +423,11 @@ where
     };
 
     for _ in 0..shots {
-        let result =
-            interpreter.eval_entry_with_sim(&mut SparseSim::new_with_noise(pauliNoise), &mut out);
+        let result = {
+            let mut sim = SparseSim::new_with_noise(pauliNoise);
+            sim.set_loss(qubitLoss);
+            interpreter.eval_entry_with_sim(&mut sim, &mut out)
+        };
         let mut success = true;
         let msg: serde_json::Value = match result {
             Ok(value) => serde_json::Value::String(value.to_string()),
@@ -448,7 +452,14 @@ pub fn run(
     event_cb: &js_sys::Function,
     shots: u32,
 ) -> Result<bool, JsValue> {
-    runWithPauliNoise(program, expr, event_cb, shots, &JsValue::null())
+    runWithPauliNoise(
+        program,
+        expr,
+        event_cb,
+        shots,
+        &JsValue::null(),
+        &JsValue::null(),
+    )
 }
 
 #[wasm_bindgen]
@@ -458,6 +469,7 @@ pub fn runWithPauliNoise(
     event_cb: &js_sys::Function,
     shots: u32,
     pauliNoise: &JsValue,
+    qubitLoss: &JsValue,
 ) -> Result<bool, JsValue> {
     if !event_cb.is_function() {
         return Err(JsError::new("Events callback function must be provided").into());
@@ -493,6 +505,9 @@ pub fn runWithPauliNoise(
         PauliNoise::default()
     };
 
+    // See if the qubitLoss JsValue is a number
+    let qubitLoss = qubitLoss.as_f64().unwrap_or(0.0);
+
     if is_openqasm_program(&program) {
         let (sources, capabilities) = into_openqasm_args(program);
         let source_name = sources
@@ -508,8 +523,11 @@ pub fn runWithPauliNoise(
 
         let mut out = CallbackReceiver { event_cb };
         for _ in 0..shots {
-            let result =
-                interpreter.eval_entry_with_sim(&mut SparseSim::new_with_noise(&noise), &mut out);
+            let result = {
+                let mut sim = SparseSim::new_with_noise(&noise);
+                sim.set_loss(qubitLoss);
+                interpreter.eval_entry_with_sim(&mut sim, &mut out)
+            };
             let mut success = true;
             let msg: serde_json::Value = match result {
                 Ok(value) => serde_json::Value::String(value.to_string()),
@@ -545,6 +563,7 @@ pub fn runWithPauliNoise(
             store,
             &deps[..],
             &noise,
+            qubitLoss,
         ) {
             Ok(()) => Ok(true),
             Err(e) => Err(JsError::from(e).into()),

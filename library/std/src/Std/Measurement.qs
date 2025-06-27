@@ -5,7 +5,8 @@
 import Std.Core.*;
 import Std.Intrinsic.*;
 import Std.Diagnostics.*;
-open QIR.Intrinsic;
+import QIR.Intrinsic.*;
+import QIR.Runtime.*;
 
 /// # Summary
 /// Jointly measures a register of qubits in the Pauli Z basis.
@@ -160,5 +161,27 @@ operation MeasureInteger(target : Qubit[]) : Int {
 
     number
 }
-export MeasureAllZ, MeasureEachZ, MResetEachZ, MResetX, MResetY, MResetZ, MeasureInteger;
 
+/// # Summary
+/// Performs a single-qubit measurement in the Pauli Z basis, resetting the `target` to the |0⟩ state after the measurement.
+/// Additionally, it checks if the measurement result indicates a loss and returns `true` when a loss is detected. If the qubit
+/// is lost, the result value will not be `Zero` or `One` and any use of that result in a comparison will cause a runtime failure.
+/// This operation is not supported on all hardware targets.
+///
+/// # Input
+/// ## target
+/// A single qubit to be measured.
+///
+/// # Output
+/// A tuple containing the measurement result and a Boolean `true` if the result indicates a loss, otherwise `false`.
+///
+/// # Remarks
+/// This operation is useful for detecting qubit loss during execution. During simulation, qubit loss probability can be
+/// configured via the `ConfigureQubitLoss` operation. When compiled to QIR, this uses the `__quantum__rt__read_loss` intrinsic,
+/// which may not be supported on all hardware targets and could result in compilation errors when submitting to those targets.
+operation MResetZChecked(target : Qubit) : (Result, Bool) {
+    let res = MResetZ(target);
+    (res, __quantum__rt__read_loss(res))
+}
+
+export MeasureAllZ, MeasureEachZ, MResetEachZ, MResetX, MResetY, MResetZ, MeasureInteger, MResetZChecked;

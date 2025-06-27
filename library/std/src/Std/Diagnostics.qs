@@ -390,6 +390,30 @@ function ConfigurePauliNoise(px : Double, py : Double, pz : Double) : Unit {
 }
 
 /// # Summary
+/// Configures qubit loss during simulation.
+///
+/// # Description
+/// This function configures qubit loss for simulation. The parameter `p` represents
+/// the probability of a qubit loss during simulation. If `p` is greater than 0.0, the simulator will mark qubits
+/// as lost with the given probability during each operation that acts on them.
+/// Qubits that are lost are reset to the |0⟩ state but are not released. Loss is reported when the qubit is measured,
+/// and then the qubit is considered "reloaded" and can be used again.
+///
+/// # Input
+/// ## p
+/// The probability of a qubit being lost during simulation. Must be between 0.0 and 1.0.
+///
+/// # Remarks
+/// This operation is useful for simulating qubit loss for those modalities where qubit loss is a factor.
+/// Note that the value returned from a measurement of a lost qubit is neither `Zero` nor `One`, but rather a special
+/// value indicating that the qubit was lost. This value cannot be used in comparisons and will cause a runtime
+/// failure if compared to another value.
+/// To perform a measurement that includes a check for qubit loss, use the `MResetZChecked` operation.
+function ConfigureQubitLoss(p : Double) : Unit {
+    body intrinsic;
+}
+
+/// # Summary
 /// Applies configured noise to a qubit.
 ///
 /// # Description
@@ -445,6 +469,7 @@ export
     StartCountingQubits,
     StopCountingQubits,
     ConfigurePauliNoise,
+    ConfigureQubitLoss,
     ApplyIdleNoise,
     BitFlipNoise,
     PhaseFlipNoise,

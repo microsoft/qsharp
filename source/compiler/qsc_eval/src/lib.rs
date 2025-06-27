@@ -161,6 +161,11 @@ pub enum Error {
     #[diagnostic(help("comparing measurement results is not supported when performing circuit synthesis or base profile QIR generation"))]
     ResultComparisonUnsupported(#[label("cannot compare to result")] PackageSpan),
 
+    #[error("cannot compare measurement result from qubit loss")]
+    #[diagnostic(code("Qsc.Eval.ResultLossComparisonUnsupported"))]
+    #[diagnostic(help("use of a measurement result from a qubit that was lost is not supported, use `CheckLoss` to check for loss instead"))]
+    ResultLossComparisonUnsupported(#[label("cannot compare result from qubit loss")] PackageSpan),
+
     #[error("name is not bound")]
     #[diagnostic(code("Qsc.Eval.UnboundName"))]
     UnboundName(#[label] PackageSpan),
@@ -208,6 +213,7 @@ impl Error {
             | Error::RelabelingMismatch(span)
             | Error::ReleasedQubitNotZero(_, span)
             | Error::ResultComparisonUnsupported(span)
+            | Error::ResultLossComparisonUnsupported(span)
             | Error::UnboundName(span)
             | Error::UnknownIntrinsic(_, span)
             | Error::UnsupportedIntrinsicType(_, span)
@@ -1775,6 +1781,11 @@ fn eval_binop_eq(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Resul
             // since we don't currently do runtime capability analysis
             // to prevent executing programs that do result comparisons.
             Err(Error::ResultComparisonUnsupported(rhs_span))
+        }
+        (Value::Result(val::Result::Loss), _) | (_, Value::Result(val::Result::Loss)) => {
+            // Loss is not comparable and should be checked ahead of time, so treat this as a runtime
+            // failure.
+            Err(Error::ResultLossComparisonUnsupported(rhs_span))
         }
         (lhs, rhs) => Ok(Value::Bool(lhs == rhs)),
     }

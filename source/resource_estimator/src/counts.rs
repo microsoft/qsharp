@@ -420,13 +420,13 @@ impl Backend for LogicalCounter {
 
     fn h(&mut self, _q: usize) {}
 
-    fn m(&mut self, _q: usize) -> Self::ResultType {
+    fn m(&mut self, _q: usize) -> Option<Self::ResultType> {
         self.m_count += 1;
 
-        self.rnd.borrow_mut().gen_bool(0.5)
+        Some(self.rnd.borrow_mut().gen_bool(0.5))
     }
 
-    fn mresetz(&mut self, q: usize) -> Self::ResultType {
+    fn mresetz(&mut self, q: usize) -> Option<Self::ResultType> {
         self.m(q)
     }
 
@@ -566,7 +566,9 @@ impl Backend for LogicalCounter {
                         .map(|()| Value::unit()),
                 )
             }
-            "GlobalPhase" | "ConfigurePauliNoise" | "ApplyIdleNoise" => Some(Ok(Value::unit())),
+            "GlobalPhase" | "ConfigurePauliNoise" | "ConfigureQubitLoss" | "ApplyIdleNoise" => {
+                Some(Ok(Value::unit()))
+            }
             _ => None,
         }
     }
