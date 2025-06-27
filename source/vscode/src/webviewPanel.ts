@@ -30,7 +30,7 @@ import {
   UserTaskInvocationType,
 } from "./telemetry";
 import { getRandomGuid } from "./utils";
-import { getPauliNoiseModel } from "./config";
+import { getPauliNoiseModel, getQubitLossSetting } from "./config";
 import { qsharpExtensionId } from "./common";
 import { resourceEstimateCommand } from "./estimate";
 
@@ -148,7 +148,8 @@ export function registerWebViewCommands(context: ExtensionContext) {
       sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
 
       const noise = getPauliNoiseModel();
-      if (noise[0] != 0 || noise[1] != 0 || noise[2] != 0) {
+      const qubitLoss = getQubitLossSetting();
+      if (noise[0] != 0 || noise[1] != 0 || noise[2] != 0 || qubitLoss != 0) {
         sendTelemetryEvent(EventType.NoisySimulation, { associationId }, {});
       }
       await worker.runWithPauliNoise(
@@ -156,6 +157,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         expr ?? "",
         parseInt(numberOfShots),
         noise,
+        qubitLoss,
         evtTarget,
       );
       sendTelemetryEvent(

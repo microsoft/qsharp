@@ -64,6 +64,7 @@ export interface ICompiler {
     expr: string,
     shots: number,
     pauliNoise: number[],
+    qubitLoss: number,
     eventHandler: IQscEventTarget,
   ): Promise<void>;
 
@@ -202,6 +203,7 @@ export class Compiler implements ICompiler {
     expr: string,
     shots: number,
     pauliNoise: number[],
+    qubitLoss: number,
     eventHandler: IQscEventTarget,
   ): Promise<void> {
     await callAndTransformExceptions(async () =>
@@ -211,6 +213,7 @@ export class Compiler implements ICompiler {
         (msg: string) => onCompilerEvent(msg, eventHandler!),
         shots!,
         pauliNoise,
+        qubitLoss,
       ),
     );
   }

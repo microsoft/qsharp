@@ -165,7 +165,7 @@ impl SparseSim {
         }
     }
 
-    fn set_loss(&mut self, loss: f64) {
+    pub fn set_loss(&mut self, loss: f64) {
         self.loss = loss;
         if loss.is_zero() && self.noise.is_noiseless() {
             self.rng = None;
