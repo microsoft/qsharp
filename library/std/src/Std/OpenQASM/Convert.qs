@@ -120,6 +120,16 @@ function ResultArrayAsIntBE(results : Result[]) : Int {
     Std.Convert.ResultArrayAsInt(Std.Arrays.Reversed(results))
 }
 
+/// The ``IntAsResult`` function is used to implement the cast expr in QASM for int to bit.
+/// This is needed for round-trip conversion for bin ops.
+function IntAsResult(value : Int) : Result {
+    if value == 0 {
+        Zero
+    } else {
+        One
+    }
+}
+
 /// The ``DoubleAsResult`` function is used to implement the cast expr in QASM for float to bit.
 /// This is needed for round-trip conversion for bin ops.
 function DoubleAsResult(value : Double) : Result {
@@ -130,4 +140,4 @@ function DoubleAsResult(value : Double) : Result {
     }
 }
 
-export BoolAsResult, BoolAsInt, BoolAsBigInt, BoolAsDouble, ResultAsBool, ResultAsInt, ResultAsBigInt, ResultAsDouble, ResultArrayAsBool, ResultArrayAsResultBE, IntAsResultArrayBE, BoolAsResultArrayBE, ResultAsResultArrayBE, ResultArrayAsIntBE, DoubleAsResult;
+export BoolAsResult, BoolAsInt, BoolAsBigInt, BoolAsDouble, ResultAsBool, ResultAsInt, ResultAsBigInt, ResultAsDouble, ResultArrayAsBool, ResultArrayAsResultBE, IntAsResultArrayBE, BoolAsResultArrayBE, ResultAsResultArrayBE, ResultArrayAsIntBE, IntAsResult, DoubleAsResult;
