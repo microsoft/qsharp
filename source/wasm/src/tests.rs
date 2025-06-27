@@ -25,6 +25,7 @@ where
         store,
         &[(std_id, None)],
         &PauliNoise::default(),
+        0.0, // qubit loss
     )
 }
 
