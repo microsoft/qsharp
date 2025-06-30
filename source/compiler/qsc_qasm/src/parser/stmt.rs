@@ -445,12 +445,21 @@ fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
             token.span,
         )));
     }
+    let value_lo = s.peek().span.lo;
     let value = parts.get(1).map(|s| Into::<Rc<str>>::into(*s));
-
+    let value_span = if value.is_some() {
+        Some(s.span(value_lo))
+    } else {
+        None
+    };
+    // identifier_span is incorrect, but we can't fix it without
+    // redoing the parsing logic which is coming in a future PR.
     Ok(Pragma {
         span: s.span(lo),
         identifier,
+        identifier_span: s.span(lo),
         value,
+        value_span,
     })
 }
 
