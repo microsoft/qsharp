@@ -4,12 +4,13 @@
 pub mod error;
 
 use core::f64;
-use std::{rc::Rc, sync::Arc};
+use std::{rc::Rc, str::FromStr, sync::Arc};
 
 use error::CompilerErrorKind;
 use num_bigint::BigInt;
 use qsc_data_structures::span::Span;
 use qsc_frontend::{compile::SourceMap, error::WithSource};
+use rustc_hash::FxHashMap;
 
 use crate::{
     CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QasmCompileUnit,
@@ -18,9 +19,10 @@ use crate::{
         build_adj_plus_ctl_functor, build_angle_cast_call_by_name,
         build_angle_convert_call_with_two_params, build_arg_pat, build_array_reverse_expr,
         build_assignment_statement, build_attr, build_barrier_call, build_binary_expr,
-        build_call_no_params, build_call_with_param, build_call_with_params, build_classical_decl,
-        build_complex_from_expr, build_convert_call_expr, build_convert_cast_call_by_name,
-        build_end_stmt, build_expr_array_expr, build_for_stmt, build_function_or_operation,
+        build_call_no_params, build_call_stmt_no_params, build_call_with_param,
+        build_call_with_params, build_classical_decl, build_complex_from_expr,
+        build_convert_call_expr, build_convert_cast_call_by_name, build_end_stmt,
+        build_expr_array_expr, build_for_stmt, build_function_or_operation,
         build_gate_call_param_expr, build_gate_call_with_params_and_callee,
         build_if_expr_then_block, build_if_expr_then_block_else_block,
         build_if_expr_then_block_else_expr, build_if_expr_then_expr_else_expr,
@@ -97,9 +99,59 @@ pub fn compile_to_qsharp_ast_with_config(
         stmts: vec![],
         symbols: res.symbols,
         errors: res.errors,
+        pragma_config: PragmaConfig::default(),
     };
 
     compiler.compile(&program)
+}
+
+#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq)]
+pub enum PragmaKind {
+    QdkBoxOpen,
+    QdkBoxClose,
+}
+
+impl FromStr for PragmaKind {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "qdk.box.open" => Ok(PragmaKind::QdkBoxOpen),
+            "qdk.box.close" => Ok(PragmaKind::QdkBoxClose),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Eq, PartialEq)]
+pub struct PragmaConfig {
+    pub pragmas: FxHashMap<PragmaKind, Rc<str>>,
+}
+
+impl Default for PragmaConfig {
+    #[must_use]
+    fn default() -> Self {
+        Self {
+            pragmas: FxHashMap::default(),
+        }
+    }
+}
+
+impl PragmaConfig {
+    pub fn is_supported<S: AsRef<str>>(&self, pragma: S) -> bool {
+        PragmaKind::from_str(pragma.as_ref()).is_ok()
+    }
+
+    /// Inserts a pragma into the configuration.
+    /// If the pragma already exists, it will be overwritten.
+    pub fn insert<V: Into<Rc<str>>>(&mut self, pragma: PragmaKind, value: V) {
+        self.pragmas.insert(pragma, value.into());
+    }
+
+    #[must_use]
+    pub fn get(&self, key: PragmaKind) -> Option<&Rc<str>> {
+        self.pragmas.get(&key)
+    }
 }
 
 pub struct QasmCompiler {
@@ -114,6 +166,7 @@ pub struct QasmCompiler {
     pub stmts: Vec<qsast::Stmt>,
     pub symbols: SymbolTable,
     pub errors: Vec<WithSource<crate::Error>>,
+    pub pragma_config: PragmaConfig,
 }
 
 impl QasmCompiler {
@@ -132,7 +185,9 @@ impl QasmCompiler {
         if !matches!(program_ty, ProgramType::File) {
             self.append_runtime_import_decls();
         }
-
+        for pragma in &program.pragmas {
+            self.compile_pragma_stmt(pragma);
+        }
         self.compile_stmts(&program.statements);
         let (package, signature) = match program_ty {
             ProgramType::File => self.build_file(),
@@ -407,8 +462,8 @@ impl QasmCompiler {
         }
     }
 
-    fn compile_stmts(&mut self, smtms: &[Box<crate::semantic::ast::Stmt>]) {
-        for stmt in smtms {
+    fn compile_stmts(&mut self, stmts: &[Box<crate::semantic::ast::Stmt>]) {
+        for stmt in stmts {
             let compiled_stmt = self.compile_stmt(stmt.as_ref());
             if let Some(stmt) = compiled_stmt {
                 self.stmts.push(stmt);
@@ -458,7 +513,9 @@ impl QasmCompiler {
             semast::StmtKind::InputDeclaration(stmt) => self.compile_input_decl_stmt(stmt),
             semast::StmtKind::OutputDeclaration(stmt) => self.compile_output_decl_stmt(stmt),
             semast::StmtKind::MeasureArrow(stmt) => self.compile_measure_stmt(stmt),
-            semast::StmtKind::Pragma(stmt) => self.compile_pragma_stmt(stmt),
+            semast::StmtKind::Pragma(_) => {
+                unreachable!("pragma should have been removed in the lowerer")
+            }
             semast::StmtKind::QuantumGateDefinition(gate_stmt) => {
                 self.compile_gate_decl_stmt(gate_stmt, &stmt.annotations)
             }
@@ -580,8 +637,37 @@ impl QasmCompiler {
     }
 
     fn compile_box_stmt(&mut self, stmt: &semast::BoxStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("box statements", stmt.span);
-        None
+        let open = self
+            .pragma_config
+            .get(PragmaKind::QdkBoxOpen)
+            .map(|name| build_call_stmt_no_params(name, &[], Span::default(), Span::default()));
+        let close = self
+            .pragma_config
+            .get(PragmaKind::QdkBoxClose)
+            .map(|name| build_call_stmt_no_params(name, &[], Span::default(), Span::default()));
+
+        let body = stmt
+            .body
+            .iter()
+            .filter_map(|stmt| self.compile_stmt(stmt))
+            .collect::<Vec<_>>();
+
+        let mut stmts = vec![];
+        if let Some(open) = open {
+            stmts.push(open);
+        }
+        stmts.extend(body);
+        if let Some(close) = close {
+            stmts.push(close);
+        }
+
+        let block = qsast::Block {
+            id: qsast::NodeId::default(),
+            stmts: list_from_iter(stmts),
+            span: stmt.span,
+        };
+
+        Some(build_stmt_semi_from_expr(build_wrapped_block_expr(block)))
     }
 
     fn compile_block(&mut self, block: &semast::Block) -> qsast::Block {
@@ -666,7 +752,11 @@ impl QasmCompiler {
 
         let body = Some(self.compile_block(&stmt.body));
         let return_type = map_qsharp_type_to_ast_ty(&stmt.return_type);
-        let kind = if stmt.has_qubit_params {
+        let kind = if stmt.has_qubit_params
+            || annotations
+                .iter()
+                .any(|a| a.identifier == "SimulatableIntrinsic".into())
+        {
             qsast::CallableKind::Operation
         } else {
             qsast::CallableKind::Function
@@ -934,9 +1024,58 @@ impl QasmCompiler {
         None
     }
 
-    fn compile_pragma_stmt(&mut self, stmt: &semast::Pragma) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("pragma statements", stmt.span);
-        None
+    fn compile_pragma_stmt(&mut self, stmt: &semast::Pragma) {
+        fn is_parameterless_and_returns_void(args: &Arc<[Type]>, return_ty: &Arc<Type>) -> bool {
+            args.is_empty() && matches!(&**return_ty, crate::semantic::types::Type::Void)
+        }
+
+        let name_str = stmt.identifier.as_string();
+
+        // Check if the pragma is supported by the compiler.
+        // If not, we push an error message and return.
+        if !self.pragma_config.is_supported(&name_str) {
+            self.push_unsupported_error_message(format!("pragma statement: {name_str}"), stmt.span);
+            return;
+        }
+
+        // The pragma is supported, so we get the pragma kind.
+        let pragma = PragmaKind::from_str(&name_str).expect("valid pragma");
+
+        match (pragma, stmt.value.as_ref()) {
+            (PragmaKind::QdkBoxOpen, Some(value)) => {
+                if let Some(symbol) = self.symbols.get_symbol_by_name(value) {
+                    if let crate::semantic::types::Type::Function(args, return_ty) = &symbol.1.ty {
+                        if is_parameterless_and_returns_void(args, return_ty) {
+                            self.pragma_config
+                                .insert(PragmaKind::QdkBoxOpen, value.clone());
+                            return;
+                        }
+                    }
+                }
+                self.push_compiler_error(CompilerErrorKind::InvalidBoxPragmaTarget(
+                    value.to_string(),
+                    stmt.value_span.unwrap_or(stmt.span),
+                ));
+            }
+            (PragmaKind::QdkBoxClose, Some(value)) => {
+                if let Some(symbol) = self.symbols.get_symbol_by_name(value) {
+                    if let crate::semantic::types::Type::Function(args, return_ty) = &symbol.1.ty {
+                        if is_parameterless_and_returns_void(args, return_ty) {
+                            self.pragma_config
+                                .insert(PragmaKind::QdkBoxClose, value.clone());
+                            return;
+                        }
+                    }
+                }
+                self.push_compiler_error(CompilerErrorKind::InvalidBoxPragmaTarget(
+                    value.to_string(),
+                    stmt.value_span.unwrap_or(stmt.span),
+                ));
+            }
+            (PragmaKind::QdkBoxOpen | PragmaKind::QdkBoxClose, None) => {
+                self.push_compiler_error(CompilerErrorKind::MissingBoxPragmaTarget(stmt.span));
+            }
+        }
     }
 
     fn compile_gate_decl_stmt(

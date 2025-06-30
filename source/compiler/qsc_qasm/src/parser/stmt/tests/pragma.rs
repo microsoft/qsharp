@@ -17,7 +17,23 @@ fn pragma_decl() {
                 annotations: <empty>
                 kind: Pragma [0-15]:
                     identifier: "a.b.d"
-                    value: "23""#]],
+                    value: "23"
+                    value_span: [13-15]"#]],
+    );
+}
+
+#[test]
+fn pragma_decl_complex_value_stops_at_newline() {
+    check(
+        parse,
+        "pragma a.b.d 23 or \"value\" or 'other' or // comment\n 42",
+        &expect![[r#"
+            Stmt [0-51]:
+                annotations: <empty>
+                kind: Pragma [0-51]:
+                    identifier: "a.b.d"
+                    value: "23 or "value" or 'other' or // comment"
+                    value_span: [13-51]"#]],
     );
 }
 
@@ -31,7 +47,8 @@ fn pragma_decl_ident_only() {
                 annotations: <empty>
                 kind: Pragma [0-12]:
                     identifier: "a.b.d"
-                    value: <none>"#]],
+                    value: <none>
+                    value_span: <none>"#]],
     );
 }
 
@@ -44,8 +61,9 @@ fn pragma_decl_missing_ident() {
             Stmt [0-7]:
                 annotations: <empty>
                 kind: Pragma [0-7]:
-                    identifier: ""
+                    identifier: "Err"
                     value: <none>
+                    value_span: <none>
 
             [
                 Error(
@@ -71,8 +89,9 @@ fn legacy_pragma_decl() {
             Stmt [0-16]:
                 annotations: <empty>
                 kind: Pragma [0-16]:
-                    identifier: "a"
-                    value: "a.b.d 23""#]],
+                    identifier: "a.b.d"
+                    value: "23"
+                    value_span: [14-16]"#]],
     );
 }
 
@@ -85,8 +104,9 @@ fn legacy_pragma_decl_ident_only() {
             Stmt [0-13]:
                 annotations: <empty>
                 kind: Pragma [0-13]:
-                    identifier: "a"
-                    value: "a.b.d""#]],
+                    identifier: "a.b.d"
+                    value: <none>
+                    value_span: <none>"#]],
     );
 }
 
@@ -101,6 +121,7 @@ fn legacy_pragma_ws_after_hash() {
                 kind: Pragma [2-14]:
                     identifier: "a.b.d"
                     value: <none>
+                    value_span: <none>
 
             [
                 Error(
@@ -129,7 +150,21 @@ fn legacy_pragma_decl_missing_ident() {
             Stmt [0-8]:
                 annotations: <empty>
                 kind: Pragma [0-8]:
-                    identifier: "a"
-                    value: """#]],
+                    identifier: "Err"
+                    value: <none>
+                    value_span: <none>
+
+            [
+                Error(
+                    Rule(
+                        "pragma missing identifier",
+                        Pragma,
+                        Span {
+                            lo: 0,
+                            hi: 8,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }

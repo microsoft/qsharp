@@ -12,6 +12,7 @@ use super::{
     scan::ParserContext,
 };
 use crate::lex::TokenKind;
+use crate::parser::ast::{IncompletePath, Path, PathKind};
 
 use qsc_data_structures::span::{Span, WithSpan};
 
@@ -42,6 +43,25 @@ pub(super) fn ident(s: &mut ParserContext) -> Result<Ident> {
     s.expect(WordKinds::PathExpr);
     let peek = s.peek();
     if peek.kind == TokenKind::Identifier {
+        let name = s.read().into();
+        s.advance();
+        Ok(Ident {
+            span: peek.span,
+            name,
+        })
+    } else {
+        Err(Error::new(ErrorKind::Rule(
+            "identifier",
+            peek.kind,
+            peek.span,
+        )))
+    }
+}
+
+pub(super) fn ident_or_kw_as_ident(s: &mut ParserContext) -> Result<Ident> {
+    s.expect(WordKinds::PathExpr);
+    let peek = s.peek();
+    if matches!(peek.kind, TokenKind::Identifier | TokenKind::Keyword(..)) {
         let name = s.read().into();
         s.advance();
         Ok(Ident {
@@ -206,6 +226,21 @@ pub(super) fn recovering<T>(
     }
 }
 
+/// Recovering [`Path`] parser. Parsing only fails if no segments
+/// were successfully parsed. If any segments were successfully parsed,
+/// returns a [`PathKind::Err`] containing the segments that were
+/// successfully parsed up to the final `.` token.
+pub(super) fn recovering_path(s: &mut ParserContext, kind: WordKinds) -> Result<PathKind> {
+    match path(s, kind) {
+        Ok(path) => Ok(PathKind::Ok(path)),
+        Err((error, Some(incomplete_path))) => {
+            s.push_error(error);
+            Ok(PathKind::Err(Some(incomplete_path)))
+        }
+        Err((error, None)) => Err(error),
+    }
+}
+
 pub(super) fn recovering_semi(s: &mut ParserContext) {
     if let Err(error) = token(s, TokenKind::Semicolon) {
         // no recovery, just move on to the next token
@@ -235,6 +270,69 @@ pub(super) fn shorten(from_start: usize, from_end: usize, s: &str) -> &str {
     &s[from_start..s.len() - from_end]
 }
 
+pub(super) fn trim_front_safely(from_start: usize, s: &str) -> &str {
+    if from_start >= s.len() {
+        return "";
+    }
+    &s[from_start..s.len()]
+}
+
 fn advanced(s: &ParserContext, from: u32) -> bool {
     s.peek().span.lo > from
+}
+
+/// A `path` is a dot-separated list of idents like "Foo.Bar.Baz"
+/// This is used in pragmas, annotations, and other places where a
+/// path-like identifier is expected.
+///
+/// Path parser. If parsing fails, also returns any valid segments
+/// that were parsed up to the final `.` token.
+pub(super) fn path(
+    s: &mut ParserContext,
+    kind: WordKinds,
+) -> std::result::Result<Box<Path>, (Error, Option<Box<IncompletePath>>)> {
+    s.expect(kind);
+
+    let lo = s.peek().span.lo;
+    let i = ident_or_kw_as_ident(s).map_err(|e| (e, None))?;
+
+    let mut parts = vec![i];
+    while token(s, TokenKind::Dot).is_ok() {
+        s.expect(WordKinds::PathSegment);
+        match ident_or_kw_as_ident(s) {
+            Ok(ident) => parts.push(ident),
+            Err(error) => {
+                let trivia_span = s.skip_trivia();
+                let keyword = trivia_span.hi == trivia_span.lo
+                    && matches!(s.peek().kind, TokenKind::Keyword(_));
+                if keyword {
+                    // Consume any keyword that comes immediately after the final
+                    // dot, assuming it was intended to be part of the path.
+                    s.advance();
+                }
+
+                return Err((
+                    error,
+                    Some(Box::new(IncompletePath {
+                        span: s.span(lo),
+                        segments: parts.into(),
+                        keyword,
+                    })),
+                ));
+            }
+        }
+    }
+
+    let name = parts.pop().expect("path should have at least one part");
+    let segments = if parts.is_empty() {
+        None
+    } else {
+        Some(parts.into())
+    };
+
+    Ok(Box::new(Path {
+        span: s.span(lo),
+        segments,
+        name: name.into(),
+    }))
 }

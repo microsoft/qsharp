@@ -16,6 +16,7 @@ fn too_many_indices_in_indexed_assignment() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-80]:
                         annotations: <empty>

@@ -174,6 +174,7 @@ fn to_int_with_higher_width_implicitly_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-18]:
                         annotations: <empty>
@@ -225,6 +226,7 @@ fn to_int_with_higher_width_decl_implicitly_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-20]:
                         annotations: <empty>
@@ -269,6 +271,7 @@ fn to_int_with_lower_width_implicitly_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-24]:
                         annotations: <empty>
@@ -317,6 +320,7 @@ fn to_int_with_lower_width_decl_implicitly_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-20]:
                         annotations: <empty>

@@ -90,6 +90,7 @@ pub(crate) struct Lowerer {
     /// and other features.
     pub version: Option<Version>,
     pub stmts: Vec<Stmt>,
+    pub pragmas: Vec<semantic::Pragma>,
 }
 
 impl Lowerer {
@@ -119,6 +120,7 @@ impl Lowerer {
             symbols,
             version,
             stmts,
+            pragmas: Vec::new(),
         }
     }
 
@@ -137,6 +139,7 @@ impl Lowerer {
         let program = semantic::Program {
             version: self.version,
             statements: syntax::list_from_iter(self.stmts),
+            pragmas: syntax::list_from_iter(self.pragmas),
         };
 
         super::QasmSemanticParseResult {
@@ -184,50 +187,61 @@ impl Lowerer {
         let mut includes = source.includes().iter();
 
         for stmt in &source.program().statements {
-            if let syntax::StmtKind::Include(include) = &*stmt.kind {
-                // if we are not in the root  we should not be able to include
-                // as this is a limitation of the QASM3 language
-                if !self.symbols.is_current_scope_global() {
-                    let kind = SemanticErrorKind::IncludeNotInGlobalScope(
-                        include.filename.to_string(),
-                        include.span,
-                    );
-                    self.push_semantic_error(kind);
-                    continue;
-                }
-
-                // special case for stdgates.inc
-                // it won't be in the includes list
-                if include.filename.to_lowercase() == "stdgates.inc" {
-                    if self.version == Some(QASM2_VERSION) {
-                        self.push_semantic_error(SemanticErrorKind::IncludeNotInLanguageVersion(
+            match &*stmt.kind {
+                syntax::StmtKind::Include(include) => {
+                    // if we are not in the root  we should not be able to include
+                    // as this is a limitation of the QASM3 language
+                    if !self.symbols.is_current_scope_global() {
+                        let kind = SemanticErrorKind::IncludeNotInGlobalScope(
                             include.filename.to_string(),
-                            "3.0".to_string(),
                             include.span,
-                        ));
+                        );
+                        self.push_semantic_error(kind);
+                        continue;
                     }
-                    self.define_stdgates(include.span);
-                    continue;
-                } else if include.filename.to_lowercase() == "qelib1.inc" {
-                    if self.version != Some(QASM2_VERSION) {
-                        self.push_semantic_error(SemanticErrorKind::IncludeNotInLanguageVersion(
-                            include.filename.to_string(),
-                            "2.0".to_string(),
-                            include.span,
-                        ));
-                    }
-                    self.define_qelib1_gates(include.span);
-                    continue;
-                } else if include.filename.to_lowercase() == "qdk.inc" {
-                    self.define_mresetzchecked();
-                    continue;
-                }
 
-                let include = includes.next().expect("missing include");
-                self.lower_source(include);
-            } else {
-                let mut stmts = self.lower_stmt(stmt);
-                self.stmts.append(&mut stmts);
+                    // special case for stdgates.inc
+                    // it won't be in the includes list
+                    if include.filename.to_lowercase() == "stdgates.inc" {
+                        if self.version == Some(QASM2_VERSION) {
+                            self.push_semantic_error(
+                                SemanticErrorKind::IncludeNotInLanguageVersion(
+                                    include.filename.to_string(),
+                                    "3.0".to_string(),
+                                    include.span,
+                                ),
+                            );
+                        }
+                        self.define_stdgates(include.span);
+                        continue;
+                    } else if include.filename.to_lowercase() == "qelib1.inc" {
+                        if self.version != Some(QASM2_VERSION) {
+                            self.push_semantic_error(
+                                SemanticErrorKind::IncludeNotInLanguageVersion(
+                                    include.filename.to_string(),
+                                    "2.0".to_string(),
+                                    include.span,
+                                ),
+                            );
+                        }
+                        self.define_qelib1_gates(include.span);
+                        continue;
+                    } else if include.filename.to_lowercase() == "qdk.inc" {
+                        self.define_mresetzchecked();
+                        continue;
+                    }
+
+                    let include = includes.next().expect("missing include");
+                    self.lower_source(include);
+                }
+                syntax::StmtKind::Pragma(stmt) => {
+                    let pragma = Self::lower_pragma(stmt);
+                    self.pragmas.push(pragma);
+                }
+                _ => {
+                    let mut stmts = self.lower_stmt(stmt);
+                    self.stmts.append(&mut stmts);
+                }
             }
         }
     }
@@ -266,7 +280,9 @@ impl Lowerer {
             syntax::StmtKind::Include(stmt) => self.lower_include(stmt),
             syntax::StmtKind::IODeclaration(stmt) => self.lower_io_decl(stmt),
             syntax::StmtKind::Measure(stmt) => self.lower_measure_arrow_stmt(stmt),
-            syntax::StmtKind::Pragma(stmt) => self.lower_pragma(stmt),
+            syntax::StmtKind::Pragma(..) => {
+                unreachable!("pragma should be handled in lower_source")
+            }
             syntax::StmtKind::QuantumGateDefinition(stmt) => self.lower_gate_def(stmt),
             syntax::StmtKind::QuantumDecl(stmt) => self.lower_quantum_decl(stmt),
             syntax::StmtKind::Reset(stmt) => self.lower_reset(stmt),
@@ -1227,11 +1243,13 @@ impl Lowerer {
     /// Search for the definition of `Box` there, and then for all the classes
     /// inhereting from `QuantumStatement`.
     fn lower_box(&mut self, stmt: &syntax::BoxStmt) -> semantic::StmtKind {
-        let _stmts = stmt
+        self.symbols.push_scope(ScopeKind::Block);
+        let stmts = stmt
             .body
             .iter()
-            .map(|stmt| self.lower_stmt(stmt))
+            .flat_map(|stmt| self.lower_stmt(stmt))
             .collect::<Vec<_>>();
+        self.symbols.pop_scope();
 
         let mut _has_invalid_stmt_kinds = false;
         for stmt in &stmt.body {
@@ -1255,10 +1273,14 @@ impl Lowerer {
             self.push_unsupported_error_message("Box with duration", duration.span);
         }
 
-        // we semantically checked the stmts, but we still need to lower them
-        // with the correct behavior based on any pragmas that might be present
-        self.push_unimplemented_error_message("box stmt", stmt.span);
-        semantic::StmtKind::Err
+        semantic::StmtKind::Box(semantic::BoxStmt {
+            span: stmt.span,
+            duration: stmt
+                .duration
+                .as_ref()
+                .map(|duration| self.lower_expr(duration)),
+            body: list_from_iter(stmts),
+        })
     }
 
     fn lower_break(&mut self, stmt: &syntax::BreakStmt) -> semantic::StmtKind {
@@ -2384,9 +2406,13 @@ impl Lowerer {
         }
     }
 
-    fn lower_pragma(&mut self, stmt: &syntax::Pragma) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("pragma stmt", stmt.span);
-        semantic::StmtKind::Err
+    fn lower_pragma(stmt: &syntax::Pragma) -> semantic::Pragma {
+        semantic::Pragma {
+            span: stmt.span,
+            identifier: stmt.identifier.clone(),
+            value: stmt.value.clone(),
+            value_span: stmt.value_span,
+        }
     }
 
     fn lower_gate_def(&mut self, stmt: &syntax::QuantumGateDefinition) -> semantic::StmtKind {

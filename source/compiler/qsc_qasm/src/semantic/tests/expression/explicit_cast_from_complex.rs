@@ -29,6 +29,7 @@ fn complex_to_bool_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -69,6 +70,7 @@ fn sized_complex_to_bool_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -113,6 +115,7 @@ fn complex_to_duration_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -153,6 +156,7 @@ fn sized_complex_to_duration_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -197,6 +201,7 @@ fn complex_to_int_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -237,6 +242,7 @@ fn complex_to_sized_int_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -277,6 +283,7 @@ fn sized_complex_to_int_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -317,6 +324,7 @@ fn sized_complex_to_sized_int_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -357,6 +365,7 @@ fn sized_complex_to_sized_int_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -397,6 +406,7 @@ fn sized_complex_to_sized_int_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -441,6 +451,7 @@ fn complex_to_uint_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -481,6 +492,7 @@ fn complex_to_sized_uint_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -521,6 +533,7 @@ fn sized_complex_to_uint_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -561,6 +574,7 @@ fn sized_complex_to_sized_uint_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -601,6 +615,7 @@ fn sized_complex_to_sized_uint_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -641,6 +656,7 @@ fn sized_complex_to_sized_uint_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -685,6 +701,7 @@ fn complex_to_float_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -725,6 +742,7 @@ fn complex_to_sized_float_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -765,6 +783,7 @@ fn sized_complex_to_float_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -805,6 +824,7 @@ fn sized_complex_to_sized_float_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -845,6 +865,7 @@ fn sized_complex_to_sized_float_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -885,6 +906,7 @@ fn sized_complex_to_sized_float_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -929,6 +951,7 @@ fn complex_to_angle_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -969,6 +992,7 @@ fn complex_to_sized_angle_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -1009,6 +1033,7 @@ fn sized_complex_to_angle_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -1049,6 +1074,7 @@ fn sized_complex_to_sized_angle_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -1089,6 +1115,7 @@ fn sized_complex_to_sized_angle_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -1129,6 +1156,7 @@ fn sized_complex_to_sized_angle_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -1327,6 +1355,7 @@ fn complex_to_bit_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -1367,6 +1396,7 @@ fn complex_to_bitarray_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -1407,6 +1437,7 @@ fn sized_complex_to_bit_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -1447,6 +1478,7 @@ fn sized_complex_to_bitarray_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -1487,6 +1519,7 @@ fn sized_complex_to_bitarray_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>
@@ -1527,6 +1560,7 @@ fn sized_complex_to_bitarray_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-30]:
                         annotations: <empty>

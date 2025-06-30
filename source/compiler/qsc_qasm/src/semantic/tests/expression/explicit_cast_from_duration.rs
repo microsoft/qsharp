@@ -29,6 +29,7 @@ fn duration_to_bool_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-20]:
                         annotations: <empty>
@@ -82,6 +83,7 @@ fn duration_to_duration() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-20]:
                         annotations: <empty>
@@ -126,6 +128,7 @@ fn duration_to_int_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-20]:
                         annotations: <empty>
@@ -175,6 +178,7 @@ fn duration_to_sized_int_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-20]:
                         annotations: <empty>
@@ -228,6 +232,7 @@ fn duration_to_uint_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-20]:
                         annotations: <empty>
@@ -277,6 +282,7 @@ fn duration_to_sized_uint_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-20]:
                         annotations: <empty>
@@ -330,6 +336,7 @@ fn duration_to_float_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-20]:
                         annotations: <empty>
@@ -379,6 +386,7 @@ fn duration_to_sized_float_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-20]:
                         annotations: <empty>
@@ -432,6 +440,7 @@ fn duration_to_angle_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-20]:
                         annotations: <empty>
@@ -481,6 +490,7 @@ fn duration_to_sized_angle_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-20]:
                         annotations: <empty>
@@ -534,6 +544,7 @@ fn duration_to_complex_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-20]:
                         annotations: <empty>
@@ -583,6 +594,7 @@ fn duration_to_sized_complex_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-20]:
                         annotations: <empty>
@@ -636,6 +648,7 @@ fn duration_to_bit_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-20]:
                         annotations: <empty>
@@ -685,6 +698,7 @@ fn duration_to_bitarray_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-20]:
                         annotations: <empty>

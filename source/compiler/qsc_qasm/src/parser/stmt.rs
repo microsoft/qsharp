@@ -20,8 +20,12 @@ use super::{
 use crate::{
     keyword::Keyword,
     lex::{Delim, TokenKind, cooked::Type},
-    parser::ast::{
-        DefParameter, DefParameterType, DynArrayReferenceType, QubitType, StaticArrayReferenceType,
+    parser::{
+        ast::{
+            DefParameter, DefParameterType, DynArrayReferenceType, QubitType,
+            StaticArrayReferenceType,
+        },
+        prim::{recovering_path, trim_front_safely},
     },
 };
 
@@ -408,49 +412,99 @@ fn parse_include(s: &mut ParserContext) -> Result<StmtKind> {
 
 /// Grammar: `PRAGMA RemainingLineContent`.
 fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
-    let lo = s.peek().span.lo;
+    let token = s.peek();
+    let stmt_lo = token.span.lo;
     s.expect(WordKinds::Pragma);
 
-    let token = s.peek();
-
-    let parts: Vec<&str> = if token.kind == TokenKind::Pragma {
-        let lexeme = s.read();
-        s.advance();
-        // remove pragma keyword and any leading whitespace
-        // split lexeme at first space/tab collecting each side
-        let pat = &['\t', ' '];
-        shorten(6, 0, lexeme)
-            .trim_start_matches(pat)
-            .splitn(2, pat)
-            .collect()
-    } else {
+    if token.kind != TokenKind::Pragma {
         return Err(Error::new(ErrorKind::Rule(
             "pragma", token.kind, token.span,
         )));
+    }
+
+    // read the pragma lexeme, which is the whole line
+    // including the `#pragma` or `pragma` keyword
+    // and the rest of the line content.
+    let pragma_line_content = s.read();
+    let pragma_kw_offset = if pragma_line_content.starts_with('#') {
+        7 // length of "#pragma"
+    } else {
+        6 // length of "pragma"
     };
+    let ident_lo = token.span.lo + pragma_kw_offset;
+    let stmt_hi = token.span.hi;
 
-    let identifier = parts.first().map_or_else(
-        || {
-            Err(Error::new(ErrorKind::Rule(
-                "pragma", token.kind, token.span,
-            )))
-        },
-        |s| Ok(Into::<Rc<str>>::into(*s)),
-    )?;
+    // pragma_line_content:
+    // #pragma a.b.c "some value" more value \nmore content
+    // |.      |     |                      |
+    // |.      |     |                      |
+    // |.      |     ^--------- value ------|
+    // |.      ^-- ident_lo                 ^-- stmt_hi
+    // |       |                            |
+    // |       ^-- pragma_content ----------^
+    // |      ^-- pragma_kw_offset
+    // ^-- stmt_lo
 
-    if identifier.is_empty() {
+    let from_start = pragma_kw_offset.try_into().expect("valid size");
+    let pragma_content = shorten(from_start, 0, pragma_line_content);
+
+    // pragma_content
+    // a.b.c "some value" more value
+    //       ^-- value_lo
+
+    // advance the parser to the next token for the next token in the program
+    s.advance();
+
+    // create a sub-parser context just for the line content
+    // This will tokenize the rest of the line which should be the identifier
+    // and the value, if any.
+
+    let mut c = ParserContext::new(pragma_content);
+
+    // parse the dotted path identifier
+    let Ok(mut path) = recovering_path(&mut c, WordKinds::PathExpr) else {
+        // We only fail if no parts were parsed, which means
+        // the pragma line was empty or only contained whitespace.
+        // In that case, we return an error with the span of the token.
+
         s.push_error(Error::new(ErrorKind::Rule(
             "pragma missing identifier",
             token.kind,
             token.span,
         )));
-    }
-    let value = parts.get(1).map(|s| Into::<Rc<str>>::into(*s));
+        return Ok(Pragma {
+            span: token.span,
+            identifier: super::ast::PathKind::Err(None),
+            value: None,
+            value_span: None,
+        });
+    };
+
+    // update the path span based on the original lo
+    path.offset(ident_lo);
+
+    // we need to get to the first non-whitespace token
+    // after the identifier, which should be the value.
+
+    // This value_lo offset is the start of the value in the pragma line content.
+    let value_lo = c.skip_trivia().hi;
+    let value = trim_front_safely(value_lo.try_into().expect("valid size"), pragma_content);
+    let value = if value.is_empty() {
+        None
+    } else {
+        Some(Rc::from(value))
+    };
+
+    let value_span = value.as_ref().map(|_| Span {
+        lo: value_lo + ident_lo,
+        hi: stmt_hi,
+    });
 
     Ok(Pragma {
-        span: s.span(lo),
-        identifier,
+        span: s.span(stmt_lo),
+        identifier: path,
         value,
+        value_span,
     })
 }
 
