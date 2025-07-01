@@ -45,7 +45,7 @@ suite("Q# Debugger Tests", function suite() {
     // launch debugger
     await vscode.commands.executeCommand(`${qsharpExtensionId}.debugProgram`);
 
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 0,
         source: {
@@ -74,7 +74,7 @@ suite("Q# Debugger Tests", function suite() {
       program: "${workspaceFolder}src/foo.qs",
     });
 
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 0,
         source: {
@@ -104,7 +104,7 @@ suite("Q# Debugger Tests", function suite() {
       program: "${file}",
     });
 
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 0,
         source: {
@@ -134,7 +134,7 @@ suite("Q# Debugger Tests", function suite() {
     });
 
     // should hit the breakpoint we set above
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 0,
         source: {
@@ -181,7 +181,7 @@ suite("Q# Debugger Tests", function suite() {
     });
 
     // should hit the breakpoint we set above
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 0,
         source: {
@@ -218,7 +218,7 @@ suite("Q# Debugger Tests", function suite() {
     });
 
     // should hit the breakpoint we set above
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 1,
         source: {
@@ -265,7 +265,7 @@ suite("Q# Debugger Tests", function suite() {
     });
 
     // should break on entry (per debug config above)
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 0,
         source: {
@@ -286,7 +286,7 @@ suite("Q# Debugger Tests", function suite() {
     // step into call (will be a call into bar.qs)
     await vscode.commands.executeCommand("workbench.action.debug.stepInto");
 
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 1,
         source: {
@@ -341,7 +341,7 @@ suite("Q# Debugger Tests", function suite() {
     });
 
     // should hit the breakpoint we set above
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 0,
         source: {
@@ -362,7 +362,7 @@ suite("Q# Debugger Tests", function suite() {
     // step into call (will be a call into intrinsic.qs)
     await vscode.commands.executeCommand("workbench.action.debug.stepInto");
 
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 1,
         source: {
@@ -400,13 +400,65 @@ suite("Q# Debugger Tests", function suite() {
     );
   });
 
+  test("Show local variables of selected frame", async () => {
+    // Set a breakpoint on line 16 of foo.qs (7 when 0-indexed)
+    // This will be in the function `AnotherCallFrame` after `b`
+    // has been defined.
+    vscode.debug.addBreakpoints([
+      new vscode.SourceBreakpoint(
+        new vscode.Location(fooUri, new vscode.Position(15, 0)),
+      ),
+    ]);
+
+    // Start a debug session.
+    await vscode.debug.startDebugging(workspaceFolder, {
+      name: "Launch foo.qs",
+      type: "qsharp",
+      request: "launch",
+      program: "${workspaceFolder}src/foo.qs",
+      stopOnEntry: false,
+    });
+
+    // Should hit the breakpoint set above.
+    await assertVariables([
+      { name: "b", type: undefined, value: "3", variablesReference: 0 },
+    ]);
+
+    // step over to prepare the tracker to detect a new variable.
+    await vscode.commands.executeCommand("workbench.action.debug.stepOver");
+
+    // Select Main frame in the Debug panel.
+    await vscode.commands.executeCommand(
+      "workbench.action.debug.callStackDown",
+    );
+
+    // Verify that the locals variables correspond to the Main frame.
+    await assertVariables({
+      name: "a",
+      type: undefined,
+      value: "1",
+      variablesReference: 0,
+    });
+  });
+
   /**
-   * Wait until the debugger has entered the paused state.
+   * Wait until the debugger has entered the paused state and then asserts
+   * that the stack traces matches the `expectedStackTrace`.
    *
-   * @param expectedStackTrace assert that the stack trace matches this value
+   * @param expectedStackTrace assert that the stack trace matches this value.
    */
-  function waitUntilPaused(expectedStackTrace: DebugProtocol.StackFrame[]) {
-    return tracker!.waitUntilPaused(expectedStackTrace);
+  function assertStackTrace(expectedStackTrace: DebugProtocol.StackFrame[]) {
+    return tracker!.assertStackTrace(expectedStackTrace);
+  }
+
+  /**
+   * Wait until the debugger has entered the paused state and then asserts
+   * that the local variables match the `expectedVariables`.
+   *
+   * @param expectedVariables assert that the tracker.variables trace matches this value.
+   */
+  function assertVariables(expectedVariables: any) {
+    return tracker!.assertVariables(expectedVariables);
   }
 });
 

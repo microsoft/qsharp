@@ -43,10 +43,8 @@ class Tracker implements vscode.DebugAdapterTracker {
   /**
    * Wait until the debugger has entered the paused state by waiting for the
    * appropriate sequence of messages in the debug adapter.
-   *
-   * @param expectedStackTrace assert that the stack trace matches this value
    */
-  async waitUntilPaused(expectedStackTrace: DebugProtocol.StackFrame[]) {
+  async waitUntilPaused() {
     const start = performance.now();
 
     await waitForCondition(
@@ -63,17 +61,6 @@ class Tracker implements vscode.DebugAdapterTracker {
       "timed out waiting for the debugger to stop",
     );
 
-    assert.deepEqual(
-      this.stackTrace,
-      expectedStackTrace,
-      // print copy-pastable stack trace
-      `actual stack trace:\n${JSON.stringify(this.stackTrace)}\n`,
-    );
-
-    this.stoppedCount = 0;
-    this.stackTrace = undefined;
-    this.variables = undefined;
-
     const stepMs = performance.now() - start;
     if (stepMs > 700) {
       // Not much we can control here if the debugger is taking too long,
@@ -85,6 +72,52 @@ class Tracker implements vscode.DebugAdapterTracker {
     if (logDebugAdapterActivity) {
       console.log(`${this.kind}-tests: debugger paused`);
     }
+  }
+
+  /**
+   * Reset the state of the tracker so that we can use waitUntilPaused() again.
+   */
+  resetState() {
+    this.stoppedCount = 0;
+    this.stackTrace = undefined;
+    this.variables = undefined;
+  }
+
+  /**
+   * Wait until the debugger has entered the paused state and then asserts
+   * that the stack traces matches the `expectedStackTrace`.
+   *
+   * @param expectedStackTrace assert that the stack trace matches this value.
+   */
+  async assertStackTrace(expectedStackTrace: DebugProtocol.StackFrame[]) {
+    await this.waitUntilPaused();
+
+    assert.deepEqual(
+      this.stackTrace,
+      expectedStackTrace,
+      // print copy-pastable stack trace
+      `actual stack trace:\n${JSON.stringify(this.stackTrace)}\n`,
+    );
+
+    this.resetState();
+  }
+
+  /**
+   * Wait until the debugger has entered the paused state and then asserts
+   * that the local variables match the `expectedVariables`.
+   *
+   * @param expectedVariables assert that the tracker.variables trace matches this value.
+   */
+  async assertVariables(expectedVariables: any) {
+    await this.waitUntilPaused();
+
+    assert.deepEqual(
+      this.variables,
+      expectedVariables,
+      `actual variables:\n${JSON.stringify(this.variables)}\n`,
+    );
+
+    this.resetState();
   }
 
   onWillReceiveMessage(message: any): void {

@@ -55,7 +55,7 @@ suite("OpenQASM Debugger Tests", function suite() {
     // launch debugger
     await vscode.commands.executeCommand(`${qsharpExtensionId}.debugProgram`);
 
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 0,
         source: {
@@ -84,7 +84,7 @@ suite("OpenQASM Debugger Tests", function suite() {
       program: "${workspaceFolder}" + `${selfContainedName}`,
     });
 
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 0,
         source: {
@@ -114,7 +114,7 @@ suite("OpenQASM Debugger Tests", function suite() {
       program: "${file}",
     });
 
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 0,
         source: {
@@ -144,7 +144,7 @@ suite("OpenQASM Debugger Tests", function suite() {
     });
 
     // should hit the breakpoint we set above
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 0,
         source: {
@@ -191,7 +191,7 @@ suite("OpenQASM Debugger Tests", function suite() {
     });
 
     // should hit the breakpoint we set above
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 0,
         source: {
@@ -228,7 +228,7 @@ suite("OpenQASM Debugger Tests", function suite() {
     });
 
     // should hit the breakpoint we set above
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 1,
         source: {
@@ -280,7 +280,7 @@ suite("OpenQASM Debugger Tests", function suite() {
     });
 
     // should hit the breakpoint we set above
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 0,
         source: {
@@ -301,7 +301,7 @@ suite("OpenQASM Debugger Tests", function suite() {
     // step into call (will be a call into intrinsic.qs)
     await vscode.commands.executeCommand("workbench.action.debug.stepInto");
 
-    await waitUntilPaused([
+    await assertStackTrace([
       {
         id: 1,
         source: {
@@ -344,8 +344,8 @@ suite("OpenQASM Debugger Tests", function suite() {
    *
    * @param expectedStackTrace assert that the stack trace matches this value
    */
-  function waitUntilPaused(expectedStackTrace: DebugProtocol.StackFrame[]) {
-    return tracker!.waitUntilPaused(expectedStackTrace);
+  function assertStackTrace(expectedStackTrace: DebugProtocol.StackFrame[]) {
+    return tracker!.assertStackTrace(expectedStackTrace);
   }
 });
 
