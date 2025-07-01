@@ -1152,10 +1152,10 @@ impl Debugger {
     }
 
     #[must_use]
-    pub fn get_locals(&self) -> Vec<VariableInfo> {
+    pub fn get_locals(&self, frame_id: usize) -> Vec<VariableInfo> {
         self.interpreter
             .env
-            .get_variables_in_top_frame()
+            .get_variables_in_frame(frame_id)
             .into_iter()
             .filter(|v| !v.name.starts_with('@'))
             .collect()

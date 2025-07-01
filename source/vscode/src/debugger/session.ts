@@ -71,7 +71,9 @@ export class QscDebugSession extends LoggingDebugSession {
 
   private breakpointLocations: Map<string, IBreakpointLocationData[]>;
   private breakpoints: Map<string, DebugProtocol.Breakpoint[]>;
-  private variableHandles = new Handles<"locals" | "quantum" | "circuit">();
+  private variableHandles = new Handles<
+    ["locals" | "quantum" | "circuit", number]
+  >();
   private failureMessage: string;
   private eventTarget: QscEventTarget;
   private supportsVariableType = false;
@@ -748,15 +750,19 @@ export class QscDebugSession extends LoggingDebugSession {
     log.trace(`scopesRequest: %O`, args);
     response.body = {
       scopes: [
-        new Scope("Locals", this.variableHandles.create("locals"), false),
+        new Scope(
+          "Locals",
+          this.variableHandles.create(["locals", args.frameId]),
+          false,
+        ),
         new Scope(
           "Quantum State",
-          this.variableHandles.create("quantum"),
+          this.variableHandles.create(["quantum", args.frameId]),
           true, // expensive - keeps scope collapsed in the UI by default
         ),
         new Scope(
           "Quantum Circuit",
-          this.variableHandles.create("circuit"),
+          this.variableHandles.create(["circuit", args.frameId]),
           true, // expensive - keeps scope collapsed in the UI by default
         ),
       ],
@@ -776,11 +782,12 @@ export class QscDebugSession extends LoggingDebugSession {
       variables: [],
     };
 
-    const handle = this.variableHandles.get(args.variablesReference);
+    const [handle, frameID] = this.variableHandles.get(args.variablesReference);
+
     switch (handle) {
       case "locals":
         {
-          const locals = await this.debugService.getLocalVariables();
+          const locals = await this.debugService.getLocalVariables(frameID);
           const variables = locals.map((local) => {
             const variable: DebugProtocol.Variable = {
               name: local.name,
