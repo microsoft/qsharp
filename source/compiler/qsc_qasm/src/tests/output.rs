@@ -313,10 +313,8 @@ c2[2] = measure q[4];
     Ok(())
 }
 
-
 #[test]
-fn qir_generation_for_box_with_simulatable_intrinsic(
-) -> miette::Result<(), Vec<Report>> {
+fn qir_generation_for_box_with_simulatable_intrinsic() -> miette::Result<(), Vec<Report>> {
     let source = r#"
     OPENQASM 3.0;
     include "stdgates.inc";
