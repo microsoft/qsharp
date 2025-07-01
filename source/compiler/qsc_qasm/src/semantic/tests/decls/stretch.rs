@@ -12,6 +12,7 @@ fn with_no_init_expr_has_generated_lit_expr() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [0-10]:
                         annotations: <empty>

@@ -22,6 +22,7 @@ fn with_no_init_expr_in_non_global_scope() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [0-9]:
                         annotations: <empty>
@@ -64,6 +65,7 @@ fn array_with_no_init_expr_in_non_global_scope() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [0-12]:
                         annotations: <empty>

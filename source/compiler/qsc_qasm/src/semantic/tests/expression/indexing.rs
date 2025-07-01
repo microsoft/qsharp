@@ -233,6 +233,7 @@ fn array_slice_with_zero_step_errors() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-23]:
                         annotations: <empty>

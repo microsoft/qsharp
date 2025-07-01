@@ -80,6 +80,7 @@ fn break_in_non_loop_scope_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [0-6]:
                         annotations: <empty>
@@ -107,6 +108,7 @@ fn intermediate_def_scope_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-64]:
                         annotations: <empty>

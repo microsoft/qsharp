@@ -45,6 +45,7 @@ fn mod_int_divide_by_zero_error() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -104,6 +105,7 @@ fn mod_float_divide_by_zero_error() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>

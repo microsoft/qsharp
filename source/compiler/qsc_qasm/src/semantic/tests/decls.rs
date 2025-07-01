@@ -59,6 +59,7 @@ fn scalar_ty_designator_must_be_positive() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [0-10]:
                         annotations: <empty>
@@ -87,6 +88,7 @@ fn scalar_ty_designator_must_be_castable_to_const_int() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [0-23]:
                         annotations: <empty>
