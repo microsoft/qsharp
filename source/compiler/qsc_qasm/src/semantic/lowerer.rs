@@ -215,6 +215,9 @@ impl Lowerer {
                     }
                     self.define_qelib1_gates(include.span);
                     continue;
+                } else if include.filename.to_lowercase() == "qdk.inc" {
+                    self.define_mresetzchecked();
+                    continue;
                 }
 
                 let include = includes.next().expect("missing include");
@@ -328,7 +331,6 @@ impl Lowerer {
                 self.push_redefined_symbol_error(name.as_str(), span);
             }
         }
-        self.define_mresetzchecked();
     }
 
     /// Define the `OpenQASM` 2.0 standard gates in the symbol table.
@@ -378,7 +380,6 @@ impl Lowerer {
                 self.push_redefined_symbol_error(name.as_str(), span);
             }
         }
-        self.define_mresetzchecked();
     }
 
     fn define_mresetzchecked(&mut self) {

@@ -20,6 +20,7 @@ from qsharp.openqasm import (
     circuit,
     estimate,
     ProgramType,
+    QasmError,
 )
 import qsharp.code as code
 
@@ -70,7 +71,6 @@ def test_run_with_qubit_loss_produces_lossy_results() -> None:
     set_quantum_seed(0)
     result = run(
         """
-        include "stdgates.inc";
         qubit q1;
         bit c1;
         c1 = measure q1;
@@ -85,7 +85,7 @@ def test_run_with_qubit_loss_detects_loss_with_mresetzchecked() -> None:
     set_quantum_seed(0)
     result = run(
         """
-        include "stdgates.inc";
+        include "qdk.inc";
         qubit q1;
         bit[2] r;
         r = mresetzchecked(q1);
@@ -100,7 +100,7 @@ def test_run_without_qubit_loss_does_not_detect_loss_with_mresetzchecked() -> No
     set_quantum_seed(0)
     result = run(
         """
-        include "stdgates.inc";
+        include "qdk.inc";
         qubit q1;
         bit[2] r;
         r = mresetzchecked(q1);
@@ -108,6 +108,21 @@ def test_run_without_qubit_loss_does_not_detect_loss_with_mresetzchecked() -> No
         shots=1,
     )
     assert result[0] == [Result.Zero, Result.Zero]
+
+
+def test_mresetzchecked_not_present_without_qdk_inc() -> None:
+    set_quantum_seed(0)
+    with pytest.raises(QasmError) as excinfo:
+        run(
+            """
+            include "stdgates.inc";
+            qubit q1;
+            bit[2] r;
+            r = mresetzchecked(q1);
+            """,
+            shots=1,
+        )
+    assert "undefined symbol: mresetzchecked" in str(excinfo.value)
 
 
 def test_run_with_result(capsys) -> None:
