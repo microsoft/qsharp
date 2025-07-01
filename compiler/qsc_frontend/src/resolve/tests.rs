@@ -2145,7 +2145,7 @@ fn unknown_namespace() {
                 import Std.Fake.*;
             }
 
-            // GlobImportNamespaceNotFound("Fake", Span { lo: 25, hi: 33 })
+            // NotFound("Std.Fake", Span { lo: 25, hi: 33 })
         "#]],
     );
 }
@@ -3703,6 +3703,74 @@ namespace Foo {
 }
 
 #[test]
+fn glob_import_can_access_parent_scope() {
+    check(
+        indoc! {r#"
+namespace Foo.Bar {
+    operation Hello() : Unit {
+
+    }
+}
+
+namespace Foo {
+    import Bar.*;
+    @EntryPoint()
+    operation Main() : Unit {
+        Hello();
+    }
+}"#},
+        &expect![[r#"
+            namespace namespace4 {
+                operation item1() : Unit {
+
+                }
+            }
+
+            namespace namespace3 {
+                import Bar.*;
+                @EntryPoint()
+                operation item3() : Unit {
+                    item1();
+                }
+            }"#]],
+    );
+}
+
+#[test]
+fn direct_namespace_import_can_access_parent_scope() {
+    check(
+        indoc! {r#"
+namespace Foo.Bar {
+    operation Hello() : Unit {
+
+    }
+}
+
+namespace Foo {
+    import Bar as Baz;
+    @EntryPoint()
+    operation Main() : Unit {
+        Baz.Hello();
+    }
+}"#},
+        &expect![[r#"
+            namespace namespace4 {
+                operation item1() : Unit {
+
+                }
+            }
+
+            namespace namespace3 {
+                import Bar as Baz;
+                @EntryPoint()
+                operation item3() : Unit {
+                    item1();
+                }
+            }"#]],
+    );
+}
+
+#[test]
 fn test_export_statement() {
     check(
         indoc! {"namespace Foo {
@@ -3758,32 +3826,32 @@ namespace Foo.Bar.Graule {
         &expect![[r#"
 
             namespace namespace3 {
-                export item2;
+                export item3;
             }
             namespace namespace6 {
-                function item2() : Unit {}
+                function item3() : Unit {}
             }
 
             namespace namespace4 {
-               export item2;
+               export item3;
             }
 
             namespace namespace5 {
-                export item2;
+                export item3;
             }
 
             namespace namespace7 {
                 // HelloWorld should be available from all namespaces
-                operation item6() : Unit {
-                    item2();
-                    item2();
-                    item2();
-                    item2();
+                operation item9() : Unit {
+                    item3();
+                    item3();
+                    item3();
+                    item3();
                     open namespace3;
-                    item2();
+                    item3();
                 }
                 // and we should be able to re-export it
-                export item2;
+                export item3;
             }"#]],
     );
 }
@@ -3833,17 +3901,17 @@ namespace Main {
 }" },
         &expect![[r#"
             namespace namespace3 {
-                export item2;
+                export item3;
             }
             namespace namespace6 {
-                function item2() : Unit {}
+                function item3() : Unit {}
             }
 
             namespace namespace7 {
               open namespace3;
-              operation item4() : Unit {
-                item2();
-                item2();
+              operation item5() : Unit {
+                item3();
+                item3();
               }
             }"#]],
     );
@@ -3872,7 +3940,7 @@ fn multiple_exports() {
             }
             namespace namespace4 {
                 import item1, item2;
-                operation item4() : Unit {
+                operation item6() : Unit {
                     item1();
                     item2();
                 }
@@ -3953,7 +4021,7 @@ fn export_symbol_from_nested_namespace() {
             }
             namespace namespace5 {
                 open namespace3;
-                operation item4() : Unit {
+                operation item5() : Unit {
                     item1();
                 }
             }
@@ -4221,12 +4289,12 @@ fn order_of_exports_does_not_matter() {
         "},
         &expect![[r#"
             namespace namespace3 {
-                export item3;
-                export item1;
-                operation item1() : Unit {}
+                export item4;
+                export item2;
+                operation item2() : Unit {}
             }
             namespace namespace4 {
-                operation item3() : Unit {}
+                operation item4() : Unit {}
             }
 
         "#]],
@@ -4282,7 +4350,7 @@ fn import_single_item() {
             }
             namespace namespace4 {
                 import item1;
-                operation item3() : Unit {
+                operation item4() : Unit {
                     item1();
                 }
             }
@@ -4310,7 +4378,7 @@ fn import_namespace() {
             }
             namespace namespace5 {
                 import namespace4;
-                operation item3() : Unit {
+                operation item4() : Unit {
                     item1();
                 }
             }
@@ -4336,7 +4404,7 @@ fn import_non_existent_item() {
             }
             namespace namespace4 {
                 import Foo.Bar;
-                operation item2() : Unit {
+                operation item3() : Unit {
                     Bar();
                 }
             }
@@ -4347,8 +4415,40 @@ fn import_non_existent_item() {
     );
 }
 
+// Design change - imports shouldn't shadow operations in the global scope,
+// it should give a duplicate symbol error
+// #[test]
+// fn import_shadowing() {
+//     check(
+//         indoc! {"
+//             namespace Foo {
+//                 function Bar() : Unit {}
+//             }
+//             namespace Main {
+//                 function Bar() : Unit {}
+//                 import Foo.Bar;
+//                 operation Main() : Unit {
+//                     Bar();
+//                 }
+//             }
+//         "},
+//         &expect![[r#"
+//             namespace namespace3 {
+//                 function item1() : Unit {}
+//             }
+//             namespace namespace4 {
+//                 function item3() : Unit {}
+//                 import item1;
+//                 operation item4() : Unit {
+//                     item1();
+//                 }
+//             }
+//         "#]],
+//     );
+// }
+
 #[test]
-fn import_shadowing() {
+fn import_name_collision_with_callable() {
     check(
         indoc! {"
             namespace Foo {
@@ -4369,7 +4469,39 @@ fn import_shadowing() {
             namespace namespace4 {
                 function item3() : Unit {}
                 import item1;
+                operation item5() : Unit {
+                    item1();
+                }
+            }
+
+            // Duplicate("Bar", "Main", Span { lo: 108, hi: 111 })
+        "#]],
+    );
+}
+
+#[test]
+fn import_shadowing_local_scope() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function Bar() : Unit {}
+            }
+            namespace Main {
+                function Bar() : Unit {}
+                operation Main() : Unit {
+                    import Foo.Bar;
+                    Bar();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace3 {
+                function item1() : Unit {}
+            }
+            namespace namespace4 {
+                function item3() : Unit {}
                 operation item4() : Unit {
+                    import item1;
                     item1();
                 }
             }
@@ -4397,7 +4529,7 @@ fn import_with_alias() {
             }
             namespace namespace4 {
                 import item1;
-                operation item3() : Unit {
+                operation item4() : Unit {
                     item1();
                 }
             }
@@ -4445,7 +4577,7 @@ fn import_namespace_nested() {
             }
             namespace namespace6 {
                 import namespace4;
-                operation item3() : Unit {
+                operation item4() : Unit {
                     item1();
                 }
             }
@@ -4555,9 +4687,10 @@ fn import_self() {
     );
 }
 
-// this should be allowed for jupyter cell re-runnability
+// imports with the same name create collisions
+// in the global scope
 #[test]
-fn import_duplicate_symbol() {
+fn import_duplicate_symbol_in_global_scope() {
     check(
         indoc! { r#"
         namespace Main {
@@ -4569,18 +4702,48 @@ fn import_duplicate_symbol() {
 "# },
         &expect![[r#"
             namespace namespace3 {
-                import item2, item2;
+                import item4, item4;
             }
             namespace namespace5 {
-                operation item2() : Unit {}
+                operation item4() : Unit {}
+            }
+
+            // Duplicate("Baz", "Main", Span { lo: 49, hi: 52 })
+        "#]],
+    );
+}
+
+// just like callable and UDT declarations, shadowing is
+// allowed in local scopes for jupyter cell re-runnability
+#[test]
+fn import_duplicate_symbol_in_local_scope() {
+    check(
+        indoc! { r#"
+        namespace Main {
+            operation Main() : Unit {
+                import Foo.Bar.Baz, Foo.Bar.Baz;
+            }
+        }
+        namespace Foo.Bar {
+            operation Baz() : Unit {}
+        }
+"# },
+        &expect![[r#"
+            namespace namespace3 {
+                operation item1() : Unit {
+                    import item3, item3;
+                }
+            }
+            namespace namespace5 {
+                operation item3() : Unit {}
             }
         "#]],
     );
 }
 
-// this should be allowed for jupyter cell re-runnability
+// naming collisions in global scope
 #[test]
-fn import_duplicate_symbol_different_name() {
+fn import_duplicate_symbol_different_source_global_scope() {
     check(
         indoc! { r#"
         namespace Main {
@@ -4593,11 +4756,42 @@ fn import_duplicate_symbol_different_name() {
 "# },
         &expect![[r#"
             namespace namespace3 {
-                import item2, namespace5;
-                import item2;
+                import item5, namespace5;
+                import item5;
             }
             namespace namespace5 {
-                operation item2() : Unit {}
+                operation item5() : Unit {}
+            }
+
+            // Duplicate("Baz", "Main", Span { lo: 65, hi: 68 })
+        "#]],
+    );
+}
+
+// this should be allowed for jupyter cell re-runnability
+#[test]
+fn import_duplicate_symbol_different_source_local_scope() {
+    check(
+        indoc! { r#"
+        namespace Main {
+            operation Main() : Unit {
+                import Foo.Bar.Baz, Foo.Bar;
+                import Bar.Baz;
+            }
+        }
+        namespace Foo.Bar {
+            operation Baz() : Unit {}
+        }
+"# },
+        &expect![[r#"
+            namespace namespace3 {
+                operation item1() : Unit {
+                    import item3, namespace5;
+                    import item3;
+                }
+            }
+            namespace namespace5 {
+                operation item3() : Unit {}
             }
         "#]],
     );
@@ -4618,14 +4812,14 @@ fn disallow_importing_different_items_with_same_name() {
 "# },
         &expect![[r#"
             namespace namespace3 {
-                import item2, item3;
+                import item4, item5;
             }
             namespace namespace5 {
-                operation item2() : Unit {}
-                operation item3() : Unit {}
+                operation item4() : Unit {}
+                operation item5() : Unit {}
             }
 
-            // ImportedDuplicate("Baz", Span { lo: 57, hi: 60 })
+            // Duplicate("Baz", "Main", Span { lo: 57, hi: 60 })
         "#]],
     );
 }
@@ -4744,31 +4938,31 @@ fn import_namespace_advanced() {
             }
             namespace namespace9 {
                 import namespace4;
-                operation item5() : Unit {
+                operation item6() : Unit {
                     item1();
                 }
             }
             namespace namespace10 {
                 import namespace5;
-                operation item7() : Unit {
+                operation item9() : Unit {
                     item1();
                 }
             }
             namespace namespace11 {
                 import namespace6;
-                operation item9() : Unit {
+                operation item12() : Unit {
                     item1();
                 }
             }
             namespace namespace12 {
                 import namespace7;
-                operation item11() : Unit {
+                operation item15() : Unit {
                     item1();
                 }
             }
             namespace namespace13 {
                 import item1;
-                operation item13() : Unit {
+                operation item18() : Unit {
                     item1();
                 }
             }
@@ -4797,7 +4991,7 @@ fn import_namespace_does_not_open_it() {
             }
             namespace namespace6 {
                 import namespace5;
-                operation item3() : Unit {
+                operation item4() : Unit {
                     item1();
                     DumpMachine();
                 }
@@ -4821,7 +5015,7 @@ fn invalid_import() {
         &expect![[r#"
             namespace namespace3 {
                 import A.B.C;
-                operation item1() : Unit {
+                operation item2() : Unit {
                 }
             }
 
@@ -4987,7 +5181,7 @@ fn export_namespace_with_alias() {
             }
             namespace namespace6 {
                 open namespace4;
-                operation item5() : Unit {
+                operation item6() : Unit {
                     item1();
                     item1();
                 }
@@ -5117,7 +5311,7 @@ fn import_glob_in_list() {
             }
             namespace namespace6 {
                 import namespace4.*, item4;
-                operation item6() : Unit {
+                operation item7() : Unit {
                     item1();
                     item2();
                     item4();
@@ -5159,7 +5353,7 @@ fn import_glob_in_list_with_alias() {
             }
             namespace namespace6 {
                 import namespace4, item4;
-                operation item6() : Unit {
+                operation item8() : Unit {
                     item1();
                     item2();
                     item4();
@@ -5189,16 +5383,16 @@ fn import_newtype() {
                 }"#},
         &expect![[r#"
             namespace namespace3 {
-                import item3; // no error
+                import item4; // no error
 
-                operation item1() : Unit {
-                    let local17: item3 = item3("a");
+                operation item2() : Unit {
+                    let local17: item4 = item4("a");
                 }
             }
 
             namespace namespace4 {
-                newtype item3 = String;
-                export item3;
+                newtype item4 = String;
+                export item4;
 
             }"#]],
     );
@@ -5237,7 +5431,7 @@ fn glob_import_ns_not_found() {
                 import Bar.*;
             }
 
-            // GlobImportNamespaceNotFound("Bar", Span { lo: 28, hi: 31 })
+            // NotFound("Bar", Span { lo: 28, hi: 31 })
         "#]],
     );
 }

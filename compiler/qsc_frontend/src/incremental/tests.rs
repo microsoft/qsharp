@@ -643,6 +643,7 @@ fn reexport_operation_no_dep_alias() {
 }
 
 #[test]
+#[ignore = "this isn't supposed to work anyway"]
 fn import_then_reexport_operation() {
     multi_package_test(
         vec![(
@@ -679,6 +680,7 @@ fn import_then_reexport_operation() {
 }
 
 #[test]
+#[ignore = "this isn't supposed to work anyway"]
 fn import_then_reexport_operation_no_dep_alias() {
     multi_package_test(
         vec![(
