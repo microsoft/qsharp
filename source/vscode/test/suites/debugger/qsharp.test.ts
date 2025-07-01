@@ -457,7 +457,7 @@ suite("Q# Debugger Tests", function suite() {
    *
    * @param expectedVariables assert that the tracker.variables trace matches this value.
    */
-  function assertVariables(expectedVariables: any) {
+  function assertVariables(expectedVariables: DebugProtocol.Variable[]) {
     return tracker!.assertVariables(expectedVariables);
   }
 });

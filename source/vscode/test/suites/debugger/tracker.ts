@@ -108,12 +108,13 @@ class Tracker implements vscode.DebugAdapterTracker {
    *
    * @param expectedVariables assert that the tracker.variables trace matches this value.
    */
-  async assertVariables(expectedVariables: any) {
+  async assertVariables(expectedVariables: DebugProtocol.Variable[]) {
     await this.waitUntilPaused();
 
     assert.deepEqual(
       this.variables,
       expectedVariables,
+      // print copy-pastable variables
       `actual variables:\n${JSON.stringify(this.variables)}\n`,
     );
 
