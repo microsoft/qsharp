@@ -66,6 +66,50 @@ def test_run_with_noise_produces_noisy_results() -> None:
     assert result[0] > 5
 
 
+def test_run_with_qubit_loss_produces_lossy_results() -> None:
+    set_quantum_seed(0)
+    result = run(
+        """
+        include "stdgates.inc";
+        qubit q1;
+        bit c1;
+        c1 = measure q1;
+        """,
+        shots=1,
+        qubit_loss=1.0,
+    )
+    assert result[0] == Result.Loss
+
+
+def test_run_with_qubit_loss_detects_loss_with_mresetzchecked() -> None:
+    set_quantum_seed(0)
+    result = run(
+        """
+        include "stdgates.inc";
+        qubit q1;
+        bit[2] r;
+        r = mresetzchecked(q1);
+        """,
+        shots=1,
+        qubit_loss=1.0,
+    )
+    assert result[0] == [Result.Loss, Result.One]
+
+
+def test_run_without_qubit_loss_does_not_detect_loss_with_mresetzchecked() -> None:
+    set_quantum_seed(0)
+    result = run(
+        """
+        include "stdgates.inc";
+        qubit q1;
+        bit[2] r;
+        r = mresetzchecked(q1);
+        """,
+        shots=1,
+    )
+    assert result[0] == [Result.Zero, Result.Zero]
+
+
 def test_run_with_result(capsys) -> None:
     results = run("output bit c;", 3)
     assert results == [Result.Zero, Result.Zero, Result.Zero]

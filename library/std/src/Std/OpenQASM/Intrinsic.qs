@@ -38,6 +38,8 @@ export rxx, ryy, rzz;
 // that Qiskit wont emit correctly.
 export dcx, ecr, r, rzx, cs, csdg, sxdg, csx, rccx, c3sqrtx, c3x, rc3x, xx_minus_yy, xx_plus_yy, ccz;
 
+export mresetzchecked;
+
 export __quantum__qis__barrier__body;
 
 import Std.OpenQASM.Angle.Angle;
@@ -47,6 +49,7 @@ import Std.OpenQASM.Angle.AddAngles;
 import Std.OpenQASM.Angle.SubtractAngles;
 import Std.OpenQASM.Angle.DivideAngleByInt;
 import Std.OpenQASM.Angle.NegAngle;
+import Std.Convert.BoolAsResult;
 
 function ZERO_ANGLE() : Angle {
     return DoubleAsAngle(0., 1);
@@ -631,6 +634,11 @@ operation ccz(ctrl1 : Qubit, ctrl2 : Qubit, target : Qubit) : Unit is Adj + Ctl 
     h(target);
     ccx(ctrl1, ctrl2, target);
     h(target);
+}
+
+operation mresetzchecked(q : Qubit) : Result[] {
+    let (r, b) = MResetZChecked(q);
+    [r, BoolAsResult(b)]
 }
 
 /// The ``BARRIER`` function is used to implement the `barrier` statement in QASM.

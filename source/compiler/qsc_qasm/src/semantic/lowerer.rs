@@ -328,6 +328,7 @@ impl Lowerer {
                 self.push_redefined_symbol_error(name.as_str(), span);
             }
         }
+        self.define_mresetzchecked();
     }
 
     /// Define the `OpenQASM` 2.0 standard gates in the symbol table.
@@ -376,6 +377,21 @@ impl Lowerer {
             if self.symbols.insert_symbol(gate).is_err() {
                 self.push_redefined_symbol_error(name.as_str(), span);
             }
+        }
+        self.define_mresetzchecked();
+    }
+
+    fn define_mresetzchecked(&mut self) {
+        let name = "mresetzchecked";
+        let symbol = Symbol::new(
+            name,
+            Span::default(),
+            Type::Function(vec![Type::Qubit].into(), Type::BitArray(2, false).into()),
+            crate::types::Type::Callable(crate::types::CallableKind::Operation, 0, 1),
+            Default::default(),
+        );
+        if self.symbols.insert_symbol(symbol).is_err() {
+            self.push_redefined_symbol_error(name, Span::default());
         }
     }
 
