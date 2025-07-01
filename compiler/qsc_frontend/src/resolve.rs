@@ -2176,8 +2176,9 @@ fn bind_global_item(
             if !errors.is_empty() {
                 return Err(errors);
             }
+            Ok(())
 
-            bind_imports_or_exports(names, scope, namespace, next_id, decl)
+            // bind_namespace_export(names, scope, namespace, next_id, decl)
         }
         ast::ItemKind::Err | ast::ItemKind::Open(..) => Ok(()),
     }
@@ -2232,7 +2233,7 @@ fn bind_direct_import(
     }
 }
 
-fn bind_imports_or_exports(
+fn bind_namespace_export(
     names: &mut IndexMap<NodeId, Res>,
     scope: &mut GlobalScope,
     namespace: NamespaceId,

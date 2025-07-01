@@ -5049,11 +5049,11 @@ fn export_namespace() {
                 operation item2() : Unit {}
             }
             namespace namespace4 {
-                export item4;
+                export namespace3;
             }
             namespace namespace5 {
                 open namespace3;
-                operation item6() : Unit {
+                operation item5() : Unit {
                     item1();
                     item2();
                 }
@@ -5084,11 +5084,11 @@ fn export_namespace_contains_children() {
                 operation item1() : Unit {}
             }
             namespace namespace5 {
-                export item3;
+                export namespace3;
             }
             namespace namespace6 {
                 open namespace4;
-                operation item5() : Unit {
+                operation item4() : Unit {
                     item1();
                 }
             }
@@ -5117,12 +5117,12 @@ fn export_namespace_cyclic() {
                 export namespace4;
             }
             namespace namespace4 {
-                export item2;
-                operation item3() : Unit {}
+                export namespace3;
+                operation item2() : Unit {}
             }
             namespace namespace5 {
                 open namespace4;
-                operation item5() : Unit { item3(); }
+                operation item4() : Unit { item2(); }
             }
         "#]],
     );
@@ -5181,7 +5181,7 @@ fn export_namespace_with_alias() {
             }
             namespace namespace6 {
                 open namespace4;
-                operation item6() : Unit {
+                operation item5() : Unit {
                     item1();
                     item1();
                 }
