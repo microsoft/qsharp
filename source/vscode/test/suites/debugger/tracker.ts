@@ -89,7 +89,9 @@ class Tracker implements vscode.DebugAdapterTracker {
    *
    * @param expectedStackTrace assert that the stack trace matches this value.
    */
-  async assertStackTrace(expectedStackTrace: DebugProtocol.StackFrame[]) {
+  async waitUntilPausedAndAssertStackTrace(
+    expectedStackTrace: DebugProtocol.StackFrame[],
+  ) {
     await this.waitUntilPaused();
 
     assert.deepEqual(
@@ -108,7 +110,9 @@ class Tracker implements vscode.DebugAdapterTracker {
    *
    * @param expectedVariables assert that the tracker.variables trace matches this value.
    */
-  async assertVariables(expectedVariables: DebugProtocol.Variable[]) {
+  async waitUntilPausedAndAssertVariables(
+    expectedVariables: DebugProtocol.Variable[],
+  ) {
     await this.waitUntilPaused();
 
     assert.deepEqual(
