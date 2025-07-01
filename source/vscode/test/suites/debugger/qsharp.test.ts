@@ -433,12 +433,14 @@ suite("Q# Debugger Tests", function suite() {
     );
 
     // Verify that the locals variables correspond to the Main frame.
-    await assertVariables({
-      name: "a",
-      type: undefined,
-      value: "1",
-      variablesReference: 0,
-    });
+    await assertVariables([
+      {
+        name: "a",
+        type: undefined,
+        value: "1",
+        variablesReference: 0,
+      },
+    ]);
   });
 
   /**
