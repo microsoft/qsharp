@@ -1949,13 +1949,55 @@ fn checked_measurement_with_lost_qubit_returns_true() {
 }
 
 #[test]
-fn comparison_of_loss_result_runtime_error() {
+fn is_loss_result_on_lost_qubit_returns_true() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            let res = MResetZ(q);
+            IsLossResult(res)
+        }"},
+        &expect!["true"],
+    );
+}
+
+#[test]
+fn is_loss_result_on_normal_qubit_returns_false() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            let res = MResetZ(q);
+            IsLossResult(res)
+        }"},
+        &expect!["false"],
+    );
+}
+
+#[test]
+fn comparison_of_loss_result_to_const_runtime_error() {
     check_intrinsic_result(
         "",
         indoc! {"{
             use q = Qubit();
             Std.Diagnostics.ConfigureQubitLoss(1.0);
             MResetZ(q) == One
+        }"},
+        &expect!["cannot compare measurement result from qubit loss"],
+    );
+}
+
+#[test]
+fn comparsion_of_loss_result_to_other_loss_result_runtime_error() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            let res = MResetZ(q);
+            let res2 = MResetZ(q);
+            res == res2
         }"},
         &expect!["cannot compare measurement result from qubit loss"],
     );

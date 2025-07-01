@@ -181,7 +181,31 @@ operation MeasureInteger(target : Qubit[]) : Int {
 /// which may not be supported on all hardware targets and could result in compilation errors when submitting to those targets.
 operation MResetZChecked(target : Qubit) : (Result, Bool) {
     let res = MResetZ(target);
-    (res, __quantum__rt__read_loss(res))
+    (res, IsLossResult(res))
 }
 
-export MeasureAllZ, MeasureEachZ, MResetEachZ, MResetX, MResetY, MResetZ, MeasureInteger, MResetZChecked;
+/// # Summary
+/// Checks if the measurement result indicates qubit loss. Such measurement results are not `Zero` or `One`
+/// and using such a result in comparisons causes a runtime failure.
+/// This operation is not supported on all hardware targets.
+///
+/// # Input
+/// ## res
+/// The measurement result to check.
+///
+/// # Output
+/// A Boolean value indicating whether the result indicates a loss (`true`) or not (`false`).
+///
+/// # Remarks
+/// This operation is useful for detecting qubit loss during execution. After measurement result from qubit loss
+/// cannot be used in a comparison, and any attempt to do so will result in a runtime failure. During simulation, qubit loss
+/// probability can be configured via the `ConfigureQubitLoss` operation. When compiled to QIR, this uses the
+/// `__quantum__rt__read_loss` intrinsic, which may not be supported on all hardware targets and could result in compilation errors when submitting to those targets.
+///
+/// # See also
+/// - [Std.Measurement.MResetZChecked](xref:Qdk.Std.Measurement.MResetZChecked)
+operation IsLossResult(res : Result) : Bool {
+    __quantum__rt__read_loss(res)
+}
+
+export MeasureAllZ, MeasureEachZ, MResetEachZ, MResetX, MResetY, MResetZ, MeasureInteger, MResetZChecked, IsLossResult;
