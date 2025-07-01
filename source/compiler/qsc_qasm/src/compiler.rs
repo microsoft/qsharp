@@ -104,7 +104,7 @@ pub fn compile_to_qsharp_ast_with_config(
     compiler.compile(&program)
 }
 
-#[derive(Copy, Clone, Eq, Hash, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq)]
 pub enum PragmaKind {
     QdkBoxOpen,
     QdkBoxClose,
@@ -1009,18 +1009,17 @@ impl QasmCompiler {
             args.is_empty() && matches!(&**return_ty, crate::semantic::types::Type::Void)
         }
 
+        let name_str = stmt.identifier.as_string();
+
         // Check if the pragma is supported by the compiler.
         // If not, we push an error message and return.
-        if !self.pragma_config.is_supported(&stmt.identifier) {
-            self.push_unsupported_error_message(
-                format!("pragma statement: {}", stmt.identifier),
-                stmt.span,
-            );
+        if !self.pragma_config.is_supported(&name_str) {
+            self.push_unsupported_error_message(format!("pragma statement: {name_str}"), stmt.span);
             return;
         }
 
         // The pragma is supported, so we get the pragma kind.
-        let pragma = PragmaKind::from_str(stmt.identifier.as_ref()).expect("valid pragma");
+        let pragma = PragmaKind::from_str(&name_str).expect("valid pragma");
 
         match (pragma, stmt.value.as_ref()) {
             (PragmaKind::QdkBoxOpen, Some(value)) => {

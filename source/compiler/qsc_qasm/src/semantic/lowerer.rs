@@ -2299,7 +2299,6 @@ impl Lowerer {
         semantic::Pragma {
             span: stmt.span,
             identifier: stmt.identifier.clone(),
-            identifier_span: stmt.identifier_span,
             value: stmt.value.clone(),
             value_span: stmt.value_span,
         }

@@ -92,6 +92,34 @@ fn pragmas_can_have_separate_targets() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
+fn nested_boxes_call_separately() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        pragma qdk.box.open box_open
+        pragma qdk.box.close box_close
+        def box_open() {}
+        def box_close() {}
+        box {box {}}
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        function box_open() : Unit {}
+        function box_close() : Unit {}
+        {
+            box_open();
+            {
+                box_open();
+                box_close();
+            };
+            box_close();
+        };
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
 fn target_with_param_raises_error() {
     let source = r#"
         pragma qdk.box.open sample_box_target
@@ -106,11 +134,11 @@ fn target_with_param_raises_error() {
         Qasm.Compiler.InvalidBoxPragmaTarget
 
           x sample_box_target is not defined or is not a valid target for box usage
-           ,-[Test.qasm:3:9]
+           ,-[Test.qasm:2:29]
+         1 | 
          2 |         pragma qdk.box.open sample_box_target
+           :                             ^^^^^^^^^^^^^^^^^
          3 |         def sample_box_target(int i) {}
-           :         ^
-         4 |         box {}
            `----
     "#]]
     .assert_eq(&format!("{:?}", &errors[0]));
@@ -158,11 +186,11 @@ fn target_with_return_value_raises_error() {
         Qasm.Compiler.InvalidBoxPragmaTarget
 
           x sample_box_target is not defined or is not a valid target for box usage
-           ,-[Test.qasm:3:9]
+           ,-[Test.qasm:2:29]
+         1 | 
          2 |         pragma qdk.box.open sample_box_target
+           :                             ^^^^^^^^^^^^^^^^^
          3 |         def sample_box_target() -> int {
-           :         ^
-         4 |             return 42;
            `----
     "#]]
     .assert_eq(&format!("{:?}", &errors[0]));
@@ -182,11 +210,11 @@ fn unknown_target_with_return_value_raises_error() {
         Qasm.Compiler.InvalidBoxPragmaTarget
 
           x sample_box_target is not defined or is not a valid target for box usage
-           ,-[Test.qasm:3:9]
+           ,-[Test.qasm:2:29]
+         1 | 
          2 |         pragma qdk.box.open sample_box_target
+           :                             ^^^^^^^^^^^^^^^^^
          3 |         box {}
-           :         ^
-         4 |     
            `----
     "#]]
     .assert_eq(&format!("{:?}", &errors[0]));
