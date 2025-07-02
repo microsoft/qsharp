@@ -757,12 +757,12 @@ export class QscDebugSession extends LoggingDebugSession {
         ),
         new Scope(
           "Quantum State",
-          this.variableHandles.create(["quantum", args.frameId]),
+          this.variableHandles.create(["quantum", -1]),
           true, // expensive - keeps scope collapsed in the UI by default
         ),
         new Scope(
           "Quantum Circuit",
-          this.variableHandles.create(["circuit", args.frameId]),
+          this.variableHandles.create(["circuit", -1]),
           true, // expensive - keeps scope collapsed in the UI by default
         ),
       ],
