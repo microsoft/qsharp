@@ -513,7 +513,9 @@ impl QasmCompiler {
             semast::StmtKind::InputDeclaration(stmt) => self.compile_input_decl_stmt(stmt),
             semast::StmtKind::OutputDeclaration(stmt) => self.compile_output_decl_stmt(stmt),
             semast::StmtKind::MeasureArrow(stmt) => self.compile_measure_stmt(stmt),
-            semast::StmtKind::Pragma(_) => unreachable!("pragma should be removed lowerer"),
+            semast::StmtKind::Pragma(_) => {
+                unreachable!("pragma should have been removed in the lowerer")
+            }
             semast::StmtKind::QuantumGateDefinition(gate_stmt) => {
                 self.compile_gate_decl_stmt(gate_stmt, &stmt.annotations)
             }
