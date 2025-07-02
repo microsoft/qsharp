@@ -607,13 +607,9 @@ impl State {
     }
 
     fn push_scope(&mut self, env: &mut Env) {
-        // The `EntryPoint` is the first and only function called from the entry.
-        // The `EntryPoint` should have `frame_id := 0`.
         // `push_frame`, which increments the length of `self.call_stack` by 1,
         // is called before `self.push_scope`.
-        // Therefore, when assigning the `frame_id` to the `EntryPoint`,
-        // `self.call_stack.len()` is already 1, and we need to correct
-        // by substracting 1, so that the `frame_id` of the `EntryPoint` is 0.
+        // Since the first `frame_id` should be 0, we substract 1 here.
         env.push_scope(self.call_stack.len() - 1);
     }
 
