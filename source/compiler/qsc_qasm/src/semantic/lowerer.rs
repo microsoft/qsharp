@@ -383,7 +383,7 @@ impl Lowerer {
     }
 
     fn define_mresetzchecked(&mut self) {
-        let name = "mresetzchecked";
+        let name = "mresetz_checked";
         let symbol = Symbol::new(
             name,
             Span::default(),

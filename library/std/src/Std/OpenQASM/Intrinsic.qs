@@ -38,7 +38,7 @@ export rxx, ryy, rzz;
 // that Qiskit wont emit correctly.
 export dcx, ecr, r, rzx, cs, csdg, sxdg, csx, rccx, c3sqrtx, c3x, rc3x, xx_minus_yy, xx_plus_yy, ccz;
 
-export mresetzchecked;
+export mresetz_checked;
 
 export __quantum__qis__barrier__body;
 
@@ -636,7 +636,7 @@ operation ccz(ctrl1 : Qubit, ctrl2 : Qubit, target : Qubit) : Unit is Adj + Ctl 
     h(target);
 }
 
-operation mresetzchecked(q : Qubit) : Result[] {
+operation mresetz_checked(q : Qubit) : Result[] {
     let (r, b) = MResetZChecked(q);
     [r, BoolAsResult(b)]
 }

@@ -88,7 +88,7 @@ def test_run_with_qubit_loss_detects_loss_with_mresetzchecked() -> None:
         include "qdk.inc";
         qubit q1;
         bit[2] r;
-        r = mresetzchecked(q1);
+        r = mresetz_checked(q1);
         """,
         shots=1,
         qubit_loss=1.0,
@@ -103,7 +103,7 @@ def test_run_without_qubit_loss_does_not_detect_loss_with_mresetzchecked() -> No
         include "qdk.inc";
         qubit q1;
         bit[2] r;
-        r = mresetzchecked(q1);
+        r = mresetz_checked(q1);
         """,
         shots=1,
     )
@@ -118,11 +118,11 @@ def test_mresetzchecked_not_present_without_qdk_inc() -> None:
             include "stdgates.inc";
             qubit q1;
             bit[2] r;
-            r = mresetzchecked(q1);
+            r = mresetz_checked(q1);
             """,
             shots=1,
         )
-    assert "undefined symbol: mresetzchecked" in str(excinfo.value)
+    assert "undefined symbol: mresetz_checked" in str(excinfo.value)
 
 
 def test_run_with_result(capsys) -> None:
