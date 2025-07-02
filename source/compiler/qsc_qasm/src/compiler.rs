@@ -1037,9 +1037,6 @@ impl QasmCompiler {
                     stmt.value_span.unwrap_or(stmt.span),
                 ));
             }
-            (PragmaKind::QdkBoxOpen | PragmaKind::QdkBoxClose, None) => {
-                self.push_compiler_error(CompilerErrorKind::MissingBoxPragmaTarget(stmt.span));
-            }
             (PragmaKind::QdkBoxClose, Some(value)) => {
                 if let Some(symbol) = self.symbols.get_symbol_by_name(value) {
                     if let crate::semantic::types::Type::Function(args, return_ty) = &symbol.1.ty {
@@ -1054,6 +1051,9 @@ impl QasmCompiler {
                     value.to_string(),
                     stmt.value_span.unwrap_or(stmt.span),
                 ));
+            }
+            (PragmaKind::QdkBoxOpen | PragmaKind::QdkBoxClose, None) => {
+                self.push_compiler_error(CompilerErrorKind::MissingBoxPragmaTarget(stmt.span));
             }
         }
     }

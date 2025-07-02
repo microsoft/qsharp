@@ -120,6 +120,40 @@ fn nested_boxes_call_separately() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
+fn last_pragma_overwrites_previous() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        pragma qdk.box.open first
+        pragma qdk.box.open second
+        pragma qdk.box.close third
+        pragma qdk.box.close fourth
+        def first() {}
+        def second() {}
+        def third() {}
+        def fourth() {}
+        box {box {}}
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        function first() : Unit {}
+        function second() : Unit {}
+        function third() : Unit {}
+        function fourth() : Unit {}
+        {
+            second();
+            {
+                second();
+                fourth();
+            };
+            fourth();
+        };
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
 fn target_with_param_raises_error() {
     let source = r#"
         pragma qdk.box.open sample_box_target

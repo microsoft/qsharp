@@ -497,14 +497,10 @@ fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
         Some(Rc::from(value))
     };
 
-    let value_span = if value.is_none() {
-        None
-    } else {
-        Some(Span {
-            lo: value_lo + ident_lo,
-            hi: stmt_hi,
-        })
-    };
+    let value_span = value.as_ref().map(|_| Span {
+        lo: value_lo + ident_lo,
+        hi: stmt_hi,
+    });
 
     Ok(Pragma {
         span: s.span(stmt_lo),
