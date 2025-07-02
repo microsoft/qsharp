@@ -89,10 +89,10 @@ export async function activate(
   // fire-and-forget
   registerGhCopilotInstructionsCommand(context);
 
-  const currentVersion = vscode.extensions.getExtension(
-    "quantum.qsharp-lang-vscode-dev",
-  )?.packageJSON.version;
-  const lastVersion = context.globalState.get<string>(
+  // The latest version for which we want to show the What's New page
+  const WHATSNEW_VERSION = undefined; // <-- Update this when you want to show a new What's New
+
+  const lastWhatsNewVersion = context.globalState.get<string>(
     "qdk.lastWhatsNewVersion",
   );
 
@@ -143,12 +143,18 @@ export async function activate(
     }),
   );
 
-  if (
-    currentVersion &&
-    (currentVersion !== lastVersion || currentVersion === "0.0.0")
-  ) {
+  // This is just for debugging purposes, to ensure the What's New page is shown on
+  // local execution of the extension.
+  const currentVersion = vscode.extensions.getExtension(
+    "quantum.qsharp-lang-vscode-dev",
+  )?.packageJSON.version;
+
+  if (lastWhatsNewVersion !== WHATSNEW_VERSION || currentVersion === "0.0.0") {
     await vscode.commands.executeCommand("qsharp-vscode.showWhatsNew");
-    await context.globalState.update("qdk.lastWhatsNewVersion", currentVersion);
+    await context.globalState.update(
+      "qdk.lastWhatsNewVersion",
+      WHATSNEW_VERSION,
+    );
   }
 
   log.info("Q# extension activated.");
