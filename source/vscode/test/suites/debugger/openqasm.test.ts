@@ -365,7 +365,7 @@ suite("OpenQASM Debugger Tests", function suite() {
     // Step over to prepare the tracker to detect a new variable.
     await vscode.commands.executeCommand("workbench.action.debug.stepOver");
 
-    // Go one frame down the call stack.
+    // Request scopes for the frame with frameId 1 (g's frame).
     await vscode.debug.activeDebugSession?.customRequest("scopes", {
       frameId: 1,
     });

@@ -401,7 +401,7 @@ suite("Q# Debugger Tests", function suite() {
   });
 
   test("Show local variables of selected frame", async () => {
-    // Set a breakpoint on line 16 of foo.qs (7 when 0-indexed)
+    // Set a breakpoint on line 16 of foo.qs (15 when 0-indexed)
     // This will be in the function `AnotherCallFrame` after `b`
     // has been defined.
     vscode.debug.addBreakpoints([
@@ -427,7 +427,7 @@ suite("Q# Debugger Tests", function suite() {
     // Step over to prepare the tracker to detect a new variable.
     await vscode.commands.executeCommand("workbench.action.debug.stepOver");
 
-    // Go one frame down the call stack.
+    // Request scopes for the frame with frameId 0 (Foo's frame).
     await vscode.debug.activeDebugSession?.customRequest("scopes", {
       frameId: 0,
     });
