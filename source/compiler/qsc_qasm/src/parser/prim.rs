@@ -270,11 +270,11 @@ pub(super) fn shorten(from_start: usize, from_end: usize, s: &str) -> &str {
     &s[from_start..s.len() - from_end]
 }
 
-pub(super) fn shorten_safely(from_start: usize, from_end: usize, s: &str) -> &str {
-    if from_start >= s.len() || from_end >= s.len() {
+pub(super) fn trim_front_safely(from_start: usize, s: &str) -> &str {
+    if from_start >= s.len() {
         return "";
     }
-    &s[from_start..s.len() - from_end]
+    &s[from_start..s.len()]
 }
 
 fn advanced(s: &ParserContext, from: u32) -> bool {

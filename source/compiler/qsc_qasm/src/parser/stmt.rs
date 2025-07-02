@@ -25,7 +25,7 @@ use crate::{
             DefParameter, DefParameterType, DynArrayReferenceType, QubitType,
             StaticArrayReferenceType,
         },
-        prim::{recovering_path, shorten_safely},
+        prim::{recovering_path, trim_front_safely},
     },
 };
 
@@ -490,7 +490,7 @@ fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
 
     // This value_lo offset is the start of the value in the pragma line content.
     let value_lo = c.skip_trivia().hi;
-    let value = shorten_safely(value_lo.try_into().expect("valid size"), 0, pragma_content);
+    let value = trim_front_safely(value_lo.try_into().expect("valid size"), pragma_content);
     let value = if value.is_empty() {
         None
     } else {
