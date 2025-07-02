@@ -61,7 +61,8 @@ impl Result {
     pub fn unwrap_bool(self) -> bool {
         match self {
             Self::Val(v) => v,
-            Self::Id(_) | Self::Loss => panic!("cannot unwrap Result as bool"),
+            Self::Id(_) => panic!("cannot unwrap Result::Id as bool"),
+            Self::Loss => panic!("cannot unwrap Result::Loss as bool"),
         }
     }
 
@@ -71,7 +72,8 @@ impl Result {
     #[must_use]
     pub fn unwrap_id(self) -> usize {
         match self {
-            Self::Val(_) | Self::Loss => panic!("cannot unwrap Result as id"),
+            Self::Val(_) => panic!("cannot unwrap Result::Val as id"),
+            Self::Loss => panic!("cannot unwrap Result::Loss as id"),
             Self::Id(v) => v,
         }
     }
