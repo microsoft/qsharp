@@ -461,8 +461,6 @@ fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
 
     let mut c = ParserContext::new(pragma_content);
 
-    println!("pragma content : {pragma_content}");
-
     // parse the dotted path identifier
     let Ok(mut path) = recovering_path(&mut c, WordKinds::PathExpr) else {
         // We only fail if no parts were parsed, which means
