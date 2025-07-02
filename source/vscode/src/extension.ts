@@ -89,6 +89,68 @@ export async function activate(
   // fire-and-forget
   registerGhCopilotInstructionsCommand(context);
 
+  const currentVersion = vscode.extensions.getExtension(
+    "quantum.qsharp-lang-vscode-dev",
+  )?.packageJSON.version;
+  const lastVersion = context.globalState.get<string>(
+    "qdk.lastWhatsNewVersion",
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("qsharp-vscode.showWhatsNew", async () => {
+      const whatsNewUri = vscode.Uri.joinPath(
+        context.extensionUri,
+        "WHATSNEW.md",
+      );
+      let markdown = "";
+      try {
+        const bytes = await vscode.workspace.fs.readFile(whatsNewUri);
+        markdown = new TextDecoder("utf-8").decode(bytes);
+      } catch (err) {
+        log.error(`Failed to read WHATSNEW.md: ${err}`);
+        markdown = "# What's New\nUnable to load release notes.";
+      }
+      const panel = vscode.window.createWebviewPanel(
+        "qsharpWhatsNew",
+        "What's New in QDK",
+        vscode.ViewColumn.One,
+        { enableScripts: true },
+      );
+      // Use client-side marked.js to render markdown
+      panel.webview.html = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>What's New in QDK</title>
+          <style>
+            body { font-family: var(--vscode-font-family); padding: 2em; color: var(--vscode-editor-foreground); background: var(--vscode-editor-background); }
+            h1, h2, h3, h4, h5, h6 { color: var(--vscode-editor-foreground); }
+            a { color: var(--vscode-textLink-foreground); }
+          </style>
+          <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        </head>
+        <body>
+          <div id="content"></div>
+          <script>
+            const markdown = ${JSON.stringify(markdown)};
+            document.getElementById('content').innerHTML = window.marked.parse(markdown);
+          </script>
+        </body>
+        </html>
+      `;
+    }),
+  );
+
+  if (
+    currentVersion &&
+    (currentVersion !== lastVersion || currentVersion === "0.0.0")
+  ) {
+    await vscode.commands.executeCommand("qsharp-vscode.showWhatsNew");
+    await context.globalState.update("qdk.lastWhatsNewVersion", currentVersion);
+  }
+
   log.info("Q# extension activated.");
 
   return api;

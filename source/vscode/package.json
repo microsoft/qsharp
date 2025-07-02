@@ -430,6 +430,11 @@
         "command": "qsharp-vscode.addProjectReference",
         "category": "QDK",
         "title": "Add Q# project reference"
+      },
+      {
+        "command": "qsharp-vscode.showWhatsNew",
+        "title": "Show What's New",
+        "category": "QDK"
       }
     ],
     "breakpoints": [
