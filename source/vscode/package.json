@@ -148,6 +148,11 @@
           "tags": [
             "hidden"
           ]
+        },
+        "Q#.notifications.suppressUpdateNotifications": {
+          "type": "boolean",
+          "default": false,
+          "description": "Suppress notifications about new QDK updates. If true, you will not be prompted about new features after updates."
         }
       }
     },
