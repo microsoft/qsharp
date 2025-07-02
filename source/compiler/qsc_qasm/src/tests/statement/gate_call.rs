@@ -242,12 +242,11 @@ fn barrier_generates_qir() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
-    expect![[
-        r#"
+    expect![[r#"
         %Result = type opaque
         %Qubit = type opaque
 
-        define void @ENTRYPOINT__main() #0 {
+        define i64 @ENTRYPOINT__main() #0 {
         block_0:
           call void @__quantum__qis__barrier__body()
           call void @__quantum__qis__barrier__body()
@@ -256,7 +255,7 @@ fn barrier_generates_qir() -> miette::Result<(), Vec<Report>> {
           call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
           call void @__quantum__rt__array_record_output(i64 1, i8* null)
           call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-          ret void
+          ret i64 0
         }
 
         declare void @__quantum__qis__barrier__body()
@@ -279,8 +278,7 @@ fn barrier_generates_qir() -> miette::Result<(), Vec<Report>> {
         !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
         !3 = !{i32 1, !"dynamic_result_management", i1 false}
         !4 = !{i32 1, !"int_computations", !"i64"}
-        "#
-    ]]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -607,12 +605,12 @@ fn simulatable_intrinsic_on_gate_stmt_generates_correct_qir() -> miette::Result<
         %Result = type opaque
         %Qubit = type opaque
 
-        define void @ENTRYPOINT__main() #0 {
+        define i64 @ENTRYPOINT__main() #0 {
         block_0:
           call void @my_gate(%Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
           call void @__quantum__rt__tuple_record_output(i64 0, i8* null)
-          ret void
+          ret i64 0
         }
 
         declare void @my_gate(%Qubit*)
@@ -1086,12 +1084,11 @@ fn qasm2_barrier_generates_qir() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
-    expect![[
-        r#"
+    expect![[r#"
         %Result = type opaque
         %Qubit = type opaque
 
-        define void @ENTRYPOINT__main() #0 {
+        define i64 @ENTRYPOINT__main() #0 {
         block_0:
           call void @__quantum__qis__barrier__body()
           call void @__quantum__qis__barrier__body()
@@ -1100,7 +1097,7 @@ fn qasm2_barrier_generates_qir() -> miette::Result<(), Vec<Report>> {
           call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
           call void @__quantum__rt__array_record_output(i64 1, i8* null)
           call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-          ret void
+          ret i64 0
         }
 
         declare void @__quantum__qis__barrier__body()
@@ -1123,8 +1120,7 @@ fn qasm2_barrier_generates_qir() -> miette::Result<(), Vec<Report>> {
         !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
         !3 = !{i32 1, !"dynamic_result_management", i1 false}
         !4 = !{i32 1, !"int_computations", !"i64"}
-        "#
-    ]]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -1351,13 +1347,13 @@ fn qasm2_simulatable_intrinsic_on_gate_stmt_generates_correct_qir()
         %Result = type opaque
         %Qubit = type opaque
 
-        define void @ENTRYPOINT__main() #0 {
+        define i64 @ENTRYPOINT__main() #0 {
         block_0:
           call void @my_gate(%Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
           call void @__quantum__rt__array_record_output(i64 1, i8* null)
           call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-          ret void
+          ret i64 0
         }
 
         declare void @my_gate(%Qubit*)
