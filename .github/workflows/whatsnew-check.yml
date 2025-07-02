@@ -1,0 +1,44 @@
+name: Ensure WHATSNEW.md is updated with version bump
+
+on:
+  pull_request:
+    paths:
+      - 'version.py'
+      - 'source/vscode/WHATSNEW.md'
+
+jobs:
+  check-whatsnew:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get changed files
+        id: files
+        uses: tj-actions/changed-files@v44
+
+      - name: Check for major_minor change and WHATSNEW.md update
+        run: |
+          MAJOR_MINOR_CHANGED=false
+          WHATSNEW_CHANGED=false
+
+          for file in ${{ steps.files.outputs.all_changed_files }}; do
+            if [[ "$file" == "version.py" ]]; then
+              # Only trigger if the assignment to major_minor was changed
+              if git diff origin/${{ github.base_ref }} -- version.py | grep -qE '^[-+]major_minor ='; then
+                MAJOR_MINOR_CHANGED=true
+              fi
+            fi
+            if [[ "$file" == "source/vscode/WHATSNEW.md" ]]; then
+              WHATSNEW_CHANGED=true
+            fi
+          done
+
+          if [[ "$MAJOR_MINOR_CHANGED" == "true" && "$WHATSNEW_CHANGED" != "true" ]]; then
+            echo "ERROR: version.py (major_minor) was changed but WHATSNEW.md was not updated."
+            exit 1
+          fi
+
+      - name: Success message
+        if: success()
+        run: echo "`major_minor` in version.py and WHATSNEW.md are consistent."
