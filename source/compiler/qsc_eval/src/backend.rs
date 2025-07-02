@@ -231,8 +231,7 @@ impl Backend for SparseSim {
             self.is_qubit_lost(q),
         ) {
             (true, true, _) | (_, _, true) => {
-                // If the target qubit is lost or both controls are lost, skip the operation,
-                // but apply
+                // If the target qubit is lost or both controls are lost, skip the operation.
             }
 
             // When only one control is lost, use the other to do a singly controlled X.
