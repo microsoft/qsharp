@@ -1,3 +1,4 @@
+import Std.OpenQASM.Convert.ResultAsInt;
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -636,9 +637,16 @@ operation ccz(ctrl1 : Qubit, ctrl2 : Qubit, target : Qubit) : Unit is Adj + Ctl 
     h(target);
 }
 
-operation mresetz_checked(q : Qubit) : Result[] {
+/// A resetting measurement operation that checks for qubit loss.
+/// Returns 0 if the qubit measurement was `Zero`, 1 if it was `One`,
+/// and 2 if the measurement indicated qubit loss.
+operation mresetz_checked(q : Qubit) : Int {
     let (r, b) = MResetZChecked(q);
-    [r, BoolAsResult(b)]
+    if b {
+        2
+    } else {
+        ResultAsInt(r)
+    }
 }
 
 /// The ``BARRIER`` function is used to implement the `barrier` statement in QASM.

@@ -87,13 +87,13 @@ def test_run_with_qubit_loss_detects_loss_with_mresetzchecked() -> None:
         """
         include "qdk.inc";
         qubit q1;
-        bit[2] r;
+        int r;
         r = mresetz_checked(q1);
         """,
         shots=1,
         qubit_loss=1.0,
     )
-    assert result[0] == [Result.Loss, Result.One]
+    assert result[0] == 2
 
 
 def test_run_without_qubit_loss_does_not_detect_loss_with_mresetzchecked() -> None:
@@ -102,12 +102,12 @@ def test_run_without_qubit_loss_does_not_detect_loss_with_mresetzchecked() -> No
         """
         include "qdk.inc";
         qubit q1;
-        bit[2] r;
+        int r;
         r = mresetz_checked(q1);
         """,
         shots=1,
     )
-    assert result[0] == [Result.Zero, Result.Zero]
+    assert result[0] == 0
 
 
 def test_mresetzchecked_not_present_without_qdk_inc() -> None:
@@ -409,6 +409,28 @@ def test_compile_qir_str_from_python_callable_with_multiple_args_passed_as_tuple
         in qir
     )
     assert '"required_num_qubits"="1" "required_num_results"="1"' in qir
+
+
+def test_compile_qir_str_from_callable_with_mresetzchecked() -> None:
+    init(target_profile=TargetProfile.Adaptive_RI)
+    import_openqasm(
+        """
+        include "qdk.inc";
+        qubit q1;
+        int r;
+        r = mresetz_checked(q1);
+        """,
+        name="Program",
+    )
+    operation = compile(code.Program)
+    qir = str(operation)
+    assert "define void @ENTRYPOINT__main()" in qir
+    assert (
+        "call i1 @__quantum__rt__read_loss(%Result* inttoptr (i64 0 to %Result*))"
+        in qir
+    )
+    assert '"required_num_qubits"="1" "required_num_results"="1"' in qir
+    assert "call void @__quantum__rt__int_record_output" in qir
 
 
 def test_callables_exposed_into_env() -> None:

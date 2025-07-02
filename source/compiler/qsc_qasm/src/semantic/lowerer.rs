@@ -387,7 +387,7 @@ impl Lowerer {
         let symbol = Symbol::new(
             name,
             Span::default(),
-            Type::Function(vec![Type::Qubit].into(), Type::BitArray(2, false).into()),
+            Type::Function(vec![Type::Qubit].into(), Type::Int(None, false).into()),
             crate::types::Type::Callable(crate::types::CallableKind::Operation, 0, 1),
             Default::default(),
         );
