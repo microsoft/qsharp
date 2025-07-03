@@ -32,6 +32,7 @@ fn builtin_call_with_invalid_input_types_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-22]:
                         annotations: <empty>
@@ -64,6 +65,7 @@ fn builtin_call_with_zero_arguments_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-15]:
                         annotations: <empty>
@@ -96,6 +98,7 @@ fn builtin_call_with_lower_arity_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-16]:
                         annotations: <empty>
@@ -128,6 +131,7 @@ fn builtin_call_with_higher_arity_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-22]:
                         annotations: <empty>

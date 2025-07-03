@@ -87,6 +87,7 @@ fn float_to_duration_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-17]:
                         annotations: <empty>
@@ -127,6 +128,7 @@ fn sized_float_to_duration_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -1020,6 +1022,7 @@ fn float_to_bitarray_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-17]:
                         annotations: <empty>
@@ -1087,6 +1090,7 @@ fn sized_float_to_bitarray_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -1127,6 +1131,7 @@ fn sized_float_to_bitarray_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -1167,6 +1172,7 @@ fn sized_float_to_bitarray_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>

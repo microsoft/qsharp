@@ -437,6 +437,7 @@ fn init_float_with_int_value_greater_than_safely_representable_values() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [0-27]:
                         annotations: <empty>

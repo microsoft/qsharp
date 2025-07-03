@@ -11,6 +11,7 @@ mod implicit_modified_gate_call;
 mod include;
 mod measure;
 mod modified_gate_call;
+mod pragma;
 mod reset;
 mod switch;
 mod while_loop;

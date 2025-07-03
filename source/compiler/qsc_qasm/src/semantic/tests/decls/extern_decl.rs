@@ -65,6 +65,7 @@ fn no_allowed_in_non_global_scope() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [0-15]:
                         annotations: <empty>

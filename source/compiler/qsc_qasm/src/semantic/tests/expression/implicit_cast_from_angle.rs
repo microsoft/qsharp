@@ -136,6 +136,7 @@ fn to_implicit_int_implicitly_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-23]:
                         annotations: <empty>
@@ -179,6 +180,7 @@ fn to_explicit_int_implicitly_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-23]:
                         annotations: <empty>
@@ -222,6 +224,7 @@ fn to_implicit_uint_implicitly_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-23]:
                         annotations: <empty>
@@ -265,6 +268,7 @@ fn negative_lit_to_implicit_uint_implicitly_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-24]:
                         annotations: <empty>
@@ -316,6 +320,7 @@ fn to_explicit_uint_implicitly_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-23]:
                         annotations: <empty>
@@ -359,6 +364,7 @@ fn to_explicit_bigint_implicitly_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-23]:
                         annotations: <empty>
@@ -402,6 +408,7 @@ fn to_implicit_float_implicitly_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-23]:
                         annotations: <empty>
@@ -445,6 +452,7 @@ fn to_explicit_float_implicitly_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-23]:
                         annotations: <empty>
@@ -488,6 +496,7 @@ fn to_implicit_complex_implicitly_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-23]:
                         annotations: <empty>
@@ -531,6 +540,7 @@ fn to_explicit_complex_implicitly_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-23]:
                         annotations: <empty>

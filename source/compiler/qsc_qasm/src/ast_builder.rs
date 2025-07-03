@@ -844,6 +844,20 @@ pub(crate) fn build_call_no_params(
     }
 }
 
+pub(crate) fn build_call_stmt_no_params(
+    name: &str,
+    idents: &[&str],
+    fn_call_span: Span,
+    fn_name_span: Span,
+) -> Stmt {
+    build_stmt_semi_from_expr(build_call_no_params(
+        name,
+        idents,
+        fn_call_span,
+        fn_name_span,
+    ))
+}
+
 pub(crate) fn build_call_with_param(
     name: &str,
     idents: &[&str],
