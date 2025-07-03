@@ -31,6 +31,10 @@ import { initCodegen } from "./qirGeneration.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initTelemetry } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
+import {
+  maybeShowWhatsNewPrompt,
+  registerWhatsNewCommand,
+} from "./whatsNew.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -69,14 +73,11 @@ export async function activate(
   );
 
   context.subscriptions.push(...activateTargetProfileStatusBarItem());
-
   context.subscriptions.push(...(await activateLanguageService(context)));
-
   context.subscriptions.push(...startOtherQSharpDiagnostics());
-
   context.subscriptions.push(...registerQSharpNotebookHandlers());
-
   context.subscriptions.push(CircuitEditorProvider.register(context));
+  context.subscriptions.push(...registerWhatsNewCommand(context));
 
   await initAzureWorkspaces(context);
   initCodegen(context);
@@ -88,6 +89,9 @@ export async function activate(
   registerLanguageModelTools(context);
   // fire-and-forget
   registerGhCopilotInstructionsCommand(context);
+
+  // Show prompt after update if not suppressed
+  await maybeShowWhatsNewPrompt(context);
 
   log.info("Q# extension activated.");
 
