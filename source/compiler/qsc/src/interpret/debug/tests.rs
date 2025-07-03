@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use expect_test::expect;
 use indoc::indoc;
 use miette::Result;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
@@ -90,15 +91,15 @@ fn stack_traces_can_cross_eval_session_and_file_boundaries() {
             let stack_trace = e[0]
                 .stack_trace()
                 .expect("code should have a valid stack trace");
-            let expectation = indoc! {r#"
-                         Error: division by zero
-                         Call stack:
-                             at Adjoint Test.C in 1.qs
-                             at Adjoint Test.B in 1.qs
-                             at Adjoint Test2.A in 2.qs
-                             at Z in line_0
-                    "#};
-            assert_eq!(expectation, stack_trace);
+            expect![[r#"
+                Error: division by zero
+                Call stack:
+                    at Adjoint Test.C in 1.qs:10:12
+                    at Adjoint Test.B in 1.qs:3:12
+                    at Adjoint Test2.A in 2.qs:9:0
+                    at Z in line_0:0:34
+            "#]]
+            .assert_eq(stack_trace);
         }
     }
 }
@@ -161,14 +162,13 @@ fn stack_traces_can_cross_file_and_entry_boundaries() {
             let stack_trace = e[0]
                 .stack_trace()
                 .expect("code should have a valid stack trace");
-            let expectation = indoc! {r#"
-                         Error: division by zero
-                         Call stack:
-                             at Adjoint Test.C in 1.qs
-                             at Adjoint Test.B in 1.qs
-                             at Adjoint Test2.A in 2.qs
-                    "#};
-            assert_eq!(expectation, stack_trace);
+            expect![[r#"
+                Error: division by zero
+                Call stack:
+                    at Adjoint Test.C in 1.qs:11:8
+                    at Adjoint Test.B in 1.qs:5:0
+                    at Adjoint Test2.A in 2.qs:9:0
+            "#]].assert_eq(stack_trace);
         }
     }
 }
