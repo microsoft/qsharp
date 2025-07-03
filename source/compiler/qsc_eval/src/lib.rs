@@ -607,7 +607,10 @@ impl State {
     }
 
     fn push_scope(&mut self, env: &mut Env) {
-        env.push_scope(self.call_stack.len());
+        // `push_frame`, which increments the length of `self.call_stack` by 1,
+        // is called before `self.push_scope`.
+        // Since the first `frame_id` should be 0, we substract 1 here.
+        env.push_scope(self.call_stack.len() - 1);
     }
 
     fn take_val_register(&mut self) -> Value {

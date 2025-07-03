@@ -201,8 +201,8 @@ impl DebugService {
         .into()
     }
 
-    pub fn get_locals(&self) -> IVariableList {
-        let locals = self.debugger().get_locals();
+    pub fn get_locals(&self, frame_id: usize) -> IVariableList {
+        let locals = self.debugger().get_locals(frame_id);
         let variables: Vec<_> = locals
             .into_iter()
             .map(|local| Variable {
