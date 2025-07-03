@@ -90,7 +90,7 @@ export async function activate(
   registerGhCopilotInstructionsCommand(context);
 
   // The latest version for which we want to show the What's New page
-  const WHATSNEW_VERSION = "defined6"; // <-- Update this when you want to show a new What's New
+  const WHATSNEW_VERSION = undefined; // <-- Update this when you want to show a new What's New
 
   const lastWhatsNewVersion = context.globalState.get<string>(
     "qdk.lastWhatsNewVersion",
