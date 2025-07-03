@@ -310,10 +310,10 @@ suite("OpenQASM Debugger Tests", function suite() {
           sourceReference: 0,
           adapterData: "qsharp-adapter-data",
         },
-        line: 131,
+        line: 132,
         column: 5,
         name: "h ",
-        endLine: 131,
+        endLine: 132,
         endColumn: 28,
       },
       {
