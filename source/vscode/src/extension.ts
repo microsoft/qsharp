@@ -31,6 +31,10 @@ import { initCodegen } from "./qirGeneration.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initTelemetry } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
+import {
+  maybeShowWhatsNewPrompt,
+  registerWhatsNewCommand,
+} from "./whatsNew.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -69,14 +73,11 @@ export async function activate(
   );
 
   context.subscriptions.push(...activateTargetProfileStatusBarItem());
-
   context.subscriptions.push(...(await activateLanguageService(context)));
-
   context.subscriptions.push(...startOtherQSharpDiagnostics());
-
   context.subscriptions.push(...registerQSharpNotebookHandlers());
-
   context.subscriptions.push(CircuitEditorProvider.register(context));
+  context.subscriptions.push(...registerWhatsNewCommand(context));
 
   await initAzureWorkspaces(context);
   initCodegen(context);
@@ -89,66 +90,8 @@ export async function activate(
   // fire-and-forget
   registerGhCopilotInstructionsCommand(context);
 
-  // The latest version for which we want to show the What's New page
-  const WHATSNEW_VERSION = undefined; // <-- Update this when you want to show a new What's New
-
-  const lastWhatsNewVersion = context.globalState.get<string>(
-    "qdk.lastWhatsNewVersion",
-  );
-  const suppressUpdateNotifications = vscode.workspace
-    .getConfiguration("Q#")
-    .get<boolean>("notifications.suppressUpdateNotifications");
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("qsharp-vscode.showWhatsNew", async () => {
-      const whatsNewUri = vscode.Uri.joinPath(
-        context.extensionUri,
-        "WHATSNEW.md",
-      );
-      await vscode.commands.executeCommand(
-        "markdown.showPreview",
-        whatsNewUri,
-        vscode.ViewColumn.One,
-        { locked: true },
-      );
-    }),
-  );
-
   // Show prompt after update if not suppressed
-  if (
-    lastWhatsNewVersion !== WHATSNEW_VERSION &&
-    !suppressUpdateNotifications
-  ) {
-    await context.globalState.update(
-      "qdk.lastWhatsNewVersion",
-      WHATSNEW_VERSION,
-    );
-    // Only show prompt if not first install (i.e., lastWhatsNewVersion is not undefined/null)
-    if (lastWhatsNewVersion !== undefined) {
-      const buttons = ["What's New?", "Don't show this again"];
-      const choice = await vscode.window.showInformationMessage(
-        "The Azure Quantum Development Kit has been updated.",
-        ...buttons,
-      );
-      if (choice === buttons[0]) {
-        await vscode.commands.executeCommand("qsharp-vscode.showWhatsNew");
-      } else if (choice === buttons[1]) {
-        await vscode.workspace
-          .getConfiguration("Q#")
-          .update(
-            "notifications.suppressUpdateNotifications",
-            true,
-            vscode.ConfigurationTarget.Global,
-          );
-        vscode.window.showInformationMessage(
-          "You will no longer receive What's New notifications. You can re-enable them from the Q# settings.",
-        );
-      }
-    } else {
-      // First install or no previous version, just show What's New
-      await vscode.commands.executeCommand("qsharp-vscode.showWhatsNew");
-    }
-  }
+  await maybeShowWhatsNewPrompt(context);
 
   log.info("Q# extension activated.");
 
