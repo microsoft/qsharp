@@ -243,6 +243,8 @@ async function singleFileProject(
     lints: [],
     errors: [],
     projectType: "qsharp",
+    profile: "unrestricted",
+    isSingleFile: true,
   };
 }
 
@@ -317,4 +319,36 @@ export async function fetchGithubRaw(
   }
 
   return text;
+}
+
+/**
+ * Updates the target profile in the qsharp.json manifest for the given document URI.
+ *
+ * @param documentUri The URI of the document for which to update the manifest profile.
+ * @param newProfile The new target profile to set in the manifest.
+ * @throws Error if the manifest cannot be found or parsed.
+ */
+export async function updateManifestProfile(
+  documentUri: vscode.Uri,
+  newProfile: string,
+): Promise<void> {
+  const manifestInfo = await findManifestDocument(documentUri.toString());
+  if (!manifestInfo) {
+    throw new Error(
+      "Could not find qsharp.json manifest for the current document.",
+    );
+  }
+  const manifestUri = manifestInfo.manifest;
+  const manifestBytes = await vscode.workspace.fs.readFile(manifestUri);
+  let manifestJson: any;
+  try {
+    manifestJson = JSON.parse(new TextDecoder().decode(manifestBytes));
+  } catch (e) {
+    throw new Error("Could not parse qsharp.json: " + e);
+  }
+  manifestJson.targetProfile = newProfile;
+  const updated = new TextEncoder().encode(
+    JSON.stringify(manifestJson, null, 2),
+  );
+  await vscode.workspace.fs.writeFile(manifestUri, updated);
 }
