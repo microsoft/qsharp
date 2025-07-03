@@ -168,7 +168,8 @@ fn stack_traces_can_cross_file_and_entry_boundaries() {
                     at Adjoint Test.C in 1.qs:11:8
                     at Adjoint Test.B in 1.qs:5:0
                     at Adjoint Test2.A in 2.qs:9:0
-            "#]].assert_eq(stack_trace);
+            "#]]
+            .assert_eq(stack_trace);
         }
     }
 }
