@@ -35,6 +35,7 @@ def run(
             DepolarizingNoise,
         ]
     ] = None,
+    qubit_loss: Optional[float] = None,
     as_bitstring: bool = False,
     **kwargs: Optional[Dict[str, Any]],
 ) -> List[Any]:
@@ -51,6 +52,7 @@ def run(
         on_result: A callback function that will be called with each result. Only used when a callable is provided.
         save_events: If true, the output of each shot will be saved. If false, they will be printed. Only used when a callable is provided.
         noise: The noise to use in simulation.
+        qubit_loss: The probability of qubit loss in simulation.
         as_bitstring: If true, the result registers will be converted to bitstrings.
         **kwargs: Additional keyword arguments to pass to the compilation when source program is provided.
           - name (str): The name of the circuit. This is used as the entry point for the program.
@@ -114,6 +116,7 @@ def run(
                 source,
                 on_save_events if save_events else display_or_print,
                 noise,
+                qubit_loss=qubit_loss,
                 callable=callable,
                 args=args,
             )
@@ -150,6 +153,7 @@ def run(
             source,
             display_or_print,
             noise,
+            qubit_loss,
             read_file,
             list_directory,
             resolve,

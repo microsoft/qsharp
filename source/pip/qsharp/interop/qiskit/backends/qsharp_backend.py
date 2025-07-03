@@ -266,6 +266,7 @@ def _run_qasm(
         qasm,
         output_fn,
         None,
+        None,
         read_file,
         list_directory,
         resolve,

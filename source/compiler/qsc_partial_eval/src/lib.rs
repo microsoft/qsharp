@@ -2169,6 +2169,7 @@ impl<'a> PartialEvaluator<'a> {
                 Operand::Variable(variable)
             }
             val::Result::Val(bool) => Operand::Literal(Literal::Bool(bool)),
+            val::Result::Loss => panic!("loss result should not occur in partial evaluation"),
         }
     }
 
@@ -3288,6 +3289,7 @@ impl<'a> PartialEvaluator<'a> {
                         .expect("could not convert result ID to u32"),
                 )),
                 val::Result::Val(bool) => Operand::Literal(Literal::Bool(*bool)),
+                val::Result::Loss => panic!("loss result should not occur in partial evaluation"),
             },
             Value::Var(var) => Operand::Variable(map_eval_var_to_rir_var(*var)),
             _ => panic!("{value} cannot be mapped to a RIR operand"),

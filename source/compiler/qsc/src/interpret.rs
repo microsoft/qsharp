@@ -577,11 +577,15 @@ impl Interpreter {
         callable: Value,
         args: Value,
         noise: Option<PauliNoise>,
+        qubit_loss: Option<f64>,
     ) -> InterpretResult {
         let mut sim = match noise {
             Some(noise) => SparseSim::new_with_noise(&noise),
             None => SparseSim::new(),
         };
+        if let Some(loss) = qubit_loss {
+            sim.set_loss(loss);
+        }
         self.invoke_with_sim(&mut sim, receiver, callable, args)
     }
 
@@ -592,11 +596,15 @@ impl Interpreter {
         receiver: &mut impl Receiver,
         expr: Option<&str>,
         noise: Option<PauliNoise>,
+        qubit_loss: Option<f64>,
     ) -> InterpretResult {
         let mut sim = match noise {
             Some(noise) => SparseSim::new_with_noise(&noise),
             None => SparseSim::new(),
         };
+        if let Some(loss) = qubit_loss {
+            sim.set_loss(loss);
+        }
         self.run_with_sim(&mut sim, receiver, expr)
     }
 

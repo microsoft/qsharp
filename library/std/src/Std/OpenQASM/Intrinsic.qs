@@ -38,6 +38,8 @@ export rxx, ryy, rzz;
 // that Qiskit wont emit correctly.
 export dcx, ecr, r, rzx, cs, csdg, sxdg, csx, rccx, c3sqrtx, c3x, rc3x, xx_minus_yy, xx_plus_yy, ccz;
 
+export mresetz_checked;
+
 export __quantum__qis__barrier__body;
 
 import Std.OpenQASM.Angle.Angle;
@@ -631,6 +633,18 @@ operation ccz(ctrl1 : Qubit, ctrl2 : Qubit, target : Qubit) : Unit is Adj + Ctl 
     h(target);
     ccx(ctrl1, ctrl2, target);
     h(target);
+}
+
+/// A resetting measurement operation that checks for qubit loss.
+/// Returns 0 if the qubit measurement was `Zero`, 1 if it was `One`,
+/// and 2 if the measurement indicated qubit loss.
+operation mresetz_checked(q : Qubit) : Int {
+    let (r, b) = Std.Measurement.MResetZChecked(q);
+    if b {
+        2
+    } else {
+        Std.OpenQASM.Convert.ResultAsInt(r)
+    }
 }
 
 /// The ``BARRIER`` function is used to implement the `barrier` statement in QASM.

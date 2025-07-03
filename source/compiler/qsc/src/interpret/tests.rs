@@ -24,7 +24,7 @@ mod given_interpreter {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         (
-            interpreter.run(&mut receiver, Some(expr), None),
+            interpreter.run(&mut receiver, Some(expr), None, None),
             receiver.dump(),
         )
     }

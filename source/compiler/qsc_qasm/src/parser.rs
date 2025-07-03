@@ -367,7 +367,7 @@ where
             // Handling of this file is done by the compiler.
             if matches!(
                 file_path.to_lowercase().as_ref(),
-                "stdgates.inc" | "qelib1.inc"
+                "stdgates.inc" | "qelib1.inc" | "qdk.inc"
             ) {
                 continue;
             }
