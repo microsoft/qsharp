@@ -1,6 +1,14 @@
 %Result = type opaque
 %Qubit = type opaque
 
+@0 = internal constant [4 x i8] c"0_t\00"
+@1 = internal constant [6 x i8] c"1_t0t\00"
+@2 = internal constant [8 x i8] c"2_t0t0b\00"
+@3 = internal constant [8 x i8] c"3_t0t1b\00"
+@4 = internal constant [6 x i8] c"4_t1t\00"
+@5 = internal constant [8 x i8] c"5_t1t0b\00"
+@6 = internal constant [8 x i8] c"6_t1t1b\00"
+
 define i64 @ENTRYPOINT__main() #0 {
 block_0:
   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
@@ -35,13 +43,13 @@ block_4:
   %var_13 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 3 to %Result*))
   call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
   call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-  call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-  call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-  call void @__quantum__rt__bool_record_output(i1 %var_0, i8* null)
-  call void @__quantum__rt__bool_record_output(i1 %var_4, i8* null)
-  call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-  call void @__quantum__rt__bool_record_output(i1 %var_9, i8* null)
-  call void @__quantum__rt__bool_record_output(i1 %var_13, i8* null)
+  call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+  call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+  call void @__quantum__rt__bool_record_output(i1 %var_0, i8* getelementptr inbounds ([8 x i8], [8 x i8]* @2, i64 0, i64 0))
+  call void @__quantum__rt__bool_record_output(i1 %var_4, i8* getelementptr inbounds ([8 x i8], [8 x i8]* @3, i64 0, i64 0))
+  call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @4, i64 0, i64 0))
+  call void @__quantum__rt__bool_record_output(i1 %var_9, i8* getelementptr inbounds ([8 x i8], [8 x i8]* @5, i64 0, i64 0))
+  call void @__quantum__rt__bool_record_output(i1 %var_13, i8* getelementptr inbounds ([8 x i8], [8 x i8]* @6, i64 0, i64 0))
   ret i64 0
 }
 

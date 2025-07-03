@@ -105,13 +105,15 @@ mod base_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
               ret i64 0
             }
 
@@ -150,13 +152,17 @@ mod base_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_t\00"
+            @1 = internal constant [6 x i8] c"1_t0r\00"
+            @2 = internal constant [6 x i8] c"2_t1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -198,15 +204,19 @@ mod base_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_a\00"
+            @1 = internal constant [6 x i8] c"1_a0r\00"
+            @2 = internal constant [6 x i8] c"2_a1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 1 to %Qubit*))
               call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__array_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__array_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -249,15 +259,19 @@ mod base_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_t\00"
+            @1 = internal constant [6 x i8] c"1_t0r\00"
+            @2 = internal constant [6 x i8] c"2_t1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -305,15 +319,19 @@ mod base_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_t\00"
+            @1 = internal constant [6 x i8] c"1_t0r\00"
+            @2 = internal constant [6 x i8] c"2_t1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 3 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -369,13 +387,15 @@ mod adaptive_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
               ret i64 0
             }
 
@@ -414,13 +434,17 @@ mod adaptive_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_t\00"
+            @1 = internal constant [6 x i8] c"1_t0r\00"
+            @2 = internal constant [6 x i8] c"2_t1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -463,11 +487,13 @@ mod adaptive_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__mx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
               ret i64 0
             }
 
@@ -512,14 +538,18 @@ mod adaptive_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_t\00"
+            @1 = internal constant [6 x i8] c"1_t0r\00"
+            @2 = internal constant [6 x i8] c"2_t1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
               call void @__quantum__qis__mzz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -563,15 +593,19 @@ mod adaptive_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_a\00"
+            @1 = internal constant [6 x i8] c"1_a0r\00"
+            @2 = internal constant [6 x i8] c"2_a1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 1 to %Qubit*))
               call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__array_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__array_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -633,13 +667,15 @@ mod adaptive_ri_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
               ret i64 0
             }
 
@@ -679,13 +715,17 @@ mod adaptive_ri_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_t\00"
+            @1 = internal constant [6 x i8] c"1_t0r\00"
+            @2 = internal constant [6 x i8] c"2_t1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -728,15 +768,19 @@ mod adaptive_ri_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_a\00"
+            @1 = internal constant [6 x i8] c"1_a0r\00"
+            @2 = internal constant [6 x i8] c"2_a1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 1 to %Qubit*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__array_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__array_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -780,15 +824,19 @@ mod adaptive_ri_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_t\00"
+            @1 = internal constant [6 x i8] c"1_t0r\00"
+            @2 = internal constant [6 x i8] c"2_t1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -837,6 +885,10 @@ mod adaptive_ri_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_t\00"
+            @1 = internal constant [6 x i8] c"1_t0r\00"
+            @2 = internal constant [6 x i8] c"2_t1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
@@ -845,9 +897,9 @@ mod adaptive_ri_profile {
               call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -899,6 +951,10 @@ mod adaptive_ri_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_t\00"
+            @1 = internal constant [6 x i8] c"1_t0r\00"
+            @2 = internal constant [6 x i8] c"2_t1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
@@ -907,9 +963,9 @@ mod adaptive_ri_profile {
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 1 to %Qubit*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -951,6 +1007,8 @@ mod adaptive_ri_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_i\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
@@ -964,7 +1022,7 @@ mod adaptive_ri_profile {
               br label %block_3
             block_3:
               %var_4 = phi i64 [0, %block_1], [1, %block_2]
-              call void @__quantum__rt__int_record_output(i64 %var_4, i8* null)
+              call void @__quantum__rt__int_record_output(i64 %var_4, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
               ret i64 0
             }
 
@@ -1010,11 +1068,13 @@ mod adaptive_ri_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__custom_reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
               ret i64 0
             }
 
@@ -1075,13 +1135,15 @@ mod adaptive_rif_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
               ret i64 0
             }
 
@@ -1122,13 +1184,17 @@ mod adaptive_rif_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_t\00"
+            @1 = internal constant [6 x i8] c"1_t0r\00"
+            @2 = internal constant [6 x i8] c"2_t1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -1172,15 +1238,19 @@ mod adaptive_rif_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_a\00"
+            @1 = internal constant [6 x i8] c"1_a0r\00"
+            @2 = internal constant [6 x i8] c"2_a1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 1 to %Qubit*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__array_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__array_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -1225,15 +1295,19 @@ mod adaptive_rif_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_t\00"
+            @1 = internal constant [6 x i8] c"1_t0r\00"
+            @2 = internal constant [6 x i8] c"2_t1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -1283,6 +1357,10 @@ mod adaptive_rif_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_t\00"
+            @1 = internal constant [6 x i8] c"1_t0r\00"
+            @2 = internal constant [6 x i8] c"2_t1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
@@ -1291,9 +1369,9 @@ mod adaptive_rif_profile {
               call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -1346,6 +1424,10 @@ mod adaptive_rif_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_t\00"
+            @1 = internal constant [6 x i8] c"1_t0r\00"
+            @2 = internal constant [6 x i8] c"2_t1r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
@@ -1354,9 +1436,9 @@ mod adaptive_rif_profile {
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 1 to %Qubit*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
               ret i64 0
             }
 
@@ -1399,6 +1481,8 @@ mod adaptive_rif_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_i\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
@@ -1412,7 +1496,7 @@ mod adaptive_rif_profile {
               br label %block_3
             block_3:
               %var_4 = phi i64 [0, %block_1], [1, %block_2]
-              call void @__quantum__rt__int_record_output(i64 %var_4, i8* null)
+              call void @__quantum__rt__int_record_output(i64 %var_4, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
               ret i64 0
             }
 
@@ -1455,6 +1539,8 @@ mod adaptive_rif_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_d\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
@@ -1468,7 +1554,7 @@ mod adaptive_rif_profile {
               br label %block_3
             block_3:
               %var_4 = phi double [0.0, %block_1], [1.0, %block_2]
-              call void @__quantum__rt__double_record_output(double %var_4, i8* null)
+              call void @__quantum__rt__double_record_output(double %var_4, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
               ret i64 0
             }
 
@@ -1515,11 +1601,13 @@ mod adaptive_rif_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_r\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__custom_reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
-              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
               ret i64 0
             }
 
@@ -1569,6 +1657,8 @@ mod adaptive_rif_profile {
             %Result = type opaque
             %Qubit = type opaque
 
+            @0 = internal constant [4 x i8] c"0_d\00"
+
             define i64 @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
@@ -1592,7 +1682,7 @@ mod adaptive_rif_profile {
               call void @__quantum__qis__rz__body(double %var_7, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @OpA(double %var_9, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__rx__body(double %var_9, %Qubit* inttoptr (i64 0 to %Qubit*))
-              call void @__quantum__rt__double_record_output(double %var_9, i8* null)
+              call void @__quantum__rt__double_record_output(double %var_9, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
               ret i64 0
             }
 
