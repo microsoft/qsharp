@@ -1,4 +1,3 @@
-import Std.OpenQASM.Convert.ResultAsInt;
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -50,7 +49,6 @@ import Std.OpenQASM.Angle.AddAngles;
 import Std.OpenQASM.Angle.SubtractAngles;
 import Std.OpenQASM.Angle.DivideAngleByInt;
 import Std.OpenQASM.Angle.NegAngle;
-import Std.Convert.BoolAsResult;
 
 function ZERO_ANGLE() : Angle {
     return DoubleAsAngle(0., 1);
@@ -641,11 +639,11 @@ operation ccz(ctrl1 : Qubit, ctrl2 : Qubit, target : Qubit) : Unit is Adj + Ctl 
 /// Returns 0 if the qubit measurement was `Zero`, 1 if it was `One`,
 /// and 2 if the measurement indicated qubit loss.
 operation mresetz_checked(q : Qubit) : Int {
-    let (r, b) = MResetZChecked(q);
+    let (r, b) = Std.Measurement.MResetZChecked(q);
     if b {
         2
     } else {
-        ResultAsInt(r)
+        Std.OpenQASM.Convert.ResultAsInt(r)
     }
 }
 
