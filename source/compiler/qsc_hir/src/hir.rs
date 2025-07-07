@@ -5,7 +5,7 @@
 
 #![warn(missing_docs)]
 use crate::ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, Scheme, Ty, TypeParameter, Udt};
-use indenter::{indented, Indented};
+use indenter::{Indented, indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{

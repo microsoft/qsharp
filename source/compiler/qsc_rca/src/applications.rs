@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::{
-    common::{initialize_locals_map, Local, LocalKind, LocalsLookup},
-    scaffolding::InternalPackageComputeProperties,
     ApplicationGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, RuntimeKind,
     ValueKind,
+    common::{Local, LocalKind, LocalsLookup, initialize_locals_map},
+    scaffolding::InternalPackageComputeProperties,
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
