@@ -5,9 +5,9 @@ use nalgebra::dmatrix;
 use num_complex::{Complex, ComplexFloat};
 
 use crate::{
-    operation::{operation, Operation},
-    tests::assert_approx_eq,
     SquareMatrix,
+    operation::{Operation, operation},
+    tests::assert_approx_eq,
 };
 
 /// Constructs an operation using dense kraus matrices, to allow an exhaustive

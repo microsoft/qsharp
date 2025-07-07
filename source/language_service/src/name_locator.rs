@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use crate::compilation::Compilation;
 use qsc::ast::visit::{
-    walk_attr, walk_expr, walk_namespace, walk_pat, walk_ty, walk_ty_def, Visitor,
+    Visitor, walk_attr, walk_expr, walk_namespace, walk_pat, walk_ty, walk_ty_def,
 };
 use qsc::ast::{FieldAccess, Idents, PathKind};
 use qsc::display::Lookup;

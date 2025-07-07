@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::common::{
-    initialize_locals_map, try_resolve_callee, FunctorAppExt, Local, LocalKind, LocalSpecId,
+    FunctorAppExt, Local, LocalKind, LocalSpecId, initialize_locals_map, try_resolve_callee,
 };
 use qsc_fir::{
     fir::{
@@ -11,7 +11,7 @@ use qsc_fir::{
         PatKind, SpecDecl, Stmt, StmtId, StmtKind,
     },
     ty::FunctorSetValue,
-    visit::{walk_expr, Visitor},
+    visit::{Visitor, walk_expr},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::hash_map::Entry;

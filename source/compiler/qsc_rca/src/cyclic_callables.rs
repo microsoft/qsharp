@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::{
-    common::LocalSpecId, cycle_detection::CycleDetector,
-    scaffolding::InternalPackageStoreComputeProperties, ApplicationGeneratorSet,
-    ArrayParamApplication, ComputeKind, ParamApplication, RuntimeFeatureFlags, ValueKind,
+    ApplicationGeneratorSet, ArrayParamApplication, ComputeKind, ParamApplication,
+    RuntimeFeatureFlags, ValueKind, common::LocalSpecId, cycle_detection::CycleDetector,
+    scaffolding::InternalPackageStoreComputeProperties,
 };
 use qsc_fir::{
     extensions::InputParam,

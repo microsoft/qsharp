@@ -9,8 +9,8 @@ use qsc_hir::{
         Block, CallableDecl, Expr, ExprKind, Ident, NodeId, Pat, QubitInit, Res, SpecDecl, Stmt,
     },
     mut_visit::{
-        walk_block, walk_callable_decl, walk_expr, walk_ident, walk_pat, walk_qubit_init,
-        walk_spec_decl, walk_stmt, MutVisitor,
+        MutVisitor, walk_block, walk_callable_decl, walk_expr, walk_ident, walk_pat,
+        walk_qubit_init, walk_spec_decl, walk_stmt,
     },
 };
 use rustc_hash::FxHashMap;

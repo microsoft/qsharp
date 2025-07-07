@@ -3,7 +3,7 @@
 
 #![allow(clippy::unicode_not_nfc)]
 
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use indoc::indoc;
 
 fn check(input: &str, expect: &Expect) {

@@ -371,8 +371,8 @@ fn non_classical_entry_point_with_classical_early_return_within_non_classical_br
 }
 
 #[test]
-fn non_classical_entry_point_with_non_classical_early_return_within_non_classical_branch_yields_error(
-) {
+fn non_classical_entry_point_with_non_classical_early_return_within_non_classical_branch_yields_error()
+ {
     let error = get_partial_evaluation_error(indoc! {r#"
         namespace Test {
             @EntryPoint()

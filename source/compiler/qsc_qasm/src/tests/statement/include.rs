@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{
-    tests::{compile_all_with_config, qsharp_from_qasm_compilation},
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
+    tests::{compile_all_with_config, qsharp_from_qasm_compilation},
 };
 use expect_test::expect;
 use miette::Report;

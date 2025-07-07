@@ -9,9 +9,9 @@ use rustc_hash::FxHashMap;
 use std::fmt::Write;
 
 use crate::{
+    Circuit, Operation,
     circuit::{Ket, Measurement, Unitary},
     json_to_circuit::json_to_circuits,
-    Circuit, Operation,
 };
 
 pub fn circuits_to_qsharp(file_name: &str, circuits_json: &str) -> Result<String, String> {

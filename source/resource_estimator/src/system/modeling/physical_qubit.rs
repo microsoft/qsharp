@@ -11,7 +11,7 @@ use super::super::{
     },
     serialization::{f64_nan, time},
 };
-use serde::{de::Error, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::Error};
 
 /// Physical qubit classification.
 ///

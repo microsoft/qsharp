@@ -383,8 +383,8 @@ fn test_check_unreachable_callable_panics_on_unreachable_callable_with_nested_ca
 }
 
 #[test]
-fn test_check_unreachable_callable_succeeds_on_no_unreachable_callables_with_call_in_successor_block(
-) {
+fn test_check_unreachable_callable_succeeds_on_no_unreachable_callables_with_call_in_successor_block()
+ {
     let mut program = Program::new();
     program.entry = CallableId(0);
     program.callables.insert(

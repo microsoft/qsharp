@@ -8,12 +8,12 @@ use qsc_hir::{
     assigner::Assigner,
     global::Table,
     hir::{BinOp, Block, Expr, ExprKind, Lit, Mutability, Pat, PrimField, Stmt, StmtKind, UnOp},
-    mut_visit::{walk_expr, MutVisitor},
+    mut_visit::{MutVisitor, walk_expr},
     ty::{GenericArg, Prim, Ty},
 };
 
-use crate::common::{create_gen_core_ref, gen_ident, IdentTemplate};
 use crate::CORE_NAMESPACE;
+use crate::common::{IdentTemplate, create_gen_core_ref, gen_ident};
 
 #[cfg(test)]
 mod tests;
@@ -353,7 +353,9 @@ impl MutVisitor for LoopUni<'_> {
                     }
                     a => {
                         // This scenario should have been caught by type-checking earlier
-                        panic!("The type of the iterable must be either array or range, but it is an {a:?}")
+                        panic!(
+                            "The type of the iterable must be either array or range, but it is an {a:?}"
+                        )
                     }
                 }
             }

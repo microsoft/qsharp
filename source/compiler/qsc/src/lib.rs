@@ -15,7 +15,7 @@ pub use qsc_formatter::formatter;
 pub use qsc_frontend::compile::{CompileUnit, PackageStore, SourceContents, SourceMap, SourceName};
 
 pub mod resolve {
-    pub use qsc_frontend::resolve::{path_as_field_accessor, Local, LocalKind, Locals, Res};
+    pub use qsc_frontend::resolve::{Local, LocalKind, Locals, Res, path_as_field_accessor};
 }
 
 pub mod fir {
@@ -42,7 +42,7 @@ pub use qsc_data_structures::{
     target::TargetCapabilityFlags,
 };
 
-pub use qsc_passes::{lower_hir_to_fir, PackageType, PassContext};
+pub use qsc_passes::{PackageType, PassContext, lower_hir_to_fir};
 
 pub mod line_column {
     pub use qsc_data_structures::line_column::{Encoding, Position, Range};
@@ -59,7 +59,7 @@ pub use qsc_eval::{
 
 pub mod linter {
     pub use qsc_linter::{
-        run_lints, GroupConfig, LintConfig, LintKind, LintLevel, LintOrGroupConfig,
+        GroupConfig, LintConfig, LintKind, LintLevel, LintOrGroupConfig, run_lints,
     };
 }
 
@@ -67,8 +67,8 @@ pub use qsc_doc_gen::{display, generate_docs};
 
 pub mod circuit {
     pub use qsc_circuit::{
-        circuit_to_qsharp::circuits_to_qsharp, json_to_circuit::json_to_circuits, operations::*,
-        Circuit, CircuitGroup, Operation, CURRENT_VERSION,
+        CURRENT_VERSION, Circuit, CircuitGroup, Operation, circuit_to_qsharp::circuits_to_qsharp,
+        json_to_circuit::json_to_circuits, operations::*,
     };
 }
 

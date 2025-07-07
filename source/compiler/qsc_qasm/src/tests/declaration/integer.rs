@@ -259,8 +259,8 @@ fn const_explicit_bitness_int_decl() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn implicit_bitness_int_negative_float_decl_creates_truncation_call(
-) -> miette::Result<(), Vec<Report>> {
+fn implicit_bitness_int_negative_float_decl_creates_truncation_call()
+-> miette::Result<(), Vec<Report>> {
     let source = "
         int x = -42.;
     ";

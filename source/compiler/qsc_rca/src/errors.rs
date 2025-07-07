@@ -138,25 +138,33 @@ pub enum Error {
     CallToCyclicFunctionWithDynamicArg(#[label] Span),
 
     #[error("cannot define a cyclic operation specialization")]
-    #[diagnostic(help("operation specializations that contain call cycles are not supported by the configured target profile"))]
+    #[diagnostic(help(
+        "operation specializations that contain call cycles are not supported by the configured target profile"
+    ))]
     #[diagnostic(url("https://aka.ms/qdk.qir#cyclic-operation-definition"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.CyclicOperationSpec"))]
     CyclicOperationSpec(#[label] Span),
 
     #[error("cannot call a cyclic operation")]
-    #[diagnostic(help("calling an operation specialization that contains call cycles is not supported by the configured target profile"))]
+    #[diagnostic(help(
+        "calling an operation specialization that contains call cycles is not supported by the configured target profile"
+    ))]
     #[diagnostic(url("https://aka.ms/qdk.qir#call-to-cyclic-operation"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.CallToCyclicOperation"))]
     CallToCyclicOperation(#[label] Span),
 
     #[error("cannot call a function or operation whose resolution is dynamic")]
-    #[diagnostic(help("calling a function or operation whose resolution depends on a measurement result is not supported by the configured target profile"))]
+    #[diagnostic(help(
+        "calling a function or operation whose resolution depends on a measurement result is not supported by the configured target profile"
+    ))]
     #[diagnostic(url("https://aka.ms/qdk.qir#call-to-dynamic-callee"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.CallToDynamicCallee"))]
     CallToDynamicCallee(#[label] Span),
 
     #[error("cannot perform a measurement within a dynamic scope")]
-    #[diagnostic(help("performing a measurement within a scope that depends on a measurement result is not supported by the configured target profile"))]
+    #[diagnostic(help(
+        "performing a measurement within a scope that depends on a measurement result is not supported by the configured target profile"
+    ))]
     #[diagnostic(url("https://aka.ms/qdk.qir#measurement-within-a-dynamic-scope"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.MeasurementWithinDynamicScope"))]
     MeasurementWithinDynamicScope(#[label] Span),
@@ -174,19 +182,25 @@ pub enum Error {
     CallToCustomReset(#[label] Span),
 
     #[error("cannot access an array using a dynamic index")]
-    #[diagnostic(help("accessing an array using an index that depends on a measurement result is not supported by the configured target profile"))]
+    #[diagnostic(help(
+        "accessing an array using an index that depends on a measurement result is not supported by the configured target profile"
+    ))]
     #[diagnostic(url("https://aka.ms/qdk.qir#use-of-dynamic-array-index"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicIndex"))]
     UseOfDynamicIndex(#[label] Span),
 
     #[error("cannot use a return within a dynamic scope")]
-    #[diagnostic(help("using a return within a scope that depends on a measurement result is not supported by the configured target profile"))]
+    #[diagnostic(help(
+        "using a return within a scope that depends on a measurement result is not supported by the configured target profile"
+    ))]
     #[diagnostic(url("https://aka.ms/qdk.qir#return-within-a-dynamic-scope"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.ReturnWithinDynamicScope"))]
     ReturnWithinDynamicScope(#[label] Span),
 
     #[error("cannot have a loop with a dynamic condition")]
-    #[diagnostic(help("using a loop with a condition that depends on a measurement result is not supported by the configured target profile"))]
+    #[diagnostic(help(
+        "using a loop with a condition that depends on a measurement result is not supported by the configured target profile"
+    ))]
     #[diagnostic(url("https://aka.ms/qdk.qir#loop-with-dynamic-condition"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.LoopWithDynamicCondition"))]
     LoopWithDynamicCondition(#[label] Span),

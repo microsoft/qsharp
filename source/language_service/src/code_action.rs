@@ -3,10 +3,10 @@
 
 use miette::Diagnostic;
 use qsc::{
+    Span,
     compile::ErrorKind,
     error::WithSource,
     line_column::{Encoding, Range},
-    Span,
 };
 
 use crate::{

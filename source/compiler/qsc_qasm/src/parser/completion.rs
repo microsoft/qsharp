@@ -10,7 +10,7 @@ pub mod word_kinds;
 use collector::ValidWordCollector;
 use word_kinds::WordKinds;
 
-use super::{prgm, ParserContext};
+use super::{ParserContext, prgm};
 
 /// Returns the words that would be valid syntax at a particular offset
 /// in the given source file (using the source file parser).

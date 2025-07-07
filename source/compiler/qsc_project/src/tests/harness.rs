@@ -8,8 +8,8 @@ use std::{
 
 use expect_test::Expect;
 use qsc_project::{
-    key_for_package_ref, package_ref_from_key, Error, FileSystem, Manifest, PackageRef, Project,
-    ProjectType, StdFs,
+    Error, FileSystem, Manifest, PackageRef, Project, ProjectType, StdFs, key_for_package_ref,
+    package_ref_from_key,
 };
 use rustc_hash::FxHashMap;
 

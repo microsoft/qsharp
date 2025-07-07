@@ -3,11 +3,10 @@
 
 use qsc::{
     ast::{
-        self,
-        visit::{self, Visitor},
-        Attr, Block, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr, Ident,
+        self, Attr, Block, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr, Ident,
         Idents, Item, ItemKind, Namespace, NodeId, Package, Pat, Path, QubitInit, SpecDecl, Stmt,
         StructDecl, Ty, TyDef, TyKind,
+        visit::{self, Visitor},
     },
     parse::completion::PathKind,
 };

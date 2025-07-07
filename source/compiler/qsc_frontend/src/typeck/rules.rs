@@ -5,9 +5,8 @@
 //! These rules use the inferrer to know what types to apply constraints to.
 
 use super::{
-    convert,
+    Error, Table, convert,
     infer::{ArgTy, Class, Inferrer, TySource},
-    Error, Table,
 };
 use crate::resolve::{self, Names, Res};
 use qsc_ast::ast::{

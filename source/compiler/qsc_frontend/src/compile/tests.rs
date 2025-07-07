@@ -5,7 +5,7 @@ mod multiple_packages;
 
 use std::{rc::Rc, sync::Arc};
 
-use super::{compile, longest_common_prefix, CompileUnit, Error, PackageStore, SourceMap};
+use super::{CompileUnit, Error, PackageStore, SourceMap, compile, longest_common_prefix};
 use crate::compile::TargetCapabilityFlags;
 
 use expect_test::expect;

@@ -12,8 +12,8 @@ use super::ast::{
 };
 use super::symbols::SymbolId;
 use super::types::compute_slice_components;
-use crate::semantic::types::binary_op_is_supported_for_types;
 use crate::semantic::Lowerer;
+use crate::semantic::types::binary_op_is_supported_for_types;
 use crate::stdlib::angle;
 use crate::{convert::safe_i64_to_f64, semantic::types::Type};
 use miette::Diagnostic;

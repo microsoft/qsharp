@@ -11,7 +11,7 @@ use crate::estimates::LogicalPatch;
 use crate::system::modeling::surface_code_gate_based;
 
 use super::super::super::modeling::{PhysicalQubit, Protocol};
-use super::super::super::{constants::FLOAT_COMPARISON_EPSILON, Result};
+use super::super::super::{Result, constants::FLOAT_COMPARISON_EPSILON};
 
 #[test]
 fn test_ppf() {

@@ -7,7 +7,7 @@ use qsc_ast::{
         Attr, ExprKind, Idents, ItemKind, Namespace, Package, PathKind, Stmt, StmtKind,
         TopLevelNode, UnOp,
     },
-    mut_visit::{walk_stmt, MutVisitor},
+    mut_visit::{MutVisitor, walk_stmt},
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::hir;

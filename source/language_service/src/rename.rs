@@ -12,7 +12,7 @@ use qsc::ast::visit::Visitor;
 use qsc::display::Lookup;
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::location::Location;
-use qsc::{ast, hir, resolve, Span};
+use qsc::{Span, ast, hir, resolve};
 
 pub(crate) fn prepare_rename(
     compilation: &Compilation,

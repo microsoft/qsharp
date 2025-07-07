@@ -3,7 +3,7 @@
 
 use super::{Lexer, Token, TokenKind};
 use crate::lex::Delim;
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use qsc_data_structures::span::Span;
 
 fn check(input: &str, expect: &Expect) {

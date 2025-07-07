@@ -90,7 +90,9 @@ pub trait ErrorCorrection {
             }
         }
 
-        Err(format!("No code parameter achieves required logical error rate {required_logical_error_rate:.3e}"))
+        Err(format!(
+            "No code parameter achieves required logical error rate {required_logical_error_rate:.3e}"
+        ))
     }
 
     /// Computes the code parameter assignment that requires the fewest number

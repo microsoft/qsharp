@@ -3,21 +3,21 @@
 
 use log::trace;
 use qsc::{
-    ast, compile,
+    CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span, ast,
+    compile,
     display::Lookup,
     error::WithSource,
     hir::{self, PackageId},
     incremental::Compiler,
     line_column::{Encoding, Position, Range},
-    packages::{prepare_package_store, BuildableProgram},
+    packages::{BuildableProgram, prepare_package_store},
     project,
     qasm::{
-        compiler::compile_to_qsharp_ast_with_config, CompileRawQasmResult, CompilerConfig,
-        OutputSemantics, ProgramType, QubitSemantics,
+        CompileRawQasmResult, CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
+        compiler::compile_to_qsharp_ast_with_config,
     },
     resolve,
     target::Profile,
-    CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
 use qsc_linter::{LintLevel, LintOrGroupConfig};
 use qsc_project::{PackageGraphSources, Project, ProjectType};

@@ -2,12 +2,12 @@
 // Licensed under the MIT License.
 
 use pyo3::{
-    types::{PyAnyMethods, PyDict},
     Bound, PyAny, PyResult,
+    types::{PyAnyMethods, PyDict},
 };
 use resource_estimator::estimates::ErrorCorrection;
 
-use super::utils::{extract_and_check_method, maybe_extract_and_check_method, SerializableBound};
+use super::utils::{SerializableBound, extract_and_check_method, maybe_extract_and_check_method};
 
 /// A wrapper around a Python instance to compute quantum error correction
 /// properties in generic resource estimation.

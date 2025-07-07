@@ -6,8 +6,8 @@ pub(crate) mod hir;
 
 use self::{ast::run_ast_lints, hir::run_hir_lints};
 use crate::{
-    lints::{ast::AstLint, hir::HirLint},
     GroupConfig,
+    lints::{ast::AstLint, hir::HirLint},
 };
 use miette::{Diagnostic, LabeledSpan};
 use qsc_data_structures::span::Span;

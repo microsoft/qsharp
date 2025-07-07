@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{
-    manifest::{GitHubRef, PackageType},
     Manifest, PackageRef,
+    manifest::{GitHubRef, PackageType},
 };
 use async_trait::async_trait;
 use futures::FutureExt;
@@ -145,7 +145,9 @@ pub enum Error {
     GitHub(String),
 
     #[error("File {relative_path} is not listed in the `files` field of the manifest")]
-    #[diagnostic(help("To avoid unexpected behavior, add this file to the `files` field in the `qsharp.json` manifest"))]
+    #[diagnostic(help(
+        "To avoid unexpected behavior, add this file to the `files` field in the `qsharp.json` manifest"
+    ))]
     #[diagnostic(code("Qsc.Project.DocumentNotInProject"))]
     DocumentNotInProject { path: String, relative_path: String },
 }

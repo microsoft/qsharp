@@ -1,19 +1,19 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{text_edits::TextEditRange, Completion};
+use super::{Completion, text_edits::TextEditRange};
 use crate::{
     compilation::Compilation,
     protocol::{CompletionItemKind, TextEdit},
 };
 use qsc::{
+    PRELUDE,
     ast::{
-        visit::{walk_block, walk_callable_decl, walk_item, walk_namespace, Visitor},
         Idents as _, Package as AstPackage, PathKind,
+        visit::{Visitor, walk_block, walk_callable_decl, walk_item, walk_namespace},
     },
     display::CodeDisplay,
-    hir::{ty::Udt, CallableDecl, Idents, ItemKind, Package, PackageId, Visibility},
-    PRELUDE,
+    hir::{CallableDecl, Idents, ItemKind, Package, PackageId, Visibility, ty::Udt},
 };
 use std::{iter::once, rc::Rc};
 

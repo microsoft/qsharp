@@ -6,8 +6,8 @@ use miette::Report;
 
 use crate::tests::{compile_fragments, fail_on_compilation_errors};
 use crate::{
-    tests::{compile_qasm_stmt_to_qsharp, compile_qasm_stmt_to_qsharp_with_semantics},
     QubitSemantics,
+    tests::{compile_qasm_stmt_to_qsharp, compile_qasm_stmt_to_qsharp_with_semantics},
 };
 
 #[test]

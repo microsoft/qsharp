@@ -287,8 +287,8 @@ fn const_lit_decl_signed_int_lit_cast_neg() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn init_float_with_int_value_less_than_safely_representable_values_is_runtime_conversion(
-) -> miette::Result<(), Vec<Report>> {
+fn init_float_with_int_value_less_than_safely_representable_values_is_runtime_conversion()
+-> miette::Result<(), Vec<Report>> {
     let min_exact_int = -(2i64.pow(f64::MANTISSA_DIGITS));
     let next = min_exact_int - 1;
     let source = format!("float a = {next};");

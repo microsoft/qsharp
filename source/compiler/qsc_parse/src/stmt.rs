@@ -5,18 +5,18 @@
 mod tests;
 
 use super::{
+    Error, Result,
     expr::{self, expr, expr_stmt},
     item,
     keyword::Keyword,
     prim::{ident, many, opt, pat, seq, token},
     scan::ParserContext,
-    Error, Result,
 };
 use crate::{
+    ErrorKind,
     completion::WordKinds,
     lex::{Delim, TokenKind},
     prim::{barrier, recovering, recovering_parse_or_else, recovering_semi, recovering_token},
-    ErrorKind,
 };
 use qsc_ast::ast::{
     Block, Expr, ExprKind, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt,

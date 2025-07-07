@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::indexed_type_builder;
 use super::ArrayDimensions;
 use super::Type;
+use super::indexed_type_builder;
 use crate::semantic::ast::Expr;
 use crate::semantic::ast::ExprKind;
 use crate::semantic::ast::Index;

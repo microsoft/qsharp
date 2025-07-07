@@ -3,12 +3,12 @@
 
 use super::get_code_lenses;
 use crate::{
+    Encoding,
     test_utils::{
         compile_notebook_with_fake_stdlib, compile_with_fake_stdlib_and_markers_no_cursor,
     },
-    Encoding,
 };
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 
 fn check(source_with_markers: &str, expect: &Expect) {
     let (compilation, expected_code_lens_ranges) =

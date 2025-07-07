@@ -2,11 +2,11 @@
 // Licensed under the MIT License.
 
 use crate::{
+    Lint, LintLevel, LintOrGroupConfig,
     lint_groups::LintGroup,
     linter::{remove_duplicates, run_lints_without_deduplication},
-    Lint, LintLevel, LintOrGroupConfig,
 };
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use indoc::indoc;
 use qsc_data_structures::{
     language_features::LanguageFeatures, span::Span, target::TargetCapabilityFlags,

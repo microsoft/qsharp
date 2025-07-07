@@ -2,13 +2,13 @@
 // Licensed under the MIT License.
 
 use super::{
-    get_matrix_latex, get_state_latex, write_latex_for_algebraic_number,
+    AlgebraicNumber, CartesianForm, ComplexNumber, DecimalNumber, PolarForm, RationalNumber,
+    RealNumber, Term, get_matrix_latex, get_state_latex, write_latex_for_algebraic_number,
     write_latex_for_cartesian_form, write_latex_for_complex_number, write_latex_for_decimal_number,
-    write_latex_for_polar_form, write_latex_for_real_number, write_latex_for_term, AlgebraicNumber,
-    CartesianForm, ComplexNumber, DecimalNumber, PolarForm, RationalNumber, RealNumber, Term,
+    write_latex_for_polar_form, write_latex_for_real_number, write_latex_for_term,
 };
 use crate::state::{is_fractional_part_significant, is_significant};
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use num_complex::Complex64;
 use std::{
     f64::consts::{FRAC_1_SQRT_2, PI},

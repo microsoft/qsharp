@@ -36,7 +36,9 @@ pub enum Error {
     AdjGen(adj_gen::Error),
 
     #[error("variable cannot be assigned in apply-block since it is used in within-block")]
-    #[diagnostic(help("updating mutable variables in the apply-block that are used in the within-block can violate logic reversibility"))]
+    #[diagnostic(help(
+        "updating mutable variables in the apply-block that are used in the within-block can violate logic reversibility"
+    ))]
     #[diagnostic(code("Qsc.ConjugateInvert.ApplyAssign"))]
     ApplyAssign(#[label] Span),
 

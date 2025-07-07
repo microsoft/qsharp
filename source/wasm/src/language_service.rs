@@ -9,8 +9,8 @@ use crate::{
     test_discovery::TestDescriptor,
 };
 use qsc::{
-    self, line_column::Encoding, linter::LintOrGroupConfig, target::Profile, LanguageFeatures,
-    PackageType,
+    self, LanguageFeatures, PackageType, line_column::Encoding, linter::LintOrGroupConfig,
+    target::Profile,
 };
 use qsc_project::Manifest;
 use qsls::protocol::{DiagnosticUpdate, TestCallable, TestCallables};

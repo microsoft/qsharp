@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use qsc::location::Location;
 
 use super::get_definition;
 use crate::{
-    test_utils::{compile_notebook_with_markers, compile_with_markers},
     Encoding,
+    test_utils::{compile_notebook_with_markers, compile_with_markers},
 };
 
 /// Asserts that the definition given at the cursor position matches the expected range.

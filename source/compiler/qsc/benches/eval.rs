@@ -3,9 +3,9 @@
 
 allocator::assign_global!();
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use indoc::indoc;
-use qsc::{interpret::Interpreter, PackageType, TargetCapabilityFlags};
+use qsc::{PackageType, TargetCapabilityFlags, interpret::Interpreter};
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_eval::output::GenericReceiver;
 use qsc_frontend::compile::SourceMap;

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::*;
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 
 fn check(contents: &str, expect: &Expect) {
     let actual = match serde_json::from_str::<Circuit>(contents) {

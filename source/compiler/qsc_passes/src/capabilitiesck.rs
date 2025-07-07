@@ -30,9 +30,9 @@ use qsc_fir::{
 
 use qsc_lowerer::map_hir_package_to_fir;
 use qsc_rca::{
-    errors::{generate_errors_from_runtime_features, get_missing_runtime_features, Error},
     Analyzer, ComputeKind, ItemComputeProperties, PackageComputeProperties,
     PackageStoreComputeProperties, RuntimeFeatureFlags,
+    errors::{Error, generate_errors_from_runtime_features, get_missing_runtime_features},
 };
 use rustc_hash::FxHashMap;
 

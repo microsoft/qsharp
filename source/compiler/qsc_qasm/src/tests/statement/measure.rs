@@ -45,8 +45,8 @@ fn single_qubit_can_be_arrow_measured_into_single_bit() -> miette::Result<(), Ve
 }
 
 #[test]
-fn indexed_single_qubit_can_be_measured_into_indexed_bit_register(
-) -> miette::Result<(), Vec<Report>> {
+fn indexed_single_qubit_can_be_measured_into_indexed_bit_register()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
         bit[1] c;
         qubit[1] q;
@@ -65,8 +65,8 @@ fn indexed_single_qubit_can_be_measured_into_indexed_bit_register(
 }
 
 #[test]
-fn range_indexed_qubit_register_can_be_measured_into_indexed_bit_register(
-) -> miette::Result<(), Vec<Report>> {
+fn range_indexed_qubit_register_can_be_measured_into_indexed_bit_register()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
         bit[5] c;
         qubit[5] q;
@@ -85,8 +85,8 @@ fn range_indexed_qubit_register_can_be_measured_into_indexed_bit_register(
 }
 
 #[test]
-fn unindexed_single_qubit_can_be_measured_into_indexed_bit_register(
-) -> miette::Result<(), Vec<Report>> {
+fn unindexed_single_qubit_can_be_measured_into_indexed_bit_register()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
         bit[1] c;
         qubit[1] q;
@@ -217,8 +217,8 @@ fn value_from_measurement_can_be_dropped() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn range_indexed_qubit_register_measure_arrow_into_indexed_bit_register(
-) -> miette::Result<(), Vec<Report>> {
+fn range_indexed_qubit_register_measure_arrow_into_indexed_bit_register()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
         bit[5] c;
         qubit[5] q;
@@ -237,8 +237,8 @@ fn range_indexed_qubit_register_measure_arrow_into_indexed_bit_register(
 }
 
 #[test]
-fn unindexed_single_qubit_with_measure_arrow_into_indexed_bit_register(
-) -> miette::Result<(), Vec<Report>> {
+fn unindexed_single_qubit_with_measure_arrow_into_indexed_bit_register()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
         bit[1] c;
         qubit[1] q;

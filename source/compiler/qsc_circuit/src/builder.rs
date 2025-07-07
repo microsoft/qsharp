@@ -5,8 +5,8 @@
 mod tests;
 
 use crate::{
-    circuit::{operation_list_to_grid, Circuit, Ket, Measurement, Operation, Register, Unitary},
     Config,
+    circuit::{Circuit, Ket, Measurement, Operation, Register, Unitary, operation_list_to_grid},
 };
 use num_bigint::BigUint;
 use num_complex::Complex;

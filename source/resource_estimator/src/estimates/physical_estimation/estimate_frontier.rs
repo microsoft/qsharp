@@ -1,8 +1,8 @@
 use std::{borrow::Cow, ops::Deref};
 
 use crate::estimates::{
-    optimization::{Point2D, Population},
     Error, ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, LogicalPatch, Overhead,
+    optimization::{Point2D, Population},
 };
 
 use super::{
@@ -20,11 +20,11 @@ pub struct EstimateFrontier<'a, E: ErrorCorrection, B: FactoryBuilder<E>, L> {
 }
 
 impl<
-        'a,
-        E: ErrorCorrection<Parameter = impl Clone>,
-        B: FactoryBuilder<E, Factory = impl Factory<Parameter = E::Parameter> + Clone>,
-        L: Overhead,
-    > EstimateFrontier<'a, E, B, L>
+    'a,
+    E: ErrorCorrection<Parameter = impl Clone>,
+    B: FactoryBuilder<E, Factory = impl Factory<Parameter = E::Parameter> + Clone>,
+    L: Overhead,
+> EstimateFrontier<'a, E, B, L>
 {
     pub fn new(
         estimator: &'a PhysicalResourceEstimation<E, B, L>,
@@ -217,10 +217,10 @@ impl<
 }
 
 impl<
-        E: ErrorCorrection<Parameter = impl Clone>,
-        B: FactoryBuilder<E, Factory = impl Factory<Parameter = E::Parameter> + Clone>,
-        L: Overhead,
-    > Deref for EstimateFrontier<'_, E, B, L>
+    E: ErrorCorrection<Parameter = impl Clone>,
+    B: FactoryBuilder<E, Factory = impl Factory<Parameter = E::Parameter> + Clone>,
+    L: Overhead,
+> Deref for EstimateFrontier<'_, E, B, L>
 {
     type Target = PhysicalResourceEstimation<E, B, L>;
 

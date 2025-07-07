@@ -23,9 +23,9 @@ use crate::estimates::{Overhead, PhysicalResourceEstimation};
 use std::rc::Rc;
 
 pub use self::modeling::{
-    floquet_code, load_protocol_from_specification, surface_code_gate_based,
-    surface_code_measurement_based, GateBasedPhysicalQubit, MajoranaQubit, PhysicalQubit, Protocol,
-    ProtocolEvaluator, ProtocolSpecification, TFactory,
+    GateBasedPhysicalQubit, MajoranaQubit, PhysicalQubit, Protocol, ProtocolEvaluator,
+    ProtocolSpecification, TFactory, floquet_code, load_protocol_from_specification,
+    surface_code_gate_based, surface_code_measurement_based,
 };
 pub use self::optimization::TFactoryBuilder;
 pub use self::{data::LogicalResourceCounts, error::Error};

@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{
-    tests::{fail_on_compilation_errors, gen_qsharp},
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
+    tests::{fail_on_compilation_errors, gen_qsharp},
 };
 use expect_test::expect;
 use miette::Report;
@@ -109,8 +109,8 @@ fn using_qasm_semantics_captures_all_classical_decls_as_output() -> miette::Resu
 }
 
 #[test]
-fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed(
-) -> miette::Result<(), Vec<Report>> {
+fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
         OPENQASM 3.0;
         include "stdgates.inc";
@@ -158,8 +158,8 @@ fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed(
 }
 
 #[test]
-fn using_qiskit_semantics_multiple_bit_arrays_are_reversed_in_order_and_reversed_in_content(
-) -> miette::Result<(), Vec<Report>> {
+fn using_qiskit_semantics_multiple_bit_arrays_are_reversed_in_order_and_reversed_in_content()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
 OPENQASM 3.0;
 include "stdgates.inc";
@@ -222,8 +222,8 @@ c2[2] = measure q[4];
 }
 
 #[test]
-fn qir_generation_using_qiskit_semantics_multiple_bit_arrays_are_reversed_in_order_and_reversed_in_content(
-) -> miette::Result<(), Vec<Report>> {
+fn qir_generation_using_qiskit_semantics_multiple_bit_arrays_are_reversed_in_order_and_reversed_in_content()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
 OPENQASM 3.0;
 include "stdgates.inc";
