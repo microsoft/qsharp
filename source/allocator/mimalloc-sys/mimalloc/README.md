@@ -1,3 +1,3 @@
 # Mimalloc
 
-The `src`/`include` folders contain the [mimalloc](https://github.com/microsoft/mimalloc) source from [`v2.1.2`](https://github.com/microsoft/mimalloc/tree/v2.1.2)(`43ce4bd7fd34bcc730c1c7471c99995597415488`).
+The `src`/`include` folders contain the [mimalloc](https://github.com/microsoft/mimalloc) source from [`v2.2.4`](https://github.com/microsoft/mimalloc/tree/v2.2.4)(`fbd8b99c2b828428947d70fdc046bb55609be93e`).
