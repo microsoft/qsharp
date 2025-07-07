@@ -258,7 +258,6 @@ async fn compile_error() {
 
 #[tokio::test]
 async fn rca_errors_are_reported_when_compilation_succeeds() {
-    use crate::tests::test_fs::{dir, file, FsNode};
     let fs = FsNode::Dir(
         [dir(
             "parent",
@@ -318,7 +317,6 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
 
 #[tokio::test]
 async fn base_profile_rca_errors_are_reported_when_compilation_succeeds() {
-    use crate::tests::test_fs::{dir, file, FsNode};
     let fs = FsNode::Dir(
         [dir(
             "parent",
@@ -417,7 +415,6 @@ async fn package_type_update_causes_error() {
 
 #[tokio::test]
 async fn target_profile_update_fixes_error() {
-    use crate::tests::test_fs::{dir, file, FsNode};
     let fs = FsNode::Dir(
         [dir(
             "parent",
@@ -499,7 +496,6 @@ async fn target_profile_update_fixes_error() {
 
 #[tokio::test]
 async fn target_profile_update_updates_test_cases() {
-    use crate::tests::test_fs::{dir, file, FsNode};
     let fs = FsNode::Dir(
         [dir(
             "parent",
@@ -600,7 +596,6 @@ async fn target_profile_update_updates_test_cases() {
 
 #[tokio::test]
 async fn target_profile_update_causes_error_in_stdlib() {
-    use crate::tests::test_fs::{dir, file, FsNode};
     let fs = FsNode::Dir(
         [dir(
             "parent",
