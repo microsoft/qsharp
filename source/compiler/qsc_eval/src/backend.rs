@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::val::Value;
+use crate::val::{self, Value};
 use crate::{noise::PauliNoise, val::unwrap_tuple};
 use ndarray::Array2;
 use num_bigint::BigUint;
@@ -850,5 +850,14 @@ where
     fn set_seed(&mut self, seed: Option<u64>) {
         self.chained.set_seed(seed);
         self.main.set_seed(seed);
+    }
+}
+
+impl<R> From<Option<R>> for val::Result
+where
+    R: Into<val::Result>,
+{
+    fn from(value: Option<R>) -> Self {
+        value.map_or(val::Result::Loss, std::convert::Into::into)
     }
 }

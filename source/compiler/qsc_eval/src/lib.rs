@@ -1800,6 +1800,11 @@ fn eval_binop_neq(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Resu
             // to prevent executing programs that do result comparisons.
             Err(Error::ResultComparisonUnsupported(rhs_span))
         }
+        (Value::Result(val::Result::Loss), _) | (_, Value::Result(val::Result::Loss)) => {
+            // Loss is not comparable and should be checked ahead of time, so treat this as a runtime
+            // failure.
+            Err(Error::ResultLossComparisonUnsupported(rhs_span))
+        }
         (lhs, rhs) => Ok(Value::Bool(lhs != rhs)),
     }
 }

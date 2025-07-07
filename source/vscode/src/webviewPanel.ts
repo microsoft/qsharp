@@ -152,7 +152,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
       if (noise[0] != 0 || noise[1] != 0 || noise[2] != 0 || qubitLoss != 0) {
         sendTelemetryEvent(EventType.NoisySimulation, { associationId }, {});
       }
-      await worker.runWithPauliNoise(
+      await worker.runWithNoise(
         program.programConfig,
         expr ?? "",
         parseInt(numberOfShots),

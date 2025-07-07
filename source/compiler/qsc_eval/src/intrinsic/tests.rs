@@ -1989,6 +1989,19 @@ fn comparison_of_loss_result_to_const_runtime_error() {
 }
 
 #[test]
+fn comparison_of_loss_result_to_const_runtime_error_neq() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Std.Diagnostics.ConfigureQubitLoss(1.0);
+            MResetZ(q) != One
+        }"},
+        &expect!["cannot compare measurement result from qubit loss"],
+    );
+}
+
+#[test]
 fn comparsion_of_loss_result_to_other_loss_result_runtime_error() {
     check_intrinsic_result(
         "",

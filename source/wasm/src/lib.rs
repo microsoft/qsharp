@@ -452,7 +452,7 @@ pub fn run(
     event_cb: &js_sys::Function,
     shots: u32,
 ) -> Result<bool, JsValue> {
-    runWithPauliNoise(
+    runWithNoise(
         program,
         expr,
         event_cb,
@@ -463,7 +463,7 @@ pub fn run(
 }
 
 #[wasm_bindgen]
-pub fn runWithPauliNoise(
+pub fn runWithNoise(
     program: ProgramConfig,
     expr: &str,
     event_cb: &js_sys::Function,
