@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::{
+    common::{initialize_locals_map, Local, LocalKind, LocalsLookup},
+    scaffolding::InternalPackageComputeProperties,
     ApplicationGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, RuntimeKind,
     ValueKind,
-    common::{Local, LocalKind, LocalsLookup, initialize_locals_map},
-    scaffolding::InternalPackageComputeProperties,
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
@@ -286,14 +286,16 @@ impl GeneratorSetsBuilder {
             let static_content_dynamic_size_application_instance = variants
                 .pop()
                 .expect("array parameter application instance could not be popped");
-            ParamApplicationComputeProperties::Array(ArrayParamApplicationComputeProperties {
-                static_content_dynamic_size: static_content_dynamic_size_application_instance
-                    .close(),
-                dynamic_content_static_size: dynamic_content_static_size_application_instance
-                    .close(),
-                dynamic_content_dynamic_size: dynamic_content_dynamic_size_application_instance
-                    .close(),
-            })
+            ParamApplicationComputeProperties::Array(Box::new(
+                ArrayParamApplicationComputeProperties {
+                    static_content_dynamic_size: static_content_dynamic_size_application_instance
+                        .close(),
+                    dynamic_content_static_size: dynamic_content_static_size_application_instance
+                        .close(),
+                    dynamic_content_dynamic_size: dynamic_content_dynamic_size_application_instance
+                        .close(),
+                },
+            ))
         } else {
             panic!("invalid number of parameter application variants");
         }
@@ -662,10 +664,9 @@ impl ApplicationInstanceComputeProperties {
     }
 }
 
-#[allow(clippy::large_enum_variant)]
 enum ParamApplicationComputeProperties {
     Element(ApplicationInstanceComputeProperties),
-    Array(ArrayParamApplicationComputeProperties),
+    Array(Box<ArrayParamApplicationComputeProperties>),
 }
 
 impl ParamApplicationComputeProperties {

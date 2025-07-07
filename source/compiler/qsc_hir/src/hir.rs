@@ -5,7 +5,7 @@
 
 #![warn(missing_docs)]
 use crate::ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, Scheme, Ty, TypeParameter, Udt};
-use indenter::{Indented, indented};
+use indenter::{indented, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
@@ -380,11 +380,10 @@ impl Display for Item {
 }
 
 /// An item kind.
-#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum ItemKind {
     /// A `function` or `operation` declaration.
-    Callable(CallableDecl),
+    Callable(Box<CallableDecl>),
     /// A `namespace` declaration.
     Namespace(Idents, Vec<LocalItemId>),
     /// A `newtype` declaration.
@@ -1114,11 +1113,10 @@ impl Display for FieldAssign {
 }
 
 /// A string component.
-#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum StringComponent {
     /// An expression.
-    Expr(Expr),
+    Expr(Box<Expr>),
     /// A string literal.
     Lit(Rc<str>),
 }

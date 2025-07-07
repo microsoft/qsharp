@@ -308,7 +308,7 @@ impl With<'_> {
                         Into::<Error>::into(Into::<convert::TyConversionError>::into(err))
                     }));
                     self.lowerer.parent = grandparent;
-                    (id, hir::ItemKind::Callable(callable))
+                    (id, hir::ItemKind::Callable(callable.into()))
                 }
                 ast::ItemKind::Ty(name, _) => {
                     let (id, _) = resolve_id(name.id)?;
@@ -931,7 +931,7 @@ impl With<'_> {
             doc: "".into(),
             attrs: Vec::new(),
             visibility: hir::Visibility::Internal,
-            kind: hir::ItemKind::Callable(callable),
+            kind: hir::ItemKind::Callable(callable.into()),
         });
 
         hir::ExprKind::Closure(args, id)
@@ -953,7 +953,9 @@ impl With<'_> {
 
     fn lower_string_component(&mut self, component: &ast::StringComponent) -> hir::StringComponent {
         match component {
-            ast::StringComponent::Expr(expr) => hir::StringComponent::Expr(self.lower_expr(expr)),
+            ast::StringComponent::Expr(expr) => {
+                hir::StringComponent::Expr(self.lower_expr(expr).into())
+            }
             ast::StringComponent::Lit(str) => hir::StringComponent::Lit(Rc::clone(str)),
         }
     }
