@@ -71,7 +71,9 @@ pub(super) enum Error {
         name: String,
     },
     #[error("class constraint is recursive via {name}")]
-    #[help("if a type refers to itself via its constraints, it is self-referential and cannot ever be resolved")]
+    #[help(
+        "if a type refers to itself via its constraints, it is self-referential and cannot ever be resolved"
+    )]
     #[diagnostic(code("Qsc.LowerAst.RecursiveClassConstraint"))]
     RecursiveClassConstraint {
         #[label]
@@ -616,7 +618,7 @@ impl With<'_> {
             id: self.lower_id(decl.id),
             span: decl.span,
             body: match &decl.body {
-                ast::SpecBody::Gen(gen) => hir::SpecBody::Gen(match gen {
+                ast::SpecBody::Gen(spec_gen) => hir::SpecBody::Gen(match spec_gen {
                     ast::SpecGen::Auto => hir::SpecGen::Auto,
                     ast::SpecGen::Distribute => hir::SpecGen::Distribute,
                     ast::SpecGen::Intrinsic => hir::SpecGen::Intrinsic,

@@ -244,7 +244,7 @@ pub fn walk_ty(vis: &mut impl MutVisitor, ty: &mut Ty) {
             for bound in &mut bounds.0 {
                 vis.visit_ident(&mut bound.name);
                 bound.parameters.iter_mut().for_each(
-                    |crate::ast::ConstraintParameter { ref mut ty, .. }| {
+                    |crate::ast::ConstraintParameter { ty, .. }| {
                         vis.visit_ty(ty);
                     },
                 );

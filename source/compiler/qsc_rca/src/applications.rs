@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::{
-    common::{initialize_locals_map, Local, LocalKind, LocalsLookup},
-    scaffolding::InternalPackageComputeProperties,
     ApplicationGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, RuntimeKind,
     ValueKind,
+    common::{Local, LocalKind, LocalsLookup, initialize_locals_map},
+    scaffolding::InternalPackageComputeProperties,
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
@@ -156,7 +156,8 @@ impl GeneratorSetsBuilder {
 
         // If a main block was provided, create an applications generator that represents the specialization based on
         // the applications generator of the main block.
-        let close_output = main_block.map(|main_block_id| {
+
+        main_block.map(|main_block_id| {
             let mut applications_generator = package_compute_properties
                 .blocks
                 .get(main_block_id)
@@ -188,9 +189,7 @@ impl GeneratorSetsBuilder {
 
             // Return the applications gene with the updated dynamism sources.
             applications_generator
-        });
-
-        close_output
+        })
     }
 
     fn aggregate_param_application_value_kind(

@@ -5,7 +5,7 @@
 
 #![warn(missing_docs)]
 use crate::ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, Scheme, Ty, TypeParameter, Udt};
-use indenter::{indented, Indented};
+use indenter::{Indented, indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
@@ -294,7 +294,7 @@ impl Package {
         let callables = items_with_test_attribute
             .filter(|(_, item)| matches!(item.kind, ItemKind::Callable(_)));
 
-        let callable_names = callables
+        callables
             .filter_map(|(_, item)| -> Option<_> {
                 if let ItemKind::Callable(callable) = &item.kind {
                     if !callable.generics.is_empty()
@@ -326,9 +326,7 @@ impl Package {
                     None
                 }
             })
-            .collect::<Vec<_>>();
-
-        callable_names
+            .collect::<Vec<_>>()
     }
 }
 

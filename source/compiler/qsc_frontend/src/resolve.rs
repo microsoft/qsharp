@@ -10,7 +10,7 @@ use qsc_ast::{
         self, CallableBody, CallableDecl, ClassConstraints, Ident, Idents, NodeId, PathKind,
         SpecBody, SpecGen, TopLevelNode, TypeParameter,
     },
-    visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
+    visit::{self as ast_visit, Visitor as AstVisitor, walk_attr},
 };
 
 use qsc_ast::ast::{ImportOrExportDecl, ImportOrExportItem, Item, ItemKind, Package};
@@ -184,9 +184,7 @@ pub(super) enum Error {
         #[label]
         span: Span,
     },
-    #[error(
-        "this namespace overwrites (clobbers) an existing external namespace of the same name"
-    )]
+    #[error("this namespace overwrites (clobbers) an existing external namespace of the same name")]
     ClobberedNamespace {
         namespace_name: String,
         #[label]
@@ -930,7 +928,7 @@ impl Resolver {
             // problem without upleveling the preprocessor into the resolver, so it can do resolution-aware
             // dropped_names population.
             .filter(|item| {
-                if let (Some(ref current_namespace_name), PathKind::Ok(path)) =
+                if let (Some(current_namespace_name), PathKind::Ok(path)) =
                     (&current_namespace_name, &item.path)
                 {
                     let item_as_tracked_name = path_as_tracked_name(path, current_namespace_name);
@@ -2164,7 +2162,7 @@ fn check_scoped_resolutions(
     match explicit_open_candidates.len() {
         1 => {
             return Some(Ok(single(explicit_open_candidates.into_keys())
-                .expect("we asserted on the length, so this is infallible")))
+                .expect("we asserted on the length, so this is infallible")));
         }
         len if len > 1 => {
             return Some(Err(ambiguous_symbol_error(
@@ -2174,7 +2172,7 @@ fn check_scoped_resolutions(
                     .into_iter()
                     .map(|(a, b)| (a, b.clone()))
                     .collect(),
-            )))
+            )));
         }
         _ => (),
     }

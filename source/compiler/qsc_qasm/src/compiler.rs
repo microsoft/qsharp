@@ -12,6 +12,8 @@ use qsc_data_structures::span::Span;
 use qsc_frontend::{compile::SourceMap, error::WithSource};
 
 use crate::{
+    CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QasmCompileUnit,
+    QubitSemantics,
     ast_builder::{
         build_adj_plus_ctl_functor, build_angle_cast_call_by_name,
         build_angle_convert_call_with_two_params, build_arg_pat, build_array_reverse_expr,
@@ -37,19 +39,17 @@ use crate::{
         wrap_expr_in_parens,
     },
     io::SourceResolver,
-    parser::ast::{list_from_iter, List},
+    parser::ast::{List, list_from_iter},
     semantic::{
+        QasmSemanticParseResult,
         ast::{
             Array, BinaryOpExpr, Cast, Expr, GateOperand, GateOperandKind, Index, IndexedExpr,
             LiteralKind, MeasureExpr, Set, TimeUnit, UnaryOpExpr,
         },
         symbols::{IOKind, Symbol, SymbolId, SymbolTable},
-        types::{promote_types, Type},
-        QasmSemanticParseResult,
+        types::{Type, promote_types},
     },
     stdlib::complex::Complex,
-    CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QasmCompileUnit,
-    QubitSemantics,
 };
 
 use crate::semantic::ast as semast;
@@ -317,7 +317,7 @@ impl QasmCompiler {
         stmts: &mut Vec<qsast::Stmt>,
         is_qiskit: bool,
     ) -> crate::types::Type {
-        let output_ty = if matches!(output_semantics, OutputSemantics::ResourceEstimation) {
+        if matches!(output_semantics, OutputSemantics::ResourceEstimation) {
             // we have no output, but need to set the entry point return type
             crate::types::Type::Tuple(vec![])
         } else if let Some(output) = output {
@@ -397,8 +397,7 @@ impl QasmCompiler {
                 self.push_compiler_error(kind);
             }
             crate::types::Type::Tuple(vec![])
-        };
-        output_ty
+        }
     }
 
     /// Appends the runtime imports to the compiled statements.

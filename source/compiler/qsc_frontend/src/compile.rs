@@ -554,7 +554,7 @@ fn resolve_all(
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
-    for (ref id, alias) in dependencies {
+    for (id, alias) in dependencies {
         let unit = store
             .get(*id)
             .expect("dependency should be in package store before compilation");

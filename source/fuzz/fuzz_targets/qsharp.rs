@@ -7,7 +7,7 @@ allocator::assign_global!();
 
 #[cfg(feature = "do_fuzz")]
 use libfuzzer_sys::fuzz_target;
-use qsc::{hir::PackageId, target::Profile, LanguageFeatures, PackageStore, SourceMap};
+use qsc::{LanguageFeatures, PackageStore, SourceMap, hir::PackageId, target::Profile};
 
 fn compile(data: &[u8]) {
     if let Ok(fuzzed_code) = std::str::from_utf8(data) {
@@ -38,7 +38,7 @@ fuzz_target!(|data: &[u8]| {
 });
 
 #[cfg(not(feature = "do_fuzz"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn main() {
     compile(&[]);
 }

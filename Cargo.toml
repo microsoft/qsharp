@@ -35,7 +35,7 @@ resolver = "2"
 authors = ["Microsoft"]
 homepage = "https://github.com/microsoft/qsharp"
 repository = "https://github.com/microsoft/qsharp"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 version = "0.0.0"
 

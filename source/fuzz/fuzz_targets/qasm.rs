@@ -9,14 +9,14 @@ allocator::assign_global!();
 use libfuzzer_sys::fuzz_target;
 
 use qsc::{
+    PackageStore, PackageType,
     compile::{compile_ast, package_store_with_stdlib},
     hir::PackageId,
     qasm::{
-        compiler::parse_and_compile_to_qsharp_ast_with_config, io::InMemorySourceResolver,
         CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
+        compiler::parse_and_compile_to_qsharp_ast_with_config, io::InMemorySourceResolver,
     },
     target::Profile,
-    PackageStore, PackageType,
 };
 
 fn compile(data: &[u8]) {
@@ -64,7 +64,7 @@ fuzz_target!(|data: &[u8]| {
 });
 
 #[cfg(not(feature = "do_fuzz"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn main() {
     compile(&[]);
 }
