@@ -171,7 +171,9 @@ pub enum Error {
 
     #[error("cannot compare measurement result from qubit loss")]
     #[diagnostic(code("Qsc.Eval.ResultLossComparisonUnsupported"))]
-    #[diagnostic(help("use of a measurement result from a qubit that was lost is not supported, use `CheckLoss` to check for loss instead"))]
+    #[diagnostic(help(
+        "use of a measurement result from a qubit that was lost is not supported, use `CheckLoss` to check for loss instead"
+    ))]
     ResultLossComparisonUnsupported(#[label("cannot compare result from qubit loss")] PackageSpan),
 
     #[error("name is not bound")]
