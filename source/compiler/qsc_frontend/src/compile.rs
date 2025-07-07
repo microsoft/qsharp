@@ -554,7 +554,7 @@ fn resolve_all(
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
-    for (ref id, alias) in dependencies {
+    for (id, alias) in dependencies {
         let unit = store
             .get(*id)
             .expect("dependency should be in package store before compilation");
@@ -650,7 +650,7 @@ pub fn longest_common_prefix<'a>(strs: &'a [&'a str]) -> &'a str {
         return "";
     };
 
-    for (i, character) in common_prefix_so_far.chars().enumerate() {
+    for (i, character) in common_prefix_so_far.char_indices() {
         for string in strs {
             if string.chars().nth(i) != Some(character) {
                 let prefix = &common_prefix_so_far[0..i];

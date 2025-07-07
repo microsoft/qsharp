@@ -6,8 +6,8 @@ mod tests;
 
 use num_bigint::BigUint;
 use num_complex::Complex;
-use qsc::{interpret::Value, Backend};
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use qsc::{Backend, interpret::Value};
+use rand::{Rng, SeedableRng, rngs::StdRng};
 use rustc_hash::FxHashMap;
 use std::{array, cell::RefCell, f64::consts::PI, fmt::Debug, iter::Sum};
 
@@ -356,7 +356,8 @@ impl LogicalCounter {
         } else {
             if r_depth < (r_count as f64 / qubits.len() as f64).ceil() as usize {
                 return Err(format!(
-                    "Rotation depth {r_depth} is too small for rotation count {r_count} and {} qubits.", qubits.len()
+                    "Rotation depth {r_depth} is too small for rotation count {r_count} and {} qubits.",
+                    qubits.len()
                 ));
             }
 

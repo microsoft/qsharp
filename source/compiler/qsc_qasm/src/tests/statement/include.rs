@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{
-    tests::{compile_all_with_config, qsharp_from_qasm_compilation},
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
+    tests::{compile_all_with_config, qsharp_from_qasm_compilation},
 };
 use expect_test::expect;
 use miette::Report;
@@ -50,7 +50,7 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
                 mutable c = [Zero];
                 let q = QIR.Runtime.AllocateQubitArray(1);
                 my_gate(q[0]);
-                set c w/= 0 <- Std.Intrinsic.M(q[0]);
+                set c[0] = Std.Intrinsic.M(q[0]);
                 Std.Arrays.Reversed(c)
             }
         }"#]]

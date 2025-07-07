@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::compile::preprocess::RemoveCircuitSpans;
-use crate::compile::{parse_all, SourceMap};
+use crate::compile::{SourceMap, parse_all};
 use qsc_ast::ast::{
     Attr, CallableBody, CallableDecl, Expr, ExprKind, Ident, NodeId, Path, PathKind,
 };
@@ -12,7 +12,7 @@ use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
 use std::sync::Arc;
 
-use crate::compile::{preprocess::matches_config, TargetCapabilityFlags};
+use crate::compile::{TargetCapabilityFlags, preprocess::matches_config};
 
 fn named_attr(name: &str) -> Attr {
     Attr {

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::tests::{compile_qasm_to_qsharp, compile_qasm_to_qsharp_file};
+use crate::tests::{check_qasm_to_qsharp, compile_qasm_to_qsharp, compile_qasm_to_qsharp_file};
 
 use expect_test::expect;
 use miette::Report;
@@ -66,4 +66,67 @@ fn bit_array_left_shift() -> miette::Result<(), Vec<Report>> {
     "#]]
     .assert_eq(&qsharp);
     Ok(())
+}
+
+#[test]
+fn endianness() {
+    let source = r#"
+    int[32] myInt = 15; // 0xF or 0b1111
+    bit[1] lastBit = myInt[0]; // 1
+    bit[1] signBit = myInt[31]; // 0
+    bit[1] alsoSignBit = myInt[-1]; // 0
+
+    bit[16] evenBits = myInt[0:2:31]; // 3
+    bit[16] upperBits = myInt[-16:-1];
+    bit[16] upperReversed = myInt[-1:-1:-16];
+
+    myInt[4:7] = "1010"; // myInt == 0xAF
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            mutable myInt = 15;
+            mutable lastBit = Std.OpenQASM.Convert.ResultAsResultArrayBE(Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[0], 1);
+            mutable signBit = Std.OpenQASM.Convert.ResultAsResultArrayBE(Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[31], 1);
+            mutable alsoSignBit = Std.OpenQASM.Convert.ResultAsResultArrayBE(Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[-1], 1);
+            mutable evenBits = Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[0..2..31];
+            mutable upperBits = Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[-16..-1];
+            mutable upperReversed = Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[-1..-1..-16];
+            set myInt = {
+                mutable bitarray = Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32);
+                set bitarray[4..7] = [One, Zero, One, Zero];
+                Std.OpenQASM.Convert.ResultArrayAsIntBE(bitarray)
+            };
+        "#]],
+    );
+}
+
+#[test]
+fn endianness_const() {
+    let source = r#"
+    const int[32] myInt = 15; // 0xF or 0b1111
+    const bit[1] lastBit = myInt[0]; // 1
+    const bit[1] signBit = myInt[31]; // 0
+    const bit[1] alsoSignBit = myInt[-1]; // 0
+
+    const bit[16] evenBits = myInt[0:2:31]; // 3
+    const bit[16] upperBits = myInt[-16:-1];
+    const bit[16] upperReversed = myInt[-1:-1:-16];
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            let myInt = 15;
+            let lastBit = [One];
+            let signBit = [Zero];
+            let alsoSignBit = [Zero];
+            let evenBits = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, One, One];
+            let upperBits = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
+            let upperReversed = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
+        "#]],
+    );
 }

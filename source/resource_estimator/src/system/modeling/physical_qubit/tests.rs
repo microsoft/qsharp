@@ -5,13 +5,13 @@ use std::rc::Rc;
 
 use crate::{
     estimates::LogicalPatch,
-    system::{constants::FLOAT_COMPARISON_EPSILON, modeling::surface_code_gate_based, Result},
+    system::{Result, constants::FLOAT_COMPARISON_EPSILON, modeling::surface_code_gate_based},
 };
 
 use super::super::super::constants::{
     IDLE_ERROR_RATE, INSTRUCTION_SET, ONE_QUBIT_GATE_ERROR_RATE, ONE_QUBIT_GATE_TIME,
     ONE_QUBIT_MEASUREMENT_ERROR_RATE, ONE_QUBIT_MEASUREMENT_TIME, PROCESS, READOUT,
-    TWO_QUBIT_JOINT_MEASUREMENT_ERROR_RATE, T_GATE_ERROR_RATE,
+    T_GATE_ERROR_RATE, TWO_QUBIT_JOINT_MEASUREMENT_ERROR_RATE,
 };
 use serde_json::json;
 

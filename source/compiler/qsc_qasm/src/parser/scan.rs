@@ -7,8 +7,8 @@ use crate::{
 };
 use qsc_data_structures::span::Span;
 
-use super::error::ErrorKind;
 use super::Error;
+use super::error::ErrorKind;
 
 #[derive(Debug)]
 pub(super) struct NoBarrierError;

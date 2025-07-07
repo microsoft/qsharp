@@ -12,7 +12,7 @@ use crate::{
 use qsc::{
     circuit::qubit_param_info,
     compile::ErrorKind,
-    hir::{ty::Ty, CallableKind, ItemKind},
+    hir::{CallableKind, ItemKind, ty::Ty},
     line_column::Encoding,
 };
 

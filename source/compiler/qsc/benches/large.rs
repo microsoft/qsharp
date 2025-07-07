@@ -3,10 +3,10 @@
 
 allocator::assign_global!();
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use qsc::{
-    compile::{self, compile},
     TargetCapabilityFlags,
+    compile::{self, compile},
 };
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::compile::{PackageStore, SourceMap};

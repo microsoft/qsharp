@@ -11,8 +11,8 @@ use crate::system::modeling::{
 };
 use crate::{
     estimates::{
-        optimization::{Point, Point2D, Point4D, Population},
         Factory, FactoryBuildError, FactoryBuilder, LogicalPatch,
+        optimization::{Point, Point2D, Point4D, Population},
     },
     system::modeling::default_t_factory,
 };

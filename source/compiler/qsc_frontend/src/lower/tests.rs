@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::compile::{self, compile, PackageStore, SourceMap};
-use expect_test::{expect, Expect};
+use crate::compile::{self, PackageStore, SourceMap, compile};
+use expect_test::{Expect, expect};
 use indoc::indoc;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 

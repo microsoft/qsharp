@@ -6,7 +6,7 @@ use crate::{
     parser::ast::StmtKind,
     parser::{scan::ParserContext, stmt, tests::check},
 };
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 
 /// This function checks two things:
 ///   1. That the input `Expr` is parsed correctly.

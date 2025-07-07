@@ -6,7 +6,7 @@ use crate::{
     qsc_utils::into_range,
 };
 use qsc::{
-    ast::visit::{walk_namespace, Visitor},
+    ast::visit::{Visitor, walk_namespace},
     line_column::{Encoding, Range},
 };
 

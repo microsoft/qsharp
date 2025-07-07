@@ -5,7 +5,7 @@
 
 #![warn(missing_docs)]
 
-use indenter::{indented, Format, Indented};
+use indenter::{Format, Indented, indented};
 use num_bigint::BigInt;
 use qsc_data_structures::span::{Span, WithSpan};
 use std::{
@@ -1722,11 +1722,7 @@ pub enum Result {
 
 impl From<bool> for Result {
     fn from(b: bool) -> Self {
-        if b {
-            Result::One
-        } else {
-            Result::Zero
-        }
+        if b { Result::One } else { Result::Zero }
     }
 }
 
@@ -1949,8 +1945,8 @@ impl Display for ImportOrExportItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let ImportOrExportItem {
             span: _,
-            ref path,
-            ref alias,
+            path,
+            alias,
             is_glob,
         } = self;
         let is_glob = if *is_glob { ".*" } else { "" };

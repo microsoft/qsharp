@@ -71,7 +71,9 @@ pub(super) enum Error {
         name: String,
     },
     #[error("class constraint is recursive via {name}")]
-    #[help("if a type refers to itself via its constraints, it is self-referential and cannot ever be resolved")]
+    #[help(
+        "if a type refers to itself via its constraints, it is self-referential and cannot ever be resolved"
+    )]
     #[diagnostic(code("Qsc.LowerAst.RecursiveClassConstraint"))]
     RecursiveClassConstraint {
         #[label]
@@ -306,7 +308,7 @@ impl With<'_> {
                         Into::<Error>::into(Into::<convert::TyConversionError>::into(err))
                     }));
                     self.lowerer.parent = grandparent;
-                    (id, hir::ItemKind::Callable(callable))
+                    (id, hir::ItemKind::Callable(callable.into()))
                 }
                 ast::ItemKind::Ty(name, _) => {
                     let (id, _) = resolve_id(name.id)?;
@@ -616,7 +618,7 @@ impl With<'_> {
             id: self.lower_id(decl.id),
             span: decl.span,
             body: match &decl.body {
-                ast::SpecBody::Gen(gen) => hir::SpecBody::Gen(match gen {
+                ast::SpecBody::Gen(spec_gen) => hir::SpecBody::Gen(match spec_gen {
                     ast::SpecGen::Auto => hir::SpecGen::Auto,
                     ast::SpecGen::Distribute => hir::SpecGen::Distribute,
                     ast::SpecGen::Intrinsic => hir::SpecGen::Intrinsic,
@@ -929,7 +931,7 @@ impl With<'_> {
             doc: "".into(),
             attrs: Vec::new(),
             visibility: hir::Visibility::Internal,
-            kind: hir::ItemKind::Callable(callable),
+            kind: hir::ItemKind::Callable(callable.into()),
         });
 
         hir::ExprKind::Closure(args, id)
@@ -951,7 +953,9 @@ impl With<'_> {
 
     fn lower_string_component(&mut self, component: &ast::StringComponent) -> hir::StringComponent {
         match component {
-            ast::StringComponent::Expr(expr) => hir::StringComponent::Expr(self.lower_expr(expr)),
+            ast::StringComponent::Expr(expr) => {
+                hir::StringComponent::Expr(self.lower_expr(expr).into())
+            }
             ast::StringComponent::Lit(str) => hir::StringComponent::Lit(Rc::clone(str)),
         }
     }

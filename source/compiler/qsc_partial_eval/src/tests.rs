@@ -17,13 +17,13 @@ mod qubits;
 mod results;
 mod returns;
 
-use crate::{partially_evaluate, Error, ProgramEntry};
+use crate::{Error, ProgramEntry, partially_evaluate};
 use expect_test::Expect;
-use qsc::{incremental::Compiler, PackageType};
+use qsc::{PackageType, incremental::Compiler};
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_fir::fir::PackageStore;
 use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap};
-use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
+use qsc_lowerer::{Lowerer, map_hir_package_to_fir};
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
 use qsc_rir::{
     passes::check_and_transform,

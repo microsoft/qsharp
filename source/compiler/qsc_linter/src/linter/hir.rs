@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{
-    lints::hir::{CombinedHirLints, HirLint},
     Lint, LintLevel,
+    lints::hir::{CombinedHirLints, HirLint},
 };
 use qsc_hir::{
     hir::{Block, CallableDecl, Expr, Ident, Item, Package, Pat, QubitInit, SpecDecl, Stmt},

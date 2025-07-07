@@ -7,14 +7,14 @@ mod utils;
 mod tests;
 
 use crate::{
+    Error, Rc,
     backend::Backend,
     error::PackageSpan,
     output::Receiver,
-    val::{self, unwrap_tuple, Value},
-    Error, Rc,
+    val::{self, Value, unwrap_tuple},
 };
 use num_bigint::BigInt;
-use rand::{rngs::StdRng, Rng};
+use rand::{Rng, rngs::StdRng};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::convert::TryFrom;
 

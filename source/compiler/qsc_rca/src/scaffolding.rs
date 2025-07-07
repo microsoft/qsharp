@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::{
-    common::GlobalSpecId, ApplicationGeneratorSet, CallableComputeProperties,
-    ComputePropertiesLookup, ItemComputeProperties, PackageComputeProperties,
-    PackageStoreComputeProperties,
+    ApplicationGeneratorSet, CallableComputeProperties, ComputePropertiesLookup,
+    ItemComputeProperties, PackageComputeProperties, PackageStoreComputeProperties,
+    common::GlobalSpecId,
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{

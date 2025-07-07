@@ -4,12 +4,12 @@
 use std::iter::once;
 
 use crate::{
-    completion::{collect_path_segments, AstContext, Fields, Globals},
-    protocol::{CompletionItemKind, CompletionList},
     Compilation,
+    completion::{AstContext, Fields, Globals, collect_path_segments},
+    protocol::{CompletionItemKind, CompletionList},
 };
 
-use super::{into_completion_list, Completion, Locals};
+use super::{Completion, Locals, into_completion_list};
 
 pub(super) fn completions(
     compilation: &Compilation,

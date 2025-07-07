@@ -1,16 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{get_completions, CompletionItem};
+use super::{CompletionItem, get_completions};
 use crate::{
+    Encoding,
     protocol::CompletionList,
     test_utils::{
         compile_notebook_with_markers, compile_project_with_markers,
         compile_with_dependency_with_markers, compile_with_markers,
     },
-    Encoding,
 };
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use indoc::indoc;
 
 mod class_completions;

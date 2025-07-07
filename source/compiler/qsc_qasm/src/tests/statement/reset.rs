@@ -2,11 +2,11 @@
 // Licensed under the MIT License.
 
 use crate::{
+    CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
     tests::{
         check_qasm_to_qsharp, compile_qasm_to_qsharp, compile_with_config,
         fail_on_compilation_errors, gen_qsharp,
     },
-    CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
 };
 use expect_test::expect;
 use miette::Report;
@@ -45,7 +45,7 @@ fn reset_calls_are_generated_from_qasm() -> miette::Result<(), Vec<Report>> {
                 let q = QIR.Runtime.AllocateQubitArray(1);
                 Reset(q[0]);
                 h(q[0]);
-                set meas w/= 0 <- Std.Intrinsic.M(q[0]);
+                set meas[0] = Std.Intrinsic.M(q[0]);
                 Std.Arrays.Reversed(meas)
             }
         }"#]]

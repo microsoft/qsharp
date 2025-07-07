@@ -6,7 +6,7 @@ use crate::{
     noise::PauliNoise,
     state::{fmt_complex, format_state_id},
 };
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use num_bigint::BigUint;
 use num_complex::Complex;
 use std::fmt::Write;
@@ -130,7 +130,7 @@ fn noisy_measurement() {
     let mut true_count = 0;
     for _ in 0..1000 {
         let q = sim.qubit_allocate(); // Allocation is noiseless even with noise.
-                                      // sim.m sometimes applies X before measuring
+        // sim.m sometimes applies X before measuring
         if sim
             .m(q)
             .expect("measurement without loss should return a result")

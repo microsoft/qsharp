@@ -2,14 +2,14 @@
 // Licensed under the MIT License.
 
 use crate::{
-    applications::{ApplicationInstance, GeneratorSetsBuilder, LocalComputeKind},
-    common::{
-        try_resolve_callee, AssignmentStmtCounter, Callee, FunctorAppExt, GlobalSpecId, Local,
-        LocalKind, TyExt,
-    },
-    scaffolding::{InternalItemComputeProperties, InternalPackageStoreComputeProperties},
     ApplicationGeneratorSet, ArrayParamApplication, ComputeKind, ComputePropertiesLookup,
     ParamApplication, QuantumProperties, RuntimeFeatureFlags, RuntimeKind, ValueKind,
+    applications::{ApplicationInstance, GeneratorSetsBuilder, LocalComputeKind},
+    common::{
+        AssignmentStmtCounter, Callee, FunctorAppExt, GlobalSpecId, Local, LocalKind, TyExt,
+        try_resolve_callee,
+    },
+    scaffolding::{InternalItemComputeProperties, InternalPackageStoreComputeProperties},
 };
 use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap};
 use qsc_fir::{
@@ -22,7 +22,7 @@ use qsc_fir::{
         StringComponent,
     },
     ty::{Arrow, FunctorSetValue, Prim, Ty},
-    visit::{walk_stmt, Visitor},
+    visit::{Visitor, walk_stmt},
 };
 
 pub struct Analyzer<'a> {
@@ -79,7 +79,9 @@ impl<'a> Analyzer<'a> {
         // elements is dynamic, and the runtime value of its size is always static.
         if has_dynamic_content {
             let ComputeKind::Quantum(quantum_properties) = &mut compute_kind else {
-                panic!("the compute kind of an array expression cannot have dynamic content and be classical");
+                panic!(
+                    "the compute kind of an array expression cannot have dynamic content and be classical"
+                );
             };
 
             quantum_properties.value_kind =
@@ -201,7 +203,9 @@ impl<'a> Analyzer<'a> {
         // take this into account.
         if replacement_value_compute_kind.is_dynamic() {
             let ComputeKind::Quantum(quantum_properties) = &mut updated_compute_kind else {
-                panic!("the compute kind of the update must be quantum if the replacement value is dynamic");
+                panic!(
+                    "the compute kind of the update must be quantum if the replacement value is dynamic"
+                );
             };
 
             let ValueKind::Array(content_runtime_value, _) = &mut quantum_properties.value_kind
@@ -1492,10 +1496,11 @@ impl<'a> Analyzer<'a> {
     }
 
     fn set_current_spec_context(&mut self, decl: &'a SpecDecl, functor_set_value: FunctorSetValue) {
-        assert!(self
-            .get_current_item_context()
-            .current_spec_context
-            .is_none());
+        assert!(
+            self.get_current_item_context()
+                .current_spec_context
+                .is_none()
+        );
         let package_id = self.get_current_package_id();
         let pats = &self.package_store.get(package_id).pats;
         let input_params = self.get_current_item_context().get_input_params();

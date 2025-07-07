@@ -10,16 +10,17 @@ mod tests;
 use std::rc::Rc;
 
 use super::{
+    Error, Result,
     expr::expr,
     keyword::Keyword,
     prim::{ident, many, opt, pat, seq, token},
     scan::ParserContext,
     stmt,
     ty::{self, recovering_ty, ty},
-    Error, Result,
 };
 
 use crate::{
+    ErrorKind,
     completion::WordKinds,
     lex::{ClosedBinOp, Delim, TokenKind},
     prim::{
@@ -28,7 +29,6 @@ use crate::{
     },
     stmt::check_semis,
     ty::array_or_arrow,
-    ErrorKind,
 };
 use qsc_ast::ast::{
     Attr, Block, CallableBody, CallableDecl, CallableKind, FieldDef, FunctorExpr, Ident, Idents,
@@ -239,7 +239,7 @@ fn source_name_to_namespace_name(raw: &str, span: Span) -> Result<Box<[Ident]>> 
                 return Err(Error::new(ErrorKind::InvalidFileName(
                     span,
                     raw.to_string(),
-                )))
+                )));
             }
         }
     }
@@ -614,9 +614,9 @@ fn parse_spec_decl(s: &mut ParserContext) -> Result<Box<SpecDecl>> {
         )));
     };
 
-    let body = if let Some(gen) = opt(s, parse_spec_gen)? {
+    let body = if let Some(spec_gen) = opt(s, parse_spec_gen)? {
         token(s, TokenKind::Semi)?;
-        SpecBody::Gen(gen)
+        SpecBody::Gen(spec_gen)
     } else {
         SpecBody::Impl(pat(s)?, stmt::parse_block(s)?)
     };
@@ -680,7 +680,7 @@ fn parse_import_or_export(s: &mut ParserContext) -> Result<ImportOrExportDecl> {
                 "import or export",
                 s.peek().kind,
                 s.peek().span,
-            )))
+            )));
         }
     };
     s.advance();

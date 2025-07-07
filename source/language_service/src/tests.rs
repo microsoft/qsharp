@@ -2,13 +2,13 @@
 // Licensed under the MIT License.
 
 use crate::{
-    protocol::{DiagnosticUpdate, ErrorKind, TestCallables},
     Encoding, LanguageService, UpdateWorker,
+    protocol::{DiagnosticUpdate, ErrorKind, TestCallables},
 };
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use qsc::{compile, line_column::Position, project};
 use std::{cell::RefCell, rc::Rc};
-use test_fs::{dir, file, FsNode, TestProjectHost};
+use test_fs::{FsNode, TestProjectHost, dir, file};
 
 pub(crate) mod test_fs;
 
@@ -186,8 +186,8 @@ async fn completions_requested_before_document_load() {
     // a document hasn't fully loaded
 
     // this should be empty, because the doc hasn't loaded
-    assert!(ls
-        .get_completions(
+    assert!(
+        ls.get_completions(
             "foo.qs",
             Position {
                 line: 0,
@@ -195,7 +195,8 @@ async fn completions_requested_before_document_load() {
             }
         )
         .items
-        .is_empty());
+        .is_empty()
+    );
 }
 
 #[tokio::test]
@@ -216,8 +217,8 @@ async fn completions_requested_after_document_load() {
 
     worker.apply_pending().await;
 
-    assert!(&ls
-        .get_completions(
+    assert!(
+        &ls.get_completions(
             "foo.qs",
             Position {
                 line: 0,
@@ -226,7 +227,8 @@ async fn completions_requested_after_document_load() {
         )
         .items
         .iter()
-        .any(|item| item.label == "DumpMachine"));
+        .any(|item| item.label == "DumpMachine")
+    );
 }
 
 fn check_errors_and_compilation(
@@ -274,7 +276,7 @@ fn create_update_worker<'a>(
     received_errors: &'a RefCell<Vec<ErrorInfo>>,
     received_test_cases: &'a RefCell<Vec<TestCallables>>,
 ) -> UpdateWorker<'a> {
-    let worker = ls.create_update_worker(
+    ls.create_update_worker(
         |update: DiagnosticUpdate| {
             let project_errors = update.errors.iter().filter_map(|error| match error {
                 ErrorKind::Project(error) => Some(error.clone()),
@@ -301,8 +303,7 @@ fn create_update_worker<'a>(
         TestProjectHost {
             fs: TEST_FS.with(Clone::clone),
         },
-    );
-    worker
+    )
 }
 
 thread_local! { static TEST_FS: Rc<RefCell<FsNode>> = Rc::new(RefCell::new(test_fs())) }

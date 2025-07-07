@@ -37,7 +37,7 @@ fn indexed_bit_can_implicitly_convert_to_int() -> miette::Result<(), Vec<Report>
         import Std.OpenQASM.Intrinsic.*;
         mutable x = [Zero, Zero, Zero, Zero, Zero];
         if Std.OpenQASM.Convert.ResultAsInt(x[0]) == 1 {
-            set x w/= 1 <- One;
+            set x[1] = One;
         };
     "#]]
     .assert_eq(&qsharp);
@@ -58,7 +58,7 @@ fn indexed_bit_can_implicitly_convert_to_bool() -> miette::Result<(), Vec<Report
         import Std.OpenQASM.Intrinsic.*;
         mutable x = [Zero, Zero, Zero, Zero, Zero];
         if Std.OpenQASM.Convert.ResultAsBool(x[0]) {
-            set x w/= 1 <- One;
+            set x[1] = One;
         };
     "#]]
     .assert_eq(&qsharp);
@@ -201,5 +201,164 @@ fn indexed_ident_with_omitted_stop() {
         mutable a = [0, 0, 0, 0, 0];
         a[2...];
     "#]],
+    );
+}
+
+#[test]
+fn indexed_uint() {
+    let source = r#"
+        uint[4] a = 0b1111;
+        a[1];
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = 15;
+            Std.OpenQASM.Convert.IntAsResultArrayBE(a, 4)[1];
+        "#]],
+    );
+}
+
+#[test]
+fn indexed_const_uint() {
+    let source = r#"
+        const uint[4] a = 0b1111;
+        const bit b = a[1];
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        let a = 15;
+        let b = One;
+    "#]],
+    );
+}
+
+#[test]
+fn indexed_uint_with_step() {
+    let source = r#"
+        uint[4] a = 0b1111;
+        a[0:2:];
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        mutable a = 15;
+        Std.OpenQASM.Convert.IntAsResultArrayBE(a, 4)[0..2...];
+    "#]],
+    );
+}
+
+#[test]
+fn indexed_const_uint_with_step() {
+    let source = r#"
+        const uint[4] a = 0b1011;
+        const bit[2] b = a[0:2:];
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            let a = 11;
+            let b = [Zero, One];
+        "#]],
+    );
+}
+
+#[test]
+fn indexed_angle() {
+    let source = r#"
+        angle[4] a = pi;
+        a[1];
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI(), 4);
+            Std.OpenQASM.Angle.AngleAsResultArrayBE(a)[1];
+        "#]],
+    );
+}
+
+#[test]
+fn indexed_const_angle() {
+    let source = r#"
+        const angle[4] a = pi;
+        const bit b = a[1];
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            let a = new Std.OpenQASM.Angle.Angle {
+                Value = 4503599627370496,
+                Size = 53
+            };
+            let b = Zero;
+        "#]],
+    );
+}
+
+#[test]
+fn indexed_angle_with_step() {
+    let source = r#"
+        angle[4] a = pi;
+        a[0:2:];
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI(), 4);
+            Std.OpenQASM.Angle.AngleAsResultArrayBE(a)[0..2...];
+        "#]],
+    );
+}
+
+#[test]
+fn indexed_const_angle_with_step() {
+    let source = r#"
+        const angle[4] a = pi;
+        const bit[2] b = a[0:2:];
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            let a = new Std.OpenQASM.Angle.Angle {
+                Value = 4503599627370496,
+                Size = 53
+            };
+            let b = [Zero, Zero];
+        "#]],
+    );
+}
+
+#[test]
+fn index_into_array_and_then_into_int() {
+    let source = r#"
+        array[int[4], 3] a = {1, 2, 3};
+        bit b = a[1][1];
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = [1, 2, 3];
+            mutable b = Std.OpenQASM.Convert.IntAsResultArrayBE(a[1], 4)[1];
+        "#]],
     );
 }

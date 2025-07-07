@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    estimates::{optimization::Point2D, Factory},
+    estimates::{Factory, optimization::Point2D},
     system::{constants::MAX_DISTILLATION_ROUNDS, modeling::TFactory},
 };
 
@@ -10,8 +10,8 @@ use super::{
     super::super::{
         data,
         modeling::{
-            floquet_code, surface_code_gate_based, PhysicalQubit, Protocol,
-            TFactoryDistillationUnitTemplate,
+            PhysicalQubit, Protocol, TFactoryDistillationUnitTemplate, floquet_code,
+            surface_code_gate_based,
         },
     },
     find_nondominated_population, find_nondominated_tfactories,

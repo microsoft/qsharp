@@ -8,10 +8,10 @@
 
 use crate::{
     semantic::{
+        Lowerer,
         ast::{Expr, ExprKind, LiteralKind},
         const_eval::ConstEvalError,
-        types::{can_cast_literal, can_cast_literal_with_value_knowledge, Type},
-        Lowerer,
+        types::{Type, can_cast_literal, can_cast_literal_with_value_knowledge},
     },
     stdlib::complex::Complex,
 };

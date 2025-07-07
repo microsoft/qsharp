@@ -14,8 +14,8 @@ mod qubit;
 mod unsigned_integer;
 
 use crate::{
-    tests::{compile_fragments, compile_with_config, fail_on_compilation_errors},
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
+    tests::{compile_fragments, compile_with_config, fail_on_compilation_errors},
 };
 use miette::Report;
 use qsc::target::Profile;
@@ -72,11 +72,13 @@ fn duration_literal() -> miette::Result<(), Vec<Report>> {
     }
     assert_eq!(unit.errors.len(), 10);
     for error in &unit.errors {
-        assert!([
-            "duration type values are not supported",
-            "timing literals are not supported",
-        ]
-        .contains(&error.to_string().as_str()));
+        assert!(
+            [
+                "duration type values are not supported",
+                "timing literals are not supported",
+            ]
+            .contains(&error.to_string().as_str())
+        );
     }
 
     Ok(())
@@ -101,12 +103,16 @@ fn stretch() {
         println!("{error}");
     }
     assert!(unit.errors.len() == 2);
-    assert!(unit.errors[0]
-        .to_string()
-        .contains("stretch type values are not supported"),);
-    assert!(unit.errors[1]
-        .to_string()
-        .contains("stretch default values are not supported"),);
+    assert!(
+        unit.errors[0]
+            .to_string()
+            .contains("stretch type values are not supported"),
+    );
+    assert!(
+        unit.errors[1]
+            .to_string()
+            .contains("stretch default values are not supported"),
+    );
 }
 
 #[test]

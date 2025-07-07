@@ -8,7 +8,7 @@ use crate::{
     resolve::{self, Resolver},
     typeck::Checker,
 };
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use indoc::indoc;
 use qsc_ast::{
     assigner::Assigner as AstAssigner,

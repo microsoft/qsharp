@@ -4,12 +4,12 @@
 #[cfg(test)]
 mod tests;
 
-use super::{keyword::Keyword, scan::ParserContext, ty::recovering_ty, Error, Parser, Result};
+use super::{Error, Parser, Result, keyword::Keyword, scan::ParserContext, ty::recovering_ty};
 use crate::{
+    ErrorKind,
     completion::WordKinds,
     item::throw_away_doc,
     lex::{Delim, TokenKind},
-    ErrorKind,
 };
 use qsc_ast::ast::{Ident, IncompletePath, NodeId, Pat, PatKind, Path, PathKind};
 use qsc_data_structures::span::{Span, WithSpan};

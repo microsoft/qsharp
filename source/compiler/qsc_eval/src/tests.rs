@@ -2,20 +2,21 @@
 // Licensed under the MIT License.
 
 use crate::{
+    Env, Error, State, StepAction, StepResult, Value,
     backend::{Backend, SparseSim},
     debug::Frame,
     exec_graph_section,
     output::{GenericReceiver, Receiver},
-    val, Env, Error, State, StepAction, StepResult, Value,
+    val,
 };
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use indoc::indoc;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_fir::fir::{self, ExecGraph, StmtId};
 use qsc_fir::fir::{PackageId, PackageStoreLookup};
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, PackageStore, SourceMap, compile};
 use qsc_lowerer::map_hir_package_to_fir;
-use qsc_passes::{run_core_passes, run_default_passes, PackageType};
+use qsc_passes::{PackageType, run_core_passes, run_default_passes};
 
 /// Evaluates the given control flow graph with the given context.
 /// Creates a new environment and simulator.

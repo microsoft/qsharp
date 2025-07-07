@@ -4,20 +4,20 @@
 use std::{borrow::Cow, marker::PhantomData};
 
 use pyo3::{
+    Bound, PyAny, PyResult,
     exceptions::PyLookupError,
     types::{PyAnyMethods, PyDict, PyList},
-    Bound, PyAny, PyResult,
 };
 use resource_estimator::estimates::{
     Factory, FactoryBuilder, PhysicalQubitCalculation, RoundBasedFactory,
 };
-use round_based::{ordered_bfs, OrderedBFSControl};
+use round_based::{OrderedBFSControl, ordered_bfs};
 use serde::Serialize;
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 
 use super::{
     code::PythonQEC,
-    utils::{python_dict_to_json_map, SerializableBound},
+    utils::{SerializableBound, python_dict_to_json_map},
 };
 
 mod dispatch;

@@ -45,8 +45,8 @@ fn const_int_idents_without_width_can_be_multiplied() -> miette::Result<(), Vec<
 }
 
 #[test]
-fn const_int_idents_widthless_lhs_can_be_multiplied_by_explicit_width_int(
-) -> miette::Result<(), Vec<Report>> {
+fn const_int_idents_widthless_lhs_can_be_multiplied_by_explicit_width_int()
+-> miette::Result<(), Vec<Report>> {
     let source = "
         const int[32] x = 5;
         const int y = 3;

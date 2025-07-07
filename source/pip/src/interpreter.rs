@@ -16,26 +16,24 @@ use miette::{Diagnostic, Report};
 use num_bigint::{BigInt, BigUint};
 use num_complex::Complex64;
 use pyo3::{
-    create_exception,
+    IntoPyObjectExt, create_exception,
     exceptions::{PyException, PyValueError},
     prelude::*,
     types::{PyDict, PyList, PyString, PyTuple, PyType},
-    IntoPyObjectExt,
 };
 use qsc::{
+    LanguageFeatures, PackageType, SourceMap,
     error::WithSource,
     fir::{self},
     hir::ty::{Prim, Ty},
     interpret::{
-        self,
+        self, CircuitEntryPoint, PauliNoise, Value,
         output::{Error, Receiver},
-        CircuitEntryPoint, PauliNoise, Value,
     },
     packages::BuildableProgram,
     project::{FileSystem, PackageCache, PackageGraphSources, ProjectType},
-    qasm::{compiler::compile_to_qsharp_ast_with_config, CompilerConfig, QubitSemantics},
+    qasm::{CompilerConfig, QubitSemantics, compiler::compile_to_qsharp_ast_with_config},
     target::Profile,
-    LanguageFeatures, PackageType, SourceMap,
 };
 
 use resource_estimator::{self as re, estimate_call, estimate_expr};
@@ -709,7 +707,7 @@ impl Interpreter {
             _ => {
                 return Err(PyException::new_err(
                     "either entry_expr or operation must be specified",
-                ))
+                ));
             }
         };
 
@@ -999,17 +997,17 @@ pub(crate) struct StateDumpData(pub(crate) DisplayableState);
 #[pymethods]
 impl StateDumpData {
     fn get_dict<'a>(&self, py: Python<'a>) -> PyResult<Bound<'a, PyDict>> {
-        let dict = rustc_hash::FxHashMap::from_iter(self.0 .0.clone());
+        let dict = rustc_hash::FxHashMap::from_iter(self.0.0.clone());
         dict.into_pyobject(py)
     }
 
     #[getter]
     fn get_qubit_count(&self) -> usize {
-        self.0 .1
+        self.0.1
     }
 
     fn __len__(&self) -> usize {
-        self.0 .0.len()
+        self.0.0.len()
     }
 
     fn __repr__(&self) -> String {

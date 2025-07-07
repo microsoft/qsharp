@@ -122,7 +122,10 @@ pub(super) fn ty_from_path(names: &Names, path: &Path) -> Ty {
             to a local or a parameter, as there is syntactic differentiation."
         ),
         Some(resolve::Res::ExportedItem(item_id, alias)) => {
-            unreachable!("Exported items should have been resolved to their original definition in type checking. Found {:?} with alias {:?}", item_id, alias);
+            unreachable!(
+                "Exported items should have been resolved to their original definition in type checking. Found {:?} with alias {:?}",
+                item_id, alias
+            );
         }
         None => Ty::Err,
     }

@@ -13,7 +13,7 @@ use super::{
     PhysicalResourceCountsBreakdown, Report,
 };
 use miette::Diagnostic;
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::{Serialize, Serializer, ser::SerializeMap};
 
 #[derive(Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]

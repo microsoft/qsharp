@@ -4,7 +4,7 @@
 use crate::{diagnostic::project_errors_into_qsharp_errors, serializable_type};
 use async_trait::async_trait;
 use miette::Report;
-use qsc::{linter::LintOrGroupConfig, packages::BuildableProgram, LanguageFeatures};
+use qsc::{LanguageFeatures, linter::LintOrGroupConfig, packages::BuildableProgram};
 use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, JSProjectHost, PackageCache};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -136,7 +136,9 @@ impl JSProjectHost for ProjectHost {
                     },
                 })
                 .collect::<Vec<_>>(),
-                Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
+            Err(e) => unreachable!(
+                "controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"
+            ),
         }
     }
 

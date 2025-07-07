@@ -1371,7 +1371,10 @@ mod given_interpreter {
         #[test]
         fn run_with_shots() {
             let mut interpreter = get_interpreter();
-            let (result, output) = line(&mut interpreter, "operation Foo(qs : Qubit[]) : Unit { Microsoft.Quantum.Diagnostics.DumpMachine(); }");
+            let (result, output) = line(
+                &mut interpreter,
+                "operation Foo(qs : Qubit[]) : Unit { Microsoft.Quantum.Diagnostics.DumpMachine(); }",
+            );
             is_only_value(&result, &output, &Value::unit());
             for _ in 0..4 {
                 let (results, output) = run(&mut interpreter, "{use qs = Qubit[2]; Foo(qs)}");

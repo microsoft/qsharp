@@ -3,10 +3,10 @@
 
 #![allow(clippy::too_many_lines)]
 
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use indoc::indoc;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, PackageStore, SourceMap, compile};
 use qsc_hir::{mut_visit::MutVisitor, validate::Validator, visit::Visitor};
 
 use crate::index_assignment::ConvertToWSlash;

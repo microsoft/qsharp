@@ -8,6 +8,7 @@
 mod tests;
 
 use crate::{
+    Error, ErrorKind, Result,
     completion::WordKinds,
     keyword::Keyword,
     lex::{
@@ -19,7 +20,7 @@ use crate::{
         token,
     },
     scan::ParserContext,
-    stmt, Error, ErrorKind, Result,
+    stmt,
 };
 use num_bigint::BigInt;
 use num_traits::Num;

@@ -21,15 +21,14 @@ mod OpenQASM;
 mod OpenQASM_generated;
 
 use qsc::{
-    compile,
+    LanguageFeatures, PackageType, SourceMap, TargetCapabilityFlags, compile,
     hir::PackageId,
     interpret::{GenericReceiver, Interpreter},
     packages::BuildableProgram,
     qasm::{
-        compiler::parse_and_compile_to_qsharp_ast_with_config, io::InMemorySourceResolver,
         OutputSemantics, ProgramType, QubitSemantics,
+        compiler::parse_and_compile_to_qsharp_ast_with_config, io::InMemorySourceResolver,
     },
-    LanguageFeatures, PackageType, SourceMap, TargetCapabilityFlags,
 };
 use qsc_project::{FileSystem, ProjectType, StdFs};
 

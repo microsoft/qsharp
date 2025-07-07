@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use pyo3::{
-    types::{PyAnyMethods, PyDict},
     Bound, PyAny, PyResult,
+    types::{PyAnyMethods, PyDict},
 };
 use resource_estimator::estimates::{ErrorBudget, Overhead};
 

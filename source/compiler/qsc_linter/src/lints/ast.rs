@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::lint;
-use crate::linter::{ast::declare_ast_lints, Compilation};
+use crate::linter::{Compilation, ast::declare_ast_lints};
 use qsc_ast::ast::{
     BinOp, Block, Expr, ExprKind, Item, ItemKind, Lit, NodeId, Stmt, StmtKind, TernOp,
 };

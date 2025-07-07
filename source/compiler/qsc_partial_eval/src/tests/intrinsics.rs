@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{assert_block_instructions, assert_blocks, assert_callable, get_rir_program};
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use indoc::{formatdoc, indoc};
 use qsc_rir::rir::{BlockId, CallableId};
 

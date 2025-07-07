@@ -35,7 +35,7 @@ export interface IDebugService {
     entry: string | undefined,
   ): Promise<string>;
   getBreakpoints(path: string): Promise<IBreakpointSpan[]>;
-  getLocalVariables(): Promise<Array<IVariable>>;
+  getLocalVariables(frameID: number): Promise<Array<IVariable>>;
   captureQuantumState(): Promise<Array<IQuantumState>>;
   getCircuit(): Promise<CircuitData>;
   getStackFrames(): Promise<IStackFrame[]>;
@@ -84,8 +84,8 @@ export class QSharpDebugService implements IDebugService {
     return this.debugService.get_breakpoints(path).spans;
   }
 
-  async getLocalVariables(): Promise<Array<IVariable>> {
-    const variable_list = this.debugService.get_locals();
+  async getLocalVariables(frameID: number): Promise<Array<IVariable>> {
+    const variable_list = this.debugService.get_locals(frameID);
     return variable_list.variables;
   }
 

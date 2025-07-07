@@ -11,7 +11,7 @@ use qsc::ast::visit::Visitor;
 use qsc::hir::PackageId;
 use qsc::line_column::{Encoding, Position};
 use qsc::location::Location;
-use qsc::{ast, hir, Span};
+use qsc::{Span, ast, hir};
 
 pub(crate) fn get_definition(
     compilation: &Compilation,

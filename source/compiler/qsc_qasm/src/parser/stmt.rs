@@ -8,36 +8,36 @@ use qsc_data_structures::span::Span;
 use std::rc::Rc;
 
 use super::{
+    Result,
     completion::word_kinds::WordKinds,
     error::{Error, ErrorKind},
     expr::{self, designator, gate_operand, ident_or_indexed_ident},
     prim::{
-        self, barrier, many, opt, recovering, recovering_semi, recovering_token, seq, seq_item,
-        shorten, SeqItem,
+        self, SeqItem, barrier, many, opt, recovering, recovering_semi, recovering_token, seq,
+        seq_item, shorten,
     },
-    Result,
 };
 use crate::{
     keyword::Keyword,
-    lex::{cooked::Type, Delim, TokenKind},
+    lex::{Delim, TokenKind, cooked::Type},
     parser::ast::{
         DefParameter, DefParameterType, DynArrayReferenceType, QubitType, StaticArrayReferenceType,
     },
 };
 
 use super::ast::{
-    list_from_iter, AccessControl, AliasDeclStmt, AngleType, Annotation, ArrayBaseTypeKind,
-    ArrayReferenceType, ArrayType, AssignOpStmt, AssignStmt, BarrierStmt, BitType, Block, BoxStmt,
-    BreakStmt, CalibrationGrammarStmt, CalibrationStmt, Cast, ClassicalDeclarationStmt,
-    ComplexType, ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, EndStmt,
-    EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt,
-    FunctionCall, GPhase, GateCall, GateModifierKind, GateOperand, IODeclaration, IOKeyword, Ident,
-    IdentOrIndexedIdent, IfStmt, IncludeStmt, Index, IndexExpr, IndexListItem, IntType, List,
-    LiteralKind, MeasureArrowStmt, Pragma, QuantumGateDefinition, QuantumGateModifier,
-    QubitDeclaration, Range, ResetStmt, ReturnStmt, ScalarType, ScalarTypeKind, Stmt, StmtKind,
-    SwitchCase, SwitchStmt, TypeDef, UIntType, WhileLoop,
+    AccessControl, AliasDeclStmt, AngleType, Annotation, ArrayBaseTypeKind, ArrayReferenceType,
+    ArrayType, AssignOpStmt, AssignStmt, BarrierStmt, BitType, Block, BoxStmt, BreakStmt,
+    CalibrationGrammarStmt, CalibrationStmt, Cast, ClassicalDeclarationStmt, ComplexType,
+    ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, EndStmt, EnumerableSet, Expr,
+    ExprKind, ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt, FunctionCall, GPhase,
+    GateCall, GateModifierKind, GateOperand, IODeclaration, IOKeyword, Ident, IdentOrIndexedIdent,
+    IfStmt, IncludeStmt, Index, IndexExpr, IndexListItem, IntType, List, LiteralKind,
+    MeasureArrowStmt, Pragma, QuantumGateDefinition, QuantumGateModifier, QubitDeclaration, Range,
+    ResetStmt, ReturnStmt, ScalarType, ScalarTypeKind, Stmt, StmtKind, SwitchCase, SwitchStmt,
+    TypeDef, UIntType, WhileLoop, list_from_iter,
 };
-use super::{prim::token, ParserContext};
+use super::{ParserContext, prim::token};
 
 /// Our implementation differs slightly from the grammar in
 /// that we accumulate annotations and append them to the next
@@ -1468,7 +1468,7 @@ fn parse_gate_call_stmt(s: &mut ParserContext) -> Result<StmtKind> {
             return Err(Error::new(ErrorKind::ExpectedItem(
                 TokenKind::Identifier,
                 gate_or_expr.span,
-            )))
+            )));
         }
     };
 
@@ -1513,7 +1513,7 @@ fn parse_gate_call_with_expr(s: &mut ParserContext, gate_or_expr: Expr) -> Resul
             return Err(Error::new(ErrorKind::ExpectedItem(
                 TokenKind::Identifier,
                 gate_or_expr.span,
-            )))
+            )));
         }
     };
 

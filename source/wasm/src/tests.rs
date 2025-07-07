@@ -4,7 +4,7 @@
 use expect_test::expect;
 use indoc::indoc;
 use qsc::{
-    interpret, LanguageFeatures, PackageStore, PauliNoise, SourceMap, TargetCapabilityFlags,
+    LanguageFeatures, PackageStore, PauliNoise, SourceMap, TargetCapabilityFlags, interpret,
 };
 
 use crate::get_qir_from_qsharp;
@@ -512,9 +512,11 @@ fn test_doc_gen() {
         if filename.eq("toc.yml") {
             assert!(text.contains("uid: Qdk.Std.Core"));
         } else if !filename.eq("index.md") {
-            assert!(std::path::Path::new(&filename)
-                .extension()
-                .is_some_and(|ext| ext.eq_ignore_ascii_case("md")));
+            assert!(
+                std::path::Path::new(&filename)
+                    .extension()
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
+            );
             assert!(
                 text.starts_with("---\n"),
                 "file {name} does not start with metadata\ncontents: {text}"

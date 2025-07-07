@@ -68,7 +68,10 @@ where
             .await
             .map_err(|e| {
                 miette::Error::msg(format!(
-                    "Failed to resolve path ${base:?} and ${path:?}: ${e}"
+                    "Failed to resolve path ${} and ${}: ${}",
+                    base.display(),
+                    path.display(),
+                    e
                 ))
             })?;
         return Ok(PathBuf::from(res.to_string()));

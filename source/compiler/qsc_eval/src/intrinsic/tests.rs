@@ -3,23 +3,23 @@
 
 use std::f64::consts;
 
+use crate::Env;
 use crate::backend::{Backend, SparseSim};
 use crate::tests::eval_graph;
-use crate::Env;
 use crate::{
+    Error,
     output::{GenericReceiver, Receiver},
     val::Value,
-    Error,
 };
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use indoc::indoc;
 use num_bigint::BigInt;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::target::TargetCapabilityFlags;
 use qsc_fir::fir;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, PackageStore, SourceMap, compile};
 use qsc_lowerer::map_hir_package_to_fir;
-use qsc_passes::{run_core_passes, run_default_passes, PackageType};
+use qsc_passes::{PackageType, run_core_passes, run_default_passes};
 
 #[derive(Default)]
 struct CustomSim {

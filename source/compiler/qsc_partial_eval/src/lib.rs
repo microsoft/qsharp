@@ -17,15 +17,15 @@ use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
 use qsc_data_structures::{functors::FunctorApp, span::Span, target::TargetCapabilityFlags};
 use qsc_eval::{
-    self, are_ctls_unique, exec_graph_section,
+    self, Error as EvalError, PackageSpan, State, StepAction, StepResult, Variable,
+    are_ctls_unique, exec_graph_section,
     intrinsic::qubit_relabel,
     output::GenericReceiver,
     resolve_closure,
     val::{
-        self, index_array, slice_array, update_functor_app, update_index_range,
-        update_index_single, Value, Var, VarTy,
+        self, Value, Var, VarTy, index_array, slice_array, update_functor_app, update_index_range,
+        update_index_single,
     },
-    Error as EvalError, PackageSpan, State, StepAction, StepResult, Variable,
 };
 use qsc_fir::{
     fir::{
@@ -38,12 +38,12 @@ use qsc_fir::{
 };
 use qsc_lowerer::map_fir_package_to_hir;
 use qsc_rca::{
-    errors::{
-        generate_errors_from_runtime_features, get_missing_runtime_features,
-        Error as CapabilityError,
-    },
     ComputeKind, ComputePropertiesLookup, ItemComputeProperties, PackageStoreComputeProperties,
     QuantumProperties, RuntimeFeatureFlags,
+    errors::{
+        Error as CapabilityError, generate_errors_from_runtime_features,
+        get_missing_runtime_features,
+    },
 };
 use qsc_rir::{
     builder,
@@ -636,7 +636,7 @@ impl<'a> PartialEvaluator<'a> {
                     return Err(Error::Unexpected(
                         format!("invalid binary operator for Result operands: {bin_op:?})"),
                         bin_op_expr_span,
-                    ))
+                    ));
                 }
             };
             return Ok(EvalControlFlow::Continue(Value::Bool(bool_value)));
@@ -661,7 +661,7 @@ impl<'a> PartialEvaluator<'a> {
                 return Err(Error::Unexpected(
                     format!("invalid binary operator for Result operands: {bin_op:?})"),
                     bin_op_expr_span,
-                ))
+                ));
             }
         };
 
@@ -1322,7 +1322,9 @@ impl<'a> PartialEvaluator<'a> {
             bin_op_expr_span,
         )?;
         let EvalControlFlow::Continue(bin_op_value) = bin_op_control_flow else {
-            panic!("evaluating a binary operation is expected to result in an error or a continue, but never in a return");
+            panic!(
+                "evaluating a binary operation is expected to result in an error or a continue, but never in a return"
+            );
         };
         self.update_bindings(lhs_expr_id, bin_op_value)?;
         Ok(EvalControlFlow::Continue(Value::unit()))
@@ -2648,7 +2650,9 @@ impl<'a> PartialEvaluator<'a> {
             Value::Tuple(values) => {
                 for value in &*values {
                     let Value::Qubit(qubit) = value else {
-                        panic!("by this point a qsc_pass should have checked that all arguments are Qubits")
+                        panic!(
+                            "by this point a qsc_pass should have checked that all arguments are Qubits"
+                        )
                     };
                     input_type.push(qsc_rir::rir::Ty::Qubit);
                     operands.push(self.map_eval_value_to_rir_operand(&Value::Qubit(qubit.clone())));
@@ -2677,7 +2681,9 @@ impl<'a> PartialEvaluator<'a> {
                         operands.push(result_operand);
                         results_values.push(result_value);
                     } else {
-                        panic!("by this point a qsc_pass should have checked that all outputs are Results")
+                        panic!(
+                            "by this point a qsc_pass should have checked that all outputs are Results"
+                        )
                     }
                 }
             }

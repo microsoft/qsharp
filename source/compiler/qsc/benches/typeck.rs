@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use indoc::indoc;
 use qsc::{
-    interpret::Interpreter, LanguageFeatures, PackageType, SourceMap, TargetCapabilityFlags,
+    LanguageFeatures, PackageType, SourceMap, TargetCapabilityFlags, interpret::Interpreter,
 };
 
 pub fn deep_nested_callable_generics(c: &mut Criterion) {

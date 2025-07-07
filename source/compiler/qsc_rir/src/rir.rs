@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use indenter::{indented, Indented};
+use indenter::{Indented, indented};
 use qsc_data_structures::{index_map::IndexMap, target::TargetCapabilityFlags};
 use std::fmt::{self, Display, Formatter, Write};
 

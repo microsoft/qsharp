@@ -8,7 +8,7 @@ use qsc_frontend::{
     compile::{CompileUnit, PackageStore, SourceMap},
     error::WithSource,
 };
-use qsc_passes::{run_core_passes, run_default_passes, PackageType};
+use qsc_passes::{PackageType, run_core_passes, run_default_passes};
 use thiserror::Error;
 
 pub type Error = WithSource<ErrorKind>;

@@ -19,7 +19,7 @@ use qsc_hir::{
         Attr, Block, CallableDecl, CallableKind, Functor, Ident, Item, NodeId, Package, Pat,
         PatKind, Res, SpecBody, SpecDecl, SpecGen,
     },
-    mut_visit::{walk_item, MutVisitor},
+    mut_visit::{MutVisitor, walk_item},
     ty::{Prim, Ty},
 };
 use std::option::Option;
@@ -56,16 +56,22 @@ pub enum Error {
 
     #[error("invalid specialization generator")]
     #[diagnostic(code("Qsc.SpecGen.InvalidCtlAdjGen"))]
-    #[diagnostic(help("valid specialization generators for controlled adjoint are `auto`, `distribute`, `invert`, and `self`"))]
+    #[diagnostic(help(
+        "valid specialization generators for controlled adjoint are `auto`, `distribute`, `invert`, and `self`"
+    ))]
     InvalidCtlAdjGen(#[label] Span),
 
     #[error("specialization generation missing required body implementation")]
     #[diagnostic(code("Qsc.SpecGen.MissingBody"))]
     MissingBody(#[label] Span),
 
-    #[error("specialization generation is not supported for callables with the attribute `SimulatableIntrinsic`")]
+    #[error(
+        "specialization generation is not supported for callables with the attribute `SimulatableIntrinsic`"
+    )]
     #[diagnostic(code("Qsc.SpecGen.SimulatableIntrinsic"))]
-    #[diagnostic(help("try removing the specializations for this callable and providing them via a separate wrapper operation"))]
+    #[diagnostic(help(
+        "try removing the specializations for this callable and providing them via a separate wrapper operation"
+    ))]
     SimulatableIntrinsic(#[label] Span),
 }
 
@@ -124,7 +130,7 @@ impl MutVisitor for SpecPlacePass<'_> {
             matches!(&decl.ctl_adj, Some(s) if !matches!(&s.body, SpecBody::Gen(SpecGen::Auto)));
 
         if is_adj && is_ctl && !has_explicit_ctl_adj {
-            let gen = if is_self_adjoint(decl) {
+            let spec_gen = if is_self_adjoint(decl) {
                 SpecGen::Slf
             } else if has_explicit_ctl && !has_explicit_adj {
                 SpecGen::Invert
@@ -134,7 +140,7 @@ impl MutVisitor for SpecPlacePass<'_> {
             decl.ctl_adj = Some(SpecDecl {
                 id: self.assigner.next_node(),
                 span: decl.span,
-                body: SpecBody::Gen(gen),
+                body: SpecBody::Gen(spec_gen),
             });
         }
     }

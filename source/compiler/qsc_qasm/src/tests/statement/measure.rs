@@ -45,8 +45,8 @@ fn single_qubit_can_be_arrow_measured_into_single_bit() -> miette::Result<(), Ve
 }
 
 #[test]
-fn indexed_single_qubit_can_be_measured_into_indexed_bit_register(
-) -> miette::Result<(), Vec<Report>> {
+fn indexed_single_qubit_can_be_measured_into_indexed_bit_register()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
         bit[1] c;
         qubit[1] q;
@@ -58,15 +58,15 @@ fn indexed_single_qubit_can_be_measured_into_indexed_bit_register(
         import Std.OpenQASM.Intrinsic.*;
         mutable c = [Zero];
         let q = QIR.Runtime.AllocateQubitArray(1);
-        set c w/= 0 <- Std.Intrinsic.M(q[0]);
+        set c[0] = Std.Intrinsic.M(q[0]);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
 
 #[test]
-fn range_indexed_qubit_register_can_be_measured_into_indexed_bit_register(
-) -> miette::Result<(), Vec<Report>> {
+fn range_indexed_qubit_register_can_be_measured_into_indexed_bit_register()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
         bit[5] c;
         qubit[5] q;
@@ -78,15 +78,15 @@ fn range_indexed_qubit_register_can_be_measured_into_indexed_bit_register(
         import Std.OpenQASM.Intrinsic.*;
         mutable c = [Zero, Zero, Zero, Zero, Zero];
         let q = QIR.Runtime.AllocateQubitArray(5);
-        set c w/= 1..3 <- Std.Measurement.MeasureEachZ(q[2..4]);
+        set c[1..3] = Std.Measurement.MeasureEachZ(q[2..4]);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
 
 #[test]
-fn unindexed_single_qubit_can_be_measured_into_indexed_bit_register(
-) -> miette::Result<(), Vec<Report>> {
+fn unindexed_single_qubit_can_be_measured_into_indexed_bit_register()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
         bit[1] c;
         qubit[1] q;
@@ -217,8 +217,8 @@ fn value_from_measurement_can_be_dropped() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn range_indexed_qubit_register_measure_arrow_into_indexed_bit_register(
-) -> miette::Result<(), Vec<Report>> {
+fn range_indexed_qubit_register_measure_arrow_into_indexed_bit_register()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
         bit[5] c;
         qubit[5] q;
@@ -230,15 +230,15 @@ fn range_indexed_qubit_register_measure_arrow_into_indexed_bit_register(
         import Std.OpenQASM.Intrinsic.*;
         mutable c = [Zero, Zero, Zero, Zero, Zero];
         let q = QIR.Runtime.AllocateQubitArray(5);
-        set c w/= 1..3 <- Std.Measurement.MeasureEachZ(q[2..4]);
+        set c[1..3] = Std.Measurement.MeasureEachZ(q[2..4]);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
 
 #[test]
-fn unindexed_single_qubit_with_measure_arrow_into_indexed_bit_register(
-) -> miette::Result<(), Vec<Report>> {
+fn unindexed_single_qubit_with_measure_arrow_into_indexed_bit_register()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
         bit[1] c;
         qubit[1] q;

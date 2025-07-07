@@ -12,13 +12,13 @@ use qsc_hir::{
     hir::{
         Block, Expr, ExprKind, Mutability, Pat, PatKind, QubitInit, QubitInitKind, Stmt, StmtKind,
     },
-    mut_visit::{walk_expr, walk_stmt, MutVisitor},
+    mut_visit::{MutVisitor, walk_expr, walk_stmt},
     ty::{Prim, Ty},
 };
 use std::mem::take;
 
-use crate::common::{create_gen_core_ref, generated_name, IdentTemplate};
 use crate::QIR_RUNTIME_NAMESPACE;
+use crate::common::{IdentTemplate, create_gen_core_ref, generated_name};
 
 #[derive(Debug, Clone)]
 struct QubitIdent {

@@ -27,7 +27,7 @@ pub mod state;
 pub mod val;
 
 use crate::val::{
-    index_array, make_range, slice_array, update_index_range, update_index_single, Value,
+    Value, index_array, make_range, slice_array, update_index_range, update_index_single,
 };
 use backend::Backend;
 use debug::{CallStack, Frame};
@@ -43,7 +43,7 @@ use qsc_fir::fir::{
 };
 use qsc_fir::ty::Ty;
 use qsc_lowerer::map_fir_package_to_hir;
-use rand::{rngs::StdRng, SeedableRng};
+use rand::{SeedableRng, rngs::StdRng};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::ops;
 use std::{
@@ -54,7 +54,7 @@ use std::{
     rc::Rc,
 };
 use thiserror::Error;
-use val::{update_functor_app, Qubit};
+use val::{Qubit, update_functor_app};
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
@@ -119,7 +119,9 @@ pub enum Error {
     QubitUniqueness(#[label] PackageSpan),
 
     #[error("qubit used after release")]
-    #[diagnostic(help("qubits should not be used after being released, which typically occurs when a qubit is used after it has gone out of scope"))]
+    #[diagnostic(help(
+        "qubits should not be used after being released, which typically occurs when a qubit is used after it has gone out of scope"
+    ))]
     #[diagnostic(code("Qsc.Eval.QubitUsedAfterRelease"))]
     QubitUsedAfterRelease(#[label] PackageSpan),
 
@@ -138,7 +140,9 @@ pub enum Error {
     QubitsNotCounted(#[label] PackageSpan),
 
     #[error("qubits are not separable")]
-    #[diagnostic(help("subset of qubits provided as arguments must not be entangled with any qubits outside of the subset"))]
+    #[diagnostic(help(
+        "subset of qubits provided as arguments must not be entangled with any qubits outside of the subset"
+    ))]
     #[diagnostic(code("Qsc.Eval.QubitsNotSeparable"))]
     QubitsNotSeparable(#[label] PackageSpan),
 
@@ -152,13 +156,17 @@ pub enum Error {
     RelabelingMismatch(#[label] PackageSpan),
 
     #[error("Qubit{0} released while not in |0⟩ state")]
-    #[diagnostic(help("qubits should be returned to the |0⟩ state before being released to satisfy the assumption that allocated qubits start in the |0⟩ state"))]
+    #[diagnostic(help(
+        "qubits should be returned to the |0⟩ state before being released to satisfy the assumption that allocated qubits start in the |0⟩ state"
+    ))]
     #[diagnostic(code("Qsc.Eval.ReleasedQubitNotZero"))]
     ReleasedQubitNotZero(usize, #[label("Qubit{0}")] PackageSpan),
 
     #[error("cannot compare measurement results")]
     #[diagnostic(code("Qsc.Eval.ResultComparisonUnsupported"))]
-    #[diagnostic(help("comparing measurement results is not supported when performing circuit synthesis or base profile QIR generation"))]
+    #[diagnostic(help(
+        "comparing measurement results is not supported when performing circuit synthesis or base profile QIR generation"
+    ))]
     ResultComparisonUnsupported(#[label("cannot compare to result")] PackageSpan),
 
     #[error("cannot compare measurement result from qubit loss")]
@@ -421,7 +429,6 @@ pub struct Env {
 }
 
 impl Default for Env {
-    #[must_use]
     fn default() -> Self {
         // Always create a global scope for top-level statements.
         Self {
@@ -613,7 +620,10 @@ impl State {
     }
 
     fn push_scope(&mut self, env: &mut Env) {
-        env.push_scope(self.call_stack.len());
+        // `push_frame`, which increments the length of `self.call_stack` by 1,
+        // is called before `self.push_scope`.
+        // Since the first `frame_id` should be 0, we substract 1 here.
+        env.push_scope(self.call_stack.len() - 1);
     }
 
     fn take_val_register(&mut self) -> Value {

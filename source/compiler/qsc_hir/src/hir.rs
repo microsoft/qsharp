@@ -5,7 +5,7 @@
 
 #![warn(missing_docs)]
 use crate::ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, Scheme, Ty, TypeParameter, Udt};
-use indenter::{indented, Indented};
+use indenter::{Indented, indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
@@ -289,12 +289,12 @@ impl Package {
         let items_with_test_attribute = self
             .items
             .iter()
-            .filter(|(_, item)| item.attrs.iter().any(|attr| *attr == Attr::Test));
+            .filter(|(_, item)| item.attrs.contains(&Attr::Test));
 
         let callables = items_with_test_attribute
             .filter(|(_, item)| matches!(item.kind, ItemKind::Callable(_)));
 
-        let callable_names = callables
+        callables
             .filter_map(|(_, item)| -> Option<_> {
                 if let ItemKind::Callable(callable) = &item.kind {
                     if !callable.generics.is_empty()
@@ -326,9 +326,7 @@ impl Package {
                     None
                 }
             })
-            .collect::<Vec<_>>();
-
-        callable_names
+            .collect::<Vec<_>>()
     }
 }
 
@@ -385,7 +383,7 @@ impl Display for Item {
 #[derive(Clone, Debug, PartialEq)]
 pub enum ItemKind {
     /// A `function` or `operation` declaration.
-    Callable(CallableDecl),
+    Callable(Box<CallableDecl>),
     /// A `namespace` declaration.
     Namespace(Idents, Vec<LocalItemId>),
     /// A `newtype` declaration.
@@ -1118,7 +1116,7 @@ impl Display for FieldAssign {
 #[derive(Clone, Debug, PartialEq)]
 pub enum StringComponent {
     /// An expression.
-    Expr(Expr),
+    Expr(Box<Expr>),
     /// A string literal.
     Lit(Rc<str>),
 }

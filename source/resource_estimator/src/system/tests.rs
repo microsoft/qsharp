@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 
 use crate::{
     estimates::{
@@ -17,12 +17,12 @@ use super::{
 };
 
 use crate::system::{
+    Error,
     data::{ErrorBudgetSpecification, JobParams, LogicalResourceCounts},
     error::IO,
     modeling::GateBasedPhysicalQubit,
     modeling::{PhysicalQubit, Protocol, TFactory},
     optimization::TFactoryBuilder,
-    Error,
 };
 
 use std::{borrow::Cow, rc::Rc};
@@ -99,9 +99,11 @@ fn physical_estimates_crash() {
             "errorBudget": 0.075}]"#,
     );
 
-    assert!(result
-        .expect("estimation should succeed")
-        .contains(r#""status":"success"#));
+    assert!(
+        result
+            .expect("estimation should succeed")
+            .contains(r#""status":"success"#)
+    );
 }
 
 #[derive(Clone)]

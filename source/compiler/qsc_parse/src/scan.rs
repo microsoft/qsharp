@@ -3,9 +3,9 @@
 
 use super::Error;
 use crate::{
-    completion::{collector::ValidWordCollector, WordKinds},
-    lex::{Lexer, Token, TokenKind},
     ErrorKind,
+    completion::{WordKinds, collector::ValidWordCollector},
+    lex::{Lexer, Token, TokenKind},
 };
 use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 

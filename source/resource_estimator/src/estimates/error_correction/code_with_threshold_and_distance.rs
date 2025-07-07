@@ -104,7 +104,9 @@ impl<Evaluator: CodeWithThresholdAndDistanceEvaluator> CodeWithThresholdAndDista
 
         if let Some(max_distance) = self.max_code_distance {
             if max_distance < code_distance {
-                return Err(format!("The computed code distance {code_distance} is too high; maximum allowed code distance is {max_distance}; try increasing the total logical error budget"));
+                return Err(format!(
+                    "The computed code distance {code_distance} is too high; maximum allowed code distance is {max_distance}; try increasing the total logical error budget"
+                ));
             }
         }
 

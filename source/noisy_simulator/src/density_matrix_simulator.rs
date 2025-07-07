@@ -8,11 +8,11 @@
 mod tests;
 
 use crate::{
-    handle_error, instrument::Instrument, kernel::apply_kernel, operation::Operation,
-    ComplexVector, Error, NoisySimulator, SquareMatrix, TOLERANCE,
+    ComplexVector, Error, NoisySimulator, SquareMatrix, TOLERANCE, handle_error,
+    instrument::Instrument, kernel::apply_kernel, operation::Operation,
 };
 use num_complex::Complex;
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::{Rng, SeedableRng, rngs::StdRng};
 
 /// A vectorized density matrix.
 #[derive(Debug, Clone)]
@@ -255,7 +255,7 @@ impl NoisySimulator for DensityMatrixSimulator {
         instrument: &Instrument,
         qubits: &[usize],
     ) -> Result<usize, Error> {
-        let sample = self.rng.gen();
+        let sample = self.rng.r#gen();
         self.sample_instrument_with_distribution(instrument, qubits, sample)
     }
 

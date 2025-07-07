@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{
-    tests::{fail_on_compilation_errors, gen_qsharp},
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
+    tests::{fail_on_compilation_errors, gen_qsharp},
 };
 use expect_test::expect;
 use miette::Report;
@@ -49,8 +49,8 @@ fn using_re_semantics_removes_output() -> miette::Result<(), Vec<Report>> {
                 rz(Std.OpenQASM.Angle.DoubleAsAngle(theta, 53), q[0]);
                 h(q[0]);
                 cx(q[0], q[1]);
-                set c w/= 0 <- Std.Intrinsic.M(q[0]);
-                set c w/= 1 <- Std.Intrinsic.M(q[1]);
+                set c[0] = Std.Intrinsic.M(q[0]);
+                set c[1] = Std.Intrinsic.M(q[1]);
             }
         }"#]]
     .assert_eq(&qsharp);
@@ -98,8 +98,8 @@ fn using_qasm_semantics_captures_all_classical_decls_as_output() -> miette::Resu
                 rz(Std.OpenQASM.Angle.DoubleAsAngle(theta, 53), q[0]);
                 h(q[0]);
                 cx(q[0], q[1]);
-                set c w/= 0 <- Std.Intrinsic.M(q[0]);
-                set c w/= 1 <- Std.Intrinsic.M(q[1]);
+                set c[0] = Std.Intrinsic.M(q[0]);
+                set c[1] = Std.Intrinsic.M(q[1]);
                 (c, gamma, delta)
             }
         }"#]]
@@ -109,8 +109,8 @@ fn using_qasm_semantics_captures_all_classical_decls_as_output() -> miette::Resu
 }
 
 #[test]
-fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed(
-) -> miette::Result<(), Vec<Report>> {
+fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
         OPENQASM 3.0;
         include "stdgates.inc";
@@ -147,8 +147,8 @@ fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed(
                 rz(Std.OpenQASM.Angle.DoubleAsAngle(theta, 53), q[0]);
                 h(q[0]);
                 cx(q[0], q[1]);
-                set c w/= 0 <- Std.Intrinsic.M(q[0]);
-                set c w/= 1 <- Std.Intrinsic.M(q[1]);
+                set c[0] = Std.Intrinsic.M(q[0]);
+                set c[1] = Std.Intrinsic.M(q[1]);
                 Std.Arrays.Reversed(c)
             }
         }"#]]
@@ -158,8 +158,8 @@ fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed(
 }
 
 #[test]
-fn using_qiskit_semantics_multiple_bit_arrays_are_reversed_in_order_and_reversed_in_content(
-) -> miette::Result<(), Vec<Report>> {
+fn using_qiskit_semantics_multiple_bit_arrays_are_reversed_in_order_and_reversed_in_content()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
 OPENQASM 3.0;
 include "stdgates.inc";
@@ -208,11 +208,11 @@ c2[2] = measure q[4];
                 x(q[2]);
                 id(q[3]);
                 x(q[4]);
-                set c w/= 0 <- Std.Intrinsic.M(q[0]);
-                set c w/= 1 <- Std.Intrinsic.M(q[1]);
-                set c2 w/= 0 <- Std.Intrinsic.M(q[2]);
-                set c2 w/= 1 <- Std.Intrinsic.M(q[3]);
-                set c2 w/= 2 <- Std.Intrinsic.M(q[4]);
+                set c[0] = Std.Intrinsic.M(q[0]);
+                set c[1] = Std.Intrinsic.M(q[1]);
+                set c2[0] = Std.Intrinsic.M(q[2]);
+                set c2[1] = Std.Intrinsic.M(q[3]);
+                set c2[2] = Std.Intrinsic.M(q[4]);
                 (Std.Arrays.Reversed(c2), Std.Arrays.Reversed(c))
             }
         }"#]]
@@ -222,8 +222,8 @@ c2[2] = measure q[4];
 }
 
 #[test]
-fn qir_generation_using_qiskit_semantics_multiple_bit_arrays_are_reversed_in_order_and_reversed_in_content(
-) -> miette::Result<(), Vec<Report>> {
+fn qir_generation_using_qiskit_semantics_multiple_bit_arrays_are_reversed_in_order_and_reversed_in_content()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
 OPENQASM 3.0;
 include "stdgates.inc";

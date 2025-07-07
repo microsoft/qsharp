@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{ast_context::AstContext, Completion};
+use super::{Completion, ast_context::AstContext};
 use crate::{compilation::Compilation, protocol::CompletionItemKind};
 use qsc::{
     display::Lookup,
     hir::{
-        ty::{Ty, UdtDefKind},
         ItemKind, Res,
+        ty::{Ty, UdtDefKind},
     },
 };
 

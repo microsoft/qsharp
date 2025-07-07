@@ -3,8 +3,8 @@
 
 use qsc_data_structures::functors::FunctorApp;
 use qsc_eval::{
-    val::{Result, Value},
     Env, Variable,
+    val::{Result, Value},
 };
 use qsc_fir::fir::{LocalItemId, LocalVarId, PackageId};
 use qsc_rca::{RuntimeKind, ValueKind};
