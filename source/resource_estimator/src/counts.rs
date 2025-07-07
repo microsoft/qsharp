@@ -420,13 +420,13 @@ impl Backend for LogicalCounter {
 
     fn h(&mut self, _q: usize) {}
 
-    fn m(&mut self, _q: usize) -> Option<Self::ResultType> {
+    fn m(&mut self, _q: usize) -> Self::ResultType {
         self.m_count += 1;
 
-        Some(self.rnd.borrow_mut().gen_bool(0.5))
+        self.rnd.borrow_mut().gen_bool(0.5)
     }
 
-    fn mresetz(&mut self, q: usize) -> Option<Self::ResultType> {
+    fn mresetz(&mut self, q: usize) -> Self::ResultType {
         self.m(q)
     }
 

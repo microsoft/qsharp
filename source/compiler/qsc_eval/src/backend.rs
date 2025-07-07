@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::val::{self, Value};
+use crate::val::Value;
 use crate::{noise::PauliNoise, val::unwrap_tuple};
 use ndarray::Array2;
 use num_bigint::BigUint;
@@ -33,10 +33,10 @@ pub trait Backend {
     fn h(&mut self, _q: usize) {
         unimplemented!("h gate");
     }
-    fn m(&mut self, _q: usize) -> Option<Self::ResultType> {
+    fn m(&mut self, _q: usize) -> Self::ResultType {
         unimplemented!("m operation");
     }
-    fn mresetz(&mut self, _q: usize) -> Option<Self::ResultType> {
+    fn mresetz(&mut self, _q: usize) -> Self::ResultType {
         unimplemented!("mresetz operation");
     }
     fn reset(&mut self, _q: usize) {
@@ -222,7 +222,7 @@ impl SparseSim {
 }
 
 impl Backend for SparseSim {
-    type ResultType = bool;
+    type ResultType = Option<bool>;
 
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize) {
         match (
@@ -283,7 +283,7 @@ impl Backend for SparseSim {
         self.apply_noise(q);
     }
 
-    fn m(&mut self, q: usize) -> Option<Self::ResultType> {
+    fn m(&mut self, q: usize) -> Self::ResultType {
         self.apply_noise(q);
         if self.is_qubit_lost(q) {
             // If the qubit is lost, we cannot measure it.
@@ -295,7 +295,7 @@ impl Backend for SparseSim {
         Some(self.sim.measure(q))
     }
 
-    fn mresetz(&mut self, q: usize) -> Option<Self::ResultType> {
+    fn mresetz(&mut self, q: usize) -> Self::ResultType {
         self.apply_noise(q); // Applying noise before measurement
         if self.is_qubit_lost(q) {
             // If the qubit is lost, we cannot measure it.
@@ -720,12 +720,12 @@ where
         self.main.h(q);
     }
 
-    fn m(&mut self, q: usize) -> Option<Self::ResultType> {
+    fn m(&mut self, q: usize) -> Self::ResultType {
         let _ = self.chained.m(q);
         self.main.m(q)
     }
 
-    fn mresetz(&mut self, q: usize) -> Option<Self::ResultType> {
+    fn mresetz(&mut self, q: usize) -> Self::ResultType {
         let _ = self.chained.mresetz(q);
         self.main.mresetz(q)
     }
@@ -850,14 +850,5 @@ where
     fn set_seed(&mut self, seed: Option<u64>) {
         self.chained.set_seed(seed);
         self.main.set_seed(seed);
-    }
-}
-
-impl<R> From<Option<R>> for val::Result
-where
-    R: Into<val::Result>,
-{
-    fn from(value: Option<R>) -> Self {
-        value.map_or(val::Result::Loss, std::convert::Into::into)
     }
 }

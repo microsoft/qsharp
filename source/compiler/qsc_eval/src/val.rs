@@ -85,6 +85,15 @@ impl From<bool> for Result {
     }
 }
 
+impl From<Option<bool>> for Result {
+    fn from(val: Option<bool>) -> Self {
+        match val {
+            Some(v) => Self::Val(v),
+            None => Self::Loss,
+        }
+    }
+}
+
 impl From<usize> for Result {
     fn from(val: usize) -> Self {
         Self::Id(val)
