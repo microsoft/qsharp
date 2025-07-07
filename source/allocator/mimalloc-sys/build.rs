@@ -31,9 +31,17 @@ fn compile_mimalloc() {
     let src_dir = mimalloc_vendor_dir.join("src");
     let static_file = src_dir.join("static.c");
 
-    assert!(include_dir.exists(), "include_dir: {include_dir:?}");
-    assert!(src_dir.exists(), "src_dir: {src_dir:?}");
-    assert!(static_file.exists(), "static_file: {static_file:?}");
+    assert!(
+        include_dir.exists(),
+        "include_dir: {}",
+        include_dir.display()
+    );
+    assert!(src_dir.exists(), "src_dir: {}", src_dir.display());
+    assert!(
+        static_file.exists(),
+        "static_file: {}",
+        static_file.display()
+    );
 
     build.include(include_dir);
     build.include(src_dir);

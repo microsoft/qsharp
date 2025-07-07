@@ -6,7 +6,7 @@ use crate::{
     compile::{self, CompileUnit, PackageStore, SourceMap},
     incremental::Error,
 };
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use indoc::indoc;
 use miette::Diagnostic;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};

@@ -10,9 +10,9 @@ use qsc_ast::{ast::Package, mut_visit::MutVisitor};
 use qsc_data_structures::{
     language_features::LanguageFeatures, span::Span, target::TargetCapabilityFlags,
 };
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, PackageStore, SourceMap, compile};
 use qsc_hir::hir::PackageId;
-use qsc_passes::{run_core_passes, run_default_passes, PackageType};
+use qsc_passes::{PackageType, run_core_passes, run_default_passes};
 
 use crate::qsharp::write_package_string;
 

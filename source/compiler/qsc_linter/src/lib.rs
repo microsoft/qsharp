@@ -68,5 +68,5 @@ mod lints;
 mod tests;
 
 pub use lint_groups::GroupConfig;
-pub use linter::{run_lints, Lint, LintConfig, LintKind, LintLevel, LintOrGroupConfig};
+pub use linter::{Lint, LintConfig, LintKind, LintLevel, LintOrGroupConfig, run_lints};
 pub use lints::{ast::AstLint, hir::HirLint};

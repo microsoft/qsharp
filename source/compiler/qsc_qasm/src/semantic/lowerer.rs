@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::collections::VecDeque;
 use std::ops::ShlAssign;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -8,6 +9,7 @@ use std::sync::Arc;
 
 use super::const_eval::ConstEvalError;
 use super::symbols::ScopeKind;
+use super::types::Type;
 use super::types::binop_requires_asymmetric_angle_op;
 use super::types::binop_requires_int_conversion_for_type;
 use super::types::binop_requires_symmetric_uint_conversion;
@@ -18,7 +20,6 @@ use super::types::requires_symmetric_conversion;
 use super::types::try_promote_with_casting;
 use super::types::types_equal_except_const;
 use super::types::unary_op_can_be_applied_to_type;
-use super::types::Type;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use num_traits::Num;
@@ -29,9 +30,9 @@ use rustc_hash::FxHashMap;
 use super::symbols::{IOKind, Symbol, SymbolTable};
 
 use crate::convert::safe_i64_to_f64;
-use crate::parser::ast::list_from_iter;
-use crate::parser::ast::List;
 use crate::parser::QasmSource;
+use crate::parser::ast::List;
+use crate::parser::ast::list_from_iter;
 use crate::semantic::types::base_types_equal;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
@@ -43,8 +44,8 @@ use super::ast as semantic;
 use crate::parser::ast as syntax;
 
 use super::{
-    ast::{Stmt, Version},
     SemanticErrorKind,
+    ast::{Stmt, Version},
 };
 
 /// Macro to create an error expression. Used when we fail to
@@ -477,14 +478,14 @@ impl Lowerer {
         S: AsRef<str>,
     {
         let symbol_span = symbol.span;
-        let symbol_id = match self.symbols.try_insert_or_get_existing(symbol) {
+
+        match self.symbols.try_insert_or_get_existing(symbol) {
             Ok(symbol_id) => symbol_id,
             Err(symbol_id) => {
                 self.push_redefined_symbol_error(name.as_ref(), symbol_span);
                 symbol_id
             }
-        };
-        symbol_id
+        }
     }
 
     fn try_get_existing_or_insert_err_symbol<S>(
@@ -576,10 +577,8 @@ impl Lowerer {
         rhs: &syntax::ValueExpr,
         span: Span,
     ) -> semantic::StmtKind {
-        let (symbol_id, symbol) =
-            self.try_get_existing_or_insert_err_symbol(&ident.name, ident.span);
-
-        let ty = symbol.ty.clone();
+        let lhs = self.lower_ident_expr(ident);
+        let ty = lhs.ty.clone();
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => {
                 let expr = self.lower_expr(expr);
@@ -591,18 +590,14 @@ impl Lowerer {
             }
         };
 
-        if ty.is_const() {
+        if lhs.ty.is_const() {
             let kind =
                 SemanticErrorKind::CannotUpdateConstVariable(ident.name.to_string(), ident.span);
             self.push_semantic_error(kind);
+            return semantic::StmtKind::Err;
         }
 
-        semantic::StmtKind::Assign(semantic::AssignStmt {
-            symbol_id,
-            lhs_span: ident.span,
-            rhs,
-            span,
-        })
+        semantic::StmtKind::Assign(semantic::AssignStmt { span, lhs, rhs })
     }
 
     fn lower_indexed_assign_stmt(
@@ -613,7 +608,32 @@ impl Lowerer {
     ) -> semantic::StmtKind {
         assert!(!indexed_ident.indices.is_empty());
 
-        let lhs = self.lower_indexed_ident_expr(indexed_ident);
+        let (lhs, classical_indices) = self.lower_indexed_ident_expr(indexed_ident);
+
+        if lhs.ty.is_const() {
+            let kind = SemanticErrorKind::CannotUpdateConstVariable(
+                indexed_ident.ident.name.to_string(),
+                indexed_ident.ident.span,
+            );
+            self.push_semantic_error(kind);
+            return semantic::StmtKind::Err;
+        }
+
+        if !classical_indices.is_empty() {
+            let rhs = match rhs {
+                syntax::ValueExpr::Expr(expr) => self.lower_expr(expr),
+                syntax::ValueExpr::Measurement(measure_expr) => {
+                    self.lower_measure_expr(measure_expr)
+                }
+            };
+            return self.lower_indexed_classical_type_assign_stmt(
+                lhs,
+                &rhs,
+                span,
+                classical_indices,
+            );
+        }
+
         let indexed_ty = &lhs.ty;
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => {
@@ -626,21 +646,30 @@ impl Lowerer {
             }
         };
 
-        if lhs.ty.is_const() {
-            let kind = SemanticErrorKind::CannotUpdateConstVariable(
-                indexed_ident.ident.name.to_string(),
-                indexed_ident.ident.span,
-            );
-            self.push_semantic_error(kind);
-        }
+        semantic::StmtKind::Assign(semantic::AssignStmt { span, lhs, rhs })
+    }
 
-        let semantic::ExprKind::IndexedIdent(indexed_ident) = *lhs.kind else {
+    fn lower_indexed_classical_type_assign_stmt(
+        &mut self,
+        lhs: semantic::Expr,
+        rhs: &semantic::Expr,
+        span: Span,
+        indices: VecDeque<semantic::Index>,
+    ) -> semantic::StmtKind {
+        // We need to check that we can assign the rhs to the fully indexed lhs.
+        let fully_indexed_lhs = self.lower_index_expr_rec(lhs.clone(), indices.clone());
+        let indexed_ty = &fully_indexed_lhs.ty;
+        let Some(rhs) = Self::try_cast_expr_to_type(indexed_ty, rhs) else {
+            self.push_invalid_cast_error(indexed_ty, &rhs.ty, span);
             return semantic::StmtKind::Err;
         };
 
-        semantic::StmtKind::IndexedAssign(semantic::IndexedAssignStmt {
+        // We return the rhs already casted to the type of the fully indexed lhs.
+        // So, if return here, it is guaranteed that the assignment will succeed.
+        semantic::StmtKind::IndexedClassicalTypeAssign(semantic::IndexedClassicalTypeAssignStmt {
             span,
-            indexed_ident,
+            lhs,
+            indices,
             rhs,
         })
     }
@@ -663,17 +692,15 @@ impl Lowerer {
         rhs: &syntax::ValueExpr,
         span: Span,
     ) -> semantic::StmtKind {
-        let (symbol_id, symbol) =
-            self.try_get_existing_or_insert_err_symbol(&ident.name, ident.span);
-
-        let ty = symbol.ty.clone();
+        let lhs = self.lower_ident_expr(ident);
+        let ty = lhs.ty.clone();
         if ty.is_const() {
             let kind =
                 SemanticErrorKind::CannotUpdateConstVariable(ident.name.to_string(), ident.span);
             self.push_semantic_error(kind);
+            return semantic::StmtKind::Err;
         }
 
-        let lhs = self.lower_ident_expr(ident);
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => {
                 let expr = self.lower_expr(expr);
@@ -685,13 +712,12 @@ impl Lowerer {
             }
         };
 
-        let binary_expr = self.lower_binary_op_expr(op, lhs, rhs, span);
+        let binary_expr = self.lower_binary_op_expr(op, lhs.clone(), rhs, span);
 
         semantic::StmtKind::Assign(semantic::AssignStmt {
-            symbol_id,
-            lhs_span: ident.span,
-            rhs: binary_expr,
             span,
+            lhs,
+            rhs: binary_expr,
         })
     }
 
@@ -704,7 +730,34 @@ impl Lowerer {
     ) -> semantic::StmtKind {
         assert!(!indexed_ident.indices.is_empty());
 
-        let lhs = self.lower_indexed_ident_expr(indexed_ident);
+        let (lhs, classical_indices) = self.lower_indexed_ident_expr(indexed_ident);
+
+        if lhs.ty.is_const() {
+            let kind = SemanticErrorKind::CannotUpdateConstVariable(
+                indexed_ident.ident.name.to_string(),
+                indexed_ident.ident.span,
+            );
+            self.push_semantic_error(kind);
+            return semantic::StmtKind::Err;
+        }
+
+        if !classical_indices.is_empty() {
+            let binary_expr_lhs = self.lower_index_expr_rec(lhs.clone(), classical_indices.clone());
+            let binary_expr_rhs = match rhs {
+                syntax::ValueExpr::Expr(expr) => self.lower_expr(expr),
+                syntax::ValueExpr::Measurement(measure_expr) => {
+                    self.lower_measure_expr(measure_expr)
+                }
+            };
+            let rhs = self.lower_binary_op_expr(op, binary_expr_lhs, binary_expr_rhs, span);
+            return self.lower_indexed_classical_type_assign_stmt(
+                lhs,
+                &rhs,
+                span,
+                classical_indices,
+            );
+        }
+
         let indexed_ty = &lhs.ty;
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => {
@@ -719,21 +772,9 @@ impl Lowerer {
 
         let binary_expr = self.lower_binary_op_expr(op, lhs.clone(), rhs, span);
 
-        if lhs.ty.is_const() {
-            let kind = SemanticErrorKind::CannotUpdateConstVariable(
-                indexed_ident.ident.name.to_string(),
-                indexed_ident.ident.span,
-            );
-            self.push_semantic_error(kind);
-        }
-
-        let semantic::ExprKind::IndexedIdent(indexed_ident) = *lhs.kind else {
-            return semantic::StmtKind::Err;
-        };
-
-        semantic::StmtKind::IndexedAssign(semantic::IndexedAssignStmt {
+        semantic::StmtKind::Assign(semantic::AssignStmt {
             span,
-            indexed_ident,
+            lhs,
             rhs: binary_expr,
         })
     }
@@ -870,8 +911,10 @@ impl Lowerer {
 
             if actual_size != expected_size as usize {
                 let kind = SemanticErrorKind::ArrayDeclarationTypeError(
-                    format!("expected an array of size {expected_size} but found one of size {actual_size}"),
-                    expr.span
+                    format!(
+                        "expected an array of size {expected_size} but found one of size {actual_size}"
+                    ),
+                    expr.span,
                 );
                 self.push_semantic_error(kind);
             }
@@ -936,7 +979,7 @@ impl Lowerer {
                     let indexed_ty = self.get_indexed_type(
                         ty,
                         Span::default(),
-                        &[semantic::Index::Expr(dummy_index)],
+                        &semantic::Index::Expr(dummy_index),
                     );
 
                     let texprs = exprs
@@ -1241,7 +1284,7 @@ impl Lowerer {
         let ty_span = stmt.ty.span();
         let stmt_span = stmt.span;
         let name = stmt.identifier.name.clone();
-        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), ty_span);
+        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
         let symbol = Symbol::new(
             &name,
             stmt.identifier.span,
@@ -1374,7 +1417,7 @@ impl Lowerer {
         let has_qubit_params = stmt
             .params
             .iter()
-            .any(|arg| matches!(&**arg, syntax::TypedParameter::Quantum(..)));
+            .any(|arg| matches!(&*arg.ty, syntax::DefParameterType::Qubit(..)));
 
         let kind = if has_qubit_params {
             crate::types::CallableKind::Operation
@@ -1489,23 +1532,24 @@ impl Lowerer {
         }
     }
 
-    fn lower_typed_parameter(&mut self, typed_param: &syntax::TypedParameter) -> Symbol {
-        match typed_param {
-            syntax::TypedParameter::ArrayReference(param) => {
-                self.lower_array_reference_parameter(param)
+    fn lower_typed_parameter(&mut self, typed_param: &syntax::DefParameter) -> Symbol {
+        let (ty, qsharp_ty) = match &*typed_param.ty {
+            syntax::DefParameterType::ArrayReference(ty) => {
+                let tydef = syntax::TypeDef::ArrayReference(ty.clone());
+                let ty = self.get_semantic_type_from_tydef(&tydef, false);
+                let qsharp_ty =
+                    self.convert_semantic_type_to_qsharp_type(&ty, typed_param.ty.span());
+                (ty, qsharp_ty)
             }
-            syntax::TypedParameter::Quantum(param) => self.lower_quantum_parameter(param),
-            syntax::TypedParameter::Scalar(param) => self.lower_scalar_parameter(param),
-        }
-    }
-
-    fn lower_array_reference_parameter(
-        &mut self,
-        typed_param: &syntax::ArrayTypedParameter,
-    ) -> Symbol {
-        let tydef = syntax::TypeDef::ArrayReference(*typed_param.ty.clone());
-        let ty = self.get_semantic_type_from_tydef(&tydef, false);
-        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, typed_param.ty.span);
+            syntax::DefParameterType::Qubit(ty) => self.lower_qubit_type(ty),
+            syntax::DefParameterType::Scalar(ty) => {
+                let tydef = syntax::TypeDef::Scalar(ty.clone());
+                let ty = self.get_semantic_type_from_tydef(&tydef, false);
+                let qsharp_ty =
+                    self.convert_semantic_type_to_qsharp_type(&ty, typed_param.ty.span());
+                (ty, qsharp_ty)
+            }
+        };
 
         Symbol::new(
             &typed_param.ident.name,
@@ -1516,8 +1560,11 @@ impl Lowerer {
         )
     }
 
-    fn lower_quantum_parameter(&mut self, typed_param: &syntax::QuantumTypedParameter) -> Symbol {
-        let (ty, qsharp_ty) = if let Some(size) = &typed_param.size {
+    fn lower_qubit_type(
+        &mut self,
+        typed_param: &syntax::QubitType,
+    ) -> (crate::semantic::types::Type, crate::types::Type) {
+        if let Some(size) = &typed_param.size {
             let size = self.const_eval_array_size_designator_expr(size);
             if let Some(size) = size {
                 let size = size.get_const_u32().expect("const evaluation succeeded");
@@ -1534,29 +1581,7 @@ impl Lowerer {
                 crate::semantic::types::Type::Qubit,
                 crate::types::Type::Qubit,
             )
-        };
-
-        Symbol::new(
-            &typed_param.ident.name,
-            typed_param.ident.span,
-            ty,
-            qsharp_ty,
-            IOKind::Default,
-        )
-    }
-
-    fn lower_scalar_parameter(&mut self, typed_param: &syntax::ScalarTypedParameter) -> Symbol {
-        let tydef = syntax::TypeDef::Scalar(*typed_param.ty.clone());
-        let ty = self.get_semantic_type_from_tydef(&tydef, false);
-        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, typed_param.ty.span);
-
-        Symbol::new(
-            &typed_param.ident.name,
-            typed_param.ident.span,
-            ty,
-            qsharp_ty,
-            IOKind::Default,
-        )
+        }
     }
 
     fn lower_def_cal(&mut self, stmt: &syntax::DefCalStmt) -> semantic::StmtKind {
@@ -2058,10 +2083,10 @@ impl Lowerer {
                         span: op.span,
                         kind: semantic::GateOperandKind::Expr(Box::new(semantic::Expr::new(
                             op.span,
-                            semantic::ExprKind::IndexExpr(semantic::IndexExpr {
+                            semantic::ExprKind::IndexedExpr(semantic::IndexedExpr {
                                 span: op.span,
-                                collection: *expr,
-                                indices: list_from_iter([index]),
+                                collection: expr,
+                                index: Box::new(index),
                             }),
                             Type::Qubit,
                         ))),
@@ -2351,7 +2376,7 @@ impl Lowerer {
         }
 
         // If there wasn't an explicit size, infer the size to be 1.
-        let (ty, size_and_span) = if let Some(size_expr) = &stmt.size {
+        let (ty, size_and_span) = if let Some(size_expr) = &stmt.ty.size {
             let span = size_expr.span;
             let size_expr = self.const_eval_quantum_register_size_expr(size_expr);
 
@@ -2383,7 +2408,7 @@ impl Lowerer {
         };
 
         let name = stmt.qubit.name.clone();
-        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty_span);
+        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty.span);
 
         let symbol = Symbol::new(
             &name,
@@ -2838,7 +2863,7 @@ impl Lowerer {
     ) -> crate::semantic::types::Type {
         self.push_unimplemented_error_message(
             "semantic type from array refence type",
-            array_ref_ty.span,
+            array_ref_ty.span(),
         );
         crate::semantic::types::Type::Err
     }
@@ -2910,8 +2935,7 @@ impl Lowerer {
         use semantic::Expr;
         use semantic::ExprKind;
         use semantic::LiteralKind;
-        let from_lit_kind =
-            |kind| -> Expr { Expr::new(Span::default(), ExprKind::Lit(kind), ty.as_const()) };
+        let from_lit_kind = |kind| -> Expr { Expr::new(span, ExprKind::Lit(kind), ty.as_const()) };
         let expr = match ty {
             Type::Angle(_, _) => Some(from_lit_kind(LiteralKind::Angle(Default::default()))),
             Type::Bit(_) => Some(from_lit_kind(LiteralKind::Bit(false))),
@@ -3763,10 +3787,10 @@ impl Lowerer {
         match set {
             syntax::EnumerableSet::Set(set) => semantic::EnumerableSet::Set(self.lower_set(set)),
             syntax::EnumerableSet::Range(range_definition) => {
-                semantic::EnumerableSet::Range(self.lower_range(range_definition))
+                semantic::EnumerableSet::Range(self.lower_range(range_definition).into())
             }
             syntax::EnumerableSet::Expr(expr) => {
-                semantic::EnumerableSet::Expr(self.lower_expr(expr))
+                semantic::EnumerableSet::Expr(self.lower_expr(expr).into())
             }
         }
     }
@@ -3789,9 +3813,9 @@ impl Lowerer {
             .values
             .iter()
             .filter_map(|index| match &**index {
-                syntax::IndexListItem::RangeDefinition(range) => {
-                    self.lower_const_range(range).map(semantic::Index::Range)
-                }
+                syntax::IndexListItem::RangeDefinition(range) => self
+                    .lower_const_range(range)
+                    .map(|range| semantic::Index::Range(range.into())),
                 syntax::IndexListItem::Expr(expr) => {
                     Some(semantic::Index::Expr(self.lower_expr(expr)))
                 }
@@ -3891,6 +3915,12 @@ impl Lowerer {
             return err_expr!(Type::Err, expr.span);
         };
 
+        if indices.is_empty() {
+            let kind = SemanticErrorKind::EmptyIndexOperator(expr.index.span());
+            self.push_semantic_error(kind);
+            return err_expr!(collection.ty.clone(), expr.span);
+        }
+
         // The spec says:
         // "One or more dimension(s) of an array can be zero,
         //  in which case the array has size zero. An array of
@@ -3903,52 +3933,100 @@ impl Lowerer {
             return err_expr!(Type::Err, expr.span);
         }
 
-        let indexed_ty = self.get_indexed_type(&collection.ty, expr.span, &indices);
+        self.lower_index_expr_rec(collection, indices.into())
+    }
 
-        semantic::Expr::new(
-            expr.span,
-            semantic::ExprKind::IndexExpr(semantic::IndexExpr {
-                span: expr.span,
-                collection,
-                indices: list_from_iter(indices),
-            }),
-            indexed_ty,
-        )
+    fn lower_index_expr_rec(
+        &mut self,
+        expr: semantic::Expr,
+        mut indices: VecDeque<semantic::Index>,
+    ) -> semantic::Expr {
+        // Base case: if the there are no indices, we just return the expression.
+        if indices.is_empty() {
+            return expr;
+        }
+
+        let ty = expr.ty.clone();
+
+        // Recursive case: if the expression is an array we handle the first index here
+        //                 and handle the rest recursively.
+        if expr.ty.is_array() {
+            let index = indices.pop_front().expect("there is at least one index");
+            let indexed_ty = expr.ty.get_indexed_type(self, &index, expr.span);
+            let span = Span {
+                lo: expr.span.lo,
+                hi: index.span().hi,
+            };
+            let expr = semantic::Expr::new(
+                span,
+                semantic::ExprKind::IndexedExpr(semantic::IndexedExpr {
+                    span,
+                    collection: Box::new(expr),
+                    index: Box::new(index),
+                }),
+                indexed_ty,
+            );
+            self.lower_index_expr_rec(expr, indices)
+        } else {
+            // Recursive case: if the expression is an indexable classical type we handle
+            //                 we handle it as a bitarray, which allow us to reuse the same
+            //                 codepath for normal arrays.
+            match ty {
+                Type::Angle(Some(width), constness)
+                | Type::Int(Some(width), constness)
+                | Type::UInt(Some(width), constness) => {
+                    self.index_as_bitarray(&expr, width, constness, indices)
+                }
+                _ => {
+                    let kind =
+                        SemanticErrorKind::CannotIndexType(ty.to_string(), indices[0].span());
+                    self.push_semantic_error(kind);
+                    err_expr!(Type::Err, expr.span)
+                }
+            }
+        }
+    }
+
+    /// Helper method to index into the int, uint, and angle classical types.
+    /// This method only gets called if the expr is a sized int, uint, or angle.
+    fn index_as_bitarray(
+        &mut self,
+        expr: &semantic::Expr,
+        width: u32,
+        constness: bool,
+        indices: VecDeque<semantic::Index>,
+    ) -> semantic::Expr {
+        // We first cast the sized int, uint, or angle to a bitarray.
+        let expr = self.cast_expr_to_type(&Type::BitArray(width, constness), expr);
+
+        // Then, we reuse the codepath for lowering indexed arrays.
+        // The spec says: "The bit slicing operation always returns a bit array
+        //                of size equal to the size of the index set."
+        // So, we don't need to convert back to the original type.
+        self.lower_index_expr_rec(expr, indices)
     }
 
     fn get_indexed_type(
         &mut self,
         ty: &Type,
         span: Span,
-        indices: &[semantic::Index],
+        index: &semantic::Index,
     ) -> super::types::Type {
-        if !ty.is_array() {
-            let kind = SemanticErrorKind::CannotIndexType(ty.to_string(), span);
-            self.push_semantic_error(kind);
-            return super::types::Type::Err;
-        }
-
-        if indices.len() > ty.num_dims() {
-            let kind = SemanticErrorKind::TooManyIndices(span);
-            self.push_semantic_error(kind);
-            return super::types::Type::Err;
-        }
-
-        if let Some(indexed_ty) = ty.get_indexed_type(indices) {
-            indexed_ty
-        } else {
-            // we failed to get the indexed type, unknown error
-            // we should have caught this earlier with the two checks above
-            let kind = SemanticErrorKind::CannotIndexType(ty.to_string(), span);
-            self.push_semantic_error(kind);
-            super::types::Type::Err
-        }
+        ty.get_indexed_type(self, index, span)
     }
 
-    /// A `syntax::IndexedIdent` is guaranteed to have at least one index.
-    /// This changes the type of expression we return to simplify downstream compilation
-    fn lower_indexed_ident_expr(&mut self, indexed_ident: &syntax::IndexedIdent) -> semantic::Expr {
+    /// This method is used to lower the lhs of assignment expressions.
+    /// It returns a pair:
+    ///   1. The ident indexed with all the array indices, but not with the classical type indices, if any.
+    ///   2. A `VecDeque` containing any classical-type indices. These will be used later to finish building
+    ///      the assign stmt in [`Self::lower_indexed_classical_type_assign_stmt`].
+    fn lower_indexed_ident_expr(
+        &mut self,
+        indexed_ident: &syntax::IndexedIdent,
+    ) -> (semantic::Expr, VecDeque<semantic::Index>) {
         assert!(!indexed_ident.indices.is_empty());
+
+        let collection = self.lower_ident_expr(&indexed_ident.ident);
 
         // We flatten the multiple square brackets, converting
         // a[1, 2][5, 7][2, 4:8]
@@ -3969,16 +4047,8 @@ impl Lowerer {
                 .sum::<usize>()
         {
             // Since we can't evaluate all the indices, we can't know the indexed type.
-            return err_expr!(Type::Err, indexed_ident.span);
+            return (err_expr!(Type::Err, indexed_ident.span), Default::default());
         }
-
-        let ident = indexed_ident.ident.clone();
-        let Some((symbol_id, lhs_symbol)) = self.symbols.get_symbol_by_name(&ident.name) else {
-            self.push_missing_symbol_error(ident.name, ident.span);
-            return err_expr!(Type::Err, indexed_ident.span);
-        };
-
-        let ty = lhs_symbol.ty.clone();
 
         // The spec says:
         // "One or more dimension(s) of an array can be zero,
@@ -3986,26 +4056,62 @@ impl Lowerer {
         //  size zero cannot be indexed, e.g. given
         //  `array[float[32], 0] myArray;`
         //  it is an error to access either myArray[0] or myArray[-1]."
-        if ty.has_zero_size() {
+        if collection.ty.has_zero_size() {
             let kind = SemanticErrorKind::ZeroSizeArrayAccess(indexed_ident.span);
             self.push_semantic_error(kind);
-            return err_expr!(Type::Err, indexed_ident.span);
+            return (err_expr!(Type::Err, indexed_ident.span), Default::default());
         }
 
-        // use the supplied number of indices rather than the number of indices we lowered
-        let indexed_ty = self.get_indexed_type(&ty, indexed_ident.span, &indices);
+        self.lower_indexed_ident_expr_rec(collection, indices.into())
+    }
 
-        semantic::Expr::new(
-            indexed_ident.span,
-            semantic::ExprKind::IndexedIdent(semantic::IndexedIdent {
-                span: indexed_ident.span,
-                name_span: ident.span,
-                index_span: indexed_ident.index_span,
-                symbol_id,
-                indices: list_from_iter(indices),
-            }),
-            indexed_ty,
-        )
+    /// This method is used to lower the lhs of assignment expressions.
+    fn lower_indexed_ident_expr_rec(
+        &mut self,
+        expr: semantic::Expr,
+        mut indices: VecDeque<semantic::Index>,
+    ) -> (semantic::Expr, VecDeque<semantic::Index>) {
+        // Base case: if the there are no indices, we just return the expression.
+        if indices.is_empty() {
+            return (expr, indices);
+        }
+
+        let ty = expr.ty.clone();
+
+        // Recursive case: if the expression is an array we handle the first index here
+        //                 and handle the rest recursively.
+        if expr.ty.is_array() {
+            let index = indices.pop_front().expect("there is at least one index");
+            let indexed_ty = expr.ty.get_indexed_type(self, &index, expr.span);
+            let span = Span {
+                lo: expr.span.lo,
+                hi: index.span().hi,
+            };
+            let expr = semantic::Expr::new(
+                span,
+                semantic::ExprKind::IndexedExpr(semantic::IndexedExpr {
+                    span,
+                    collection: Box::new(expr),
+                    index: Box::new(index),
+                }),
+                indexed_ty,
+            );
+            self.lower_indexed_ident_expr_rec(expr, indices)
+        } else {
+            match ty {
+                Type::Angle(Some(_), _) | Type::Int(Some(_), _) | Type::UInt(Some(_), _) => {
+                    // We don't want to keep indexing into the classical type when lowering
+                    // the lhs of an assignment expression.
+                    (expr, indices)
+                }
+                _ => {
+                    let kind =
+                        SemanticErrorKind::CannotIndexType(ty.to_string(), indices[0].span());
+                    self.push_semantic_error(kind);
+                    (err_expr!(Type::Err, expr.span), Default::default())
+                }
+            }
+        }
     }
 
     fn lower_gate_operand(&mut self, operand: &syntax::GateOperand) -> semantic::GateOperand {
@@ -4014,7 +4120,7 @@ impl Lowerer {
                 let expr = match &**ident_or_indexed_ident {
                     syntax::IdentOrIndexedIdent::Ident(ident) => self.lower_ident_expr(ident),
                     syntax::IdentOrIndexedIdent::IndexedIdent(indexed_ident) => {
-                        self.lower_indexed_ident_expr(indexed_ident)
+                        self.lower_indexed_ident_expr(indexed_ident).0
                     }
                 };
 
@@ -4133,7 +4239,7 @@ fn wrap_expr_in_cast_expr(ty: Type, rhs: semantic::Expr) -> semantic::Expr {
 }
 
 fn get_measurement_ty_from_gate_operand(operand: &semantic::GateOperand) -> Type {
-    if let semantic::GateOperandKind::Expr(ref expr) = &operand.kind {
+    if let semantic::GateOperandKind::Expr(expr) = &operand.kind {
         if let Type::QubitArray(size) = expr.ty {
             return Type::BitArray(size, false);
         }

@@ -6,7 +6,7 @@ use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{CallableKind, Expr, ExprKind, Functor, NodeId, UnOp},
-    mut_visit::{walk_expr, MutVisitor},
+    mut_visit::{MutVisitor, walk_expr},
     ty::Ty,
 };
 use thiserror::Error;
@@ -14,7 +14,9 @@ use thiserror::Error;
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
     #[error("operation does not support the adjoint functor")]
-    #[diagnostic(help("each operation called inside an operation with compiler-generated adjoint specializations must support the adjoint functor"))]
+    #[diagnostic(help(
+        "each operation called inside an operation with compiler-generated adjoint specializations must support the adjoint functor"
+    ))]
     #[diagnostic(code("Qsc.AdjGen.MissingAdjFunctor"))]
     MissingAdjFunctor(#[label] Span),
 

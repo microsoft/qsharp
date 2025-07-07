@@ -27,7 +27,7 @@ use qsc::incremental::Compiler;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_fir::fir::{ItemKind, LocalItemId, Package, PackageStore, StoreItemId};
 use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap};
-use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
+use qsc_lowerer::{Lowerer, map_hir_package_to_fir};
 use qsc_passes::PackageType;
 
 pub struct CompilationContext {

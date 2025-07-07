@@ -16,9 +16,9 @@ mod table_lookup;
 
 use indoc::indoc;
 use qsc::{
+    Backend, LanguageFeatures, PackageType, SourceMap, SparseSim,
     interpret::{self, GenericReceiver, Interpreter, Result, Value},
     target::Profile,
-    Backend, LanguageFeatures, PackageType, SourceMap, SparseSim,
 };
 
 /// # Panics

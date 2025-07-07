@@ -3,7 +3,7 @@
 
 //! Records the memory usage of the compiler.
 
-use qsc::{compile, CompileUnit};
+use qsc::{CompileUnit, compile};
 use qsc_data_structures::target::TargetCapabilityFlags;
 use qsc_frontend::compile::PackageStore;
 use std::{
@@ -20,10 +20,10 @@ pub struct AllocationCounter<A: GlobalAlloc> {
 unsafe impl<A: GlobalAlloc> GlobalAlloc for AllocationCounter<A> {
     unsafe fn alloc(&self, l: Layout) -> *mut u8 {
         self.counter.fetch_add(l.size() as u64, Ordering::SeqCst);
-        self.allocator.alloc(l)
+        unsafe { self.allocator.alloc(l) }
     }
     unsafe fn dealloc(&self, ptr: *mut u8, l: Layout) {
-        self.allocator.dealloc(ptr, l);
+        unsafe { self.allocator.dealloc(ptr, l) };
         self.counter.fetch_sub(l.size() as u64, Ordering::SeqCst);
     }
 }

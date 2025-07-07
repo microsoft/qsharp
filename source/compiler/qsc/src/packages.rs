@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::{
-    compile::{self, package_store_with_stdlib, Error, ErrorKind},
-    hir::PackageId,
     PackageStore, TargetCapabilityFlags,
+    compile::{self, Error, ErrorKind, package_store_with_stdlib},
+    hir::PackageId,
 };
 use qsc_circuit::circuit_to_qsharp::circuits_to_qsharp;
 use qsc_data_structures::language_features::LanguageFeatures;

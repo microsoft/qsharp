@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use nalgebra::dmatrix;
 use noisy_simulator::{
     DensityMatrixSimulator, Error, NoisySimulator, Operation, StateVectorSimulator,

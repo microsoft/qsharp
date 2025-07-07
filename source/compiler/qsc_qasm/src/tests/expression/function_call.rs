@@ -103,11 +103,7 @@ fn funcall_with_qubit_argument() -> miette::Result<(), Vec<Report>> {
         operation parity(qs : Qubit[]) : Result {
             mutable a = Std.Intrinsic.M(qs[0]);
             mutable b = Std.Intrinsic.M(qs[1]);
-            return if Std.OpenQASM.Convert.ResultAsInt(a) ^^^ Std.OpenQASM.Convert.ResultAsInt(b) == 0 {
-                One
-            } else {
-                Zero
-            };
+            return Std.OpenQASM.Convert.IntAsResult(Std.OpenQASM.Convert.ResultAsInt(a) ^^^ Std.OpenQASM.Convert.ResultAsInt(b));
         }
         let qs = QIR.Runtime.AllocateQubitArray(2);
         mutable p = parity(qs);
@@ -262,11 +258,7 @@ fn funcall_implicit_arg_cast_uint_to_bitarray() -> miette::Result<(), Vec<Report
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         function parity(arr : Result[]) : Result {
-            return if 1 == 0 {
-                One
-            } else {
-                Zero
-            };
+            return Std.OpenQASM.Convert.IntAsResult(1);
         }
         mutable x = 2;
         mutable p = parity(Std.OpenQASM.Convert.IntAsResultArrayBE(x, 2));

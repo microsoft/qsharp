@@ -3,14 +3,14 @@
 
 #![allow(clippy::too_many_lines)]
 
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use qsc_data_structures::{
     language_features::LanguageFeatures, span::Span, target::TargetCapabilityFlags,
 };
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, PackageStore, SourceMap, compile};
 use qsc_hir::{
     hir::{ExprKind, NodeId, Stmt},
-    visit::{walk_stmt, Visitor},
+    visit::{Visitor, walk_stmt},
 };
 use rustc_hash::FxHashMap;
 
@@ -120,11 +120,14 @@ fn if_without_op_call_not_quantum_stmts() {
 
 #[test]
 fn qubit_scope_expr_is_quantum_stmts() {
-    check("{use q = Qubit(); X(q); use scope_q = Qubit() {let val = 4; CNOT(q, scope_q); let val2 = val + 1;} Z(q);}", &expect![[r#"
+    check(
+        "{use q = Qubit(); X(q); use scope_q = Qubit() {let val = 4; CNOT(q, scope_q); let val2 = val + 1;} Z(q);}",
+        &expect![[r#"
         X(q);
         use scope_q = Qubit() {let val = 4; CNOT(q, scope_q); let val2 = val + 1;}
         CNOT(q, scope_q);
-        Z(q);"#]]);
+        Z(q);"#]],
+    );
 }
 
 #[test]

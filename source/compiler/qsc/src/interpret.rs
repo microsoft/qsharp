@@ -14,6 +14,7 @@ mod tests;
 use std::rc::Rc;
 
 pub use qsc_eval::{
+    StepAction, StepResult,
     debug::Frame,
     noise::PauliNoise,
     output::{self, GenericReceiver},
@@ -21,7 +22,6 @@ pub use qsc_eval::{
     val::Range as ValueRange,
     val::Result,
     val::Value,
-    StepAction, StepResult,
 };
 use qsc_hir::{global, ty};
 use qsc_linter::{HirLint, Lint, LintKind, LintLevel};
@@ -39,8 +39,8 @@ use miette::Diagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex;
 use qsc_circuit::{
-    operations::entry_expr_for_qubit_operation, Builder as CircuitBuilder, Circuit,
-    Config as CircuitConfig,
+    Builder as CircuitBuilder, Circuit, Config as CircuitConfig,
+    operations::entry_expr_for_qubit_operation,
 };
 use qsc_codegen::qir::{fir_to_qir, fir_to_qir_from_callable};
 use qsc_data_structures::{
@@ -51,9 +51,10 @@ use qsc_data_structures::{
     target::TargetCapabilityFlags,
 };
 use qsc_eval::{
+    Env, State, VariableInfo,
     backend::{Backend, Chain as BackendChain, SparseSim},
     output::Receiver,
-    val, Env, State, VariableInfo,
+    val,
 };
 use qsc_fir::fir::{self, ExecGraph, Global, PackageStoreLookup};
 use qsc_fir::{
@@ -1088,7 +1089,8 @@ impl Debugger {
     #[must_use]
     pub fn get_stack_frames(&self) -> Vec<StackFrame> {
         let frames = self.state.get_stack_frames();
-        let stack_frames = frames
+
+        frames
             .iter()
             .map(|frame| {
                 let callable = self
@@ -1113,8 +1115,7 @@ impl Debugger {
                     ),
                 }
             })
-            .collect();
-        stack_frames
+            .collect()
     }
 
     pub fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
@@ -1152,10 +1153,10 @@ impl Debugger {
     }
 
     #[must_use]
-    pub fn get_locals(&self) -> Vec<VariableInfo> {
+    pub fn get_locals(&self, frame_id: usize) -> Vec<VariableInfo> {
         self.interpreter
             .env
-            .get_variables_in_top_frame()
+            .get_variables_in_frame(frame_id)
             .into_iter()
             .filter(|v| !v.name.starts_with('@'))
             .collect()

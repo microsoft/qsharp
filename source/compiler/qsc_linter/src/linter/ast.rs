@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{
-    lints::ast::{AstLint, CombinedAstLints},
     Lint, LintLevel,
+    lints::ast::{AstLint, CombinedAstLints},
 };
 use qsc_ast::{
     ast::{

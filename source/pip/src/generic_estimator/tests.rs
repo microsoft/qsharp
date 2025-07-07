@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::factory::round_based::{ordered_bfs, OrderedBFSControl};
+use super::factory::round_based::{OrderedBFSControl, ordered_bfs};
 
 #[test]
 fn test_ordered_bfs() {

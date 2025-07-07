@@ -6,7 +6,7 @@ use crate::{
     compile,
     resolve::{LocalKind, Resolver},
 };
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use indoc::indoc;
 use qsc_ast::ast::{Idents, Item, ItemKind, PathKind};
 use qsc_ast::{
@@ -175,15 +175,13 @@ impl Visitor<'_> for Renamer<'_> {
 
 impl Renamer<'_> {
     fn find_namespace_id(&mut self, idents: &impl Idents) -> Option<NamespaceId> {
-        let ns_id = self
-            .namespaces
+        self.namespaces
             .get_namespace_id(idents.str_iter())
             .or_else(|| {
                 self.aliases
                     .get(&idents.rc_str_iter().cloned().collect::<Vec<_>>())
                     .copied()
-            });
-        ns_id
+            })
     }
 }
 

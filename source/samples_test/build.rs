@@ -3,7 +3,7 @@
 
 use std::{
     ffi::OsStr,
-    fs::{read_dir, File},
+    fs::{File, read_dir},
     io::Write,
     path::{Path, PathBuf},
 };

@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-use crate::{compile, LanguageFeatures, TargetCapabilityFlags};
+use crate::{LanguageFeatures, TargetCapabilityFlags, compile};
 use expect_test::expect;
 use qsc_frontend::compile::{CompileUnit, SourceMap};
 use qsc_passes::PackageType;

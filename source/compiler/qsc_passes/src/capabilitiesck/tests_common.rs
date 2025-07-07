@@ -4,11 +4,11 @@
 use expect_test::Expect;
 
 use crate::capabilitiesck::check_supported_capabilities;
-use qsc::{incremental::Compiler, PackageType};
+use qsc::{PackageType, incremental::Compiler};
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_fir::fir::{Package, PackageId, PackageStore};
 use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap};
-use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
+use qsc_lowerer::{Lowerer, map_hir_package_to_fir};
 use qsc_rca::{Analyzer, PackageComputeProperties, PackageStoreComputeProperties};
 
 pub fn check(source: &str, expect: &Expect, capabilities: TargetCapabilityFlags) {

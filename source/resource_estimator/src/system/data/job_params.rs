@@ -11,7 +11,7 @@ use super::super::{
 };
 use crate::estimates::ErrorBudget;
 
-use super::{tfactory::TFactoryDistillationUnitSpecifications, Constraints};
+use super::{Constraints, tfactory::TFactoryDistillationUnitSpecifications};
 
 #[derive(Default, Deserialize, Serialize)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]

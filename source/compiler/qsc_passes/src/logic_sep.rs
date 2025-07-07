@@ -9,7 +9,7 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{Block, CallableKind, Expr, ExprKind, NodeId, StmtKind},
     ty::Ty,
-    visit::{walk_expr, Visitor},
+    visit::{Visitor, walk_expr},
 };
 use rustc_hash::FxHashSet;
 use thiserror::Error;
@@ -17,7 +17,9 @@ use thiserror::Error;
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
     #[error("cannot generate adjoint with this expression")]
-    #[diagnostic(help("assignments, repeat-loops, while-loops, and returns cannot be used in blocks that require generated adjoint"))]
+    #[diagnostic(help(
+        "assignments, repeat-loops, while-loops, and returns cannot be used in blocks that require generated adjoint"
+    ))]
     #[diagnostic(code("Qsc.LogicSeparation.ExprFobidden"))]
     ExprForbidden(#[label] Span),
 
@@ -27,7 +29,9 @@ pub enum Error {
     NonUnitBlock(String, #[label] Span),
 
     #[error("cannot generate adjoint with operation call in this position")]
-    #[diagnostic(help("in blocks that require generated adjoint, operation calls can only appear as top-level statements or in a qubit allocation block, conjugate block, for-loop block, or conditional block"))]
+    #[diagnostic(help(
+        "in blocks that require generated adjoint, operation calls can only appear as top-level statements or in a qubit allocation block, conjugate block, for-loop block, or conditional block"
+    ))]
     #[diagnostic(code("Qsc.LogicSeparation.OpCallForbidden"))]
     OpCallForbidden(#[label] Span),
 }

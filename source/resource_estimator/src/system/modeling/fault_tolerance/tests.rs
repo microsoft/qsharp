@@ -3,7 +3,7 @@
 
 use crate::{
     estimates::ErrorCorrection,
-    system::modeling::{surface_code_gate_based, PhysicalQubit},
+    system::modeling::{PhysicalQubit, surface_code_gate_based},
 };
 
 #[test]

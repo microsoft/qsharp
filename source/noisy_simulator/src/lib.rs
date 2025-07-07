@@ -135,7 +135,9 @@ pub enum Error {
     #[error("provided an invalid state when creating or setting the state of the simulator: {0}")]
     InvalidState(String),
     /// `Matrix` ⋅ `Vector` multiplication mismatch.
-    #[error("matrix ⋅ vector multiplication mismatch; matrix is of dimension ({nrows}, {ncols}) but vector has {vec_dim} entries")]
+    #[error(
+        "matrix ⋅ vector multiplication mismatch; matrix is of dimension ({nrows}, {ncols}) but vector has {vec_dim} entries"
+    )]
     MatrixVecDimensionMismatch {
         /// Number of rows in the matrix.
         nrows: usize,
@@ -157,7 +159,9 @@ pub enum Error {
     #[error("error when building `StateVector` from raw_data: {0}")]
     StateVectorTryFromError(String),
     /// Trace is not real
-    #[error("state trace should be real since it represents a probability, but its imaginary part is: {0}")]
+    #[error(
+        "state trace should be real since it represents a probability, but its imaginary part is: {0}"
+    )]
     TraceIsNotReal(f64),
 }
 

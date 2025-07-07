@@ -44,8 +44,10 @@ pub fn check_ssa_form(
                     let new_dom = doms
                         .get(*dominator)
                         .expect("all blocks should have dominator");
-                    assert!(new_dom != dominator || new_dom == def_block_id,
-                        "Definition of {var_id:?} in {def_block_id:?} does not dominate use in {use_block_id:?}, instruction {use_idx:?}");
+                    assert!(
+                        new_dom != dominator || new_dom == def_block_id,
+                        "Definition of {var_id:?} in {def_block_id:?} does not dominate use in {use_block_id:?}, instruction {use_idx:?}"
+                    );
                     dominator = new_dom;
                 }
             }

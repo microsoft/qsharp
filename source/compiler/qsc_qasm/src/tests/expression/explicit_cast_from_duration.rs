@@ -50,10 +50,10 @@ fn duration_to_bool_fails() {
             Qasm.Compiler.NotSupported
 
               x timing literals are not supported
-               ,-[Test.qasm:1:1]
+               ,-[Test.qasm:2:9]
              1 | 
-               : ^
              2 |         duration a;
+               :         ^^^^^^^^^^^
              3 |         bool(a);
                `----
         "#]],
@@ -86,10 +86,10 @@ fn duration_to_duration() {
             Qasm.Compiler.NotSupported
 
               x timing literals are not supported
-               ,-[Test.qasm:1:1]
+               ,-[Test.qasm:2:9]
              1 | 
-               : ^
              2 |         duration a;
+               :         ^^^^^^^^^^^
              3 |         duration(a);
                `----
         "#]],
@@ -132,10 +132,10 @@ fn duration_to_int_fails() {
             Qasm.Compiler.NotSupported
 
               x timing literals are not supported
-               ,-[Test.qasm:1:1]
+               ,-[Test.qasm:2:9]
              1 | 
-               : ^
              2 |         duration a;
+               :         ^^^^^^^^^^^
              3 |         int(a);
                `----
         "#]],
@@ -174,10 +174,10 @@ fn duration_to_sized_int_fails() {
             Qasm.Compiler.NotSupported
 
               x timing literals are not supported
-               ,-[Test.qasm:1:1]
+               ,-[Test.qasm:2:9]
              1 | 
-               : ^
              2 |         duration a;
+               :         ^^^^^^^^^^^
              3 |         int[32](a);
                `----
         "#]],
@@ -220,10 +220,10 @@ fn duration_to_uint_fails() {
             Qasm.Compiler.NotSupported
 
               x timing literals are not supported
-               ,-[Test.qasm:1:1]
+               ,-[Test.qasm:2:9]
              1 | 
-               : ^
              2 |         duration a;
+               :         ^^^^^^^^^^^
              3 |         uint(a);
                `----
         "#]],
@@ -262,10 +262,10 @@ fn duration_to_sized_uint_fails() {
             Qasm.Compiler.NotSupported
 
               x timing literals are not supported
-               ,-[Test.qasm:1:1]
+               ,-[Test.qasm:2:9]
              1 | 
-               : ^
              2 |         duration a;
+               :         ^^^^^^^^^^^
              3 |         uint[32](a);
                `----
         "#]],
@@ -308,10 +308,10 @@ fn duration_to_float_fails() {
             Qasm.Compiler.NotSupported
 
               x timing literals are not supported
-               ,-[Test.qasm:1:1]
+               ,-[Test.qasm:2:9]
              1 | 
-               : ^
              2 |         duration a;
+               :         ^^^^^^^^^^^
              3 |         float(a);
                `----
         "#]],
@@ -350,10 +350,10 @@ fn duration_to_sized_float_fails() {
             Qasm.Compiler.NotSupported
 
               x timing literals are not supported
-               ,-[Test.qasm:1:1]
+               ,-[Test.qasm:2:9]
              1 | 
-               : ^
              2 |         duration a;
+               :         ^^^^^^^^^^^
              3 |         float[32](a);
                `----
         "#]],
@@ -396,10 +396,10 @@ fn duration_to_angle_fails() {
             Qasm.Compiler.NotSupported
 
               x timing literals are not supported
-               ,-[Test.qasm:1:1]
+               ,-[Test.qasm:2:9]
              1 | 
-               : ^
              2 |         duration a;
+               :         ^^^^^^^^^^^
              3 |         angle(a);
                `----
         "#]],
@@ -438,10 +438,10 @@ fn duration_to_sized_angle_fails() {
             Qasm.Compiler.NotSupported
 
               x timing literals are not supported
-               ,-[Test.qasm:1:1]
+               ,-[Test.qasm:2:9]
              1 | 
-               : ^
              2 |         duration a;
+               :         ^^^^^^^^^^^
              3 |         angle[32](a);
                `----
         "#]],
@@ -484,10 +484,10 @@ fn duration_to_complex_fails() {
             Qasm.Compiler.NotSupported
 
               x timing literals are not supported
-               ,-[Test.qasm:1:1]
+               ,-[Test.qasm:2:9]
              1 | 
-               : ^
              2 |         duration a;
+               :         ^^^^^^^^^^^
              3 |         complex(a);
                `----
         "#]],
@@ -526,10 +526,10 @@ fn duration_to_sized_complex_fails() {
             Qasm.Compiler.NotSupported
 
               x timing literals are not supported
-               ,-[Test.qasm:1:1]
+               ,-[Test.qasm:2:9]
              1 | 
-               : ^
              2 |         duration a;
+               :         ^^^^^^^^^^^
              3 |         complex[float[32]](a);
                `----
         "#]],
@@ -572,10 +572,10 @@ fn duration_to_bit_fails() {
             Qasm.Compiler.NotSupported
 
               x timing literals are not supported
-               ,-[Test.qasm:1:1]
+               ,-[Test.qasm:2:9]
              1 | 
-               : ^
              2 |         duration a;
+               :         ^^^^^^^^^^^
              3 |         bit(a);
                `----
         "#]],
@@ -614,10 +614,10 @@ fn duration_to_bitarray_fails() {
             Qasm.Compiler.NotSupported
 
               x timing literals are not supported
-               ,-[Test.qasm:1:1]
+               ,-[Test.qasm:2:9]
              1 | 
-               : ^
              2 |         duration a;
+               :         ^^^^^^^^^^^
              3 |         bit[32](a);
                `----
         "#]],

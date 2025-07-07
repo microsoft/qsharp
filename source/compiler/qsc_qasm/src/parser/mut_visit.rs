@@ -3,18 +3,19 @@
 
 use qsc_data_structures::span::Span;
 
+use crate::parser::ast::{DefParameter, DefParameterType, QubitType};
+
 use super::ast::{
     AccessControl, AliasDeclStmt, Annotation, ArrayBaseTypeKind, ArrayReferenceType, ArrayType,
-    ArrayTypedParameter, AssignOpStmt, AssignStmt, BarrierStmt, BinOp, BinaryOpExpr, Block,
-    BoxStmt, BreakStmt, CalibrationGrammarStmt, CalibrationStmt, Cast, ClassicalDeclarationStmt,
-    ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, EndStmt, EnumerableSet, Expr,
-    ExprStmt, ExternDecl, ExternParameter, ForStmt, FunctionCall, GPhase, GateCall,
-    GateModifierKind, GateOperand, GateOperandKind, HardwareQubit, IODeclaration, Ident,
-    IdentOrIndexedIdent, IfStmt, IncludeStmt, Index, IndexExpr, IndexList, IndexListItem,
-    IndexedIdent, Lit, LiteralKind, MeasureArrowStmt, MeasureExpr, Pragma, Program,
-    QuantumGateDefinition, QuantumGateModifier, QuantumTypedParameter, QubitDeclaration, Range,
-    ResetStmt, ReturnStmt, ScalarType, ScalarTypedParameter, Set, Stmt, StmtKind, SwitchCase,
-    SwitchStmt, TypeDef, TypedParameter, UnaryOp, UnaryOpExpr, ValueExpr, Version, WhileLoop,
+    AssignOpStmt, AssignStmt, BarrierStmt, BinOp, BinaryOpExpr, Block, BoxStmt, BreakStmt,
+    CalibrationGrammarStmt, CalibrationStmt, Cast, ClassicalDeclarationStmt, ConstantDeclStmt,
+    ContinueStmt, DefCalStmt, DefStmt, DelayStmt, EndStmt, EnumerableSet, Expr, ExprStmt,
+    ExternDecl, ExternParameter, ForStmt, FunctionCall, GPhase, GateCall, GateModifierKind,
+    GateOperand, GateOperandKind, HardwareQubit, IODeclaration, Ident, IdentOrIndexedIdent, IfStmt,
+    IncludeStmt, Index, IndexExpr, IndexList, IndexListItem, IndexedIdent, Lit, LiteralKind,
+    MeasureArrowStmt, MeasureExpr, Pragma, Program, QuantumGateDefinition, QuantumGateModifier,
+    QubitDeclaration, Range, ResetStmt, ReturnStmt, ScalarType, Set, Stmt, StmtKind, SwitchCase,
+    SwitchStmt, TypeDef, UnaryOp, UnaryOpExpr, ValueExpr, Version, WhileLoop,
 };
 
 pub trait MutVisitor: Sized {
@@ -258,20 +259,12 @@ pub trait MutVisitor: Sized {
         walk_scalar_type(self, ty);
     }
 
-    fn visit_typed_parameter(&mut self, param: &mut TypedParameter) {
-        walk_typed_parameter(self, param);
+    fn visit_qubit_type(&mut self, ty: &mut QubitType) {
+        walk_qubit_type(self, ty);
     }
 
-    fn visit_array_typed_parameter(&mut self, param: &mut ArrayTypedParameter) {
-        walk_array_typed_parameter(self, param);
-    }
-
-    fn visit_quantum_typed_parameter(&mut self, param: &mut QuantumTypedParameter) {
-        walk_quantum_typed_parameter(self, param);
-    }
-
-    fn visit_scalar_typed_parameter(&mut self, param: &mut ScalarTypedParameter) {
-        walk_scalar_typed_parameter(self, param);
+    fn visit_def_parameter(&mut self, param: &mut DefParameter) {
+        walk_def_parameter(self, param);
     }
 
     fn visit_extern_parameter(&mut self, param: &mut ExternParameter) {
@@ -444,7 +437,7 @@ fn walk_def_stmt(vis: &mut impl MutVisitor, stmt: &mut DefStmt) {
     vis.visit_ident(&mut stmt.name);
     stmt.params
         .iter_mut()
-        .for_each(|p| vis.visit_typed_parameter(p));
+        .for_each(|p| vis.visit_def_parameter(p));
     stmt.return_type
         .iter_mut()
         .for_each(|ty| vis.visit_scalar_type(ty));
@@ -564,9 +557,9 @@ fn walk_quantum_gate_definition_stmt(vis: &mut impl MutVisitor, stmt: &mut Quant
 
 fn walk_quantum_decl_stmt(vis: &mut impl MutVisitor, stmt: &mut QubitDeclaration) {
     vis.visit_span(&mut stmt.span);
-    vis.visit_span(&mut stmt.ty_span);
+    vis.visit_span(&mut stmt.ty.span);
     vis.visit_ident(&mut stmt.qubit);
-    stmt.size.iter_mut().for_each(|s| vis.visit_expr(s));
+    stmt.ty.size.iter_mut().for_each(|s| vis.visit_expr(s));
 }
 
 fn walk_reset_stmt(vis: &mut impl MutVisitor, stmt: &mut ResetStmt) {
@@ -750,10 +743,20 @@ pub fn walk_array_base_type(vis: &mut impl MutVisitor, ty: &mut ArrayBaseTypeKin
 }
 
 pub fn walk_array_ref_type(vis: &mut impl MutVisitor, ty: &mut ArrayReferenceType) {
-    vis.visit_span(&mut ty.span);
-    vis.visit_access_control(&mut ty.mutability);
-    vis.visit_array_base_type(&mut ty.base_type);
-    ty.dimensions.iter_mut().for_each(|d| vis.visit_expr(d));
+    match ty {
+        ArrayReferenceType::Dyn(ty) => {
+            vis.visit_span(&mut ty.span);
+            vis.visit_access_control(&mut ty.mutability);
+            vis.visit_array_base_type(&mut ty.base_type);
+            vis.visit_expr(&mut ty.dimensions);
+        }
+        ArrayReferenceType::Static(ty) => {
+            vis.visit_span(&mut ty.span);
+            vis.visit_access_control(&mut ty.mutability);
+            vis.visit_array_base_type(&mut ty.base_type);
+            ty.dimensions.iter_mut().for_each(|d| vis.visit_expr(d));
+        }
+    }
 }
 
 pub fn walk_scalar_type(vis: &mut impl MutVisitor, ty: &mut ScalarType) {
@@ -769,36 +772,25 @@ pub fn walk_scalar_type(vis: &mut impl MutVisitor, ty: &mut ScalarType) {
     }
 }
 
-pub fn walk_typed_parameter(vis: &mut impl MutVisitor, ty: &mut TypedParameter) {
-    match ty {
-        TypedParameter::ArrayReference(array_typed_parameter) => {
-            vis.visit_array_typed_parameter(array_typed_parameter);
-        }
-        TypedParameter::Quantum(quantum_typed_parameter) => {
-            vis.visit_quantum_typed_parameter(quantum_typed_parameter);
-        }
-        TypedParameter::Scalar(scalar_typed_parameter) => {
-            vis.visit_scalar_typed_parameter(scalar_typed_parameter);
-        }
-    }
-}
-
-pub fn walk_array_typed_parameter(vis: &mut impl MutVisitor, ty: &mut ArrayTypedParameter) {
+pub fn walk_qubit_type(vis: &mut impl MutVisitor, ty: &mut QubitType) {
     vis.visit_span(&mut ty.span);
-    vis.visit_ident(&mut ty.ident);
-    vis.visit_array_ref_type(&mut ty.ty);
-}
-
-pub fn walk_quantum_typed_parameter(vis: &mut impl MutVisitor, ty: &mut QuantumTypedParameter) {
-    vis.visit_span(&mut ty.span);
-    vis.visit_ident(&mut ty.ident);
     ty.size.iter_mut().for_each(|s| vis.visit_expr(s));
 }
 
-pub fn walk_scalar_typed_parameter(vis: &mut impl MutVisitor, ty: &mut ScalarTypedParameter) {
-    vis.visit_span(&mut ty.span);
-    vis.visit_ident(&mut ty.ident);
-    vis.visit_scalar_type(&mut ty.ty);
+pub fn walk_def_parameter(vis: &mut impl MutVisitor, param: &mut DefParameter) {
+    vis.visit_span(&mut param.span);
+    vis.visit_ident(&mut param.ident);
+    match &mut *param.ty {
+        DefParameterType::ArrayReference(ty) => {
+            vis.visit_array_ref_type(ty);
+        }
+        DefParameterType::Qubit(ty) => {
+            vis.visit_qubit_type(ty);
+        }
+        DefParameterType::Scalar(ty) => {
+            vis.visit_scalar_type(ty);
+        }
+    }
 }
 
 pub fn walk_extern_parameter(vis: &mut impl MutVisitor, param: &mut ExternParameter) {

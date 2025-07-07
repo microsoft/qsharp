@@ -10,7 +10,7 @@ use qsc_fir::{
         PackageId, PackageLookup, Pat, PatId, Res, Stmt, StmtId, StoreItemId, UnOp,
     },
     ty::{FunctorSetValue, Ty},
-    visit::{walk_expr, walk_stmt, Visitor},
+    visit::{Visitor, walk_expr, walk_stmt},
 };
 use rustc_hash::FxHashMap;
 use std::{

@@ -30,7 +30,7 @@ fn angle_to_bool() {
             ClassicalDeclarationStmt [9-17]:
                 symbol_id: 8
                 ty_span: [9-14]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-17]:
                     ty: const angle
                     kind: Lit: Angle(0)
             ExprStmt [26-34]:
@@ -57,7 +57,7 @@ fn sized_angle_to_bool() {
             ClassicalDeclarationStmt [9-21]:
                 symbol_id: 8
                 ty_span: [9-18]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-21]:
                     ty: const angle[32]
                     kind: Lit: Angle(0)
             ExprStmt [30-38]:
@@ -93,7 +93,7 @@ fn angle_to_duration_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
                     Stmt [26-38]:
@@ -133,7 +133,7 @@ fn sized_angle_to_duration_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-42]:
@@ -177,7 +177,7 @@ fn angle_to_int_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
                     Stmt [26-33]:
@@ -217,7 +217,7 @@ fn angle_to_sized_int_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
                     Stmt [26-37]:
@@ -257,7 +257,7 @@ fn sized_angle_to_int_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-37]:
@@ -297,7 +297,7 @@ fn sized_angle_to_sized_int_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-41]:
@@ -337,7 +337,7 @@ fn sized_angle_to_sized_int_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-41]:
@@ -377,7 +377,7 @@ fn sized_angle_to_sized_int_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-41]:
@@ -421,7 +421,7 @@ fn angle_to_uint_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
                     Stmt [26-34]:
@@ -461,7 +461,7 @@ fn angle_to_sized_uint_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
                     Stmt [26-38]:
@@ -501,7 +501,7 @@ fn sized_angle_to_uint_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-38]:
@@ -541,7 +541,7 @@ fn sized_angle_to_sized_uint_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-42]:
@@ -581,7 +581,7 @@ fn sized_angle_to_sized_uint_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-42]:
@@ -621,7 +621,7 @@ fn sized_angle_to_sized_uint_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-42]:
@@ -665,7 +665,7 @@ fn angle_to_float_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
                     Stmt [26-35]:
@@ -705,7 +705,7 @@ fn angle_to_sized_float_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
                     Stmt [26-39]:
@@ -745,7 +745,7 @@ fn sized_angle_to_float_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-39]:
@@ -785,7 +785,7 @@ fn sized_angle_to_sized_float_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-43]:
@@ -825,7 +825,7 @@ fn sized_angle_to_sized_float_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-43]:
@@ -865,7 +865,7 @@ fn sized_angle_to_sized_float_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-43]:
@@ -904,7 +904,7 @@ fn angle_to_angle() {
             ClassicalDeclarationStmt [9-17]:
                 symbol_id: 8
                 ty_span: [9-14]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-17]:
                     ty: const angle
                     kind: Lit: Angle(0)
             ExprStmt [26-35]:
@@ -927,7 +927,7 @@ fn angle_to_sized_angle() {
             ClassicalDeclarationStmt [9-17]:
                 symbol_id: 8
                 ty_span: [9-14]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-17]:
                     ty: const angle
                     kind: Lit: Angle(0)
             ExprStmt [26-39]:
@@ -954,7 +954,7 @@ fn sized_angle_to_angle() {
             ClassicalDeclarationStmt [9-21]:
                 symbol_id: 8
                 ty_span: [9-18]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-21]:
                     ty: const angle[32]
                     kind: Lit: Angle(0)
             ExprStmt [30-39]:
@@ -981,7 +981,7 @@ fn sized_angle_to_sized_angle() {
             ClassicalDeclarationStmt [9-21]:
                 symbol_id: 8
                 ty_span: [9-18]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-21]:
                     ty: const angle[32]
                     kind: Lit: Angle(0)
             ExprStmt [30-43]:
@@ -1004,7 +1004,7 @@ fn sized_angle_to_sized_angle_truncating() {
             ClassicalDeclarationStmt [9-21]:
                 symbol_id: 8
                 ty_span: [9-18]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-21]:
                     ty: const angle[32]
                     kind: Lit: Angle(0)
             ExprStmt [30-43]:
@@ -1031,7 +1031,7 @@ fn sized_angle_to_sized_angle_expanding() {
             ClassicalDeclarationStmt [9-21]:
                 symbol_id: 8
                 ty_span: [9-18]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-21]:
                     ty: const angle[32]
                     kind: Lit: Angle(0)
             ExprStmt [30-43]:
@@ -1067,7 +1067,7 @@ fn angle_to_complex_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
                     Stmt [26-37]:
@@ -1107,7 +1107,7 @@ fn angle_to_sized_complex_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
                     Stmt [26-48]:
@@ -1147,7 +1147,7 @@ fn sized_angle_to_complex_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-41]:
@@ -1187,7 +1187,7 @@ fn sized_angle_to_sized_complex_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-52]:
@@ -1227,7 +1227,7 @@ fn sized_angle_to_sized_complex_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-52]:
@@ -1267,7 +1267,7 @@ fn sized_angle_to_sized_complex_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-52]:
@@ -1306,7 +1306,7 @@ fn angle_to_bit() {
             ClassicalDeclarationStmt [9-17]:
                 symbol_id: 8
                 ty_span: [9-14]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-17]:
                     ty: const angle
                     kind: Lit: Angle(0)
             ExprStmt [26-33]:
@@ -1338,7 +1338,7 @@ fn angle_to_bitarray_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
                     Stmt [26-37]:
@@ -1373,7 +1373,7 @@ fn sized_angle_to_bit() {
             ClassicalDeclarationStmt [9-21]:
                 symbol_id: 8
                 ty_span: [9-18]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-21]:
                     ty: const angle[32]
                     kind: Lit: Angle(0)
             ExprStmt [30-37]:
@@ -1400,7 +1400,7 @@ fn sized_angle_to_bitarray() {
             ClassicalDeclarationStmt [9-21]:
                 symbol_id: 8
                 ty_span: [9-18]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-21]:
                     ty: const angle[32]
                     kind: Lit: Angle(0)
             ExprStmt [30-41]:
@@ -1432,7 +1432,7 @@ fn sized_angle_to_bitarray_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-41]:
@@ -1472,7 +1472,7 @@ fn sized_angle_to_bitarray_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
                     Stmt [30-41]:

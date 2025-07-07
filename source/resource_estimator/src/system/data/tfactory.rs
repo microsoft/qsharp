@@ -5,13 +5,13 @@ use core::ops::Deref;
 use serde::{Deserialize, Serialize};
 
 use super::super::{
+    Error, Result,
     compiled_expression::CompiledExpression,
     error::IO::{self, CannotParseJSON},
     modeling::{
         TFactoryDistillationUnitResources, TFactoryDistillationUnitTemplate,
         TFactoryDistillationUnitType, TFactoryFormula,
     },
-    Error, Result,
 };
 
 #[derive(Default, Serialize, Deserialize)]

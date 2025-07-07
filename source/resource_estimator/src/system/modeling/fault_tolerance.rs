@@ -15,6 +15,7 @@ use crate::estimates::{
 
 use super::{
     super::{
+        Error,
         compiled_expression::CompiledExpression,
         constants::{
             IDLE_ERROR_RATE, MAX_CODE_DISTANCE, ONE_QUBIT_GATE_ERROR_RATE, ONE_QUBIT_GATE_TIME,
@@ -23,13 +24,12 @@ use super::{
             TWO_QUBIT_JOINT_MEASUREMENT_PROCESS_ERROR_RATE, TWO_QUBIT_JOINT_MEASUREMENT_TIME,
         },
         error::{
+            IO::CannotParseJSON,
             InvalidInput::{
                 InvalidFaultToleranceProtocol, NonPositiveLogicalCycleTime,
                 NonPositivePhysicalQubitsPerLogicalQubit,
             },
-            IO::CannotParseJSON,
         },
-        Error,
     },
     PhysicalInstructionSet, PhysicalQubit,
 };
@@ -205,25 +205,25 @@ pub fn load_protocol_from_specification(
     // validate model with respect to qubit
     if qubit.clifford_error_rate() >= ftp.error_correction_threshold() {
         match qubit.instruction_set() {
-                PhysicalInstructionSet::GateBased => {
-                    return Err(Error::InvalidValue(
-                        format!(
-                            "{ONE_QUBIT_GATE_ERROR_RATE}, {TWO_QUBIT_GATE_ERROR_RATE}, {IDLE_ERROR_RATE}"
-                        ),
-                        0.0,
-                        ftp.error_correction_threshold(),
-                    ))
-                }
-                PhysicalInstructionSet::Majorana => {
-                    return Err(Error::InvalidValue(
-                        format!(
-                            "{IDLE_ERROR_RATE}, {ONE_QUBIT_MEASUREMENT_PROCESS_ERROR_RATE}, {TWO_QUBIT_JOINT_MEASUREMENT_PROCESS_ERROR_RATE}",
-                        ),
-                        0.0,
-                        ftp.error_correction_threshold(),
-                    ))
-                }
+            PhysicalInstructionSet::GateBased => {
+                return Err(Error::InvalidValue(
+                    format!(
+                        "{ONE_QUBIT_GATE_ERROR_RATE}, {TWO_QUBIT_GATE_ERROR_RATE}, {IDLE_ERROR_RATE}"
+                    ),
+                    0.0,
+                    ftp.error_correction_threshold(),
+                ));
             }
+            PhysicalInstructionSet::Majorana => {
+                return Err(Error::InvalidValue(
+                    format!(
+                        "{IDLE_ERROR_RATE}, {ONE_QUBIT_MEASUREMENT_PROCESS_ERROR_RATE}, {TWO_QUBIT_JOINT_MEASUREMENT_PROCESS_ERROR_RATE}",
+                    ),
+                    0.0,
+                    ftp.error_correction_threshold(),
+                ));
+            }
+        }
     }
 
     // validate that formulas only yield positive values

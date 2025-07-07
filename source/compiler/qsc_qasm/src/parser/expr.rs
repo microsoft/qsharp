@@ -14,8 +14,8 @@ use qsc_data_structures::span::Span;
 use crate::{
     keyword::Keyword,
     lex::{
-        cooked::{ComparisonOp, Literal, TimingLiteralKind},
         ClosedBinOp, Delim, Radix, Token, TokenKind,
+        cooked::{ComparisonOp, Literal, TimingLiteralKind},
     },
 };
 
@@ -23,14 +23,14 @@ use crate::parser::Result;
 
 use super::{
     ast::{
-        list_from_iter, BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, GateOperand,
-        GateOperandKind, HardwareQubit, Ident, IdentOrIndexedIdent, Index, IndexExpr, IndexList,
-        IndexListItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr, Range, Set, TimeUnit,
-        TypeDef, UnaryOp, UnaryOpExpr, ValueExpr, Version,
+        BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, GateOperand, GateOperandKind,
+        HardwareQubit, Ident, IdentOrIndexedIdent, Index, IndexExpr, IndexList, IndexListItem,
+        IndexedIdent, List, Lit, LiteralKind, MeasureExpr, Range, Set, TimeUnit, TypeDef, UnaryOp,
+        UnaryOpExpr, ValueExpr, Version, list_from_iter,
     },
     completion::word_kinds::WordKinds,
     error::{Error, ErrorKind},
-    prim::{ident, many, opt, recovering_token, seq, shorten, token, FinalSep},
+    prim::{FinalSep, ident, many, opt, recovering_token, seq, shorten, token},
     scan::ParserContext,
     stmt::scalar_or_array_type,
 };

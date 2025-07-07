@@ -9,14 +9,14 @@ use std::rc::Rc;
 use crate::compilation::Compilation;
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::qsc_utils::into_location;
-use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_ty, Visitor};
 use qsc::ast::PathKind;
+use qsc::ast::visit::{Visitor, walk_callable_decl, walk_expr, walk_ty};
 use qsc::display::Lookup;
 use qsc::hir::ty::Ty;
 use qsc::hir::{PackageId, Res};
 use qsc::line_column::{Encoding, Position};
 use qsc::location::Location;
-use qsc::{ast, hir, resolve, Span};
+use qsc::{Span, ast, hir, resolve};
 
 pub(crate) fn get_references(
     compilation: &Compilation,

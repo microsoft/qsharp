@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use super::{
+    Error, ErrorKind, Table,
     infer::Inferrer,
     rules::{self, SpecImpl},
-    Error, ErrorKind, Table,
 };
 use crate::{
     resolve::{Names, Res},

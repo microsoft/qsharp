@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{scan::ParserContext, Parser};
+use super::{Parser, scan::ParserContext};
 use crate::prim::FinalSep;
 use expect_test::Expect;
 use qsc_data_structures::language_features::LanguageFeatures;

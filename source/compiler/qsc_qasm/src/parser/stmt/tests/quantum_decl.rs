@@ -16,9 +16,9 @@ fn quantum_decl() {
             Stmt [0-8]:
                 annotations: <empty>
                 kind: QubitDeclaration [0-8]:
-                    ty_span: [0-5]
-                    ident: Ident [6-7] "q"
-                    size: <none>"#]],
+                    ty: QubitType [0-5]:
+                        size: <none>
+                    ident: Ident [6-7] "q""#]],
     );
 }
 
@@ -36,9 +36,9 @@ fn annotated_quantum_decl() {
                         identifier: "a.b.c"
                         value: "123"
                 kind: QubitDeclaration [28-36]:
-                    ty_span: [28-33]
-                    ident: Ident [34-35] "q"
-                    size: <none>"#]],
+                    ty: QubitType [28-33]:
+                        size: <none>
+                    ident: Ident [34-35] "q""#]],
     );
 }
 
@@ -64,9 +64,9 @@ fn multi_annotated_quantum_decl() {
                         identifier: "a.b.c"
                         value: "123"
                 kind: QubitDeclaration [100-108]:
-                    ty_span: [100-105]
-                    ident: Ident [106-107] "q"
-                    size: <none>"#]],
+                    ty: QubitType [100-105]:
+                        size: <none>
+                    ident: Ident [106-107] "q""#]],
     );
 }
 
@@ -99,9 +99,9 @@ fn quantum_decl_with_designator() {
             Stmt [0-16]:
                 annotations: <empty>
                 kind: QubitDeclaration [0-16]:
-                    ty_span: [0-8]
-                    ident: Ident [9-15] "qubits"
-                    size: Expr [6-7]: Lit: Int(5)"#]],
+                    ty: QubitType [0-8]:
+                        size: Expr [6-7]: Lit: Int(5)
+                    ident: Ident [9-15] "qubits""#]],
     );
 }
 

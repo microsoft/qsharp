@@ -2,11 +2,11 @@ use std::vec;
 
 use regex_lite::Regex;
 use serde::de::Error as DeError;
-use serde_json::{from_str, from_value, Error, Map, Value};
+use serde_json::{Error, Map, Value, from_str, from_value};
 
 use crate::{
-    circuit::{operation_list_to_grid, Qubit},
-    Circuit, CircuitGroup, Operation, CURRENT_VERSION,
+    CURRENT_VERSION, Circuit, CircuitGroup, Operation,
+    circuit::{Qubit, operation_list_to_grid},
 };
 
 /// Parses a JSON string into a `CircuitGroup`.

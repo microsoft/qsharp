@@ -3,7 +3,7 @@
 
 use super::get_hover;
 use crate::test_utils::{compile_notebook_with_markers, compile_with_markers};
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use indoc::indoc;
 use qsc::line_column::Encoding;
 

@@ -193,9 +193,11 @@ input qubit q;
         panic!("Expected error")
     };
 
-    assert!(error[0]
-        .to_string()
-        .contains("expected scalar or array type, found keyword `qubit`"));
+    assert!(
+        error[0]
+            .to_string()
+            .contains("expected scalar or array type, found keyword `qubit`")
+    );
 }
 
 #[test]

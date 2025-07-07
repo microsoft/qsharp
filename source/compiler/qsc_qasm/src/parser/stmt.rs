@@ -8,34 +8,36 @@ use qsc_data_structures::span::Span;
 use std::rc::Rc;
 
 use super::{
+    Result,
     completion::word_kinds::WordKinds,
     error::{Error, ErrorKind},
     expr::{self, designator, gate_operand, ident_or_indexed_ident},
     prim::{
-        self, barrier, many, opt, recovering, recovering_semi, recovering_token, seq, seq_item,
-        shorten, SeqItem,
+        self, SeqItem, barrier, many, opt, recovering, recovering_semi, recovering_token, seq,
+        seq_item, shorten,
     },
-    Result,
 };
 use crate::{
     keyword::Keyword,
-    lex::{cooked::Type, Delim, TokenKind},
+    lex::{Delim, TokenKind, cooked::Type},
+    parser::ast::{
+        DefParameter, DefParameterType, DynArrayReferenceType, QubitType, StaticArrayReferenceType,
+    },
 };
 
 use super::ast::{
-    list_from_iter, AccessControl, AliasDeclStmt, AngleType, Annotation, ArrayBaseTypeKind,
-    ArrayReferenceType, ArrayType, ArrayTypedParameter, AssignOpStmt, AssignStmt, BarrierStmt,
-    BitType, Block, BoxStmt, BreakStmt, CalibrationGrammarStmt, CalibrationStmt, Cast,
-    ClassicalDeclarationStmt, ComplexType, ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt,
-    DelayStmt, EndStmt, EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter,
-    FloatType, ForStmt, FunctionCall, GPhase, GateCall, GateModifierKind, GateOperand,
-    IODeclaration, IOKeyword, Ident, IdentOrIndexedIdent, IfStmt, IncludeStmt, Index, IndexExpr,
-    IndexListItem, IntType, List, LiteralKind, MeasureArrowStmt, Pragma, QuantumGateDefinition,
-    QuantumGateModifier, QuantumTypedParameter, QubitDeclaration, Range, ResetStmt, ReturnStmt,
-    ScalarType, ScalarTypeKind, ScalarTypedParameter, Stmt, StmtKind, SwitchCase, SwitchStmt,
-    TypeDef, TypedParameter, UIntType, WhileLoop,
+    AccessControl, AliasDeclStmt, AngleType, Annotation, ArrayBaseTypeKind, ArrayReferenceType,
+    ArrayType, AssignOpStmt, AssignStmt, BarrierStmt, BitType, Block, BoxStmt, BreakStmt,
+    CalibrationGrammarStmt, CalibrationStmt, Cast, ClassicalDeclarationStmt, ComplexType,
+    ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, EndStmt, EnumerableSet, Expr,
+    ExprKind, ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt, FunctionCall, GPhase,
+    GateCall, GateModifierKind, GateOperand, IODeclaration, IOKeyword, Ident, IdentOrIndexedIdent,
+    IfStmt, IncludeStmt, Index, IndexExpr, IndexListItem, IntType, List, LiteralKind,
+    MeasureArrowStmt, Pragma, QuantumGateDefinition, QuantumGateModifier, QubitDeclaration, Range,
+    ResetStmt, ReturnStmt, ScalarType, ScalarTypeKind, Stmt, StmtKind, SwitchCase, SwitchStmt,
+    TypeDef, UIntType, WhileLoop, list_from_iter,
 };
-use super::{prim::token, ParserContext};
+use super::{ParserContext, prim::token};
 
 /// Our implementation differs slightly from the grammar in
 /// that we accumulate annotations and append them to the next
@@ -477,14 +479,14 @@ fn parse_def(s: &mut ParserContext) -> Result<StmtKind> {
     token(s, TokenKind::Keyword(crate::keyword::Keyword::Def))?;
     let name = Box::new(prim::ident(s)?);
     token(s, TokenKind::Open(Delim::Paren))?;
-    let (exprs, _) = seq(s, arg_def)?;
+    let (params, _) = seq(s, arg_def)?;
     token(s, TokenKind::Close(Delim::Paren))?;
     let return_type = opt(s, return_sig)?.map(Box::new);
     let body = parse_block(s)?;
     let kind = StmtKind::Def(DefStmt {
         span: s.span(lo),
         name,
-        params: list_from_iter(exprs),
+        params: list_from_iter(params),
         body,
         return_type,
     });
@@ -525,23 +527,23 @@ fn extern_arg_def(s: &mut ParserContext) -> Result<ExternParameter> {
 /// | (CREG | QREG) Identifier designator?
 /// | arrayReferenceType Identifier
 /// ```
-fn arg_def(s: &mut ParserContext) -> Result<TypedParameter> {
+fn arg_def(s: &mut ParserContext) -> Result<DefParameter> {
     let lo = s.peek().span.lo;
 
     let kind = if let Ok(ty) = scalar_type(s) {
         let ident = prim::ident(s)?;
-        TypedParameter::Scalar(ScalarTypedParameter {
+        DefParameter {
             span: s.span(lo),
-            ty: Box::new(ty),
             ident,
-        })
-    } else if let Ok(size) = qubit_type(s) {
+            ty: Box::new(DefParameterType::Scalar(ty)),
+        }
+    } else if let Ok(ty) = qubit_type(s) {
         let ident = prim::ident(s)?;
-        TypedParameter::Quantum(QuantumTypedParameter {
+        DefParameter {
             span: s.span(lo),
-            size,
             ident,
-        })
+            ty: Box::new(DefParameterType::Qubit(ty)),
+        }
     } else if let Ok((ident, size)) = creg_type(s) {
         let ty = ScalarType {
             span: s.span(lo),
@@ -550,24 +552,28 @@ fn arg_def(s: &mut ParserContext) -> Result<TypedParameter> {
                 span: s.span(lo),
             }),
         };
-        TypedParameter::Scalar(ScalarTypedParameter {
+        DefParameter {
             span: s.span(lo),
-            ty: Box::new(ty),
             ident,
-        })
+            ty: Box::new(DefParameterType::Scalar(ty)),
+        }
     } else if let Ok((ident, size)) = qreg_type(s) {
-        TypedParameter::Quantum(QuantumTypedParameter {
+        let ty = QubitType {
             span: s.span(lo),
             size,
+        };
+        DefParameter {
+            span: s.span(lo),
             ident,
-        })
+            ty: Box::new(DefParameterType::Qubit(ty)),
+        }
     } else if let Ok(ty) = array_reference_ty(s) {
         let ident = prim::ident(s)?;
-        TypedParameter::ArrayReference(ArrayTypedParameter {
+        DefParameter {
             span: s.span(lo),
-            ty: Box::new(ty),
             ident,
-        })
+            ty: Box::new(DefParameterType::ArrayReference(ty)),
+        }
     } else {
         return Err(Error::new(ErrorKind::Rule(
             "argument definition",
@@ -600,20 +606,26 @@ fn array_reference_ty(s: &mut ParserContext) -> Result<ArrayReferenceType> {
     let base_type = array_base_type(s)?;
     token(s, TokenKind::Comma)?;
 
-    let dimensions = if token(s, TokenKind::Keyword(Keyword::Dim)).is_ok() {
+    if token(s, TokenKind::Keyword(Keyword::Dim)).is_ok() {
         token(s, TokenKind::Eq)?;
-        vec![expr::expr(s)?]
+        let dimensions = expr::expr(s)?;
+        token(s, TokenKind::Close(Delim::Bracket))?;
+        Ok(ArrayReferenceType::Dyn(DynArrayReferenceType {
+            span: s.span(lo),
+            mutability,
+            base_type,
+            dimensions,
+        }))
     } else {
-        expr::expr_list(s)?
-    };
-
-    token(s, TokenKind::Close(Delim::Bracket))?;
-    Ok(ArrayReferenceType {
-        span: s.span(lo),
-        mutability,
-        base_type,
-        dimensions: list_from_iter(dimensions),
-    })
+        let dimensions = expr::expr_list(s)?;
+        token(s, TokenKind::Close(Delim::Bracket))?;
+        Ok(ArrayReferenceType::Static(StaticArrayReferenceType {
+            span: s.span(lo),
+            mutability,
+            base_type,
+            dimensions: list_from_iter(dimensions),
+        }))
+    }
 }
 
 /// Grammar: `ARROW scalarType`.
@@ -662,24 +674,26 @@ fn parse_return(s: &mut ParserContext) -> Result<StmtKind> {
 /// Grammar: `qubitType Identifier SEMICOLON`.
 fn parse_quantum_decl(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
-    let size = qubit_type(s)?;
-    let ty_span = s.span(lo);
+    let ty = qubit_type(s)?;
     let ident = prim::ident(s)?;
 
     recovering_semi(s);
     Ok(StmtKind::QuantumDecl(QubitDeclaration {
         span: s.span(lo),
-        ty_span,
+        ty,
         qubit: ident,
-        size,
     }))
 }
 
 /// Grammar: `QUBIT designator?`.
-fn qubit_type(s: &mut ParserContext<'_>) -> Result<Option<Expr>> {
+fn qubit_type(s: &mut ParserContext<'_>) -> Result<QubitType> {
+    let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(crate::keyword::Keyword::Qubit))?;
     let size = opt(s, designator)?;
-    Ok(size)
+    Ok(QubitType {
+        span: s.span(lo),
+        size,
+    })
 }
 
 /// Grammar: `(INPUT | OUTPUT) (scalarType | arrayType) Identifier SEMICOLON`.
@@ -898,11 +912,15 @@ fn qreg_decl(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     let (identifier, size) = qreg_type(s)?;
     recovering_semi(s);
+    let ty = QubitType {
+        span: s.span(lo),
+        size,
+    };
+
     Ok(StmtKind::QuantumDecl(QubitDeclaration {
         span: s.span(lo),
-        ty_span: s.span(lo),
+        ty,
         qubit: identifier,
-        size,
     }))
 }
 
@@ -1450,7 +1468,7 @@ fn parse_gate_call_stmt(s: &mut ParserContext) -> Result<StmtKind> {
             return Err(Error::new(ErrorKind::ExpectedItem(
                 TokenKind::Identifier,
                 gate_or_expr.span,
-            )))
+            )));
         }
     };
 
@@ -1495,7 +1513,7 @@ fn parse_gate_call_with_expr(s: &mut ParserContext, gate_or_expr: Expr) -> Resul
             return Err(Error::new(ErrorKind::ExpectedItem(
                 TokenKind::Identifier,
                 gate_or_expr.span,
-            )))
+            )));
         }
     };
 

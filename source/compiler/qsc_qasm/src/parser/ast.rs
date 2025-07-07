@@ -989,7 +989,7 @@ impl TypeDef {
         match self {
             TypeDef::Scalar(ident) => ident.span,
             TypeDef::Array(array) => array.span,
-            TypeDef::ArrayReference(array) => array.span,
+            TypeDef::ArrayReference(array) => array.span(),
         }
     }
 }
@@ -1020,19 +1020,61 @@ impl Display for ArrayType {
 }
 
 #[derive(Clone, Debug)]
-pub struct ArrayReferenceType {
+pub enum ArrayReferenceType {
+    Static(StaticArrayReferenceType),
+    Dyn(DynArrayReferenceType),
+}
+
+impl ArrayReferenceType {
+    #[must_use]
+    pub fn span(&self) -> Span {
+        match self {
+            ArrayReferenceType::Static(ty) => ty.span,
+            ArrayReferenceType::Dyn(ty) => ty.span,
+        }
+    }
+}
+
+impl Display for ArrayReferenceType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ArrayReferenceType::Static(ty) => write!(f, "{ty}"),
+            ArrayReferenceType::Dyn(ty) => write!(f, "{ty}"),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct StaticArrayReferenceType {
     pub span: Span,
     pub mutability: AccessControl,
     pub base_type: ArrayBaseTypeKind,
     pub dimensions: List<Expr>,
 }
 
-impl Display for ArrayReferenceType {
+impl Display for StaticArrayReferenceType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "ArrayReferenceType", self.span)?;
+        writeln_header(f, "StaticArrayReferenceType", self.span)?;
         writeln_field(f, "mutability", &self.mutability)?;
         writeln_field(f, "base_type", &self.base_type)?;
-        writeln_list_field(f, "dimensions", &self.dimensions)
+        write_list_field(f, "dimensions", &self.dimensions)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct DynArrayReferenceType {
+    pub span: Span,
+    pub mutability: AccessControl,
+    pub base_type: ArrayBaseTypeKind,
+    pub dimensions: Expr,
+}
+
+impl Display for DynArrayReferenceType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "DynArrayReferenceType", self.span)?;
+        writeln_field(f, "mutability", &self.mutability)?;
+        writeln_field(f, "base_type", &self.base_type)?;
+        write_field(f, "dimensions", &self.dimensions)
     }
 }
 
@@ -1097,17 +1139,15 @@ impl Display for IncludeStmt {
 #[derive(Clone, Debug)]
 pub struct QubitDeclaration {
     pub span: Span,
-    pub ty_span: Span,
+    pub ty: QubitType,
     pub qubit: Ident,
-    pub size: Option<Expr>,
 }
 
 impl Display for QubitDeclaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "QubitDeclaration", self.span)?;
-        writeln_field(f, "ty_span", &self.ty_span)?;
-        writeln_field(f, "ident", &self.qubit)?;
-        write_opt_field(f, "size", self.size.as_ref())
+        writeln_field(f, "ty", &self.ty)?;
+        write_field(f, "ident", &self.qubit)
     }
 }
 
@@ -1324,106 +1364,75 @@ impl Display for CalibrationStmt {
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum TypedParameter {
-    ArrayReference(ArrayTypedParameter),
-    Quantum(QuantumTypedParameter),
-    Scalar(ScalarTypedParameter),
-}
-
-impl WithSpan for TypedParameter {
-    fn with_span(self, span: Span) -> Self {
-        match self {
-            Self::Scalar(param) => Self::Scalar(param.with_span(span)),
-            Self::Quantum(param) => Self::Quantum(param.with_span(span)),
-            Self::ArrayReference(param) => Self::ArrayReference(param.with_span(span)),
-        }
-    }
-}
-
-impl Display for TypedParameter {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Scalar(param) => write!(f, "{param}"),
-            Self::Quantum(param) => write!(f, "{param}"),
-            Self::ArrayReference(param) => write!(f, "{param}"),
-        }
-    }
-}
-
-impl Default for TypedParameter {
-    fn default() -> Self {
-        Self::Scalar(ScalarTypedParameter {
-            span: Span::default(),
-            ident: Ident::default(),
-            ty: Box::default(),
-        })
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ScalarTypedParameter {
+#[derive(Clone, Debug, Default)]
+pub struct DefParameter {
     pub span: Span,
-    pub ty: Box<ScalarType>,
     pub ident: Ident,
+    pub ty: Box<DefParameterType>,
 }
 
-impl Display for ScalarTypedParameter {
+impl Display for DefParameter {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "ScalarTypedParameter", self.span)?;
-        writeln_field(f, "type", &self.ty)?;
-        write_field(f, "ident", &self.ident)
+        writeln_header(f, "DefParameter", self.span)?;
+        writeln_field(f, "ident", &self.ident)?;
+        write_field(f, "type", &self.ty)
     }
 }
 
-impl WithSpan for ScalarTypedParameter {
+impl WithSpan for DefParameter {
     fn with_span(self, span: Span) -> Self {
-        let Self { ty, ident, .. } = self;
-        Self { span, ty, ident }
+        Self {
+            span,
+            ident: self.ident,
+            ty: self.ty,
+        }
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct QuantumTypedParameter {
+pub enum DefParameterType {
+    ArrayReference(ArrayReferenceType),
+    Qubit(QubitType),
+    Scalar(ScalarType),
+}
+
+impl DefParameterType {
+    #[must_use]
+    pub fn span(&self) -> Span {
+        match self {
+            DefParameterType::ArrayReference(ty) => ty.span(),
+            DefParameterType::Qubit(ty) => ty.span,
+            DefParameterType::Scalar(ty) => ty.span,
+        }
+    }
+}
+
+impl Display for DefParameterType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            DefParameterType::ArrayReference(ty) => write!(f, "{ty}"),
+            DefParameterType::Qubit(ty) => write!(f, "{ty}"),
+            DefParameterType::Scalar(ty) => write!(f, "{ty}"),
+        }
+    }
+}
+
+impl Default for DefParameterType {
+    fn default() -> Self {
+        Self::Scalar(Default::default())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct QubitType {
     pub span: Span,
     pub size: Option<Expr>,
-    pub ident: Ident,
 }
 
-impl Display for QuantumTypedParameter {
+impl Display for QubitType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "QuantumTypedParameter", self.span)?;
-        writeln_opt_field(f, "size", self.size.as_ref())?;
-        write_field(f, "ident", &self.ident)
-    }
-}
-
-impl WithSpan for QuantumTypedParameter {
-    fn with_span(self, span: Span) -> Self {
-        let Self { size, ident, .. } = self;
-        Self { span, size, ident }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ArrayTypedParameter {
-    pub span: Span,
-    pub ty: Box<ArrayReferenceType>,
-    pub ident: Ident,
-}
-
-impl Display for ArrayTypedParameter {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "ArrayTypedParameter", self.span)?;
-        writeln_field(f, "type", &self.ty)?;
-        write_field(f, "ident", &self.ident)
-    }
-}
-
-impl WithSpan for ArrayTypedParameter {
-    fn with_span(self, span: Span) -> Self {
-        let Self { ty, ident, .. } = self;
-        Self { span, ty, ident }
+        writeln_header(f, "QubitType", self.span)?;
+        write_opt_field(f, "size", self.size.as_ref())
     }
 }
 
@@ -1431,7 +1440,7 @@ impl WithSpan for ArrayTypedParameter {
 pub struct DefStmt {
     pub span: Span,
     pub name: Box<Ident>,
-    pub params: List<TypedParameter>,
+    pub params: List<DefParameter>,
     pub body: Block,
     pub return_type: Option<Box<ScalarType>>,
 }
@@ -1440,7 +1449,7 @@ impl Display for DefStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "DefStmt", self.span)?;
         writeln_field(f, "ident", &self.name)?;
-        writeln_list_field(f, "parameters", &self.params)?;
+        writeln_list_field(f, "params", &self.params)?;
         writeln_opt_field(f, "return_type", self.return_type.as_ref())?;
         write_field(f, "body", &self.body)
     }

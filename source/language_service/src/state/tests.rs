@@ -2668,7 +2668,7 @@ fn update_manifest_field(
     let mut node = &mut *fs;
     for (i, comp) in components.iter().enumerate() {
         match node {
-            crate::tests::test_fs::FsNode::Dir(ref mut entries) => {
+            crate::tests::test_fs::FsNode::Dir(entries) => {
                 if let Some(next) = entries.get_mut(*comp) {
                     node = next;
                 } else {
@@ -2683,7 +2683,7 @@ fn update_manifest_field(
             }
         }
     }
-    if let crate::tests::test_fs::FsNode::File(ref mut contents) = node {
+    if let crate::tests::test_fs::FsNode::File(contents) = node {
         let mut json: serde_json::Value = match serde_json::from_str(&*contents) {
             Ok(j) => j,
             Err(_) => return false,

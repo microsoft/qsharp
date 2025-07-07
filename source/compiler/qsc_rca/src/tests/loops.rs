@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{check_last_statement_compute_properties, CompilationContext};
+use super::{CompilationContext, check_last_statement_compute_properties};
 use expect_test::expect;
 
 #[test]
@@ -97,8 +97,8 @@ fn check_rca_for_dynamic_repeat_until_loop_with_initial_dynamic_condition() {
 }
 
 #[test]
-fn check_rca_for_dynamic_repeat_until_loop_with_initial_classical_condition_and_measurement_in_repeat_block(
-) {
+fn check_rca_for_dynamic_repeat_until_loop_with_initial_classical_condition_and_measurement_in_repeat_block()
+ {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
@@ -147,8 +147,8 @@ fn check_rca_for_dynamic_repeat_until_loop_with_measurement_in_condition() {
 }
 
 #[test]
-fn check_rca_for_dynamic_repeat_until_loop_with_initial_classical_condition_and_measurement_in_fixup_block(
-) {
+fn check_rca_for_dynamic_repeat_until_loop_with_initial_classical_condition_and_measurement_in_fixup_block()
+ {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
@@ -267,8 +267,8 @@ fn check_rca_for_dynamic_while_loop_with_measurement_in_condition() {
 }
 
 #[test]
-fn check_rca_for_dynamic_while_loop_with_initial_classical_condition_and_dynamic_condition_in_assignment_chain(
-) {
+fn check_rca_for_dynamic_while_loop_with_initial_classical_condition_and_dynamic_condition_in_assignment_chain()
+ {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"

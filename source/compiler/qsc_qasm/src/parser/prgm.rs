@@ -2,8 +2,9 @@
 // Licensed under the MIT License.
 
 use super::{
+    Result,
     prim::{many, opt, recovering, recovering_semi, recovering_token, token},
-    stmt, Result,
+    stmt,
 };
 use crate::{
     lex::{Delim, TokenKind},

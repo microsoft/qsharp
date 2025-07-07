@@ -190,8 +190,8 @@ fn bitarray_var_comparison_to_int_can_be_translated() -> miette::Result<(), Vec<
 }
 
 #[test]
-fn bitarray_multiple_values_var_comparison_to_int_can_be_translated(
-) -> miette::Result<(), Vec<Report>> {
+fn bitarray_multiple_values_var_comparison_to_int_can_be_translated()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
         bit[3] x = "110";
         input int y;

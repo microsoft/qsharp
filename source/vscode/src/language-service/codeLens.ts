@@ -55,7 +55,7 @@ function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
       break;
     case "debug":
       title = "Debug";
-      command = "qsharp-vscode.debugQsharp";
+      command = "qsharp-vscode.debugProgram";
       tooltip = "Debug callable";
       break;
     case "run":

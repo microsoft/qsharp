@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::{
-    instrument::Instrument,
-    operation::{operation, Operation},
     NoisySimulator,
+    instrument::Instrument,
+    operation::{Operation, operation},
 };
 use num_complex::Complex;
 

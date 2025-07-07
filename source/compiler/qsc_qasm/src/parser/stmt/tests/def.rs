@@ -17,7 +17,7 @@ fn minimal() {
                 annotations: <empty>
                 kind: DefStmt [0-11]:
                     ident: Ident [4-5] "x"
-                    parameters: <empty>
+                    params: <empty>
                     return_type: <none>
                     body: Block [8-11]: <empty>"#]],
     );
@@ -55,10 +55,10 @@ fn missing_args_with_delim_error() {
                 annotations: <empty>
                 kind: DefStmt [0-12]:
                     ident: Ident [4-5] "x"
-                    parameters:
-                        ScalarTypedParameter [6-6]:
-                            type: ScalarType [0-0]: Err
+                    params:
+                        DefParameter [6-6]:
                             ident: Ident [0-0] ""
+                            type: ScalarType [0-0]: Err
                     return_type: <none>
                     body: Block [9-12]: <empty>
 
@@ -85,18 +85,18 @@ fn args_with_extra_delim_err_ty() {
                 annotations: <empty>
                 kind: DefStmt [0-23]:
                     ident: Ident [4-5] "x"
-                    parameters:
-                        ScalarTypedParameter [6-11]:
+                    params:
+                        DefParameter [6-11]:
+                            ident: Ident [10-11] "a"
                             type: ScalarType [6-9]: IntType [6-9]:
                                 size: <none>
-                            ident: Ident [10-11] "a"
-                        ScalarTypedParameter [12-12]:
-                            type: ScalarType [0-0]: Err
+                        DefParameter [12-12]:
                             ident: Ident [0-0] ""
-                        ScalarTypedParameter [13-18]:
+                            type: ScalarType [0-0]: Err
+                        DefParameter [13-18]:
+                            ident: Ident [17-18] "b"
                             type: ScalarType [13-16]: IntType [13-16]:
                                 size: <none>
-                            ident: Ident [17-18] "b"
                     return_type: <none>
                     body: Block [20-23]: <empty>
 
@@ -123,11 +123,11 @@ fn classical_subroutine() {
                 annotations: <empty>
                 kind: DefStmt [0-47]:
                     ident: Ident [4-10] "square"
-                    parameters:
-                        ScalarTypedParameter [11-20]:
+                    params:
+                        DefParameter [11-20]:
+                            ident: Ident [19-20] "x"
                             type: ScalarType [11-18]: IntType [11-18]:
                                 size: Expr [15-17]: Lit: Int(32)
-                            ident: Ident [19-20] "x"
                     return_type: ScalarType [25-28]: IntType [25-28]:
                         size: <none>
                     body: Block [29-47]:
@@ -151,13 +151,15 @@ fn quantum_args() {
                 annotations: <empty>
                 kind: DefStmt [0-35]:
                     ident: Ident [4-5] "x"
-                    parameters:
-                        QuantumTypedParameter [6-13]:
-                            size: <none>
+                    params:
+                        DefParameter [6-13]:
                             ident: Ident [12-13] "q"
-                        QuantumTypedParameter [15-30]:
-                            size: Expr [21-22]: Ident [21-22] "n"
+                            type: QubitType [6-11]:
+                                size: <none>
+                        DefParameter [15-30]:
                             ident: Ident [24-30] "qubits"
+                            type: QubitType [15-23]:
+                                size: Expr [21-22]: Ident [21-22] "n"
                     return_type: <none>
                     body: Block [32-35]: <empty>"#]],
     );
@@ -173,21 +175,23 @@ fn old_style_args() {
                 annotations: <empty>
                 kind: DefStmt [0-74]:
                     ident: Ident [4-8] "test"
-                    parameters:
-                        ScalarTypedParameter [9-15]:
+                    params:
+                        DefParameter [9-15]:
+                            ident: Ident [14-15] "c"
                             type: ScalarType [9-15]: BitType [9-15]:
                                 size: <none>
-                            ident: Ident [14-15] "c"
-                        QuantumTypedParameter [17-23]:
-                            size: <none>
+                        DefParameter [17-23]:
                             ident: Ident [22-23] "q"
-                        ScalarTypedParameter [25-35]:
+                            type: QubitType [17-23]:
+                                size: <none>
+                        DefParameter [25-35]:
+                            ident: Ident [30-32] "c2"
                             type: ScalarType [25-35]: BitType [25-35]:
                                 size: Expr [33-34]: Lit: Int(2)
-                            ident: Ident [30-32] "c2"
-                        QuantumTypedParameter [37-47]:
-                            size: Expr [45-46]: Lit: Int(4)
+                        DefParameter [37-47]:
                             ident: Ident [42-44] "q4"
+                            type: QubitType [37-47]:
+                                size: Expr [45-46]: Lit: Int(4)
                     return_type: ScalarType [52-55]: IntType [52-55]:
                         size: <none>
                     body: Block [56-74]:
@@ -211,17 +215,16 @@ fn readonly_array_arg_with_int_dims() {
                 annotations: <empty>
                 kind: DefStmt [0-59]:
                     ident: Ident [4-17] "specified_sub"
-                    parameters:
-                        ArrayTypedParameter [18-55]:
-                            type: ArrayReferenceType [18-47]:
+                    params:
+                        DefParameter [18-55]:
+                            ident: Ident [48-55] "arr_arg"
+                            type: StaticArrayReferenceType [18-47]:
                                 mutability: ReadOnly
                                 base_type: ArrayBaseTypeKind IntType [33-39]:
                                     size: Expr [37-38]: Lit: Int(8)
                                 dimensions:
                                     Expr [41-42]: Lit: Int(2)
                                     Expr [44-46]: Lit: Int(10)
-
-                            ident: Ident [48-55] "arr_arg"
                     return_type: <none>
                     body: Block [57-59]: <empty>"#]],
     );
@@ -237,16 +240,14 @@ fn readonly_array_arg_with_dim() {
                 annotations: <empty>
                 kind: DefStmt [0-63]:
                     ident: Ident [4-18] "arr_subroutine"
-                    parameters:
-                        ArrayTypedParameter [19-59]:
-                            type: ArrayReferenceType [19-51]:
+                    params:
+                        DefParameter [19-59]:
+                            ident: Ident [52-59] "arr_arg"
+                            type: DynArrayReferenceType [19-51]:
                                 mutability: ReadOnly
                                 base_type: ArrayBaseTypeKind IntType [34-40]:
                                     size: Expr [38-39]: Lit: Int(8)
-                                dimensions:
-                                    Expr [49-50]: Lit: Int(1)
-
-                            ident: Ident [52-59] "arr_arg"
+                                dimensions: Expr [49-50]: Lit: Int(1)
                     return_type: <none>
                     body: Block [61-63]: <empty>"#]],
     );
@@ -262,16 +263,14 @@ fn mutable_array_arg() {
                 annotations: <empty>
                 kind: DefStmt [0-62]:
                     ident: Ident [4-18] "mut_subroutine"
-                    parameters:
-                        ArrayTypedParameter [19-58]:
-                            type: ArrayReferenceType [19-50]:
+                    params:
+                        DefParameter [19-58]:
+                            ident: Ident [51-58] "arr_arg"
+                            type: DynArrayReferenceType [19-50]:
                                 mutability: Mutable
                                 base_type: ArrayBaseTypeKind IntType [33-39]:
                                     size: Expr [37-38]: Lit: Int(8)
-                                dimensions:
-                                    Expr [48-49]: Lit: Int(1)
-
-                            ident: Ident [51-58] "arr_arg"
+                                dimensions: Expr [48-49]: Lit: Int(1)
                     return_type: <none>
                     body: Block [60-62]: <empty>"#]],
     );

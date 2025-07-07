@@ -3,7 +3,7 @@
 
 use expect_test::expect;
 
-use crate::semantic::tests::check_classical_decls;
+use crate::semantic::tests::{check_classical_decls, check_stmt_kinds};
 
 #[test]
 fn to_int_decl_implicitly() {
@@ -18,7 +18,7 @@ fn to_int_decl_implicitly() {
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-15]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-20]:
                     ty: const bit[5]
                     kind: Lit: Bitstring("00000")
             [8] Symbol [16-19]:
@@ -53,34 +53,25 @@ fn to_int_assignment_implicitly() {
         a = reg;
     "#;
 
-    check_classical_decls(
+    check_stmt_kinds(
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-15]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-20]:
                     ty: const bit[5]
                     kind: Lit: Bitstring("00000")
-            [8] Symbol [16-19]:
-                name: reg
-                type: bit[5]
-                qsharp_type: Result[]
-                io_kind: Default
             ClassicalDeclarationStmt [29-35]:
                 symbol_id: 9
                 ty_span: [29-32]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [29-35]:
                     ty: const int
                     kind: Lit: Int(0)
-            [9] Symbol [33-34]:
-                name: a
-                type: int
-                qsharp_type: Int
-                io_kind: Default
             AssignStmt [44-52]:
-                symbol_id: 9
-                lhs_span: [44-45]
+                lhs: Expr [44-45]:
+                    ty: int
+                    kind: SymbolId(9)
                 rhs: Expr [48-51]:
                     ty: int
                     kind: Cast [0-0]:
@@ -88,11 +79,6 @@ fn to_int_assignment_implicitly() {
                         expr: Expr [48-51]:
                             ty: bit[5]
                             kind: SymbolId(8)
-            [9] Symbol [33-34]:
-                name: a
-                type: int
-                qsharp_type: Int
-                io_kind: Default
         "#]],
     );
 }
@@ -105,34 +91,25 @@ fn to_int_with_equal_width_in_assignment_implicitly() {
         a = reg;
     "#;
 
-    check_classical_decls(
+    check_stmt_kinds(
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-15]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-20]:
                     ty: const bit[5]
                     kind: Lit: Bitstring("00000")
-            [8] Symbol [16-19]:
-                name: reg
-                type: bit[5]
-                qsharp_type: Result[]
-                io_kind: Default
             ClassicalDeclarationStmt [29-38]:
                 symbol_id: 9
                 ty_span: [29-35]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [29-38]:
                     ty: const int[5]
                     kind: Lit: Int(0)
-            [9] Symbol [36-37]:
-                name: a
-                type: int[5]
-                qsharp_type: Int
-                io_kind: Default
             AssignStmt [47-55]:
-                symbol_id: 9
-                lhs_span: [47-48]
+                lhs: Expr [47-48]:
+                    ty: int[5]
+                    kind: SymbolId(9)
                 rhs: Expr [51-54]:
                     ty: int[5]
                     kind: Cast [0-0]:
@@ -140,11 +117,6 @@ fn to_int_with_equal_width_in_assignment_implicitly() {
                         expr: Expr [51-54]:
                             ty: bit[5]
                             kind: SymbolId(8)
-            [9] Symbol [36-37]:
-                name: a
-                type: int[5]
-                qsharp_type: Int
-                io_kind: Default
         "#]],
     );
 }
@@ -162,7 +134,7 @@ fn to_int_with_equal_width_in_decl_implicitly() {
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-15]
-                init_expr: Expr [0-0]:
+                init_expr: Expr [9-20]:
                     ty: const bit[5]
                     kind: Lit: Bitstring("00000")
             [8] Symbol [16-19]:
@@ -208,7 +180,7 @@ fn to_int_with_higher_width_implicitly_fails() {
                         kind: ClassicalDeclarationStmt [9-18]:
                             symbol_id: 8
                             ty_span: [9-15]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-18]:
                                 ty: const int[6]
                                 kind: Lit: Int(0)
                     Stmt [27-38]:
@@ -216,14 +188,15 @@ fn to_int_with_higher_width_implicitly_fails() {
                         kind: ClassicalDeclarationStmt [27-38]:
                             symbol_id: 9
                             ty_span: [27-33]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [27-38]:
                                 ty: const bit[5]
                                 kind: Lit: Bitstring("00000")
                     Stmt [47-55]:
                         annotations: <empty>
                         kind: AssignStmt [47-55]:
-                            symbol_id: 8
-                            lhs_span: [47-48]
+                            lhs: Expr [47-48]:
+                                ty: int[6]
+                                kind: SymbolId(8)
                             rhs: Expr [51-54]:
                                 ty: bit[5]
                                 kind: SymbolId(9)
@@ -258,7 +231,7 @@ fn to_int_with_higher_width_decl_implicitly_fails() {
                         kind: ClassicalDeclarationStmt [9-20]:
                             symbol_id: 8
                             ty_span: [9-15]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-20]:
                                 ty: const bit[5]
                                 kind: Lit: Bitstring("00000")
                     Stmt [29-44]:
@@ -306,14 +279,15 @@ fn to_int_with_lower_width_implicitly_fails() {
                         kind: ClassicalDeclarationStmt [33-44]:
                             symbol_id: 9
                             ty_span: [33-39]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [33-44]:
                                 ty: const bit[5]
                                 kind: Lit: Bitstring("00000")
                     Stmt [53-61]:
                         annotations: <empty>
                         kind: AssignStmt [53-61]:
-                            symbol_id: 8
-                            lhs_span: [53-54]
+                            lhs: Expr [53-54]:
+                                ty: int[4]
+                                kind: SymbolId(8)
                             rhs: Expr [57-60]:
                                 ty: bit[5]
                                 kind: SymbolId(9)
@@ -349,7 +323,7 @@ fn to_int_with_lower_width_decl_implicitly_fails() {
                         kind: ClassicalDeclarationStmt [9-20]:
                             symbol_id: 8
                             ty_span: [9-15]
-                            init_expr: Expr [0-0]:
+                            init_expr: Expr [9-20]:
                                 ty: const bit[5]
                                 kind: Lit: Bitstring("00000")
                     Stmt [29-44]:

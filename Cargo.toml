@@ -35,7 +35,7 @@ resolver = "2"
 authors = ["Microsoft"]
 homepage = "https://github.com/microsoft/qsharp"
 repository = "https://github.com/microsoft/qsharp"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 version = "0.0.0"
 
@@ -73,7 +73,7 @@ wasm-bindgen-futures = "0.4"
 rand = "0.8"
 serde_json = "1.0"
 pyo3 = "0.24"
-quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "c84d511f074cd93f3f800fde9e7a6296045f3aea" }
+quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "e1930df15ef02b3bf273a6f536f46bf6871448c5" }
 async-trait = "0.1"
 tokio = { version = "1.44", features = ["macros", "rt"] }
 

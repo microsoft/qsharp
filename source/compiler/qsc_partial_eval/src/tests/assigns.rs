@@ -32,7 +32,9 @@ fn assigning_result_literal_updates_value() {
     "#});
     assert_error(
         &error,
-        &expect!["OutputResultLiteral(PackageSpan { package: PackageId(2), span: Span { lo: 50, hi: 54 } })"],
+        &expect![
+            "OutputResultLiteral(PackageSpan { package: PackageId(2), span: Span { lo: 50, hi: 54 } })"
+        ],
     );
 }
 

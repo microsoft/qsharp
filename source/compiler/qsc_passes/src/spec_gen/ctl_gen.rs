@@ -7,7 +7,7 @@ use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{CallableKind, Expr, ExprKind, Functor, NodeId, Res, UnOp},
-    mut_visit::{walk_expr, MutVisitor},
+    mut_visit::{MutVisitor, walk_expr},
     ty::{Arrow, FunctorSet, Prim, Ty},
 };
 use thiserror::Error;
@@ -15,7 +15,9 @@ use thiserror::Error;
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
     #[error("operation does not support the controlled functor")]
-    #[diagnostic(help("each operation called inside an operation with compiler-generated controlled specializations must support the controlled functor"))]
+    #[diagnostic(help(
+        "each operation called inside an operation with compiler-generated controlled specializations must support the controlled functor"
+    ))]
     #[diagnostic(code("Qsc.CtlGen.MissingCtlFunctor"))]
     MissingCtlFunctor(#[label] Span),
 }

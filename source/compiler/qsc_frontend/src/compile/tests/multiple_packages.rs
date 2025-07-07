@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use super::{compile, PackageStore, SourceMap};
+use super::{PackageStore, SourceMap, compile};
 use crate::compile::TargetCapabilityFlags;
 
 use crate::compile::core;
-use expect_test::expect;
 use expect_test::Expect;
+use expect_test::expect;
 use indoc::indoc;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_hir::hir::PackageId;

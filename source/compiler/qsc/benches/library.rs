@@ -3,8 +3,8 @@
 
 allocator::assign_global!();
 
-use criterion::{criterion_group, criterion_main, Criterion};
-use qsc::{compile, TargetCapabilityFlags};
+use criterion::{Criterion, criterion_group, criterion_main};
+use qsc::{TargetCapabilityFlags, compile};
 use qsc_frontend::compile::PackageStore;
 
 pub fn library(c: &mut Criterion) {

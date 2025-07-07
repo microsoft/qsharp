@@ -12,8 +12,8 @@ use super::super::super::{
         TFactoryProtocolSpecificDistillationUnitSpecification,
     },
     modeling::{
-        floquet_code, surface_code_gate_based, PhysicalQubit, Protocol, TFactoryDistillationUnit,
-        TFactoryDistillationUnitTemplate, TFactoryDistillationUnitType,
+        PhysicalQubit, Protocol, TFactoryDistillationUnit, TFactoryDistillationUnitTemplate,
+        TFactoryDistillationUnitType, floquet_code, surface_code_gate_based,
     },
 };
 
@@ -169,8 +169,8 @@ fn create_distillation_unit_template_without_override() -> TFactoryDistillationU
         .expect("TFactory from specification should succeed")
 }
 
-fn create_default_t_factory_protocol_specific_distillation_unit_specification(
-) -> TFactoryProtocolSpecificDistillationUnitSpecification {
+fn create_default_t_factory_protocol_specific_distillation_unit_specification()
+-> TFactoryProtocolSpecificDistillationUnitSpecification {
     TFactoryProtocolSpecificDistillationUnitSpecification {
         num_unit_qubits: 1,
         duration_in_qubit_cycle_time: 1,

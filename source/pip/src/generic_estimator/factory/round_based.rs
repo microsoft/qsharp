@@ -4,8 +4,8 @@
 use std::cmp::Ordering;
 
 use pyo3::{
-    types::{PyAnyMethods, PyDict},
     Bound, PyResult,
+    types::{PyAnyMethods, PyDict},
 };
 use resource_estimator::estimates::DistillationUnit;
 

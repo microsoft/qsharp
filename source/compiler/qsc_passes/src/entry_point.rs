@@ -23,7 +23,9 @@ use thiserror::Error;
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
     #[error("duplicate entry point callable `{0}`")]
-    #[diagnostic(help("only one callable named `Main` or one callable with the `@EntryPoint()` attribute must be present if no entry expression is provided"))]
+    #[diagnostic(help(
+        "only one callable named `Main` or one callable with the `@EntryPoint()` attribute must be present if no entry expression is provided"
+    ))]
     #[diagnostic(code("Qsc.EntryPoint.Duplicate"))]
     Duplicate(String, #[label] Span),
 
@@ -36,7 +38,9 @@ pub enum Error {
     BodyMissing(#[label("cannot have specialization implementation")] Span),
 
     #[error("entry point not found")]
-    #[diagnostic(help("a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided and no callable named `Main` is present"))]
+    #[diagnostic(help(
+        "a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided and no callable named `Main` is present"
+    ))]
     #[diagnostic(code("Qsc.EntryPoint.NotFound"))]
     NotFound,
 }

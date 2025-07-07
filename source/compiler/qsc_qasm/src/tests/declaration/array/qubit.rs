@@ -2,11 +2,11 @@
 // Licensed under the MIT License.
 
 use crate::{
+    QubitSemantics,
     tests::{
         compile_qasm_stmt_to_qsharp, compile_qasm_stmt_to_qsharp_with_semantics,
         compile_qasm_to_qsharp,
     },
-    QubitSemantics,
 };
 use expect_test::expect;
 use miette::Report;

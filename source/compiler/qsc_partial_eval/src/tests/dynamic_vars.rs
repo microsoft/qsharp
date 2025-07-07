@@ -830,8 +830,8 @@ fn dynamic_double_from_if_expression_with_single_measurement_comparison_and_non_
 }
 
 #[test]
-fn dynamic_double_from_if_expression_with_single_measurement_comparison_pass_dynamic_double_to_intrinsic(
-) {
+fn dynamic_double_from_if_expression_with_single_measurement_comparison_pass_dynamic_double_to_intrinsic()
+ {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {

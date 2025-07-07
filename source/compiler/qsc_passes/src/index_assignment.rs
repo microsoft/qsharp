@@ -10,11 +10,11 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     assigner::Assigner,
     hir::{BinOp, Block, Expr, ExprKind, Mutability, Stmt, StmtKind},
-    mut_visit::{walk_expr, MutVisitor},
+    mut_visit::{MutVisitor, walk_expr},
     ty::{Prim, Ty},
 };
 
-use crate::common::{gen_ident, IdentTemplate};
+use crate::common::{IdentTemplate, gen_ident};
 
 pub(crate) struct ConvertToWSlash<'a> {
     pub(crate) assigner: &'a mut Assigner,

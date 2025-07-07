@@ -15,8 +15,8 @@
 mod tests;
 
 use super::{
-    raw::{self, Number, Single},
     Delim, Radix,
+    raw::{self, Number, Single},
 };
 use crate::keyword::Keyword;
 use enum_iterator::Sequence;

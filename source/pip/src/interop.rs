@@ -6,27 +6,27 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
-use pyo3::IntoPyObjectExt;
 use qsc::hir::PackageId;
 use qsc::interpret::output::Receiver;
-use qsc::interpret::{into_errors, CircuitEntryPoint, Interpreter};
+use qsc::interpret::{CircuitEntryPoint, Interpreter, into_errors};
 use qsc::project::ProjectType;
 use qsc::qasm::compiler::compile_to_qsharp_ast_with_config;
 use qsc::qasm::semantic::QasmSemanticParseResult;
 use qsc::qasm::{OperationSignature, QubitSemantics};
 use qsc::target::Profile;
-use qsc::{
-    ast::Package, error::WithSource, interpret, project::FileSystem, LanguageFeatures, SourceMap,
-};
 use qsc::{Backend, PackageType, PauliNoise, SparseSim};
+use qsc::{
+    LanguageFeatures, SourceMap, ast::Package, error::WithSource, interpret, project::FileSystem,
+};
 
 use crate::fs::file_system;
 use crate::interpreter::{
-    format_error, format_errors, OptionalCallbackReceiver, OutputSemantics, ProgramType,
-    QSharpError, QasmError, TargetProfile, ValueWrapper,
+    OptionalCallbackReceiver, OutputSemantics, ProgramType, QSharpError, QasmError, TargetProfile,
+    ValueWrapper, format_error, format_errors,
 };
 
 use resource_estimator as re;

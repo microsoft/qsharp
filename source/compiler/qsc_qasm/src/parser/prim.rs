@@ -7,9 +7,9 @@ pub(crate) mod tests;
 use super::ast::Ident;
 use super::completion::word_kinds::WordKinds;
 use super::{
+    Parser, Result,
     error::{Error, ErrorKind},
     scan::ParserContext,
-    Parser, Result,
 };
 use crate::lex::TokenKind;
 

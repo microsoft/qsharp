@@ -13,7 +13,7 @@ use qsc_hir::{
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{
     cell::RefCell,
-    collections::{hash_map::Entry, BTreeSet, VecDeque},
+    collections::{BTreeSet, VecDeque, hash_map::Entry},
     fmt::Debug,
     rc::Rc,
 };
@@ -1002,7 +1002,7 @@ fn links_to_infer_ty(solution_tys: &IndexMap<InferTyId, Ty>, id: InferTyId, ty: 
 fn check_add(ty: &Ty) -> bool {
     match ty {
         Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int | Prim::String) | Ty::Array(_) => true,
-        Ty::Param { ref bounds, .. } => bounds
+        Ty::Param { bounds, .. } => bounds
             .0
             .iter()
             .any(|bound| matches!(bound, ClassConstraint::Add)),
@@ -1358,7 +1358,7 @@ fn check_has_index(
 fn check_integral(ty: &Ty) -> bool {
     match ty {
         Ty::Prim(Prim::BigInt | Prim::Int) => true,
-        Ty::Param { ref bounds, .. } => bounds
+        Ty::Param { bounds, .. } => bounds
             .0
             .iter()
             .any(|bound| matches!(bound, ClassConstraint::Integral)),
@@ -1406,9 +1406,9 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<
 fn check_num_constraint(constraint: &ClassConstraint, ty: &Ty) -> bool {
     match ty {
         Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int) => true,
-        Ty::Param { ref bounds, .. } => {
+        Ty::Param { bounds, .. } => {
             // check if the bounds contain Num
-            bounds.0.iter().any(|bound| *bound == *constraint)
+            bounds.0.contains(constraint)
         }
         _ => false,
     }

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{check_last_statement_compute_properties, CompilationContext};
+use super::{CompilationContext, check_last_statement_compute_properties};
 use expect_test::expect;
 
 #[test]
