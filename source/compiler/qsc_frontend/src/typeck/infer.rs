@@ -1408,7 +1408,7 @@ fn check_num_constraint(constraint: &ClassConstraint, ty: &Ty) -> bool {
         Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int) => true,
         Ty::Param { ref bounds, .. } => {
             // check if the bounds contain Num
-            bounds.0.iter().any(|bound| *bound == *constraint)
+            bounds.0.contains(constraint)
         }
         _ => false,
     }

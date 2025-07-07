@@ -289,7 +289,7 @@ impl Package {
         let items_with_test_attribute = self
             .items
             .iter()
-            .filter(|(_, item)| item.attrs.iter().any(|attr| *attr == Attr::Test));
+            .filter(|(_, item)| item.attrs.contains(&Attr::Test));
 
         let callables = items_with_test_attribute
             .filter(|(_, item)| matches!(item.kind, ItemKind::Callable(_)));
@@ -382,6 +382,7 @@ impl Display for Item {
 }
 
 /// An item kind.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum ItemKind {
     /// A `function` or `operation` declaration.
@@ -1115,6 +1116,7 @@ impl Display for FieldAssign {
 }
 
 /// A string component.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum StringComponent {
     /// An expression.

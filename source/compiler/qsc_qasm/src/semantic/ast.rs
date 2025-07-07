@@ -990,6 +990,7 @@ impl Display for ForStmt {
 }
 
 #[derive(Clone, Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum EnumerableSet {
     Set(Set),
     Range(Range),
@@ -1358,6 +1359,7 @@ impl fmt::Display for Version {
 }
 
 #[derive(Clone, Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum Index {
     Expr(Expr),
     Range(Range),

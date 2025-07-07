@@ -415,7 +415,6 @@ pub struct Env {
 }
 
 impl Default for Env {
-    #[must_use]
     fn default() -> Self {
         // Always create a global scope for top-level statements.
         Self {

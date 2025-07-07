@@ -920,7 +920,7 @@ fn two_files_error_eof() {
 // https://github.com/microsoft/qsharp/pull/1698#discussion_r1664575343 for more information.
 // if we want to use `Unimplemented` more seriously (it is currently not used anywhere),
 // we should consider how it will interact with exports and other features.
-#[ignore]
+#[ignore = "see above link to discussion"]
 #[test]
 fn unimplemented_call_from_dependency_produces_error() {
     let lib_sources = SourceMap::new(
