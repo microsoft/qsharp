@@ -993,7 +993,7 @@ impl Display for ForStmt {
 pub enum EnumerableSet {
     Set(Set),
     Range(Box<Range>),
-    Expr(Expr),
+    Expr(Box<Expr>),
 }
 
 impl Display for EnumerableSet {

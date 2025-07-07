@@ -9,7 +9,6 @@ use std::sync::Arc;
 
 use super::const_eval::ConstEvalError;
 use super::symbols::ScopeKind;
-use super::types::Type;
 use super::types::binop_requires_asymmetric_angle_op;
 use super::types::binop_requires_int_conversion_for_type;
 use super::types::binop_requires_symmetric_uint_conversion;
@@ -20,6 +19,7 @@ use super::types::requires_symmetric_conversion;
 use super::types::try_promote_with_casting;
 use super::types::types_equal_except_const;
 use super::types::unary_op_can_be_applied_to_type;
+use super::types::Type;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use num_traits::Num;
@@ -30,9 +30,9 @@ use rustc_hash::FxHashMap;
 use super::symbols::{IOKind, Symbol, SymbolTable};
 
 use crate::convert::safe_i64_to_f64;
-use crate::parser::QasmSource;
-use crate::parser::ast::List;
 use crate::parser::ast::list_from_iter;
+use crate::parser::ast::List;
+use crate::parser::QasmSource;
 use crate::semantic::types::base_types_equal;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
@@ -44,8 +44,8 @@ use super::ast as semantic;
 use crate::parser::ast as syntax;
 
 use super::{
-    SemanticErrorKind,
     ast::{Stmt, Version},
+    SemanticErrorKind,
 };
 
 /// Macro to create an error expression. Used when we fail to
@@ -3790,7 +3790,7 @@ impl Lowerer {
                 semantic::EnumerableSet::Range(self.lower_range(range_definition).into())
             }
             syntax::EnumerableSet::Expr(expr) => {
-                semantic::EnumerableSet::Expr(self.lower_expr(expr))
+                semantic::EnumerableSet::Expr(self.lower_expr(expr).into())
             }
         }
     }
