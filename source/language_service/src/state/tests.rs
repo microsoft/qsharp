@@ -7,11 +7,11 @@
 use super::{CompilationState, CompilationStateUpdater};
 use crate::{
     protocol::{DiagnosticUpdate, NotebookMetadata, TestCallables, WorkspaceConfigurationUpdate},
-    tests::test_fs::{dir, file, FsNode, TestProjectHost},
+    tests::test_fs::{FsNode, TestProjectHost, dir, file},
 };
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use miette::Diagnostic;
-use qsc::{line_column::Encoding, LanguageFeatures, PackageType};
+use qsc::{LanguageFeatures, PackageType, line_column::Encoding};
 use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel, LintOrGroupConfig};
 use serde_json::Value;
 use std::{
