@@ -14,7 +14,7 @@ use qsc_ast::ast::{
 use qsc_data_structures::span::Span;
 
 use crate::{
-    parser::ast::{list_from_iter, List},
+    parser::ast::{List, list_from_iter},
     stdlib::angle::Angle,
     types::{ArrayDimensions, Complex},
 };

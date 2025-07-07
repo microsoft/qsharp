@@ -3,13 +3,13 @@
 
 use super::Instrument;
 use crate::{
-    instrument::vectorize,
-    operation::{operation, Operation},
-    tests::assert_approx_eq,
     SquareMatrix,
+    instrument::vectorize,
+    operation::{Operation, operation},
+    tests::assert_approx_eq,
 };
 use nalgebra::ComplexField;
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::{Rng, SeedableRng, rngs::StdRng};
 
 /// Seed for the random number generators.
 const SEED: u64 = 42;
@@ -40,7 +40,7 @@ fn check_ill_formed_instrument_throws_error() {
 #[test]
 fn check_non_selective_operation_matrix_is_computed_correctly() {
     let mut rng = StdRng::seed_from_u64(SEED);
-    let mut rng = || rng.gen::<f64>();
+    let mut rng = || rng.r#gen::<f64>();
 
     let op0 = operation!([rng(), rng(); rng(), rng();]).expect("operation should be valid");
     let op1 = operation!([rng(), rng(); rng(), rng();]).expect("operation should be valid");
@@ -63,7 +63,7 @@ fn check_non_selective_operation_matrix_is_computed_correctly() {
 fn check_non_selective_evolution_operator_is_computed_correctly() {
     let dim = 8;
     let mut rng = StdRng::seed_from_u64(SEED);
-    let mut rng = || rng.gen::<f64>();
+    let mut rng = || rng.r#gen::<f64>();
 
     // Create dim^2 random kraus operators.
     let kraus_operators: Vec<SquareMatrix> = (0..dim * dim)

@@ -4,7 +4,7 @@
 use crate::interpret::Debugger;
 use crate::line_column::Encoding;
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_eval::{output::CursorReceiver, StepAction, StepResult};
+use qsc_eval::{StepAction, StepResult, output::CursorReceiver};
 use qsc_fir::fir::StmtId;
 use qsc_frontend::compile::SourceMap;
 use std::io::Cursor;
@@ -12,8 +12,7 @@ use std::io::Cursor;
 fn get_breakpoint_ids(debugger: &Debugger, path: &str) -> Vec<StmtId> {
     let mut bps = debugger.get_breakpoints(path);
     bps.sort_by_key(|f| f.id);
-    let ids = bps.iter().map(|f| f.id.into()).collect::<Vec<_>>();
-    ids
+    bps.iter().map(|f| f.id.into()).collect::<Vec<_>>()
 }
 
 fn expect_return(mut debugger: Debugger, expected: &str) {

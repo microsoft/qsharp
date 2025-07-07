@@ -1284,7 +1284,9 @@ fn call_to_unresolved_callee_producing_dynamic_value_fails() {
 
     assert_error(
         &error,
-        &expect!["UnexpectedDynamicValue(PackageSpan { package: PackageId(2), span: Span { lo: 288, hi: 295 } })"],
+        &expect![
+            "UnexpectedDynamicValue(PackageSpan { package: PackageId(2), span: Span { lo: 288, hi: 295 } })"
+        ],
     );
 }
 

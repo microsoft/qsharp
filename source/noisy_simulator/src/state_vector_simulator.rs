@@ -7,11 +7,11 @@
 #[cfg(test)]
 mod tests;
 
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::{Rng, SeedableRng, rngs::StdRng};
 
 use crate::{
-    handle_error, instrument::Instrument, kernel::apply_kernel, operation::Operation,
-    ComplexVector, Error, NoisySimulator, SquareMatrix, TOLERANCE,
+    ComplexVector, Error, NoisySimulator, SquareMatrix, TOLERANCE, handle_error,
+    instrument::Instrument, kernel::apply_kernel, operation::Operation,
 };
 
 /// A vector representing the state of a quantum system.
@@ -239,7 +239,7 @@ impl NoisySimulator for StateVectorSimulator {
             operation.kraus_operators(),
             qubits,
             renormalization_factor,
-            self.rng.gen(),
+            self.rng.r#gen(),
         ) {
             handle_error!(self, err);
         }
@@ -261,7 +261,7 @@ impl NoisySimulator for StateVectorSimulator {
             instrument.non_selective_kraus_operators(),
             qubits,
             renormalization_factor,
-            self.rng.gen(),
+            self.rng.r#gen(),
         ) {
             handle_error!(self, err);
         }
@@ -278,7 +278,7 @@ impl NoisySimulator for StateVectorSimulator {
         instrument: &Instrument,
         qubits: &[usize],
     ) -> Result<usize, Error> {
-        let sample = self.rng.gen();
+        let sample = self.rng.r#gen();
         self.sample_instrument_with_distribution(instrument, qubits, sample)
     }
 

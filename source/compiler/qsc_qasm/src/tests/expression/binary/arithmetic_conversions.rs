@@ -64,8 +64,8 @@ fn int_idents_with_different_width_can_be_multiplied() -> miette::Result<(), Vec
 }
 
 #[test]
-fn multiplying_int_idents_with_different_width_result_in_higher_width_result(
-) -> miette::Result<(), Vec<Report>> {
+fn multiplying_int_idents_with_different_width_result_in_higher_width_result()
+-> miette::Result<(), Vec<Report>> {
     let source = "
         int[32] x = 5;
         int[64] y = 3;
@@ -84,8 +84,8 @@ fn multiplying_int_idents_with_different_width_result_in_higher_width_result(
 }
 
 #[test]
-fn multiplying_int_idents_with_different_width_result_in_no_width_result(
-) -> miette::Result<(), Vec<Report>> {
+fn multiplying_int_idents_with_different_width_result_in_no_width_result()
+-> miette::Result<(), Vec<Report>> {
     let source = "
         int[32] x = 5;
         int[64] y = 3;
@@ -104,8 +104,8 @@ fn multiplying_int_idents_with_different_width_result_in_no_width_result(
 }
 
 #[test]
-fn multiplying_int_idents_with_width_greater_than_64_result_in_bigint_result(
-) -> miette::Result<(), Vec<Report>> {
+fn multiplying_int_idents_with_width_greater_than_64_result_in_bigint_result()
+-> miette::Result<(), Vec<Report>> {
     let source = "
         int[32] x = 5;
         int[64] y = 3;

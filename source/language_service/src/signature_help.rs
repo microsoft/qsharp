@@ -5,20 +5,20 @@
 mod tests;
 
 use crate::{
+    Encoding,
     compilation::Compilation,
     protocol::{ParameterInformation, SignatureHelp, SignatureInformation},
-    Encoding,
 };
 use qsc::{
+    Span,
     ast::{
-        self,
-        visit::{walk_expr, walk_item, Visitor},
-        PathKind,
+        self, PathKind,
+        visit::{Visitor, walk_expr, walk_item},
     },
-    display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay, Lookup},
+    display::{CodeDisplay, Lookup, parse_doc_for_param, parse_doc_for_summary},
     hir,
     line_column::{Position, Range},
-    resolve, Span,
+    resolve,
 };
 use std::iter::zip;
 

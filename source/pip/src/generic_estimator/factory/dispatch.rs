@@ -3,7 +3,7 @@
 
 use std::{borrow::Cow, ops::Deref, rc::Rc};
 
-use pyo3::{types::PyDict, Bound};
+use pyo3::{Bound, types::PyDict};
 use resource_estimator::estimates::FactoryBuilder;
 
 use super::super::{code::PythonQEC, utils::SerializableBound};

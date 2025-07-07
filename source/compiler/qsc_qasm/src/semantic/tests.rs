@@ -13,8 +13,8 @@ pub mod statements;
 use super::parse_source;
 use crate::io::InMemorySourceResolver;
 use crate::io::SourceResolver;
-use expect_test::expect;
 use expect_test::Expect;
+use expect_test::expect;
 use miette::Report;
 use std::sync::Arc;
 

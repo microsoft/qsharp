@@ -10,7 +10,7 @@ mod tests;
 use qsc_data_structures::target::TargetCapabilityFlags;
 use qsc_eval::val::Value;
 use qsc_lowerer::map_hir_package_to_fir;
-use qsc_partial_eval::{partially_evaluate, partially_evaluate_call, ProgramEntry};
+use qsc_partial_eval::{ProgramEntry, partially_evaluate, partially_evaluate_call};
 use qsc_rca::PackageStoreComputeProperties;
 use qsc_rir::{
     passes::check_and_transform,

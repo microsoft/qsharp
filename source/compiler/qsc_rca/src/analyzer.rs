@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{
-    core, cyclic_callables, overrider::Overrider,
-    scaffolding::InternalPackageStoreComputeProperties, PackageStoreComputeProperties,
+    PackageStoreComputeProperties, core, cyclic_callables, overrider::Overrider,
+    scaffolding::InternalPackageStoreComputeProperties,
 };
 use qsc_fir::fir::{PackageId, PackageStore};
 

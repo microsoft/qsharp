@@ -5,14 +5,13 @@ use std::sync::Arc;
 
 use crate::compilation::{Compilation, CompilationKind};
 use qsc::{
-    compile,
+    LanguageFeatures, PackageStore, PackageType, SourceMap, Span, compile,
     hir::PackageId,
     incremental::Compiler,
     line_column::{Encoding, Position, Range},
     location::Location,
     packages::prepare_package_store,
     target::Profile,
-    LanguageFeatures, PackageStore, PackageType, SourceMap, Span,
 };
 use qsc_project::{PackageGraphSources, PackageInfo};
 use rustc_hash::FxHashMap;

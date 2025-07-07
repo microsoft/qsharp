@@ -6,12 +6,12 @@ use std::sync::Arc;
 use crate::io::InMemorySourceResolver;
 use crate::io::SourceResolver;
 
-use super::parse_source;
 use super::QasmParseResult;
+use super::parse_source;
 use miette::Report;
 
 use super::prim::FinalSep;
-use super::{scan::ParserContext, Parser};
+use super::{Parser, scan::ParserContext};
 use expect_test::Expect;
 use std::fmt::Display;
 

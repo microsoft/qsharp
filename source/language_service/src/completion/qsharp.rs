@@ -4,23 +4,23 @@
 use std::{iter::once, sync::Arc};
 
 use qsc::{
+    LanguageFeatures,
     line_column::Encoding,
     parse::completion::{
-        possible_words_at_offset_in_fragments, possible_words_at_offset_in_source,
-        HardcodedIdentKind, NameKind, PathKind, WordKinds,
+        HardcodedIdentKind, NameKind, PathKind, WordKinds, possible_words_at_offset_in_fragments,
+        possible_words_at_offset_in_source,
     },
-    LanguageFeatures,
 };
 use qsc_project::ProjectType;
 
 use crate::{
+    Compilation,
     compilation::CompilationKind,
     completion::{AstContext, Fields, Globals},
     protocol::{CompletionItemKind, CompletionList},
-    Compilation,
 };
 
-use super::{collect_path_segments, into_completion_list, Completion, Locals, TextEditRange};
+use super::{Completion, Locals, TextEditRange, collect_path_segments, into_completion_list};
 
 pub(super) fn completions(
     compilation: &Compilation,

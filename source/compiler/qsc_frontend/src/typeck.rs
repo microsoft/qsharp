@@ -161,7 +161,9 @@ enum ErrorKind {
         name: String,
     },
     #[error("class constraint is recursive via {name}")]
-    #[help("if a type refers to itself via its constraints, it is self-referential and cannot ever be resolved")]
+    #[help(
+        "if a type refers to itself via its constraints, it is self-referential and cannot ever be resolved"
+    )]
     #[diagnostic(code("Qsc.TypeCk.RecursiveClassConstraint"))]
     RecursiveClassConstraint {
         #[label]

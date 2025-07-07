@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::{
-    common::LocalSpecId, scaffolding::InternalPackageStoreComputeProperties,
     ApplicationGeneratorSet, ArrayParamApplication, ComputeKind, PackageId, ParamApplication,
-    QuantumProperties, RuntimeFeatureFlags, RuntimeKind, ValueKind,
+    QuantumProperties, RuntimeFeatureFlags, RuntimeKind, ValueKind, common::LocalSpecId,
+    scaffolding::InternalPackageStoreComputeProperties,
 };
 use qsc_fir::{
     fir::{
@@ -12,7 +12,7 @@ use qsc_fir::{
         PackageStore, PackageStoreLookup, Pat, PatId, Stmt, StmtId, StmtKind,
     },
     ty::{FunctorSetValue, Ty},
-    visit::{walk_block, walk_expr, walk_stmt, Visitor},
+    visit::{Visitor, walk_block, walk_expr, walk_stmt},
 };
 use rustc_hash::FxHashMap;
 

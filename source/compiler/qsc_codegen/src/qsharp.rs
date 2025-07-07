@@ -26,16 +26,16 @@ use qsc_formatter::formatter::format_str;
 use qsc_frontend::compile::PackageStore;
 
 fn write<W: Write>(output: W, packages: &[&Package]) {
-    let mut gen = QSharpGen::new(output);
+    let mut r#gen = QSharpGen::new(output);
     for package in packages {
-        gen.visit_package(package);
+        r#gen.visit_package(package);
     }
 }
 
 pub fn write_store<W: Write>(output: W, store: &PackageStore) {
-    let mut gen = QSharpGen::new(output);
+    let mut r#gen = QSharpGen::new(output);
     for (_, unit) in store {
-        gen.visit_package(&unit.ast.package);
+        r#gen.visit_package(&unit.ast.package);
     }
 }
 
@@ -64,8 +64,8 @@ pub fn write_package_string(package: &Package) -> String {
 #[must_use]
 pub fn write_stmt_string(stmt: &ast::Stmt) -> String {
     let mut output = Vec::new();
-    let mut gen = QSharpGen::new(&mut output);
-    gen.visit_stmt(stmt);
+    let mut r#gen = QSharpGen::new(&mut output);
+    r#gen.visit_stmt(stmt);
     let s = match std::str::from_utf8(&output) {
         Ok(v) => v.to_owned(),
         Err(e) => format!("Invalid UTF-8 sequence: {e}"),
@@ -161,9 +161,9 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                     ix,
                     ImportOrExportItem {
                         span: _,
-                        ref path,
-                        ref is_glob,
-                        ref alias,
+                        path,
+                        is_glob,
+                        alias,
                     },
                 ) in decl.items.iter().enumerate()
                 {
@@ -174,7 +174,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                         self.write(".*");
                     }
 
-                    if let Some(ref alias) = alias {
+                    if let Some(alias) = alias {
                         self.write(&format!(" as {}", alias.name));
                     }
 

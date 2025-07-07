@@ -3,12 +3,12 @@
 
 use std::convert::Into;
 
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use indoc::indoc;
 use qsc::{
+    LanguageFeatures, PackageType, SourceMap, TargetCapabilityFlags,
     interpret::{GenericReceiver, Interpreter},
     target::Profile,
-    LanguageFeatures, PackageType, SourceMap, TargetCapabilityFlags,
 };
 
 use super::LogicalCounter;

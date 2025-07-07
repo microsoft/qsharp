@@ -4,8 +4,8 @@
 use miette::Diagnostic;
 use qsc::line_column::Range;
 use qsc::location::Location;
+use qsc::{LanguageFeatures, PackageType, project::Manifest, target::Profile};
 use qsc::{compile, project};
-use qsc::{project::Manifest, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintOrGroupConfig;
 use thiserror::Error;
 

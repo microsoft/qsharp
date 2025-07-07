@@ -4,15 +4,15 @@
 use std::ops::Deref;
 
 use pyo3::{
+    Bound, IntoPyObject, PyAny, PyErr, PyResult, Python,
     exceptions::PyTypeError,
     types::{
         PyAnyMethods, PyBool, PyDict, PyDictMethods, PyFloat, PyInt, PyList, PyListMethods, PyNone,
         PyString, PyTypeMethods,
     },
-    Bound, IntoPyObject, PyAny, PyErr, PyResult, Python,
 };
-use serde::{ser::SerializeMap, Serialize};
-use serde_json::{json, Map, Value};
+use serde::{Serialize, ser::SerializeMap};
+use serde_json::{Map, Value, json};
 
 /// Converts a JSON value to a Python object, handling various types such as
 /// `null`, `number`, `string`, `boolean`, `array`, and `object`.

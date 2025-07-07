@@ -3,10 +3,10 @@
 
 use super::{get_rename, prepare_rename};
 use crate::{
-    test_utils::{compile_notebook_with_markers, compile_with_markers},
     Encoding,
+    test_utils::{compile_notebook_with_markers, compile_with_markers},
 };
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 
 /// Asserts that the rename locations given at the cursor position matches the expected rename locations.
 /// The cursor position is indicated by a `↘` marker in the source text.

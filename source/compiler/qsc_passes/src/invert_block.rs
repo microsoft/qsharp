@@ -9,15 +9,15 @@ use qsc_hir::{
         BinOp, Block, Expr, ExprKind, Field, Ident, Lit, Mutability, NodeId, Pat, PatKind,
         PrimField, Res, Stmt, StmtKind, UnOp,
     },
-    mut_visit::{walk_expr, MutVisitor},
+    mut_visit::{MutVisitor, walk_expr},
     ty::{GenericArg, Prim, Ty},
 };
 use rustc_hash::FxHashSet;
 
 use crate::{
-    common::{create_gen_core_ref, generated_name},
-    logic_sep::{find_quantum_stmts, Error},
     CORE_NAMESPACE,
+    common::{create_gen_core_ref, generated_name},
+    logic_sep::{Error, find_quantum_stmts},
 };
 
 pub(crate) fn adj_invert_block(

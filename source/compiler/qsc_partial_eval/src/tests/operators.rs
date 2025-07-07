@@ -457,8 +457,8 @@ fn comparing_measurement_results_for_inequality_adds_read_result_and_comparison_
 }
 
 #[test]
-fn comparing_measurement_result_against_result_literal_for_equality_adds_read_result_and_comparison_instructions(
-) {
+fn comparing_measurement_result_against_result_literal_for_equality_adds_read_result_and_comparison_instructions()
+ {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
@@ -529,8 +529,8 @@ fn comparing_measurement_result_against_result_literal_for_equality_adds_read_re
 }
 
 #[test]
-fn comparing_measurement_result_against_result_literal_for_inequality_adds_read_result_and_comparison_instructions(
-) {
+fn comparing_measurement_result_against_result_literal_for_inequality_adds_read_result_and_comparison_instructions()
+ {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
@@ -2115,8 +2115,8 @@ fn integer_exponentiation_with_lhs_classical_integer_and_rhs_dynamic_integer_rai
 }
 
 #[test]
-fn integer_exponentiation_with_lhs_classical_integer_and_rhs_classical_negative_integer_raises_error(
-) {
+fn integer_exponentiation_with_lhs_classical_integer_and_rhs_classical_negative_integer_raises_error()
+ {
     let error = get_partial_evaluation_error(indoc! {
         r#"
         namespace Test {

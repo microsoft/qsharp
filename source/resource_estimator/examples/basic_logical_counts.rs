@@ -13,7 +13,7 @@ use std::rc::Rc;
 
 use resource_estimator::{
     estimates::{ErrorBudget, PhysicalResourceEstimation},
-    system::{floquet_code, LogicalResourceCounts, PhysicalQubit, TFactoryBuilder},
+    system::{LogicalResourceCounts, PhysicalQubit, TFactoryBuilder, floquet_code},
 };
 
 fn main() {

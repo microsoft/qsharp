@@ -4,25 +4,24 @@
 #![allow(unknown_lints, clippy::empty_docs)]
 #![allow(non_snake_case)]
 
-use diagnostic::{interpret_errors_into_qsharp_errors, VSDiagnostic};
+use diagnostic::{VSDiagnostic, interpret_errors_into_qsharp_errors};
 use katas::check_solution;
 use language_service::IOperationInfo;
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use project_system::{into_openqasm_args, into_qsc_args, is_openqasm_program, ProgramConfig};
+use project_system::{ProgramConfig, into_openqasm_args, into_qsc_args, is_openqasm_program};
 use qsc::{
-    compile::{self, package_store_with_stdlib, Dependencies},
+    LanguageFeatures, PackageStore, PackageType, PauliNoise, SourceContents, SourceMap, SourceName,
+    SparseSim, TargetCapabilityFlags,
+    compile::{self, Dependencies, package_store_with_stdlib},
     format_state_id, get_matrix_latex, get_state_latex,
     hir::PackageId,
     interpret::{
-        self,
+        self, CircuitEntryPoint,
         output::{self, Receiver},
-        CircuitEntryPoint,
     },
-    qasm::{io::InMemorySourceResolver, CompileRawQasmResult},
+    qasm::{CompileRawQasmResult, io::InMemorySourceResolver},
     target::Profile,
-    LanguageFeatures, PackageStore, PackageType, PauliNoise, SourceContents, SourceMap, SourceName,
-    SparseSim, TargetCapabilityFlags,
 };
 use resource_estimator::{self as re, estimate_entry};
 use serde::{Deserialize, Serialize};

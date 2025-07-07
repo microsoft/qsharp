@@ -825,19 +825,28 @@ fn check_unzipped() {
         "Microsoft.Quantum.Arrays.Unzipped([(5, true), (4, false), (3, true), (2, true), (1, false)])",
         &Value::Tuple(
             vec![
-                Value::Array(vec![Value::Int(5), Value::Int(4), Value::Int(3), Value::Int(2), Value::Int(1)].into()),
+                Value::Array(
+                    vec![
+                        Value::Int(5),
+                        Value::Int(4),
+                        Value::Int(3),
+                        Value::Int(2),
+                        Value::Int(1),
+                    ]
+                    .into(),
+                ),
                 Value::Array(
                     vec![
                         Value::Bool(true),
                         Value::Bool(false),
                         Value::Bool(true),
                         Value::Bool(true),
-                        Value::Bool(false)
+                        Value::Bool(false),
                     ]
-                    .into()
+                    .into(),
                 ),
             ]
-            .into()
+            .into(),
         ),
     );
     test_expression(
@@ -850,13 +859,22 @@ fn check_unzipped() {
                         Value::Bool(false),
                         Value::Bool(true),
                         Value::Bool(true),
-                        Value::Bool(false)
+                        Value::Bool(false),
                     ]
-                    .into()
+                    .into(),
                 ),
-                Value::Array(vec![Value::Int(5), Value::Int(4), Value::Int(3), Value::Int(2), Value::Int(1)].into()),
+                Value::Array(
+                    vec![
+                        Value::Int(5),
+                        Value::Int(4),
+                        Value::Int(3),
+                        Value::Int(2),
+                        Value::Int(1),
+                    ]
+                    .into(),
+                ),
             ]
-            .into()
+            .into(),
         ),
     );
 }

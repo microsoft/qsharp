@@ -6,7 +6,7 @@ use crate::{
     serializable_type,
 };
 use miette::{Diagnostic, LabeledSpan, Severity};
-use qsc::{self, error::WithSource, interpret, project, SourceName, Span};
+use qsc::{self, SourceName, Span, error::WithSource, interpret, project};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;

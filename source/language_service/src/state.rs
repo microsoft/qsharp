@@ -13,7 +13,7 @@ use super::protocol::{
 use log::{debug, trace};
 use miette::Diagnostic;
 use qsc::line_column::Encoding;
-use qsc::{compile, project, target::Profile, LanguageFeatures, PackageType};
+use qsc::{LanguageFeatures, PackageType, compile, project, target::Profile};
 use qsc_linter::LintOrGroupConfig;
 use qsc_project::{FileSystemAsync, JSProjectHost, PackageCache, Project, ProjectType};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -277,7 +277,7 @@ impl<'a> CompilationStateUpdater<'a> {
                     &mut package_graph_sources.root.sources
                 }
             };
-            for (ref l_uri, ref mut source) in root_sources {
+            for (l_uri, source) in root_sources {
                 if let Some(doc) = state.open_documents.get(l_uri) {
                     trace!("{l_uri} is open, using source from open document");
                     *source = doc.latest_str_content.clone();

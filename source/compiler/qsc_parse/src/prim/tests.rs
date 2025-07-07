@@ -3,13 +3,13 @@
 
 use super::{ident, opt, pat, seq};
 use crate::{
+    Error, ErrorKind,
     completion::WordKinds,
     expr::expr,
     keyword::Keyword,
     lex::{ClosedBinOp, TokenKind},
     scan::ParserContext,
     tests::{check, check_opt, check_seq},
-    Error, ErrorKind,
 };
 use expect_test::expect;
 use qsc_ast::ast::PathKind;

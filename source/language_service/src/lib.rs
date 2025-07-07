@@ -21,7 +21,7 @@ mod test_utils;
 mod tests;
 
 use compilation::Compilation;
-use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
+use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender, unbounded};
 use futures_util::StreamExt;
 use log::{trace, warn};
 use protocol::{

@@ -7,7 +7,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{operation::Operation, Error, SquareMatrix, TOLERANCE};
+use crate::{Error, SquareMatrix, TOLERANCE, operation::Operation};
 use nalgebra::{DMatrix, DVector};
 
 /// An instrument is the means by which we make measurements on a quantum system.

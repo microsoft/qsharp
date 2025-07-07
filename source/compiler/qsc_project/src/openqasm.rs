@@ -109,7 +109,7 @@ where
 /// - The parent file path (as an `Arc<str>`)
 /// - The filename of the included file (as an `Arc<str>`)
 fn get_includes(program: &Program, parent: &Arc<str>) -> Vec<(Arc<str>, Arc<str>)> {
-    let includes = program
+    program
         .statements
         .iter()
         .filter_map(|stmt| {
@@ -125,8 +125,7 @@ fn get_includes(program: &Program, parent: &Arc<str>) -> Vec<(Arc<str>, Arc<str>
                 None
             }
         })
-        .collect::<Vec<_>>();
-    includes
+        .collect::<Vec<_>>()
 }
 
 fn get_file_name_from_uri(uri: &Arc<str>) -> Arc<str> {

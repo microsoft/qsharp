@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{
-    check_callable_compute_properties, check_last_statement_compute_properties, CompilationContext,
+    CompilationContext, check_callable_compute_properties, check_last_statement_compute_properties,
 };
 use expect_test::expect;
 

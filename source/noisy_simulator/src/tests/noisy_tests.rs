@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    operation::Operation, tests::assert_approx_eq_with_tolerance, NoisySimulator, SquareMatrix,
+    NoisySimulator, SquareMatrix, operation::Operation, tests::assert_approx_eq_with_tolerance,
 };
 use nalgebra::dmatrix;
 use num_complex::Complex;

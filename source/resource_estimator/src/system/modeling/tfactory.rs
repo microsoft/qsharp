@@ -7,7 +7,7 @@ mod tests;
 use core::fmt;
 use std::{collections::BTreeMap, fmt::Display, vec};
 
-use serde::{ser::SerializeMap, Serialize};
+use serde::{Serialize, ser::SerializeMap};
 
 use crate::estimates::{
     DistillationRound, DistillationUnit, Factory, LogicalPatch, RoundBasedFactory,

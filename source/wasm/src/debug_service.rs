@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::line_column::{Location, Range};
-use crate::project_system::{into_qsc_args, ProgramConfig};
+use crate::project_system::{ProgramConfig, into_qsc_args};
 use crate::{
-    get_debugger_from_openqasm, into_openqasm_args, is_openqasm_program, serializable_type,
-    CallbackReceiver,
+    CallbackReceiver, get_debugger_from_openqasm, into_openqasm_args, is_openqasm_program,
+    serializable_type,
 };
 use qsc::fir::StmtId;
 use qsc::fmt_complex;

@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use super::get_signature_help;
-use crate::{test_utils::compile_with_markers, Encoding};
-use expect_test::{expect, Expect};
+use crate::{Encoding, test_utils::compile_with_markers};
+use expect_test::{Expect, expect};
 use indoc::indoc;
 
 /// Asserts that the signature help given at the cursor position matches the expected signature help.

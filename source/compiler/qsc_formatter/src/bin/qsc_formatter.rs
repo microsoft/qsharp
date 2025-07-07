@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use clap::{crate_version, Parser};
+use clap::{Parser, crate_version};
 use qsc_formatter::formatter::{calculate_format_edits, format_str};
 use std::{
     env,
@@ -185,7 +185,9 @@ fn main() -> Result<(), String> {
         for f in &file_walker.changed_files {
             println!("\t{Error}{f}");
         }
-        println!("{Error}Run the formatter with the `--write` option to correct formatting for the above files.{Reset}");
+        println!(
+            "{Error}Run the formatter with the `--write` option to correct formatting for the above files.{Reset}"
+        );
     } else {
         println!(
             "{Passing}{} files are correctly formatted.{Reset}",

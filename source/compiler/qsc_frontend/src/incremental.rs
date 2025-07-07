@@ -6,7 +6,7 @@ mod tests;
 
 use crate::{
     compile::{
-        self, preprocess, AstPackage, CompileUnit, Dependencies, Offsetter, PackageStore, SourceMap,
+        self, AstPackage, CompileUnit, Dependencies, Offsetter, PackageStore, SourceMap, preprocess,
     },
     error::WithSource,
     lower::Lowerer,

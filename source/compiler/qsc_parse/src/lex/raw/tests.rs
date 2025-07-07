@@ -3,7 +3,7 @@
 
 use super::Lexer;
 use crate::lex::raw::{Single, Token, TokenKind};
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 
 fn check(input: &str, expect: &Expect) {
     let actual: Vec<_> = Lexer::new(input).collect();

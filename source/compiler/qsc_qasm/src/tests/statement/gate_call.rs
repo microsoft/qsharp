@@ -1329,8 +1329,8 @@ fn qasm2_custom_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn qasm2_simulatable_intrinsic_on_gate_stmt_generates_correct_qir(
-) -> miette::Result<(), Vec<Report>> {
+fn qasm2_simulatable_intrinsic_on_gate_stmt_generates_correct_qir()
+-> miette::Result<(), Vec<Report>> {
     let source = r#"
         OPENQASM 2.0;
         include "qelib1.inc";

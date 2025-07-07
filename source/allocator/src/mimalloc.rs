@@ -12,24 +12,24 @@ unsafe impl GlobalAlloc for Mimalloc {
     #[inline]
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         debug_assert!(layout.align() < mimalloc_sys::MI_ALIGNMENT_MAX);
-        mi_malloc_aligned(layout.size(), layout.align()).cast::<u8>()
+        unsafe { mi_malloc_aligned(layout.size(), layout.align()).cast::<u8>() }
     }
 
     #[inline]
     unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
-        mi_free(ptr.cast::<c_void>());
+        unsafe { mi_free(ptr.cast::<c_void>()) };
     }
 
     #[inline]
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
         debug_assert!(layout.align() < mimalloc_sys::MI_ALIGNMENT_MAX);
-        mi_zalloc_aligned(layout.size(), layout.align()).cast::<u8>()
+        unsafe { mi_zalloc_aligned(layout.size(), layout.align()).cast::<u8>() }
     }
 
     #[inline]
     unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
         debug_assert!(layout.align() < mimalloc_sys::MI_ALIGNMENT_MAX);
-        mi_realloc_aligned(ptr.cast::<c_void>(), new_size, layout.align()).cast::<u8>()
+        unsafe { mi_realloc_aligned(ptr.cast::<c_void>(), new_size, layout.align()).cast::<u8>() }
     }
 }
 

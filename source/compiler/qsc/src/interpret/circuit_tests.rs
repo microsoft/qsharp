@@ -1006,7 +1006,7 @@ mod debugger_stepping {
     use expect_test::expect;
     use qsc_data_structures::language_features::LanguageFeatures;
     use qsc_data_structures::line_column::Encoding;
-    use qsc_eval::{output::GenericReceiver, StepAction, StepResult};
+    use qsc_eval::{StepAction, StepResult, output::GenericReceiver};
     use qsc_frontend::compile::SourceMap;
     use std::fmt::Write;
 

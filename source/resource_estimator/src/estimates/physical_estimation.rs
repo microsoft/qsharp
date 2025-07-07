@@ -30,10 +30,10 @@ pub struct PhysicalResourceEstimation<E: ErrorCorrection, Builder, L> {
 }
 
 impl<
-        E: ErrorCorrection<Parameter = impl Clone>,
-        Builder: FactoryBuilder<E, Factory = impl Factory<Parameter = E::Parameter> + Clone>,
-        L: Overhead,
-    > PhysicalResourceEstimation<E, Builder, L>
+    E: ErrorCorrection<Parameter = impl Clone>,
+    Builder: FactoryBuilder<E, Factory = impl Factory<Parameter = E::Parameter> + Clone>,
+    L: Overhead,
+> PhysicalResourceEstimation<E, Builder, L>
 {
     pub fn new(
         ftp: E,

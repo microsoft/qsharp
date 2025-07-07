@@ -4,7 +4,7 @@
 use crate::compilation::Compilation;
 use qsc::line_column::{Encoding, Range};
 use qsc::location::Location;
-use qsc::{hir::PackageId, SourceMap, Span};
+use qsc::{SourceMap, Span, hir::PackageId};
 
 pub(crate) fn into_range(encoding: Encoding, span: Span, source_map: &SourceMap) -> Range {
     let lo_source = source_map

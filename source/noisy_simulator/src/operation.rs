@@ -43,6 +43,7 @@ pub(crate) use operation;
 pub struct Operation {
     number_of_qubits: usize,
     kraus_operators: Vec<SquareMatrix>,
+    #[allow(clippy::struct_field_names)]
     operation_matrix: SquareMatrix,
     effect_matrix: SquareMatrix,
     effect_matrix_transpose: SquareMatrix,

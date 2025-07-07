@@ -13,7 +13,7 @@ use qsc_hir::{
 use std::fmt::Write;
 use std::rc::Rc;
 
-use crate::linter::{hir::declare_hir_lints, Compilation};
+use crate::linter::{Compilation, hir::declare_hir_lints};
 
 use super::lint;
 

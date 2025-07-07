@@ -14,11 +14,11 @@ pub struct EstimateWithoutRestrictions<'a, E: ErrorCorrection, B, L> {
 }
 
 impl<
-        'a,
-        E: ErrorCorrection<Parameter = impl Clone>,
-        B: FactoryBuilder<E, Factory = impl Factory<Parameter = E::Parameter> + Clone>,
-        L: Overhead,
-    > EstimateWithoutRestrictions<'a, E, B, L>
+    'a,
+    E: ErrorCorrection<Parameter = impl Clone>,
+    B: FactoryBuilder<E, Factory = impl Factory<Parameter = E::Parameter> + Clone>,
+    L: Overhead,
+> EstimateWithoutRestrictions<'a, E, B, L>
 {
     pub fn new(estimator: &'a PhysicalResourceEstimation<E, B, L>) -> Self {
         Self { estimator }
@@ -84,7 +84,7 @@ impl<
                         factory_parts.push(None);
                     }
                     FactoryPartsResult::NoFactories | FactoryPartsResult::NoSuitableFactory => {
-                        break
+                        break;
                     }
                     FactoryPartsResult::Success {
                         factory_part,
@@ -305,10 +305,10 @@ impl<
 }
 
 impl<
-        E: ErrorCorrection<Parameter = impl Clone>,
-        B: FactoryBuilder<E, Factory = impl Factory<Parameter = E::Parameter> + Clone>,
-        L: Overhead,
-    > Deref for EstimateWithoutRestrictions<'_, E, B, L>
+    E: ErrorCorrection<Parameter = impl Clone>,
+    B: FactoryBuilder<E, Factory = impl Factory<Parameter = E::Parameter> + Clone>,
+    L: Overhead,
+> Deref for EstimateWithoutRestrictions<'_, E, B, L>
 {
     type Target = PhysicalResourceEstimation<E, B, L>;
 

@@ -19,7 +19,7 @@ use ast_context::AstContext;
 use fields::Fields;
 use global_items::Globals;
 use locals::Locals;
-use log::{log_enabled, trace, Level::Trace};
+use log::{Level::Trace, log_enabled, trace};
 use qsc::{
     line_column::{Encoding, Position},
     parse::completion::PathKind,

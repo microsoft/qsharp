@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc::interpret::{output::CursorReceiver, Error};
+use qsc::interpret::{Error, output::CursorReceiver};
 use std::{
     env, fs,
     io::Cursor,

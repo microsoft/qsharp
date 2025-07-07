@@ -992,8 +992,8 @@ impl Display for ForStmt {
 #[derive(Clone, Debug)]
 pub enum EnumerableSet {
     Set(Set),
-    Range(Range),
-    Expr(Expr),
+    Range(Box<Range>),
+    Expr(Box<Expr>),
 }
 
 impl Display for EnumerableSet {
@@ -1360,7 +1360,7 @@ impl fmt::Display for Version {
 #[derive(Clone, Debug)]
 pub enum Index {
     Expr(Expr),
-    Range(Range),
+    Range(Box<Range>),
 }
 
 impl Index {

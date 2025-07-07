@@ -5,17 +5,17 @@
 mod tests;
 
 use super::{
+    Error, Parser, Result,
     keyword::Keyword,
     prim::{apos_ident, opt, seq, token},
     scan::ParserContext,
-    Error, Parser, Result,
 };
 use crate::{
+    ErrorKind,
     completion::WordKinds,
     item::throw_away_doc,
     lex::{ClosedBinOp, Delim, TokenKind},
     prim::{ident, parse_or_else, recovering_path},
-    ErrorKind,
 };
 use qsc_ast::ast::{
     CallableKind, ClassConstraint, ClassConstraints, ConstraintParameter, Functor, FunctorExpr,

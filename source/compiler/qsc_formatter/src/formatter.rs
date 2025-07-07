@@ -5,9 +5,9 @@ use qsc_data_structures::span::Span;
 use qsc_frontend::{
     keyword::Keyword,
     lex::{
+        Delim, InterpolatedEnding, InterpolatedStart,
         concrete::{self, ConcreteToken, ConcreteTokenKind},
         cooked::{ClosedBinOp, StringToken, TokenKind},
-        Delim, InterpolatedEnding, InterpolatedStart,
     },
 };
 
@@ -237,10 +237,10 @@ impl Formatter<'_> {
         whitespace: &str,
         right: &ConcreteToken,
     ) -> Vec<TextEdit> {
-        use qsc_frontend::keyword::Keyword;
-        use qsc_frontend::lex::cooked::ClosedBinOp;
         use ConcreteTokenKind::*;
         use TokenKind::*;
+        use qsc_frontend::keyword::Keyword;
+        use qsc_frontend::lex::cooked::ClosedBinOp;
 
         let mut edits = vec![];
         // when we get here, neither left nor right should be whitespace
@@ -530,9 +530,9 @@ impl Formatter<'_> {
     }
 
     fn update_spec_decl_state(&mut self, left_kind: &ConcreteTokenKind) {
-        use qsc_frontend::keyword::Keyword;
         use ConcreteTokenKind::*;
         use TokenKind::*;
+        use qsc_frontend::keyword::Keyword;
 
         match left_kind {
             Comment => {
@@ -551,9 +551,9 @@ impl Formatter<'_> {
     }
 
     fn update_import_export_state(&mut self, left_kind: &ConcreteTokenKind) {
-        use qsc_frontend::keyword::Keyword;
         use ConcreteTokenKind::*;
         use TokenKind::*;
+        use qsc_frontend::keyword::Keyword;
 
         match left_kind {
             Comment => {
@@ -576,9 +576,9 @@ impl Formatter<'_> {
         left_kind: &ConcreteTokenKind,
         right_kind: &ConcreteTokenKind,
     ) {
-        use qsc_frontend::{keyword::Keyword, lex::cooked::ClosedBinOp};
         use ConcreteTokenKind::*;
         use TokenKind::*;
+        use qsc_frontend::{keyword::Keyword, lex::cooked::ClosedBinOp};
 
         // If we are leaving a type param list, reset the state
         if matches!(left_kind, Syntax(Gt))

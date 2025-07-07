@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 
 // Each file in the samples/OpenQASM folder is compiled and run as two tests and should
 // have matching expect strings in this file. If new samples are added, this file will

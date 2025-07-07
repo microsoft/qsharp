@@ -3,7 +3,7 @@
 
 use crate::compiler::parse_and_compile_to_qsharp_ast_with_config;
 use crate::io::{InMemorySourceResolver, SourceResolver};
-use crate::semantic::{parse_source, QasmSemanticParseResult};
+use crate::semantic::{QasmSemanticParseResult, parse_source};
 use crate::{CompilerConfig, OutputSemantics, ProgramType, QasmCompileUnit, QubitSemantics};
 use expect_test::Expect;
 use miette::Report;
@@ -12,8 +12,8 @@ use qsc::compile::package_store_with_stdlib;
 use qsc::interpret::Error;
 use qsc::target::Profile;
 use qsc::{
-    ast::{mut_visit::MutVisitor, Package, Stmt, TopLevelNode},
     SourceMap, Span,
+    ast::{Package, Stmt, TopLevelNode, mut_visit::MutVisitor},
 };
 use qsc_hir::hir::PackageId;
 use qsc_passes::PackageType;
@@ -378,14 +378,13 @@ pub fn compile_qasm_stmt_to_qsharp_with_semantics<S: Into<Arc<str>>>(
 }
 
 fn get_last_statement_as_qsharp(package: &Package) -> String {
-    let qsharp = match package.nodes.iter().last() {
+    match package.nodes.iter().last() {
         Some(i) => match i {
             TopLevelNode::Namespace(_) => panic!("Expected Stmt, got Namespace"),
             TopLevelNode::Stmt(stmt) => gen_qsharp_stmt(stmt.as_ref()),
         },
         None => panic!("Expected Stmt, got None"),
-    };
-    qsharp
+    }
 }
 
 pub struct AstDespanner;
@@ -426,7 +425,7 @@ impl qsc::hir::mut_visit::MutVisitor for HirDespanner {
 mod qsharp {
     use qsc_ast::ast::Package;
     use qsc_data_structures::language_features::LanguageFeatures;
-    use qsc_frontend::compile::{parse_all, SourceMap};
+    use qsc_frontend::compile::{SourceMap, parse_all};
 
     pub(super) fn parse_package(sources: Option<SourceMap>) -> Package {
         let (ast_package, _) = parse_all(&sources.unwrap_or_default(), LanguageFeatures::empty());

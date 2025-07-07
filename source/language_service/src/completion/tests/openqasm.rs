@@ -3,14 +3,14 @@
 
 use std::sync::Arc;
 
-use super::{get_completions, CompletionItem};
-use crate::{test_utils::get_sources_and_markers, Compilation, Encoding};
-use expect_test::{expect, Expect};
+use super::{CompletionItem, get_completions};
+use crate::{Compilation, Encoding, test_utils::get_sources_and_markers};
+use expect_test::{Expect, expect};
 use indoc::indoc;
 use qsc::{
+    PackageType,
     line_column::{Position, Range},
     location::Location,
-    PackageType,
 };
 
 fn compile_project_with_markers_cursor_optional(

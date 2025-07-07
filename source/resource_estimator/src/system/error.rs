@@ -59,9 +59,7 @@ pub enum InvalidInput {
     #[error(
         "physicalQubitsPerLogicalQubit formula yields non-positive value for code distance = {0}"
     )]
-    #[diagnostic(code(
-        "Qsc.Estimates.InvalidInputError.NonPositivePhysicalQubitsPerLogicalQubit"
-    ))]
+    #[diagnostic(code("Qsc.Estimates.InvalidInputError.NonPositivePhysicalQubitsPerLogicalQubit"))]
     NonPositivePhysicalQubitsPerLogicalQubit(u64),
     /// Invalid error budget (<= 0.0 or >= 1.0)
     ///
@@ -77,9 +75,7 @@ pub enum InvalidInput {
     /// ✅ This does not contain user data and can be logged
     /// 🧑‍💻 This indicates a user error
     #[error("Unsupported constraints provided for Frontier Estimation.")]
-    #[diagnostic(code(
-        "Qsc.Estimates.InvalidInputError.ConstraintsProvidedForFrontierEstimation"
-    ))]
+    #[diagnostic(code("Qsc.Estimates.InvalidInputError.ConstraintsProvidedForFrontierEstimation"))]
     ConstraintsProvidedForFrontierEstimation,
 }
 

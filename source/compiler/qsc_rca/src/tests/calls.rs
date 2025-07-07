@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{check_last_statement_compute_properties, CompilationContext};
+use super::{CompilationContext, check_last_statement_compute_properties};
 use expect_test::expect;
 
 #[test]
@@ -255,8 +255,8 @@ fn check_rca_for_call_to_operation_with_codegen_intrinsic_override_treated_as_in
 }
 
 #[test]
-fn check_rca_for_call_to_operation_with_codegen_intrinsic_override_treated_as_intrinsic_that_takes_qubit_arg(
-) {
+fn check_rca_for_call_to_operation_with_codegen_intrinsic_override_treated_as_intrinsic_that_takes_qubit_arg()
+ {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"

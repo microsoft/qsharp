@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{
-    tests::{compile_with_config, gen_qsharp, print_compilation_errors},
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
+    tests::{compile_with_config, gen_qsharp, print_compilation_errors},
 };
 
 const SOURCE: &str = r#"
