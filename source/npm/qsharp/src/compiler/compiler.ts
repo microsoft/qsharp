@@ -110,6 +110,8 @@ export type ProgramConfig = (
   profile?: TargetProfile;
   /** The type of project. This is used to determine how to load the project. */
   projectType?: ProjectType;
+  /** True if this config represents a single-file program, false if it's a project. */
+  isSingleFile?: boolean;
 };
 
 // WebWorker also support being explicitly terminated to tear down the worker thread

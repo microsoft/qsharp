@@ -5,6 +5,7 @@
 mod integration_tests;
 
 use super::{FileSystemAsync, Project};
+use qsc_data_structures::target::Profile;
 use qsc_qasm::parser::ast::{Program, StmtKind};
 use rustc_hash::FxHashSet;
 use std::{path::Path, sync::Arc};
@@ -54,6 +55,8 @@ where
                         lints: Vec::default(),
                         errors,
                         project_type: super::ProjectType::OpenQASM(vec![]),
+                        target_profile: Profile::Unrestricted,
+                        is_single_file: true, // OpenQASM projects are always single-file
                     };
                 }
             }
@@ -101,6 +104,8 @@ where
         lints: Vec::default(),
         errors,
         project_type: super::ProjectType::OpenQASM(sources),
+        target_profile: Profile::Unrestricted,
+        is_single_file: true, // OpenQASM projects are always single-file
     }
 }
 
