@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::val::Value;
+use crate::val::{self, Value};
 use crate::{noise::PauliNoise, val::unwrap_tuple};
 use ndarray::Array2;
 use num_bigint::BigUint;
@@ -222,7 +222,7 @@ impl SparseSim {
 }
 
 impl Backend for SparseSim {
-    type ResultType = Option<bool>;
+    type ResultType = val::Result;
 
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize) {
         match (
@@ -290,9 +290,9 @@ impl Backend for SparseSim {
             // Mark it as no longer lost so it becomes usable again, since
             // measurement will "reload" the qubit.
             self.lost_qubits.set_bit(q as u64, false);
-            return None;
+            return val::Result::Loss;
         }
-        Some(self.sim.measure(q))
+        val::Result::Val(self.sim.measure(q))
     }
 
     fn mresetz(&mut self, q: usize) -> Self::ResultType {
@@ -302,14 +302,14 @@ impl Backend for SparseSim {
             // Mark it as no longer lost so it becomes usable again, since
             // measurement will "reload" the qubit.
             self.lost_qubits.set_bit(q as u64, false);
-            return None;
+            return val::Result::Loss;
         }
         let res = self.sim.measure(q);
         if res {
             self.sim.x(q);
         }
         self.apply_noise(q); // Applying noise after reset
-        Some(res)
+        val::Result::Val(res)
     }
 
     fn reset(&mut self, q: usize) {

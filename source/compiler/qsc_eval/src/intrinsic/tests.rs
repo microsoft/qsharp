@@ -3,9 +3,9 @@
 
 use std::f64::consts;
 
-use crate::Env;
 use crate::backend::{Backend, SparseSim};
 use crate::tests::eval_graph;
+use crate::{Env, val};
 use crate::{
     Error,
     output::{GenericReceiver, Receiver},
@@ -27,7 +27,7 @@ struct CustomSim {
 }
 
 impl Backend for CustomSim {
-    type ResultType = Option<bool>;
+    type ResultType = val::Result;
 
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize) {
         self.sim.ccx(ctl0, ctl1, q);

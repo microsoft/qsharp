@@ -5,6 +5,7 @@ use crate::{
     backend::{Backend, SparseSim},
     noise::PauliNoise,
     state::{fmt_complex, format_state_id},
+    val,
 };
 use expect_test::{Expect, expect};
 use num_bigint::BigUint;
@@ -81,14 +82,10 @@ fn noiseless_gate() {
     let q = sim.qubit_allocate();
     for _ in 0..100 {
         sim.x(q);
-        let res1 = sim
-            .m(q)
-            .expect("measurement without loss should return a result");
+        let res1 = sim.m(q).unwrap_bool();
         assert!(res1, "Expected True without noise.");
         sim.x(q);
-        let res2 = sim
-            .m(q)
-            .expect("measurement without loss should return a result");
+        let res2 = sim.m(q).unwrap_bool();
         assert!(!res2, "Expected False without noise.");
     }
     assert!(
@@ -105,13 +102,9 @@ fn bitflip_measurement() {
     assert!(!sim.is_noiseless(), "Expected noisy simulator.");
     let q = sim.qubit_allocate(); // Allocation is noiseless even with noise.
     for _ in 0..100 {
-        let res1 = sim
-            .m(q)
-            .expect("measurement without loss should return a result");
+        let res1 = sim.m(q).unwrap_bool();
         assert!(res1, "Expected True for 100% bit flip noise.");
-        let res2 = sim
-            .m(q)
-            .expect("measurement without loss should return a result");
+        let res2 = sim.m(q).unwrap_bool();
         assert!(!res2, "Expected False for 100% bit flip noise.");
     }
     assert!(
@@ -131,10 +124,7 @@ fn noisy_measurement() {
     for _ in 0..1000 {
         let q = sim.qubit_allocate(); // Allocation is noiseless even with noise.
         // sim.m sometimes applies X before measuring
-        if sim
-            .m(q)
-            .expect("measurement without loss should return a result")
-        {
+        if sim.m(q).unwrap_bool() {
             true_count += 1;
         }
         sim.qubit_release(q);
@@ -215,11 +205,14 @@ fn noisy_via_z() {
 }
 
 #[test]
-fn measure_without_loss_returns_some() {
+fn measure_without_loss_returns_value() {
     let mut sim = SparseSim::new();
     let q = sim.qubit_allocate();
     let res = sim.m(q);
-    assert!(res.is_some(), "Expected measurement to return a result");
+    assert!(
+        matches!(res, val::Result::Val(_)),
+        "Expected measurement to return a result"
+    );
 }
 
 #[test]
@@ -228,8 +221,9 @@ fn measure_with_loss_returns_none() {
     sim.set_loss(1.0); // Set loss probability to 100%
     let q = sim.qubit_allocate();
     let res = sim.m(q);
-    assert!(
-        res.is_none(),
+    assert_eq!(
+        res,
+        val::Result::Loss,
         "Expected measurement with loss to return None"
     );
 }
