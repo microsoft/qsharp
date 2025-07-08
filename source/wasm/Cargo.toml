@@ -45,3 +45,13 @@ indoc = { workspace = true }
 
 [lints]
 workspace = true
+
+# Rust 1.87 upgraded to LLVM 20, which enables bulk-memory by default.
+# Therefore, `wasm-opt` needs to be configured to expect this setting.
+# This behavior is document in:
+# <https://doc.rust-lang.org/rustc/platform-support/wasm32-unknown-unknown.html#enabled-webassembly-features>.
+[package.metadata.wasm-pack.profile.profiling]
+wasm-opt = ['-O', '--enable-bulk-memory']
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ['-O', '--enable-bulk-memory']

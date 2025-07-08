@@ -23,6 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 // loads extra libraries, changes the name and path around, and does other things that are
 // difficult to handle. The cc crate is much simpler and more predictable.
 fn compile_mimalloc() {
+    let target = env::var("TARGET").expect("TARGET variable should exist");
     let mimalloc_vendor_dir = PathBuf::from("mimalloc");
 
     let mut build = cc::Build::new();
@@ -61,6 +62,14 @@ fn compile_mimalloc() {
 
     // turn off warnings from the mimalloc code
     build.cargo_warnings(false);
+
+    // Starting on rust 1.87, the Std doesn't link advapi32 on windows
+    // anymore. So, C libraries that depended on it, like mimalloc, now
+    // need to link it manually.
+    // Link to the Rust PR: <https://github.com/rust-lang/rust/pull/138233>
+    if target.contains("windows") {
+        println!("cargo:rustc-link-lib=advapi32");
+    }
 
     build.compile("mimalloc");
 }
