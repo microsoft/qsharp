@@ -41,7 +41,7 @@ use crate::{
         wrap_expr_in_parens,
     },
     io::SourceResolver,
-    parser::ast::{List, list_from_iter},
+    parser::ast::{List, PathKind, list_from_iter},
     semantic::{
         QasmSemanticParseResult,
         ast::{
@@ -123,18 +123,9 @@ impl FromStr for PragmaKind {
     }
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Default)]
 pub struct PragmaConfig {
     pub pragmas: FxHashMap<PragmaKind, Rc<str>>,
-}
-
-impl Default for PragmaConfig {
-    #[must_use]
-    fn default() -> Self {
-        Self {
-            pragmas: FxHashMap::default(),
-        }
-    }
 }
 
 impl PragmaConfig {
@@ -1029,7 +1020,10 @@ impl QasmCompiler {
             args.is_empty() && matches!(&**return_ty, crate::semantic::types::Type::Void)
         }
 
-        let name_str = stmt.identifier.as_string();
+        let name_str = stmt
+            .identifier
+            .as_ref()
+            .map_or_else(String::new, PathKind::as_string);
 
         // Check if the pragma is supported by the compiler.
         // If not, we push an error message and return.

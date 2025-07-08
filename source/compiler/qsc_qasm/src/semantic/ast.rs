@@ -709,17 +709,20 @@ impl Display for QuantumArgument {
 #[derive(Clone, Debug)]
 pub struct Pragma {
     pub span: Span,
-    pub identifier: PathKind,
+    pub identifier: Option<PathKind>,
     pub value: Option<Rc<str>>,
     pub value_span: Option<Span>,
 }
 
 impl Display for Pragma {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let identifier = format!("\"{}\"", self.identifier);
         let value = self.value.as_ref().map(|val| format!("\"{val}\""));
         writeln_header(f, "Pragma", self.span)?;
-        writeln_field(f, "identifier", &identifier)?;
+        writeln_opt_field(
+            f,
+            "identifier",
+            self.identifier.as_ref().map(PathKind::as_string).as_ref(),
+        )?;
         writeln_opt_field(f, "value", value.as_ref())?;
         write_opt_field(f, "value_span", self.value_span.as_ref())
     }

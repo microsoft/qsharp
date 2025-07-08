@@ -460,28 +460,67 @@ fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
     // and the value, if any.
 
     let mut c = ParserContext::new(pragma_content);
-
+    let content_lo = c.skip_trivia().hi;
     // parse the dotted path identifier
     let Ok(mut path) = recovering_path(&mut c, WordKinds::PathExpr) else {
         // We only fail if no parts were parsed, which means
-        // the pragma line was empty or only contained whitespace.
-        // In that case, we return an error with the span of the token.
+        // - the pragma line was empty or only contained whitespace
+        //   In that case, we return an empty pragma
+        // - line contained odd characters that couldn't be ident/kw
+        //   in that case we return value only pragma
 
-        s.push_error(Error::new(ErrorKind::Rule(
-            "pragma missing identifier",
-            token.kind,
-            token.span,
-        )));
+        let trimmed_content = pragma_content.trim();
+        if trimmed_content.is_empty() {
+            return Ok(Pragma {
+                span: token.span,
+                identifier: None,
+                value: None,
+                value_span: None,
+            });
+        }
+
+        let value = trim_front_safely(content_lo.try_into().expect("valid size"), pragma_content);
+        let value = if value.is_empty() {
+            None
+        } else {
+            Some(Rc::from(value))
+        };
+        let value_span = value.as_ref().map(|_| Span {
+            lo: stmt_lo + ident_lo + content_lo,
+            hi: stmt_hi,
+        });
         return Ok(Pragma {
             span: token.span,
-            identifier: super::ast::PathKind::Err(None),
-            value: None,
-            value_span: None,
+            identifier: None,
+            value,
+            value_span,
         });
     };
 
     // update the path span based on the original lo
     path.offset(ident_lo);
+
+    if path.segments().iter().len() == 0 {
+        // name with no segments
+        // any pragma with a dotted name requires at least one segment.
+        // So this is not a namespaced pragma and is just a value pragma
+        let value = trim_front_safely(content_lo.try_into().expect("valid size"), pragma_content);
+        let value = if value.is_empty() {
+            None
+        } else {
+            Some(Rc::from(value))
+        };
+        let value_span = value.as_ref().map(|_| Span {
+            lo: stmt_lo + ident_lo + content_lo,
+            hi: stmt_hi,
+        });
+        return Ok(Pragma {
+            span: s.span(stmt_lo),
+            identifier: None,
+            value,
+            value_span,
+        });
+    }
 
     // we need to get to the first non-whitespace token
     // after the identifier, which should be the value.
@@ -502,7 +541,7 @@ fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
 
     Ok(Pragma {
         span: s.span(stmt_lo),
-        identifier: path,
+        identifier: Some(path),
         value,
         value_span,
     })
