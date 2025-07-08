@@ -177,6 +177,28 @@ export async function waitForDiagnosticsToAppear(
 }
 
 /**
+ * Waits for diagnostics to be empty for a specific URI.
+ * Ignores the document status diagnostic.
+ *
+ * @param uri The URI to wait for empty diagnostics on
+ * @param timeoutMs Timeout for waiting
+ */
+export async function waitForDiagnosticsToBeEmpty(
+  uri: vscode.Uri,
+  timeoutMs: number = 2000,
+): Promise<void> {
+  await waitForDiagnostics(
+    uri,
+    (diagnostics) =>
+      // Filter out the dev diagnostics to return only real diagnostics
+      diagnostics.filter((d) => d.code !== documentStatusDiagnosticCode)
+        .length === 0,
+    timeoutMs,
+    `Expected diagnostics to be empty for ${uri.path} within timeout`,
+  );
+}
+
+/**
  * Opens a single document and waits for it to be processed by the language service.
  * The language service signals that it processed this version of the document by
  * publishing an info diagnostic on the document with its known status.
