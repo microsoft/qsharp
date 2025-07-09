@@ -142,7 +142,7 @@
           }
         },
         "Q#.simulation.qubitLoss": {
-          "markdownDescription": "The probability of a qubit loss occurring when running multiple shots via the Histogram command. This is applied for every qubit referenced.\n\nProbability values are in the range [0, 1].",
+          "markdownDescription": "The probability of a qubit loss occurring when running multiple shots via the Histogram command. This is applied on every gate or measurement on all qubits referenced.\n\nProbability values are in the range [0, 1].",
           "type": "number",
           "default": 0,
           "minimum": 0,

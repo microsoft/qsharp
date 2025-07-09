@@ -179,6 +179,10 @@ operation MeasureInteger(target : Qubit[]) : Int {
 /// This operation is useful for detecting qubit loss during execution. During simulation, qubit loss probability can be
 /// configured via the `ConfigureQubitLoss` operation. When compiled to QIR, this uses the `__quantum__rt__read_loss` intrinsic,
 /// which may not be supported on all hardware targets and could result in compilation errors when submitting to those targets.
+///
+/// # See also
+/// - [Std.Measurement.IsLossResult](xref:Qdk.Std.Measurement.IsLossResult)
+/// - [Std.Diagnostics.ConfigureQubitLoss](xref:Qdk.Std.Diagnostics.ConfigureQubitLoss)
 operation MResetZChecked(target : Qubit) : (Result, Bool) {
     let res = MResetZ(target);
     (res, IsLossResult(res))
@@ -204,6 +208,7 @@ operation MResetZChecked(target : Qubit) : (Result, Bool) {
 ///
 /// # See also
 /// - [Std.Measurement.MResetZChecked](xref:Qdk.Std.Measurement.MResetZChecked)
+/// - [Std.Diagnostics.ConfigureQubitLoss](xref:Qdk.Std.Diagnostics.ConfigureQubitLoss)
 operation IsLossResult(res : Result) : Bool {
     __quantum__rt__read_loss(res)
 }

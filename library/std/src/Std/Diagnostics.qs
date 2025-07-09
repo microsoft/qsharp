@@ -414,10 +414,10 @@ function ConfigureQubitLoss(p : Double) : Unit {
 }
 
 /// # Summary
-/// Applies configured noise to a qubit.
+/// Applies configured noise or loss to a qubit.
 ///
 /// # Description
-/// This operation applies configured noise to a qubit during simulation. For example,
+/// This operation applies configured noise and/or loss to a qubit during simulation. For example,
 /// if configured noise is a bit-flip noise with 5% probability, the X gate will be applied
 /// with 5% probability. If no noise is configured, no noise is applied.
 /// This is useful to simulate noise during idle periods. It could also be used to
@@ -426,6 +426,10 @@ function ConfigureQubitLoss(p : Double) : Unit {
 /// # Input
 /// ## qubit
 /// The qubit to which noise is applied.
+///
+/// # See Also
+/// - [Std.Diagnostics.ConfigurePauliNoise](xref:Qdk.Std.Diagnostics.ConfigurePauliNoise)
+/// - [Std.Diagnostics.ConfigureQubitLoss](xref:Qdk.Std.Diagnostics.ConfigureQubitLoss)
 operation ApplyIdleNoise(qubit : Qubit) : Unit {
     body intrinsic;
 }
