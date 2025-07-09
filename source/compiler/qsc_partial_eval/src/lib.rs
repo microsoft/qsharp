@@ -126,15 +126,12 @@ pub enum Error {
     #[error("unsupported call into test callable")]
     #[diagnostic(code("Qsc.PartialEval.UnsupportedTestCallable"))]
     #[diagnostic(help(
-        "callables with the `@Test` annotation are not supported in partial evaluation."
+        "callables with the `@Test` annotation should not be called from non-test code."
     ))]
     UnsupportedTestCallable(#[label] PackageSpan),
 
     #[error("unsupported use of simulation-only intrinsic `{0}`")]
     #[diagnostic(code("Qsc.PartialEval.UnsupportedSimulationIntrinsic"))]
-    #[diagnostic(help(
-        "intrinsic callables that require a running quantum simulator cannot be invoked in partial evaluation"
-    ))]
     UnsupportedSimulationIntrinsic(String, #[label] PackageSpan),
 }
 
