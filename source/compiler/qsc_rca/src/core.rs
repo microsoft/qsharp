@@ -1804,6 +1804,11 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
     }
 
     fn visit_callable_impl(&mut self, callable_impl: &'a CallableImpl) {
+        let current_item_context = self.get_current_item_context();
+        let is_test_callable = current_item_context
+            .callable_context
+            .as_ref()
+            .is_some_and(|f| f.attrs.iter().any(|attr| *attr == Attr::Test));
         match callable_impl {
             CallableImpl::Intrinsic => {
                 self.analyze_intrinsic_callable();
@@ -1813,6 +1818,21 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                 self.analyze_intrinsic_callable();
                 // Additionally, mark all the statements so that they appear visited.
                 self.set_all_stmts_in_block_to_default(spec_decl.block);
+            }
+            CallableImpl::Spec(spec_impl) if is_test_callable => {
+                // Treat this as an intrinsic callable.
+                self.analyze_intrinsic_callable();
+                // Additionally, mark all the statements in every specialization such that they appear visited.
+                self.set_all_stmts_in_block_to_default(spec_impl.body.block);
+                spec_impl.adj.iter().for_each(|adj_impl| {
+                    self.set_all_stmts_in_block_to_default(adj_impl.block);
+                });
+                spec_impl.ctl.iter().for_each(|ctl_impl| {
+                    self.set_all_stmts_in_block_to_default(ctl_impl.block);
+                });
+                spec_impl.ctl_adj.iter().for_each(|ctladj_impl| {
+                    self.set_all_stmts_in_block_to_default(ctladj_impl.block);
+                });
             }
             CallableImpl::Spec(spec_impl) => {
                 self.visit_spec_impl(spec_impl);

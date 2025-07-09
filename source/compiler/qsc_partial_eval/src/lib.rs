@@ -122,6 +122,20 @@ pub enum Error {
     #[error("failed to evaluate: {0} is not supported")]
     #[diagnostic(code("Qsc.PartialEval.Unimplemented"))]
     Unimplemented(String, #[label] PackageSpan),
+
+    #[error("unsupported call into test callable")]
+    #[diagnostic(code("Qsc.PartialEval.UnsupportedTestCallable"))]
+    #[diagnostic(help(
+        "callables with the `@Test` annotation are not supported in partial evaluation."
+    ))]
+    UnsupportedTestCallable(#[label] PackageSpan),
+
+    #[error("unsupported use of simulation-only intrinsic `{0}`")]
+    #[diagnostic(code("Qsc.PartialEval.UnsupportedSimulationIntrinsic"))]
+    #[diagnostic(help(
+        "intrinsic callables that require a running quantum simulator cannot be invoked in partial evaluation"
+    ))]
+    UnsupportedSimulationIntrinsic(String, #[label] PackageSpan),
 }
 
 impl From<EvalError> for Error {
@@ -140,7 +154,9 @@ impl Error {
             | Self::EvaluationFailed(_, span)
             | Self::OutputResultLiteral(span)
             | Self::Unexpected(_, span)
-            | Self::Unimplemented(_, span) => Some(*span),
+            | Self::Unimplemented(_, span)
+            | Self::UnsupportedTestCallable(span)
+            | Self::UnsupportedSimulationIntrinsic(_, span) => Some(*span),
         }
     }
 }
@@ -1378,6 +1394,8 @@ impl<'a> PartialEvaluator<'a> {
             panic!("global is not a callable");
         };
 
+        self.reject_test_callables(callee_expr_id, callable_decl)?;
+
         // Set up the scope for the call, which allows additional error checking if the callable was
         // previously unresolved.
         let spec_decl = if let CallableImpl::Spec(spec_impl) = &callable_decl.implementation {
@@ -1417,13 +1435,60 @@ impl<'a> PartialEvaluator<'a> {
             ctls_arg,
         );
 
+        self.check_unresolved_call_capabilities(call_expr_id, callee_expr_id, &call_scope)?;
+
+        // We generate instructions differently depending on whether we are calling an intrinsic or a specialization
+        // with an implementation.
+        let value = match spec_decl {
+            None => {
+                let callee_expr_span = self.get_expr_package_span(callee_expr_id);
+                self.eval_expr_call_to_intrinsic(
+                    store_item_id,
+                    callable_decl,
+                    args_value,
+                    args_span,
+                    callee_expr_span,
+                )?
+            }
+            Some(spec_decl) => {
+                self.eval_expr_call_to_spec(call_scope, store_item_id, functor_app, spec_decl)?
+            }
+        };
+        Ok(EvalControlFlow::Continue(value))
+    }
+
+    fn reject_test_callables(
+        &mut self,
+        callee_expr_id: ExprId,
+        callable_decl: &CallableDecl,
+    ) -> Result<(), Error> {
+        // If the callable has the test attribute, it's not safe to generate QIR, so we return an error.
+        if callable_decl
+            .attrs
+            .iter()
+            .any(|attr| attr == &fir::Attr::Test)
+        {
+            Err(Error::UnsupportedTestCallable(
+                self.get_expr_package_span(callee_expr_id),
+            ))
+        } else {
+            // If the callable is not a test, we can proceed with generating QIR.
+            Ok(())
+        }
+    }
+
+    fn check_unresolved_call_capabilities(
+        &mut self,
+        call_expr_id: ExprId,
+        callee_expr_id: ExprId,
+        call_scope: &Scope,
+    ) -> Result<(), Error> {
         // If the call has the unresolved flag, it tells us that RCA could not perform static analysis on this call site.
         // Now that we are in evaluation, we have a distinct callable resolved and can perform runtime capability check
         // ahead of performing the actual call and return the appropriate capabilities error if this call is not supported
         // by the target.
-        let call_was_unresolved = self.is_unresolved_callee_expr(callee_expr_id);
-        if call_was_unresolved {
-            let call_compute_kind = self.get_call_compute_kind(&call_scope);
+        if self.is_unresolved_callee_expr(callee_expr_id) {
+            let call_compute_kind = self.get_call_compute_kind(call_scope);
             if let ComputeKind::Quantum(QuantumProperties {
                 runtime_features,
                 value_kind,
@@ -1455,25 +1520,7 @@ impl<'a> PartialEvaluator<'a> {
                 }
             }
         }
-
-        // We generate instructions differently depending on whether we are calling an intrinsic or a specialization
-        // with an implementation.
-        let value = match spec_decl {
-            None => {
-                let callee_expr_span = self.get_expr_package_span(callee_expr_id);
-                self.eval_expr_call_to_intrinsic(
-                    store_item_id,
-                    callable_decl,
-                    args_value,
-                    args_span,
-                    callee_expr_span,
-                )?
-            }
-            Some(spec_decl) => {
-                self.eval_expr_call_to_spec(call_scope, store_item_id, functor_app, spec_decl)?
-            }
-        };
-        Ok(EvalControlFlow::Continue(value))
+        Ok(())
     }
 
     fn eval_global_call(
@@ -1614,9 +1661,13 @@ impl<'a> PartialEvaluator<'a> {
             | "EndRepeatEstimatesInternal"
             | "ApplyIdleNoise"
             | "GlobalPhase" => Ok(Value::unit()),
+            "CheckZero" => Err(Error::UnsupportedSimulationIntrinsic(
+                "CheckZero".to_string(),
+                callee_expr_span,
+            )),
             // The following intrinsic functions and operations should never make it past conditional compilation and
             // the capabilities check pass.
-            "CheckZero" | "DrawRandomInt" | "DrawRandomDouble" | "DrawRandomBool" | "Length" => {
+            "DrawRandomInt" | "DrawRandomDouble" | "DrawRandomBool" | "Length" => {
                 Err(Error::Unexpected(
                     format!(
                         "`{}` is not a supported by partial evaluation",
