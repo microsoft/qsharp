@@ -8,7 +8,7 @@ use crate::{
 };
 use qsc_circuit::circuit_to_qsharp::circuits_to_qsharp;
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::SourceMap;
+use qsc_frontend::compile::{SourceMap, check_for_entry_profile, entrypoint_in_project_error};
 use qsc_passes::PackageType;
 use qsc_project::PackageGraphSources;
 use rustc_hash::FxHashMap;
@@ -32,8 +32,9 @@ impl BuildableProgram {
     pub fn new(
         capabilities: TargetCapabilityFlags,
         package_graph_sources: PackageGraphSources,
+        is_single_file: bool,
     ) -> Self {
-        prepare_package_store(capabilities, package_graph_sources)
+        prepare_package_store(capabilities, package_graph_sources, is_single_file)
     }
 }
 
@@ -78,16 +79,41 @@ fn convert_circuit_sources(
 /// Given a program config, prepare the package store by compiling all dependencies in the correct order and inserting them.
 #[must_use]
 pub fn prepare_package_store(
-    capabilities: TargetCapabilityFlags,
+    mut capabilities: TargetCapabilityFlags,
     package_graph_sources: PackageGraphSources,
+    is_single_file: bool,
 ) -> BuildableProgram {
+    let mut dependency_errors = Vec::new();
+
+    // Convert circuit files in user code to generated Q# before entry profile check
+    let mut sources = package_graph_sources.root.sources.clone();
+    sources = convert_circuit_sources(sources, &mut dependency_errors);
+
+    // Check if the entry profile is set in the (possibly converted) source code.
+    let entry_profile = check_for_entry_profile(
+        &SourceMap::new(sources.clone(), None),
+        package_graph_sources.root.language_features,
+    );
+
+    // If the entry profile is set, we need to ensure that the user code is compiled with it.
+    if let Some((profile, span)) = entry_profile {
+        // If this is a project (qsharp.json present), emit error with span
+        if is_single_file {
+            capabilities = profile.into();
+        } else {
+            dependency_errors.push(Error::from_map(
+                &SourceMap::new(sources, None),
+                ErrorKind::Frontend(entrypoint_in_project_error(span)),
+            ));
+        }
+    }
+
     let (std_id, mut package_store) = package_store_with_stdlib(capabilities);
 
     let mut canonical_package_identifier_to_package_id_mapping = FxHashMap::default();
 
     let (ordered_packages, user_code) = package_graph_sources.compilation_order();
 
-    let mut dependency_errors = Vec::new();
     let ordered_packages = if let Ok(o) = ordered_packages {
         o
     } else {

@@ -322,6 +322,7 @@ impl<'a> CompilationStateUpdater<'a> {
                     package_graph_sources,
                     loaded_project.errors,
                     &loaded_project.name,
+                    loaded_project.is_single_file,
                 ),
             };
 

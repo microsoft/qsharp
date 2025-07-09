@@ -53,8 +53,11 @@ fn test_prepare_package_store() {
     let ProjectType::QSharp(package_graph_sources) = program.project_type else {
         panic!("project should be a Q# project");
     };
-    let buildable_program =
-        super::prepare_package_store(TargetCapabilityFlags::default(), package_graph_sources);
+    let buildable_program = super::prepare_package_store(
+        TargetCapabilityFlags::default(),
+        package_graph_sources,
+        false,
+    );
 
     expect![[r"
             []
@@ -131,8 +134,11 @@ fn missing_dependency_doesnt_force_failure() {
         .dependencies
         .insert("NonExistent".into(), "nonexistent-dep-key".into());
 
-    let buildable_program =
-        super::prepare_package_store(TargetCapabilityFlags::default(), package_graph_sources);
+    let buildable_program = super::prepare_package_store(
+        TargetCapabilityFlags::default(),
+        package_graph_sources,
+        false,
+    );
 
     expect![[r"
             []
@@ -211,8 +217,11 @@ fn dependency_error() {
         .sources[0]
         .1 = "broken_syntax".into();
 
-    let buildable_program =
-        super::prepare_package_store(TargetCapabilityFlags::default(), package_graph_sources);
+    let buildable_program = super::prepare_package_store(
+        TargetCapabilityFlags::default(),
+        package_graph_sources,
+        false,
+    );
 
     expect![[r#"
         [

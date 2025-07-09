@@ -453,7 +453,8 @@ pub(crate) fn into_qsc_args(
 
     // this function call builds all dependencies as a part of preparing the package store
     // for building the user code.
-    let buildable_program = BuildableProgram::new(capabilities, pkg_graph);
+    // TODO: I don't know if it is correct to set the is_single_file flag to false here.
+    let buildable_program = BuildableProgram::new(capabilities, pkg_graph, false);
 
     if !ignore_dependency_errors && !buildable_program.dependency_errors.is_empty() {
         return Err(buildable_program.dependency_errors);
