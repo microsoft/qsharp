@@ -122,7 +122,6 @@ function DumpMatrix(qs : Qubit[]) : Unit {
 /// # Remarks
 /// This operation is useful for checking whether a qubit is in the |0⟩ state during simulation. It is not possible to check
 /// this on hardware without measuring the qubit, which could change the state.
-@Config(Unrestricted)
 operation CheckZero(qubit : Qubit) : Bool {
     body intrinsic;
 }
@@ -144,7 +143,6 @@ operation CheckZero(qubit : Qubit) : Bool {
 /// # Remarks
 /// This operation is useful for checking whether a qubit is in the |0⟩ state during simulation. It is not possible to check
 /// this on hardware without measuring the qubit, which could change the state.
-@Config(Unrestricted)
 operation CheckAllZero(qubits : Qubit[]) : Bool {
     for q in qubits {
         if not CheckZero(q) {
@@ -201,7 +199,6 @@ function Fact(actual : Bool, message : String) : Unit {
 /// Operation defining the expected behavior for the operation under test.
 /// # Output
 /// True if operations are equal, false otherwise.
-@Config(Unrestricted)
 operation CheckOperationsAreEqual(
     nQubits : Int,
     actual : (Qubit[] => Unit),

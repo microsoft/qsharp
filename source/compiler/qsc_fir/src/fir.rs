@@ -1527,6 +1527,8 @@ pub enum Attr {
     Measurement,
     /// Indicates that a callable is a reset.
     Reset,
+    /// Indicates that a callable is used for unit testing.
+    Test,
 }
 
 /// A field.

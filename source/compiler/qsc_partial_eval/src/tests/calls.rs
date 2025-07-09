@@ -1347,3 +1347,27 @@ fn call_to_unresolved_callee_with_static_arg_and_entry_return_value_succeeds() {
                 Return"#]],
     );
 }
+
+#[test]
+fn call_to_test_callable_triggers_error() {
+    let error = get_partial_evaluation_error_with_capabilities(
+        indoc! {"
+        @Test()
+        operation Op() : Unit {
+            use q = Qubit();
+            Std.Diagnostics.CheckZero(q);
+        }
+        operation Main() : Unit {
+            Op();
+        }
+        "},
+        TargetCapabilityFlags::Adaptive,
+    );
+
+    assert_error(
+        &error,
+        &expect![
+            "UnsupportedTestCallable(PackageSpan { package: PackageId(2), span: Span { lo: 120, hi: 122 } })"
+        ],
+    );
+}
