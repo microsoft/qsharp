@@ -306,6 +306,17 @@ def test_run_with_noise_produces_noisy_results() -> None:
     assert result[0] > 5
 
 
+def test_run_with_loss_produces_lossy_results() -> None:
+    qsharp.init()
+    qsharp.set_quantum_seed(0)
+    result = qsharp.run(
+        "{ use q = Qubit(); X(q); MResetZ(q) }",
+        shots=1,
+        qubit_loss=1.0,
+    )
+    assert result[0] == qsharp.Result.Loss
+
+
 def test_compile_qir_input_data() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Base)
     qsharp.eval("operation Program() : Result { use q = Qubit(); return M(q) }")

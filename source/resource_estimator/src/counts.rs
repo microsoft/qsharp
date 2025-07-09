@@ -567,7 +567,9 @@ impl Backend for LogicalCounter {
                         .map(|()| Value::unit()),
                 )
             }
-            "GlobalPhase" | "ConfigurePauliNoise" | "ApplyIdleNoise" => Some(Ok(Value::unit())),
+            "GlobalPhase" | "ConfigurePauliNoise" | "ConfigureQubitLoss" | "ApplyIdleNoise" => {
+                Some(Ok(Value::unit()))
+            }
             _ => None,
         }
     }
