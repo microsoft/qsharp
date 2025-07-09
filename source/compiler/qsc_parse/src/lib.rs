@@ -116,6 +116,11 @@ enum ErrorKind {
     #[error("expected item after attribute")]
     #[diagnostic(code("Qsc.Parse.FloatingAttr"))]
     FloatingAttr(#[label] Span),
+    #[error(
+        "The @EntryPoint attribute is not allowed in a Q# project (with qsharp.json). Please specify the entry point in qsharp.json instead."
+    )]
+    #[diagnostic(code("Qsc.Parse.EntryPointInProject"))]
+    EntryPointInProject(#[label] Span),
     #[error("expected item after doc comment")]
     #[diagnostic(code("Qsc.Parse.FloatingDocComment"))]
     FloatingDocComment(#[label] Span),
@@ -154,6 +159,7 @@ impl ErrorKind {
             Self::Lex(error) => Self::Lex(error.with_offset(offset)),
             Self::Lit(name, span) => Self::Lit(name, span + offset),
             Self::Escape(ch, span) => Self::Escape(ch, span + offset),
+            Self::EntryPointInProject(span) => Self::EntryPointInProject(span + offset),
             Self::Token(expected, actual, span) => Self::Token(expected, actual, span + offset),
             Self::Rule(name, token, span) => Self::Rule(name, token, span + offset),
             Self::Convert(expected, actual, span) => Self::Convert(expected, actual, span + offset),
@@ -168,6 +174,12 @@ impl ErrorKind {
             Self::ExpectedItem(token, span) => Self::ExpectedItem(token, span + offset),
         }
     }
+}
+
+/// Public constructor for an error when `@EntryPoint` is used in a project (qsharp.json present).
+#[must_use]
+pub fn entrypoint_in_project_error(span: Span) -> Error {
+    Error(ErrorKind::EntryPointInProject(span), Some("The @EntryPoint attribute is not allowed in a Q# project (with qsharp.json). Please specify the entry point in qsharp.json instead.".to_string()))
 }
 
 type Result<T> = result::Result<T, Error>;
