@@ -437,8 +437,8 @@
         "title": "Add Q# project reference"
       },
       {
-        "command": "qsharp-vscode.showWhatsNew",
-        "title": "Show What's New",
+        "command": "qsharp-vscode.showChangelog",
+        "title": "Show Changelog",
         "category": "QDK"
       }
     ],

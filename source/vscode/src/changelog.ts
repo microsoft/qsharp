@@ -3,21 +3,21 @@
 
 import * as vscode from "vscode";
 
-// The latest version for which we want to show the What's New page
-const WHATSNEW_VERSION = undefined; // <-- Update this when you want to show a new What's New
+// The latest version for which we want to show the changelog page
+const CHANGELOG_VERSION = undefined; // <-- Update this when you want to show a new changelog to users
 
-export function registerWhatsNewCommand(
+export function registerChangelogCommand(
   context: vscode.ExtensionContext,
 ): vscode.Disposable[] {
   return [
-    vscode.commands.registerCommand("qsharp-vscode.showWhatsNew", async () => {
-      const whatsNewUri = vscode.Uri.joinPath(
+    vscode.commands.registerCommand("qsharp-vscode.showChangelog", async () => {
+      const changelogUri = vscode.Uri.joinPath(
         context.extensionUri,
-        "WHATSNEW.md",
+        "CHANGELOG.md",
       );
       await vscode.commands.executeCommand(
         "markdown.showPreview",
-        whatsNewUri,
+        changelogUri,
         vscode.ViewColumn.One,
         { locked: true },
       );
@@ -25,33 +25,33 @@ export function registerWhatsNewCommand(
   ];
 }
 
-export async function maybeShowWhatsNewPrompt(
+export async function maybeShowChangelogPrompt(
   context: vscode.ExtensionContext,
 ) {
-  const lastWhatsNewVersion = context.globalState.get<string>(
-    "qdk.lastWhatsNewVersion",
+  const lastChangelogVersion = context.globalState.get<string>(
+    "qdk.lastChangelogVersion",
   );
   const suppressUpdateNotifications = vscode.workspace
     .getConfiguration("Q#")
     .get<boolean>("notifications.suppressUpdateNotifications");
 
   if (
-    lastWhatsNewVersion !== WHATSNEW_VERSION &&
+    lastChangelogVersion !== CHANGELOG_VERSION &&
     !suppressUpdateNotifications
   ) {
     await context.globalState.update(
-      "qdk.lastWhatsNewVersion",
-      WHATSNEW_VERSION,
+      "qdk.lastChangelogVersion",
+      CHANGELOG_VERSION,
     );
-    // Only show prompt if not first install (i.e., lastWhatsNewVersion is not undefined/null)
-    if (lastWhatsNewVersion !== undefined) {
+    // Only show prompt if not first install (i.e., lastChangelogVersion is not undefined/null)
+    if (lastChangelogVersion !== undefined) {
       const buttons = ["What's New?", "Don't show this again"];
       const choice = await vscode.window.showInformationMessage(
         "The Azure Quantum Development Kit has been updated.",
         ...buttons,
       );
       if (choice === buttons[0]) {
-        await vscode.commands.executeCommand("qsharp-vscode.showWhatsNew");
+        await vscode.commands.executeCommand("qsharp-vscode.showChangelog");
       } else if (choice === buttons[1]) {
         await vscode.workspace
           .getConfiguration("Q#")
@@ -61,12 +61,12 @@ export async function maybeShowWhatsNewPrompt(
             vscode.ConfigurationTarget.Global,
           );
         vscode.window.showInformationMessage(
-          "You will no longer receive What's New notifications. You can re-enable them from the Q# settings.",
+          'You will no longer receive "What\'s New" notifications. You can re-enable them from the Q# settings.',
         );
       }
     } else {
-      // First install or no previous version, just show What's New
-      await vscode.commands.executeCommand("qsharp-vscode.showWhatsNew");
+      // First install or no previous version, just show changelog
+      await vscode.commands.executeCommand("qsharp-vscode.showChangelog");
     }
   }
 }
