@@ -49,9 +49,6 @@ pub enum Profile {
     AdaptiveRIF,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParseProfileError;
-
 impl Profile {
     #[must_use]
     pub fn to_str(&self) -> &'static str {
@@ -63,13 +60,14 @@ impl Profile {
         }
     }
 
-    pub fn temp_from_str(value: &str) -> Result<Self, ParseProfileError> {
-        match value {
-            "AdaptiveRI" => Ok(Self::AdaptiveRI),
-            "AdaptiveRIF" => Ok(Self::AdaptiveRIF),
-            "Base" => Ok(Self::Base),
-            "Unrestricted" => Ok(Self::Unrestricted),
-            _ => Err(ParseProfileError),
+    #[allow(clippy::result_unit_err)]
+    pub fn from_friendly_name(value: &str) -> Result<Self, ()> {
+        match value.to_lowercase().as_str() {
+            "adaptiveri" | "adaptive-ri" => Ok(Self::AdaptiveRI),
+            "adaptiverif" | "adaptive-rif" => Ok(Self::AdaptiveRIF),
+            "base" => Ok(Self::Base),
+            "unrestricted" => Ok(Self::Unrestricted),
+            _ => Err(()),
         }
     }
 }
