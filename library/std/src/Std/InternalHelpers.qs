@@ -88,26 +88,6 @@ internal operation CT(control : Qubit, target : Qubit) : Unit is Adj {
     ApplyGlobalPhase(angle / 2.0);
 }
 
-internal operation MapPauli(qubit : Qubit, from : Pauli, to : Pauli) : Unit is Adj {
-    if from == to {} elif (from == PauliZ and to == PauliX) or (from == PauliX and to == PauliZ) {
-        H(qubit);
-    } elif from == PauliZ and to == PauliY {
-        H(qubit);
-        S(qubit);
-        H(qubit);
-    } elif from == PauliY and to == PauliZ {
-        H(qubit);
-        Adjoint S(qubit);
-        H(qubit);
-    } elif from == PauliY and to == PauliX {
-        S(qubit);
-    } elif from == PauliX and to == PauliY {
-        Adjoint S(qubit);
-    } else {
-        fail "Unsupported input";
-    }
-}
-
 internal operation EntangleForJointMeasure(basis : Pauli, aux : Qubit, qubit : Qubit) : Unit {
     if basis == PauliX {
         __quantum__qis__cx__body(aux, qubit);
@@ -164,7 +144,7 @@ internal operation PhaseCCX(control1 : Qubit, control2 : Qubit, target : Qubit) 
 
 internal operation CCZ(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
     within {
-        H(target);
+        Std.Clifford.RemapXYZAxisTo_ZyX(target);
     } apply {
         CCNOT(control1, control2, target);
     }
@@ -172,7 +152,7 @@ internal operation CCZ(control1 : Qubit, control2 : Qubit, target : Qubit) : Uni
 
 internal operation CCY(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
     within {
-        MapPauli(target, PauliX, PauliY);
+        Std.Clifford.RemapXYZAxisTo_yXZ(target);
     } apply {
         CCNOT(control1, control2, target);
     }

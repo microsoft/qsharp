@@ -6,6 +6,7 @@
     "src/QIR/Intrinsic.qs",
     "src/Std/Arrays.qs",
     "src/Std/Canon.qs",
+    "src/Std/Clifford.qs",
     "src/Std/Convert.qs",
     "src/Std/Diagnostics.qs",
     "src/Std/InternalHelpers.qs",
