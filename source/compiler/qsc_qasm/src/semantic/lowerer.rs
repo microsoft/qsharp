@@ -1842,12 +1842,6 @@ impl Lowerer {
             .next()
             .unwrap_or_else(|| Expr::uint(0, expr.span));
 
-        // Check that the 2nd argument is a const expr.
-        let Some(second_arg) = second_arg.with_const_value(self).get_const_u32() else {
-            self.push_const_eval_error(sizeof_invalid_args_error(expr.span, &inputs));
-            return err_expr!(Type::Err, expr.span);
-        };
-
         // The behavior of `sizeof` changes depending on the type of the first argument, the array.
         match &first_arg.ty {
             // If the first argument is an array  or an static reference. We can compute the length
@@ -1858,6 +1852,11 @@ impl Lowerer {
                 dims,
                 is_mutable: _,
             }) => {
+                // Check that the 2nd argument is a const expr.
+                let Some(second_arg) = second_arg.with_const_value(self).get_const_u32() else {
+                    self.push_const_eval_error(sizeof_invalid_args_error(expr.span, &inputs));
+                    return err_expr!(Type::Err, expr.span);
+                };
                 let second_arg = second_arg as usize;
                 let dims_vec: Vec<_> = dims.clone().into_iter().collect();
 
@@ -1874,20 +1873,13 @@ impl Lowerer {
             }
             // If the first argument is a dynamic reference. We can only compute the length
             // of the requested dimension at runtime, and the ouput is of type `uint`.
-            Type::DynArrayRef(array_ref) => {
-                if second_arg >= array_ref.num_dims {
-                    self.push_const_eval_error(ConstEvalError::SizeofInvalidDimension(
-                        second_arg as usize,
-                        array_ref.num_dims as usize,
-                        expr.span,
-                    ));
-                    return err_expr!(Type::Err, expr.span);
-                }
-
+            Type::DynArrayRef(ref_ty) => {
+                let array_dims = ref_ty.num_dims;
                 let kind = semantic::ExprKind::SizeofCall(semantic::SizeofCallExpr {
                     span: expr.span,
                     fn_name_span: expr.name.span,
                     array: first_arg,
+                    array_dims,
                     dim: second_arg,
                 });
 

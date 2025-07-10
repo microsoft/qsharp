@@ -785,15 +785,13 @@ impl QasmCompiler {
     fn compile_sizeof_call_expr(&mut self, expr: &semast::SizeofCallExpr) -> qsast::Expr {
         let span = expr.span;
         let name_span = expr.fn_name_span;
-        let mut array = self.compile_expr(&expr.array);
-
-        // Index into the array `dim` times to access the `dim` dimension.
-        for _ in 0..expr.dim {
-            array = build_index_expr(array, self.compile_expr(&Expr::uint(0, span)), span);
-        }
-
-        // Call Q#'s `Length` with the indexed array.
-        build_call_with_param("Length", &[], array, name_span, expr.array.span, span)
+        let array = self.compile_expr(&expr.array);
+        let dim = self.compile_expr(&expr.dim);
+        let operands = vec![array, dim];
+        let array_dims = expr.array_dims;
+        assert!((1..=7).contains(&array_dims));
+        let fn_name = format!("sizeof_{array_dims}");
+        build_call_with_params(&fn_name, &[], operands, name_span, span)
     }
 
     fn compile_gate_call_stmt(&mut self, stmt: &semast::GateCall) -> Option<qsast::Stmt> {
