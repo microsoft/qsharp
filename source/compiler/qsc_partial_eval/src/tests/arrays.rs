@@ -31,19 +31,32 @@ fn array_with_dynamic_content() {
         &program,
         mresetz_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mresetz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__rt__initialize
+                call_type: Regular
+                input_type:
+                    [0]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     let array_output_recording_callable_id = CallableId(2);
     assert_callable(
         &program,
         array_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let result_output_recording_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        result_output_recording_callable_id,
         &expect![[r#"
             Callable:
                 name: __quantum__rt__array_record_output
@@ -54,30 +67,17 @@ fn array_with_dynamic_content() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let result_output_recording_callable_id = CallableId(3);
-    assert_callable(
-        &program,
-        result_output_recording_callable_id,
-        &expect![[r#"
-            Callable:
-                name: __quantum__rt__result_record_output
-                call_type: OutputRecording
-                input_type:
-                    [0]: Result
-                    [1]: Pointer
-                output_type: <VOID>
-                body: <NONE>"#]],
-    );
     assert_block_instructions(
         &program,
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(2), args( Integer(2), EmptyTag, )
-                Call id(3), args( Result(0), Tag(0, 5), )
-                Call id(3), args( Result(1), Tag(1, 5), )
+                Call id(1), args( Pointer, )
+                Call id(2), args( Qubit(0), Result(0), )
+                Call id(2), args( Qubit(1), Result(1), )
+                Call id(3), args( Integer(2), EmptyTag, )
+                Call id(4), args( Result(0), Tag(0, 5), )
+                Call id(4), args( Result(1), Tag(1, 5), )
                 Return"#]],
     );
 }
@@ -99,19 +99,32 @@ fn array_with_hybrid_content() {
         &program,
         mresetz_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mresetz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__rt__initialize
+                call_type: Regular
+                input_type:
+                    [0]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     let array_output_recording_callable_id = CallableId(2);
     assert_callable(
         &program,
         array_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let boolean_output_recording_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        boolean_output_recording_callable_id,
         &expect![[r#"
             Callable:
                 name: __quantum__rt__read_result
@@ -121,31 +134,18 @@ fn array_with_hybrid_content() {
                 output_type: Boolean
                 body: <NONE>"#]],
     );
-    let boolean_output_recording_callable_id = CallableId(3);
-    assert_callable(
-        &program,
-        boolean_output_recording_callable_id,
-        &expect![[r#"
-            Callable:
-                name: __quantum__rt__array_record_output
-                call_type: OutputRecording
-                input_type:
-                    [0]: Integer
-                    [1]: Pointer
-                output_type: <VOID>
-                body: <NONE>"#]],
-    );
     assert_block_instructions(
         &program,
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Call id(1), args( Pointer, )
+                Call id(2), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(3), args( Result(0), )
                 Variable(1, Boolean) = Store Variable(0, Boolean)
-                Call id(3), args( Integer(2), EmptyTag, )
-                Call id(4), args( Bool(true), Tag(0, 5), )
-                Call id(4), args( Variable(1, Boolean), Tag(1, 5), )
+                Call id(4), args( Integer(2), EmptyTag, )
+                Call id(5), args( Bool(true), Tag(0, 5), )
+                Call id(5), args( Variable(1, Boolean), Tag(1, 5), )
                 Return"#]],
     );
 }
@@ -166,19 +166,32 @@ fn array_repeat_with_dynamic_content() {
         &program,
         mresetz_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mresetz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__rt__initialize
+                call_type: Regular
+                input_type:
+                    [0]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     let array_output_recording_callable_id = CallableId(2);
     assert_callable(
         &program,
         array_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let result_output_recording_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        result_output_recording_callable_id,
         &expect![[r#"
             Callable:
                 name: __quantum__rt__array_record_output
@@ -189,29 +202,16 @@ fn array_repeat_with_dynamic_content() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let result_output_recording_callable_id = CallableId(3);
-    assert_callable(
-        &program,
-        result_output_recording_callable_id,
-        &expect![[r#"
-            Callable:
-                name: __quantum__rt__result_record_output
-                call_type: OutputRecording
-                input_type:
-                    [0]: Result
-                    [1]: Pointer
-                output_type: <VOID>
-                body: <NONE>"#]],
-    );
     assert_block_instructions(
         &program,
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(2), args( Integer(2), EmptyTag, )
-                Call id(3), args( Result(0), Tag(0, 5), )
-                Call id(3), args( Result(0), Tag(1, 5), )
+                Call id(1), args( Pointer, )
+                Call id(2), args( Qubit(0), Result(0), )
+                Call id(3), args( Integer(2), EmptyTag, )
+                Call id(4), args( Result(0), Tag(0, 5), )
+                Call id(4), args( Result(0), Tag(1, 5), )
                 Return"#]],
     );
 }
@@ -234,11 +234,10 @@ fn result_array_value_at_index() {
         measurement_callable_id,
         &expect![[r#"
             Callable:
-                name: __quantum__qis__mresetz__body
-                call_type: Measurement
+                name: __quantum__rt__initialize
+                call_type: Regular
                 input_type:
-                    [0]: Qubit
-                    [1]: Result
+                    [0]: Pointer
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
@@ -248,11 +247,11 @@ fn result_array_value_at_index() {
         result_output_recording_callable_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__result_record_output
-                call_type: OutputRecording
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
                 input_type:
-                    [0]: Result
-                    [1]: Pointer
+                    [0]: Qubit
+                    [1]: Result
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
@@ -261,9 +260,10 @@ fn result_array_value_at_index() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(2), args( Result(1), Tag(0, 3), )
+                Call id(1), args( Pointer, )
+                Call id(2), args( Qubit(0), Result(0), )
+                Call id(2), args( Qubit(1), Result(1), )
+                Call id(3), args( Result(1), Tag(0, 3), )
                 Return"#]],
     );
 }
@@ -326,6 +326,19 @@ fn result_array_slice_with_explicit_range() {
         measurement_callable_id,
         &expect![[r#"
             Callable:
+                name: __quantum__rt__initialize
+                call_type: Regular
+                input_type:
+                    [0]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let array_output_recording_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        array_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
                 name: __quantum__qis__mresetz__body
                 call_type: Measurement
                 input_type:
@@ -334,10 +347,10 @@ fn result_array_slice_with_explicit_range() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let array_output_recording_callable_id = CallableId(2);
+    let result_output_recording_callable_id = CallableId(3);
     assert_callable(
         &program,
-        array_output_recording_callable_id,
+        result_output_recording_callable_id,
         &expect![[r#"
             Callable:
                 name: __quantum__rt__array_record_output
@@ -348,34 +361,21 @@ fn result_array_slice_with_explicit_range() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let result_output_recording_callable_id = CallableId(3);
-    assert_callable(
-        &program,
-        result_output_recording_callable_id,
-        &expect![[r#"
-            Callable:
-                name: __quantum__rt__result_record_output
-                call_type: OutputRecording
-                input_type:
-                    [0]: Result
-                    [1]: Pointer
-                output_type: <VOID>
-                body: <NONE>"#]],
-    );
     assert_block_instructions(
         &program,
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(1), args( Qubit(3), Result(3), )
-                Call id(1), args( Qubit(4), Result(4), )
-                Call id(2), args( Integer(3), EmptyTag, )
-                Call id(3), args( Result(0), Tag(0, 5), )
-                Call id(3), args( Result(2), Tag(1, 5), )
-                Call id(3), args( Result(4), Tag(2, 5), )
+                Call id(1), args( Pointer, )
+                Call id(2), args( Qubit(0), Result(0), )
+                Call id(2), args( Qubit(1), Result(1), )
+                Call id(2), args( Qubit(2), Result(2), )
+                Call id(2), args( Qubit(3), Result(3), )
+                Call id(2), args( Qubit(4), Result(4), )
+                Call id(3), args( Integer(3), EmptyTag, )
+                Call id(4), args( Result(0), Tag(0, 5), )
+                Call id(4), args( Result(2), Tag(1, 5), )
+                Call id(4), args( Result(4), Tag(2, 5), )
                 Return"#]],
     );
 }
@@ -398,6 +398,19 @@ fn result_array_slice_with_open_start_range() {
         measurement_callable_id,
         &expect![[r#"
             Callable:
+                name: __quantum__rt__initialize
+                call_type: Regular
+                input_type:
+                    [0]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let array_output_recording_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        array_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
                 name: __quantum__qis__mresetz__body
                 call_type: Measurement
                 input_type:
@@ -406,10 +419,10 @@ fn result_array_slice_with_open_start_range() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let array_output_recording_callable_id = CallableId(2);
+    let result_output_recording_callable_id = CallableId(3);
     assert_callable(
         &program,
-        array_output_recording_callable_id,
+        result_output_recording_callable_id,
         &expect![[r#"
             Callable:
                 name: __quantum__rt__array_record_output
@@ -420,31 +433,18 @@ fn result_array_slice_with_open_start_range() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let result_output_recording_callable_id = CallableId(3);
-    assert_callable(
-        &program,
-        result_output_recording_callable_id,
-        &expect![[r#"
-            Callable:
-                name: __quantum__rt__result_record_output
-                call_type: OutputRecording
-                input_type:
-                    [0]: Result
-                    [1]: Pointer
-                output_type: <VOID>
-                body: <NONE>"#]],
-    );
     assert_block_instructions(
         &program,
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(2), args( Integer(2), EmptyTag, )
-                Call id(3), args( Result(0), Tag(0, 5), )
-                Call id(3), args( Result(1), Tag(1, 5), )
+                Call id(1), args( Pointer, )
+                Call id(2), args( Qubit(0), Result(0), )
+                Call id(2), args( Qubit(1), Result(1), )
+                Call id(2), args( Qubit(2), Result(2), )
+                Call id(3), args( Integer(2), EmptyTag, )
+                Call id(4), args( Result(0), Tag(0, 5), )
+                Call id(4), args( Result(1), Tag(1, 5), )
                 Return"#]],
     );
 }
@@ -467,6 +467,19 @@ fn result_array_slice_with_open_ended_range() {
         measurement_callable_id,
         &expect![[r#"
             Callable:
+                name: __quantum__rt__initialize
+                call_type: Regular
+                input_type:
+                    [0]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let array_output_recording_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        array_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
                 name: __quantum__qis__mresetz__body
                 call_type: Measurement
                 input_type:
@@ -475,10 +488,10 @@ fn result_array_slice_with_open_ended_range() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let array_output_recording_callable_id = CallableId(2);
+    let result_output_recording_callable_id = CallableId(3);
     assert_callable(
         &program,
-        array_output_recording_callable_id,
+        result_output_recording_callable_id,
         &expect![[r#"
             Callable:
                 name: __quantum__rt__array_record_output
@@ -489,31 +502,18 @@ fn result_array_slice_with_open_ended_range() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let result_output_recording_callable_id = CallableId(3);
-    assert_callable(
-        &program,
-        result_output_recording_callable_id,
-        &expect![[r#"
-            Callable:
-                name: __quantum__rt__result_record_output
-                call_type: OutputRecording
-                input_type:
-                    [0]: Result
-                    [1]: Pointer
-                output_type: <VOID>
-                body: <NONE>"#]],
-    );
     assert_block_instructions(
         &program,
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(2), args( Integer(2), EmptyTag, )
-                Call id(3), args( Result(1), Tag(0, 5), )
-                Call id(3), args( Result(2), Tag(1, 5), )
+                Call id(1), args( Pointer, )
+                Call id(2), args( Qubit(0), Result(0), )
+                Call id(2), args( Qubit(1), Result(1), )
+                Call id(2), args( Qubit(2), Result(2), )
+                Call id(3), args( Integer(2), EmptyTag, )
+                Call id(4), args( Result(1), Tag(0, 5), )
+                Call id(4), args( Result(2), Tag(1, 5), )
                 Return"#]],
     );
 }
@@ -536,6 +536,19 @@ fn result_array_slice_with_open_two_step_range() {
         measurement_callable_id,
         &expect![[r#"
             Callable:
+                name: __quantum__rt__initialize
+                call_type: Regular
+                input_type:
+                    [0]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let array_output_recording_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        array_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
                 name: __quantum__qis__mresetz__body
                 call_type: Measurement
                 input_type:
@@ -544,10 +557,10 @@ fn result_array_slice_with_open_two_step_range() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let array_output_recording_callable_id = CallableId(2);
+    let result_output_recording_callable_id = CallableId(3);
     assert_callable(
         &program,
-        array_output_recording_callable_id,
+        result_output_recording_callable_id,
         &expect![[r#"
             Callable:
                 name: __quantum__rt__array_record_output
@@ -558,34 +571,21 @@ fn result_array_slice_with_open_two_step_range() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let result_output_recording_callable_id = CallableId(3);
-    assert_callable(
-        &program,
-        result_output_recording_callable_id,
-        &expect![[r#"
-            Callable:
-                name: __quantum__rt__result_record_output
-                call_type: OutputRecording
-                input_type:
-                    [0]: Result
-                    [1]: Pointer
-                output_type: <VOID>
-                body: <NONE>"#]],
-    );
     assert_block_instructions(
         &program,
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(1), args( Qubit(3), Result(3), )
-                Call id(1), args( Qubit(4), Result(4), )
-                Call id(2), args( Integer(3), EmptyTag, )
-                Call id(3), args( Result(0), Tag(0, 5), )
-                Call id(3), args( Result(2), Tag(1, 5), )
-                Call id(3), args( Result(4), Tag(2, 5), )
+                Call id(1), args( Pointer, )
+                Call id(2), args( Qubit(0), Result(0), )
+                Call id(2), args( Qubit(1), Result(1), )
+                Call id(2), args( Qubit(2), Result(2), )
+                Call id(2), args( Qubit(3), Result(3), )
+                Call id(2), args( Qubit(4), Result(4), )
+                Call id(3), args( Integer(3), EmptyTag, )
+                Call id(4), args( Result(0), Tag(0, 5), )
+                Call id(4), args( Result(2), Tag(1, 5), )
+                Call id(4), args( Result(4), Tag(2, 5), )
                 Return"#]],
     );
 }
@@ -628,6 +628,19 @@ fn result_array_copy_and_update_with_single_index() {
         measurement_callable_id,
         &expect![[r#"
             Callable:
+                name: __quantum__rt__initialize
+                call_type: Regular
+                input_type:
+                    [0]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let array_output_recording_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        array_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
                 name: __quantum__qis__mresetz__body
                 call_type: Measurement
                 input_type:
@@ -636,10 +649,10 @@ fn result_array_copy_and_update_with_single_index() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let array_output_recording_callable_id = CallableId(2);
+    let result_output_recording_callable_id = CallableId(3);
     assert_callable(
         &program,
-        array_output_recording_callable_id,
+        result_output_recording_callable_id,
         &expect![[r#"
             Callable:
                 name: __quantum__rt__array_record_output
@@ -650,33 +663,20 @@ fn result_array_copy_and_update_with_single_index() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let result_output_recording_callable_id = CallableId(3);
-    assert_callable(
-        &program,
-        result_output_recording_callable_id,
-        &expect![[r#"
-            Callable:
-                name: __quantum__rt__result_record_output
-                call_type: OutputRecording
-                input_type:
-                    [0]: Result
-                    [1]: Pointer
-                output_type: <VOID>
-                body: <NONE>"#]],
-    );
     assert_block_instructions(
         &program,
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(1), args( Qubit(3), Result(3), )
-                Call id(2), args( Integer(3), EmptyTag, )
-                Call id(3), args( Result(0), Tag(0, 5), )
-                Call id(3), args( Result(3), Tag(1, 5), )
-                Call id(3), args( Result(2), Tag(2, 5), )
+                Call id(1), args( Pointer, )
+                Call id(2), args( Qubit(0), Result(0), )
+                Call id(2), args( Qubit(1), Result(1), )
+                Call id(2), args( Qubit(2), Result(2), )
+                Call id(2), args( Qubit(3), Result(3), )
+                Call id(3), args( Integer(3), EmptyTag, )
+                Call id(4), args( Result(0), Tag(0, 5), )
+                Call id(4), args( Result(3), Tag(1, 5), )
+                Call id(4), args( Result(2), Tag(2, 5), )
                 Return"#]],
     );
 }
@@ -740,6 +740,19 @@ fn result_array_copy_and_update_with_explicit_range() {
         measurement_callable_id,
         &expect![[r#"
             Callable:
+                name: __quantum__rt__initialize
+                call_type: Regular
+                input_type:
+                    [0]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let array_output_recording_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        array_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
                 name: __quantum__qis__mresetz__body
                 call_type: Measurement
                 input_type:
@@ -748,10 +761,10 @@ fn result_array_copy_and_update_with_explicit_range() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let array_output_recording_callable_id = CallableId(2);
+    let result_output_recording_callable_id = CallableId(3);
     assert_callable(
         &program,
-        array_output_recording_callable_id,
+        result_output_recording_callable_id,
         &expect![[r#"
             Callable:
                 name: __quantum__rt__array_record_output
@@ -762,39 +775,26 @@ fn result_array_copy_and_update_with_explicit_range() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let result_output_recording_callable_id = CallableId(3);
-    assert_callable(
-        &program,
-        result_output_recording_callable_id,
-        &expect![[r#"
-            Callable:
-                name: __quantum__rt__result_record_output
-                call_type: OutputRecording
-                input_type:
-                    [0]: Result
-                    [1]: Pointer
-                output_type: <VOID>
-                body: <NONE>"#]],
-    );
     assert_block_instructions(
         &program,
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(1), args( Qubit(3), Result(3), )
-                Call id(1), args( Qubit(4), Result(4), )
-                Call id(1), args( Qubit(5), Result(5), )
-                Call id(1), args( Qubit(6), Result(6), )
-                Call id(1), args( Qubit(7), Result(7), )
-                Call id(2), args( Integer(5), EmptyTag, )
-                Call id(3), args( Result(5), Tag(0, 5), )
-                Call id(3), args( Result(1), Tag(1, 5), )
-                Call id(3), args( Result(6), Tag(2, 5), )
-                Call id(3), args( Result(3), Tag(3, 5), )
-                Call id(3), args( Result(7), Tag(4, 5), )
+                Call id(1), args( Pointer, )
+                Call id(2), args( Qubit(0), Result(0), )
+                Call id(2), args( Qubit(1), Result(1), )
+                Call id(2), args( Qubit(2), Result(2), )
+                Call id(2), args( Qubit(3), Result(3), )
+                Call id(2), args( Qubit(4), Result(4), )
+                Call id(2), args( Qubit(5), Result(5), )
+                Call id(2), args( Qubit(6), Result(6), )
+                Call id(2), args( Qubit(7), Result(7), )
+                Call id(3), args( Integer(5), EmptyTag, )
+                Call id(4), args( Result(5), Tag(0, 5), )
+                Call id(4), args( Result(1), Tag(1, 5), )
+                Call id(4), args( Result(6), Tag(2, 5), )
+                Call id(4), args( Result(3), Tag(3, 5), )
+                Call id(4), args( Result(7), Tag(4, 5), )
                 Return"#]],
     );
 }
@@ -817,6 +817,19 @@ fn result_array_copy_and_update_with_open_start_range() {
         measurement_callable_id,
         &expect![[r#"
             Callable:
+                name: __quantum__rt__initialize
+                call_type: Regular
+                input_type:
+                    [0]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let array_output_recording_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        array_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
                 name: __quantum__qis__mresetz__body
                 call_type: Measurement
                 input_type:
@@ -825,10 +838,10 @@ fn result_array_copy_and_update_with_open_start_range() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let array_output_recording_callable_id = CallableId(2);
+    let result_output_recording_callable_id = CallableId(3);
     assert_callable(
         &program,
-        array_output_recording_callable_id,
+        result_output_recording_callable_id,
         &expect![[r#"
             Callable:
                 name: __quantum__rt__array_record_output
@@ -839,34 +852,21 @@ fn result_array_copy_and_update_with_open_start_range() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let result_output_recording_callable_id = CallableId(3);
-    assert_callable(
-        &program,
-        result_output_recording_callable_id,
-        &expect![[r#"
-            Callable:
-                name: __quantum__rt__result_record_output
-                call_type: OutputRecording
-                input_type:
-                    [0]: Result
-                    [1]: Pointer
-                output_type: <VOID>
-                body: <NONE>"#]],
-    );
     assert_block_instructions(
         &program,
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(1), args( Qubit(3), Result(3), )
-                Call id(1), args( Qubit(4), Result(4), )
-                Call id(2), args( Integer(3), EmptyTag, )
-                Call id(3), args( Result(3), Tag(0, 5), )
-                Call id(3), args( Result(4), Tag(1, 5), )
-                Call id(3), args( Result(2), Tag(2, 5), )
+                Call id(1), args( Pointer, )
+                Call id(2), args( Qubit(0), Result(0), )
+                Call id(2), args( Qubit(1), Result(1), )
+                Call id(2), args( Qubit(2), Result(2), )
+                Call id(2), args( Qubit(3), Result(3), )
+                Call id(2), args( Qubit(4), Result(4), )
+                Call id(3), args( Integer(3), EmptyTag, )
+                Call id(4), args( Result(3), Tag(0, 5), )
+                Call id(4), args( Result(4), Tag(1, 5), )
+                Call id(4), args( Result(2), Tag(2, 5), )
                 Return"#]],
     );
 }
@@ -889,6 +889,19 @@ fn result_array_copy_and_update_with_open_ended_range() {
         measurement_callable_id,
         &expect![[r#"
             Callable:
+                name: __quantum__rt__initialize
+                call_type: Regular
+                input_type:
+                    [0]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let array_output_recording_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        array_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
                 name: __quantum__qis__mresetz__body
                 call_type: Measurement
                 input_type:
@@ -897,10 +910,10 @@ fn result_array_copy_and_update_with_open_ended_range() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let array_output_recording_callable_id = CallableId(2);
+    let result_output_recording_callable_id = CallableId(3);
     assert_callable(
         &program,
-        array_output_recording_callable_id,
+        result_output_recording_callable_id,
         &expect![[r#"
             Callable:
                 name: __quantum__rt__array_record_output
@@ -911,34 +924,21 @@ fn result_array_copy_and_update_with_open_ended_range() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let result_output_recording_callable_id = CallableId(3);
-    assert_callable(
-        &program,
-        result_output_recording_callable_id,
-        &expect![[r#"
-            Callable:
-                name: __quantum__rt__result_record_output
-                call_type: OutputRecording
-                input_type:
-                    [0]: Result
-                    [1]: Pointer
-                output_type: <VOID>
-                body: <NONE>"#]],
-    );
     assert_block_instructions(
         &program,
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(1), args( Qubit(3), Result(3), )
-                Call id(1), args( Qubit(4), Result(4), )
-                Call id(2), args( Integer(3), EmptyTag, )
-                Call id(3), args( Result(0), Tag(0, 5), )
-                Call id(3), args( Result(3), Tag(1, 5), )
-                Call id(3), args( Result(4), Tag(2, 5), )
+                Call id(1), args( Pointer, )
+                Call id(2), args( Qubit(0), Result(0), )
+                Call id(2), args( Qubit(1), Result(1), )
+                Call id(2), args( Qubit(2), Result(2), )
+                Call id(2), args( Qubit(3), Result(3), )
+                Call id(2), args( Qubit(4), Result(4), )
+                Call id(3), args( Integer(3), EmptyTag, )
+                Call id(4), args( Result(0), Tag(0, 5), )
+                Call id(4), args( Result(3), Tag(1, 5), )
+                Call id(4), args( Result(4), Tag(2, 5), )
                 Return"#]],
     );
 }
@@ -961,6 +961,19 @@ fn result_array_copy_and_update_with_open_two_step_range() {
         measurement_callable_id,
         &expect![[r#"
             Callable:
+                name: __quantum__rt__initialize
+                call_type: Regular
+                input_type:
+                    [0]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let array_output_recording_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        array_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
                 name: __quantum__qis__mresetz__body
                 call_type: Measurement
                 input_type:
@@ -969,10 +982,10 @@ fn result_array_copy_and_update_with_open_two_step_range() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let array_output_recording_callable_id = CallableId(2);
+    let result_output_recording_callable_id = CallableId(3);
     assert_callable(
         &program,
-        array_output_recording_callable_id,
+        result_output_recording_callable_id,
         &expect![[r#"
             Callable:
                 name: __quantum__rt__array_record_output
@@ -983,34 +996,21 @@ fn result_array_copy_and_update_with_open_two_step_range() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let result_output_recording_callable_id = CallableId(3);
-    assert_callable(
-        &program,
-        result_output_recording_callable_id,
-        &expect![[r#"
-            Callable:
-                name: __quantum__rt__result_record_output
-                call_type: OutputRecording
-                input_type:
-                    [0]: Result
-                    [1]: Pointer
-                output_type: <VOID>
-                body: <NONE>"#]],
-    );
     assert_block_instructions(
         &program,
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(1), args( Qubit(3), Result(3), )
-                Call id(1), args( Qubit(4), Result(4), )
-                Call id(2), args( Integer(3), EmptyTag, )
-                Call id(3), args( Result(3), Tag(0, 5), )
-                Call id(3), args( Result(1), Tag(1, 5), )
-                Call id(3), args( Result(4), Tag(2, 5), )
+                Call id(1), args( Pointer, )
+                Call id(2), args( Qubit(0), Result(0), )
+                Call id(2), args( Qubit(1), Result(1), )
+                Call id(2), args( Qubit(2), Result(2), )
+                Call id(2), args( Qubit(3), Result(3), )
+                Call id(2), args( Qubit(4), Result(4), )
+                Call id(3), args( Integer(3), EmptyTag, )
+                Call id(4), args( Result(3), Tag(0, 5), )
+                Call id(4), args( Result(1), Tag(1, 5), )
+                Call id(4), args( Result(4), Tag(2, 5), )
                 Return"#]],
     );
 }
