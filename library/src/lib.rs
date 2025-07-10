@@ -26,12 +26,12 @@ pub const STD_LIB: &[(&str, &str)] = &[
         include_str!("../std/src/Std/Arrays.qs"),
     ),
     (
-        "qsharp-library-source:Std/Canon.qs",
-        include_str!("../std/src/Std/Canon.qs"),
+        "qsharp-library-source:Std/BlochSphere.qs",
+        include_str!("../std/src/Std/BlochSphere.qs"),
     ),
     (
-        "qsharp-library-source:Std/Clifford.qs",
-        include_str!("../std/src/Std/Clifford.qs"),
+        "qsharp-library-source:Std/Canon.qs",
+        include_str!("../std/src/Std/Canon.qs"),
     ),
     (
         "qsharp-library-source:Std/Convert.qs",

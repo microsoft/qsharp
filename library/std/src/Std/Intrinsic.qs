@@ -153,7 +153,7 @@ operation Exp(paulis : Pauli[], theta : Double, qubits : Qubit[]) : Unit is Adj 
             R(paulis[0], angle, qubits[0]);
         } elif len == 2 {
             within {
-                Std.Clifford.MapPauliAxis(paulis[0], paulis[1], qubits[1]);
+                Std.BlochSphere.MapPauliAxis(paulis[0], paulis[1], qubits[1]);
             } apply {
                 if (paulis[0] == PauliX) {
                     Rxx(angle, qubits[0], qubits[1]);
@@ -167,7 +167,7 @@ operation Exp(paulis : Pauli[], theta : Double, qubits : Qubit[]) : Unit is Adj 
             // len > 2
             within {
                 for i in 0..Length(paulis) - 1 {
-                    Std.Clifford.MapPauliAxis(PauliZ, paulis[i], qubits[i]);
+                    Std.BlochSphere.MapPauliAxis(PauliZ, paulis[i], qubits[i]);
                 }
             } apply {
                 within {
@@ -300,7 +300,7 @@ operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
     }
     if Length(bases) == 1 {
         within {
-            Std.Clifford.MapPauliAxis(PauliZ, bases[0], qubits[0]);
+            Std.BlochSphere.MapPauliAxis(PauliZ, bases[0], qubits[0]);
         } apply {
             __quantum__qis__m__body(qubits[0])
         }
@@ -515,7 +515,7 @@ operation Rx(theta : Double, qubit : Qubit) : Unit is Adj + Ctl {
             __quantum__qis__rx__body(theta, qubit);
         } else {
             within {
-                Std.Clifford.RemapXYZAxisTo_ZyX(qubit);
+                Std.BlochSphere.MapPauliAxis(PauliZ, PauliX, qubit);
             } apply {
                 Controlled Rz(ctls, (theta, qubit));
             }
@@ -607,7 +607,7 @@ operation Ry(theta : Double, qubit : Qubit) : Unit is Adj + Ctl {
             __quantum__qis__ry__body(theta, qubit);
         } else {
             within {
-                Std.Clifford.RemapXYZAxisTo_XZy(qubit);
+                Std.BlochSphere.MapPauliAxis(PauliZ, PauliY, qubit);
             } apply {
                 Controlled Rz(ctls, (theta, qubit));
             }

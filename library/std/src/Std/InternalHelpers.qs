@@ -144,7 +144,7 @@ internal operation PhaseCCX(control1 : Qubit, control2 : Qubit, target : Qubit) 
 
 internal operation CCZ(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
     within {
-        Std.Clifford.RemapXYZAxisTo_ZyX(target);
+        Std.BlochSphere.MapPauliAxis(PauliX, PauliZ, target);
     } apply {
         CCNOT(control1, control2, target);
     }
@@ -152,7 +152,7 @@ internal operation CCZ(control1 : Qubit, control2 : Qubit, target : Qubit) : Uni
 
 internal operation CCY(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
     within {
-        Std.Clifford.RemapXYZAxisTo_yXZ(target);
+        Std.BlochSphere.MapPauliAxis(PauliX, PauliY, target);
     } apply {
         CCNOT(control1, control2, target);
     }
