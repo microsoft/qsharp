@@ -917,11 +917,14 @@ mod given_interpreter {
 
                 define i64 @ENTRYPOINT__main() #0 {
                 block_0:
+                  call void @__quantum__rt__initialize(i8* null)
                   call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
                   ret i64 0
                 }
+
+                declare void @__quantum__rt__initialize(i8*)
 
                 declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
@@ -981,6 +984,7 @@ mod given_interpreter {
 
                 define i64 @ENTRYPOINT__main() #0 {
                 block_0:
+                  call void @__quantum__rt__initialize(i8* null)
                   call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
@@ -988,6 +992,8 @@ mod given_interpreter {
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
                   ret i64 0
                 }
+
+                declare void @__quantum__rt__initialize(i8*)
 
                 declare void @__quantum__qis__rz__body(double, %Qubit*)
 
@@ -1043,6 +1049,7 @@ mod given_interpreter {
 
                 define i64 @ENTRYPOINT__main() #0 {
                 block_0:
+                  call void @__quantum__rt__initialize(i8* null)
                   call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   %var_0 = call i1 @__quantum__rt__read_result(%Result* inttoptr (i64 0 to %Result*))
                   %var_2 = call i1 @__quantum__rt__read_result(%Result* inttoptr (i64 0 to %Result*))
@@ -1054,6 +1061,8 @@ mod given_interpreter {
                   call void @__quantum__rt__bool_record_output(i1 %var_3, i8* getelementptr inbounds ([8 x i8], [8 x i8]* @2, i64 0, i64 0))
                   ret i64 0
                 }
+
+                declare void @__quantum__rt__initialize(i8*)
 
                 declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*) #1
 
@@ -1123,11 +1132,14 @@ mod given_interpreter {
 
                 define i64 @ENTRYPOINT__main() #0 {
                 block_0:
+                  call void @__quantum__rt__initialize(i8* null)
                   call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
                   ret i64 0
                 }
+
+                declare void @__quantum__rt__initialize(i8*)
 
                 declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
@@ -1170,11 +1182,14 @@ mod given_interpreter {
 
                 define i64 @ENTRYPOINT__main() #0 {
                 block_0:
+                  call void @__quantum__rt__initialize(i8* null)
                   call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
                   ret i64 0
                 }
+
+                declare void @__quantum__rt__initialize(i8*)
 
                 declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
@@ -1249,11 +1264,14 @@ mod given_interpreter {
 
                 define i64 @ENTRYPOINT__main() #0 {
                 block_0:
+                  call void @__quantum__rt__initialize(i8* null)
                   call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
                   ret i64 0
                 }
+
+                declare void @__quantum__rt__initialize(i8*)
 
                 declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
@@ -1308,11 +1326,14 @@ mod given_interpreter {
 
                 define i64 @ENTRYPOINT__main() #0 {
                 block_0:
+                  call void @__quantum__rt__initialize(i8* null)
                   call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
                   ret i64 0
                 }
+
+                declare void @__quantum__rt__initialize(i8*)
 
                 declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
@@ -1366,11 +1387,14 @@ mod given_interpreter {
 
                 define i64 @ENTRYPOINT__main() #0 {
                 block_0:
+                  call void @__quantum__rt__initialize(i8* null)
                   call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   %var_0 = call i1 @check_result(%Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__bool_record_output(i1 %var_0, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
                   ret i64 0
                 }
+
+                declare void @__quantum__rt__initialize(i8*)
 
                 declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*) #1
 
