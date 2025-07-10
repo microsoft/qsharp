@@ -29,6 +29,7 @@ export interface IProgramConfig {
     packageGraphSources: IPackageGraphSources;
     profile: TargetProfile;
     projectType: ProjectType;
+    isSingleFile: boolean;
 }
 "#;
 
@@ -72,6 +73,9 @@ extern "C" {
 
     #[wasm_bindgen(method, getter, structural)]
     fn profile(this: &ProgramConfig) -> String;
+
+    #[wasm_bindgen(method, getter, structural)]
+    fn isSingleFile(this: &ProgramConfig) -> bool;
 
     #[wasm_bindgen(method, getter, structural)]
     fn projectType(this: &ProgramConfig) -> String;
@@ -447,14 +451,13 @@ pub(crate) fn into_qsc_args(
     let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
 
     // Use the project-level target_profile from ProgramConfig
-    let profile = qsc::target::Profile::from_str(&program.profile())
+    let profile = qsc::target::Profile::from_friendly_name(&program.profile())
         .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()));
     let capabilities = profile.into();
 
-    // this function call builds all dependencies as a part of preparing the package store
-    // for building the user code.
-    // TODO: I don't know if it is correct to set the is_single_file flag to false here.
-    let buildable_program = BuildableProgram::new(capabilities, pkg_graph, false);
+    // Use the isSingleFile getter from ProgramConfig to set the is_single_file flag correctly.
+    let is_single_file = program.isSingleFile();
+    let buildable_program = BuildableProgram::new(capabilities, pkg_graph, is_single_file);
 
     if !ignore_dependency_errors && !buildable_program.dependency_errors.is_empty() {
         return Err(buildable_program.dependency_errors);
