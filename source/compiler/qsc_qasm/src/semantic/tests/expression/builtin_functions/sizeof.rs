@@ -5,7 +5,7 @@ use crate::semantic::tests::check_last_stmt as check;
 use expect_test::expect;
 
 #[test]
-fn sizeof_no_args() {
+fn sizeof_no_args_errors() {
     let source = "
         const uint arr_size = sizeof();
     ";
@@ -42,7 +42,7 @@ fn sizeof_no_args() {
 }
 
 #[test]
-fn sizeof_too_many_args() {
+fn sizeof_too_many_args_errors() {
     let source = "
         const uint arr_size = sizeof(1, 2, 3);
     ";
@@ -80,7 +80,7 @@ fn sizeof_too_many_args() {
 }
 
 #[test]
-fn sizeof_non_array() {
+fn sizeof_non_array_errors() {
     let source = "
         const uint arr_size = sizeof(1);
     ";
