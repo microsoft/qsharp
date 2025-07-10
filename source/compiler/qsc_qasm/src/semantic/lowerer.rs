@@ -1830,7 +1830,7 @@ impl Lowerer {
 
         // Check that we have 1 or 2 arguments for sizeof.
         if inputs.is_empty() || inputs.len() > 2 {
-            sizeof_invalid_args_error(expr.span, &inputs);
+            self.push_const_eval_error(sizeof_invalid_args_error(expr.span, &inputs));
             return err_expr!(Type::Err, expr.span);
         }
 
@@ -1844,7 +1844,7 @@ impl Lowerer {
 
         // Check that the 2nd argument is a const expr.
         let Some(second_arg) = second_arg.with_const_value(self).get_const_u32() else {
-            sizeof_invalid_args_error(expr.span, &inputs);
+            self.push_const_eval_error(sizeof_invalid_args_error(expr.span, &inputs));
             return err_expr!(Type::Err, expr.span);
         };
 
@@ -1894,7 +1894,7 @@ impl Lowerer {
                 Expr::new(expr.span, kind, Type::UInt(None, false))
             }
             _ => {
-                sizeof_invalid_args_error(expr.span, &inputs);
+                self.push_const_eval_error(sizeof_invalid_args_error(expr.span, &inputs));
                 err_expr!(Type::Err, expr.span)
             }
         }

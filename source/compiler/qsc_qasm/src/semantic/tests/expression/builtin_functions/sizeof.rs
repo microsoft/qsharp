@@ -13,12 +13,31 @@ fn sizeof_no_args() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-40]:
-            symbol_id: 8
-            ty_span: [15-19]
-            init_expr: Expr [31-39]:
-                ty: unknown
-                kind: Err"#]],
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-40]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-40]:
+                            symbol_id: 8
+                            ty_span: [15-19]
+                            init_expr: Expr [31-39]:
+                                ty: unknown
+                                kind: Err
+
+            [Qasm.Lowerer.NoValidOverloadForBuiltinFunction
+
+              x There is no valid overload of `popcount` for inputs: ()
+              | Overloads available are:
+              |     fn sizeof(array[_, ...], const uint) -> const uint
+              |     fn sizeof(array[_, #dim = _], const uint) -> uint
+               ,-[test:2:31]
+             1 | 
+             2 |         const uint arr_size = sizeof();
+               :                               ^^^^^^^^
+             3 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -31,12 +50,32 @@ fn sizeof_too_many_args() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-47]:
-            symbol_id: 8
-            ty_span: [15-19]
-            init_expr: Expr [31-46]:
-                ty: unknown
-                kind: Err"#]],
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-47]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-47]:
+                            symbol_id: 8
+                            ty_span: [15-19]
+                            init_expr: Expr [31-46]:
+                                ty: unknown
+                                kind: Err
+
+            [Qasm.Lowerer.NoValidOverloadForBuiltinFunction
+
+              x There is no valid overload of `popcount` for inputs: (const int, const
+              | int, const int)
+              | Overloads available are:
+              |     fn sizeof(array[_, ...], const uint) -> const uint
+              |     fn sizeof(array[_, #dim = _], const uint) -> uint
+               ,-[test:2:31]
+             1 | 
+             2 |         const uint arr_size = sizeof(1, 2, 3);
+               :                               ^^^^^^^^^^^^^^^
+             3 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -49,12 +88,31 @@ fn sizeof_non_array() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-41]:
-            symbol_id: 8
-            ty_span: [15-19]
-            init_expr: Expr [31-40]:
-                ty: unknown
-                kind: Err"#]],
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-41]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-41]:
+                            symbol_id: 8
+                            ty_span: [15-19]
+                            init_expr: Expr [31-40]:
+                                ty: unknown
+                                kind: Err
+
+            [Qasm.Lowerer.NoValidOverloadForBuiltinFunction
+
+              x There is no valid overload of `popcount` for inputs: (const int)
+              | Overloads available are:
+              |     fn sizeof(array[_, ...], const uint) -> const uint
+              |     fn sizeof(array[_, #dim = _], const uint) -> uint
+               ,-[test:2:31]
+             1 | 
+             2 |         const uint arr_size = sizeof(1);
+               :                               ^^^^^^^^^
+             3 |     
+               `----
+            ]"#]],
     );
 }
 
