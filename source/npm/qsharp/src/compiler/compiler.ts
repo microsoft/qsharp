@@ -59,11 +59,12 @@ export interface ICompiler {
     eventHandler: IQscEventTarget,
   ): Promise<void>;
 
-  runWithPauliNoise(
+  runWithNoise(
     program: ProgramConfig,
     expr: string,
     shots: number,
     pauliNoise: number[],
+    qubitLoss: number,
     eventHandler: IQscEventTarget,
   ): Promise<void>;
 
@@ -197,20 +198,22 @@ export class Compiler implements ICompiler {
     );
   }
 
-  async runWithPauliNoise(
+  async runWithNoise(
     program: ProgramConfig,
     expr: string,
     shots: number,
     pauliNoise: number[],
+    qubitLoss: number,
     eventHandler: IQscEventTarget,
   ): Promise<void> {
     await callAndTransformExceptions(async () =>
-      this.wasm.runWithPauliNoise(
+      this.wasm.runWithNoise(
         toWasmProgramConfig(program, "unrestricted"),
         expr,
         (msg: string) => onCompilerEvent(msg, eventHandler!),
         shots!,
         pauliNoise,
+        qubitLoss,
       ),
     );
   }
@@ -364,7 +367,7 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
     getCircuit: "request",
     getDocumentation: "request",
     run: "requestWithProgress",
-    runWithPauliNoise: "requestWithProgress",
+    runWithNoise: "requestWithProgress",
     checkExerciseSolution: "requestWithProgress",
   },
   eventNames: ["DumpMachine", "Matrix", "Message", "Result"],

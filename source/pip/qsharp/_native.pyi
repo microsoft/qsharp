@@ -162,6 +162,7 @@ class Interpreter:
         entry_expr: Optional[str],
         output_fn: Optional[Callable[[Output], None]],
         noise: Optional[Tuple[float, float, float]],
+        qubit_loss: Optional[float],
         callable: Optional[GlobalCallable],
         args: Optional[Any],
     ) -> Any:
@@ -172,6 +173,7 @@ class Interpreter:
         :param output_fn: A callback function that will be called with each output.
         :param noise: A tuple with probabilities of Pauli-X, Pauli-Y, and Pauli-Z errors
             to use in simulation as a parametric Pauli noise.
+        :param qubit_loss: The probability of qubit loss in simulation.
         :param callable: The callable to run, if no entry expression is provided.
         :param args: The arguments to pass to the callable, if any.
 
@@ -552,6 +554,7 @@ def run_qasm_program(
     source: str,
     output_fn: Callable[[Output], None],
     noise: Optional[Tuple[float, float, float]],
+    qubit_loss: Optional[float],
     read_file: Callable[[str], Tuple[str, str]],
     list_directory: Callable[[str], List[Dict[str, str]]],
     resolve_path: Callable[[str, str], str],
@@ -571,6 +574,7 @@ def run_qasm_program(
         source (str): The OpenQASM source code to execute.
         output_fn (Callable[[Output], None]): The function to handle the output of the execution.
         noise: The noise to use in simulation.
+        qubit_loss: The probability of qubit loss in simulation.
         read_file (Callable[[str], Tuple[str, str]]): The function to read a file and return its contents.
         list_directory (Callable[[str], List[Dict[str, str]]]): The function to list the contents of a directory.
         resolve_path (Callable[[str, str], str]): The function to resolve a path given a base path and a relative path.

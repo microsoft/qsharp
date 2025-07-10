@@ -316,7 +316,9 @@ fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
     match value {
         Value::Array(elements) => map_array_eval_value_to_value_kind(elements),
         Value::Tuple(elements) => map_tuple_eval_value_to_value_kind(elements),
-        Value::Result(Result::Id(_)) | Value::Var(_) => ValueKind::Element(RuntimeKind::Dynamic),
+        Value::Result(Result::Id(_) | Result::Loss) | Value::Var(_) => {
+            ValueKind::Element(RuntimeKind::Dynamic)
+        }
         Value::BigInt(_)
         | Value::Bool(_)
         | Value::Closure(_)

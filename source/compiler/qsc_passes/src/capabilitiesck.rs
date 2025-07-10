@@ -20,12 +20,12 @@ use qsc_data_structures::{span::Span, target::TargetCapabilityFlags};
 
 use qsc_fir::{
     fir::{
-        Block, BlockId, CallableImpl, Expr, ExprId, ExprKind, Global, Ident, Item, ItemKind,
-        LocalItemId, LocalVarId, Package, PackageLookup, Pat, PatId, PatKind, Res, SpecDecl,
-        SpecImpl, Stmt, StmtId, StmtKind,
+        Attr, Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Global, Ident,
+        Item, ItemKind, LocalItemId, LocalVarId, Package, PackageLookup, Pat, PatId, PatKind, Res,
+        SpecDecl, SpecImpl, Stmt, StmtId, StmtKind,
     },
     ty::FunctorSetValue,
-    visit::Visitor,
+    visit::{Visitor, walk_callable_decl},
 };
 
 use qsc_lowerer::map_hir_package_to_fir;
@@ -129,6 +129,12 @@ impl<'a> Visitor<'a> for Checker<'a> {
         package.entry.iter().for_each(|entry_expr_id| {
             self.check_entry_expr(*entry_expr_id);
         });
+    }
+
+    fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
+        if decl.attrs.iter().all(|attr| *attr != Attr::Test) {
+            walk_callable_decl(self, decl);
+        }
     }
 
     fn visit_callable_impl(&mut self, callable_impl: &'a CallableImpl) {

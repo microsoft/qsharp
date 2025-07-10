@@ -57,6 +57,13 @@ export function getPauliNoiseModel(): number[] {
   return noiseTuple;
 }
 
+export function getQubitLossSetting(): number {
+  const qubitLoss = vscode.workspace
+    .getConfiguration("Q#.simulation")
+    .get<number>("qubitLoss", 0);
+  return qubitLoss;
+}
+
 export function getShowDevDiagnostics(): boolean {
   return vscode.workspace
     .getConfiguration("Q#")

@@ -216,6 +216,9 @@ impl Lowerer {
                     }
                     self.define_qelib1_gates(include.span);
                     continue;
+                } else if include.filename.to_lowercase() == "qdk.inc" {
+                    self.define_mresetzchecked();
+                    continue;
                 }
 
                 let include = includes.next().expect("missing include");
@@ -377,6 +380,20 @@ impl Lowerer {
             if self.symbols.insert_symbol(gate).is_err() {
                 self.push_redefined_symbol_error(name.as_str(), span);
             }
+        }
+    }
+
+    fn define_mresetzchecked(&mut self) {
+        let name = "mresetz_checked";
+        let symbol = Symbol::new(
+            name,
+            Span::default(),
+            Type::Function(vec![Type::Qubit].into(), Type::Int(None, false).into()),
+            crate::types::Type::Callable(crate::types::CallableKind::Operation, 0, 1),
+            Default::default(),
+        );
+        if self.symbols.insert_symbol(symbol).is_err() {
+            self.push_redefined_symbol_error(name, Span::default());
         }
     }
 

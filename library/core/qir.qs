@@ -27,5 +27,9 @@ namespace QIR.Runtime {
         }
     }
 
-    export __quantum__rt__qubit_allocate, __quantum__rt__qubit_release, AllocateQubitArray, ReleaseQubitArray;
+    function __quantum__rt__read_loss(r : Result) : Bool {
+        body intrinsic;
+    }
+
+    export __quantum__rt__qubit_allocate, __quantum__rt__qubit_release, AllocateQubitArray, ReleaseQubitArray, __quantum__rt__read_loss;
 }
