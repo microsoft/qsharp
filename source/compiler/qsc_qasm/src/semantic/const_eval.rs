@@ -44,12 +44,10 @@ pub enum ConstEvalError {
     #[error("{0}")]
     #[diagnostic(code("Qasm.Lowerer.NoValidOverloadForBuiltinFunction"))]
     NoValidOverloadForBuiltinFunction(String, #[label] Span),
-
     #[error("requested dimension {0} but array has {1} dimensions")]
     #[help("dimensions are zero-based")]
     #[diagnostic(code("Qasm.Lowerer.SizeofInvalidDimension"))]
     SizeofInvalidDimension(usize, usize, #[label] Span),
-
     #[error("too many indices provided")]
     #[diagnostic(code("Qasm.Lowerer.TooManyIndices"))]
     TooManyIndices(#[label] Span),
