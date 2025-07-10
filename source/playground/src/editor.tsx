@@ -14,6 +14,7 @@ import {
   ProgramConfig,
   TargetProfile,
   LanguageServiceDiagnosticEvent,
+  ProjectType,
 } from "qsharp-lang";
 import { Exercise, getExerciseSources } from "qsharp-lang/katas-md";
 import { codeToCompressedBase64, lsRangeToMonacoRange } from "./utils.js";
@@ -75,6 +76,11 @@ export function getProfile(): TargetProfile {
     "unrestricted") as TargetProfile;
 }
 
+export function getProjectType(): ProjectType {
+  return (new URLSearchParams(window.location.search).get("lang") ??
+    "qsharp") as ProjectType;
+}
+
 export function Editor(props: {
   code: string;
   compiler: ICompilerWorker;
@@ -88,6 +94,7 @@ export function Editor(props: {
   showExpr: boolean;
   showShots: boolean;
   profile: TargetProfile;
+  project_type: ProjectType;
   setAst: (ast: string) => void;
   setHir: (hir: string) => void;
   setRir: (rir: string[]) => void;
@@ -104,6 +111,7 @@ export function Editor(props: {
     return;
   });
   const [profile, setProfile] = useState(props.profile);
+  const [project_type, setProjectType] = useState(props.project_type);
   const [shotCount, setShotCount] = useState(props.defaultShots);
   const [runExpr, setRunExpr] = useState("");
   const [errors, setErrors] = useState<
@@ -139,6 +147,7 @@ export function Editor(props: {
       sources: [["code", code]] as [string, string][],
       languageFeatures: [],
       profile: profile,
+      projectType: project_type,
     };
 
     if (props.activeTab === "ast-tab") {
@@ -147,6 +156,7 @@ export function Editor(props: {
           code,
           config.languageFeatures,
           config.profile,
+          config.projectType,
         ),
       );
     }
@@ -156,6 +166,7 @@ export function Editor(props: {
           code,
           config.languageFeatures,
           config.profile,
+          config.projectType,
         ),
       );
     }
@@ -206,6 +217,7 @@ export function Editor(props: {
       sources: [["code", code]],
       languageFeatures: [],
       profile: profile,
+      projectType: project_type,
     } as ProgramConfig;
 
     try {
@@ -254,14 +266,18 @@ export function Editor(props: {
     });
 
     editor.current = newEditor;
+    let ext = "qs";
+    if (props.project_type === "openqasm") {
+      ext = "qasm";
+    }
     const srcModel =
       monaco.editor.getModel(
-        monaco.Uri.parse(props.kataSection?.id ?? "main.qs"),
+        monaco.Uri.parse(props.kataSection?.id ?? "main." + ext),
       ) ??
       monaco.editor.createModel(
         "",
-        "qsharp",
-        monaco.Uri.parse(props.kataSection?.id ?? "main.qs"),
+        project_type,
+        monaco.Uri.parse(props.kataSection?.id ?? "main." + ext),
       );
     srcModel.setValue(props.code);
     newEditor.setModel(srcModel);
@@ -282,6 +298,7 @@ export function Editor(props: {
         srcModel.uri.toString(),
         srcModel.getVersionId(),
         srcModel.getValue(),
+        project_type,
       );
       const measure = performance.measure(
         "update-document",
@@ -299,7 +316,10 @@ export function Editor(props: {
     return () => {
       log.info("Disposing a monaco editor");
       window.removeEventListener("resize", onResize);
-      props.languageService.closeDocument(srcModel.uri.toString());
+      props.languageService.closeDocument(
+        srcModel.uri.toString(),
+        project_type,
+      );
       newEditor.dispose();
     };
   }, []);
@@ -380,6 +400,7 @@ export function Editor(props: {
       const newURL = new URL(window.location.href);
       newURL.searchParams.set("code", escapedCode);
       newURL.searchParams.set("profile", profile);
+      newURL.searchParams.set("lang", project_type);
 
       // Copy link to clipboard and update url without reloading the page
       navigator.clipboard.writeText(newURL.toString());
@@ -412,6 +433,11 @@ export function Editor(props: {
   function profileChanged(e: Event) {
     const target = e.target as HTMLInputElement;
     setProfile(target.value as TargetProfile);
+  }
+
+  function projectTypeChanged(e: Event) {
+    const target = e.target as HTMLInputElement;
+    setProjectType(target.value as ProjectType);
   }
 
   return (
@@ -460,6 +486,15 @@ export function Editor(props: {
       </div>
       <div class="code-editor" ref={editorDiv}></div>
       <div class="button-row">
+        {props.kataSection ? null : (
+          <>
+            <span>Language</span>
+            <select value={project_type} onChange={projectTypeChanged}>
+              <option value="qsharp">qsharp</option>
+              <option value="openqasm">openqasm</option>
+            </select>
+          </>
+        )}
         {props.kataSection ? null : (
           <>
             <span>Profile</span>

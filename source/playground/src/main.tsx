@@ -27,7 +27,7 @@ import {
 import { Kata, getAllKatas } from "qsharp-lang/katas-md";
 
 import { Nav } from "./nav.js";
-import { Editor, getProfile } from "./editor.js";
+import { Editor, getProfile, getProjectType } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 import { useEffect, useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
@@ -151,6 +151,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
     if (newURL.searchParams.get("code")) {
       newURL.searchParams.delete("code");
       newURL.searchParams.delete("profile");
+      newURL.searchParams.delete("lang");
       window.history.pushState({}, "", newURL.toString());
       props.linkedCode = undefined;
     }
@@ -181,6 +182,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             showExpr={true}
             shotError={shotError}
             profile={getProfile()}
+            project_type={getProjectType()}
             setAst={setAst}
             setHir={setHir}
             setRir={setRir}

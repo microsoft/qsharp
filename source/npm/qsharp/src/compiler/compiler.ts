@@ -42,12 +42,14 @@ export interface ICompiler {
     code: string,
     languageFeatures: string[],
     profile: TargetProfile,
+    projectType?: ProjectType,
   ): Promise<string>;
 
   getHir(
     code: string,
     languageFeatures: string[],
     profile: TargetProfile,
+    projectType?: ProjectType,
   ): Promise<string>;
 
   getRir(program: ProgramConfig): Promise<string[]>;
@@ -159,16 +161,18 @@ export class Compiler implements ICompiler {
     code: string,
     languageFeatures: string[],
     profile: TargetProfile,
+    projectType: ProjectType = "qsharp",
   ): Promise<string> {
-    return this.wasm.get_ast(code, languageFeatures, profile);
+    return this.wasm.get_ast(code, languageFeatures, profile, projectType);
   }
 
   async getHir(
     code: string,
     languageFeatures: string[],
     profile: TargetProfile,
+    projectType: ProjectType = "qsharp",
   ): Promise<string> {
-    return this.wasm.get_hir(code, languageFeatures, profile);
+    return this.wasm.get_hir(code, languageFeatures, profile, projectType);
   }
 
   async getRir(program: ProgramConfig): Promise<string[]> {

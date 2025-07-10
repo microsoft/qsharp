@@ -222,7 +222,21 @@ pub fn get_ast(
     code: &str,
     language_features: Vec<String>,
     profile: &str,
+    project_type: &str,
 ) -> Result<String, String> {
+    if project_type == "openqasm" {
+        let mut resolver = InMemorySourceResolver::from_iter([("main.qasm".into(), code.into())]);
+        let profile =
+            Profile::from_str(profile).map_err(|()| format!("Invalid target profile {profile}"))?;
+        let x = qsc::qasm::compile_raw_qasm(
+            code,
+            "main.qasm",
+            Some(&mut resolver),
+            PackageType::Exe,
+            profile.into(),
+        );
+        return Ok(x.0.get(x.1).unwrap().ast.package.to_string());
+    }
     let language_features = LanguageFeatures::from_iter(language_features);
     let sources = SourceMap::new([("code".into(), code.into())], None);
     let profile =
@@ -246,7 +260,21 @@ pub fn get_hir(
     code: &str,
     language_features: Vec<String>,
     profile: &str,
+    project_type: &str,
 ) -> Result<String, String> {
+    if project_type == "openqasm" {
+        let mut resolver = InMemorySourceResolver::from_iter([("main.qasm".into(), code.into())]);
+        let profile =
+            Profile::from_str(profile).map_err(|()| format!("Invalid target profile {profile}"))?;
+        let x = qsc::qasm::compile_raw_qasm(
+            code,
+            "main.qasm",
+            Some(&mut resolver),
+            PackageType::Exe,
+            profile.into(),
+        );
+        return Ok(x.0.get(x.1).unwrap().package.to_string());
+    }
     let language_features = LanguageFeatures::from_iter(language_features);
     let sources = SourceMap::new([("code".into(), code.into())], None);
     let profile =

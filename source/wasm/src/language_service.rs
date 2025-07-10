@@ -384,6 +384,7 @@ serializable_type! {
         pub devDiagnostics: Option<bool>,
     },
     r#"export interface IWorkspaceConfiguration {
+        projectType?: ProjectType;
         targetProfile?: TargetProfile;
         packageType?: "exe" | "lib";
         languageFeatures?: LanguageFeatures[];
