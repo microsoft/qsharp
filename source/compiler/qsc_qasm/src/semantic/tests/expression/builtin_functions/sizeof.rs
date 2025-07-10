@@ -27,7 +27,7 @@ fn sizeof_no_args_errors() {
 
             [Qasm.Lowerer.NoValidOverloadForBuiltinFunction
 
-              x There is no valid overload of `popcount` for inputs: ()
+              x There is no valid overload of `sizeof` for inputs: ()
               | Overloads available are:
               |     fn sizeof(array[_, ...], const uint) -> const uint
               |     fn sizeof(array[_, #dim = _], const uint) -> uint
@@ -64,8 +64,8 @@ fn sizeof_too_many_args_errors() {
 
             [Qasm.Lowerer.NoValidOverloadForBuiltinFunction
 
-              x There is no valid overload of `popcount` for inputs: (const int, const
-              | int, const int)
+              x There is no valid overload of `sizeof` for inputs: (const int, const int,
+              | const int)
               | Overloads available are:
               |     fn sizeof(array[_, ...], const uint) -> const uint
               |     fn sizeof(array[_, #dim = _], const uint) -> uint
@@ -102,7 +102,7 @@ fn sizeof_non_array_errors() {
 
             [Qasm.Lowerer.NoValidOverloadForBuiltinFunction
 
-              x There is no valid overload of `popcount` for inputs: (const int)
+              x There is no valid overload of `sizeof` for inputs: (const int)
               | Overloads available are:
               |     fn sizeof(array[_, ...], const uint) -> const uint
               |     fn sizeof(array[_, #dim = _], const uint) -> uint

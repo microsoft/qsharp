@@ -4441,7 +4441,7 @@ fn sizeof_invalid_args_error(call_span: Span, inputs: &[Expr]) -> ConstEvalError
     let mut error_msg = String::new();
     write!(
         error_msg,
-        "There is no valid overload of `popcount` for inputs: "
+        "There is no valid overload of `sizeof` for inputs: "
     )
     .expect("write should succeed");
 
