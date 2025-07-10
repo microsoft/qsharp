@@ -3458,6 +3458,7 @@ impl Lowerer {
                 Self::cast_int_expr_to_type(ty, expr, *width)
             }
             Type::BitArray(size, _) => Self::cast_bitarray_expr_to_type(*size, ty, expr),
+            Type::Array(..) => Self::cast_array_expr_to_type(ty, expr),
             _ => None,
         }
     }
@@ -3607,6 +3608,26 @@ impl Lowerer {
             {
                 Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone()))
             }
+            _ => None,
+        }
+    }
+
+    fn cast_array_expr_to_type(ty: &Type, expr: &semantic::Expr) -> Option<semantic::Expr> {
+        assert!(matches!(expr.ty, Type::Array(..)));
+
+        match ty {
+            Type::StaticArrayRef(ref_ty) if !ref_ty.is_mutable => Some(Expr {
+                span: expr.span,
+                kind: expr.kind.clone(),
+                const_value: expr.const_value.clone(),
+                ty: ty.clone(),
+            }),
+            Type::DynArrayRef(ref_ty) if !ref_ty.is_mutable => Some(Expr {
+                span: expr.span,
+                kind: expr.kind.clone(),
+                const_value: expr.const_value.clone(),
+                ty: ty.clone(),
+            }),
             _ => None,
         }
     }
