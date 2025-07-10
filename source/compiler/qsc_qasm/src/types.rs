@@ -59,74 +59,57 @@ impl Display for CallableKind {
     }
 }
 
-/// QASM supports up to seven dimensions, but we are going to limit it to three.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// QASM supports up to seven dimensions.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ArrayDimensions {
-    One(usize),
-    Two(usize, usize),
-    Three(usize, usize, usize),
-    Four(usize, usize, usize, usize),
-    Five(usize, usize, usize, usize, usize),
-    Six(usize, usize, usize, usize, usize, usize),
-    Seven(usize, usize, usize, usize, usize, usize, usize),
+    One,
+    Two,
+    Three,
+    Four,
+    Five,
+    Six,
+    Seven,
+}
+
+impl From<ArrayDimensions> for u32 {
+    fn from(value: ArrayDimensions) -> Self {
+        match value {
+            ArrayDimensions::One => 1,
+            ArrayDimensions::Two => 2,
+            ArrayDimensions::Three => 3,
+            ArrayDimensions::Four => 4,
+            ArrayDimensions::Five => 5,
+            ArrayDimensions::Six => 6,
+            ArrayDimensions::Seven => 7,
+        }
+    }
+}
+
+impl From<u32> for ArrayDimensions {
+    fn from(value: u32) -> Self {
+        match value {
+            1 => Self::One,
+            2 => Self::Two,
+            3 => Self::Three,
+            4 => Self::Four,
+            5 => Self::Five,
+            6 => Self::Six,
+            7 => Self::Seven,
+            _ => unreachable!("we validate that num_dims is between 1 and 7 when generating them"),
+        }
+    }
 }
 
 impl From<&crate::semantic::types::ArrayDimensions> for ArrayDimensions {
     fn from(value: &crate::semantic::types::ArrayDimensions) -> Self {
         match value {
-            crate::semantic::types::ArrayDimensions::One(dim) => {
-                ArrayDimensions::One(*dim as usize)
-            }
-            crate::semantic::types::ArrayDimensions::Two(dim1, dim2) => {
-                ArrayDimensions::Two(*dim1 as usize, *dim2 as usize)
-            }
-            crate::semantic::types::ArrayDimensions::Three(dim1, dim2, dim3) => {
-                ArrayDimensions::Three(*dim1 as usize, *dim2 as usize, *dim3 as usize)
-            }
-            crate::semantic::types::ArrayDimensions::Four(dim1, dim2, dim3, dim4) => {
-                ArrayDimensions::Four(
-                    *dim1 as usize,
-                    *dim2 as usize,
-                    *dim3 as usize,
-                    *dim4 as usize,
-                )
-            }
-            crate::semantic::types::ArrayDimensions::Five(dim1, dim2, dim3, dim4, dim5) => {
-                ArrayDimensions::Five(
-                    *dim1 as usize,
-                    *dim2 as usize,
-                    *dim3 as usize,
-                    *dim4 as usize,
-                    *dim5 as usize,
-                )
-            }
-            crate::semantic::types::ArrayDimensions::Six(dim1, dim2, dim3, dim4, dim5, dim6) => {
-                ArrayDimensions::Six(
-                    *dim1 as usize,
-                    *dim2 as usize,
-                    *dim3 as usize,
-                    *dim4 as usize,
-                    *dim5 as usize,
-                    *dim6 as usize,
-                )
-            }
-            crate::semantic::types::ArrayDimensions::Seven(
-                dim1,
-                dim2,
-                dim3,
-                dim4,
-                dim5,
-                dim6,
-                dim7,
-            ) => ArrayDimensions::Seven(
-                *dim1 as usize,
-                *dim2 as usize,
-                *dim3 as usize,
-                *dim4 as usize,
-                *dim5 as usize,
-                *dim6 as usize,
-                *dim7 as usize,
-            ),
+            crate::semantic::types::ArrayDimensions::One(..) => Self::One,
+            crate::semantic::types::ArrayDimensions::Two(..) => Self::Two,
+            crate::semantic::types::ArrayDimensions::Three(..) => Self::Three,
+            crate::semantic::types::ArrayDimensions::Four(..) => Self::Four,
+            crate::semantic::types::ArrayDimensions::Five(..) => Self::Five,
+            crate::semantic::types::ArrayDimensions::Six(..) => Self::Six,
+            crate::semantic::types::ArrayDimensions::Seven(..) => Self::Seven,
             crate::semantic::types::ArrayDimensions::Err => {
                 unimplemented!("Array dimensions greater than seven are not supported.")
             }
@@ -185,13 +168,13 @@ impl Display for Type {
 impl Display for ArrayDimensions {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            ArrayDimensions::One(..) => write!(f, "[]"),
-            ArrayDimensions::Two(..) => write!(f, "[][]"),
-            ArrayDimensions::Three(..) => write!(f, "[][][]"),
-            ArrayDimensions::Four(..) => write!(f, "[][][][]"),
-            ArrayDimensions::Five(..) => write!(f, "[][][][][]"),
-            ArrayDimensions::Six(..) => write!(f, "[][][][][][]"),
-            ArrayDimensions::Seven(..) => write!(f, "[][][][][][][]"),
+            Self::One => write!(f, "[]"),
+            Self::Two => write!(f, "[][]"),
+            Self::Three => write!(f, "[][][]"),
+            Self::Four => write!(f, "[][][][]"),
+            Self::Five => write!(f, "[][][][][]"),
+            Self::Six => write!(f, "[][][][][][]"),
+            Self::Seven => write!(f, "[][][][][][][]"),
         }
     }
 }

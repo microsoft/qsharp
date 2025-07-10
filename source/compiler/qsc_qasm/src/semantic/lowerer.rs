@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use std::collections::VecDeque;
+use std::fmt::Write;
 use std::ops::ShlAssign;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -33,6 +34,7 @@ use crate::convert::safe_i64_to_f64;
 use crate::parser::QasmSource;
 use crate::parser::ast::List;
 use crate::parser::ast::list_from_iter;
+use crate::semantic::ast::Expr;
 use crate::semantic::types::base_types_equal;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
@@ -1096,11 +1098,38 @@ impl Lowerer {
         }
     }
 
+    fn make_qsharp_array_ty(
+        base_ty: &crate::semantic::types::ArrayBaseType,
+        dims: crate::types::ArrayDimensions,
+    ) -> crate::types::Type {
+        use crate::semantic::types::ArrayBaseType;
+        match base_ty {
+            ArrayBaseType::Duration => unreachable!(),
+            ArrayBaseType::Bool => crate::types::Type::BoolArray(dims, false),
+            ArrayBaseType::Angle(_) => crate::types::Type::AngleArray(dims, false),
+            ArrayBaseType::Complex(_) => crate::types::Type::ComplexArray(dims, false),
+            ArrayBaseType::Float(_) => crate::types::Type::DoubleArray(dims),
+            ArrayBaseType::Int(width) | ArrayBaseType::UInt(width) => {
+                if let Some(width) = width {
+                    if *width > 64 {
+                        crate::types::Type::BigIntArray(dims, false)
+                    } else {
+                        crate::types::Type::IntArray(dims, false)
+                    }
+                } else {
+                    crate::types::Type::IntArray(dims, false)
+                }
+            }
+        }
+    }
+
     fn convert_semantic_type_to_qsharp_type(
         &mut self,
         ty: &super::types::Type,
         span: Span,
     ) -> crate::types::Type {
+        use crate::semantic::types::ArrayBaseType;
+
         if ty.is_array() && matches!(ty.array_dims(), Some(super::types::ArrayDimensions::Err)) {
             self.push_unsupported_error_message("arrays with more than 7 dimensions", span);
             return crate::types::Type::Err;
@@ -1138,28 +1167,24 @@ impl Lowerer {
                 self.push_unsupported_error_message("stretch type values", span);
                 crate::types::Type::Err
             }
-            Type::BitArray(size, _) => crate::types::Type::ResultArray(
-                crate::types::ArrayDimensions::One(*size as usize),
-                is_const,
-            ),
-            Type::QubitArray(size) => {
-                crate::types::Type::QubitArray(crate::types::ArrayDimensions::One(*size as usize))
+            Type::BitArray(_, _) => {
+                crate::types::Type::ResultArray(crate::types::ArrayDimensions::One, is_const)
             }
-            Type::IntArray(size, dims) | Type::UIntArray(size, dims) => {
-                if let Some(size) = size {
-                    if *size > 64 {
-                        crate::types::Type::BigIntArray(dims.into(), is_const)
-                    } else {
-                        crate::types::Type::IntArray(dims.into(), is_const)
-                    }
-                } else {
-                    crate::types::Type::IntArray(dims.into(), is_const)
-                }
+            Type::QubitArray(_) => {
+                crate::types::Type::QubitArray(crate::types::ArrayDimensions::One)
             }
-            Type::FloatArray(_, dims) => crate::types::Type::DoubleArray(dims.into()),
-            Type::BoolArray(dims) => crate::types::Type::BoolArray(dims.into(), is_const),
-            Type::ComplexArray(_, dims) => crate::types::Type::ComplexArray(dims.into(), is_const),
-            Type::AngleArray(_, dims) => crate::types::Type::AngleArray(dims.into(), is_const),
+            Type::Array(array) if !matches!(array.base_ty, ArrayBaseType::Duration) => {
+                let dims = (&array.dims).into();
+                Self::make_qsharp_array_ty(&array.base_ty, dims)
+            }
+            Type::StaticArrayRef(array_ref) if !array_ref.is_mutable => {
+                let dims = (&array_ref.dims).into();
+                Self::make_qsharp_array_ty(&array_ref.base_ty, dims)
+            }
+            Type::DynArrayRef(array_ref) if !array_ref.is_mutable => {
+                let dims = (array_ref.num_dims).into();
+                Self::make_qsharp_array_ty(&array_ref.base_ty, dims)
+            }
             Type::Gate(cargs, qargs) => {
                 crate::types::Type::Callable(crate::types::CallableKind::Operation, *cargs, *qargs)
             }
@@ -1569,9 +1594,7 @@ impl Lowerer {
             if let Some(size) = size {
                 let size = size.get_const_u32().expect("const evaluation succeeded");
                 let ty = crate::semantic::types::Type::QubitArray(size);
-                let qsharp_ty = crate::types::Type::QubitArray(crate::types::ArrayDimensions::One(
-                    size as usize,
-                ));
+                let qsharp_ty = crate::types::Type::QubitArray(crate::types::ArrayDimensions::One);
                 (ty, qsharp_ty)
             } else {
                 (crate::semantic::types::Type::Err, crate::types::Type::Err)
@@ -1801,11 +1824,91 @@ impl Lowerer {
         output.unwrap_or_else(|| err_expr!(Type::Err, call_span))
     }
 
+    fn lower_sizeof_call_expr(&mut self, expr: &syntax::FunctionCall) -> semantic::Expr {
+        use super::types::{ArrayType, StaticArrayRefType};
+        let inputs: Vec<_> = expr.args.iter().map(|e| self.lower_expr(e)).collect();
+
+        // Check that we have 1 or 2 arguments for sizeof.
+        if inputs.is_empty() || inputs.len() > 2 {
+            sizeof_invalid_args_error(expr.span, &inputs);
+            return err_expr!(Type::Err, expr.span);
+        }
+
+        let mut inputs_iter = inputs.clone().into_iter();
+
+        // Get the 1st argument, and default the 2nd argument to zero if it's missing.
+        let first_arg = inputs_iter.next().expect("there is at least one argument");
+        let second_arg = inputs_iter
+            .next()
+            .unwrap_or_else(|| Expr::uint(0, expr.span));
+
+        // Check that the 2nd argument is a const expr.
+        let Some(second_arg) = second_arg.with_const_value(self).get_const_u32() else {
+            sizeof_invalid_args_error(expr.span, &inputs);
+            return err_expr!(Type::Err, expr.span);
+        };
+
+        // The behavior of `sizeof` changes depending on the type of the first argument, the array.
+        match &first_arg.ty {
+            // If the first argument is an array  or an static reference. We can compute the length
+            // of the requested dimension at lowering time, and the ouput is of type `const uint`.
+            Type::Array(ArrayType { base_ty: _, dims })
+            | Type::StaticArrayRef(StaticArrayRefType {
+                base_ty: _,
+                dims,
+                is_mutable: _,
+            }) => {
+                let second_arg = second_arg as usize;
+                let dims_vec: Vec<_> = dims.clone().into_iter().collect();
+
+                if second_arg >= dims_vec.len() {
+                    self.push_const_eval_error(ConstEvalError::SizeofInvalidDimension(
+                        second_arg,
+                        dims_vec.len(),
+                        expr.span,
+                    ));
+                    return err_expr!(Type::Err, expr.span);
+                }
+
+                Expr::uint(i64::from(dims_vec[second_arg]), expr.span)
+            }
+            // If the first argument is a dynamic reference. We can only compute the length
+            // of the requested dimension at runtime, and the ouput is of type `uint`.
+            Type::DynArrayRef(array_ref) => {
+                if second_arg >= array_ref.num_dims {
+                    self.push_const_eval_error(ConstEvalError::SizeofInvalidDimension(
+                        second_arg as usize,
+                        array_ref.num_dims as usize,
+                        expr.span,
+                    ));
+                    return err_expr!(Type::Err, expr.span);
+                }
+
+                let kind = semantic::ExprKind::SizeofCall(semantic::SizeofCallExpr {
+                    span: expr.span,
+                    fn_name_span: expr.name.span,
+                    array: first_arg,
+                    dim: second_arg,
+                });
+
+                Expr::new(expr.span, kind, Type::UInt(None, false))
+            }
+            _ => {
+                sizeof_invalid_args_error(expr.span, &inputs);
+                err_expr!(Type::Err, expr.span)
+            }
+        }
+    }
+
     fn lower_function_call_expr(&mut self, expr: &syntax::FunctionCall) -> semantic::Expr {
         // 1. If the name refers to a builtin function, we defer
         //    the lowering to `lower_builtin_function_call_expr`.
         if let Ok(builtin_fn) = BuiltinFunction::from_str(&expr.name.name) {
             return self.lower_builtin_function_call_expr(expr, builtin_fn);
+        }
+
+        if &*expr.name.name == "sizeof" {
+            return self.lower_sizeof_call_expr(expr);
         }
 
         // 2. Check that the function name actually refers to a function
@@ -1832,7 +1935,7 @@ impl Lowerer {
             (Arc::default(), crate::semantic::types::Type::Err)
         };
 
-        // 4. Lower the args. There are three cases.
+        // 4. Lower the args.
         let mut params_ty_iter = params_ty.iter();
         let args = expr.args.iter().map(|arg| {
             let arg = self.lower_expr(arg);
@@ -2589,11 +2692,9 @@ impl Lowerer {
             syntax::TypeDef::Scalar(scalar_type) => {
                 self.get_semantic_type_from_scalar_ty(scalar_type, is_const)
             }
-            syntax::TypeDef::Array(array_type) => {
-                self.get_semantic_type_from_array_ty(array_type, is_const)
-            }
+            syntax::TypeDef::Array(array_type) => self.get_semantic_type_from_array_ty(array_type),
             syntax::TypeDef::ArrayReference(array_reference_type) => {
-                self.get_semantic_type_from_array_reference_ty(array_reference_type, is_const)
+                self.get_semantic_type_from_array_reference_ty(array_reference_type)
             }
         }
     }
@@ -2802,52 +2903,60 @@ impl Lowerer {
         }
     }
 
-    fn get_semantic_type_from_array_ty(
+    fn get_semantic_type_from_array_base_ty(
         &mut self,
-        array_ty: &syntax::ArrayType,
-        is_const: bool,
-    ) -> crate::semantic::types::Type {
-        let base_tydef = match &array_ty.base_type {
+        array_base_ty: &syntax::ArrayBaseTypeKind,
+        span: Span,
+    ) -> Type {
+        let base_tydef = match array_base_ty {
             syntax::ArrayBaseTypeKind::Int(ty) => syntax::TypeDef::Scalar(syntax::ScalarType {
-                span: array_ty.span,
+                span,
                 kind: syntax::ScalarTypeKind::Int(ty.clone()),
             }),
             syntax::ArrayBaseTypeKind::UInt(ty) => syntax::TypeDef::Scalar(syntax::ScalarType {
-                span: array_ty.span,
+                span,
                 kind: syntax::ScalarTypeKind::UInt(ty.clone()),
             }),
             syntax::ArrayBaseTypeKind::Float(ty) => syntax::TypeDef::Scalar(syntax::ScalarType {
-                span: array_ty.span,
+                span,
                 kind: syntax::ScalarTypeKind::Float(ty.clone()),
             }),
             syntax::ArrayBaseTypeKind::Complex(ty) => syntax::TypeDef::Scalar(syntax::ScalarType {
-                span: array_ty.span,
+                span,
                 kind: syntax::ScalarTypeKind::Complex(ty.clone()),
             }),
             syntax::ArrayBaseTypeKind::Angle(ty) => syntax::TypeDef::Scalar(syntax::ScalarType {
-                span: array_ty.span,
+                span,
                 kind: syntax::ScalarTypeKind::Angle(ty.clone()),
             }),
             syntax::ArrayBaseTypeKind::BoolType => syntax::TypeDef::Scalar(syntax::ScalarType {
-                span: array_ty.span,
+                span,
                 kind: syntax::ScalarTypeKind::BoolType,
             }),
             syntax::ArrayBaseTypeKind::Duration => syntax::TypeDef::Scalar(syntax::ScalarType {
-                span: array_ty.span,
+                span,
                 kind: syntax::ScalarTypeKind::Duration,
             }),
         };
 
-        let base_ty = self.get_semantic_type_from_tydef(&base_tydef, is_const);
+        self.get_semantic_type_from_tydef(&base_tydef, false)
+    }
 
-        let dims = array_ty
-            .dimensions
-            .iter()
+    fn lower_array_dims(&mut self, dims: &List<syntax::Expr>) -> Vec<u32> {
+        dims.iter()
             .filter_map(|expr| {
                 self.const_eval_array_size_designator_expr(expr)
                     .and_then(|expr| expr.get_const_u32())
             })
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+    }
+
+    fn get_semantic_type_from_array_ty(
+        &mut self,
+        array_ty: &syntax::ArrayType,
+    ) -> crate::semantic::types::Type {
+        let base_ty = self.get_semantic_type_from_array_base_ty(&array_ty.base_type, array_ty.span);
+        let dims = self.lower_array_dims(&array_ty.dimensions);
 
         if dims.len() != array_ty.dimensions.len() {
             return Type::Err;
@@ -2859,13 +2968,36 @@ impl Lowerer {
     fn get_semantic_type_from_array_reference_ty(
         &mut self,
         array_ref_ty: &syntax::ArrayReferenceType,
-        _is_const: bool,
     ) -> crate::semantic::types::Type {
-        self.push_unimplemented_error_message(
-            "semantic type from array refence type",
-            array_ref_ty.span(),
-        );
-        crate::semantic::types::Type::Err
+        match array_ref_ty {
+            syntax::ArrayReferenceType::Static(ref_ty) => {
+                let is_mutable = matches!(ref_ty.mutability, syntax::AccessControl::Mutable);
+                let base_ty =
+                    self.get_semantic_type_from_array_base_ty(&ref_ty.base_type, ref_ty.span);
+                let dims = self.lower_array_dims(&ref_ty.dimensions);
+
+                if dims.len() != ref_ty.dimensions.len() {
+                    return Type::Err;
+                }
+
+                Type::make_static_array_ref_ty(&dims, &base_ty, is_mutable)
+            }
+            syntax::ArrayReferenceType::Dyn(ref_ty) => {
+                let is_mutable = matches!(ref_ty.mutability, syntax::AccessControl::Mutable);
+                let base_ty =
+                    self.get_semantic_type_from_array_base_ty(&ref_ty.base_type, ref_ty.span);
+                let Some(num_dims) = self.const_eval_array_size_designator_expr(&ref_ty.dimensions)
+                else {
+                    return Type::Err;
+                };
+
+                let num_dims = num_dims
+                    .get_const_u32()
+                    .expect("we only get here if we have a valid const expr");
+
+                Type::make_dyn_array_ref_ty(num_dims, &base_ty, is_mutable)
+            }
+        }
     }
 
     fn cast_expr_with_target_type_or_default(
@@ -2971,56 +3103,20 @@ impl Lowerer {
                 0.0,
                 semantic::TimeUnit::Ns,
             ))),
-            Type::BoolArray(dims) => {
-                let base_ty = Type::Bool(false);
+            Type::Array(array) => {
+                let base_ty: Type = array.base_ty.clone().into();
                 let default = || self.get_default_value(&base_ty, span);
                 Some(from_lit_kind(LiteralKind::Array(
-                    semantic::Array::from_default(dims.clone(), default, &base_ty),
+                    semantic::Array::from_default(array.dims.clone(), default, &base_ty),
                 )))
             }
-            Type::DurationArray(dims) => {
-                let base_ty = Type::Duration(false);
-                let default = || self.get_default_value(&Type::Duration(true), span);
-                Some(from_lit_kind(LiteralKind::Array(
-                    semantic::Array::from_default(dims.clone(), default, &base_ty),
-                )))
-            }
-            Type::AngleArray(width, dims) => {
-                let base_ty = Type::Angle(*width, false);
-                let default = || self.get_default_value(&base_ty, span);
-                Some(from_lit_kind(LiteralKind::Array(
-                    semantic::Array::from_default(dims.clone(), default, &base_ty),
-                )))
-            }
-            Type::ComplexArray(width, dims) => {
-                let base_ty = Type::Complex(*width, false);
-                let default = || self.get_default_value(&base_ty, span);
-                Some(from_lit_kind(LiteralKind::Array(
-                    semantic::Array::from_default(dims.clone(), default, &base_ty),
-                )))
-            }
-            Type::FloatArray(width, dims) => {
-                let base_ty = Type::Float(*width, false);
-                let default = || self.get_default_value(&base_ty, span);
-                Some(from_lit_kind(LiteralKind::Array(
-                    semantic::Array::from_default(dims.clone(), default, &base_ty),
-                )))
-            }
-            Type::IntArray(width, dims) => {
-                let base_ty = Type::Int(*width, false);
-                let default = || self.get_default_value(&base_ty, span);
-                Some(from_lit_kind(LiteralKind::Array(
-                    semantic::Array::from_default(dims.clone(), default, &base_ty),
-                )))
-            }
-            Type::UIntArray(width, dims) => {
-                let base_ty = Type::UInt(*width, false);
-                let default = || self.get_default_value(&base_ty, span);
-                Some(from_lit_kind(LiteralKind::Array(
-                    semantic::Array::from_default(dims.clone(), default, &base_ty),
-                )))
-            }
-            Type::Gate(_, _) | Type::Function(..) | Type::Range | Type::Set | Type::Void => {
+            Type::Gate(_, _)
+            | Type::Function(..)
+            | Type::Range
+            | Type::Set
+            | Type::Void
+            | Type::StaticArrayRef(..)
+            | Type::DynArrayRef(..) => {
                 let message = format!("default values for {ty}");
                 self.push_unsupported_error_message(message, span);
                 None
@@ -4318,4 +4414,34 @@ impl FromStr for BuiltinFunction {
             _ => Err(()),
         }
     }
+}
+
+fn sizeof_invalid_args_error(call_span: Span, inputs: &[Expr]) -> ConstEvalError {
+    let mut error_msg = String::new();
+    write!(
+        error_msg,
+        "There is no valid overload of `popcount` for inputs: "
+    )
+    .expect("write should succeed");
+
+    let inputs_str = inputs
+        .iter()
+        .map(|expr| expr.ty.to_string())
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    write!(error_msg, "({inputs_str})").expect("write should succeed");
+    write!(error_msg, "\nOverloads available are:").expect("write should succeed");
+    write!(
+        error_msg,
+        "\n    fn sizeof(array[_, ...], const uint) -> const uint"
+    )
+    .expect("write should succeed");
+    write!(
+        error_msg,
+        "\n    fn sizeof(array[_, #dim = _], const uint) -> uint"
+    )
+    .expect("write should succeed");
+
+    ConstEvalError::NoValidOverloadForBuiltinFunction(error_msg, call_span)
 }
