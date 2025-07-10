@@ -209,12 +209,12 @@ pub(super) enum ErrorKind {
     Lower(#[from] lower::Error),
 }
 
-/// Public constructor for an error when `@EntryPoint` is used in a project (qsharp.json present).
+/// Public constructor for an error when `@EntryPoint(profile)` is used in a project (qsharp.json present).
 #[must_use]
-pub fn entrypoint_in_project_error(span: Span) -> Error {
-    Error(ErrorKind::Parse(qsc_parse::entrypoint_in_project_error(
-        span,
-    )))
+pub fn entrypoint_profile_in_project_error(span: Span) -> Error {
+    Error(ErrorKind::Parse(
+        qsc_parse::entrypoint_profile_in_project_error(span),
+    ))
 }
 
 pub struct PackageStore {

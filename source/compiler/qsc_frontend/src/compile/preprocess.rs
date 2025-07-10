@@ -34,8 +34,15 @@ impl DetectEntryPointProfile {
 
 impl Visitor<'_> for DetectEntryPointProfile {
     fn visit_attr(&mut self, attr: &Attr) {
-        if attr.name.name.as_ref() == "EntryPoint" {
-            self.profile = Some((Profile::Base, attr.span));
+        if hir::Attr::from_str(attr.name.name.as_ref()) == Ok(hir::Attr::EntryPoint) {
+            // Try to parse the argument as a profile name
+            if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
+                if let ExprKind::Path(PathKind::Ok(path)) = inner.kind.as_ref() {
+                    if let Ok(profile) = Profile::temp_from_str(path.name.name.as_ref()) {
+                        self.profile = Some((profile, path.span));
+                    }
+                }
+            }
         }
     }
 }

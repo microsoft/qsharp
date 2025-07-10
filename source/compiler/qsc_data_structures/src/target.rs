@@ -49,6 +49,9 @@ pub enum Profile {
     AdaptiveRIF,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseProfileError;
+
 impl Profile {
     #[must_use]
     pub fn to_str(&self) -> &'static str {
@@ -57,6 +60,16 @@ impl Profile {
             Self::Base => "Base",
             Self::AdaptiveRI => "Adaptive_RI",
             Self::AdaptiveRIF => "Adaptive_RIF",
+        }
+    }
+
+    pub fn temp_from_str(value: &str) -> Result<Self, ParseProfileError> {
+        match value {
+            "AdaptiveRI" => Ok(Self::AdaptiveRI),
+            "AdaptiveRIF" => Ok(Self::AdaptiveRIF),
+            "Base" => Ok(Self::Base),
+            "Unrestricted" => Ok(Self::Unrestricted),
+            _ => Err(ParseProfileError),
         }
     }
 }

@@ -117,10 +117,10 @@ enum ErrorKind {
     #[diagnostic(code("Qsc.Parse.FloatingAttr"))]
     FloatingAttr(#[label] Span),
     #[error(
-        "The @EntryPoint attribute is not allowed in a Q# project (with qsharp.json). Please specify the entry point in qsharp.json instead."
+        "The @EntryPoint attribute with a profile argument is not allowed in a Q# project (with qsharp.json). Please specify the profile in qsharp.json instead."
     )]
-    #[diagnostic(code("Qsc.Parse.EntryPointInProject"))]
-    EntryPointInProject(#[label] Span),
+    #[diagnostic(code("Qsc.Parse.EntryPointProfileInProject"))]
+    EntryPointProfileInProject(#[label] Span),
     #[error("expected item after doc comment")]
     #[diagnostic(code("Qsc.Parse.FloatingDocComment"))]
     FloatingDocComment(#[label] Span),
@@ -159,7 +159,9 @@ impl ErrorKind {
             Self::Lex(error) => Self::Lex(error.with_offset(offset)),
             Self::Lit(name, span) => Self::Lit(name, span + offset),
             Self::Escape(ch, span) => Self::Escape(ch, span + offset),
-            Self::EntryPointInProject(span) => Self::EntryPointInProject(span + offset),
+            Self::EntryPointProfileInProject(span) => {
+                Self::EntryPointProfileInProject(span + offset)
+            }
             Self::Token(expected, actual, span) => Self::Token(expected, actual, span + offset),
             Self::Rule(name, token, span) => Self::Rule(name, token, span + offset),
             Self::Convert(expected, actual, span) => Self::Convert(expected, actual, span + offset),
@@ -176,10 +178,15 @@ impl ErrorKind {
     }
 }
 
-/// Public constructor for an error when `@EntryPoint` is used in a project (qsharp.json present).
+/// Public constructor for an error when `@EntryPoint(profile)` is used in a project (qsharp.json present).
 #[must_use]
-pub fn entrypoint_in_project_error(span: Span) -> Error {
-    Error(ErrorKind::EntryPointInProject(span), Some("The @EntryPoint attribute is not allowed in a Q# project (with qsharp.json). Please specify the entry point in qsharp.json instead.".to_string()))
+pub fn entrypoint_profile_in_project_error(span: Span) -> Error {
+    Error(
+        ErrorKind::EntryPointProfileInProject(span),
+        Some(
+            "The @EntryPoint attribute with a profile argument is not allowed in a Q# project (with qsharp.json). Please specify the profile in qsharp.json instead.".to_string(),
+        ),
+    )
 }
 
 type Result<T> = result::Result<T, Error>;

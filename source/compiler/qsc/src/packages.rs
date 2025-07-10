@@ -8,7 +8,9 @@ use crate::{
 };
 use qsc_circuit::circuit_to_qsharp::circuits_to_qsharp;
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{SourceMap, check_for_entry_profile, entrypoint_in_project_error};
+use qsc_frontend::compile::{
+    SourceMap, check_for_entry_profile, entrypoint_profile_in_project_error,
+};
 use qsc_passes::PackageType;
 use qsc_project::PackageGraphSources;
 use rustc_hash::FxHashMap;
@@ -89,7 +91,7 @@ pub fn prepare_package_store(
     let mut sources = package_graph_sources.root.sources.clone();
     sources = convert_circuit_sources(sources, &mut dependency_errors);
 
-    // Check if the entry profile is set in the (possibly converted) source code.
+    // Check if the entry profile is set in the source code.
     let entry_profile = check_for_entry_profile(
         &SourceMap::new(sources.clone(), None),
         package_graph_sources.root.language_features,
@@ -103,7 +105,7 @@ pub fn prepare_package_store(
         } else {
             dependency_errors.push(Error::from_map(
                 &SourceMap::new(sources, None),
-                ErrorKind::Frontend(entrypoint_in_project_error(span)),
+                ErrorKind::Frontend(entrypoint_profile_in_project_error(span)),
             ));
         }
     }
