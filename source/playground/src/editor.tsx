@@ -206,6 +206,7 @@ export function Editor(props: {
       sources: [["code", code]],
       languageFeatures: [],
       profile: profile,
+      isSingleFile: true, // Always single file for the playground
     } as ProgramConfig;
 
     try {
