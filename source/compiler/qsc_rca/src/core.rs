@@ -1808,7 +1808,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
         let is_test_callable = current_item_context
             .callable_context
             .as_ref()
-            .is_some_and(|f| f.attrs.iter().any(|attr| *attr == Attr::Test));
+            .is_some_and(|f| f.attrs.contains(&Attr::Test));
         match callable_impl {
             CallableImpl::Intrinsic => {
                 self.analyze_intrinsic_callable();
