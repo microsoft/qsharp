@@ -62,26 +62,18 @@ impl Display for CallableKind {
 /// QASM supports up to seven dimensions.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ArrayDimensions {
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-    Six,
-    Seven,
+    One = 1,
+    Two = 2,
+    Three = 3,
+    Four = 4,
+    Five = 5,
+    Six = 6,
+    Seven = 7,
 }
 
 impl From<ArrayDimensions> for u32 {
     fn from(value: ArrayDimensions) -> Self {
-        match value {
-            ArrayDimensions::One => 1,
-            ArrayDimensions::Two => 2,
-            ArrayDimensions::Three => 3,
-            ArrayDimensions::Four => 4,
-            ArrayDimensions::Five => 5,
-            ArrayDimensions::Six => 6,
-            ArrayDimensions::Seven => 7,
-        }
+        value as u32
     }
 }
 
