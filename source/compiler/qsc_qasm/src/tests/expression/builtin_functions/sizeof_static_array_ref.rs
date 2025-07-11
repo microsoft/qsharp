@@ -146,22 +146,17 @@ fn sizeof_with_6_dimensional_array_generates_correct_qsharp() {
 fn sizeof_with_7_dimensional_array_generates_correct_qsharp() {
     let source = "
         def f(readonly array[int, 1, 1, 1, 1, 1, 1, 7] a) {
-            sizeof(a, 7);
+            sizeof(a, 6);
         }
     ";
 
     check(
         source,
         &expect![[r#"
-            Qasm.Lowerer.SizeofInvalidDimension
-
-              x requested dimension 7 but array has 7 dimensions
-               ,-[Test.qasm:3:13]
-             2 |         def f(readonly array[int, 1, 1, 1, 1, 1, 1, 7] a) {
-             3 |             sizeof(a, 7);
-               :             ^^^^^^^^^^^^
-             4 |         }
-               `----
+            import Std.OpenQASM.Intrinsic.*;
+            function f(a : Int[][][][][][][]) : Unit {
+                7;
+            }
         "#]],
     );
 }
