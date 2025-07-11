@@ -151,10 +151,12 @@ def check_prereqs(install=False, skip_wasm=False):
 
 def wasm_checks(install, installed_rust_targets):
     env = get_wasm_env()
+    bindgen_bin = "wasm-bindgen" if platform_sys != "windows" else "wasm-bindgen.exe"
+    wasmopt_bin = "wasm-opt" if platform_sys != "windows" else "wasm-opt.exe"
     ### Check the wasm-bindgen version ###
     try:
         wasm_bindgen_version = subprocess.check_output(
-            ["wasm-bindgen", "--version"], env=env
+            [bindgen_bin, "--version"], env=env
         )
         print(f"Detected wasm-bindgen version: {wasm_bindgen_version.decode()}")
     except FileNotFoundError:
@@ -162,7 +164,7 @@ def wasm_checks(install, installed_rust_targets):
             print("wasm-bindgen not found. Attempting to install...")
             install_wasm_bindgen()
             wasm_bindgen_version = subprocess.check_output(
-                ["wasm-bindgen", "--version"], env=env
+                [bindgen_bin, "--version"], env=env
             )
         else:
             print(
@@ -184,14 +186,14 @@ def wasm_checks(install, installed_rust_targets):
 
     ### Check the binaryen version ###
     try:
-        binaryen_version = subprocess.check_output(["wasm-opt", "--version"], env=env)
+        binaryen_version = subprocess.check_output([wasmopt_bin, "--version"], env=env)
         print(f"Detected wasm-opt version: {binaryen_version.decode()}")
     except FileNotFoundError:
         if install == True:
             print("wasm-opt not found. Attempting to install...")
             install_binaryen()
             binaryen_version = subprocess.check_output(
-                ["wasm-opt", "--version"], env=env
+                [wasmopt_bin, "--version"], env=env
             )
         else:
             print(
