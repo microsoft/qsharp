@@ -530,10 +530,7 @@ impl QasmCompiler {
             rhs_span,
             rhs_span,
             rhs_span,
-            &crate::types::Type::ResultArray(
-                crate::types::ArrayDimensions::One(width as usize),
-                false,
-            ),
+            &crate::types::Type::ResultArray(crate::types::ArrayDimensions::One, false),
             temp_var_stmt_init_expr,
         );
         let temp_var_expr = build_path_ident_expr("bitarray", rhs_span, rhs_span);
@@ -783,6 +780,27 @@ impl QasmCompiler {
                 build_call_with_params(name, &[], args, name_span, expr.span)
             }
         }
+    }
+
+    fn compile_sizeof_call_expr(&mut self, expr: &semast::SizeofCallExpr) -> qsast::Expr {
+        let span = expr.span;
+        let name_span = expr.fn_name_span;
+        let array = self.compile_expr(&expr.array);
+        let dim = self.compile_expr(&expr.dim);
+        let operands = vec![array, dim];
+        let array_dims = expr.array_dims;
+        assert!(
+            (1..=7).contains(&array_dims),
+            "array dimension should be between 1 and 7"
+        );
+        let fn_name = format!("sizeof_{array_dims}");
+        build_call_with_params(
+            &fn_name,
+            &["Std", "OpenQASM", "Builtin"],
+            operands,
+            name_span,
+            span,
+        )
     }
 
     fn compile_gate_call_stmt(&mut self, stmt: &semast::GateCall) -> Option<qsast::Stmt> {
@@ -1185,6 +1203,7 @@ impl QasmCompiler {
             semast::ExprKind::IndexedExpr(index_expr) => self.compile_indexed_expr(index_expr),
             semast::ExprKind::Paren(pexpr) => self.compile_paren_expr(pexpr, expr.span),
             semast::ExprKind::Measure(mexpr) => self.compile_measure_expr(mexpr, &expr.ty),
+            semast::ExprKind::SizeofCall(sizeof_call) => self.compile_sizeof_call_expr(sizeof_call),
         }
     }
 

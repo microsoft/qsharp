@@ -77,6 +77,16 @@ pub(super) fn check_stmt_kind<S: Into<Arc<str>>>(input: S, expect: &Expect) {
     });
 }
 
+pub(super) fn check_last_stmt<S: Into<Arc<str>>>(input: S, expect: &Expect) {
+    check_map(input, expect, |p, _| {
+        p.statements
+            .last()
+            .expect("reading last statement")
+            .kind
+            .to_string()
+    });
+}
+
 pub(super) fn check_stmt_kinds<S: Into<Arc<str>>>(input: S, expect: &Expect) {
     check_map(input, expect, |p, _| {
         p.statements

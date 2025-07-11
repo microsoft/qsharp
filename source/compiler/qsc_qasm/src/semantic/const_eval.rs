@@ -44,6 +44,10 @@ pub enum ConstEvalError {
     #[error("{0}")]
     #[diagnostic(code("Qasm.Lowerer.NoValidOverloadForBuiltinFunction"))]
     NoValidOverloadForBuiltinFunction(String, #[label] Span),
+    #[error("requested dimension {0} but array has {1} dimensions")]
+    #[help("dimensions are zero-based")]
+    #[diagnostic(code("Qasm.Lowerer.SizeofInvalidDimension"))]
+    SizeofInvalidDimension(usize, usize, #[label] Span),
     #[error("too many indices provided")]
     #[diagnostic(code("Qasm.Lowerer.TooManyIndices"))]
     TooManyIndices(#[label] Span),
@@ -104,8 +108,17 @@ impl Expr {
             ExprKind::Cast(cast) => cast.const_eval(ctx),
             ExprKind::IndexedExpr(index_expr) => index_expr.const_eval(ctx, ty),
             ExprKind::Paren(expr) => expr.const_eval(ctx),
-            // Measurements are non-const, so we don't need to implement them.
-            ExprKind::Measure(_) | ExprKind::Err => None,
+            ExprKind::Measure(_) => {
+                // Measurements are non-const, so we don't need to implement them.
+                None
+            }
+            ExprKind::SizeofCall(_) => {
+                // We only lower SizeofCall expressions that should be evaluated
+                // at runtime. The ones that can be const evaluated are hanlded
+                // in [`Lowerer::lower_sizeof_call_expr`].
+                None
+            }
+            ExprKind::Err => None,
         }
     }
 }

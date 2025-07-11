@@ -1273,19 +1273,19 @@ pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
         crate::types::Type::Double(_) => build_path_ident_ty("Double"),
         crate::types::Type::Complex(_) => build_complex_ty_ident(),
         crate::types::Type::Bool(_) => build_path_ident_ty("Bool"),
-        crate::types::Type::ResultArray(dims, _) => build_array_type_name("Result", dims),
-        crate::types::Type::QubitArray(dims) => build_array_type_name("Qubit", dims),
-        crate::types::Type::BigIntArray(dims, _) => build_array_type_name("BigInt", dims),
-        crate::types::Type::IntArray(dims, _) => build_array_type_name("Int", dims),
-        crate::types::Type::DoubleArray(dims) => build_array_type_name("Double", dims),
-        crate::types::Type::BoolArray(dims, _) => build_array_type_name("Bool", dims),
+        crate::types::Type::ResultArray(dims, _) => build_array_type_name("Result", *dims),
+        crate::types::Type::QubitArray(dims) => build_array_type_name("Qubit", *dims),
+        crate::types::Type::BigIntArray(dims, _) => build_array_type_name("BigInt", *dims),
+        crate::types::Type::IntArray(dims, _) => build_array_type_name("Int", *dims),
+        crate::types::Type::DoubleArray(dims) => build_array_type_name("Double", *dims),
+        crate::types::Type::BoolArray(dims, _) => build_array_type_name("Bool", *dims),
         crate::types::Type::ComplexArray(dims, _) => {
             let ty = build_complex_ty_ident();
-            wrap_array_ty_by_dims(dims, ty)
+            wrap_array_ty_by_dims(*dims, ty)
         }
         crate::types::Type::AngleArray(dims, _) => {
             let ty = build_angle_ty_ident();
-            wrap_array_ty_by_dims(dims, ty)
+            wrap_array_ty_by_dims(*dims, ty)
         }
         crate::types::Type::Callable(_, _, _) => todo!(),
         crate::types::Type::Range => build_path_ident_ty("Range"),
@@ -1308,33 +1308,21 @@ pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
         crate::types::Type::TupleArray(dims, tys) => {
             assert!(!tys.is_empty());
             let ty = map_qsharp_type_to_ast_ty(&crate::types::Type::Tuple(tys.clone()));
-            wrap_array_ty_by_dims(dims, ty)
+            wrap_array_ty_by_dims(*dims, ty)
         }
         crate::types::Type::Err => Ty::default(),
     }
 }
 
-fn wrap_array_ty_by_dims(dims: &ArrayDimensions, ty: Ty) -> Ty {
-    match dims {
-        ArrayDimensions::One(..) => wrap_ty_in_array(ty),
-        ArrayDimensions::Two(..) => wrap_ty_in_array(wrap_ty_in_array(ty)),
-        ArrayDimensions::Three(..) => wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(ty))),
-        ArrayDimensions::Four(..) => {
-            wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(ty))))
-        }
-        ArrayDimensions::Five(..) => wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(
-            wrap_ty_in_array(wrap_ty_in_array(ty)),
-        ))),
-        ArrayDimensions::Six(..) => wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(
-            wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(ty))),
-        ))),
-        ArrayDimensions::Seven(..) => wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(
-            wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(ty)))),
-        ))),
+fn wrap_array_ty_by_dims(dims: impl Into<u32>, mut ty: Ty) -> Ty {
+    let dims: u32 = dims.into();
+    for _ in 0..dims {
+        ty = wrap_ty_in_array(ty);
     }
+    ty
 }
 
-fn build_array_type_name<S: AsRef<str>>(name: S, dims: &ArrayDimensions) -> Ty {
+fn build_array_type_name<S: AsRef<str>>(name: S, dims: ArrayDimensions) -> Ty {
     let name = name.as_ref();
     let ty = build_path_ident_ty(name);
     wrap_array_ty_by_dims(dims, ty)

@@ -36,13 +36,17 @@ pub enum Type {
     QubitArray(u32),
 
     // proper arrays
-    BoolArray(ArrayDimensions),
-    DurationArray(ArrayDimensions),
-    AngleArray(Option<u32>, ArrayDimensions),
-    ComplexArray(Option<u32>, ArrayDimensions),
-    FloatArray(Option<u32>, ArrayDimensions),
-    IntArray(Option<u32>, ArrayDimensions),
-    UIntArray(Option<u32>, ArrayDimensions),
+    Array(ArrayType),
+
+    /// Dynamic array references.
+    /// These are array references declared with the `#dim = const expr` syntax.
+    /// E.g.: `readonly array[int, #dim = 3] arr`.
+    DynArrayRef(DynArrayRefType),
+
+    /// Static array references.
+    /// These are array references where all dimension lengths are declared explicitely.
+    /// E.g.: `readonly array[int, 2, 3, 4] arr`.
+    StaticArrayRef(StaticArrayRefType),
 
     // realistically the sizes could be u3
     Gate(u32, u32),
@@ -52,6 +56,112 @@ pub enum Type {
     Void,
     #[default]
     Err,
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum ArrayBaseType {
+    Bool,
+    Duration,
+    Angle(Option<u32>),
+    Complex(Option<u32>),
+    Float(Option<u32>),
+    Int(Option<u32>),
+    UInt(Option<u32>),
+}
+
+impl Display for ArrayBaseType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let ty: Type = self.clone().into();
+        write!(f, "{ty}")
+    }
+}
+
+impl From<ArrayBaseType> for Type {
+    fn from(value: ArrayBaseType) -> Self {
+        match value {
+            ArrayBaseType::Bool => Self::Bool(false),
+            ArrayBaseType::Duration => Self::Duration(false),
+            ArrayBaseType::Angle(width) => Self::Angle(width, false),
+            ArrayBaseType::Complex(width) => Self::Complex(width, false),
+            ArrayBaseType::Float(width) => Self::Float(width, false),
+            ArrayBaseType::Int(width) => Self::Int(width, false),
+            ArrayBaseType::UInt(width) => Self::UInt(width, false),
+        }
+    }
+}
+
+impl TryFrom<Type> for ArrayBaseType {
+    type Error = ();
+
+    fn try_from(value: Type) -> Result<Self, ()> {
+        match value {
+            Type::Bool(false) => Ok(Self::Bool),
+            Type::Duration(false) => Ok(Self::Duration),
+            Type::Angle(width, false) => Ok(Self::Angle(width)),
+            Type::Complex(width, false) => Ok(Self::Complex(width)),
+            Type::Float(width, false) => Ok(Self::Float(width)),
+            Type::Int(width, false) => Ok(Self::Int(width)),
+            Type::UInt(width, false) => Ok(Self::UInt(width)),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct ArrayType {
+    pub base_ty: ArrayBaseType,
+    pub dims: ArrayDimensions,
+}
+
+impl Display for ArrayType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let base_ty: Type = self.base_ty.clone().into();
+        write!(f, "array[{base_ty}, ")?;
+        write_array_dimensions(f, &self.dims)?;
+        write!(f, "]")
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct StaticArrayRefType {
+    pub base_ty: ArrayBaseType,
+    pub dims: ArrayDimensions,
+    pub is_mutable: bool,
+}
+
+impl Display for StaticArrayRefType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if self.is_mutable {
+            write!(f, "mutable ")?;
+        } else {
+            write!(f, "readonly ")?;
+        }
+
+        let base_ty: Type = self.base_ty.clone().into();
+        write!(f, "array[{base_ty}, ")?;
+        write_array_dimensions(f, &self.dims)?;
+        write!(f, "]")
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct DynArrayRefType {
+    pub base_ty: ArrayBaseType,
+    pub num_dims: u32,
+    pub is_mutable: bool,
+}
+
+impl Display for DynArrayRefType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if self.is_mutable {
+            write!(f, "mutable ")?;
+        } else {
+            write!(f, "readonly ")?;
+        }
+
+        let base_ty: Type = self.base_ty.clone().into();
+        write!(f, "array[{}, #dim = {}]", base_ty, self.num_dims)
+    }
 }
 
 fn write_ty_with_const(f: &mut Formatter<'_>, is_const: bool, name: &str) -> std::fmt::Result {
@@ -92,44 +202,26 @@ fn write_complex_ty(f: &mut Formatter<'_>, is_const: bool, width: Option<u32>) -
         write!(f, "complex[float]")
     }
 }
-fn write_array_ty(
-    f: &mut Formatter<'_>,
-    designator: Option<u32>,
-    name: &str,
-    sub_name: Option<&str>,
-    dims: &ArrayDimensions,
-) -> std::fmt::Result {
-    write!(f, "array[{name}")?;
 
-    // sub_name is used for complex arrays
-    if let Some(sub_name) = sub_name {
-        if let Some(width) = designator {
-            write!(f, "[{sub_name}[{width}]]")?;
-        } else {
-            write!(f, "[{sub_name}]")?;
-        }
-    } else if let Some(width) = designator {
-        write!(f, "[{width}]")?;
-    }
-    write!(f, ", ")?;
+fn write_array_dimensions(f: &mut Formatter<'_>, dims: &ArrayDimensions) -> std::fmt::Result {
     match dims {
-        ArrayDimensions::One(one) => write!(f, "{one}")?,
-        ArrayDimensions::Two(one, two) => write!(f, "{one}, {two}")?,
-        ArrayDimensions::Three(one, two, three) => write!(f, "{one}, {two}, {three}")?,
-        ArrayDimensions::Four(one, two, three, four) => write!(f, "{one}, {two}, {three}, {four}")?,
+        ArrayDimensions::One(one) => write!(f, "{one}"),
+        ArrayDimensions::Two(one, two) => write!(f, "{one}, {two}"),
+        ArrayDimensions::Three(one, two, three) => write!(f, "{one}, {two}, {three}"),
+        ArrayDimensions::Four(one, two, three, four) => {
+            write!(f, "{one}, {two}, {three}, {four}")
+        }
         ArrayDimensions::Five(one, two, three, four, five) => {
-            write!(f, "{one}, {two}, {three}, {four}, {five}")?;
+            write!(f, "{one}, {two}, {three}, {four}, {five}")
         }
         ArrayDimensions::Six(one, two, three, four, five, six) => {
-            write!(f, "{one}, {two}, {three}, {four}, {five}, {six}")?;
+            write!(f, "{one}, {two}, {three}, {four}, {five}, {six}")
         }
         ArrayDimensions::Seven(one, two, three, four, five, six, seven) => {
-            write!(f, "{one}, {two}, {three}, {four}, {five}, {six}, {seven}")?;
+            write!(f, "{one}, {two}, {three}, {four}, {five}, {six}, {seven}")
         }
-        ArrayDimensions::Err => write!(f, "unknown")?,
+        ArrayDimensions::Err => write!(f, "unknown"),
     }
-
-    write!(f, "]")
 }
 
 impl Display for Type {
@@ -158,15 +250,9 @@ impl Display for Type {
                 write_ty_with_designator_and_const(f, *is_const, Some(*width), "bit")
             }
             Type::QubitArray(width) => write_ty_with_designator(f, Some(*width), "qubit"),
-            Type::BoolArray(dims) => write_array_ty(f, None, "bool", None, dims),
-            Type::DurationArray(dims) => write_array_ty(f, None, "duration", None, dims),
-            Type::AngleArray(width, dims) => write_array_ty(f, *width, "angle", None, dims),
-            Type::ComplexArray(width, dims) => {
-                write_array_ty(f, *width, "complex", Some("float"), dims)
-            }
-            Type::FloatArray(width, dims) => write_array_ty(f, *width, "float", None, dims),
-            Type::IntArray(width, dims) => write_array_ty(f, *width, "int", None, dims),
-            Type::UIntArray(width, dims) => write_array_ty(f, *width, "uint", None, dims),
+            Type::Array(array) => write!(f, "{array}"),
+            Type::StaticArrayRef(array_ref) => write!(f, "{array_ref}"),
+            Type::DynArrayRef(array_ref) => write!(f, "{array_ref}"),
             Type::Gate(cargs, qargs) => write!(f, "gate({cargs}, {qargs})"),
             Type::Function(params_ty, return_ty) => {
                 let params_ty_str = params_ty
@@ -188,27 +274,18 @@ impl Type {
     pub(crate) fn is_array(&self) -> bool {
         matches!(
             self,
-            Type::AngleArray(..)
-                | Type::BitArray(..)
-                | Type::BoolArray(..)
-                | Type::ComplexArray(..)
-                | Type::DurationArray(..)
-                | Type::FloatArray(..)
-                | Type::IntArray(..)
+            Type::BitArray(..)
                 | Type::QubitArray(..)
-                | Type::UIntArray(..)
+                | Type::Array(..)
+                | Type::DynArrayRef(..)
+                | Type::StaticArrayRef(..)
         )
     }
 
     pub(crate) fn array_dims(&self) -> Option<ArrayDimensions> {
         match self {
-            Self::AngleArray(_, dims)
-            | Self::BoolArray(dims)
-            | Self::ComplexArray(_, dims)
-            | Self::DurationArray(dims)
-            | Self::FloatArray(_, dims)
-            | Self::IntArray(_, dims)
-            | Self::UIntArray(_, dims) => Some(dims.clone()),
+            Self::Array(array) => Some(array.dims.clone()),
+            Self::StaticArrayRef(array) => Some(array.dims.clone()),
             _ => None,
         }
     }
@@ -216,16 +293,16 @@ impl Type {
     pub(crate) fn has_zero_size(&self) -> bool {
         match self {
             Type::BitArray(size, _) | Type::QubitArray(size) => *size == 0,
-            Type::BoolArray(dims)
-            | Type::AngleArray(_, dims)
-            | Type::ComplexArray(_, dims)
-            | Type::DurationArray(dims)
-            | Type::FloatArray(_, dims)
-            | Type::IntArray(_, dims)
-            | Type::UIntArray(_, dims) => {
-                let size = dims.clone().into_iter().reduce(|a, b| a * b).unwrap_or(1);
-                size == 0
-            }
+            Type::Array(array) => array
+                .dims
+                .clone()
+                .into_iter()
+                .any(|dim_length| dim_length == 0),
+            Type::StaticArrayRef(array) => array
+                .dims
+                .clone()
+                .into_iter()
+                .any(|dim_length| dim_length == 0),
             _ => false,
         }
     }
@@ -233,15 +310,36 @@ impl Type {
     pub(crate) fn make_array_ty(dims: &[u32], base_ty: &Self) -> Self {
         let dims = dims.into();
 
-        match base_ty {
-            Self::Bool(_) => Self::BoolArray(dims),
-            Self::Duration(_) => Self::DurationArray(dims),
-            Self::Angle(width, _) => Self::AngleArray(*width, dims),
-            Self::Complex(width, _) => Self::ComplexArray(*width, dims),
-            Self::Float(width, _) => Self::FloatArray(*width, dims),
-            Self::Int(width, _) => Self::IntArray(*width, dims),
-            Self::UInt(width, _) => Self::UIntArray(*width, dims),
-            _ => Self::Err,
+        if let Ok(base_ty) = base_ty.clone().try_into() {
+            Self::Array(ArrayType { base_ty, dims })
+        } else {
+            Self::Err
+        }
+    }
+
+    pub(crate) fn make_static_array_ref_ty(dims: &[u32], base_ty: &Self, is_mutable: bool) -> Self {
+        let dims = dims.into();
+
+        if let Ok(base_ty) = base_ty.clone().try_into() {
+            Self::StaticArrayRef(StaticArrayRefType {
+                base_ty,
+                dims,
+                is_mutable,
+            })
+        } else {
+            Self::Err
+        }
+    }
+
+    pub(crate) fn make_dyn_array_ref_ty(num_dims: u32, base_ty: &Self, is_mutable: bool) -> Self {
+        if let Ok(base_ty) = base_ty.clone().try_into() {
+            Self::DynArrayRef(DynArrayRefType {
+                base_ty,
+                num_dims,
+                is_mutable,
+            })
+        } else {
+            Self::Err
         }
     }
 
@@ -281,37 +379,30 @@ impl Type {
 
     #[must_use]
     pub fn is_inferred_output_type(&self) -> bool {
-        matches!(
-            self,
+        match self {
             Type::Bit(_)
-                | Type::Int(..)
-                | Type::UInt(..)
-                | Type::Float(..)
-                | Type::Angle(..)
-                | Type::Complex(..)
-                | Type::Bool(..)
-                | Type::BitArray(..)
-                | Type::IntArray(..)
-                | Type::UIntArray(..)
-                | Type::FloatArray(..)
-                | Type::AngleArray(..)
-                | Type::ComplexArray(..)
-                | Type::BoolArray(..)
-                | Type::Range
-                | Type::Set
-        )
+            | Type::Int(..)
+            | Type::UInt(..)
+            | Type::Float(..)
+            | Type::Angle(..)
+            | Type::Complex(..)
+            | Type::Bool(..)
+            | Type::BitArray(..)
+            | Type::Range
+            | Type::Set => true,
+            Type::Array(array) => {
+                Into::<Self>::into(array.base_ty.clone()).is_inferred_output_type()
+            }
+            _ => false,
+        }
     }
 
     #[must_use]
     pub fn num_dims(&self) -> usize {
         match self {
-            Type::AngleArray(_, dims)
-            | Type::BoolArray(dims)
-            | Type::DurationArray(dims)
-            | Type::ComplexArray(_, dims)
-            | Type::FloatArray(_, dims)
-            | Type::IntArray(_, dims)
-            | Type::UIntArray(_, dims) => dims.num_dims(),
+            Type::Array(array) => array.dims.num_dims(),
+            Type::DynArrayRef(array) => array.num_dims as usize,
+            Type::StaticArrayRef(array) => array.dims.num_dims(),
             Type::BitArray(..) | Type::QubitArray(..) => 1,
             _ => 0,
         }
@@ -355,40 +446,15 @@ impl Type {
                 &ArrayDimensions::One(*size),
                 index,
             ),
-            Type::BoolArray(dims) => {
-                indexed_type_builder(|| Type::Bool(false), Type::BoolArray, dims, index)
-            }
-            Type::AngleArray(size, dims) => indexed_type_builder(
-                || Type::Angle(*size, false),
-                |d| Type::AngleArray(*size, d),
-                dims,
-                index,
-            ),
-            Type::ComplexArray(size, dims) => indexed_type_builder(
-                || Type::Complex(*size, false),
-                |d| Type::ComplexArray(*size, d),
-                dims,
-                index,
-            ),
-            Type::DurationArray(dims) => {
-                indexed_type_builder(|| Type::Duration(false), Type::DurationArray, dims, index)
-            }
-            Type::FloatArray(size, dims) => indexed_type_builder(
-                || Type::Float(*size, false),
-                |d| Type::FloatArray(*size, d),
-                dims,
-                index,
-            ),
-            Type::IntArray(size, dims) => indexed_type_builder(
-                || Type::Int(*size, false),
-                |d| Type::IntArray(*size, d),
-                dims,
-                index,
-            ),
-            Type::UIntArray(size, dims) => indexed_type_builder(
-                || Type::UInt(*size, false),
-                |d| Type::UIntArray(*size, d),
-                dims,
+            Type::Array(array) => indexed_type_builder(
+                || array.base_ty.clone().into(),
+                |dims| {
+                    Type::Array(ArrayType {
+                        base_ty: array.base_ty.clone(),
+                        dims: dims.clone(),
+                    })
+                },
+                &array.dims,
                 index,
             ),
             _ => {
@@ -851,13 +917,13 @@ pub(crate) fn types_equal_except_const(lhs: &Type, rhs: &Type) -> bool {
         | (Type::Complex(lhs_width, _), Type::Complex(rhs_width, _)) => lhs_width == rhs_width,
         (Type::BitArray(lhs_size, _), Type::BitArray(rhs_size, _))
         | (Type::QubitArray(lhs_size), Type::QubitArray(rhs_size)) => lhs_size == rhs_size,
-        (Type::BoolArray(lhs_dims), Type::BoolArray(rhs_dims)) => lhs_dims == rhs_dims,
-        (Type::IntArray(lhs_width, lhs_dims), Type::IntArray(rhs_width, rhs_dims))
-        | (Type::UIntArray(lhs_width, lhs_dims), Type::UIntArray(rhs_width, rhs_dims))
-        | (Type::FloatArray(lhs_width, lhs_dims), Type::FloatArray(rhs_width, rhs_dims))
-        | (Type::AngleArray(lhs_width, lhs_dims), Type::AngleArray(rhs_width, rhs_dims))
-        | (Type::ComplexArray(lhs_width, lhs_dims), Type::ComplexArray(rhs_width, rhs_dims)) => {
-            lhs_width == rhs_width && lhs_dims == rhs_dims
+        (Type::Array(lhs), Type::Array(rhs)) => {
+            types_equal_except_const(&lhs.base_ty.clone().into(), &rhs.base_ty.clone().into())
+                && lhs.dims == rhs.dims
+        }
+        (Type::StaticArrayRef(lhs), Type::StaticArrayRef(rhs)) => {
+            types_equal_except_const(&lhs.base_ty.clone().into(), &rhs.base_ty.clone().into())
+                && lhs.dims == rhs.dims
         }
         (Type::Gate(lhs_cargs, lhs_qargs), Type::Gate(rhs_cargs, rhs_qargs)) => {
             lhs_cargs == rhs_cargs && lhs_qargs == rhs_qargs
@@ -888,13 +954,13 @@ pub(crate) fn base_types_equal(lhs: &Type, rhs: &Type) -> bool {
         | (Type::Gate(_, _), Type::Gate(_, _)) => true,
         (Type::BitArray(lhs_size, _), Type::BitArray(rhs_size, _))
         | (Type::QubitArray(lhs_size), Type::QubitArray(rhs_size)) => lhs_size == rhs_size,
-        (Type::BoolArray(lhs_dims), Type::BoolArray(rhs_dims))
-        | (Type::IntArray(_, lhs_dims), Type::IntArray(_, rhs_dims))
-        | (Type::UIntArray(_, lhs_dims), Type::UIntArray(_, rhs_dims))
-        | (Type::FloatArray(_, lhs_dims), Type::FloatArray(_, rhs_dims))
-        | (Type::AngleArray(_, lhs_dims), Type::AngleArray(_, rhs_dims))
-        | (Type::ComplexArray(_, lhs_dims), Type::ComplexArray(_, rhs_dims)) => {
-            lhs_dims == rhs_dims
+        (Type::Array(lhs), Type::Array(rhs)) => {
+            base_types_equal(&lhs.base_ty.clone().into(), &rhs.base_ty.clone().into())
+                && lhs.dims == rhs.dims
+        }
+        (Type::StaticArrayRef(lhs), Type::StaticArrayRef(rhs)) => {
+            base_types_equal(&lhs.base_ty.clone().into(), &rhs.base_ty.clone().into())
+                && lhs.dims == rhs.dims
         }
         _ => false,
     }

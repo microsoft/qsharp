@@ -15,6 +15,7 @@ mod pow;
 mod rotl;
 mod rotr;
 mod sin;
+mod sizeof;
 mod sqrt;
 mod tan;
 
