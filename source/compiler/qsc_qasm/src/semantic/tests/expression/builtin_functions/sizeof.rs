@@ -15,6 +15,7 @@ fn sizeof_no_args_errors() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-40]:
                         annotations: <empty>
@@ -52,6 +53,7 @@ fn sizeof_too_many_args_errors() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-47]:
                         annotations: <empty>
@@ -90,6 +92,7 @@ fn sizeof_non_array_errors() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-41]:
                         annotations: <empty>
@@ -166,81 +169,82 @@ fn sizeof_array_invalid_dimension_errors() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-31]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-31]:
-                        symbol_id: 8
-                        ty_span: [9-26]
-                        init_expr: Expr [9-31]:
-                            ty: array[bool, 3, 4]
-                            kind: Lit:     array:
-                                    Expr [0-0]:
-                                        ty: array[bool, 4]
-                                        kind: Lit:     array:
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                    Expr [0-0]:
-                                        ty: array[bool, 4]
-                                        kind: Lit:     array:
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                    Expr [0-0]:
-                                        ty: array[bool, 4]
-                                        kind: Lit:     array:
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                Stmt [40-77]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [40-77]:
-                        symbol_id: 9
-                        ty_span: [46-50]
-                        init_expr: Expr [62-76]:
-                            ty: unknown
-                            kind: Err
+            Program:
+                version: <none>
+                pragmas: <empty>
+                statements:
+                    Stmt [9-31]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-31]:
+                            symbol_id: 8
+                            ty_span: [9-26]
+                            init_expr: Expr [9-31]:
+                                ty: array[bool, 3, 4]
+                                kind: Lit:     array:
+                                        Expr [0-0]:
+                                            ty: array[bool, 4]
+                                            kind: Lit:     array:
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                        Expr [0-0]:
+                                            ty: array[bool, 4]
+                                            kind: Lit:     array:
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                        Expr [0-0]:
+                                            ty: array[bool, 4]
+                                            kind: Lit:     array:
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                    Stmt [40-77]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [40-77]:
+                            symbol_id: 9
+                            ty_span: [46-50]
+                            init_expr: Expr [62-76]:
+                                ty: unknown
+                                kind: Err
 
-        [Qasm.Lowerer.SizeofInvalidDimension
+            [Qasm.Lowerer.SizeofInvalidDimension
 
-          x requested dimension 2 but array has 2 dimensions
-           ,-[test:3:31]
-         2 |         array[bool, 3, 4] arr;
-         3 |         const uint arr_size = sizeof(arr, 2);
-           :                               ^^^^^^^^^^^^^^
-         4 |     
-           `----
-        ]"#]],
+              x requested dimension 2 but array has 2 dimensions
+               ,-[test:3:31]
+             2 |         array[bool, 3, 4] arr;
+             3 |         const uint arr_size = sizeof(arr, 2);
+               :                               ^^^^^^^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -321,90 +325,91 @@ fn sizeof_static_array_ref_invalid_dimension_errors() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-31]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-31]:
-                        symbol_id: 8
-                        ty_span: [9-26]
-                        init_expr: Expr [9-31]:
-                            ty: array[bool, 3, 4]
-                            kind: Lit:     array:
-                                    Expr [0-0]:
-                                        ty: array[bool, 4]
-                                        kind: Lit:     array:
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                    Expr [0-0]:
-                                        ty: array[bool, 4]
-                                        kind: Lit:     array:
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                    Expr [0-0]:
-                                        ty: array[bool, 4]
-                                        kind: Lit:     array:
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                                                Expr [9-31]:
-                                                    ty: const bool
-                                                    kind: Lit: Bool(false)
-                Stmt [41-136]:
-                    annotations: <empty>
-                    kind: DefStmt [41-136]:
-                        symbol_id: 9
-                        has_qubit_params: false
-                        parameters:
-                            10
-                        return_type: ()
-                        body: Block [77-136]:
-                            Stmt [91-126]:
-                                annotations: <empty>
-                                kind: ClassicalDeclarationStmt [91-126]:
-                                    symbol_id: 11
-                                    ty_span: [97-101]
-                                    init_expr: Expr [113-125]:
-                                        ty: unknown
-                                        kind: Err
+            Program:
+                version: <none>
+                pragmas: <empty>
+                statements:
+                    Stmt [9-31]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-31]:
+                            symbol_id: 8
+                            ty_span: [9-26]
+                            init_expr: Expr [9-31]:
+                                ty: array[bool, 3, 4]
+                                kind: Lit:     array:
+                                        Expr [0-0]:
+                                            ty: array[bool, 4]
+                                            kind: Lit:     array:
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                        Expr [0-0]:
+                                            ty: array[bool, 4]
+                                            kind: Lit:     array:
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                        Expr [0-0]:
+                                            ty: array[bool, 4]
+                                            kind: Lit:     array:
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                                                    Expr [9-31]:
+                                                        ty: const bool
+                                                        kind: Lit: Bool(false)
+                    Stmt [41-136]:
+                        annotations: <empty>
+                        kind: DefStmt [41-136]:
+                            symbol_id: 9
+                            has_qubit_params: false
+                            parameters:
+                                10
+                            return_type: ()
+                            body: Block [77-136]:
+                                Stmt [91-126]:
+                                    annotations: <empty>
+                                    kind: ClassicalDeclarationStmt [91-126]:
+                                        symbol_id: 11
+                                        ty_span: [97-101]
+                                        init_expr: Expr [113-125]:
+                                            ty: unknown
+                                            kind: Err
 
-        [Qasm.Lowerer.SizeofInvalidDimension
+            [Qasm.Lowerer.SizeofInvalidDimension
 
-          x requested dimension 2 but array has 2 dimensions
-           ,-[test:5:35]
-         4 |         def f(readonly array[bool, 3, 4] a) {
-         5 |             const uint arr_size = sizeof(a, 2);
-           :                                   ^^^^^^^^^^^^
-         6 |         }
-           `----
-        ]"#]],
+              x requested dimension 2 but array has 2 dimensions
+               ,-[test:5:35]
+             4 |         def f(readonly array[bool, 3, 4] a) {
+             5 |             const uint arr_size = sizeof(a, 2);
+               :                                   ^^^^^^^^^^^^
+             6 |         }
+               `----
+            ]"#]],
     );
 }
 
