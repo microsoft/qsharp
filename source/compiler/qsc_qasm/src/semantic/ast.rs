@@ -1056,6 +1056,7 @@ pub enum ExprKind {
     IndexedExpr(IndexedExpr),
     Paren(Expr),
     Measure(MeasureExpr),
+    SizeofCall(SizeofCallExpr),
 }
 
 impl Display for ExprKind {
@@ -1072,6 +1073,7 @@ impl Display for ExprKind {
             ExprKind::IndexedExpr(expr) => write!(f, "{expr}"),
             ExprKind::Paren(expr) => write!(f, "Paren {expr}"),
             ExprKind::Measure(expr) => write!(f, "{expr}"),
+            ExprKind::SizeofCall(call) => write!(f, "{call}"),
         }
     }
 }
@@ -1162,6 +1164,26 @@ impl Display for FunctionCall {
         writeln_field(f, "fn_name_span", &self.fn_name_span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         write_list_field(f, "args", &self.args)
+    }
+}
+
+#[derive(Clone, Debug)]
+
+pub struct SizeofCallExpr {
+    pub span: Span,
+    pub fn_name_span: Span,
+    pub array: Expr,
+    pub array_dims: u32,
+    pub dim: Expr,
+}
+
+impl Display for SizeofCallExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "SizeofCallExpr", self.span)?;
+        writeln_field(f, "fn_name_span", &self.fn_name_span)?;
+        writeln_field(f, "array", &self.array)?;
+        writeln_field(f, "array_dims", &self.array_dims)?;
+        write_field(f, "dim", &self.dim)
     }
 }
 
