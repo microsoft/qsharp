@@ -3003,6 +3003,8 @@ impl Lowerer {
                     self.get_semantic_type_from_array_base_ty(&ref_ty.base_type, ref_ty.span);
                 let Some(num_dims) = self.const_eval_array_size_designator_expr(&ref_ty.dimensions)
                 else {
+                    // `Self::const_eval_array_size_designator_expr` already pushed
+                    // the relevant error message. So we just return `Type::Err` here.
                     return Type::Err;
                 };
 
