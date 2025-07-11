@@ -475,7 +475,7 @@ pub(crate) fn into_qsc_args(
 
     Ok((
         source_map,
-        capabilities,
+        buildable_program.capabilities,
         language_features,
         store,
         user_code_dependencies,

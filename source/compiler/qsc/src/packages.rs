@@ -26,6 +26,7 @@ pub struct BuildableProgram {
     pub user_code: qsc_project::PackageInfo,
     pub user_code_dependencies: Vec<(PackageId, Option<Arc<str>>)>,
     pub dependency_errors: Vec<compile::Error>,
+    pub capabilities: TargetCapabilityFlags,
 }
 
 impl BuildableProgram {
@@ -191,5 +192,6 @@ pub fn prepare_package_store(
         dependency_errors,
         user_code,
         user_code_dependencies,
+        capabilities,
     }
 }
