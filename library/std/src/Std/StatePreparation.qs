@@ -218,7 +218,7 @@ operation ApproximatelyMultiplexPauli(
     target : Qubit
 ) : Unit is Adj + Ctl {
     within {
-        Std.BlochSphere.MapPauliAxis(PauliZ, pauli, target);
+        MapPauliAxis(PauliZ, pauli, target);
     } apply {
         ApproximatelyMultiplexZ(tolerance, coefficients, control, target);
     }
