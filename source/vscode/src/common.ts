@@ -34,7 +34,12 @@ function isQdkSupportedLanguage(document: TextDocument): boolean {
 }
 
 function isUnsupportedScheme(scheme: string): boolean {
-  return scheme === "git" || scheme === "pr" || scheme.startsWith("chat");
+  return (
+    scheme === "git" ||
+    scheme === "pr" ||
+    scheme === "review" ||
+    scheme.startsWith("chat")
+  );
 }
 
 // Returns true for all Q# documents, including unsaved files, notebook cells, circuit files, etc.
