@@ -789,7 +789,10 @@ impl QasmCompiler {
         let dim = self.compile_expr(&expr.dim);
         let operands = vec![array, dim];
         let array_dims = expr.array_dims;
-        assert!((1..=7).contains(&array_dims), "array dimension should be between 1 and 7");
+        assert!(
+            (1..=7).contains(&array_dims),
+            "array dimension should be between 1 and 7"
+        );
         let fn_name = format!("sizeof_{array_dims}");
         build_call_with_params(
             &fn_name,

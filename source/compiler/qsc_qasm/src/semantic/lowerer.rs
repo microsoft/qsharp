@@ -10,7 +10,6 @@ use std::sync::Arc;
 
 use super::const_eval::ConstEvalError;
 use super::symbols::ScopeKind;
-use super::types::Type;
 use super::types::binop_requires_asymmetric_angle_op;
 use super::types::binop_requires_int_conversion_for_type;
 use super::types::binop_requires_symmetric_uint_conversion;
@@ -21,6 +20,7 @@ use super::types::requires_symmetric_conversion;
 use super::types::try_promote_with_casting;
 use super::types::types_equal_except_const;
 use super::types::unary_op_can_be_applied_to_type;
+use super::types::{ArrayBaseType, Type};
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use num_traits::Num;
@@ -1099,10 +1099,9 @@ impl Lowerer {
     }
 
     fn make_qsharp_array_ty(
-        base_ty: &crate::semantic::types::ArrayBaseType,
+        base_ty: &ArrayBaseType,
         dims: crate::types::ArrayDimensions,
     ) -> crate::types::Type {
-        use crate::semantic::types::ArrayBaseType;
         match base_ty {
             ArrayBaseType::Duration => unreachable!(),
             ArrayBaseType::Bool => crate::types::Type::BoolArray(dims, false),
@@ -1128,8 +1127,6 @@ impl Lowerer {
         ty: &super::types::Type,
         span: Span,
     ) -> crate::types::Type {
-        use crate::semantic::types::ArrayBaseType;
-
         if ty.is_array() && matches!(ty.array_dims(), Some(super::types::ArrayDimensions::Err)) {
             self.push_unsupported_error_message("arrays with more than 7 dimensions", span);
             return crate::types::Type::Err;
