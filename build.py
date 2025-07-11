@@ -411,7 +411,7 @@ if build_widgets:
 if build_wasm:
     step_start("Building the wasm files")
 
-    add_wasm_tools_to_path() # Run again here in case --skip-prereqs was passed
+    add_wasm_tools_to_path()  # Run again here in case --skip-prereqs was passed
 
     platform_sys = platform.system().lower()  # 'windows', 'darwin', or 'linux'
 
@@ -457,11 +457,13 @@ if build_wasm:
         subprocess.run(wasm_bindgen_args, check=True, text=True, cwd=wasm_src)
 
         # Also run wasm-opt to optimize the wasm file for release builds with:
-        #   wasm-opt -Oz --all-features --output <outfile> <infile>
+        #   wasm-opt -Oz --enable-{<as needed>} --output <outfile> <infile>
         #
-        # -Oz does extra size optimizations, and --all-features enables all wasm features
-        # to avoid errors as Rust/LLVM enable more features by default in new versions.
-        # This updates the file in place.
+        # -Oz does extra size optimizations, and features are enabled to match Rust defaults
+        # to avoid mismatch errors, as wasm-opt currently disables some of these by default.
+        # See <https://doc.rust-lang.org/rustc/platform-support/wasm32-unknown-unknown.html#enabled-webassembly-features>
+        #
+        # This updates the wasm file in place.
         #
         # Note: wasm-opt is not needed for debug builds, so we only run it for release builds.
         if build_type == "release":
@@ -469,8 +471,8 @@ if build_wasm:
             wasm_opt_args = [
                 "wasm-opt",
                 "-Oz",
-                '--enable-bulk-memory',
-                '--enable-nontrapping-float-to-int',
+                "--enable-bulk-memory",
+                "--enable-nontrapping-float-to-int",
                 "--output",
                 wasm_file,
                 wasm_file,
