@@ -414,8 +414,6 @@ if build_wasm:
     env = get_wasm_env()
 
     platform_sys = platform.system().lower()  # 'windows', 'darwin', or 'linux'
-    bindgen_bin = "wasm-bindgen" if platform_sys != "windows" else "wasm-bindgen.exe"
-    wasmopt_bin = "wasm-opt" if platform_sys != "windows" else "wasm-opt.exe"
 
     # First build the wasm crate with something like:
     #   cargo build --lib [--release] --target wasm32-unknown-unknown --target-dir ./target
@@ -446,7 +444,7 @@ if build_wasm:
         )
 
         wasm_bindgen_args = [
-            bindgen_bin,
+            "wasm-bindgen",
             "--target",
             target,
             "--out-dir",
@@ -469,7 +467,7 @@ if build_wasm:
         if build_type == "release":
             wasm_file = os.path.join(out_dir, "qsc_wasm_bg.wasm")
             wasm_opt_args = [
-                wasmopt_bin,
+                "wasm-opt",
                 "-Oz",
                 "--all-features",
                 "--output",
