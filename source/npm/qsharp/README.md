@@ -11,9 +11,9 @@ to it when calling the `loadWasmModule` method so it may be located and loaded.
 
 ## Node and browser support
 
-wasm-pack generates different files for the browser and Node.js environments. The wasm is slightly
+wasm-bindgen generates different files for the browser and Node.js environments. The wasm is slightly
 different, and the loader code is quite different. This can be seen in `./lib/web/qsc_wasm.cjs`
-and `./lib/node/qsc_wasm.js` files respectively. Specifically, the web environment loads the wasm
+and `./lib/nodejs/qsc_wasm.js` files respectively. Specifically, the web environment loads the wasm
 file using async web APIs such as `fetch` with a URI, and Node.js uses `require` to load the `fs` module
 and calls to `readFileSync`. Once the wasm module is loaded however, the exported APIs are used
 in a similar manner.
