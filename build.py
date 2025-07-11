@@ -469,7 +469,8 @@ if build_wasm:
             wasm_opt_args = [
                 "wasm-opt",
                 "-Oz",
-                "--all-features",
+                '--enable-bulk-memory',
+                '--enable-nontrapping-float-to-int',
                 "--output",
                 wasm_file,
                 wasm_file,
