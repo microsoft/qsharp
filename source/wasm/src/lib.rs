@@ -218,15 +218,10 @@ pub fn get_library_source_content(name: &str) -> Option<String> {
 }
 
 #[wasm_bindgen]
-pub fn get_ast(
-    code: &str,
-    language_features: Vec<String>,
-    profile: &str,
-) -> Result<String, String> {
+pub fn get_ast(code: &str, language_features: Vec<String>) -> Result<String, String> {
     let language_features = LanguageFeatures::from_iter(language_features);
     let sources = SourceMap::new([("code".into(), code.into())], None);
-    let profile =
-        Profile::from_str(profile).map_err(|()| format!("Invalid target profile {profile}"))?;
+    let profile = Profile::Unrestricted;
     let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
             store,
@@ -242,15 +237,10 @@ pub fn get_ast(
 }
 
 #[wasm_bindgen]
-pub fn get_hir(
-    code: &str,
-    language_features: Vec<String>,
-    profile: &str,
-) -> Result<String, String> {
+pub fn get_hir(code: &str, language_features: Vec<String>) -> Result<String, String> {
     let language_features = LanguageFeatures::from_iter(language_features);
     let sources = SourceMap::new([("code".into(), code.into())], None);
-    let profile =
-        Profile::from_str(profile).map_err(|()| format!("Invalid target profile {profile}"))?;
+    let profile = Profile::Unrestricted;
     let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
             store,
