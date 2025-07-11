@@ -791,7 +791,13 @@ impl QasmCompiler {
         let array_dims = expr.array_dims;
         assert!((1..=7).contains(&array_dims));
         let fn_name = format!("sizeof_{array_dims}");
-        build_call_with_params(&fn_name, &[], operands, name_span, span)
+        build_call_with_params(
+            &fn_name,
+            &["Std", "OpenQASM", "Builtin"],
+            operands,
+            name_span,
+            span,
+        )
     }
 
     fn compile_gate_call_stmt(&mut self, stmt: &semast::GateCall) -> Option<qsast::Stmt> {
