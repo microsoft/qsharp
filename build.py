@@ -13,7 +13,7 @@ import shutil
 import subprocess
 import functools
 
-from prereqs import check_prereqs, get_wasm_env
+from prereqs import check_prereqs, add_wasm_tools_to_path
 
 # Disable buffered output so that the log statements and subprocess output get interleaved in proper order
 print = functools.partial(print, flush=True)
@@ -411,7 +411,7 @@ if build_widgets:
 if build_wasm:
     step_start("Building the wasm files")
 
-    env = get_wasm_env()
+    add_wasm_tools_to_path() # Run again here in case --skip-prereqs was passed
 
     platform_sys = platform.system().lower()  # 'windows', 'darwin', or 'linux'
 
@@ -431,7 +431,7 @@ if build_wasm:
     ]
     if build_type == "release":
         cargo_args.append("--release")
-    subprocess.run(cargo_args, check=True, text=True, cwd=wasm_src, env=env)
+    subprocess.run(cargo_args, check=True, text=True, cwd=wasm_src)
 
     # Next, create the JavaScript glue code using wasm-bindgen with something like:
     #   wasm-bindgen --target <nodejs|web> [--debug] --out-dir ./target/wasm32/{release,debug}/{nodejs|web} <infile>
@@ -454,7 +454,7 @@ if build_wasm:
             wasm_bindgen_args.append("--debug")
         wasm_bindgen_args.append(in_file)
 
-        subprocess.run(wasm_bindgen_args, check=True, text=True, cwd=wasm_src, env=env)
+        subprocess.run(wasm_bindgen_args, check=True, text=True, cwd=wasm_src)
 
         # Also run wasm-opt to optimize the wasm file for release builds with:
         #   wasm-opt -Oz --all-features --output <outfile> <infile>
@@ -475,7 +475,7 @@ if build_wasm:
                 wasm_file,
                 wasm_file,
             ]
-            subprocess.run(wasm_opt_args, check=True, text=True, cwd=wasm_src, env=env)
+            subprocess.run(wasm_opt_args, check=True, text=True, cwd=wasm_src)
 
         # After building, copy the artifacts to the npm location
         lib_dir = os.path.join(npm_src, "lib", target)
