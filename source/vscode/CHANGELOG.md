@@ -2,6 +2,8 @@
 
 ## v1.18.0
 
+### What's Changed
+
 - Fix histogram escape key handling in VS Code extension by [@copilot-swe-agent](https://github.com/copilot-swe-agent) in [#2468](https://github.com/microsoft/qsharp/pull/2468)
 - Log token budget and usage for Copilot tools by [@minestarks](https://github.com/minestarks) in [#2466](https://github.com/microsoft/qsharp/pull/2466)
 - Feedback for Kata "Deutsch-Jozsa and Bernstein-Vazirani Algorithms" by [@DmitryVasilevsky](https://github.com/DmitryVasilevsky) in [#2470](https://github.com/microsoft/qsharp/pull/2470)
@@ -35,6 +37,24 @@
 **Full Changelog**: [v1.17.0...v1.18.0](https://github.com/microsoft/qsharp/compare/v1.17.0...v1.18.0)
 
 ## v1.17.0
+
+### OpenQASM support
+
+We've added extensive support for the [OpenQASM](https://openqasm.com/) language. This provides editor support (syntax highlighting, intellisense, semantic errors), simulation, integration with Q#, and QIR code generation, amongst other features.
+
+![image](https://github.com/user-attachments/assets/d6d78f6e-9dd1-4724-882b-a889d4ace4c8)
+
+See the wiki page at <https://github.com/microsoft/qsharp/wiki/OpenQASM> for more details.
+
+### Copilot improvements
+
+We've improved the GitHub Copilot integration with this release. See the details at <https://github.com/microsoft/qsharp/wiki/Make-the-most-of-the-QDK-and-VS-Code-agent-mode>
+
+### Circuit editor improvements
+
+We have further improved the ability to edit circuit diagrams. See the detail at <https://github.com/microsoft/qsharp/wiki/Circuit-Editor>
+
+### What's Changed
 
 - Support intrinsic `SX` gate by [@swernli](https://github.com/swernli) in [#2338](https://github.com/microsoft/qsharp/pull/2338)
 - Revert "Revert "Fix out-of-memory in typeck on nested `Ty::Arrow`" (#2359)" by [@swernli](https://github.com/swernli) in [#2362](https://github.com/microsoft/qsharp/pull/2362)
@@ -113,6 +133,24 @@
 **Full Changelog**: [v1.16.0...v1.17.0](https://github.com/microsoft/qsharp/compare/v1.16.0...v1.17.0)
 
 ## v1.16.0
+
+### Copilot integration
+
+With VS Code Copilot integration you can now use Copilot to to assist with many tasks such as writing code, generating tests, connecting to an Azure Quantum workspace, submit jobs to run on hardware, and more!
+
+<img width="547" alt="image" src="https://github.com/user-attachments/assets/f417ef8f-be4c-4ae5-9c0e-c0c18b3e7021" />
+
+See the wiki page at <https://github.com/microsoft/qsharp/wiki/Make-the-most-of-the-QDK-and-VS-Code-agent-mode> for more info, as well as tips and best practices.
+
+### Circuit Editor
+
+You can now add .qsc files to your project which provide a drag-and-drop circuit editor user interface to create quantum operations, which can then be called from your Q# code.
+
+<img width="1133" alt="image" src="https://github.com/user-attachments/assets/d4e492ab-8232-4392-908d-f0a6f9b8d45b" />
+
+See the wiki page at <https://github.com/microsoft/qsharp/wiki/Circuit-Editor> for more details.
+
+### What's Changed
 
 - Update chemistry test imports by [@swernli](https://github.com/swernli) in [#2264](https://github.com/microsoft/qsharp/pull/2264)
 - Update to Rust 1.86 by [@swernli](https://github.com/swernli) in [#2279](https://github.com/microsoft/qsharp/pull/2279)
