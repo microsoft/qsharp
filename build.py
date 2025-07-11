@@ -13,7 +13,7 @@ import shutil
 import subprocess
 import functools
 
-from prereqs import check_prereqs
+from prereqs import check_prereqs, get_wasm_env
 
 # Disable buffered output so that the log statements and subprocess output get interleaved in proper order
 print = functools.partial(print, flush=True)
@@ -69,6 +69,13 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--web-only",
+    action=argparse.BooleanOptionalAction,
+    default=False,
+    help="Build only the web version of the wasm package",
+)
+
+parser.add_argument(
     "--ci-bench",
     action=argparse.BooleanOptionalAction,
     default=False,
@@ -110,6 +117,7 @@ npm_install_needed = (
 npm_cmd = "npm.cmd" if platform.system() == "Windows" else "npm"
 
 build_type = "debug" if args.debug else "release"
+wasm_targets = ["web", "nodejs"] if not args.web_only else ["web"]
 run_tests = args.test
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -401,43 +409,91 @@ if build_widgets:
     step_end()
 
 if build_wasm:
-    step_start("Building the wasm crate")
-    # wasm-pack can't build for web and node in the same build, so need to run twice.
-    # Hopefully not needed if https://github.com/rustwasm/wasm-pack/issues/313 lands.
-    build_flag = "--release" if build_type == "release" else "--dev"
+    env = get_wasm_env()
 
-    wasm_pack_args = ["wasm-pack", "build", build_flag]
-    web_build_args = ["--target", "web", "--out-dir", os.path.join(wasm_bld, "web")]
-    node_build_args = [
+    step_start("Building the wasm files")
+
+    # First build the wasm crate with something like:
+    #   cargo build --lib [--release] --target wasm32-unknown-unknown --target-dir ./target
+    #
+    # Binary will be written to ./target/wasm32-unknown-unknown/{debug,release}/qsc_wasm.wasm
+    target_dir = os.path.join(root_dir, "target")
+    cargo_args = [
+        "cargo",
+        "build",
+        "--lib",
         "--target",
-        "nodejs",
-        "--out-dir",
-        os.path.join(wasm_bld, "node"),
+        "wasm32-unknown-unknown",
+        "--target-dir",
+        target_dir,
     ]
-    subprocess.run(wasm_pack_args + web_build_args, check=True, text=True, cwd=wasm_src)
-    subprocess.run(
-        wasm_pack_args + node_build_args, check=True, text=True, cwd=wasm_src
-    )
-    step_end()
+    if build_type == "release":
+        cargo_args.append("--release")
+    subprocess.run(cargo_args, check=True, text=True, cwd=wasm_src, env=env)
 
-if build_npm:
-    step_start("Building the npm package")
-    # Copy the wasm build files over for web and node targets
-    for target in ["web", "node"]:
+    # Next, create the JavaScript glue code using wasm-bindgen with something like:
+    #   wasm-bindgen --target <nodejs|web> [--debug] --out-dir ./target/wasm32/{release,debug}/{nodejs|web} <infile>
+    #
+    # The output will be written to {out-dir}/qsc_wasm_bg.wasm
+    for target in wasm_targets:
+        out_dir = os.path.join(wasm_bld, target)
+        in_file = os.path.join(
+            target_dir, "wasm32-unknown-unknown", build_type, "qsc_wasm.wasm"
+        )
+
+        wasm_bindgen_args = [
+            "wasm-bindgen",
+            "--target",
+            target,
+            "--out-dir",
+            out_dir,
+        ]
+        if build_type == "debug":
+            wasm_bindgen_args.append("--debug")
+        wasm_bindgen_args.append(in_file)
+
+        subprocess.run(wasm_bindgen_args, check=True, text=True, cwd=wasm_src, env=env)
+
+        # Also run wasm-opt to optimize the wasm file for release builds with:
+        #   wasm-opt -Oz --all-features --output <outfile> <infile>
+        #
+        # -Oz does extra size optimizations, and --all-features enables all wasm features
+        # to avoid errors as Rust/LLVM enable more features by default in new versions.
+        # This updates the file in place.
+        #
+        # Note: wasm-opt is not needed for debug builds, so we only run it for release builds.
+        if build_type == "release":
+            wasm_file = os.path.join(out_dir, "qsc_wasm_bg.wasm")
+            wasm_opt_args = [
+                "wasm-opt",
+                "-Oz",
+                "--all-features",
+                "--output",
+                wasm_file,
+                wasm_file,
+            ]
+            subprocess.run(wasm_opt_args, check=True, text=True, cwd=wasm_src, env=env)
+
+        # After building, copy the artifacts to the npm location
         lib_dir = os.path.join(npm_src, "lib", target)
         os.makedirs(lib_dir, exist_ok=True)
 
         for filename in ["qsc_wasm_bg.wasm", "qsc_wasm.d.ts", "qsc_wasm.js"]:
-            fullpath = os.path.join(wasm_bld, target, filename)
+            fullpath = os.path.join(out_dir, filename)
 
             # To make the node files CommonJS modules, the extension needs to change
             # (This is because the package is set to ECMAScript modules by default)
-            if target == "node" and filename == "qsc_wasm.js":
+            if target == "nodejs" and filename == "qsc_wasm.js":
                 filename = "qsc_wasm.cjs"
-            if target == "node" and filename == "qsc_wasm.d.ts":
+            if target == "nodejs" and filename == "qsc_wasm.d.ts":
                 filename = "qsc_wasm.d.cts"
 
             shutil.copy2(fullpath, os.path.join(lib_dir, filename))
+
+    step_end()
+
+if build_npm:
+    step_start("Building the npm package")
 
     npm_args = [npm_cmd, "run", "build"]
     subprocess.run(npm_args, check=True, text=True, cwd=npm_src)
