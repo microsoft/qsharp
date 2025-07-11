@@ -13,7 +13,7 @@ export sizeof_1, sizeof_2, sizeof_3, sizeof_4, sizeof_5, sizeof_6, sizeof_7;
 /// It returns the length of the requested dimension.
 /// Fails if the requested dimension is greater than the number of dimensions
 /// in the array.
-function sizeof_1<'T>(array : 'T[], dim: Int) : Int {
+function sizeof_1<'T>(array : 'T[], dim : Int) : Int {
     if dim == 0 {
         Length(array)
     } else {
