@@ -42,7 +42,7 @@
 /// +X+Y+Z ↦ -Z-X+Y: HXS, HSY, ZHS, YHS⁻¹, HYS⁻¹, HS⁻¹X      \
 /// +X+Y+Z ↦ -X-Y+Z: Z                                       \
 /// +X+Y+Z ↦ -Z-Y-X: YH, HY                                  \
-/// +X+Y+Z ↦ +Z-X-Y: HS⁻¹                                    \
+/// +X+Y+Z ↦ +Z-X-Y: HS⁻¹
 ///
 /// # Input
 /// ## from

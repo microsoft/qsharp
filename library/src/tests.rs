@@ -3,6 +3,7 @@
 
 mod arithmetic;
 mod arrays;
+mod bloch_sphere;
 mod canon;
 mod convert;
 mod core;
