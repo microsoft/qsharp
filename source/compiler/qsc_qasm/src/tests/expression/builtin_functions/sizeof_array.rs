@@ -217,3 +217,40 @@ fn sizeof_with_0_dimensional_array_errors() {
         "#]],
     );
 }
+
+#[test]
+fn sizeof_with_non_const_dim_errors() {
+    let source = "
+        array[int, 1] a;
+        uint d;
+        sizeof(a, d);
+    ";
+
+    check(
+        source,
+        &expect![[r#"
+            Qasm.Lowerer.ExprMustBeConst
+
+              x expression must be const
+               ,-[Test.qasm:4:19]
+             3 |         uint d;
+             4 |         sizeof(a, d);
+               :                   ^
+             5 |     
+               `----
+
+            Qasm.Lowerer.NoValidOverloadForBuiltinFunction
+
+              x There is no valid overload of `sizeof` for inputs: (array[int, 1], uint)
+              | Overloads available are:
+              |     fn sizeof(array[_, ...], const uint) -> const uint
+              |     fn sizeof(array[_, #dim = _], uint) -> uint
+               ,-[Test.qasm:4:9]
+             3 |         uint d;
+             4 |         sizeof(a, d);
+               :         ^^^^^^^^^^^^
+             5 |     
+               `----
+        "#]],
+    );
+}
