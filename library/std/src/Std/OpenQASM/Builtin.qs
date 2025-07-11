@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 
 /// This file defines the bultin functions used in the OpenQASM runtime.
+/// It is an internal implementation detail for OpenQASM compilation
+/// and is not intended for use outside of this context.
 
 /// OpenQASM only supports up to seven dimensions,
 /// therefore, we only need these seven `sizeof` functions.
