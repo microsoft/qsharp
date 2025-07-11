@@ -414,6 +414,7 @@ fn modulo_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-32]:
                         annotations: <empty>
@@ -458,6 +459,7 @@ fn modulo_non_complex_type_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-32]:
                         annotations: <empty>

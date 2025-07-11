@@ -87,6 +87,7 @@ fn bit_to_duration_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-15]:
                         annotations: <empty>
@@ -127,6 +128,7 @@ fn bitarray_to_duration_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -294,6 +296,7 @@ fn bitarray_to_sized_int_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -334,6 +337,7 @@ fn bitarray_to_sized_int_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -501,6 +505,7 @@ fn bitarray_to_sized_uint_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -541,6 +546,7 @@ fn bitarray_to_sized_uint_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -639,6 +645,7 @@ fn bitarray_to_float_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -679,6 +686,7 @@ fn bitarray_to_sized_float_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -719,6 +727,7 @@ fn bitarray_to_sized_float_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -759,6 +768,7 @@ fn bitarray_to_sized_float_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -803,6 +813,7 @@ fn bit_to_angle_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-15]:
                         annotations: <empty>
@@ -843,6 +854,7 @@ fn bit_to_sized_angle_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-15]:
                         annotations: <empty>
@@ -883,6 +895,7 @@ fn bitarray_to_angle_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -950,6 +963,7 @@ fn bitarray_to_sized_angle_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -990,6 +1004,7 @@ fn bitarray_to_sized_angle_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -1034,6 +1049,7 @@ fn bit_to_complex_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-15]:
                         annotations: <empty>
@@ -1074,6 +1090,7 @@ fn bit_to_sized_complex_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-15]:
                         annotations: <empty>
@@ -1114,6 +1131,7 @@ fn bitarray_to_complex_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -1154,6 +1172,7 @@ fn bitarray_to_sized_complex_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -1194,6 +1213,7 @@ fn bitarray_to_sized_complex_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -1234,6 +1254,7 @@ fn bitarray_to_sized_complex_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -1378,6 +1399,7 @@ fn bitarray_to_bitarray_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -1418,6 +1440,7 @@ fn bitarray_to_bitarray_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>

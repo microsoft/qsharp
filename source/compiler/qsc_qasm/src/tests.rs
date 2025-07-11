@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::compiler::parse_and_compile_to_qsharp_ast_with_config;
+use crate::compiler::{PragmaConfig, parse_and_compile_to_qsharp_ast_with_config};
 use crate::io::{InMemorySourceResolver, SourceResolver};
 use crate::semantic::{QasmSemanticParseResult, parse_source};
 use crate::{CompilerConfig, OutputSemantics, ProgramType, QasmCompileUnit, QubitSemantics};
@@ -100,6 +100,7 @@ fn compile_with_config<S: Into<Arc<str>>>(
         stmts: vec![],
         symbols: res.symbols,
         errors: res.errors,
+        pragma_config: PragmaConfig::default(),
     };
 
     let unit = compiler.compile(&program);
@@ -162,6 +163,7 @@ pub fn compile_all_with_config<P: Into<Arc<str>>>(
         stmts: vec![],
         symbols: res.symbols,
         errors: res.errors,
+        pragma_config: PragmaConfig::default(),
     };
 
     let unit = compiler.compile(&program);

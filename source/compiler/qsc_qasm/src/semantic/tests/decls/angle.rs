@@ -391,6 +391,7 @@ fn const_lit_decl_signed_int_lit_cast_neg_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [0-19]:
                         annotations: <empty>
@@ -424,6 +425,7 @@ fn explicit_zero_width_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [0-18]:
                         annotations: <empty>
@@ -452,6 +454,7 @@ fn explicit_width_over_64_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [0-25]:
                         annotations: <empty>

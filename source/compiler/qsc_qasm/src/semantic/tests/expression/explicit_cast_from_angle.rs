@@ -87,6 +87,7 @@ fn angle_to_duration_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-17]:
                         annotations: <empty>
@@ -127,6 +128,7 @@ fn sized_angle_to_duration_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -171,6 +173,7 @@ fn angle_to_int_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-17]:
                         annotations: <empty>
@@ -211,6 +214,7 @@ fn angle_to_sized_int_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-17]:
                         annotations: <empty>
@@ -251,6 +255,7 @@ fn sized_angle_to_int_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -291,6 +296,7 @@ fn sized_angle_to_sized_int_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -331,6 +337,7 @@ fn sized_angle_to_sized_int_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -371,6 +378,7 @@ fn sized_angle_to_sized_int_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -415,6 +423,7 @@ fn angle_to_uint_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-17]:
                         annotations: <empty>
@@ -455,6 +464,7 @@ fn angle_to_sized_uint_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-17]:
                         annotations: <empty>
@@ -495,6 +505,7 @@ fn sized_angle_to_uint_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -535,6 +546,7 @@ fn sized_angle_to_sized_uint_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -575,6 +587,7 @@ fn sized_angle_to_sized_uint_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -615,6 +628,7 @@ fn sized_angle_to_sized_uint_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -659,6 +673,7 @@ fn angle_to_float_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-17]:
                         annotations: <empty>
@@ -699,6 +714,7 @@ fn angle_to_sized_float_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-17]:
                         annotations: <empty>
@@ -739,6 +755,7 @@ fn sized_angle_to_float_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -779,6 +796,7 @@ fn sized_angle_to_sized_float_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -819,6 +837,7 @@ fn sized_angle_to_sized_float_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -859,6 +878,7 @@ fn sized_angle_to_sized_float_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -1061,6 +1081,7 @@ fn angle_to_complex_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-17]:
                         annotations: <empty>
@@ -1101,6 +1122,7 @@ fn angle_to_sized_complex_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-17]:
                         annotations: <empty>
@@ -1141,6 +1163,7 @@ fn sized_angle_to_complex_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -1181,6 +1204,7 @@ fn sized_angle_to_sized_complex_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -1221,6 +1245,7 @@ fn sized_angle_to_sized_complex_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -1261,6 +1286,7 @@ fn sized_angle_to_sized_complex_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -1332,6 +1358,7 @@ fn angle_to_bitarray_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-17]:
                         annotations: <empty>
@@ -1426,6 +1453,7 @@ fn sized_angle_to_bitarray_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>
@@ -1466,6 +1494,7 @@ fn sized_angle_to_bitarray_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>

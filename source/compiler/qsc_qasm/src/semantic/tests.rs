@@ -196,6 +196,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
         &expect![[r#"
             Program:
                 version: 3.0
+                pragmas: <empty>
                 statements:
                     Stmt [196-206]:
                         annotations: <empty>

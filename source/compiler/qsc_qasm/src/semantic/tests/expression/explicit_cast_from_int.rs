@@ -87,6 +87,7 @@ fn int_to_duration_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-15]:
                         annotations: <empty>
@@ -127,6 +128,7 @@ fn sized_int_to_duration_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -661,6 +663,7 @@ fn int_to_angle_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-15]:
                         annotations: <empty>
@@ -701,6 +704,7 @@ fn int_to_sized_angle_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-15]:
                         annotations: <empty>
@@ -741,6 +745,7 @@ fn sized_int_to_angle_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -781,6 +786,7 @@ fn sized_int_to_sized_angle_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -821,6 +827,7 @@ fn sized_int_to_sized_angle_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -861,6 +868,7 @@ fn sized_int_to_sized_angle_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -1098,6 +1106,7 @@ fn int_to_bitarray_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-15]:
                         annotations: <empty>
@@ -1192,6 +1201,7 @@ fn sized_int_to_bitarray_truncating_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>
@@ -1232,6 +1242,7 @@ fn sized_int_to_bitarray_expanding_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-19]:
                         annotations: <empty>

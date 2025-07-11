@@ -312,3 +312,68 @@ c2[2] = measure q[4];
 
     Ok(())
 }
+
+#[test]
+fn qir_generation_for_box_with_simulatable_intrinsic() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+    OPENQASM 3.0;
+    include "stdgates.inc";
+    #pragma qdk.box.open box_begin
+    #pragma qdk.box.close box_end
+
+    @SimulatableIntrinsic
+    def box_begin() {}
+
+    @SimulatableIntrinsic
+    def box_end() {}
+
+    qubit q;
+    box {
+        x q;
+    }
+    output bit c;
+    c = measure q;
+    "#;
+
+    let qir = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
+    expect![[r#"
+        %Result = type opaque
+        %Qubit = type opaque
+
+        define void @ENTRYPOINT__main() #0 {
+        block_0:
+          call void @box_begin()
+          call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+          call void @box_end()
+          call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+          call void @__quantum__rt__tuple_record_output(i64 0, i8* null)
+          ret void
+        }
+
+        declare void @box_begin()
+
+        declare void @__quantum__qis__x__body(%Qubit*)
+
+        declare void @box_end()
+
+        declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
+
+        declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+        attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="1" "required_num_results"="1" }
+        attributes #1 = { "irreversible" }
+
+        ; module flags
+
+        !llvm.module.flags = !{!0, !1, !2, !3, !4}
+
+        !0 = !{i32 1, !"qir_major_version", i32 1}
+        !1 = !{i32 7, !"qir_minor_version", i32 0}
+        !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+        !3 = !{i32 1, !"dynamic_result_management", i1 false}
+        !4 = !{i32 1, !"int_computations", !"i64"}
+    "#]]
+    .assert_eq(&qir);
+
+    Ok(())
+}

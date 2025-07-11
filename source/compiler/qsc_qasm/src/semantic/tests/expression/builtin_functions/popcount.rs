@@ -75,6 +75,7 @@ fn popcount_unsized_type_error() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [9-21]:
                         annotations: <empty>

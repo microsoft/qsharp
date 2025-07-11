@@ -17,6 +17,7 @@ fn to_angle_implicitly_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [10-20]:
                         annotations: <empty>
@@ -60,6 +61,7 @@ fn to_explicit_angle_implicitly_fails() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [10-20]:
                         annotations: <empty>

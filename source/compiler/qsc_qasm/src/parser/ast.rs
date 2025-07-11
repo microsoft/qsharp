@@ -99,6 +99,71 @@ impl Display for PathKind {
     }
 }
 
+impl PathKind {
+    /// Returns the span of the path, if it exists.
+    #[must_use]
+    pub fn span(&self) -> Option<Span> {
+        match self {
+            PathKind::Ok(path) => Some(path.span),
+            PathKind::Err(Some(incomplete_path)) => Some(incomplete_path.span),
+            PathKind::Err(None) => None,
+        }
+    }
+
+    #[must_use]
+    pub fn segments(&self) -> Option<Vec<Ident>> {
+        match self {
+            PathKind::Ok(path) => path.segments.as_ref().map(|s| s.to_vec()),
+            PathKind::Err(incomplete_path) => {
+                incomplete_path.as_ref().map(|path| path.segments.to_vec())
+            }
+        }
+    }
+
+    pub fn offset(&mut self, offset: u32) {
+        match self {
+            PathKind::Ok(path) => path.offset(offset),
+            PathKind::Err(Some(incomplete_path)) => incomplete_path.offset(offset),
+            PathKind::Err(None) => {}
+        }
+    }
+
+    #[must_use]
+    pub fn as_string(&self) -> String {
+        match self {
+            PathKind::Ok(path) => match &path.segments {
+                Some(segments) => {
+                    if segments.is_empty() {
+                        return path.name.to_string();
+                    }
+                    let mut value = String::new();
+                    for segment in segments {
+                        if !value.is_empty() {
+                            value.push('.');
+                        }
+                        value.push_str(&segment.name);
+                    }
+                    value.push('.');
+                    value.push_str(&path.name.name);
+                    value
+                }
+                None => path.name.to_string(),
+            },
+            PathKind::Err(Some(path)) => {
+                let mut value = String::new();
+                for segment in &path.segments {
+                    if !value.is_empty() {
+                        value.push('.');
+                    }
+                    value.push_str(&segment.name);
+                }
+                value
+            }
+            PathKind::Err(None) => "Err".to_string(),
+        }
+    }
+}
+
 /// A path that was successfully parsed up to a certain `.`,
 /// but is missing its final identifier.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -112,6 +177,17 @@ pub struct IncompletePath {
     /// Whether a keyword exists after the final `.`.
     /// This keyword can be presumed to be a partially typed identifier.
     pub keyword: bool,
+}
+
+impl IncompletePath {
+    pub fn offset(&mut self, offset: u32) {
+        self.span.lo += offset;
+        self.span.hi += offset;
+        for segment in &mut self.segments {
+            segment.span.lo += offset;
+            segment.span.hi += offset;
+        }
+    }
 }
 
 /// A path to a declaration or a field access expression,
@@ -137,6 +213,17 @@ impl Display for Path {
 impl WithSpan for Path {
     fn with_span(self, span: Span) -> Self {
         Self { span, ..self }
+    }
+}
+
+impl Path {
+    pub fn offset(&mut self, offset: u32) {
+        self.span.lo += offset;
+        self.span.hi += offset;
+        for segment in self.segments.iter_mut().flatten() {
+            segment.span.lo += offset;
+            segment.span.hi += offset;
+        }
     }
 }
 
@@ -1109,17 +1196,22 @@ impl Display for QuantumArgument {
 #[derive(Clone, Debug)]
 pub struct Pragma {
     pub span: Span,
-    pub identifier: Rc<str>,
+    pub identifier: Option<PathKind>,
     pub value: Option<Rc<str>>,
+    pub value_span: Option<Span>,
 }
 
 impl Display for Pragma {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let identifier = format!("\"{}\"", self.identifier);
         let value = self.value.as_ref().map(|val| format!("\"{val}\""));
         writeln_header(f, "Pragma", self.span)?;
-        writeln_field(f, "identifier", &identifier)?;
-        write_opt_field(f, "value", value.as_ref())
+        writeln_opt_field(
+            f,
+            "identifier",
+            self.identifier.as_ref().map(PathKind::as_string).as_ref(),
+        )?;
+        writeln_opt_field(f, "value", value.as_ref())?;
+        write_opt_field(f, "value_span", self.value_span.as_ref())
     }
 }
 

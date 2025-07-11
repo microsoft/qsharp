@@ -93,6 +93,7 @@ fn on_a_zero_len_qubit_register() {
         &expect![[r#"
             Program:
                 version: <none>
+                pragmas: <empty>
                 statements:
                     Stmt [0-11]:
                         annotations: <empty>

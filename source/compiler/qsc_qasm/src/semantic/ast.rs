@@ -14,7 +14,7 @@ use crate::{
         write_field, write_header, write_indented_list, write_list_field, write_opt_field,
         writeln_field, writeln_header, writeln_list_field, writeln_opt_field,
     },
-    parser::ast::List,
+    parser::ast::{List, PathKind},
     semantic::symbols::SymbolId,
     stdlib::{angle::Angle, complex::Complex},
 };
@@ -25,14 +25,16 @@ use super::types::ArrayDimensions;
 
 #[derive(Clone, Debug)]
 pub struct Program {
-    pub statements: List<Stmt>,
     pub version: Option<Version>,
+    pub pragmas: List<Pragma>,
+    pub statements: List<Stmt>,
 }
 
 impl Display for Program {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln!(f, "Program:")?;
         writeln_opt_field(f, "version", self.version.as_ref())?;
+        writeln_list_field(f, "pragmas", &self.pragmas)?;
         write_list_field(f, "statements", &self.statements)
     }
 }
@@ -707,17 +709,22 @@ impl Display for QuantumArgument {
 #[derive(Clone, Debug)]
 pub struct Pragma {
     pub span: Span,
-    pub identifier: Rc<str>,
+    pub identifier: Option<PathKind>,
     pub value: Option<Rc<str>>,
+    pub value_span: Option<Span>,
 }
 
 impl Display for Pragma {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let identifier = format!("\"{}\"", self.identifier);
         let value = self.value.as_ref().map(|val| format!("\"{val}\""));
         writeln_header(f, "Pragma", self.span)?;
-        writeln_field(f, "identifier", &identifier)?;
-        write_opt_field(f, "value", value.as_ref())
+        writeln_opt_field(
+            f,
+            "identifier",
+            self.identifier.as_ref().map(PathKind::as_string).as_ref(),
+        )?;
+        writeln_opt_field(f, "value", value.as_ref())?;
+        write_opt_field(f, "value_span", self.value_span.as_ref())
     }
 }
 
