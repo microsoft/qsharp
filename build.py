@@ -419,15 +419,12 @@ if build_wasm:
     #   cargo build --lib [--release] --target wasm32-unknown-unknown --target-dir ./target
     #
     # Binary will be written to ./target/wasm32-unknown-unknown/{debug,release}/qsc_wasm.wasm
-    target_dir = os.path.join(root_dir, "target")
     cargo_args = [
         "cargo",
         "build",
         "--lib",
         "--target",
         "wasm32-unknown-unknown",
-        "--target-dir",
-        target_dir,
     ]
     if build_type == "release":
         cargo_args.append("--release")
@@ -437,16 +434,16 @@ if build_wasm:
     #   wasm-bindgen --target <nodejs|web> [--debug] --out-dir ./target/wasm32/{release,debug}/{nodejs|web} <infile>
     #
     # The output will be written to {out-dir}/qsc_wasm_bg.wasm
-    for target in wasm_targets:
-        out_dir = os.path.join(wasm_bld, target)
+    for target_platform in wasm_targets:
+        out_dir = os.path.join(wasm_bld, target_platform)
         in_file = os.path.join(
-            target_dir, "wasm32-unknown-unknown", build_type, "qsc_wasm.wasm"
+            root_dir, "target", "wasm32-unknown-unknown", build_type, "qsc_wasm.wasm"
         )
 
         wasm_bindgen_args = [
             "wasm-bindgen",
             "--target",
-            target,
+            target_platform,
             "--out-dir",
             out_dir,
         ]
@@ -480,7 +477,7 @@ if build_wasm:
             subprocess.run(wasm_opt_args, check=True, text=True, cwd=wasm_src)
 
         # After building, copy the artifacts to the npm location
-        lib_dir = os.path.join(npm_src, "lib", target)
+        lib_dir = os.path.join(npm_src, "lib", target_platform)
         os.makedirs(lib_dir, exist_ok=True)
 
         for filename in ["qsc_wasm_bg.wasm", "qsc_wasm.d.ts", "qsc_wasm.js"]:
@@ -488,9 +485,9 @@ if build_wasm:
 
             # To make the node files CommonJS modules, the extension needs to change
             # (This is because the package is set to ECMAScript modules by default)
-            if target == "nodejs" and filename == "qsc_wasm.js":
+            if target_platform == "nodejs" and filename == "qsc_wasm.js":
                 filename = "qsc_wasm.cjs"
-            if target == "nodejs" and filename == "qsc_wasm.d.ts":
+            if target_platform == "nodejs" and filename == "qsc_wasm.d.ts":
                 filename = "qsc_wasm.d.cts"
 
             shutil.copy2(fullpath, os.path.join(lib_dir, filename))
