@@ -218,9 +218,16 @@ def wasm_checks(install, installed_rust_targets):
 
     # Ensure the required wasm target is installed
     if "wasm32-unknown-unknown" not in installed_rust_targets:
-        print("WASM rust target is not installed.")
-        print("Please install the missing target by running:")
-        print("rustup target add wasm32-unknown-unknown")
+        if install == True:
+            print("Wasm Rust target not installed. Attempting to install...")
+            subprocess.run(
+                ["rustup", "target", "add", "wasm32-unknown-unknown"], check=True
+            )
+        else:
+            print(
+                "Wasm Rust target not installed. Install via 'rustup target add wasm32-unknown-unknown'"
+            )
+            exit(1)
 
 
 def download_and_extract(url_base, tar_file, out_dir):
