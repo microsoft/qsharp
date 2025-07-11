@@ -2954,6 +2954,19 @@ impl Lowerer {
             return Type::Err;
         }
 
+        if dims.is_empty() {
+            self.push_unsupported_error_message("arrays with 0 dimensions", array_ty.span);
+            return Type::Err;
+        }
+
+        if dims.len() > 7 {
+            self.push_unsupported_error_message(
+                "arrays with more than 7 dimensions",
+                array_ty.span,
+            );
+            return Type::Err;
+        }
+
         Type::make_array_ty(&dims, &base_ty)
     }
 
@@ -2972,6 +2985,19 @@ impl Lowerer {
                     return Type::Err;
                 }
 
+                if dims.is_empty() {
+                    self.push_unsupported_error_message("arrays with 0 dimensions", ref_ty.span);
+                    return Type::Err;
+                }
+
+                if dims.len() > 7 {
+                    self.push_unsupported_error_message(
+                        "arrays with more than 7 dimensions",
+                        ref_ty.span,
+                    );
+                    return Type::Err;
+                }
+
                 Type::make_static_array_ref_ty(&dims, &base_ty, is_mutable)
             }
             syntax::ArrayReferenceType::Dyn(ref_ty) => {
@@ -2986,6 +3012,19 @@ impl Lowerer {
                 let num_dims = num_dims
                     .get_const_u32()
                     .expect("we only get here if we have a valid const expr");
+
+                if num_dims == 0 {
+                    self.push_unsupported_error_message("arrays with 0 dimensions", ref_ty.span);
+                    return Type::Err;
+                }
+
+                if num_dims > 7 {
+                    self.push_unsupported_error_message(
+                        "arrays with more than 7 dimensions",
+                        ref_ty.span,
+                    );
+                    return Type::Err;
+                }
 
                 Type::make_dyn_array_ref_ty(num_dims, &base_ty, is_mutable)
             }
