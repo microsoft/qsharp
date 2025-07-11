@@ -167,29 +167,29 @@ fn sizeof_with_8_dimensional_array_errors() {
     check(
         source,
         &expect![[r#"
-        Qasm.Lowerer.NotSupported
+            Qasm.Lowerer.NotSupported
 
-          x arrays with more than 7 dimensions are not supported
-           ,-[Test.qasm:2:15]
-         1 | 
-         2 |         def f(readonly array[int, #dim = 8] a) {
-           :               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-         3 |             sizeof(a);
-           `----
+              x arrays with more than 7 dimensions are not supported
+               ,-[Test.qasm:2:15]
+             1 | 
+             2 |         def f(readonly array[int, #dim = 8] a) {
+               :               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             3 |             sizeof(a);
+               `----
 
-        Qasm.Lowerer.NoValidOverloadForBuiltinFunction
+            Qasm.Lowerer.NoValidOverloadForBuiltinFunction
 
-          x There is no valid overload of `sizeof` for inputs: (unknown)
-          | Overloads available are:
-          |     fn sizeof(array[_, ...], const uint) -> const uint
-          |     fn sizeof(array[_, #dim = _], const uint) -> uint
-           ,-[Test.qasm:3:13]
-         2 |         def f(readonly array[int, #dim = 8] a) {
-         3 |             sizeof(a);
-           :             ^^^^^^^^^
-         4 |         }
-           `----
-    "#]],
+              x There is no valid overload of `sizeof` for inputs: (unknown)
+              | Overloads available are:
+              |     fn sizeof(array[_, ...], const uint) -> const uint
+              |     fn sizeof(array[_, #dim = _], uint) -> uint
+               ,-[Test.qasm:3:13]
+             2 |         def f(readonly array[int, #dim = 8] a) {
+             3 |             sizeof(a);
+               :             ^^^^^^^^^
+             4 |         }
+               `----
+        "#]],
     );
 }
 
@@ -219,7 +219,7 @@ fn sizeof_with_0_dimensional_array_errors() {
               x There is no valid overload of `sizeof` for inputs: (unknown)
               | Overloads available are:
               |     fn sizeof(array[_, ...], const uint) -> const uint
-              |     fn sizeof(array[_, #dim = _], const uint) -> uint
+              |     fn sizeof(array[_, #dim = _], uint) -> uint
                ,-[Test.qasm:3:13]
              2 |         def f(readonly array[int, #dim = 0] a) {
              3 |             sizeof(a);

@@ -4488,7 +4488,7 @@ fn sizeof_invalid_args_error(call_span: Span, inputs: &[Expr]) -> ConstEvalError
     .expect("write should succeed");
     write!(
         error_msg,
-        "\n    fn sizeof(array[_, #dim = _], const uint) -> uint"
+        "\n    fn sizeof(array[_, #dim = _], uint) -> uint"
     )
     .expect("write should succeed");
 

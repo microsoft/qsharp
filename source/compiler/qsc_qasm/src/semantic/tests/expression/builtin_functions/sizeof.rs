@@ -30,7 +30,7 @@ fn sizeof_no_args_errors() {
               x There is no valid overload of `sizeof` for inputs: ()
               | Overloads available are:
               |     fn sizeof(array[_, ...], const uint) -> const uint
-              |     fn sizeof(array[_, #dim = _], const uint) -> uint
+              |     fn sizeof(array[_, #dim = _], uint) -> uint
                ,-[test:2:31]
              1 | 
              2 |         const uint arr_size = sizeof();
@@ -68,7 +68,7 @@ fn sizeof_too_many_args_errors() {
               | const int)
               | Overloads available are:
               |     fn sizeof(array[_, ...], const uint) -> const uint
-              |     fn sizeof(array[_, #dim = _], const uint) -> uint
+              |     fn sizeof(array[_, #dim = _], uint) -> uint
                ,-[test:2:31]
              1 | 
              2 |         const uint arr_size = sizeof(1, 2, 3);
@@ -105,7 +105,7 @@ fn sizeof_non_array_errors() {
               x There is no valid overload of `sizeof` for inputs: (const int)
               | Overloads available are:
               |     fn sizeof(array[_, ...], const uint) -> const uint
-              |     fn sizeof(array[_, #dim = _], const uint) -> uint
+              |     fn sizeof(array[_, #dim = _], uint) -> uint
                ,-[test:2:31]
              1 | 
              2 |         const uint arr_size = sizeof(1);

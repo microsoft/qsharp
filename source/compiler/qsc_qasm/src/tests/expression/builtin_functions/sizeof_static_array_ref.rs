@@ -187,7 +187,7 @@ fn sizeof_with_8_dimensional_array_errors() {
               x There is no valid overload of `sizeof` for inputs: (unknown)
               | Overloads available are:
               |     fn sizeof(array[_, ...], const uint) -> const uint
-              |     fn sizeof(array[_, #dim = _], const uint) -> uint
+              |     fn sizeof(array[_, #dim = _], uint) -> uint
                ,-[Test.qasm:3:13]
              2 |         def f(readonly array[int, 1, 1, 1, 1, 1, 1, 1, 8] a) {
              3 |             sizeof(a);
@@ -224,7 +224,7 @@ fn sizeof_with_0_dimensional_array_errors() {
               x There is no valid overload of `sizeof` for inputs: (unknown)
               | Overloads available are:
               |     fn sizeof(array[_, ...], const uint) -> const uint
-              |     fn sizeof(array[_, #dim = _], const uint) -> uint
+              |     fn sizeof(array[_, #dim = _], uint) -> uint
                ,-[Test.qasm:3:13]
              2 |         def f(readonly array[int, ] a) {
              3 |             sizeof(a);
