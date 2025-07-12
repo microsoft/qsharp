@@ -290,7 +290,7 @@ pub fn eval(
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     receiver: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
-    let mut state = State::new(package, exec_graph, seed);
+    let mut state = State::new(package, exec_graph, seed, false);
     let res = state.eval(globals, env, sim, receiver, &[], StepAction::Continue)?;
     let StepResult::Return(value) = res else {
         panic!("eval should always return a value");
@@ -314,7 +314,7 @@ pub fn invoke(
     callable: Value,
     args: Value,
 ) -> Result<Value, (Error, Vec<Frame>)> {
-    let mut state = State::new(package, Vec::new().into(), seed);
+    let mut state = State::new(package, Vec::new().into(), seed, false);
     // Push the callable value into the state stack and then the args value so they are ready for evaluation.
     state.set_val_register(callable);
     state.push_val();
@@ -360,7 +360,7 @@ pub enum StepResult {
     StepIn,
     StepOut,
     Return(Value),
-    Fail,
+    Fail(String),
 }
 
 trait AsIndex {
@@ -573,11 +573,18 @@ pub struct State {
     rng: RefCell<StdRng>,
     call_counts: FxHashMap<CallableCountKey, i64>,
     qubit_counter: Option<QubitCounter>,
+    stop_on_error: bool,
+    last_error: Option<(Error, Vec<Frame>)>,
 }
 
 impl State {
     #[must_use]
-    pub fn new(package: PackageId, exec_graph: ExecGraph, classical_seed: Option<u64>) -> Self {
+    pub fn new(
+        package: PackageId,
+        exec_graph: ExecGraph,
+        classical_seed: Option<u64>,
+        stop_on_error: bool,
+    ) -> Self {
         let rng = match classical_seed {
             Some(seed) => RefCell::new(StdRng::seed_from_u64(seed)),
             None => RefCell::new(StdRng::from_entropy()),
@@ -595,6 +602,8 @@ impl State {
             rng,
             call_counts: FxHashMap::default(),
             qubit_counter: None,
+            stop_on_error,
+            last_error: None,
         }
     }
 
@@ -671,6 +680,23 @@ impl State {
         frames
     }
 
+    fn set_last_error(&mut self, error: Error, frames: Vec<Frame>) {
+        assert!(
+            self.last_error.replace((error, frames)).is_none(),
+            "last error should not be set twice"
+        );
+    }
+
+    fn get_last_error(&mut self) -> Result<(), (Error, Vec<Frame>)> {
+        // Use `is_none` to check for last error, as it avoids the unconditional
+        // `mem::replace` call that `take` would perform.
+        if self.last_error.is_none() {
+            Ok(())
+        } else {
+            Err(self.last_error.take().expect("last error should be set"))
+        }
+    }
+
     /// # Errors
     /// Returns the first error encountered during execution.
     /// # Panics
@@ -698,9 +724,20 @@ impl State {
                 }
                 Some(ExecGraphNode::Expr(expr)) => {
                     self.idx += 1;
-                    self.eval_expr(env, sim, globals, out, *expr)
-                        .map_err(|e| (e, self.get_stack_frames()))?;
-                    continue;
+                    match self.eval_expr(env, sim, globals, out, *expr) {
+                        Ok(()) => continue,
+                        Err(e) => {
+                            if self.stop_on_error {
+                                let error_str = e.to_string();
+                                self.set_last_error(e, self.get_stack_frames());
+                                // Clear the execution graph stack to indicate that execution has failed.
+                                // This will prevent further execution steps.
+                                self.exec_graph_stack.clear();
+                                return Ok(StepResult::Fail(error_str));
+                            }
+                            return Err((e, self.get_stack_frames()));
+                        }
+                    }
                 }
                 Some(ExecGraphNode::Stmt(stmt)) => {
                     self.idx += 1;
@@ -710,10 +747,6 @@ impl State {
                         Some(value) => value,
                         None => continue,
                     }
-                }
-                Some(ExecGraphNode::Fail) => {
-                    self.idx += 1;
-                    return Ok(StepResult::Fail);
                 }
                 Some(ExecGraphNode::Jump(idx)) => {
                     self.idx = *idx;
@@ -784,6 +817,9 @@ impl State {
 
             return Ok(res);
         }
+
+        // Throw any error that was encountered during execution.
+        self.get_last_error()?;
 
         Ok(StepResult::Return(self.get_result()))
     }
@@ -1175,6 +1211,7 @@ impl State {
         out: &mut impl Receiver,
     ) -> Result<(), Error> {
         self.push_frame(Vec::new().into(), callee_id, functor);
+        self.current_span = callee_span.span;
         self.increment_call_count(callee_id, functor);
         let name = &callee.name.name;
         let val = match name.as_ref() {

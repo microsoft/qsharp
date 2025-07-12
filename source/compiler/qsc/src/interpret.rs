@@ -1051,7 +1051,7 @@ impl Debugger {
         Ok(Self {
             interpreter,
             position_encoding,
-            state: State::new(source_package_id, entry_exec_graph, None),
+            state: State::new(source_package_id, entry_exec_graph, None, true),
         })
     }
 
@@ -1062,7 +1062,7 @@ impl Debugger {
         Self {
             interpreter,
             position_encoding,
-            state: State::new(source_package_id, entry_exec_graph, None),
+            state: State::new(source_package_id, entry_exec_graph, None, true),
         }
     }
 

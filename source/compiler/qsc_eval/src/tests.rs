@@ -30,7 +30,7 @@ pub(super) fn eval_graph(
     env: &mut Env,
     out: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
-    let mut state = State::new(package, graph, None);
+    let mut state = State::new(package, graph, None, false);
     let StepResult::Return(value) =
         state.eval(globals, env, sim, out, &[], StepAction::Continue)?
     else {
