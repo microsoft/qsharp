@@ -24,6 +24,12 @@ pub(super) struct Globals<'a> {
     imports: Vec<ImportItem>,
 }
 
+struct NamespacesInPackage<'a> {
+    package: &'a Package,
+    is_user_package: bool,
+    namespaces: Vec<Vec<Rc<str>>>,
+}
+
 impl<'a> Globals<'a> {
     pub fn init(offset: u32, compilation: &'a Compilation) -> Self {
         let import_finder = ImportFinder::init(offset, &compilation.user_unit().ast.package);
@@ -119,15 +125,15 @@ impl<'a> Globals<'a> {
 
     /// Returns all namespaces in the compilation.
     pub fn namespaces(&self) -> Vec<Completion> {
-        // Use the user package's namespace tree to find all top-level namespaces
-        let user_package = &self.compilation.user_unit().package;
-        let mut completions = Self::namespaces_in_user_package_tree(user_package, &[]);
+        let mut completions = self.namespaces_in(&[]);
+
+        let mut c = Vec::new();
 
         // Also add package aliases for dependencies
         for (is_user_package, package_alias, _package) in self.iter_all_packages() {
             if !is_user_package {
                 if let Some(package_alias) = package_alias {
-                    completions.push(Completion::new(
+                    c.push(Completion::new(
                         (*package_alias).into(),
                         CompletionItemKind::Module,
                     ));
@@ -135,21 +141,44 @@ impl<'a> Globals<'a> {
             }
         }
 
-        completions
+        completions.push(c);
+
+        completions.into_iter().flatten().collect()
     }
 
-    /// Returns all namespaces that are valid completions at the current offset,
-    /// for the given qualifier.
-    /// Uses only the user package's namespace tree since it should contain
-    /// all resolved namespaces from dependencies.
-    pub fn namespaces_in(&self, qualifier: &[Rc<str>]) -> Vec<Vec<Completion>> {
-        // Get the user package
-        let user_package = &self.compilation.user_unit().package;
+    /// Returns all namespace parts that are valid completions at the current offset,
+    /// for the given qualifier, taking into account any imports that are in scope.
+    pub fn namespaces_in(&'a self, qualifier: &[Rc<str>]) -> Vec<Vec<Completion>> {
+        let namespaces_in_packages = self.matching_namespaces_in_packages(qualifier);
 
-        // Use the user package's namespace tree to find completions
-        let completions = Self::namespaces_in_user_package_tree(user_package, qualifier);
+        let mut groups = Vec::new();
+        for NamespacesInPackage {
+            package,
+            is_user_package,
+            namespaces,
+        } in &namespaces_in_packages
+        {
+            // Collect all items from all relevant namespaces in this package
+            let mut all_items = Vec::new();
 
-        vec![completions]
+            for namespace in namespaces {
+                let mut items = Self::namespaces_in_namespace(package, namespace, *is_user_package);
+                all_items.append(&mut items);
+            }
+
+            // Apply the same deduplication logic as unqualified completion
+            // Sort to ensure Export items (if any) come last for deduplication purposes
+            all_items.dedup();
+
+            let completions = all_items
+                .into_iter()
+                .map(|ns_part| Completion::new(ns_part.to_string(), CompletionItemKind::Module))
+                .collect();
+
+            groups.push(completions);
+        }
+
+        groups
     }
 
     /// Returns all names that are valid completions at the current offset,
@@ -270,7 +299,12 @@ impl<'a> Globals<'a> {
         let namespaces_in_packages = self.matching_namespaces_in_packages(qualifier);
 
         let mut groups = Vec::new();
-        for (package, is_user_package, namespaces) in &namespaces_in_packages {
+        for NamespacesInPackage {
+            package,
+            is_user_package,
+            namespaces,
+        } in &namespaces_in_packages
+        {
             eprintln!("DEBUG: processing package is_user_package: {is_user_package}, namespaces: {namespaces:?}");
             // Collect all items from all relevant namespaces in this package
             let mut all_items = Vec::new();
@@ -320,45 +354,6 @@ impl<'a> Globals<'a> {
         }
 
         groups
-    }
-
-    /// For a given package, returns all namespace names that are direct
-    /// children of the given namespace prefix.
-    ///
-    /// E.g. if the package contains `Foo.Bar.Baz` and `Foo.Qux` , and
-    /// the given prefix is `Foo` , this will return `Bar` and `Qux`.
-    /// Get namespace completions from the user package's namespace tree.
-    /// The user package's namespace tree should contain all resolved namespaces
-    /// from dependencies, so we only need to search in one place.
-    fn namespaces_in_user_package_tree(
-        user_package: &Package,
-        qualifier: &[Rc<str>],
-    ) -> Vec<Completion> {
-        // Get the namespace ID for the qualifier
-        let namespace_id = if qualifier.is_empty() {
-            // Root namespace
-            Some(user_package.namespaces.root_id())
-        } else {
-            // Convert qualifier to &str slice for the API
-            let qualifier_strs: Vec<&str> = qualifier.iter().map(AsRef::as_ref).collect();
-            user_package.namespaces.get_namespace_id(qualifier_strs)
-        };
-
-        if let Some(ns_id) = namespace_id {
-            // Get the namespace node and its children
-            let (_, namespace_node) = user_package.namespaces.find_namespace_by_id(&ns_id);
-            let borrowed_node = namespace_node.borrow();
-            let children = borrowed_node.children();
-
-            children
-                .keys()
-                .map(|child_name| {
-                    Completion::new(child_name.to_string(), CompletionItemKind::Module)
-                })
-                .collect()
-        } else {
-            Vec::new()
-        }
     }
 
     /// For a given package, returns all items that are in the given namespace.
@@ -441,14 +436,83 @@ impl<'a> Globals<'a> {
             .collect()
     }
 
+    /// For a given package, returns all namespace names that are direct
+    /// children of the given namespace prefix.
+    ///
+    /// E.g. if the package contains `Foo.Bar.Baz` and `Foo.Qux`, and
+    /// the given prefix is `Foo`, this will return `Bar` and `Qux`.
+    fn namespaces_in_namespace(
+        package: &'a Package,
+        namespace_prefix: &[Rc<str>],
+        is_user_package: bool,
+    ) -> Vec<Rc<str>> {
+        let ns_next_parts = package.items.values().filter_map(move |mut i| {
+            let mut next_part = None;
+            if let ItemKind::Export(ident, item_id) = &i.kind {
+                eprintln!("found export in namespace {}", ident.name);
+
+                let is_namespace_export = item_id.package.is_none()
+                    && package
+                        .items
+                        .get(item_id.item)
+                        .is_some_and(|i| matches!(&i.kind, ItemKind::Namespace(_, _)));
+                if is_namespace_export {
+                    let mut full_name = vec![];
+                    let parent = i.parent;
+                    if let Some(parent_id) = parent {
+                        if let Some(ns) = package.items.get(parent_id) {
+                            if let ItemKind::Namespace(ns_parts, _) = &ns.kind {
+                                full_name.extend(ns_parts.into_iter().cloned());
+                            }
+                        }
+                    }
+
+                    full_name.push(ident.name.clone());
+                    eprintln!("  export full name: {:?}", full_name);
+                };
+            }
+
+            if let ItemKind::Namespace(candidate_ns, _) = &i.kind {
+                let mut candidate_ns: Vec<Rc<str>> = candidate_ns.into();
+
+                // If this is under the "Main" namespace in a dependent package,
+                // skip the "Main" part
+                if !is_user_package
+                    && !candidate_ns.is_empty()
+                    && candidate_ns[0].as_ref() == "Main"
+                {
+                    candidate_ns.remove(0);
+                }
+
+                // If the namespace matches exactly, include the items.
+                if candidate_ns.starts_with(namespace_prefix)
+                    && candidate_ns.len() > namespace_prefix.len()
+                {
+                    let next_part =
+                        next_part.unwrap_or_else(|| candidate_ns[namespace_prefix.len()].clone());
+                    return Some(next_part);
+                }
+
+                // If we're being asked for the the top-level namespace in a dependency package,
+                // include items from the `Main` namespace.
+                // if namespace_prefix.is_empty()
+                //     && candidate_ns.len() > 1
+                //     && candidate_ns[0].as_ref() == "Main"
+                //     && !is_user_package
+                // {
+                //     return Some(candidate_ns[1].clone());
+                // }
+            }
+            None
+        });
+
+        ns_next_parts.collect()
+    }
+
     /// Given a qualifier, and any imports that are in scope,
-    /// produces a list of `(package, is_user_package, namespaces)`
-    /// tuples that this qualifier could match.
-    #[allow(clippy::type_complexity)]
-    fn matching_namespaces_in_packages(
-        &self,
-        qualifier: &[Rc<str>],
-    ) -> Vec<(&Package, bool, Vec<Vec<Rc<str>>>)> {
+    /// produces a list of namespaces, grouped by package,
+    /// that this qualifier matches. The namespaces don't have to exist.
+    fn matching_namespaces_in_packages(&self, qualifier: &[Rc<str>]) -> Vec<NamespacesInPackage> {
         let namespaces = self.matching_namespaces(qualifier);
 
         let mut packages_and_namespaces = Vec::new();
@@ -466,7 +530,11 @@ impl<'a> Globals<'a> {
                     namespaces_for_package.push(namespace.clone());
                 }
             }
-            packages_and_namespaces.push((package, is_user_package, namespaces_for_package));
+            packages_and_namespaces.push(NamespacesInPackage {
+                package,
+                is_user_package,
+                namespaces: namespaces_for_package,
+            });
         }
 
         packages_and_namespaces
@@ -474,6 +542,7 @@ impl<'a> Globals<'a> {
 
     /// Given a qualifier, and any imports that are in scope,
     /// produces a list of potential namespaces this qualifier could match.
+    /// The namespaces don't have to exist.
     fn matching_namespaces(&self, qualifier: &[Rc<str>]) -> Vec<Vec<Rc<str>>> {
         let mut namespaces: Vec<Vec<Rc<str>>> = Vec::new();
         // Add the qualifier as is

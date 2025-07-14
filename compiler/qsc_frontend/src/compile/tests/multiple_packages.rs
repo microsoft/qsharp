@@ -643,3 +643,119 @@ fn old_syntax_udt_reexported() {
         Some(&expect!["[]"]),
     );
 }
+
+#[test]
+fn namespace_from_dependency() {
+    multiple_package_check(vec![
+        (
+            "B",
+            r#"
+            namespace NamespaceB {
+                function Foo() : Unit {}
+                export Foo;
+            }
+            "#,
+        ),
+        (
+            "A",
+            r#"
+            @EntryPoint()
+            operation Main() : Unit {
+                B.NamespaceB.Foo();
+            }
+            "#,
+        ),
+    ]);
+}
+
+#[test]
+fn namespace_reexport_alias() {
+    multiple_package_check(vec![
+        (
+            "B",
+            r#"
+            namespace NamespaceB {
+                function Foo() : Unit {}
+                export Foo;
+            }
+            namespace Bar {
+                export NamespaceB as NamespaceBAlias;
+            }
+            "#,
+        ),
+        (
+            "A",
+            r#"
+            @EntryPoint()
+            operation Main() : Unit {
+                B.Bar.NamespaceBAlias.Foo();
+            }
+            "#,
+        ),
+    ]);
+}
+
+#[test]
+fn namespace_reexport_alias_in_main() {
+    multiple_package_check(vec![
+        (
+            "B",
+            r#"
+            namespace NamespaceB {
+                function Foo() : Unit {}
+                export Foo;
+            }
+            namespace Main {
+                export NamespaceB as NamespaceBAlias;
+            }
+            "#,
+        ),
+        (
+            "A",
+            r#"
+            @EntryPoint()
+            operation Main() : Unit {
+                B.NamespaceBAlias.Foo();
+            }
+            "#,
+        ),
+    ]);
+}
+
+#[test]
+fn transitive_namespace_reexport_alias() {
+    multiple_package_check_expect_err(
+        vec![
+            (
+                "C",
+                r#"
+            namespace NamespaceC {
+                function Foo() : Unit {}
+                export Foo;
+            }
+            "#,
+            ),
+            (
+                "B",
+                r#"
+            namespace NamespaceB {
+                export C.NamespaceC as NamespaceCAlias;
+            }
+            "#,
+            ),
+        ],
+        &expect![[r#"
+            [
+                Error(
+                    Resolve(
+                        CrossPackageNamespaceReexport(
+                            Span {
+                                lo: 59,
+                                hi: 71,
+                            },
+                        ),
+                    ),
+                ),
+            ]"#]],
+    );
+}

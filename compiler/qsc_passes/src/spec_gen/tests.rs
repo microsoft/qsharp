@@ -1294,7 +1294,7 @@ fn generate_adj_invert_with_array_loop() {
                                             Expr 53 [0-0] [Type Int]: BinOp (Sub):
                                                 Expr 54 [0-0] [Type Int]: Call:
                                                     Expr 55 [0-0] [Type (Int[] -> Int)]: Var:
-                                                        res: Item 1 (Package 0)
+                                                        res: Item 2 (Package 0)
                                                         generics:
                                                             Int
                                                     Expr 56 [0-0] [Type Int[]]: Var: Local 43
@@ -1409,7 +1409,7 @@ fn generate_adj_invert_with_nested_loops() {
                                             Expr 76 [0-0] [Type Int]: BinOp (Sub):
                                                 Expr 77 [0-0] [Type Int]: Call:
                                                     Expr 78 [0-0] [Type (Int[] -> Int)]: Var:
-                                                        res: Item 1 (Package 0)
+                                                        res: Item 2 (Package 0)
                                                         generics:
                                                             Int
                                                     Expr 79 [0-0] [Type Int[]]: Var: Local 66
@@ -1442,7 +1442,7 @@ fn generate_adj_invert_with_nested_loops() {
                                                         Expr 114 [0-0] [Type Int]: BinOp (Sub):
                                                             Expr 115 [0-0] [Type Int]: Call:
                                                                 Expr 116 [0-0] [Type (Bool[] -> Int)]: Var:
-                                                                    res: Item 1 (Package 0)
+                                                                    res: Item 2 (Package 0)
                                                                     generics:
                                                                         Bool
                                                                 Expr 117 [0-0] [Type Bool[]]: Var: Local 107

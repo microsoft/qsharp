@@ -86,6 +86,7 @@ impl<'a> Renamer<'a> {
                 None => format!("exported_item{}", item.item),
                 Some(package) => format!("reexport_from_{package}:{}", item.item),
             },
+            Res::NameOnlyExport => "name_only_import".to_string(),
         }
     }
 }
@@ -443,12 +444,12 @@ fn prelude_callable() {
         "},
         &expect![[r#"
             namespace namespace2 {
-                function item1() : Unit {}
+                function item2() : Unit {}
             }
 
             namespace namespace3 {
-                function item3() : Unit {
-                    item1();
+                function item4() : Unit {
+                    item2();
                 }
             }
         "#]],
@@ -473,14 +474,14 @@ fn parent_namespace_shadows_prelude() {
         "},
         &expect![[r#"
             namespace namespace2 {
-                function item1() : Unit {}
+                function item2() : Unit {}
             }
 
             namespace namespace3 {
-                function item3() : Unit {}
+                function item4() : Unit {}
 
-                function item4() : Unit {
-                    item3();
+                function item5() : Unit {
+                    item4();
                 }
             }
         "#]],
@@ -509,18 +510,18 @@ fn open_shadows_prelude() {
         "},
         &expect![[r#"
             namespace namespace2 {
-                function item1() : Unit {}
+                function item2() : Unit {}
             }
 
             namespace namespace3 {
-                function item3() : Unit {}
+                function item4() : Unit {}
             }
 
             namespace namespace4 {
                 open namespace3;
 
-                function item5() : Unit {
-                    item3();
+                function item6() : Unit {
+                    item4();
                 }
             }
         "#]],
@@ -547,15 +548,15 @@ fn ambiguous_prelude() {
         "},
         &expect![[r#"
             namespace namespace3 {
-                function item1() : Unit {}
+                function item2() : Unit {}
             }
 
             namespace namespace4 {
-                function item3() : Unit {}
+                function item4() : Unit {}
             }
 
             namespace namespace5 {
-                function item5() : Unit {
+                function item6() : Unit {
                     A();
                 }
             }
@@ -1035,7 +1036,7 @@ fn ty_decl_duplicate_error_on_built_in_ty() {
         "},
         &expect![[r#"
             namespace namespace2 {
-                newtype item1 = Unit;
+                newtype item2 = Unit;
             }
 
             // Duplicate("Pauli", "Std.Core", Span { lo: 33, hi: 38 })
@@ -1053,7 +1054,7 @@ fn struct_decl_duplicate_error_on_built_in_ty() {
         "},
         &expect![[r#"
             namespace namespace2 {
-                struct item1 {}
+                struct item2 {}
             }
 
             // Duplicate("Pauli", "Std.Core", Span { lo: 32, hi: 37 })
@@ -2956,7 +2957,7 @@ fn disallow_duplicate_intrinsic_and_non_intrinsic_collision() {
                 operation item3() : Unit {}
             }
             namespace namespace4 {
-                operation item5() : Unit {
+                operation item4() : Unit {
                     body intrinsic;
                 }
             }
@@ -3582,12 +3583,12 @@ namespace Foo.Bar.Baz {
               }
 
               function item2() : Int {
-                item4()
+                item5()
               }
             }
 
             namespace namespace5 {
-              function item4() : Int { 6 }
+              function item5() : Int { 6 }
             }
         "#]],
     );
@@ -3614,18 +3615,18 @@ fn basic_hierarchical_namespace() {
     }"},
         &expect![[r#"
             namespace namespace5 {
-                operation item1() : Unit {}
+                operation item3() : Unit {}
             }
             namespace namespace6 {
                 open namespace3;
-                operation item3() : Unit {
-                    item1();
+                operation item5() : Unit {
+                    item3();
                 }
             }
             namespace namespace7 {
                 open namespace4;
-                operation item5() : Unit {
-                    item1();
+                operation item7() : Unit {
+                    item3();
                 }
             }"#]],
     );
@@ -3687,7 +3688,7 @@ namespace Foo {
 }"#},
         &expect![[r#"
             namespace namespace4 {
-                operation item1() : Unit {
+                operation item2() : Unit {
 
                 }
             }
@@ -3696,7 +3697,7 @@ namespace Foo {
                 open Bar;
                 @EntryPoint()
                 operation item3() : Unit {
-                    item1();
+                    item2();
                 }
             }"#]],
     );
@@ -3721,7 +3722,7 @@ namespace Foo {
 }"#},
         &expect![[r#"
             namespace namespace4 {
-                operation item1() : Unit {
+                operation item2() : Unit {
 
                 }
             }
@@ -3730,7 +3731,7 @@ namespace Foo {
                 import Bar.*;
                 @EntryPoint()
                 operation item3() : Unit {
-                    item1();
+                    item2();
                 }
             }"#]],
     );
@@ -3755,7 +3756,7 @@ namespace Foo {
 }"#},
         &expect![[r#"
             namespace namespace4 {
-                operation item1() : Unit {
+                operation item2() : Unit {
 
                 }
             }
@@ -3763,8 +3764,8 @@ namespace Foo {
             namespace namespace3 {
                 import Bar as Baz;
                 @EntryPoint()
-                operation item3() : Unit {
-                    item1();
+                operation item4() : Unit {
+                    item2();
                 }
             }"#]],
     );
@@ -3786,6 +3787,21 @@ fn test_export_statement() {
                 export item1;
             }
         "#]],
+    );
+}
+
+#[test]
+fn export_above_declaration() {
+    check(
+        indoc! {"namespace Foo {
+                    export ApplyX;
+                    operation ApplyX() : Unit {}
+                }"},
+        &expect![[r#"
+            namespace namespace3 {
+                export item1;
+                operation item1() : Unit {}
+            }"#]],
     );
 }
 
@@ -3826,32 +3842,32 @@ namespace Foo.Bar.Graule {
         &expect![[r#"
 
             namespace namespace3 {
-                export item3;
+                export item4;
             }
             namespace namespace6 {
-                function item3() : Unit {}
+                function item4() : Unit {}
             }
 
             namespace namespace4 {
-               export item3;
+               export item4;
             }
 
             namespace namespace5 {
-                export item3;
+                export item4;
             }
 
             namespace namespace7 {
                 // HelloWorld should be available from all namespaces
-                operation item9() : Unit {
-                    item3();
-                    item3();
-                    item3();
-                    item3();
+                operation item6() : Unit {
+                    item4();
+                    item4();
+                    item4();
+                    item4();
                     open namespace3;
-                    item3();
+                    item4();
                 }
                 // and we should be able to re-export it
-                export item3;
+                export item4;
             }"#]],
     );
 }
@@ -3901,17 +3917,17 @@ namespace Main {
 }" },
         &expect![[r#"
             namespace namespace3 {
-                export item3;
+                export item4;
             }
             namespace namespace6 {
-                function item3() : Unit {}
+                function item4() : Unit {}
             }
 
             namespace namespace7 {
               open namespace3;
-              operation item5() : Unit {
-                item3();
-                item3();
+              operation item6() : Unit {
+                item4();
+                item4();
               }
             }"#]],
     );
@@ -4014,15 +4030,15 @@ fn export_symbol_from_nested_namespace() {
         "},
         &expect![[r#"
             namespace namespace4  {
-                operation item1() : Unit {}
+                operation item2() : Unit {}
             }
             namespace namespace3 {
-                export item1;
+                export item2;
             }
             namespace namespace5 {
                 open namespace3;
-                operation item5() : Unit {
-                    item1();
+                operation item4() : Unit {
+                    item2();
                 }
             }
         "#]],
@@ -4125,11 +4141,11 @@ fn export_with_alias() {
         &expect![[r#"
             namespace namespace3 {
                 operation item1() : Unit {}
-                export item1;
+                export exported_item1;
             }
             namespace namespace4 {
                 open namespace3;
-                operation item3() : Unit {
+                operation item4() : Unit {
                     item1();
                 }
             }
@@ -4158,11 +4174,11 @@ fn multiple_exports_with_aliases() {
             namespace namespace3 {
                 operation item1() : Unit {}
                 operation item2() : Unit {}
-                export item1, item2;
+                export exported_item1, exported_item2;
             }
             namespace namespace4 {
                 open namespace3;
-                operation item4() : Unit {
+                operation item6() : Unit {
                     item1();
                     item2();
                 }
@@ -4192,11 +4208,11 @@ fn aliased_exports_call_with_qualified_paths() {
             namespace namespace3 {
                 operation item1() : Unit {}
                 operation item2() : Unit {}
-                export item1, item2;
+                export exported_item1, exported_item2;
             }
             namespace namespace4 {
                 open namespace3;
-                operation item4() : Unit {
+                operation item6() : Unit {
                     item1();
                     item2();
                 }
@@ -4221,11 +4237,11 @@ fn reexport_from_full_path_with_alias() {
         &expect![[r#"
             namespace namespace3 {
                 operation item1() : Unit {}
-                export item1;
+                export exported_item1;
             }
             namespace namespace4 {
                 open namespace3;
-                export item1;
+                export exported_item1;
             }
         "#]],
     );
@@ -4248,7 +4264,7 @@ fn disallow_repeated_exports() {
                 export item1;
             }
 
-            // DuplicateExport("ApplyX", Span { lo: 79, hi: 85 })
+            // Duplicate("ApplyX", "Foo", Span { lo: 79, hi: 85 })
         "#]],
     );
 }
@@ -4268,7 +4284,7 @@ fn disallow_repeated_exports_inline() {
                 export item1, item1;
             }
 
-            // DuplicateExport("ApplyX", Span { lo: 68, hi: 74 })
+            // Duplicate("ApplyX", "Foo", Span { lo: 68, hi: 74 })
         "#]],
     );
 }
@@ -4289,12 +4305,12 @@ fn order_of_exports_does_not_matter() {
         "},
         &expect![[r#"
             namespace namespace3 {
-                export item4;
-                export item2;
-                operation item2() : Unit {}
+                export item3;
+                export item1;
+                operation item1() : Unit {}
             }
             namespace namespace4 {
-                operation item4() : Unit {}
+                operation item3() : Unit {}
             }
 
         "#]],
@@ -4374,12 +4390,12 @@ fn import_namespace() {
         "},
         &expect![[r#"
             namespace namespace4 {
-                function item1() : Unit {}
+                function item2() : Unit {}
             }
             namespace namespace5 {
                 import namespace4;
-                operation item4() : Unit {
-                    item1();
+                operation item5() : Unit {
+                    item2();
                 }
             }
         "#]],
@@ -4480,6 +4496,42 @@ fn import_name_collision_with_callable() {
 }
 
 #[test]
+fn export_name_collision_separate_namespace_declarations() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Unit {}
+            }
+            namespace B {
+                function Foo() : Unit {}
+            }
+            namespace C {
+                export A.Foo;
+            }
+            namespace C {
+                export B.Foo;
+            }
+        "},
+        &expect![[r#"
+            namespace namespace3 {
+                function item1() : Unit {}
+            }
+            namespace namespace4 {
+                function item3() : Unit {}
+            }
+            namespace namespace5 {
+                export item1;
+            }
+            namespace namespace5 {
+                export item3;
+            }
+
+            // Duplicate("Foo", "C", Span { lo: 151, hi: 154 })
+        "#]],
+    );
+}
+
+#[test]
 fn import_shadowing_local_scope() {
     check(
         indoc! {"
@@ -4550,7 +4602,7 @@ fn import_non_item() {
         &expect![[r#"
             namespace namespace3 {
                 import Unit;
-                operation item1() : Unit {
+                operation item2() : Unit {
                 }
             }
         "#]],
@@ -4573,12 +4625,12 @@ fn import_namespace_nested() {
         "},
         &expect![[r#"
             namespace namespace5 {
-                operation item1() : Unit {}
+                operation item3() : Unit {}
             }
             namespace namespace6 {
                 import namespace4;
-                operation item4() : Unit {
-                    item1();
+                operation item6() : Unit {
+                    item3();
                 }
             }
         "#]],
@@ -4607,7 +4659,7 @@ fn import_single_namespace() {
             namespace namespace4 {
                 import namespace3;
 
-                operation item3() : Unit {
+                operation item4() : Unit {
                     item1();
                 }
             }
@@ -4702,10 +4754,10 @@ fn import_duplicate_symbol_in_global_scope() {
 "# },
         &expect![[r#"
             namespace namespace3 {
-                import item4, item4;
+                import item5, item5;
             }
             namespace namespace5 {
-                operation item4() : Unit {}
+                operation item5() : Unit {}
             }
 
             // Duplicate("Baz", "Main", Span { lo: 49, hi: 52 })
@@ -4731,11 +4783,11 @@ fn import_duplicate_symbol_in_local_scope() {
         &expect![[r#"
             namespace namespace3 {
                 operation item1() : Unit {
-                    import item3, item3;
+                    import item4, item4;
                 }
             }
             namespace namespace5 {
-                operation item3() : Unit {}
+                operation item4() : Unit {}
             }
         "#]],
     );
@@ -4756,11 +4808,11 @@ fn import_duplicate_symbol_different_source_global_scope() {
 "# },
         &expect![[r#"
             namespace namespace3 {
-                import item5, namespace5;
-                import item5;
+                import item6, namespace5;
+                import item6;
             }
             namespace namespace5 {
-                operation item5() : Unit {}
+                operation item6() : Unit {}
             }
 
             // Duplicate("Baz", "Main", Span { lo: 65, hi: 68 })
@@ -4786,12 +4838,12 @@ fn import_duplicate_symbol_different_source_local_scope() {
         &expect![[r#"
             namespace namespace3 {
                 operation item1() : Unit {
-                    import item3, namespace5;
-                    import item3;
+                    import item4, namespace5;
+                    import item4;
                 }
             }
             namespace namespace5 {
-                operation item3() : Unit {}
+                operation item4() : Unit {}
             }
         "#]],
     );
@@ -4812,11 +4864,11 @@ fn disallow_importing_different_items_with_same_name() {
 "# },
         &expect![[r#"
             namespace namespace3 {
-                import item4, item5;
+                import item5, item6;
             }
             namespace namespace5 {
-                operation item4() : Unit {}
                 operation item5() : Unit {}
+                operation item6() : Unit {}
             }
 
             // Duplicate("Baz", "Main", Span { lo: 57, hi: 60 })
@@ -4845,14 +4897,14 @@ fn import_takes_precedence_over_local_decl() {
             namespace namespace3 {
 
                 operation item1() : Unit {
-                    import item3;
-                    item3();
+                    import item4;
+                    item4();
                 }
 
             }
 
             namespace namespace5 {
-                operation item3() : Unit {}
+                operation item4() : Unit {}
             }
         "#]],
     );
@@ -4928,42 +4980,42 @@ fn import_namespace_advanced() {
         "},
         &expect![[r#"
             namespace namespace7 {
-                operation item1() : Unit {}
+                operation item5() : Unit {}
             }
             namespace namespace8 {
                 import namespace3;
-                operation item3() : Unit {
-                    item1();
+                operation item8() : Unit {
+                    item5();
                 }
             }
             namespace namespace9 {
                 import namespace4;
-                operation item6() : Unit {
-                    item1();
+                operation item11() : Unit {
+                    item5();
                 }
             }
             namespace namespace10 {
                 import namespace5;
-                operation item9() : Unit {
-                    item1();
+                operation item14() : Unit {
+                    item5();
                 }
             }
             namespace namespace11 {
                 import namespace6;
-                operation item12() : Unit {
-                    item1();
+                operation item17() : Unit {
+                    item5();
                 }
             }
             namespace namespace12 {
                 import namespace7;
-                operation item15() : Unit {
-                    item1();
+                operation item20() : Unit {
+                    item5();
                 }
             }
             namespace namespace13 {
-                import item1;
-                operation item18() : Unit {
-                    item1();
+                import item5;
+                operation item23() : Unit {
+                    item5();
                 }
             }
         "#]],
@@ -4987,12 +5039,12 @@ fn import_namespace_does_not_open_it() {
         "},
         &expect![[r#"
             namespace namespace5 {
-                operation item1() : Unit {}
+                operation item3() : Unit {}
             }
             namespace namespace6 {
                 import namespace5;
-                operation item4() : Unit {
-                    item1();
+                operation item6() : Unit {
+                    item3();
                     DumpMachine();
                 }
             }
@@ -5049,7 +5101,7 @@ fn export_namespace() {
                 operation item2() : Unit {}
             }
             namespace namespace4 {
-                export namespace3;
+                export item0;
             }
             namespace namespace5 {
                 open namespace3;
@@ -5081,15 +5133,15 @@ fn export_namespace_contains_children() {
         "},
         &expect![[r#"
             namespace namespace4 {
-                operation item1() : Unit {}
+                operation item2() : Unit {}
             }
             namespace namespace5 {
-                export namespace3;
+                export item0;
             }
             namespace namespace6 {
                 open namespace4;
-                operation item4() : Unit {
-                    item1();
+                operation item5() : Unit {
+                    item2();
                 }
             }
         "#]],
@@ -5114,10 +5166,10 @@ fn export_namespace_cyclic() {
         "},
         &expect![[r#"
             namespace namespace3 {
-                export namespace4;
+                export item1;
             }
             namespace namespace4 {
-                export namespace3;
+                export item0;
                 operation item2() : Unit {}
             }
             namespace namespace5 {
@@ -5143,7 +5195,7 @@ fn export_direct_cycle() {
         "},
         &expect![[r#"
             namespace namespace3 {
-                export namespace3;
+                export item0;
             }
 
             namespace namespace4 {
@@ -5174,16 +5226,16 @@ fn export_namespace_with_alias() {
         "},
         &expect![[r#"
             namespace namespace4 {
-                operation item1() : Unit {}
+                operation item2() : Unit {}
             }
             namespace namespace5 {
-                export namespace4;
+                export item1;
             }
             namespace namespace6 {
                 open namespace4;
-                operation item5() : Unit {
-                    item1();
-                    item1();
+                operation item6() : Unit {
+                    item2();
+                    item2();
                 }
             }
         "#]],
@@ -5245,7 +5297,7 @@ fn import_aliased_glob() {
             }
             namespace namespace4 {
                 import namespace3;
-                operation item4() : Unit {
+                operation item5() : Unit {
                     item1();
                     item2();
                 }
@@ -5303,19 +5355,19 @@ fn import_glob_in_list() {
         "},
         &expect![[r#"
             namespace namespace4 {
-                operation item1() : Unit {}
                 operation item2() : Unit {}
+                operation item3() : Unit {}
             }
             namespace namespace5 {
-                operation item4() : Unit {}
+                operation item5() : Unit {}
             }
             namespace namespace6 {
-                import namespace4.*, item4;
-                operation item7() : Unit {
-                    item1();
+                import namespace4.*, item5;
+                operation item8() : Unit {
                     item2();
-                    item4();
-                    item4();
+                    item3();
+                    item5();
+                    item5();
                 }
             }
         "#]],
@@ -5345,19 +5397,19 @@ fn import_glob_in_list_with_alias() {
         "},
         &expect![[r#"
             namespace namespace4 {
-                operation item1() : Unit {}
                 operation item2() : Unit {}
+                operation item3() : Unit {}
             }
             namespace namespace5 {
-                operation item4() : Unit {}
+                operation item5() : Unit {}
             }
             namespace namespace6 {
-                import namespace4, item4;
-                operation item8() : Unit {
-                    item1();
+                import namespace4, item5;
+                operation item9() : Unit {
                     item2();
-                    item4();
-                    item4();
+                    item3();
+                    item5();
+                    item5();
                 }
             }
         "#]],
@@ -5446,7 +5498,7 @@ fn allow_export_of_namespace_within_itself() {
                 "#},
         &expect![[r#"
             namespace namespace3 {
-                export namespace3;
+                export item0;
             }
         "#]],
     );

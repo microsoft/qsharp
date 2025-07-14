@@ -2588,7 +2588,7 @@ fn reexport_item_with_alias_from_dependency() {
 }
 
 #[test]
-// #[ignore = "expect `Bar` and `Qux` but not `Foo`, I think"]
+// #[ignore = "namespace exports not yet reflected as an hir item, so we're stuck for now"]
 fn reexport_namespace_from_dependency_qualified() {
     check_with_dependency(
         r"
@@ -2642,6 +2642,35 @@ fn reexport_item_from_dependency_qualified() {
                 additional_text_edits: None
               Qux (Function)
                 detail: Some("operation Qux() : Unit")
+                additional_text_edits: None
+        "#]],
+    );
+}
+
+#[test]
+#[ignore = "no way this works"]
+fn reexport_namespace_from_dependency_members() {
+    check_with_dependency(
+        r"
+        namespace Test {
+            open MyDep.Baz.Bar.↘
+        }",
+        "MyDep",
+        "namespace Foo.Bar {
+            operation Zud() : Unit {}
+            export Zud
+         }
+         namespace Baz {
+            operation Qux() : Unit {}
+            export Qux, Foo.Bar;
+         }",
+        &["Zud"],
+        &expect![[r#"
+            not in list:
+              Foo
+            in list (sorted):
+              Bar (Module)
+                detail: None
                 additional_text_edits: None
         "#]],
     );

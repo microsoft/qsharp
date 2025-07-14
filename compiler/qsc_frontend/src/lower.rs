@@ -21,7 +21,7 @@ use qsc_hir::{
     mut_visit::MutVisitor,
     ty::{Arrow, FunctorSetValue, GenericArg, ParamId, Ty, TypeParameter},
 };
-use std::{clone::Clone, rc::Rc, str::FromStr, vec};
+use std::{clone::Clone, iter::once, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
 use self::convert::TyConversionError;
@@ -179,12 +179,52 @@ impl With<'_> {
 
         let entry = package.entry.as_ref().map(|e| self.lower_expr(e));
         let items = self.lowerer.items.drain(..).map(|i| (i.id, i)).collect();
-        hir::Package {
+        let package = hir::Package {
             items,
             namespaces,
             stmts,
             entry,
-        }
+        };
+        eprintln!("lowered package");
+        eprintln!(" items: ");
+        eprintln!(
+            "{}",
+            package
+                .items
+                .iter()
+                .map(|(id, item)| {
+                    format!(
+                        "    (parent {:?}) {}: {}",
+                        item.parent,
+                        id,
+                        match &item.kind {
+                            hir::ItemKind::Callable(callable_decl) =>
+                                format!("callable {}", callable_decl.name.name),
+                            hir::ItemKind::Namespace(idents, _) =>
+                                format!("namespace {}", idents.name()),
+                            hir::ItemKind::Ty(ident, _) => format!("ty {}", ident.name),
+                            hir::ItemKind::Export(ident, item_id) =>
+                                format!("export {} to {item_id}", ident.name),
+                        }
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+        eprintln!(
+            "  namespaces: {}",
+            package
+                .namespaces
+                .iter()
+                .map(|ns| ns
+                    .into_iter()
+                    .map(|ns| ns.join("."))
+                    .collect::<Vec<_>>()
+                    .join(", "))
+                .collect::<Vec<_>>()
+                .join("; ")
+        );
+        package
     }
 
     pub(super) fn lower_namespace(&mut self, namespace: &ast::Namespace) {
@@ -269,12 +309,30 @@ impl With<'_> {
                     return None;
                 }
                 for item in &item.items {
+                    eprintln!("lowering an import/export item");
+
                     let Some(item_name) = item.name() else {
                         continue;
                     };
-                    let Some((id, alias)) = resolve_id(item_name.id) else {
+                    let PathKind::Ok(item_path) = &item.path else {
                         continue;
                     };
+
+                    let Some((id, alias)) = resolve_id(item_path.id) else {
+                        continue;
+                    };
+
+                    eprintln!(
+                        "  resolved id: {id}, path: {}, name: {item_name} alias: {alias:?}",
+                        item_path
+                            .segments
+                            .iter()
+                            .flatten()
+                            .chain(once(item_path.name.as_ref()))
+                            .map(|i| i.name.clone())
+                            .collect::<Vec<_>>()
+                            .join(".")
+                    );
 
                     let effective_alias = if alias.is_some() {
                         // Explicit alias or re-export with alias from resolver
@@ -290,7 +348,9 @@ impl With<'_> {
                         {
                             matches!(
                                 hir_item.kind,
-                                hir::ItemKind::Callable(_) | hir::ItemKind::Ty(_, _)
+                                hir::ItemKind::Callable(_)
+                                    | hir::ItemKind::Ty(_, _)
+                                    | hir::ItemKind::Namespace(_, _)
                             )
                         } else {
                             // If item not found in current compilation, it's likely a namespace or external item
@@ -307,10 +367,12 @@ impl With<'_> {
                         alias.as_ref().map(|ident| ident.name.clone())
                     };
 
-                    let is_reexport = id.package.is_some() || effective_alias.is_some();
+                    let should_add_export_item = id.package.is_some() || effective_alias.is_some();
+
+                    eprintln!("  should add export item? {should_add_export_item}");
                     // if the package is Some, then this is a re-export and we
                     // need to preserve the reference to the original `ItemId`
-                    if is_reexport {
+                    if should_add_export_item {
                         let mut name = self.lower_ident(item_name);
                         name.id = self.assigner.next_node();
                         let kind = hir::ItemKind::Export(name, id);
@@ -1063,7 +1125,12 @@ impl With<'_> {
             // Exported items are just pass-throughs to the items they reference, and should be
             // treated as Res to that original item.
             Some(&resolve::Res::ExportedItem(item_id, _)) => hir::Res::Item(item_id),
-            Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param { .. })
+            Some(
+                resolve::Res::PrimTy(_)
+                | resolve::Res::UnitTy
+                | resolve::Res::Param { .. }
+                | resolve::Res::NameOnlyExport,
+            )
             | None => hir::Res::Err,
         }
     }

@@ -132,6 +132,9 @@ impl<'a> Context<'a> {
                     "A path should never resolve \
                     to a local or a parameter, as there is syntactic differentiation."
                 ),
+                Some(resolve::Res::NameOnlyExport) => {
+                    unreachable!("A path should never resolve to a name-only import")
+                }
             },
             TyKind::Param(TypeParameter {
                 ty, constraints: _, ..
@@ -635,7 +638,10 @@ impl<'a> Context<'a> {
                     converge(Ty::Arrow(Rc::new(ty)))
                 }
                 Some(Res::PrimTy(_) | Res::UnitTy | Res::Param { .. }) => {
-                    panic!("expression should not resolve to type reference")
+                    unreachable!("expression should not resolve to type reference")
+                }
+                Some(Res::NameOnlyExport) => {
+                    unreachable!("expression should not resolve to name-only import")
                 }
             },
         }

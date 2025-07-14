@@ -2753,7 +2753,7 @@ fn export_hir_cross_namespace_export() {
                         ctl-adj: <none>
                 Item 2 [49-87] (Public):
                     Namespace (Ident 10 [59-63] "Test"): <empty>
-                Item 4 [77-84] (Public):
+                Item 3 [77-84] (Public):
                     Parent: 2
                     Export (Ident 9 [81-84] "Bar"): Item 1"#]],
     );

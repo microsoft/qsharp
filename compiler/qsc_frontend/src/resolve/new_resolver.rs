@@ -84,7 +84,17 @@ impl ValidImportOrExportItem {
         }
     }
 
-    pub fn is_export(&self) -> bool {
+    pub fn is_name_only_export(&self) -> bool {
+        matches!(
+            self.kind,
+            ImportOrExportItemKind::Direct {
+                alias: None,
+                is_export: true,
+            }
+        )
+    }
+
+    pub fn _is_export(&self) -> bool {
         !matches!(
             self.kind,
             ImportOrExportItemKind::GlobImport

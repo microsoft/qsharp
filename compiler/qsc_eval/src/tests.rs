@@ -4108,7 +4108,7 @@ fn partial_eval_stmt_function_calls_from_library() {
                         7
                         8
                     Expr 7 [21-27] [Type ((Int)[] -> Int)]: Var:
-                        res: Item 1 (Package 0)
+                        res: Item 2 (Package 0)
                         generics:
                             Int
                     Expr 8 [28-29] [Type (Int)[]]: Var: Local 0

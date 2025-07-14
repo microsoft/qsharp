@@ -565,6 +565,8 @@ fn resolve_all(
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
+    eprintln!("globals after all external packages have been added:\n{globals:?}");
+
     // bind all symbols in `add_local_package`
     errors.extend(globals.add_local_package(assigner, package));
     let mut resolver = Resolver::new(globals, dropped_names);

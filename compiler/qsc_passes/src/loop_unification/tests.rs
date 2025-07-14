@@ -64,7 +64,7 @@ fn convert_for_array() {
                                         Pat 25 [75-78] [Type Int]: Bind: Ident 21 [75-78] "@len_id_21"
                                         Expr 22 [75-78] [Type Int]: Call:
                                             Expr 20 [75-78] [Type (Int[] -> Int)]: Var:
-                                                res: Item 1 (Package 0)
+                                                res: Item 2 (Package 0)
                                                 generics:
                                                     Int
                                             Expr 23 [75-78] [Type Int[]]: Var: Local 17
@@ -127,7 +127,7 @@ fn convert_for_array_deconstruct() {
                                         Pat 28 [90-93] [Type Int]: Bind: Ident 24 [90-93] "@len_id_24"
                                         Expr 25 [90-93] [Type Int]: Call:
                                             Expr 23 [90-93] [Type ((Int, Double)[] -> Int)]: Var:
-                                                res: Item 1 (Package 0)
+                                                res: Item 2 (Package 0)
                                                 generics:
                                                     (Int, Double)
                                             Expr 26 [90-93] [Type (Int, Double)[]]: Var: Local 20
@@ -198,7 +198,7 @@ fn convert_for_slice() {
                                         Pat 31 [75-88] [Type Int]: Bind: Ident 27 [75-88] "@len_id_27"
                                         Expr 28 [75-88] [Type Int]: Call:
                                             Expr 26 [75-88] [Type (Int[] -> Int)]: Var:
-                                                res: Item 1 (Package 0)
+                                                res: Item 2 (Package 0)
                                                 generics:
                                                     Int
                                             Expr 29 [75-88] [Type Int[]]: Var: Local 23

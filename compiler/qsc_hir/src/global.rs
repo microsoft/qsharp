@@ -24,7 +24,7 @@ pub struct Global {
 }
 
 pub enum Kind {
-    Namespace,
+    Namespace(ItemId),
     Ty(Ty),
     Term(Term),
     Export(ItemId),
@@ -33,7 +33,7 @@ pub enum Kind {
 impl std::fmt::Debug for Kind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Kind::Namespace => write!(f, "Namespace"),
+            Kind::Namespace(id) => write!(f, "Namespace({id})"),
             Kind::Ty(ty) => write!(f, "Ty({})", ty.id),
             Kind::Term(term) => write!(f, "Term({})", term.id),
             Kind::Export(id) => write!(f, "Export({id:?})"),
@@ -96,7 +96,7 @@ impl FromIterator<Global> for Table {
                         .or_default()
                         .insert(global.name, term);
                 }
-                Kind::Namespace | Kind::Export(_) => {}
+                Kind::Namespace(_) | Kind::Export(_) => {}
             }
         }
 
@@ -194,7 +194,7 @@ impl PackageIter<'_> {
                 name: "".into(),
                 visibility: Visibility::Public,
                 status,
-                kind: Kind::Namespace,
+                kind: Kind::Namespace(id),
             }),
             (
                 ItemKind::Export(name, ItemId { package, .. }),

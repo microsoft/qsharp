@@ -124,6 +124,9 @@ pub(super) fn ty_from_path(names: &Names, path: &Path) -> Ty {
         Some(resolve::Res::ExportedItem(item_id, alias)) => {
             unreachable!("Exported items should have been resolved to their original definition in type checking. Found {:?} with alias {:?}", item_id, alias);
         }
+        Some(resolve::Res::NameOnlyExport) => {
+            unreachable!("Did not expect path to resolve to name-only import");
+        }
         None => Ty::Err,
     }
 }
