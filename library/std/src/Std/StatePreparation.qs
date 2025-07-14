@@ -187,7 +187,7 @@ operation ApproximatelyUnprepareArbitraryState(
 /// \begin{align}
 ///     U = \sum^{2^n - 1}_{j=0} \ket{j}\bra{j} \otimes e^{i P \theta_j}.
 /// \end{align}
-/// ##
+/// $$
 ///
 /// # Input
 /// ## tolerance
@@ -217,23 +217,10 @@ operation ApproximatelyMultiplexPauli(
     control : Qubit[],
     target : Qubit
 ) : Unit is Adj + Ctl {
-
-    if pauli == PauliZ {
+    within {
+        MapPauliAxis(PauliZ, pauli, target);
+    } apply {
         ApproximatelyMultiplexZ(tolerance, coefficients, control, target);
-    } elif pauli == PauliX {
-        within {
-            H(target);
-        } apply {
-            ApproximatelyMultiplexPauli(tolerance, coefficients, PauliZ, control, target);
-        }
-    } elif pauli == PauliY {
-        within {
-            Adjoint S(target);
-        } apply {
-            ApproximatelyMultiplexPauli(tolerance, coefficients, PauliX, control, target);
-        }
-    } else {
-        fail $"MultiplexPauli failed. Invalid pauli {pauli}.";
     }
 }
 
