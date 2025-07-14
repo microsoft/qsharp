@@ -357,13 +357,13 @@ pub fn parse_annotation(s: &mut ParserContext) -> Result<Annotation> {
 
     // annotation_line_content:
     // @ a.b.c "some value" more value \nmore content
-    // |.      |     |                |
-    // |.      |     |                |
-    // |.      |     ^------ value ---|
-    // |.      ^-- ident_lo           ^-- stmt_hi
+    // |.      |                      |
+    // |.      |                      |
+    // |.      ^-------- value -------|
+    // | ^-- ident_lo                 ^-- stmt_hi
     // |       |                      |
     // |       ^- annotation_content -^
-    // |      ^-- annotation_kw_offset
+    // |^-- annotation_kw_offset
     // ^-- stmt_lo
 
     let from_start = annotation_kw_offset.try_into().expect("valid size");
