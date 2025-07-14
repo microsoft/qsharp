@@ -348,11 +348,13 @@ fn annotations_in_single_stmt_for_stmt() {
                     body: Stmt [29-61]:
                         annotations:
                             Annotation [29-33]:
-                                identifier: "foo"
+                                identifier: foo
                                 value: <none>
+                                value_span: <none>
                             Annotation [42-46]:
-                                identifier: "bar"
+                                identifier: bar
                                 value: <none>
+                                value_span: <none>
                         kind: AssignStmt [55-61]:
                             lhs: Ident [55-56] "x"
                             rhs: Expr [59-60]: Lit: Int(5)"#]],

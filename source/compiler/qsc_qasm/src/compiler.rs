@@ -57,6 +57,11 @@ use crate::{
 use crate::semantic::ast as semast;
 use qsc_ast::ast::{self as qsast, NodeId, Package};
 
+const QSHARP_QIR_INTRINSIC_ANNOTATION: &str = "SimulatableIntrinsic";
+const QDK_QIR_INTRINSIC_ANNOTATION: &str = "qdk.qir.intrinsic";
+const QSHARP_CONFIG_ANNOTATION: &str = "Config";
+const QDK_CONFIG_ANNOTATION: &str = "qdk.qir.profile";
+
 /// Helper to create an error expression. Used when we fail to
 /// compile an expression. It is assumed that an error was
 /// already reported.
@@ -746,7 +751,7 @@ impl QasmCompiler {
         let kind = if stmt.has_qubit_params
             || annotations
                 .iter()
-                .any(|a| a.identifier == "SimulatableIntrinsic".into())
+                .any(|annotation| Self::is_simulatable_intrinsic(annotation))
         {
             qsast::CallableKind::Operation
         } else {
@@ -1119,10 +1124,10 @@ impl QasmCompiler {
             .iter()
             .filter_map(|annotation| self.compile_annotation(annotation));
 
-        // Do not compile functors if we have the @SimulatableIntrinsic annotation.
+        // Do not compile functors if we have the simulatable intrinsic annotation.
         let functors = if annotations
             .iter()
-            .any(|annotation| annotation.identifier.as_ref() == "SimulatableIntrinsic")
+            .any(|annotation| Self::is_simulatable_intrinsic(annotation))
         {
             None
         } else {
@@ -1145,15 +1150,28 @@ impl QasmCompiler {
     }
 
     fn compile_annotation(&mut self, annotation: &semast::Annotation) -> Option<qsast::Attr> {
-        match annotation.identifier.as_ref() {
-            "SimulatableIntrinsic" | "Config" => Some(build_attr(
-                &annotation.identifier,
-                annotation.value.as_ref(),
+        let name = annotation.identifier.as_string();
+        match name.as_str() {
+            QSHARP_QIR_INTRINSIC_ANNOTATION | QSHARP_CONFIG_ANNOTATION => {
+                Some(build_attr(name, annotation.value.clone(), annotation.span))
+            }
+            QDK_CONFIG_ANNOTATION => Some(build_attr(
+                QSHARP_CONFIG_ANNOTATION,
+                annotation.value.clone(),
                 annotation.span,
             )),
+            QDK_QIR_INTRINSIC_ANNOTATION => {
+                // Map the QDK QIR intrinsic annotation to the simulatable intrinsic annotation
+                // which is used by the Q# compiler
+                Some(build_attr(
+                    QSHARP_QIR_INTRINSIC_ANNOTATION,
+                    annotation.value.clone(),
+                    annotation.span,
+                ))
+            }
             _ => {
                 self.push_compiler_error(CompilerErrorKind::UnknownAnnotation(
-                    format!("@{}", annotation.identifier),
+                    format!("@{name}"),
                     annotation.span,
                 ));
                 None
@@ -2108,5 +2126,12 @@ impl QasmCompiler {
             semast::BinOp::Sub => qsast::BinOp::Sub,
             semast::BinOp::XorB => qsast::BinOp::XorB,
         }
+    }
+
+    fn is_simulatable_intrinsic(annotation: &semast::Annotation) -> bool {
+        matches!(
+            annotation.identifier.as_string().as_str(),
+            QDK_QIR_INTRINSIC_ANNOTATION | QSHARP_QIR_INTRINSIC_ANNOTATION
+        )
     }
 }
