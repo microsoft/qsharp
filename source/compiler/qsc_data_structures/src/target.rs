@@ -59,17 +59,6 @@ impl Profile {
             Self::AdaptiveRIF => "Adaptive_RIF",
         }
     }
-
-    #[allow(clippy::result_unit_err)]
-    pub fn from_friendly_name(value: &str) -> Result<Self, ()> {
-        match value.to_lowercase().as_str() {
-            "adaptiveri" | "adaptive-ri" => Ok(Self::AdaptiveRI),
-            "adaptiverif" | "adaptive-rif" => Ok(Self::AdaptiveRIF),
-            "base" => Ok(Self::Base),
-            "unrestricted" => Ok(Self::Unrestricted),
-            _ => Err(()),
-        }
-    }
 }
 
 impl From<Profile> for TargetCapabilityFlags {

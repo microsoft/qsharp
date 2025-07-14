@@ -38,7 +38,7 @@ impl Visitor<'_> for DetectEntryPointProfile {
             // Try to parse the argument as a profile name
             if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
                 if let ExprKind::Path(PathKind::Ok(path)) = inner.kind.as_ref() {
-                    if let Ok(profile) = Profile::from_friendly_name(path.name.name.as_ref()) {
+                    if let Ok(profile) = Profile::from_str(path.name.name.as_ref()) {
                         self.profile = Some((profile, path.span));
                     }
                 }

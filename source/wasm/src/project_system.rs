@@ -451,7 +451,7 @@ pub(crate) fn into_qsc_args(
     let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
 
     // Use the project-level target_profile from ProgramConfig
-    let profile = qsc::target::Profile::from_friendly_name(&program.profile())
+    let profile = qsc::target::Profile::from_str(&program.profile())
         .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()));
     let capabilities = profile.into();
 

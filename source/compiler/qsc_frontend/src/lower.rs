@@ -383,7 +383,7 @@ impl With<'_> {
                 // @EntryPoint(Profile)
                 ast::ExprKind::Paren(inner)
                     if matches!(inner.kind.as_ref(), ast::ExprKind::Path(PathKind::Ok(path))
-                if Profile::from_friendly_name(path.name.name.as_ref()).is_ok()) =>
+                if Profile::from_str(path.name.name.as_ref()).is_ok()) =>
                 {
                     Some(hir::Attr::EntryPoint)
                 }
