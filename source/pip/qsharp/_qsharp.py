@@ -464,6 +464,7 @@ def run(
             DepolarizingNoise,
         ]
     ] = None,
+    qubit_loss: Optional[float] = None,
 ) -> List[Any]:
     """
     Runs the given Q# expression for the given number of shots.
@@ -476,6 +477,7 @@ def run(
     :param on_result: A callback function that will be called with each result.
     :param save_events: If true, the output of each shot will be saved. If false, they will be printed.
     :param noise: The noise to use in simulation.
+    :param qubit_loss: The probability of qubit loss in simulation.
 
     :returns values: A list of results or runtime errors. If `save_events` is true,
     a List of ShotResults is returned.
@@ -530,6 +532,7 @@ def run(
             entry_expr,
             on_save_events if save_events else print_output,
             noise,
+            qubit_loss,
             callable,
             args,
         )

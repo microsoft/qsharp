@@ -192,6 +192,8 @@ function App({ state }: { state: State }) {
             <a href="vscode://settings/Q%23.simulation.pauliNoise">
               noise model
             </a>{" "}
+            or any{" "}
+            <a href="vscode://settings/Q%23.simulation.qubitLoss">qubit loss</a>{" "}
             has been configured, this may impact results
           </p>
         </>

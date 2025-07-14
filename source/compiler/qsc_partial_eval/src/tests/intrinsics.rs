@@ -968,7 +968,9 @@ fn use_of_noise_does_not_generate_instructions() {
 }
 
 #[test]
-#[should_panic(expected = "`CheckZero` is not a supported by partial evaluation")]
+#[should_panic(
+    expected = "partial evaluation failed: UnsupportedSimulationIntrinsic(\"CheckZero\","
+)]
 fn call_to_check_zero_panics() {
     _ = get_rir_program(indoc! {
         r#"

@@ -7,7 +7,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { generate_docs } from "./lib/node/qsc_wasm.cjs";
+import { generate_docs } from "./lib/nodejs/qsc_wasm.cjs";
 
 const scriptDirPath = dirname(fileURLToPath(import.meta.url));
 const docsDirPath = join(scriptDirPath, "docs");

@@ -39,23 +39,24 @@ fn sqrt_float_domain_error() {
     check_stmt_kinds(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-19]:
-                    annotations: <empty>
-                    kind: Err
+            Program:
+                version: <none>
+                pragmas: <empty>
+                statements:
+                    Stmt [9-19]:
+                        annotations: <empty>
+                        kind: Err
 
-        [Qasm.Lowerer.DomainError
+            [Qasm.Lowerer.DomainError
 
-          x cannot compute square root of negative floats
-           ,-[test:2:9]
-         1 | 
-         2 |         sqrt(-4.);
-           :         ^^^^^^^^^
-         3 |     
-           `----
-        ]"#]],
+              x cannot compute square root of negative floats
+               ,-[test:2:9]
+             1 | 
+             2 |         sqrt(-4.);
+               :         ^^^^^^^^^
+             3 |     
+               `----
+            ]"#]],
     );
 }
 

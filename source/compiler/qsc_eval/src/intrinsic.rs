@@ -208,6 +208,7 @@ pub(crate) fn call(
             )
             .into(),
         )),
+        "__quantum__rt__read_loss" => Ok(Value::Bool(arg == Value::Result(val::Result::Loss))),
         _ => {
             let qubits = arg.qubits();
             let qubits_len = qubits.len();

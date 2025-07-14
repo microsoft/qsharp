@@ -64,13 +64,14 @@ use resource_estimator as re;
 #[pyfunction]
 #[allow(clippy::too_many_arguments)]
 #[pyo3(
-    signature = (source, callback=None, noise=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, **kwargs)
+    signature = (source, callback=None, noise=None, qubit_loss=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, **kwargs)
 )]
 pub(crate) fn run_qasm_program(
     py: Python,
     source: &str,
     callback: Option<PyObject>,
     noise: Option<(f64, f64, f64)>,
+    qubit_loss: Option<f64>,
     read_file: Option<PyObject>,
     list_directory: Option<PyObject>,
     resolve_path: Option<PyObject>,
@@ -125,7 +126,8 @@ pub(crate) fn run_qasm_program(
             Err(error_message) => return Err(PyException::new_err(error_message)),
         },
     };
-    let result = run_ast(&mut interpreter, &mut receiver, shots, seed, noise);
+    let loss = qubit_loss.unwrap_or(0.0);
+    let result = run_ast(&mut interpreter, &mut receiver, shots, seed, noise, loss);
     match result {
         Ok(result) => Ok(PyList::new(py, result.iter().map(|v| ValueWrapper(v.clone())))?.into()),
         Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
@@ -138,6 +140,7 @@ pub(crate) fn run_ast(
     shots: usize,
     seed: Option<u64>,
     noise: Option<PauliNoise>,
+    loss: f64,
 ) -> Result<Vec<qsc::interpret::Value>, Vec<interpret::Error>> {
     let mut results = Vec::with_capacity(shots);
     for i in 0..shots {
@@ -146,6 +149,7 @@ pub(crate) fn run_ast(
         } else {
             SparseSim::new()
         };
+        sim.set_loss(loss);
         // If seed is provided, we want to use a different seed for each shot
         // so that the results are different for each shot, but still deterministic
         sim.set_seed(seed.map(|s| s + i as u64));

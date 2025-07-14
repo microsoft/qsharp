@@ -121,7 +121,7 @@ fn get_includes(program: &Program, parent: &Arc<str>) -> Vec<(Arc<str>, Arc<str>
             if let StmtKind::Include(include) = &*stmt.kind {
                 if matches!(
                     include.filename.to_lowercase().as_ref(),
-                    "stdgates.inc" | "qelib1.inc"
+                    "stdgates.inc" | "qelib1.inc" | "qdk.inc"
                 ) {
                     return None;
                 }

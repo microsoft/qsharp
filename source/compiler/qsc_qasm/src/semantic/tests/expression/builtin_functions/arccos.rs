@@ -95,23 +95,24 @@ fn arccos_negative_domain_error() {
     check_stmt_kinds(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-23]:
-                    annotations: <empty>
-                    kind: Err
+            Program:
+                version: <none>
+                pragmas: <empty>
+                statements:
+                    Stmt [9-23]:
+                        annotations: <empty>
+                        kind: Err
 
-        [Qasm.Lowerer.DomainError
+            [Qasm.Lowerer.DomainError
 
-          x arccos input should be in the range [-1.0, 1.0]
-           ,-[test:2:9]
-         1 | 
-         2 |         arccos(-1.01);
-           :         ^^^^^^^^^^^^^
-         3 |     
-           `----
-        ]"#]],
+              x arccos input should be in the range [-1.0, 1.0]
+               ,-[test:2:9]
+             1 | 
+             2 |         arccos(-1.01);
+               :         ^^^^^^^^^^^^^
+             3 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -124,22 +125,23 @@ fn arccos_positive_domain_error() {
     check_stmt_kinds(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-22]:
-                    annotations: <empty>
-                    kind: Err
+            Program:
+                version: <none>
+                pragmas: <empty>
+                statements:
+                    Stmt [9-22]:
+                        annotations: <empty>
+                        kind: Err
 
-        [Qasm.Lowerer.DomainError
+            [Qasm.Lowerer.DomainError
 
-          x arccos input should be in the range [-1.0, 1.0]
-           ,-[test:2:9]
-         1 | 
-         2 |         arccos(1.01);
-           :         ^^^^^^^^^^^^
-         3 |     
-           `----
-        ]"#]],
+              x arccos input should be in the range [-1.0, 1.0]
+               ,-[test:2:9]
+             1 | 
+             2 |         arccos(1.01);
+               :         ^^^^^^^^^^^^
+             3 |     
+               `----
+            ]"#]],
     );
 }

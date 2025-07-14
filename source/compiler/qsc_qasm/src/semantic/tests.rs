@@ -77,6 +77,16 @@ pub(super) fn check_stmt_kind<S: Into<Arc<str>>>(input: S, expect: &Expect) {
     });
 }
 
+pub(super) fn check_last_stmt<S: Into<Arc<str>>>(input: S, expect: &Expect) {
+    check_map(input, expect, |p, _| {
+        p.statements
+            .last()
+            .expect("reading last statement")
+            .kind
+            .to_string()
+    });
+}
+
 pub(super) fn check_stmt_kinds<S: Into<Arc<str>>>(input: S, expect: &Expect) {
     check_map(input, expect, |p, _| {
         p.statements
@@ -186,6 +196,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
         &expect![[r#"
             Program:
                 version: 3.0
+                pragmas: <empty>
                 statements:
                     Stmt [196-206]:
                         annotations: <empty>

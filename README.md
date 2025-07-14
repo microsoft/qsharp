@@ -37,8 +37,11 @@ To build this repository there are dependencies that need to be installed. These
     rustup target add aarch64-apple-darwin
     ```
 - Node.js (<https://nodejs.org/>)
-- wasm-pack (<https://rustwasm.github.io/wasm-pack/installer/>)
 - A [C compiler](https://docs.rs/cc/latest/cc/#compile-time-requirements)
+- wasm-bindgen (see <https://github.com/rustwasm/wasm-bindgen>)
+- wasm-opt (see <https://github.com/WebAssembly/binaryen>)
+
+The last two can be installed into your HOME directory by running `python ./prereqs.py --install`
 
 The build script will check these dependencies and their versions and fail if not met. (Or run
 `python ./prereqs.py` directly to check if the minimum required versions are installed).

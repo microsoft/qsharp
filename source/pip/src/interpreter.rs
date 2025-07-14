@@ -570,13 +570,15 @@ impl Interpreter {
         Circuit(self.interpreter.get_circuit()).into_py_any(py)
     }
 
-    #[pyo3(signature=(entry_expr=None, callback=None, noise=None, callable=None, args=None))]
+    #[allow(clippy::too_many_arguments)]
+    #[pyo3(signature=(entry_expr=None, callback=None, noise=None, qubit_loss=None, callable=None, args=None))]
     fn run(
         &mut self,
         py: Python,
         entry_expr: Option<&str>,
         callback: Option<PyObject>,
         noise: Option<(f64, f64, f64)>,
+        qubit_loss: Option<f64>,
         callable: Option<GlobalCallable>,
         args: Option<PyObject>,
     ) -> PyResult<PyObject> {
@@ -597,10 +599,17 @@ impl Interpreter {
                     .global_tys(&callable.0)
                     .ok_or(QSharpError::new_err("callable not found"))?;
                 let args = args_to_values(py, args, &input_ty, &output_ty)?;
-                self.interpreter
-                    .invoke_with_noise(&mut receiver, callable.0, args, noise)
+                self.interpreter.invoke_with_noise(
+                    &mut receiver,
+                    callable.0,
+                    args,
+                    noise,
+                    qubit_loss,
+                )
             }
-            _ => self.interpreter.run(&mut receiver, entry_expr, noise),
+            _ => self
+                .interpreter
+                .run(&mut receiver, entry_expr, noise, qubit_loss),
         };
 
         match result {
@@ -1029,6 +1038,7 @@ impl StateDumpData {
 pub(crate) enum Result {
     Zero,
     One,
+    Loss,
 }
 
 #[pymethods]
@@ -1038,6 +1048,7 @@ impl Result {
         match self {
             Result::Zero => "Zero".to_owned(),
             Result::One => "One".to_owned(),
+            Result::Loss => "Loss".to_owned(),
         }
     }
 
@@ -1051,6 +1062,7 @@ impl Result {
         match self {
             Result::Zero => 0,
             Result::One => 1,
+            Result::Loss => 2,
         }
     }
 }
@@ -1082,10 +1094,11 @@ impl<'py> IntoPyObject<'py> for ValueWrapper {
             Value::Double(val) => val.into_bound_py_any(py),
             Value::Bool(val) => val.into_bound_py_any(py),
             Value::String(val) => val.into_bound_py_any(py),
-            Value::Result(val) => if val.unwrap_bool() {
-                Result::One
-            } else {
-                Result::Zero
+            Value::Result(val) => match val {
+                qsc::interpret::Result::Id(_) => panic!("unexpected Result::Id in ValueWrapper"),
+                qsc::interpret::Result::Val(true) => Result::One,
+                qsc::interpret::Result::Val(false) => Result::Zero,
+                qsc::interpret::Result::Loss => Result::Loss,
             }
             .into_bound_py_any(py),
             Value::Pauli(val) => match val {

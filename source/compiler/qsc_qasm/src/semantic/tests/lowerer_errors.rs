@@ -30,16 +30,6 @@ fn check_lowerer_error_spans_are_correct() {
              5 | 
                `----
 
-            Qasm.Lowerer.Unimplemented
-
-              x this statement is not yet handled during OpenQASM 3 import: pragma stmt
-               ,-[Test.qasm:7:1]
-             6 | // Unimplemented pragma
-             7 | pragma my_pragma;
-               : ^^^^^^^^^^^^^^^^^
-             8 | 
-               `----
-
             Qasm.Lowerer.IncludeNotInGlobalScope
 
               x include stdgates.inc must be declared in global scope
@@ -246,18 +236,6 @@ fn check_lowerer_error_spans_are_correct() {
              88 |     2;
                 :     ^^
              89 | }
-                `----
-
-            Qasm.Lowerer.Unimplemented
-
-              x this statement is not yet handled during OpenQASM 3 import: box stmt
-                ,-[Test.qasm:86:1]
-             85 |     // Unimplemented box
-             86 | ,-> box {
-             87 | |       // ClassicalStmtInBox
-             88 | |       2;
-             89 | `-> }
-             90 |     
                 `----
 
             Qasm.Lowerer.InvalidScope

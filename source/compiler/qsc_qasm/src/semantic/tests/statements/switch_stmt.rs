@@ -14,6 +14,7 @@ fn not_supported_before_version_3_1() {
         &expect![[r#"
             Program:
                 version: 3.0
+                pragmas: <empty>
                 statements:
                     Stmt [23-47]:
                         annotations: <empty>

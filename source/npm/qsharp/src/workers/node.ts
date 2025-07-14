@@ -9,7 +9,7 @@ import {
   parentPort,
   workerData,
 } from "node:worker_threads";
-import * as wasm from "../../lib/node/qsc_wasm.cjs";
+import * as wasm from "../../lib/nodejs/qsc_wasm.cjs";
 import { log } from "../log.js";
 import {
   IServiceEventMessage,

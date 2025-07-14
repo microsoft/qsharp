@@ -40,7 +40,7 @@ let wasm: Wasm | null = null;
 
 function ensureWasm() {
   if (!wasm) {
-    wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
+    wasm = require("../lib/nodejs/qsc_wasm.cjs") as Wasm;
     // Set up logging and telemetry as soon as possible after instantiating
     wasm.initLogging(log.logWithLevel, log.getLogLevel());
     log.onLevelChanged = (level) => wasm?.setLogLevel(level);

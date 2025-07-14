@@ -9,6 +9,7 @@ use crate::semantic::ast::ExprKind;
 use crate::semantic::ast::Index;
 use crate::semantic::ast::LiteralKind;
 use crate::semantic::ast::Range;
+use crate::semantic::types::ArrayType;
 use expect_test::expect;
 use qsc_data_structures::span::Span;
 
@@ -23,7 +24,12 @@ fn make_int_expr(val: i64) -> Expr {
 #[test]
 fn indexed_type_has_right_dimensions() {
     let base_ty_builder = || Type::Bool(false);
-    let array_ty_builder = |dims| Type::BoolArray(dims);
+    let array_ty_builder = |dims| {
+        Type::Array(ArrayType {
+            base_ty: crate::semantic::types::ArrayBaseType::Bool,
+            dims,
+        })
+    };
     let dims = ArrayDimensions::Three(2, 3, 4);
 
     let index = Index::Expr(make_int_expr(0));
@@ -35,7 +41,12 @@ fn indexed_type_has_right_dimensions() {
 #[test]
 fn sliced_type_has_right_dimensions() {
     let base_ty_builder = || Type::Bool(false);
-    let array_ty_builder = |dims| Type::BoolArray(dims);
+    let array_ty_builder = |dims| {
+        Type::Array(ArrayType {
+            base_ty: crate::semantic::types::ArrayBaseType::Bool,
+            dims,
+        })
+    };
     let dims = ArrayDimensions::Three(5, 1, 2);
 
     let index = Index::Range(Box::new(Range {
