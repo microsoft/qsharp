@@ -98,6 +98,10 @@ pub const STD_LIB: &[(&str, &str)] = &[
         include_str!("../std/src/Std/OpenQASM/Angle.qs"),
     ),
     (
+        "qsharp-library-source:Std/OpenQASM/Builtin.qs",
+        include_str!("../std/src/Std/OpenQASM/Builtin.qs"),
+    ),
+    (
         "qsharp-library-source:Std/OpenQASM/Convert.qs",
         include_str!("../std/src/Std/OpenQASM/Convert.qs"),
     ),

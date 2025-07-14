@@ -19,7 +19,7 @@
 				"base": "$tsc-watch",
 				"fileLocation":[
 					"relative",
-					"${workspaceFolder}/npm"
+					"${workspaceFolder}/source/npm"
 				]
 			},
 			"isBackground": true
@@ -34,7 +34,7 @@
 				"base": "$tsc-watch",
 				"fileLocation":[
 					"relative",
-					"${workspaceFolder}/playground"
+					"${workspaceFolder}/source/playground"
 				]
 			},
 			"isBackground": true
@@ -48,7 +48,7 @@
 				"owner": "esbuild",
 				"fileLocation":[
 					"relative",
-					"${workspaceFolder}/playground"
+					"${workspaceFolder}/source/playground"
 				],
 				"pattern":[
 					{

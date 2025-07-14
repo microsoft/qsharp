@@ -8,7 +8,7 @@
 // Export the Angle type and its associated functions.
 export Angle;
 // Export the array conversion functions for Angle.
-export AngleAsBoolArrayBE, AngleAsResultArray;
+export AngleAsBoolArrayBE, AngleAsResultArrayBE;
 // Export cast from Angle to other types.
 export AngleAsDouble, AngleAsBool, AngleAsResult;
 // Export cast from other types to Angle.
@@ -32,10 +32,6 @@ struct Angle {
 
 function AngleAsBoolArrayBE(angle : Angle) : Bool[] {
     Std.Arrays.Reversed(Std.Convert.IntAsBoolArray(angle.Value, angle.Size))
-}
-
-function AngleAsResultArray(angle : Angle) : Result[] {
-    Std.OpenQASM.Convert.IntAsResultArrayBE(angle.Value, angle.Size)
 }
 
 function AngleAsDouble(angle : Angle) : Double {

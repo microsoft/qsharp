@@ -1,33 +1,33 @@
 [workspace]
 members = [
-    "allocator",
-    "allocator/mimalloc-sys",
-    "compiler/qsc",
-    "compiler/qsc_ast",
-    "compiler/qsc_circuit",
-    "compiler/qsc_codegen",
-    "compiler/qsc_data_structures",
-    "compiler/qsc_doc_gen",
-    "compiler/qsc_eval",
-    "compiler/qsc_fir",
-    "compiler/qsc_frontend",
-    "compiler/qsc_hir",
-    "compiler/qsc_linter",
-    "compiler/qsc_lowerer",
-    "compiler/qsc_parse",
-    "compiler/qsc_partial_eval",
-    "compiler/qsc_passes",
-    "compiler/qsc_project",
-    "compiler/qsc_qasm",
-    "compiler/qsc_rir",
-    "fuzz",
     "katas",
-    "language_service",
     "library",
-    "pip",
-    "resource_estimator",
-    "samples_test",
-    "wasm",
+    "source/allocator",
+    "source/allocator/mimalloc-sys",
+    "source/compiler/qsc",
+    "source/compiler/qsc_ast",
+    "source/compiler/qsc_circuit",
+    "source/compiler/qsc_codegen",
+    "source/compiler/qsc_data_structures",
+    "source/compiler/qsc_doc_gen",
+    "source/compiler/qsc_eval",
+    "source/compiler/qsc_fir",
+    "source/compiler/qsc_frontend",
+    "source/compiler/qsc_hir",
+    "source/compiler/qsc_linter",
+    "source/compiler/qsc_lowerer",
+    "source/compiler/qsc_parse",
+    "source/compiler/qsc_partial_eval",
+    "source/compiler/qsc_passes",
+    "source/compiler/qsc_project",
+    "source/compiler/qsc_qasm",
+    "source/compiler/qsc_rir",
+    "source/fuzz",
+    "source/language_service",
+    "source/pip",
+    "source/resource_estimator",
+    "source/samples_test",
+    "source/wasm",
 ]
 resolver = "2"
 
@@ -35,7 +35,7 @@ resolver = "2"
 authors = ["Microsoft"]
 homepage = "https://github.com/microsoft/qsharp"
 repository = "https://github.com/microsoft/qsharp"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 version = "0.0.0"
 
@@ -73,7 +73,7 @@ wasm-bindgen-futures = "0.4"
 rand = "0.8"
 serde_json = "1.0"
 pyo3 = "0.24"
-quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "c84d511f074cd93f3f800fde9e7a6296045f3aea" }
+quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "e1930df15ef02b3bf273a6f536f46bf6871448c5" }
 async-trait = "0.1"
 tokio = { version = "1.44", features = ["macros", "rt"] }
 

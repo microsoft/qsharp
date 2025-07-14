@@ -524,8 +524,10 @@ fn check_gcd_l() {
         "Microsoft.Quantum.Math.GreatestCommonDivisorL(2L*3L*5L,2L*3L*7L)",
         &Value::BigInt(BigInt::from(2 * 3)),
     );
-    test_expression("Microsoft.Quantum.Math.GreatestCommonDivisorL(222232244629420445529739893461909967206666939096499764990979600L,359579325206583560961765665172189099052367214309267232255589801L)", &Value::BigInt(
-        BigInt::from(1)));
+    test_expression(
+        "Microsoft.Quantum.Math.GreatestCommonDivisorL(222232244629420445529739893461909967206666939096499764990979600L,359579325206583560961765665172189099052367214309267232255589801L)",
+        &Value::BigInt(BigInt::from(1)),
+    );
 }
 
 #[test]
@@ -624,11 +626,23 @@ fn check_cfc_l() {
     );
     test_expression(
         "Microsoft.Quantum.Math.ContinuedFractionConvergentL((170141183460469231731687303715884105727L,331780596164137120496034969018767441441L), 2L)",
-        &Value::Tuple(vec![Value::BigInt(BigInt::from(1)), Value::BigInt(BigInt::from(2))].into()),
+        &Value::Tuple(
+            vec![
+                Value::BigInt(BigInt::from(1)),
+                Value::BigInt(BigInt::from(2)),
+            ]
+            .into(),
+        ),
     );
     test_expression(
         "Microsoft.Quantum.Math.ContinuedFractionConvergentL((170141183460469231731687303715884105727L,331780596164137120496034969018767441441L), 1000000L)",
-        &Value::Tuple(vec![Value::BigInt(BigInt::from(33_781)), Value::BigInt(BigInt::from(65_874))].into()),
+        &Value::Tuple(
+            vec![
+                Value::BigInt(BigInt::from(33_781)),
+                Value::BigInt(BigInt::from(65_874)),
+            ]
+            .into(),
+        ),
     );
 }
 

@@ -122,7 +122,6 @@ function DumpMatrix(qs : Qubit[]) : Unit {
 /// # Remarks
 /// This operation is useful for checking whether a qubit is in the |0⟩ state during simulation. It is not possible to check
 /// this on hardware without measuring the qubit, which could change the state.
-@Config(Unrestricted)
 operation CheckZero(qubit : Qubit) : Bool {
     body intrinsic;
 }
@@ -144,7 +143,6 @@ operation CheckZero(qubit : Qubit) : Bool {
 /// # Remarks
 /// This operation is useful for checking whether a qubit is in the |0⟩ state during simulation. It is not possible to check
 /// this on hardware without measuring the qubit, which could change the state.
-@Config(Unrestricted)
 operation CheckAllZero(qubits : Qubit[]) : Bool {
     for q in qubits {
         if not CheckZero(q) {
@@ -201,7 +199,6 @@ function Fact(actual : Bool, message : String) : Unit {
 /// Operation defining the expected behavior for the operation under test.
 /// # Output
 /// True if operations are equal, false otherwise.
-@Config(Unrestricted)
 operation CheckOperationsAreEqual(
     nQubits : Int,
     actual : (Qubit[] => Unit),
@@ -390,10 +387,34 @@ function ConfigurePauliNoise(px : Double, py : Double, pz : Double) : Unit {
 }
 
 /// # Summary
-/// Applies configured noise to a qubit.
+/// Configures qubit loss during simulation.
 ///
 /// # Description
-/// This operation applies configured noise to a qubit during simulation. For example,
+/// This function configures qubit loss for simulation. The parameter `p` represents
+/// the probability of a qubit loss during simulation. If `p` is greater than 0.0, the simulator will mark qubits
+/// as lost with the given probability during each operation that acts on them.
+/// Qubits that are lost are reset to the |0⟩ state but are not released. Loss is reported when the qubit is measured,
+/// and then the qubit is considered "reloaded" and can be used again.
+///
+/// # Input
+/// ## p
+/// The probability of a qubit being lost during simulation. Must be between 0.0 and 1.0.
+///
+/// # Remarks
+/// This operation is useful for simulating qubit loss for those modalities where qubit loss is a factor.
+/// Note that the value returned from a measurement of a lost qubit is neither `Zero` nor `One`, but rather a special
+/// value indicating that the qubit was lost. This value cannot be used in comparisons and will cause a runtime
+/// failure if compared to another value.
+/// To perform a measurement that includes a check for qubit loss, use the `MResetZChecked` operation.
+function ConfigureQubitLoss(p : Double) : Unit {
+    body intrinsic;
+}
+
+/// # Summary
+/// Applies configured noise or loss to a qubit.
+///
+/// # Description
+/// This operation applies configured noise and/or loss to a qubit during simulation. For example,
 /// if configured noise is a bit-flip noise with 5% probability, the X gate will be applied
 /// with 5% probability. If no noise is configured, no noise is applied.
 /// This is useful to simulate noise during idle periods. It could also be used to
@@ -402,6 +423,10 @@ function ConfigurePauliNoise(px : Double, py : Double, pz : Double) : Unit {
 /// # Input
 /// ## qubit
 /// The qubit to which noise is applied.
+///
+/// # See Also
+/// - [Std.Diagnostics.ConfigurePauliNoise](xref:Qdk.Std.Diagnostics.ConfigurePauliNoise)
+/// - [Std.Diagnostics.ConfigureQubitLoss](xref:Qdk.Std.Diagnostics.ConfigureQubitLoss)
 operation ApplyIdleNoise(qubit : Qubit) : Unit {
     body intrinsic;
 }
@@ -445,6 +470,7 @@ export
     StartCountingQubits,
     StopCountingQubits,
     ConfigurePauliNoise,
+    ConfigureQubitLoss,
     ApplyIdleNoise,
     BitFlipNoise,
     PhaseFlipNoise,

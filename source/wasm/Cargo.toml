@@ -1,0 +1,47 @@
+[package]
+name = "qsc_wasm"
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+# wasm-pack doesn't like the workspace format for the below, so copied in for now.
+homepage = "https://github.com/microsoft/qsharp"
+repository = "https://github.com/microsoft/qsharp"
+license = "MIT"
+description = "Wasm module for the qsc compiler"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+doctest = false
+
+[dependencies]
+futures-util = { workspace = true }
+js-sys = { workspace = true }
+katas = { path = "../../katas"}
+log = { workspace = true }
+miette = { workspace = true, features = ["fancy-no-syscall"] }
+num-bigint = { workspace = true }
+num-complex = { workspace = true }
+qsls = { path = "../language_service" }
+qsc = { path = "../compiler/qsc" }
+qsc_codegen = { path = "../compiler/qsc_codegen" }
+qsc_doc_gen = { path = "../compiler/qsc_doc_gen" }
+qsc_project = { path = "../compiler/qsc_project" }
+resource_estimator = { path = "../resource_estimator" }
+serde = { workspace = true, features = ["derive"] }
+serde-wasm-bindgen = { workspace = true}
+wasm-bindgen = { workspace = true}
+wasm-bindgen-futures = { workspace = true}
+serde_json = { workspace = true }
+rustc-hash = { workspace = true }
+async-trait = { workspace = true }
+
+# This is a transitive dependency of qir-stdlib which fails to build for wasm if 'js' feature isn't enabled.
+getrandom = { workspace = true, features = ["js"] }
+
+[dev-dependencies]
+expect-test = { workspace = true }
+indoc = { workspace = true }
+
+[lints]
+workspace = true

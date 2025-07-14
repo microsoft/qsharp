@@ -25,21 +25,24 @@ Notes:
 
 import { subscribe } from "@parcel/watcher";
 import { spawn, spawnSync } from "node:child_process";
-import { copyFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { copyWasmToVsCode, watchVsCode } from "./vscode/build.mjs";
-import { buildPlayground, copyWasmToPlayground } from "./playground/build.js";
+import { copyWasmToVsCode, watchVsCode } from "./source/vscode/build.mjs";
+import {
+  buildPlayground,
+  copyWasmToPlayground,
+} from "./source/playground/build.js";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
+const qdkSrcDir = join(thisDir, "source");
 
 // Watch the source directories directly to avoid notification noise from .git, __pycache__, node_modules, target, etc.
-const coreDir = join(thisDir, "compiler");
+const coreDir = join(qdkSrcDir, "compiler");
 const libsDir = join(thisDir, "library");
-const vslsDir = join(thisDir, "language_service");
-const wasmDir = join(thisDir, "wasm");
-const npmDir = join(thisDir, "npm", "qsharp");
+const vslsDir = join(qdkSrcDir, "language_service");
+const wasmDir = join(qdkSrcDir, "wasm");
+const npmDir = join(qdkSrcDir, "npm", "qsharp");
 const katasDir = join(thisDir, "katas");
 const samplesDir = join(thisDir, "samples");
 
@@ -50,42 +53,24 @@ const release = process.argv.includes("--release");
 
 function buildRust() {
   console.log(
-    "Compiling the .wasm module with wasm-pack " +
-      (release ? "(release)" : "(debug)"),
+    "Compiling the .wasm module " + (release ? "(release)" : "(debug)"),
   );
 
   // Dev build takes ~3-4 seconds on rebuild after some Rust changes. (Non-dev builds take ~15-20 seconds)
   // Build only web and not node targets to half time.
-  const buildDir = join(
-    thisDir,
-    "target",
-    "wasm32",
-    release ? "release" : "debug",
-    "web",
-  );
   const result = spawnSync(
-    "wasm-pack",
-    release
-      ? ["build", "--no-pack", "--target", "web", "--out-dir", buildDir]
-      : [
-          "build",
-          "--dev",
-          "--no-pack",
-          "--target",
-          "web",
-          "--out-dir",
-          buildDir,
-        ],
-    { cwd: wasmDir, shell: true },
+    "python",
+    [
+      "build.py",
+      "--wasm",
+      "--web-only",
+      "--no-check",
+      "--no-test",
+      release ? "" : "--debug",
+    ],
+    { cwd: thisDir, shell: true },
   );
-  console.log("wasm-pack done! ", result.stderr.toString());
-
-  console.log("Copying the wasm-pack output files to the npm package");
-  const npmLibDir = join(npmDir, "lib", "web");
-
-  ["qsc_wasm_bg.wasm", "qsc_wasm.d.ts", "qsc_wasm.js"].forEach((file) =>
-    copyFileSync(join(buildDir, file), join(npmLibDir, file)),
-  );
+  console.log("wasm build done ", result.stderr.toString());
 
   // The below copies the .wasm file from the npm dir to VS Code and playground projects
   // They already watch the .d.ts file from the npm package, so will rebuild if it changes.
@@ -178,14 +163,9 @@ function runWatcher(dir, name, watchTask = "tsc:watch") {
 runWatcher(npmDir, "npm");
 
 // VSCode and playground are built by esbuild, but run the type checker in watch mode
-runWatcher(join(thisDir, "vscode"), "vscode");
-runWatcher(join(thisDir, "vscode"), "vscode webview", "tsc:watch:view");
-runWatcher(
-  join(thisDir, "vscode"),
-  "vscode copilot webview",
-  "tsc:watch:copilotView",
-);
-runWatcher(join(thisDir, "playground"), "playground");
+runWatcher(join(qdkSrcDir, "vscode"), "vscode");
+runWatcher(join(qdkSrcDir, "vscode"), "vscode webview", "tsc:watch:view");
+runWatcher(join(qdkSrcDir, "playground"), "playground");
 
 // Kick off watch mode builds (this will detect changes in the npm package it depends on) also
 watchVsCode();

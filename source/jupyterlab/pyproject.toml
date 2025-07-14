@@ -1,0 +1,69 @@
+[build-system]
+requires = ["hatchling>=1.19.0", "hatch-nodejs-version"]
+build-backend = "hatchling.build"
+
+[project]
+name = "qsharp-jupyterlab"
+version = "0.0.0"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Framework :: Jupyter",
+    "Framework :: Jupyter :: JupyterLab",
+    "Framework :: Jupyter :: JupyterLab :: 4",
+    "Framework :: Jupyter :: JupyterLab :: Extensions",
+    "Framework :: Jupyter :: JupyterLab :: Extensions :: Prebuilt",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+]
+dynamic = ["description", "authors", "urls", "keywords"]
+
+[tool.hatch.version]
+source = "nodejs"
+
+[tool.hatch.metadata.hooks.nodejs]
+fields = ["description", "authors", "urls", "keywords"]
+
+[tool.hatch.build.targets.sdist]
+artifacts = ["qsharp-jupyterlab/labextension"]
+exclude = [".github", "binder"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"qsharp-jupyterlab/labextension" = "share/jupyter/labextensions/qsharp-jupyterlab"
+"install.json" = "share/jupyter/labextensions/qsharp-jupyterlab/install.json"
+
+[tool.hatch.build.hooks.version]
+path = "qsharp-jupyterlab/_version.py"
+
+[tool.hatch.build.hooks.jupyter-builder]
+dependencies = ["hatch-jupyter-builder>=0.5"]
+build-function = "hatch_jupyter_builder.npm_builder"
+ensured-targets = [
+    "qsharp-jupyterlab/labextension/package.json",
+]
+
+[tool.hatch.build.hooks.jupyter-builder.build-kwargs]
+build_cmd = "build"
+npm = ["npm"]
+
+[tool.hatch.build.hooks.jupyter-builder.editable-build-kwargs]
+build_cmd = "build:dev"
+npm = ["npm"]
+source_dir = "src"
+build_dir = "qsharp-jupyterlab/labextension"
+
+[tool.hatch.build.targets.wheel]
+packages = ["qsharp-jupyterlab"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"./setup.py" = "setup.py"
+
+[tool.check-wheel-contents]
+ignore = ["W002"]

@@ -5,10 +5,28 @@
 /// It is an internal implementation detail for OpenQASM compilation
 /// and is not intended for use outside of this context.
 
+// OpenQASM 3.0 intrinsics
+export gphase, U;
 
-// stdgates.inc, gates with implied modifiers are omitted as they are mapped
-// to the base gate with modifiers in the lowerer.
-export gphase, U, p, x, y, z, h, s, sdg, t, tdg, sx, rx, ry, rz, cx, cp, swap, ccx, cu, phase, id, u1, u2, u3;
+// OpenQASM 2.0 intrinsics
+export CX; // `U` exported above.
+
+// stdgates.inc <https://github.com/openqasm/openqasm/blob/spec/v3.1.0/examples/stdgates.inc>
+// main gate definitions
+export p, x, y, z, h, s, sdg, t, tdg, sx, rx, ry, rz, cx, cy, cz, cp, crx, cry, crz, ch, swap, ccx, cswap, cu;
+
+// stdgates.inc OpenQASM 2.0 backwards compatibility gates
+// `CX` is already exported above, so we don't need to export it again.
+export phase, cphase, id, u1, u2, u3;
+
+// qelib1.inc <https://github.com/openqasm/openqasm/blob/2.0/examples/qelib1.inc>
+// QE Hardware primitives are defined above as the OpenQASM 2.0 compatibility gates.
+// QE Standard Gates are defined above as the stdgates.inc gates.
+// Standard rotations are defined above as the stdgates.inc gates.
+
+// Most QE Standard User-Defined Gates are defined above as the stdgates.inc gates.
+// Remaining QE Standard User-Defined Gates:
+export cu1, cu3;
 
 // gates that qiskit won't emit qasm defs for that are NOT part of stgates.inc
 // but are have the _standard_gate property in Qiskit:
@@ -18,7 +36,9 @@ export rxx, ryy, rzz;
 
 // Remaining gates that are not in the qasm std library, but are standard gates in Qiskit
 // that Qiskit wont emit correctly.
-export dcx, ecr, r, rzx, cs, csdg, sxdg, csx, cu1, cu3, rccx, c3sqrtx, c3x, rc3x, xx_minus_yy, xx_plus_yy, ccz;
+export dcx, ecr, r, rzx, cs, csdg, sxdg, csx, rccx, c3sqrtx, c3x, rc3x, xx_minus_yy, xx_plus_yy, ccz;
+
+export mresetz_checked;
 
 export __quantum__qis__barrier__body;
 
@@ -86,6 +106,9 @@ operation U(theta : Angle, phi : Angle, lambda : Angle, qubit : Qubit) : Unit is
     controlled auto;
     controlled adjoint auto;
 }
+operation CX(ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
+    Std.Canon.CX(ctrl, qubit);
+}
 
 operation p(lambda : Angle, qubit : Qubit) : Unit is Adj + Ctl {
     Controlled gphase([qubit], lambda);
@@ -124,7 +147,7 @@ operation tdg(qubit : Qubit) : Unit is Adj + Ctl {
 }
 
 operation sx(qubit : Qubit) : Unit is Adj + Ctl {
-    SX(qubit);
+    Std.Intrinsic.SX(qubit);
 }
 
 operation rx(theta : Angle, qubit : Qubit) : Unit is Adj + Ctl {
@@ -143,11 +166,38 @@ operation rz(theta : Angle, qubit : Qubit) : Unit is Adj + Ctl {
 }
 
 operation cx(ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
-    Std.Intrinsic.CNOT(ctrl, qubit);
+    Std.Canon.CX(ctrl, qubit);
+}
+
+operation cy(ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
+    Std.Canon.CY(ctrl, qubit);
+}
+
+operation cz(ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
+    Std.Canon.CZ(ctrl, qubit);
 }
 
 operation cp(lambda : Angle, ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
     Controlled p([ctrl], (lambda, qubit));
+}
+
+operation crx(theta : Angle, ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
+    let theta = AngleAsDouble(theta);
+    Controlled Std.Intrinsic.Rx([ctrl], (theta, qubit));
+}
+
+operation cry(theta : Angle, ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
+    let theta = AngleAsDouble(theta);
+    Controlled Std.Intrinsic.Ry([ctrl], (theta, qubit));
+}
+
+operation crz(theta : Angle, ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
+    let theta = AngleAsDouble(theta);
+    Controlled Std.Intrinsic.Rz([ctrl], (theta, qubit));
+}
+
+operation ch(ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
+    Controlled Std.Intrinsic.H([ctrl], qubit);
 }
 
 operation swap(qubit1 : Qubit, qubit2 : Qubit) : Unit is Adj + Ctl {
@@ -158,6 +208,10 @@ operation ccx(ctrl1 : Qubit, ctrl2 : Qubit, target : Qubit) : Unit is Adj + Ctl 
     Std.Intrinsic.CCNOT(ctrl1, ctrl2, target);
 }
 
+operation cswap(ctrl : Qubit, qubit1 : Qubit, qubit2 : Qubit) : Unit is Adj + Ctl {
+    Controlled Std.Intrinsic.SWAP([ctrl], (qubit1, qubit2));
+}
+
 operation cu(theta : Angle, phi : Angle, lambda : Angle, gamma : Angle, qubit1 : Qubit, qubit2 : Qubit) : Unit is Adj + Ctl {
     p(SubtractAngles(gamma, DivideAngleByInt(theta, 2)), qubit1);
     Controlled U([qubit2], (theta, phi, lambda, qubit1));
@@ -166,6 +220,10 @@ operation cu(theta : Angle, phi : Angle, lambda : Angle, gamma : Angle, qubit1 :
 // Gates for OpenQASM 2 backwards compatibility
 operation phase(lambda : Angle, qubit : Qubit) : Unit is Adj + Ctl {
     U(ZERO_ANGLE(), ZERO_ANGLE(), lambda, qubit);
+}
+
+operation cphase(ctrl : Qubit, lambda : Angle, qubit : Qubit) : Unit is Adj + Ctl {
+    Controlled phase([ctrl], (lambda, qubit));
 }
 
 operation id(qubit : Qubit) : Unit is Adj + Ctl {
@@ -200,6 +258,36 @@ operation u3(theta : Angle, phi : Angle, lambda : Angle, qubit : Qubit) : Unit i
     U(theta, phi, lambda, qubit);
 }
 
+/// Controlled-U1 gate.
+/// `ctrl @ u1(lambda) a, b` or:
+/// ```
+/// gate cu1(lambda) a,b {
+///     u1(lambda/2) a;
+///     cx a,b;
+///     u1(-lambda/2) b;
+///     cx a,b;
+///     u1(lambda/2) b;
+/// }
+/// ```
+operation cu1(lambda : Angle, ctrl : Qubit, target : Qubit) : Unit is Adj + Ctl {
+    Controlled u1([ctrl], (lambda, target));
+}
+
+/// Controlled-U3 gate (3-parameter two-qubit gate).
+/// `ctrl @ u3(theta, phi, lambda) a, b` or:
+/// ```
+/// gate cu3(theta,phi,lambda) c, t {
+///     u1((lambda+phi)/2) c;
+///     u1((lambda-phi)/2) t;
+///     cx c,t;
+///     u3(-theta/2,0,-(phi+lambda)/2) t;
+///     cx c,t;
+///     u3(theta/2,phi,0) t;
+/// }
+/// ```
+operation cu3(theta : Angle, phi : Angle, lambda : Angle, ctrl : Qubit, target : Qubit) : Unit is Adj + Ctl {
+    Controlled u3([ctrl], (theta, phi, lambda, target));
+}
 
 /// rxx: gate rxx(theta) a, b { h a; h b; cx a, b; rz(theta) b; cx a, b; h b; h a; }
 operation rxx(theta : Angle, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
@@ -255,7 +343,6 @@ operation rzx(theta : Angle, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl
     h(qubit1);
 }
 
-
 /// Controlled-S gate.
 /// `gate cs a,b { h b; cp(pi/2) a,b; h b; }`
 operation cs(qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
@@ -278,37 +365,6 @@ operation sxdg(qubit : Qubit) : Unit is Adj + Ctl {
 /// `gate csx a,b { h b; cu1(pi/2) a,b; h b; }`
 operation csx(qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
     Controlled sx([qubit1], qubit0);
-}
-
-/// Controlled-U1 gate.
-/// `ctrl @ u1(lambda) a, b` or:
-/// ```
-/// gate cu1(lambda) a,b {
-///     u1(lambda/2) a;
-///     cx a,b;
-///     u1(-lambda/2) b;
-///     cx a,b;
-///     u1(lambda/2) b;
-/// }
-/// ```
-operation cu1(lambda : Angle, ctrl : Qubit, target : Qubit) : Unit is Adj + Ctl {
-    Controlled u1([ctrl], (lambda, target));
-}
-
-/// Controlled-U3 gate (3-parameter two-qubit gate).
-/// `ctrl @ u3(theta, phi, lambda) a, b` or:
-/// ```
-/// gate cu3(theta,phi,lambda) c, t {
-///     u1((lambda+phi)/2) c;
-///     u1((lambda-phi)/2) t;
-///     cx c,t;
-///     u3(-theta/2,0,-(phi+lambda)/2) t;
-///     cx c,t;
-///     u3(theta/2,phi,0) t;
-/// }
-/// ```
-operation cu3(theta : Angle, phi : Angle, lambda : Angle, ctrl : Qubit, target : Qubit) : Unit is Adj + Ctl {
-    Controlled u3([ctrl], (theta, phi, lambda, target));
 }
 
 /// The simplified Toffoli gate, also referred to as Margolus gate.
@@ -577,6 +633,18 @@ operation ccz(ctrl1 : Qubit, ctrl2 : Qubit, target : Qubit) : Unit is Adj + Ctl 
     h(target);
     ccx(ctrl1, ctrl2, target);
     h(target);
+}
+
+/// A resetting measurement operation that checks for qubit loss.
+/// Returns 0 if the qubit measurement was `Zero`, 1 if it was `One`,
+/// and 2 if the measurement indicated qubit loss.
+operation mresetz_checked(q : Qubit) : Int {
+    let (r, b) = Std.Measurement.MResetZChecked(q);
+    if b {
+        2
+    } else {
+        Std.OpenQASM.Convert.ResultAsInt(r)
+    }
 }
 
 /// The ``BARRIER`` function is used to implement the `barrier` statement in QASM.

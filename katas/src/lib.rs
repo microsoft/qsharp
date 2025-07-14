@@ -5,9 +5,9 @@
 mod tests;
 
 use qsc::{
-    interpret::{output::Receiver, Error, Interpreter, Value},
-    target::Profile,
     PackageType, SourceContents, SourceMap, SourceName,
+    interpret::{Error, Interpreter, Value, output::Receiver},
+    target::Profile,
 };
 
 use qsc::LanguageFeatures;

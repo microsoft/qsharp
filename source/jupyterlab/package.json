@@ -1,0 +1,50 @@
+{
+  "name": "qsharp-jupyterlab",
+  "version": "0.0.0",
+  "description": "Q# extension for JupyterLab",
+  "keywords": [
+    "jupyter",
+    "jupyterlab",
+    "jupyterlab-extension"
+  ],
+  "homepage": "https://github.com/microsoft/qsharp",
+  "bugs": {
+    "url": "https://github.com/microsoft/qsharp/issues"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Microsoft"
+  },
+  "files": [
+    "lib"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microsoft/qsharp.git"
+  },
+  "scripts": {
+    "build": "npm run build:lib && npm run build:labextension:prod",
+    "build:dev": "npm run build:lib && npm run build:labextension:dev",
+    "build:prod": "npm run build:lib && npm run build:labextension:prod",
+    "build:lib": "node ../../node_modules/typescript/bin/tsc -p ./tsconfig.json",
+    "build:labextension:dev": "node node_modules/@jupyterlab/builder/lib/build-labextension.js --core-path ./jupyterlab-core --development .",
+    "build:labextension:prod": "node node_modules/@jupyterlab/builder/lib/build-labextension.js --core-path ./jupyterlab-core ."
+  },
+  "devDependencies": {
+    "@jupyterlab/builder": "^4.0.0",
+    "typescript": "^5.0.2"
+  },
+  "dependencies": {
+    "@codemirror/language": "^6.10.1",
+    "@codemirror/legacy-modes": "^6.3.3",
+    "@jupyterlab/application": "^4.0.0",
+    "@jupyterlab/codemirror": "^4.0.0",
+    "@jupyterlab/notebook": "^4.0.0"
+  },
+  "jupyterlab": {
+    "extension": true,
+    "outputDir": "qsharp-jupyterlab/labextension"
+  }
+}

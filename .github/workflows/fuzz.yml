@@ -1,7 +1,7 @@
 name: fuzz
 run-name: Fuzz
 env:
-  OWNER_RDPATH: .                             # Rel path to the dir that contains the fuzzing infra (contains "fuzz" dir).
+  OWNER_RDPATH: ./source                      # Rel path to the dir that contains the fuzzing infra (contains "fuzz" dir).
   DURATION_SEC: 7200                          # Fuzzing run duration in seconds.
   STDERR_LOG_FNAME: fuzz.stderr.log           # File name to redirect the fuzzing run's stderr to.
   TMIN_LOG_FNAME: fuzz.tmin.log               # File name to redirect the fuzzing input minimization log to.
@@ -16,13 +16,13 @@ on:
     branches:
       - main                                  # Development runs against main branch.
     paths:
-      - 'compiler/**'                         # Run if the compiler was changed.
-      - 'fuzz/**'                             # Run if the fuzzing infra was changed.
+      - 'source/compiler/**'                  # Run if the compiler was changed.
+      - 'source/fuzz/**'                      # Run if the fuzzing infra was changed.
       - '.github/ISSUE_TEMPLATE/fuzz_bug_report.md'
                                               # Run if the GitHub issue template was changed.
       - '.github/workflows/fuzz.yml'          # Run if the workflow itself was changed.
-      - '!compiler/qsc_eval/**'               # Exclude the qsc_eval dir.
-      - '!compiler/qsc_codegen/**'            # Exclude the qsc_codegen dir.
+      - '!source/compiler/qsc_eval/**'        # Exclude the qsc_eval dir.
+      - '!source/compiler/qsc_codegen/**'     # Exclude the qsc_codegen dir.
 
 jobs:
   fuzz:
@@ -51,9 +51,8 @@ jobs:
 
       - name: Gather the Seed Inputs
         if: matrix.target_name == 'qsharp'
+        working-directory: ${{ env.OWNER_RDPATH }}
         run: |
-          cd $OWNER_RDPATH                    # Enter the dir containing the fuzzing infra.
-
           # Clone the submodules of QDK:
           REPOS="Quantum Quantum-NC QuantumKatas QuantumLibraries iqsharp qdk-python qsharp-compiler qsharp-runtime"
           for REPO in $REPOS ; do
@@ -67,9 +66,8 @@ jobs:
 
       - name: Gather the Seed Inputs (qasm)
         if: matrix.target_name == 'qasm'
+        working-directory: ${{ env.OWNER_RDPATH }}
         run: |
-          cd $OWNER_RDPATH                    # Enter the dir containing the fuzzing infra.
-
           # Clone openqasm repo for samples:
           git clone --depth 1 --single-branch --no-tags --recurse-submodules --shallow-submodules --jobs 4 \
             https://github.com/openqasm/openqasm.git $SEEDS_RDPATH/${{ matrix.target_name }}/openqasm
@@ -82,13 +80,13 @@ jobs:
             $SEEDS_RDPATH/${{ matrix.target_name }}/$SEEDS_FNAME
 
       - name: Build and Run the Fuzz Target
+        working-directory: ${{ env.OWNER_RDPATH }}
         run: |
-          cd $OWNER_RDPATH               # Enter the dir containing the fuzzing infra.
-          cargo fuzz build --release --sanitizer=none --features do_fuzz ${{ matrix.target_name }}  # Build the fuzz target.
+          cargo fuzz build  --fuzz-dir ./fuzz --release --sanitizer=none --features do_fuzz ${{ matrix.target_name }}  # Build the fuzz target.
 
           # Run fuzzing for specified number of seconds and redirect the `stderr` to a file
           # whose name is specified by the STDERR_LOG_FNAME env var:
-          RUST_BACKTRACE=1 cargo fuzz run --release --sanitizer=none --features do_fuzz ${{ matrix.target_name }} -- \
+          RUST_BACKTRACE=1 cargo fuzz run  --fuzz-dir ./fuzz --release --sanitizer=none --features do_fuzz ${{ matrix.target_name }} -- \
             -seed_inputs=@$SEEDS_RDPATH/${{ matrix.target_name }}/$SEEDS_FNAME \
             -max_total_time=$DURATION_SEC \
             -rss_limit_mb=4096 \
@@ -98,9 +96,8 @@ jobs:
 
       - name: "If Fuzzing Failed: Collect Failure Info"
         if: failure()
+        working-directory: ${{ env.OWNER_RDPATH }}
         run: |
-          cd $OWNER_RDPATH               # Enter the dir containing the fuzzing infra.
-
           # Extract from stderr log the panic message:
           PANIC_MESSAGE=`cat $STDERR_LOG_FNAME |
             grep "panicked at" | sed "s|thread '<unnamed>' panicked at '\([^']*\).*|\1|"`
@@ -147,7 +144,7 @@ jobs:
             echo "TO_MINIMIZE_FNAME: $TO_MINIMIZE_FNAME"
 
             # Minimize the input:
-            ( cargo fuzz tmin --release --sanitizer=none --features do_fuzz -r 10000 ${{ matrix.target_name }} $ARTIFACTS_RDPATH/${{ matrix.target_name }}/$TO_MINIMIZE_FNAME 2>&1 ) > \
+            ( cargo fuzz --fuzz-dir ./fuzz tmin --release --sanitizer=none --features do_fuzz -r 10000 ${{ matrix.target_name }} $ARTIFACTS_RDPATH/${{ matrix.target_name }}/$TO_MINIMIZE_FNAME 2>&1 ) > \
               $TMIN_LOG_FNAME || MINIMIZATION_FAILED=1
 
             # Get the minimized input relative faile path:

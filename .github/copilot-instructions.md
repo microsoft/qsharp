@@ -4,7 +4,10 @@
 
 This repo contains the Microsoft Quantum Development Kit (QDK), which provides tooling for the Q# language. Q# is an open-source programming language designed for developing and running quantum algorithms. This repo is publicly available at https://github.com/microsoft/qsharp .
 
+
 ## Architecture
+
+All internal source code for the compiler and related tooling has been moved under the `source/` directory at the repository root. This does not include Q# libraries (`library/`), samples (`samples/`), katas (`katas/`), or any standard files and folders typically found at the root of a repository (such as configuration, documentation, or build scripts).
 
 Most of the core components are implemented in Rust. These components are packaged in two ways:
 

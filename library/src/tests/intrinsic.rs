@@ -5,7 +5,7 @@
 
 use expect_test::expect;
 use indoc::indoc;
-use qsc::{interpret::Value, target::Profile, SparseSim};
+use qsc::{SparseSim, interpret::Value, target::Profile};
 
 use super::{test_expression, test_expression_fails, test_expression_with_lib_and_profile_and_sim};
 
