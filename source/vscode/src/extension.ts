@@ -91,7 +91,7 @@ export async function activate(
   registerGhCopilotInstructionsCommand(context);
 
   // Show prompt after update if not suppressed
-  await maybeShowChangelogPrompt(context);
+  maybeShowChangelogPrompt(context);
 
   log.info("Q# extension activated.");
 

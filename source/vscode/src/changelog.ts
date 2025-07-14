@@ -4,7 +4,7 @@
 import * as vscode from "vscode";
 
 // The latest version for which we want to show the changelog page
-const CHANGELOG_VERSION = undefined; // <-- Update this when you want to show a new changelog to users
+const CHANGELOG_VERSION = "v1.18.0"; // <-- Update this when you want to show a new changelog to users
 
 export function registerChangelogCommand(
   context: vscode.ExtensionContext,
@@ -19,7 +19,6 @@ export function registerChangelogCommand(
         "markdown.showPreview",
         changelogUri,
         vscode.ViewColumn.One,
-        { locked: true },
       );
     }),
   ];
@@ -28,23 +27,23 @@ export function registerChangelogCommand(
 export async function maybeShowChangelogPrompt(
   context: vscode.ExtensionContext,
 ) {
-  const lastChangelogVersion = context.globalState.get<string>(
-    "qdk.lastChangelogVersion",
+  const lastChangelogNotificationVersion = context.globalState.get<string>(
+    "qdk.lastChangelogNotificationVersion",
   );
   const suppressUpdateNotifications = vscode.workspace
     .getConfiguration("Q#")
     .get<boolean>("notifications.suppressUpdateNotifications");
 
   if (
-    lastChangelogVersion !== CHANGELOG_VERSION &&
+    lastChangelogNotificationVersion !== CHANGELOG_VERSION &&
     !suppressUpdateNotifications
   ) {
     await context.globalState.update(
-      "qdk.lastChangelogVersion",
+      "qdk.lastChangelogNotificationVersion",
       CHANGELOG_VERSION,
     );
-    // Only show prompt if not first install (i.e., lastChangelogVersion is not undefined/null)
-    if (lastChangelogVersion !== undefined) {
+    // We don't want to show the prompt if this is a freash install of the QDK as that is a bit too noisy.
+    if (lastChangelogNotificationVersion !== undefined) {
       const buttons = ["What's New?", "Don't show this again"];
       const choice = await vscode.window.showInformationMessage(
         "The Azure Quantum Development Kit has been updated.",
@@ -65,7 +64,7 @@ export async function maybeShowChangelogPrompt(
         );
       }
     } else {
-      // First install or no previous version, just show changelog
+      // First install or no previous version, just show changelog wihout prompt
       await vscode.commands.executeCommand("qsharp-vscode.showChangelog");
     }
   }
