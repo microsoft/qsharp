@@ -380,7 +380,12 @@ pub fn parse_annotation(s: &mut ParserContext) -> Result<Annotation> {
     // This will tokenize the rest of the line which should be the identifier
     // and the value, if any.
 
-    let mut c = ParserContext::new(annotation_content);
+    let mut c = match s.word_collector {
+        Some(ref mut collector) => {
+            ParserContext::with_word_collector(annotation_content, collector)
+        }
+        None => ParserContext::new(annotation_content),
+    };
 
     // parse the dotted path identifier
     let Ok(mut path) = recovering_path(&mut c, WordKinds::PathExpr) else {
@@ -499,7 +504,11 @@ fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
     // This will tokenize the rest of the line which should be the identifier
     // and the value, if any.
 
-    let mut c = ParserContext::new(pragma_content);
+    let mut c = match s.word_collector {
+        Some(ref mut collector) => ParserContext::with_word_collector(pragma_content, collector),
+        None => ParserContext::new(pragma_content),
+    };
+
     let content_lo = c.skip_trivia().hi;
     // parse the dotted path identifier
     let Ok(mut path) = recovering_path(&mut c, WordKinds::PathExpr) else {
