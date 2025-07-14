@@ -26,7 +26,7 @@ use qsc::{
 use resource_estimator::{self as re, estimate_entry};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{fmt::Write, str::FromStr, sync::Arc};
+use std::{fmt::Write, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 mod debug_service;
