@@ -290,7 +290,7 @@ pub fn eval(
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     receiver: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
-    let mut state = State::new(package, exec_graph, seed, false);
+    let mut state = State::new(package, exec_graph, seed, ErrorBehavior::FailOnError);
     let res = state.eval(globals, env, sim, receiver, &[], StepAction::Continue)?;
     let StepResult::Return(value) = res else {
         panic!("eval should always return a value");
@@ -314,7 +314,7 @@ pub fn invoke(
     callable: Value,
     args: Value,
 ) -> Result<Value, (Error, Vec<Frame>)> {
-    let mut state = State::new(package, Vec::new().into(), seed, false);
+    let mut state = State::new(package, Vec::new().into(), seed, ErrorBehavior::FailOnError);
     // Push the callable value into the state stack and then the args value so they are ready for evaluation.
     state.set_val_register(callable);
     state.push_val();
@@ -560,6 +560,14 @@ struct Scope {
 
 type CallableCountKey = (StoreItemId, bool, bool);
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ErrorBehavior {
+    /// Fail execution if an error is encountered.
+    FailOnError,
+    /// Stop execution on the first error encountered.
+    StopOnError,
+}
+
 pub struct State {
     exec_graph_stack: Vec<ExecGraph>,
     idx: u32,
@@ -573,7 +581,7 @@ pub struct State {
     rng: RefCell<StdRng>,
     call_counts: FxHashMap<CallableCountKey, i64>,
     qubit_counter: Option<QubitCounter>,
-    stop_on_error: bool,
+    error_behavior: ErrorBehavior,
     last_error: Option<(Error, Vec<Frame>)>,
 }
 
@@ -583,7 +591,7 @@ impl State {
         package: PackageId,
         exec_graph: ExecGraph,
         classical_seed: Option<u64>,
-        stop_on_error: bool,
+        error_behavior: ErrorBehavior,
     ) -> Self {
         let rng = match classical_seed {
             Some(seed) => RefCell::new(StdRng::seed_from_u64(seed)),
@@ -602,7 +610,7 @@ impl State {
             rng,
             call_counts: FxHashMap::default(),
             qubit_counter: None,
-            stop_on_error,
+            error_behavior,
             last_error: None,
         }
     }
@@ -727,7 +735,7 @@ impl State {
                     match self.eval_expr(env, sim, globals, out, *expr) {
                         Ok(()) => continue,
                         Err(e) => {
-                            if self.stop_on_error {
+                            if self.error_behavior == ErrorBehavior::StopOnError {
                                 let error_str = e.to_string();
                                 self.set_last_error(e, self.get_stack_frames());
                                 // Clear the execution graph stack to indicate that execution has failed.

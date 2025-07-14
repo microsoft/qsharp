@@ -17,7 +17,7 @@ use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
 use qsc_data_structures::{functors::FunctorApp, span::Span, target::TargetCapabilityFlags};
 use qsc_eval::{
-    self, Error as EvalError, PackageSpan, State, StepAction, StepResult, Variable,
+    self, Error as EvalError, ErrorBehavior, PackageSpan, State, StepAction, StepResult, Variable,
     are_ctls_unique, exec_graph_section,
     intrinsic::qubit_relabel,
     output::GenericReceiver,
@@ -1084,7 +1084,12 @@ impl<'a> PartialEvaluator<'a> {
         let scope_exec_graph = self.get_current_scope_exec_graph().clone();
         let scope = self.eval_context.get_current_scope_mut();
         let exec_graph = exec_graph_section(&scope_exec_graph, expr.exec_graph_range.clone());
-        let mut state = State::new(current_package_id, exec_graph, None, false);
+        let mut state = State::new(
+            current_package_id,
+            exec_graph,
+            None,
+            ErrorBehavior::FailOnError,
+        );
         let classical_result = state.eval(
             self.package_store,
             &mut scope.env,
