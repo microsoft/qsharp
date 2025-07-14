@@ -153,12 +153,14 @@ A.Baz()  // ✅ Works via explicit alias
 **Current Status Summary:**
 
 ✅ **MAJOR SUCCESS: Self-Export Duplication FIXED**
+
 - **Problem**: `export Length;` in `Std.Core` created duplicate Export HIR items causing doc duplicates
-- **Solution**: Modified resolver to detect self-exports and prevent `ExportedItem` creation  
+- **Solution**: Modified resolver to detect self-exports and prevent `ExportedItem` creation
 - **Result**: Documentation no longer shows duplicates like `Length` appearing twice
 - **Tests**: ✅ `export_hir_self_export` unit test passes (no Item 2 Export created)
 
 ❌ **WIP CHALLENGE: Import+Re-export Detection Complex**
+
 - **Problem**: `import Foo.*; export Bar;` should create Export HIR items for Issue #1955
 - **Attempts**: Multiple detection approaches tried (scope inspection, namespace comparison, opens heuristics)
 - **Root Issue**: Distinguishing imported vs local items at export time is architecturally complex
@@ -169,7 +171,7 @@ A.Baz()  // ✅ Works via explicit alias
 1. **Fixed Root Cause**: Identified that self-exports incorrectly created Export HIR via implicit alias logic in lowerer
 2. **Added Unit Tests**: Created `export_hir_*` tests in `qsc_frontend/src/lower/tests.rs` to isolate HIR behavior
 3. **Resolver Logic**: Modified `bind_import_or_export` to detect self-exports vs true re-exports
-4. **Test Evidence**: 
+4. **Test Evidence**:
    - ✅ Self-exports: `export Length;` correctly generates NO Export HIR items
    - ❌ Import+re-exports: `import Foo.*; export Bar;` detection logic needs refinement
 
