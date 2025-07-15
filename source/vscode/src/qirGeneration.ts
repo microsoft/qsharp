@@ -75,9 +75,7 @@ async function getQirForProgram(
   let result = "";
   const isLocalQirGeneration = targetSupportsAdaptive === undefined;
   if (config.isSingleFile) {
-    // Single-file profile is inferred from the target.
-    config.profile =
-      isLocalQirGeneration || !targetSupportsAdaptive ? "base" : "adaptive_ri";
+    config.profile = "unrestricted";
   }
   const isUnrestricted = config.profile === "unrestricted";
   const isUnsupportedAdaptiveSubmissionProfile =
@@ -106,7 +104,7 @@ async function getQirForProgram(
 
   // Check that the current target is base or adaptive_ri profile, and current doc has no errors.
   if (
-    isUnrestricted ||
+    (!config.isSingleFile && isUnrestricted) ||
     isSubmittingAdaptiveToBaseAzureTarget ||
     isSubmittingUnsupportedAdaptiveProfile
   ) {
