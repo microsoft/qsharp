@@ -826,7 +826,9 @@ impl State {
             return Ok(res);
         }
 
-        // Throw any error that was encountered during execution.
+        // If we made it out of the execution loop, we either reached the end of the graph,
+        // a return expression, or hit a runtime error. Check here for the error case
+        // and return it if it exists.
         self.get_last_error()?;
 
         Ok(StepResult::Return(self.get_result()))
