@@ -186,6 +186,7 @@ fn compile_project_with_markers_cursor_optional(
         let buildable_program = prepare_package_store(
             qsc::TargetCapabilityFlags::all(),
             package_graph_sources.clone(),
+            false,
         );
         let mut dependencies = buildable_program.user_code_dependencies;
 
@@ -237,6 +238,7 @@ fn compile_project_with_markers_cursor_optional(
             project_errors: Vec::new(),
             dependencies: dependencies.into_iter().collect(),
             test_cases,
+            is_single_file: false,
         },
         cursor_location,
         target_spans,
@@ -297,6 +299,7 @@ where
         project_errors: Vec::new(),
         dependencies: [(source_package_id, None)].into_iter().collect(),
         test_cases: Default::default(),
+        is_single_file: true,
     }
 }
 

@@ -32,6 +32,8 @@ pub struct Manifest {
     pub files: Vec<String>,
     #[serde(default)]
     pub package_type: Option<PackageType>,
+    #[serde(default)]
+    pub target_profile: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Copy)]

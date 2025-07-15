@@ -29,6 +29,7 @@ export interface IProgramConfig {
     packageGraphSources: IPackageGraphSources;
     profile: TargetProfile;
     projectType: ProjectType;
+    isSingleFile: boolean;
 }
 "#;
 
@@ -72,6 +73,9 @@ extern "C" {
 
     #[wasm_bindgen(method, getter, structural)]
     fn profile(this: &ProgramConfig) -> String;
+
+    #[wasm_bindgen(method, getter, structural)]
+    fn isSingleFile(this: &ProgramConfig) -> bool;
 
     #[wasm_bindgen(method, getter, structural)]
     fn projectType(this: &ProgramConfig) -> String;
@@ -332,12 +336,15 @@ impl TryFrom<qsc_project::Project> for IProjectConfig {
                 packages: FxHashMap::default(),
             },
         };
+        let profile = value.target_profile.to_str().to_string().to_lowercase();
         let project_config = ProjectConfig {
             project_name: value.name.to_string(),
             project_uri: value.path.to_string(),
             lints: value.lints,
             package_graph_sources: package_graph_sources.into(),
             project_type,
+            profile,
+            is_single_file: value.is_single_file,
         };
         Ok(project_config.into())
     }
@@ -351,6 +358,8 @@ serializable_type! {
         pub package_graph_sources: PackageGraphSources,
         pub lints: Vec<LintOrGroupConfig>,
         pub project_type: String,
+        pub profile: String,
+        pub is_single_file: bool,
     },
     r#"export interface IProjectConfig {
         /**
@@ -368,6 +377,14 @@ serializable_type! {
          * The type of project. This is used to determine how to load the project.
          */
         projectType: ProjectType;
+        /**
+         * QIR target profile for the project, as set in qsharp.json.
+         */
+        profile: TargetProfile;
+        /**
+         * True if this config represents a single-file program, false if it's a project.
+         */
+        isSingleFile: boolean;
     }"#,
     IProjectConfig
 }
@@ -430,16 +447,17 @@ pub(crate) fn into_qsc_args(
     ),
     Vec<qsc::compile::Error>,
 > {
-    let capabilities = qsc::target::Profile::from_str(&program.profile())
-        .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()))
-        .into();
-
     let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
     let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
 
-    // this function call builds all dependencies as a part of preparing the package store
-    // for building the user code.
-    let buildable_program = BuildableProgram::new(capabilities, pkg_graph);
+    // Use the project-level target_profile from ProgramConfig
+    let profile = qsc::target::Profile::from_str(&program.profile())
+        .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()));
+    let capabilities = profile.into();
+
+    // Use the isSingleFile getter from ProgramConfig to set the is_single_file flag correctly.
+    let is_single_file = program.isSingleFile();
+    let buildable_program = BuildableProgram::new(capabilities, pkg_graph, is_single_file);
 
     if !ignore_dependency_errors && !buildable_program.dependency_errors.is_empty() {
         return Err(buildable_program.dependency_errors);
@@ -457,7 +475,7 @@ pub(crate) fn into_qsc_args(
 
     Ok((
         source_map,
-        capabilities,
+        buildable_program.capabilities,
         language_features,
         store,
         user_code_dependencies,

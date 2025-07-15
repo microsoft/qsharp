@@ -364,7 +364,7 @@ impl Interpreter {
                 let ProjectType::QSharp(package_graph_sources) = project.project_type else {
                     unreachable!("Project type should be Q#")
                 };
-                BuildableProgram::new(target, package_graph_sources)
+                BuildableProgram::new(target, package_graph_sources, project.is_single_file)
             } else {
                 panic!("file system hooks should have been passed in with a manifest descriptor")
             }
@@ -374,7 +374,7 @@ impl Interpreter {
                 LanguageFeatures::from_iter(language_features),
                 None,
             );
-            BuildableProgram::new(target, graph)
+            BuildableProgram::new(target, graph, true)
         };
 
         match interpret::Interpreter::new(
