@@ -31,10 +31,12 @@ fn simple_array_slice_has_correct_size() {
                         index: Range [34-37]:
                             start: Expr [34-35]:
                                 ty: const int
+                                const_value: Int(1)
                                 kind: Lit: Int(1)
                             step: <none>
                             end: Expr [36-37]:
                                 ty: const int
+                                const_value: Int(3)
                                 kind: Lit: Int(3)
         "#]],
     );
@@ -66,10 +68,12 @@ fn array_slice_with_negative_start_has_correct_size() {
                         index: Range [34-38]:
                             start: Expr [35-36]:
                                 ty: const int
+                                const_value: Int(-7)
                                 kind: Lit: Int(-7)
                             step: <none>
                             end: Expr [37-38]:
                                 ty: const int
+                                const_value: Int(6)
                                 kind: Lit: Int(6)
         "#]],
     );
@@ -101,10 +105,12 @@ fn array_slice_with_negative_end_has_correct_size() {
                         index: Range [34-38]:
                             start: Expr [34-35]:
                                 ty: const int
+                                const_value: Int(1)
                                 kind: Lit: Int(1)
                             step: <none>
                             end: Expr [37-38]:
                                 ty: const int
+                                const_value: Int(-2)
                                 kind: Lit: Int(-2)
         "#]],
     );
@@ -136,12 +142,15 @@ fn array_slice_with_non_exact_divisor_step_has_correct_size() {
                         index: Range [34-39]:
                             start: Expr [34-35]:
                                 ty: const int
+                                const_value: Int(0)
                                 kind: Lit: Int(0)
                             step: Expr [36-37]:
                                 ty: const int
+                                const_value: Int(3)
                                 kind: Lit: Int(3)
                             end: Expr [38-39]:
                                 ty: const int
+                                const_value: Int(7)
                                 kind: Lit: Int(7)
         "#]],
     );
@@ -173,12 +182,15 @@ fn array_slice_with_exact_divisor_step_has_correct_size() {
                         index: Range [34-39]:
                             start: Expr [34-35]:
                                 ty: const int
+                                const_value: Int(0)
                                 kind: Lit: Int(0)
                             step: Expr [36-37]:
                                 ty: const int
+                                const_value: Int(3)
                                 kind: Lit: Int(3)
                             end: Expr [38-39]:
                                 ty: const int
+                                const_value: Int(6)
                                 kind: Lit: Int(6)
         "#]],
     );
@@ -210,12 +222,15 @@ fn array_slice_with_negative_step_has_correct_size() {
                         index: Range [34-40]:
                             start: Expr [34-35]:
                                 ty: const int
+                                const_value: Int(6)
                                 kind: Lit: Int(6)
                             step: Expr [37-38]:
                                 ty: const int
+                                const_value: Int(-3)
                                 kind: Lit: Int(-3)
                             end: Expr [39-40]:
                                 ty: const int
+                                const_value: Int(0)
                                 kind: Lit: Int(0)
         "#]],
     );

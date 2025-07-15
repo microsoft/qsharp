@@ -216,7 +216,7 @@ fn indexed_uint() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             mutable a = 15;
-            Std.OpenQASM.Convert.IntAsResultArrayBE(a, 4)[1];
+            Std.OpenQASM.Convert.IntAsResultArrayBE(a, 4)[2];
         "#]],
     );
 }
@@ -248,10 +248,10 @@ fn indexed_uint_with_step() {
     check_qasm_to_qsharp(
         source,
         &expect![[r#"
-        import Std.OpenQASM.Intrinsic.*;
-        mutable a = 15;
-        Std.OpenQASM.Convert.IntAsResultArrayBE(a, 4)[0..2...];
-    "#]],
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = 15;
+            Std.OpenQASM.Convert.IntAsResultArrayBE(a, 4)[...2..3];
+        "#]],
     );
 }
 
@@ -284,7 +284,7 @@ fn indexed_angle() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             mutable a = Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI(), 4);
-            Std.OpenQASM.Angle.AngleAsResultArrayBE(a)[1];
+            Std.OpenQASM.Angle.AngleAsResultArrayBE(a)[2];
         "#]],
     );
 }
@@ -321,7 +321,7 @@ fn indexed_angle_with_step() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             mutable a = Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI(), 4);
-            Std.OpenQASM.Angle.AngleAsResultArrayBE(a)[0..2...];
+            Std.OpenQASM.Angle.AngleAsResultArrayBE(a)[...2..3];
         "#]],
     );
 }
@@ -358,7 +358,7 @@ fn index_into_array_and_then_into_int() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             mutable a = [1, 2, 3];
-            mutable b = Std.OpenQASM.Convert.IntAsResultArrayBE(a[1], 4)[1];
+            mutable b = Std.OpenQASM.Convert.IntAsResultArrayBE(a[1], 4)[2];
         "#]],
     );
 }

@@ -76,10 +76,12 @@ fn on_a_span_indexed_qubit_register() {
                             index: Range [28-31]:
                                 start: Expr [28-29]:
                                     ty: const int
+                                    const_value: Int(1)
                                     kind: Lit: Int(1)
                                 step: <none>
                                 end: Expr [30-31]:
                                     ty: const int
+                                    const_value: Int(3)
                                     kind: Lit: Int(3)
         "#]],
     );

@@ -547,6 +547,21 @@ impl Expr {
             const_value: Some(output),
         }
     }
+
+    pub fn bin_op(op: BinOp, lhs: Self, rhs: Self) -> Self {
+        let ty = lhs.ty.clone();
+        let span = Span {
+            lo: lhs.span.lo,
+            hi: rhs.span.hi,
+        };
+
+        Self {
+            span,
+            kind: Box::new(ExprKind::BinaryOp(BinaryOpExpr { op, lhs, rhs })),
+            const_value: None,
+            ty,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

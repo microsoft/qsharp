@@ -88,15 +88,15 @@ fn endianness() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             mutable myInt = 15;
-            mutable lastBit = Std.OpenQASM.Convert.ResultAsResultArrayBE(Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[0], 1);
-            mutable signBit = Std.OpenQASM.Convert.ResultAsResultArrayBE(Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[31], 1);
-            mutable alsoSignBit = Std.OpenQASM.Convert.ResultAsResultArrayBE(Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[-1], 1);
+            mutable lastBit = Std.OpenQASM.Convert.ResultAsResultArrayBE(Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[31], 1);
+            mutable signBit = Std.OpenQASM.Convert.ResultAsResultArrayBE(Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[0], 1);
+            mutable alsoSignBit = Std.OpenQASM.Convert.ResultAsResultArrayBE(Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[0], 1);
             mutable evenBits = Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[0..2..31];
-            mutable upperBits = Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[-16..-1];
-            mutable upperReversed = Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[-1..-1..-16];
+            mutable upperBits = Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[0..15];
+            mutable upperReversed = Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32)[15..-1..0];
             set myInt = {
                 mutable bitarray = Std.OpenQASM.Convert.IntAsResultArrayBE(myInt, 32);
-                set bitarray[4..7] = [One, Zero, One, Zero];
+                set bitarray[24..27] = [One, Zero, One, Zero];
                 Std.OpenQASM.Convert.ResultArrayAsIntBE(bitarray)
             };
         "#]],

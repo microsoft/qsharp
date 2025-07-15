@@ -5,20 +5,14 @@ use super::ArrayDimensions;
 use super::Type;
 use super::indexed_type_builder;
 use crate::semantic::ast::Expr;
-use crate::semantic::ast::ExprKind;
 use crate::semantic::ast::Index;
-use crate::semantic::ast::LiteralKind;
 use crate::semantic::ast::Range;
 use crate::semantic::types::ArrayType;
 use expect_test::expect;
 use qsc_data_structures::span::Span;
 
 fn make_int_expr(val: i64) -> Expr {
-    Expr::new(
-        Span::default(),
-        ExprKind::Lit(LiteralKind::Int(val)),
-        Type::Int(None, true),
-    )
+    Expr::int(val, Span::default())
 }
 
 #[test]
