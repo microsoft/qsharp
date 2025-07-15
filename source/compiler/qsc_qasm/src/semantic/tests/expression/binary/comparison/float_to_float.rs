@@ -25,7 +25,7 @@ fn greater_than() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [31-44]:
                 symbol_id: 9
@@ -36,7 +36,7 @@ fn greater_than() {
             [9] Symbol [37-38]:
                 name: y
                 type: float
-                qsharp_type: Double
+                ty_span: [31-36]
                 io_kind: Default
             ClassicalDeclarationStmt [53-68]:
                 symbol_id: 10
@@ -54,7 +54,7 @@ fn greater_than() {
             [10] Symbol [58-59]:
                 name: f
                 type: bool
-                qsharp_type: bool
+                ty_span: [53-57]
                 io_kind: Default
         "#]],
     );
@@ -80,7 +80,7 @@ fn greater_than_equals() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [31-44]:
                 symbol_id: 9
@@ -91,7 +91,7 @@ fn greater_than_equals() {
             [9] Symbol [37-38]:
                 name: y
                 type: float
-                qsharp_type: Double
+                ty_span: [31-36]
                 io_kind: Default
             ClassicalDeclarationStmt [53-69]:
                 symbol_id: 10
@@ -109,7 +109,7 @@ fn greater_than_equals() {
             [10] Symbol [58-59]:
                 name: e
                 type: bool
-                qsharp_type: bool
+                ty_span: [53-57]
                 io_kind: Default
         "#]],
     );
@@ -135,7 +135,7 @@ fn less_than() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [31-44]:
                 symbol_id: 9
@@ -146,7 +146,7 @@ fn less_than() {
             [9] Symbol [37-38]:
                 name: y
                 type: float
-                qsharp_type: Double
+                ty_span: [31-36]
                 io_kind: Default
             ClassicalDeclarationStmt [53-68]:
                 symbol_id: 10
@@ -164,7 +164,7 @@ fn less_than() {
             [10] Symbol [58-59]:
                 name: a
                 type: bool
-                qsharp_type: bool
+                ty_span: [53-57]
                 io_kind: Default
         "#]],
     );
@@ -190,7 +190,7 @@ fn less_than_equals() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [31-44]:
                 symbol_id: 9
@@ -201,7 +201,7 @@ fn less_than_equals() {
             [9] Symbol [37-38]:
                 name: y
                 type: float
-                qsharp_type: Double
+                ty_span: [31-36]
                 io_kind: Default
             ClassicalDeclarationStmt [53-69]:
                 symbol_id: 10
@@ -219,7 +219,7 @@ fn less_than_equals() {
             [10] Symbol [58-59]:
                 name: c
                 type: bool
-                qsharp_type: bool
+                ty_span: [53-57]
                 io_kind: Default
         "#]],
     );
@@ -245,7 +245,7 @@ fn equals() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [31-44]:
                 symbol_id: 9
@@ -256,7 +256,7 @@ fn equals() {
             [9] Symbol [37-38]:
                 name: y
                 type: float
-                qsharp_type: Double
+                ty_span: [31-36]
                 io_kind: Default
             ClassicalDeclarationStmt [53-69]:
                 symbol_id: 10
@@ -274,7 +274,7 @@ fn equals() {
             [10] Symbol [58-59]:
                 name: b
                 type: bool
-                qsharp_type: bool
+                ty_span: [53-57]
                 io_kind: Default
         "#]],
     );
@@ -300,7 +300,7 @@ fn not_equals() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [31-44]:
                 symbol_id: 9
@@ -311,7 +311,7 @@ fn not_equals() {
             [9] Symbol [37-38]:
                 name: y
                 type: float
-                qsharp_type: Double
+                ty_span: [31-36]
                 io_kind: Default
             ClassicalDeclarationStmt [53-69]:
                 symbol_id: 10
@@ -329,7 +329,7 @@ fn not_equals() {
             [10] Symbol [58-59]:
                 name: d
                 type: bool
-                qsharp_type: bool
+                ty_span: [53-57]
                 io_kind: Default
         "#]],
     );

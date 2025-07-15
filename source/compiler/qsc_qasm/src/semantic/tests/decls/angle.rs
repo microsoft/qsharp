@@ -19,7 +19,7 @@ fn implicit_bitness_default() {
             [8] Symbol [6-7]:
                 name: x
                 type: angle
-                qsharp_type: Angle
+                ty_span: [0-5]
                 io_kind: Default"#]],
     );
 }
@@ -38,7 +38,7 @@ fn lit() {
             [8] Symbol [6-7]:
                 name: x
                 type: angle
-                qsharp_type: Angle
+                ty_span: [0-5]
                 io_kind: Default"#]],
     );
 }
@@ -58,7 +58,7 @@ fn const_lit() {
             [8] Symbol [12-13]:
                 name: x
                 type: const angle
-                qsharp_type: Angle
+                ty_span: [6-11]
                 io_kind: Default"#]],
     );
 }
@@ -77,7 +77,7 @@ fn lit_explicit_width() {
             [8] Symbol [10-11]:
                 name: x
                 type: angle[64]
-                qsharp_type: Angle
+                ty_span: [0-9]
                 io_kind: Default"#]],
     );
 }
@@ -97,7 +97,7 @@ fn const_explicit_width_lit() {
             [8] Symbol [16-17]:
                 name: x
                 type: const angle[64]
-                qsharp_type: Angle
+                ty_span: [6-15]
                 io_kind: Default"#]],
     );
 }
@@ -116,7 +116,7 @@ fn lit_decl_leading_dot() {
             [8] Symbol [6-7]:
                 name: x
                 type: angle
-                qsharp_type: Angle
+                ty_span: [0-5]
                 io_kind: Default"#]],
     );
 }
@@ -136,7 +136,7 @@ fn const_lit_decl_leading_dot() {
             [8] Symbol [12-13]:
                 name: x
                 type: const angle
-                qsharp_type: Angle
+                ty_span: [6-11]
                 io_kind: Default"#]],
     );
 }
@@ -156,7 +156,7 @@ fn const_lit_decl_leading_dot_scientific() {
             [8] Symbol [12-13]:
                 name: x
                 type: const angle
-                qsharp_type: Angle
+                ty_span: [6-11]
                 io_kind: Default"#]],
     );
 }
@@ -175,7 +175,7 @@ fn lit_decl_trailing_dot() {
             [8] Symbol [6-7]:
                 name: x
                 type: angle
-                qsharp_type: Angle
+                ty_span: [0-5]
                 io_kind: Default"#]],
     );
 }
@@ -195,7 +195,7 @@ fn const_lit_decl_trailing_dot() {
             [8] Symbol [12-13]:
                 name: x
                 type: const angle
-                qsharp_type: Angle
+                ty_span: [6-11]
                 io_kind: Default"#]],
     );
 }
@@ -214,7 +214,7 @@ fn lit_decl_scientific() {
             [8] Symbol [6-7]:
                 name: x
                 type: angle
-                qsharp_type: Angle
+                ty_span: [0-5]
                 io_kind: Default"#]],
     );
 }
@@ -234,7 +234,7 @@ fn const_lit_decl_scientific() {
             [8] Symbol [12-13]:
                 name: x
                 type: const angle
-                qsharp_type: Angle
+                ty_span: [6-11]
                 io_kind: Default"#]],
     );
 }
@@ -253,7 +253,7 @@ fn lit_decl_scientific_signed_pos() {
             [8] Symbol [6-7]:
                 name: x
                 type: angle
-                qsharp_type: Angle
+                ty_span: [0-5]
                 io_kind: Default"#]],
     );
 }
@@ -273,7 +273,7 @@ fn const_lit_decl_scientific_signed_pos() {
             [8] Symbol [12-13]:
                 name: x
                 type: const angle
-                qsharp_type: Angle
+                ty_span: [6-11]
                 io_kind: Default"#]],
     );
 }
@@ -292,7 +292,7 @@ fn lit_decl_scientific_cap_e() {
             [8] Symbol [6-7]:
                 name: x
                 type: angle
-                qsharp_type: Angle
+                ty_span: [0-5]
                 io_kind: Default"#]],
     );
 }
@@ -312,7 +312,7 @@ fn const_lit_decl_scientific_cap_e() {
             [8] Symbol [12-13]:
                 name: x
                 type: const angle
-                qsharp_type: Angle
+                ty_span: [6-11]
                 io_kind: Default"#]],
     );
 }
@@ -331,7 +331,7 @@ fn lit_decl_scientific_signed_neg() {
             [8] Symbol [6-7]:
                 name: x
                 type: angle
-                qsharp_type: Angle
+                ty_span: [0-5]
                 io_kind: Default"#]],
     );
 }
@@ -351,7 +351,7 @@ fn const_lit_decl_scientific_signed_neg() {
             [8] Symbol [12-13]:
                 name: x
                 type: const angle
-                qsharp_type: Angle
+                ty_span: [6-11]
                 io_kind: Default"#]],
     );
 }
@@ -379,7 +379,7 @@ fn const_lit_decl_signed_float_lit_cast_neg() {
             [8] Symbol [12-13]:
                 name: x
                 type: const angle
-                qsharp_type: Angle
+                ty_span: [6-11]
                 io_kind: Default"#]],
     );
 }
