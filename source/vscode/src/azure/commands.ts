@@ -24,6 +24,7 @@ import { supportsAdaptive, targetSupportQir } from "./providerProperties";
 import { startRefreshCycle } from "./treeRefresher";
 import { getTokenForWorkspace } from "./auth";
 import { qsharpExtensionId } from "../common";
+import { sendMessageToPanel } from "../webviewPanel";
 
 const workspacesSecret = `${qsharpExtensionId}.workspaces`;
 
@@ -268,7 +269,14 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
           if (!token) return;
 
           const file = await getJobFiles(container, blob, token, quantumUris);
-          if (file) {
+          const buckets = getHistogramBucketsFromData(file, job.shots);
+          if (buckets) {
+            sendMessageToPanel(
+              { panelType: "histogram", id: job.name },
+              true,
+              buckets,
+            );
+          } else {
             const doc = await vscode.workspace.openTextDocument({
               content: file,
               language: "json",
@@ -330,4 +338,67 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
       },
     ),
   );
+}
+
+type Buckets = {
+  buckets: [string, number][];
+  shotCount: number;
+};
+function getHistogramBucketsFromData(
+  file: string,
+  shotCount?: number,
+): Buckets | undefined {
+  try {
+    const parsed = JSON.parse(file);
+    if (!parsed || typeof parsed !== "object") {
+      throw "Histogram data is not in the expected format";
+    }
+    if (parsed.DataFormat === "microsoft.quantum-results.v2") {
+      // New 'v2' format will be in the format
+      // {
+      //   "DataFormat": "microsoft.quantum-results.v2",
+      //   "Results": [
+      //     {
+      //       "Histogram": [
+      //         { "Outcome": [0, 1, 1, 1], "Display": "[0, 1, 1, 1]", "Count": 8 },
+      //         { "Outcome": [1, 1, 0, 0], "Display": "[1, 1, 0, 0]", "Count": 10 },
+      // etc..
+      // Only Results[0] is used (not sure why it's an array)
+      type v2Bucket = { Display: string; Count: number };
+      const histogramData: v2Bucket[] = parsed.Results?.[0]?.Histogram;
+      if (!Array.isArray(histogramData)) throw "Histogram data not found";
+      const buckets: Array<[string, number]> = [];
+      let shotTotal = 0;
+      histogramData.forEach((entry) => {
+        shotTotal += entry.Count;
+        buckets.push([entry.Display, entry.Count]);
+      });
+
+      return { buckets, shotCount: shotTotal };
+    } else if (Array.isArray(parsed.Histogram)) {
+      // v1 format should be an object with a "Histogram" property, which is an array of ["label", <float>, ...] entries.
+      // e.g., something as simple as: {"Histogram":["(0, 0)",0.54,"(1, 1)",0.46]}
+      // Note this doesn't include the shotCount, so we need it from the job
+      if (!shotCount || Math.round(shotCount) !== shotCount || shotCount < 0) {
+        throw "job.shots data was not a positive integer";
+      }
+
+      // Turn the flat histogram list into buckets for the histogram.
+      const histogram: Array<string | number> = parsed.Histogram;
+      const buckets: Array<[string, number]> = [];
+      for (let i = 0; i < parsed.Histogram.length; i += 2) {
+        const label = histogram[i].toString();
+        const value = histogram[i + 1]; // This is a percentage, not a count
+        if (typeof value !== "number") throw "Invalid histogram value";
+        buckets.push([label, Math.round(value * shotCount)]);
+      }
+
+      return { buckets, shotCount };
+    } else {
+      throw "Unrecognized histogram file format";
+    }
+  } catch (e: any) {
+    log.debug("Failed to parse job results as histogram data.", file, e);
+  }
+  return undefined;
 }
