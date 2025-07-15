@@ -709,6 +709,7 @@ impl State {
     /// Returns the first error encountered during execution.
     /// # Panics
     /// When returning a value in the middle of execution.
+    #[allow(clippy::too_many_lines)]
     pub fn eval(
         &mut self,
         globals: &impl PackageStoreLookup,
