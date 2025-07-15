@@ -37,7 +37,7 @@ use num_bigint::BigInt;
 use output::Receiver;
 use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap, span::Span};
 use qsc_fir::fir::{
-    self, BinOp, CallableImpl, ExecGraph, ExecGraphNode, Expr, ExprId, ExprKind, Field,
+    self, BinOp, BlockId, CallableImpl, ExecGraph, ExecGraphNode, Expr, ExprId, ExprKind, Field,
     FieldAssign, Global, Lit, LocalItemId, LocalVarId, PackageId, PackageStoreLookup, PatId,
     PatKind, PrimField, Res, StmtId, StoreItemId, StringComponent, UnOp,
 };
@@ -709,6 +709,7 @@ impl State {
     /// Returns the first error encountered during execution.
     /// # Panics
     /// When returning a value in the middle of execution.
+    #[allow(clippy::too_many_lines)]
     pub fn eval(
         &mut self,
         globals: &impl PackageStoreLookup,
@@ -808,6 +809,16 @@ impl State {
                     self.idx += 1;
                     continue;
                 }
+                Some(ExecGraphNode::BlockEnd(id)) => {
+                    self.idx += 1;
+                    match self.check_for_block_exit_break(globals, *id, step, current_frame) {
+                        Some((result, span)) => {
+                            self.current_span = span;
+                            return Ok(result);
+                        }
+                        None => continue,
+                    }
+                }
                 None => {
                     // We have reached the end of the current graph without reaching an explicit return node,
                     // usually indicating the partial execution of a single sub-expression.
@@ -864,6 +875,25 @@ impl State {
                 }
             },
         )
+    }
+
+    fn check_for_block_exit_break(
+        &self,
+        globals: &impl PackageStoreLookup,
+        block: BlockId,
+        step: StepAction,
+        current_frame: usize,
+    ) -> Option<(StepResult, Span)> {
+        if step == StepAction::Next && current_frame >= self.call_stack.len() {
+            let block = globals.get_block((self.package, block).into());
+            let span = Span {
+                lo: block.span.hi - 1,
+                hi: block.span.hi,
+            };
+            Some((StepResult::Next, span))
+        } else {
+            None
+        }
     }
 
     pub fn get_result(&mut self) -> Value {

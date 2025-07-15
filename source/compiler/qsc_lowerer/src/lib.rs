@@ -371,6 +371,7 @@ impl Lowerer {
             self.exec_graph.push(ExecGraphNode::Unit);
         }
         if self.enable_debug {
+            self.exec_graph.push(ExecGraphNode::BlockEnd(id));
             self.exec_graph.push(ExecGraphNode::PopScope);
         }
         self.blocks.insert(id, block);

@@ -1080,6 +1080,9 @@ mod debugger_stepping {
             step:
             q_0    ── H ──── M ──── |0〉 ──
                              ╘════════════
+            step:
+            q_0    ── H ──── M ──── |0〉 ──
+                             ╘════════════
         "#]]
         .assert_eq(&circs);
     }
@@ -1103,7 +1106,7 @@ mod debugger_stepping {
             Profile::Unrestricted,
         );
 
-        expect![[r"
+        expect![[r#"
             step:
             step:
             q_0
@@ -1118,7 +1121,10 @@ mod debugger_stepping {
             step:
             q_0    ── H ──── M ──── |0〉 ──
                              ╘════════════
-        "]]
+            step:
+            q_0    ── H ──── M ──── |0〉 ──
+                             ╘════════════
+        "#]]
         .assert_eq(&circs);
     }
 
@@ -1147,7 +1153,7 @@ mod debugger_stepping {
         // the nondeterministic output. Since the debugger is running
         // the real simulator, the circuit is going to vary from run to run
         // depending on measurement outcomes.
-        expect![[r"
+        expect![[r#"
             step:
             step:
             q_0
@@ -1165,7 +1171,13 @@ mod debugger_stepping {
             step:
             q_0    ── H ──── M ──── X ──
                              ╘══════════
-        "]]
+            step:
+            q_0    ── H ──── M ──── X ──
+                             ╘══════════
+            step:
+            q_0    ── H ──── M ──── X ──
+                             ╘══════════
+        "#]]
         .assert_eq(&circs);
     }
 }
