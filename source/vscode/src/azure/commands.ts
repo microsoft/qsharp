@@ -271,11 +271,10 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
           const file = await getJobFiles(container, blob, token, quantumUris);
           const buckets = getHistogramBucketsFromData(file, job.shots);
           if (buckets) {
-            sendMessageToPanel(
-              { panelType: "histogram", id: job.name },
-              true,
-              buckets,
-            );
+            sendMessageToPanel({ panelType: "histogram", id: job.name }, true, {
+              ...buckets,
+              suppressSettings: true, // Don't want to show noise settings on downloaded results
+            });
           } else {
             const doc = await vscode.workspace.openTextDocument({
               content: file,
@@ -363,7 +362,7 @@ function getHistogramBucketsFromData(
       //         { "Outcome": [0, 1, 1, 1], "Display": "[0, 1, 1, 1]", "Count": 8 },
       //         { "Outcome": [1, 1, 0, 0], "Display": "[1, 1, 0, 0]", "Count": 10 },
       // etc..
-      // Only Results[0] is used (not sure why it's an array)
+      // Only Results[0] is used (batching may have more entries, but we don't support that)
       type v2Bucket = { Display: string; Count: number };
       const histogramData: v2Bucket[] = parsed.Results?.[0]?.Histogram;
       if (!Array.isArray(histogramData)) throw "Histogram data not found";
@@ -379,7 +378,7 @@ function getHistogramBucketsFromData(
       // v1 format should be an object with a "Histogram" property, which is an array of ["label", <float>, ...] entries.
       // e.g., something as simple as: {"Histogram":["(0, 0)",0.54,"(1, 1)",0.46]}
       // Note this doesn't include the shotCount, so we need it from the job
-      if (!shotCount || Math.round(shotCount) !== shotCount || shotCount < 0) {
+      if (!shotCount || !Number.isInteger(shotCount)) {
         throw "job.shots data was not a positive integer";
       }
 
