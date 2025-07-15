@@ -156,6 +156,11 @@
           "tags": [
             "hidden"
           ]
+        },
+        "Q#.notifications.suppressUpdateNotifications": {
+          "type": "boolean",
+          "default": false,
+          "description": "Suppress notifications about new QDK updates. If true, you will not be prompted about new features after updates."
         }
       }
     },
@@ -438,6 +443,11 @@
         "command": "qsharp-vscode.addProjectReference",
         "category": "QDK",
         "title": "Add Q# project reference"
+      },
+      {
+        "command": "qsharp-vscode.showChangelog",
+        "title": "Show Changelog",
+        "category": "QDK"
       }
     ],
     "breakpoints": [
