@@ -24,7 +24,7 @@ fn to_bit_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-42]:
                 symbol_id: 9
@@ -39,7 +39,7 @@ fn to_bit_implicitly() {
             [9] Symbol [36-37]:
                 name: y
                 type: bit
-                qsharp_type: Result
+                ty_span: [32-35]
                 io_kind: Default
         "#]],
     );
@@ -64,7 +64,7 @@ fn explicit_width_to_bit_implicitly() {
             [8] Symbol [19-20]:
                 name: x
                 type: float[64]
-                qsharp_type: Double
+                ty_span: [9-18]
                 io_kind: Default
             ClassicalDeclarationStmt [36-46]:
                 symbol_id: 9
@@ -79,7 +79,7 @@ fn explicit_width_to_bit_implicitly() {
             [9] Symbol [40-41]:
                 name: y
                 type: bit
-                qsharp_type: Result
+                ty_span: [36-39]
                 io_kind: Default
         "#]],
     );
@@ -103,7 +103,7 @@ fn to_bool_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-43]:
                 symbol_id: 9
@@ -118,7 +118,7 @@ fn to_bool_implicitly() {
             [9] Symbol [37-38]:
                 name: y
                 type: bool
-                qsharp_type: bool
+                ty_span: [32-36]
                 io_kind: Default
         "#]],
     );
@@ -143,7 +143,7 @@ fn to_implicit_int_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-42]:
                 symbol_id: 9
@@ -158,7 +158,7 @@ fn to_implicit_int_implicitly() {
             [9] Symbol [36-37]:
                 name: y
                 type: int
-                qsharp_type: Int
+                ty_span: [32-35]
                 io_kind: Default
         "#]],
     );
@@ -183,7 +183,7 @@ fn to_explicit_int_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-46]:
                 symbol_id: 9
@@ -198,7 +198,7 @@ fn to_explicit_int_implicitly() {
             [9] Symbol [40-41]:
                 name: y
                 type: int[32]
-                qsharp_type: Int
+                ty_span: [32-39]
                 io_kind: Default
         "#]],
     );
@@ -223,7 +223,7 @@ fn to_implicit_uint_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-43]:
                 symbol_id: 9
@@ -238,7 +238,7 @@ fn to_implicit_uint_implicitly() {
             [9] Symbol [37-38]:
                 name: y
                 type: uint
-                qsharp_type: Int
+                ty_span: [32-36]
                 io_kind: Default
         "#]],
     );
@@ -267,7 +267,7 @@ fn negative_lit_to_implicit_uint_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [33-44]:
                 symbol_id: 9
@@ -282,7 +282,7 @@ fn negative_lit_to_implicit_uint_implicitly() {
             [9] Symbol [38-39]:
                 name: y
                 type: uint
-                qsharp_type: Int
+                ty_span: [33-37]
                 io_kind: Default
         "#]],
     );
@@ -307,7 +307,7 @@ fn to_explicit_uint_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
@@ -322,7 +322,7 @@ fn to_explicit_uint_implicitly() {
             [9] Symbol [41-42]:
                 name: y
                 type: uint[32]
-                qsharp_type: Int
+                ty_span: [32-40]
                 io_kind: Default
         "#]],
     );
@@ -347,7 +347,7 @@ fn to_explicit_bigint_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-46]:
                 symbol_id: 9
@@ -362,7 +362,7 @@ fn to_explicit_bigint_implicitly() {
             [9] Symbol [40-41]:
                 name: y
                 type: int[65]
-                qsharp_type: BigInt
+                ty_span: [32-39]
                 io_kind: Default
         "#]],
     );
@@ -387,7 +387,7 @@ fn to_implicit_float_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-44]:
                 symbol_id: 9
@@ -398,7 +398,7 @@ fn to_implicit_float_implicitly() {
             [9] Symbol [38-39]:
                 name: y
                 type: float
-                qsharp_type: Double
+                ty_span: [32-37]
                 io_kind: Default
         "#]],
     );
@@ -423,7 +423,7 @@ fn to_explicit_float_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-48]:
                 symbol_id: 9
@@ -438,7 +438,7 @@ fn to_explicit_float_implicitly() {
             [9] Symbol [42-43]:
                 name: y
                 type: float[32]
-                qsharp_type: Double
+                ty_span: [32-41]
                 io_kind: Default
         "#]],
     );
@@ -463,7 +463,7 @@ fn to_implicit_complex_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-53]:
                 symbol_id: 9
@@ -478,7 +478,7 @@ fn to_implicit_complex_implicitly() {
             [9] Symbol [47-48]:
                 name: y
                 type: complex[float]
-                qsharp_type: Complex
+                ty_span: [32-46]
                 io_kind: Default
         "#]],
     );
@@ -503,7 +503,7 @@ fn to_explicit_complex_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-57]:
                 symbol_id: 9
@@ -518,7 +518,7 @@ fn to_explicit_complex_implicitly() {
             [9] Symbol [51-52]:
                 name: y
                 type: complex[float[32]]
-                qsharp_type: Complex
+                ty_span: [32-50]
                 io_kind: Default
         "#]],
     );
@@ -543,7 +543,7 @@ fn to_angle_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-44]:
                 symbol_id: 9
@@ -558,7 +558,7 @@ fn to_angle_implicitly() {
             [9] Symbol [38-39]:
                 name: y
                 type: angle
-                qsharp_type: Angle
+                ty_span: [32-37]
                 io_kind: Default
         "#]],
     );
@@ -583,7 +583,7 @@ fn to_explicit_angle_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: float
-                qsharp_type: Double
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
@@ -598,7 +598,7 @@ fn to_explicit_angle_implicitly() {
             [9] Symbol [41-42]:
                 name: y
                 type: angle[4]
-                qsharp_type: Angle
+                ty_span: [32-40]
                 io_kind: Default
         "#]],
     );

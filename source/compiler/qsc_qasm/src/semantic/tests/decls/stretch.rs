@@ -25,13 +25,6 @@ fn with_no_init_expr_has_generated_lit_expr() {
 
             [Qasm.Lowerer.NotSupported
 
-              x stretch type values are not supported
-               ,-[test:1:1]
-             1 | stretch a;
-               : ^^^^^^^
-               `----
-            , Qasm.Lowerer.NotSupported
-
               x stretch default values are not supported
                ,-[test:1:1]
              1 | stretch a;

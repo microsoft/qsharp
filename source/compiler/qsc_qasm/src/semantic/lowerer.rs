@@ -10,6 +10,7 @@ use std::sync::Arc;
 
 use super::const_eval::ConstEvalError;
 use super::symbols::ScopeKind;
+use super::types::Type;
 use super::types::binop_requires_asymmetric_angle_op;
 use super::types::binop_requires_int_conversion_for_type;
 use super::types::binop_requires_symmetric_uint_conversion;
@@ -20,7 +21,6 @@ use super::types::requires_symmetric_conversion;
 use super::types::try_promote_with_casting;
 use super::types::types_equal_except_const;
 use super::types::unary_op_can_be_applied_to_type;
-use super::types::{ArrayBaseType, Type};
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use num_traits::Num;
@@ -407,7 +407,7 @@ impl Lowerer {
             name,
             Span::default(),
             Type::Function(vec![Type::Qubit].into(), Type::Int(None, false).into()),
-            crate::types::Type::Callable(crate::types::CallableKind::Operation, 0, 1),
+            Span::default(),
             Default::default(),
         );
         if self.symbols.insert_symbol(symbol).is_err() {
@@ -572,7 +572,7 @@ impl Lowerer {
             &name,
             alias.ident.span(),
             first.ty.clone(),
-            self.convert_semantic_type_to_qsharp_type(&first.ty, alias.ident.span()),
+            alias.ident.span(),
             IOKind::Default,
         );
 
@@ -1132,104 +1132,6 @@ impl Lowerer {
         }
     }
 
-    fn make_qsharp_array_ty(
-        base_ty: &ArrayBaseType,
-        dims: crate::types::ArrayDimensions,
-    ) -> crate::types::Type {
-        match base_ty {
-            ArrayBaseType::Duration => unreachable!(),
-            ArrayBaseType::Bool => crate::types::Type::BoolArray(dims, false),
-            ArrayBaseType::Angle(_) => crate::types::Type::AngleArray(dims, false),
-            ArrayBaseType::Complex(_) => crate::types::Type::ComplexArray(dims, false),
-            ArrayBaseType::Float(_) => crate::types::Type::DoubleArray(dims),
-            ArrayBaseType::Int(width) | ArrayBaseType::UInt(width) => {
-                if let Some(width) = width {
-                    if *width > 64 {
-                        crate::types::Type::BigIntArray(dims, false)
-                    } else {
-                        crate::types::Type::IntArray(dims, false)
-                    }
-                } else {
-                    crate::types::Type::IntArray(dims, false)
-                }
-            }
-        }
-    }
-
-    fn convert_semantic_type_to_qsharp_type(
-        &mut self,
-        ty: &super::types::Type,
-        span: Span,
-    ) -> crate::types::Type {
-        if ty.is_array() && matches!(ty.array_dims(), Some(super::types::ArrayDimensions::Err)) {
-            self.push_unsupported_error_message("arrays with more than 7 dimensions", span);
-            return crate::types::Type::Err;
-        }
-
-        let is_const = ty.is_const();
-        match ty {
-            Type::Bit(_) => crate::types::Type::Result(is_const),
-            Type::Qubit => crate::types::Type::Qubit,
-            Type::HardwareQubit => {
-                let message = "hardware qubit to Q# type";
-                self.push_unsupported_error_message(message, span);
-                crate::types::Type::Err
-            }
-            Type::Int(width, _) | Type::UInt(width, _) => {
-                if let Some(width) = width {
-                    if *width > 64 {
-                        crate::types::Type::BigInt(is_const)
-                    } else {
-                        crate::types::Type::Int(is_const)
-                    }
-                } else {
-                    crate::types::Type::Int(is_const)
-                }
-            }
-            Type::Float(_, _) => crate::types::Type::Double(is_const),
-            Type::Angle(_, _) => crate::types::Type::Angle(is_const),
-            Type::Complex(_, _) => crate::types::Type::Complex(is_const),
-            Type::Bool(_) => crate::types::Type::Bool(is_const),
-            Type::Duration(_) => {
-                self.push_unsupported_error_message("duration type values", span);
-                crate::types::Type::Err
-            }
-            Type::Stretch(_) => {
-                self.push_unsupported_error_message("stretch type values", span);
-                crate::types::Type::Err
-            }
-            Type::BitArray(_, _) => {
-                crate::types::Type::ResultArray(crate::types::ArrayDimensions::One, is_const)
-            }
-            Type::QubitArray(_) => {
-                crate::types::Type::QubitArray(crate::types::ArrayDimensions::One)
-            }
-            Type::Array(array) if !matches!(array.base_ty, ArrayBaseType::Duration) => {
-                let dims = (&array.dims).into();
-                Self::make_qsharp_array_ty(&array.base_ty, dims)
-            }
-            Type::StaticArrayRef(array_ref) if !array_ref.is_mutable => {
-                let dims = (&array_ref.dims).into();
-                Self::make_qsharp_array_ty(&array_ref.base_ty, dims)
-            }
-            Type::DynArrayRef(array_ref) if !array_ref.is_mutable => {
-                let dims = (array_ref.num_dims).into();
-                Self::make_qsharp_array_ty(&array_ref.base_ty, dims)
-            }
-            Type::Gate(cargs, qargs) => {
-                crate::types::Type::Callable(crate::types::CallableKind::Operation, *cargs, *qargs)
-            }
-            Type::Range => crate::types::Type::Range,
-            Type::Void => crate::types::Type::Tuple(vec![]),
-            Type::Err => crate::types::Type::Err,
-            _ => {
-                let msg = format!("converting `{ty}` to Q# type");
-                self.push_unimplemented_error_message(msg, span);
-                crate::types::Type::Err
-            }
-        }
-    }
-
     fn lower_barrier_stmt(&mut self, stmt: &syntax::BarrierStmt) -> semantic::StmtKind {
         let qubits = stmt.qubits.iter().map(|q| self.lower_gate_operand(q));
         let qubits = list_from_iter(qubits);
@@ -1346,12 +1248,11 @@ impl Lowerer {
         let ty_span = stmt.ty.span();
         let stmt_span = stmt.span;
         let name = stmt.identifier.name.clone();
-        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
         let symbol = Symbol::new(
             &name,
             stmt.identifier.span,
             ty.clone(),
-            qsharp_ty,
+            ty_span,
             IOKind::Default,
         );
 
@@ -1385,7 +1286,6 @@ impl Lowerer {
         let ty = self.get_semantic_type_from_tydef(&stmt.ty, is_const);
         let ty_span = stmt.ty.span();
         let name = stmt.identifier.name.clone();
-        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty.span());
         let mut init_expr = match &stmt.init_expr {
             syntax::ValueExpr::Expr(expr) => {
                 let expr = self.lower_decl_expr(expr, &ty, false);
@@ -1398,7 +1298,7 @@ impl Lowerer {
             &name,
             stmt.identifier.span,
             ty.clone(),
-            qsharp_ty,
+            ty_span,
             IOKind::Default,
         );
 
@@ -1456,22 +1356,14 @@ impl Lowerer {
         }
 
         // 3. Build the return type.
-        let (return_ty, qsharp_return_ty) = if let Some(ty) = &stmt.return_type {
-            let ty_span = ty.span;
+        let return_ty: Arc<crate::semantic::types::Type> = if let Some(ty) = &stmt.return_type {
             let tydef = syntax::TypeDef::Scalar(*ty.clone());
-            let ty = self.get_semantic_type_from_tydef(&tydef, false);
-            let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
-            (Arc::new(ty), qsharp_ty)
+            self.get_semantic_type_from_tydef(&tydef, false).into()
         } else {
-            (
-                Arc::new(crate::semantic::types::Type::Void),
-                crate::types::Type::Tuple(Default::default()),
-            )
+            crate::semantic::types::Type::Void.into()
         };
 
         // 2. Push the function symbol to the symbol table.
-        #[allow(clippy::cast_possible_truncation)]
-        let arity = stmt.params.len() as u32;
         let name = stmt.name.name.clone();
         let name_span = stmt.name.span;
         let ty = crate::semantic::types::Type::Function(param_types.into(), return_ty.clone());
@@ -1481,14 +1373,6 @@ impl Lowerer {
             .iter()
             .any(|arg| matches!(&*arg.ty, syntax::DefParameterType::Qubit(..)));
 
-        let kind = if has_qubit_params {
-            crate::types::CallableKind::Operation
-        } else {
-            crate::types::CallableKind::Function
-        };
-
-        let qsharp_ty = crate::types::Type::Callable(kind, arity, 0);
-
         // Check that the name isn't a builtin function.
         let symbol_id = if BuiltinFunction::from_str(&name).is_ok() {
             self.push_semantic_error(SemanticErrorKind::RedefinedBuiltinFunction(
@@ -1497,7 +1381,7 @@ impl Lowerer {
             ));
             None
         } else {
-            let symbol = Symbol::new(&name, name_span, ty, qsharp_ty, IOKind::Default);
+            let symbol = Symbol::new(&name, name_span, ty, Span::default(), IOKind::Default);
             Some(self.try_insert_or_get_existing_symbol_id(name, symbol))
         };
 
@@ -1505,7 +1389,8 @@ impl Lowerer {
         // the user with as much feedback as possible.
 
         // Push the scope where the def lives.
-        self.symbols.push_scope(ScopeKind::Function(return_ty));
+        self.symbols
+            .push_scope(ScopeKind::Function(return_ty.clone()));
 
         let params = param_symbols
             .into_iter()
@@ -1528,6 +1413,10 @@ impl Lowerer {
         // Pop the scope where the def lives.
         self.symbols.pop_scope();
 
+        let return_type_span = stmt
+            .return_type
+            .as_ref()
+            .map_or_else(Span::default, |ty| ty.span);
         if let Some(return_ty) = &stmt.return_type {
             self.check_that_def_returns_in_all_code_paths(&body, return_ty.span);
         }
@@ -1543,7 +1432,8 @@ impl Lowerer {
             has_qubit_params,
             params,
             body,
-            return_type: qsharp_return_ty,
+            return_type: return_ty,
+            return_type_span,
         })
     }
 
@@ -1595,21 +1485,15 @@ impl Lowerer {
     }
 
     fn lower_typed_parameter(&mut self, typed_param: &syntax::DefParameter) -> Symbol {
-        let (ty, qsharp_ty) = match &*typed_param.ty {
+        let ty = match &*typed_param.ty {
             syntax::DefParameterType::ArrayReference(ty) => {
                 let tydef = syntax::TypeDef::ArrayReference(ty.clone());
-                let ty = self.get_semantic_type_from_tydef(&tydef, false);
-                let qsharp_ty =
-                    self.convert_semantic_type_to_qsharp_type(&ty, typed_param.ty.span());
-                (ty, qsharp_ty)
+                self.get_semantic_type_from_tydef(&tydef, false)
             }
             syntax::DefParameterType::Qubit(ty) => self.lower_qubit_type(ty),
             syntax::DefParameterType::Scalar(ty) => {
                 let tydef = syntax::TypeDef::Scalar(ty.clone());
-                let ty = self.get_semantic_type_from_tydef(&tydef, false);
-                let qsharp_ty =
-                    self.convert_semantic_type_to_qsharp_type(&ty, typed_param.ty.span());
-                (ty, qsharp_ty)
+                self.get_semantic_type_from_tydef(&tydef, false)
             }
         };
 
@@ -1617,7 +1501,7 @@ impl Lowerer {
             &typed_param.ident.name,
             typed_param.ident.span,
             ty,
-            qsharp_ty,
+            typed_param.ty.span(),
             IOKind::Default,
         )
     }
@@ -1625,22 +1509,17 @@ impl Lowerer {
     fn lower_qubit_type(
         &mut self,
         typed_param: &syntax::QubitType,
-    ) -> (crate::semantic::types::Type, crate::types::Type) {
+    ) -> crate::semantic::types::Type {
         if let Some(size) = &typed_param.size {
             let size = self.const_eval_array_size_designator_expr(size);
             if let Some(size) = size {
                 let size = size.get_const_u32().expect("const evaluation succeeded");
-                let ty = crate::semantic::types::Type::QubitArray(size);
-                let qsharp_ty = crate::types::Type::QubitArray(crate::types::ArrayDimensions::One);
-                (ty, qsharp_ty)
+                crate::semantic::types::Type::QubitArray(size)
             } else {
-                (crate::semantic::types::Type::Err, crate::types::Type::Err)
+                crate::semantic::types::Type::Err
             }
         } else {
-            (
-                crate::semantic::types::Type::Qubit,
-                crate::types::Type::Qubit,
-            )
+            crate::semantic::types::Type::Qubit
         }
     }
 
@@ -1680,45 +1559,38 @@ impl Lowerer {
 
         // 2. Build the parameter's type.
         let mut params = Vec::with_capacity(stmt.params.len());
-        let mut qsharp_params = Vec::with_capacity(stmt.params.len());
 
         for param in &stmt.params {
             let ty = self.lower_extern_param(param);
-            let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, param.span());
             params.push(ty);
-            qsharp_params.push(qsharp_ty);
         }
 
         // 2. Build the return type.
-        let (return_ty, qsharp_return_ty) = if let Some(ty) = &stmt.return_type {
+        let (return_ty, ty_span) = if let Some(ty) = &stmt.return_type {
             let ty_span = ty.span;
             let tydef = syntax::TypeDef::Scalar(ty.clone());
             let ty = self.get_semantic_type_from_tydef(&tydef, false);
-            let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
-            (Arc::new(ty), qsharp_ty)
+            (ty, ty_span)
         } else {
-            (
-                Arc::new(crate::semantic::types::Type::Void),
-                crate::types::Type::Tuple(Default::default()),
-            )
+            (crate::semantic::types::Type::Void, Span::default())
         };
 
+        // extern functions can take of any number of arguments whose types correspond to the classical types of OpenQASM.
+        // However, they cannot take qubits as parameters. We don't check the param types as they
+        // are parse errors.
+
+        // we also don't check the return type as it is a parse error to have an invalid return type.
+
         // 3. Push the extern symbol to the symbol table.
-        #[allow(clippy::cast_possible_truncation)]
-        let arity = stmt.params.len() as u32;
         let name = stmt.ident.name.clone();
         let name_span = stmt.ident.span;
-        let ty = crate::semantic::types::Type::Function(params.into(), return_ty.clone());
-        let kind = crate::types::CallableKind::Function;
-        let qsharp_ty = crate::types::Type::Callable(kind, arity, 0);
-        let symbol = Symbol::new(&name, name_span, ty, qsharp_ty, IOKind::Default);
+        let ty = crate::semantic::types::Type::Function(params.into(), return_ty.into());
+        let symbol = Symbol::new(&name, name_span, ty, ty_span, IOKind::Default);
         let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
         semantic::StmtKind::ExternDecl(semantic::ExternDecl {
             span: stmt.span,
             symbol_id,
-            params: qsharp_params.into(),
-            return_type: qsharp_return_ty,
         })
     }
 
@@ -1768,12 +1640,11 @@ impl Lowerer {
         self.symbols.push_scope(ScopeKind::Loop);
 
         let ty = self.get_semantic_type_from_scalar_ty(&stmt.ty, false);
-        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty.span);
         let symbol = Symbol::new(
             &stmt.ident.name,
             stmt.ident.span,
             ty.clone(),
-            qsharp_ty,
+            stmt.ty.span,
             IOKind::Default,
         );
 
@@ -2366,8 +2237,7 @@ impl Lowerer {
         let ty_span = stmt.ty.span();
         let stmt_span = stmt.span;
         let name = stmt.ident.name.clone();
-        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
-        let symbol = Symbol::new(&name, stmt.ident.span, ty.clone(), qsharp_ty, io_kind);
+        let symbol = Symbol::new(&name, stmt.ident.span, ty.clone(), ty_span, io_kind);
 
         let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
@@ -2439,12 +2309,7 @@ impl Lowerer {
             .count() as u32;
         let name = stmt.ident.name.clone();
         let ty = crate::semantic::types::Type::Gate(classical_arity, quantum_arity);
-        let qsharp_ty = crate::types::Type::Callable(
-            crate::types::CallableKind::Operation,
-            classical_arity,
-            quantum_arity,
-        );
-        let symbol = Symbol::new(&name, stmt.ident.span, ty, qsharp_ty, IOKind::Default);
+        let symbol = Symbol::new(&name, stmt.ident.span, ty, Span::default(), IOKind::Default);
         let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
         // Push the scope where the gate definition lives.
@@ -2464,8 +2329,7 @@ impl Lowerer {
             .filter_map(|seq_item| seq_item.item_as_ref())
             .map(|arg| {
                 let ty = crate::semantic::types::Type::Angle(None, false);
-                let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, Span::default());
-                let symbol = Symbol::new(&arg.name, arg.span, ty, qsharp_ty, IOKind::Default);
+                let symbol = Symbol::new(&arg.name, arg.span, ty, Span::default(), IOKind::Default);
                 self.try_insert_or_get_existing_symbol_id(&arg.name, symbol)
             })
             .collect::<Box<_>>();
@@ -2476,8 +2340,7 @@ impl Lowerer {
             .filter_map(|seq_item| seq_item.item_as_ref())
             .map(|arg| {
                 let ty = crate::semantic::types::Type::Qubit;
-                let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, Span::default());
-                let symbol = Symbol::new(&arg.name, arg.span, ty, qsharp_ty, IOKind::Default);
+                let symbol = Symbol::new(&arg.name, arg.span, ty, Span::default(), IOKind::Default);
                 self.try_insert_or_get_existing_symbol_id(&arg.name, symbol)
             })
             .collect::<Box<_>>();
@@ -2544,13 +2407,12 @@ impl Lowerer {
         };
 
         let name = stmt.qubit.name.clone();
-        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty.span);
 
         let symbol = Symbol::new(
             &name,
             stmt.qubit.span,
             ty.clone(),
-            qsharp_ty,
+            stmt.ty.span,
             IOKind::Default,
         );
 

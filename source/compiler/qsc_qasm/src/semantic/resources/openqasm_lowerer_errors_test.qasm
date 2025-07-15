@@ -73,16 +73,9 @@ bool binary_negation_not_supported = true;
 // NotSupported arrays with more than 7 dimensions
 array[int, 1, 2, 3, 1, 2, 3, 1, 2] array_with_more_than_7_dims;
 
-// NotSupported hardware qubit
-x $1;
-
-// NotSupported duration type
-duration duration_val;
-
-// NotSupported stretch type
+// NotSupported stretch default values
 stretch stretch_val;
 
-// Unimplemented box
 box {
     // ClassicalStmtInBox
     2;
