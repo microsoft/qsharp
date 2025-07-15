@@ -264,26 +264,32 @@ impl From<StepResult> for StructStepResult {
             StepResult::BreakpointHit(value) => StructStepResult {
                 id: StepResultId::BreakpointHit.into(),
                 value: Into::<usize>::into(value),
+                error: None,
             },
             StepResult::Next => StructStepResult {
                 id: StepResultId::Next.into(),
                 value: 0,
+                error: None,
             },
             StepResult::StepIn => StructStepResult {
                 id: StepResultId::StepIn.into(),
                 value: 0,
+                error: None,
             },
             StepResult::StepOut => StructStepResult {
                 id: StepResultId::StepOut.into(),
                 value: 0,
+                error: None,
             },
             StepResult::Return(_) => StructStepResult {
                 id: StepResultId::Return.into(),
                 value: 0,
+                error: None,
             },
-            StepResult::Fail => StructStepResult {
+            StepResult::Fail(error) => StructStepResult {
                 id: StepResultId::Fail.into(),
                 value: 0,
+                error: Some(error),
             },
         }
     }
@@ -311,10 +317,12 @@ serializable_type! {
     {
         pub id: usize,
         pub value: usize,
+        pub error: Option<String>,
     },
     r#"export interface IStructStepResult {
         id: number;
         value: number;
+        error: string | undefined;
     }"#,
     IStructStepResult
 }
