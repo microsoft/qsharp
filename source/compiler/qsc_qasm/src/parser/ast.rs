@@ -57,17 +57,18 @@ impl Display for Stmt {
 #[derive(Clone, Debug)]
 pub struct Annotation {
     pub span: Span,
-    pub identifier: Rc<str>,
+    pub identifier: PathKind,
     pub value: Option<Rc<str>>,
+    pub value_span: Option<Span>,
 }
 
 impl Display for Annotation {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let identifier = format!("\"{}\"", self.identifier);
         let value = self.value.as_ref().map(|val| format!("\"{val}\""));
         writeln_header(f, "Annotation", self.span)?;
-        writeln_field(f, "identifier", &identifier)?;
-        write_opt_field(f, "value", value.as_ref())
+        writeln_field(f, "identifier", &self.identifier.as_string())?;
+        writeln_opt_field(f, "value", value.as_ref())?;
+        write_opt_field(f, "value_span", self.value_span.as_ref())
     }
 }
 
@@ -134,7 +135,7 @@ impl PathKind {
             PathKind::Ok(path) => match &path.segments {
                 Some(segments) => {
                     if segments.is_empty() {
-                        return path.name.to_string();
+                        return path.name.name.to_string();
                     }
                     let mut value = String::new();
                     for segment in segments {
@@ -147,7 +148,7 @@ impl PathKind {
                     value.push_str(&path.name.name);
                     value
                 }
-                None => path.name.to_string(),
+                None => path.name.name.to_string(),
             },
             PathKind::Err(Some(path)) => {
                 let mut value = String::new();

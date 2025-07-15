@@ -1123,11 +1123,12 @@ impl Lowerer {
             .collect::<Vec<_>>()
     }
 
-    fn lower_annotation(annotation: &syntax::Annotation) -> semantic::Annotation {
+    fn lower_annotation(stmt: &syntax::Annotation) -> semantic::Annotation {
         semantic::Annotation {
-            span: annotation.span,
-            identifier: annotation.identifier.clone(),
-            value: annotation.value.as_ref().map(Clone::clone),
+            span: stmt.span,
+            identifier: stmt.identifier.clone(),
+            value: stmt.value.clone(),
+            value_span: stmt.value_span,
         }
     }
 

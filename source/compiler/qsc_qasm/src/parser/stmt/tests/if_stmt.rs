@@ -194,11 +194,13 @@ fn annotations_in_single_stmt_if_stmt() {
                     if_body: Stmt [20-52]:
                         annotations:
                             Annotation [20-24]:
-                                identifier: "foo"
+                                identifier: foo
                                 value: <none>
+                                value_span: <none>
                             Annotation [33-37]:
-                                identifier: "bar"
+                                identifier: bar
                                 value: <none>
+                                value_span: <none>
                         kind: AssignStmt [46-52]:
                             lhs: Ident [46-47] "x"
                             rhs: Expr [50-51]: Lit: Int(5)
