@@ -4131,42 +4131,62 @@ impl Lowerer {
     }
 
     fn change_index_endianness(&mut self, idx: semantic::Index, width: u32) -> semantic::Index {
+        let idx_span = idx.span();
+        let width = i64::from(width);
+
+        let unwrap_range_component = |expr_opt: Option<&Expr>, default: i64| -> (i64, Span) {
+            if let Some(expr) = expr_opt {
+                let Some(semantic::LiteralKind::Int(val)) = expr.const_value else {
+                    unreachable!("range components are guaranteed to be const exprs");
+                };
+                (val, expr.span)
+            } else {
+                (default, idx_span)
+            }
+        };
+
         // If we have a variable `var` of a 32-bit type, and we want to change
         // the endianness of the index when doing var[idx], we need to do var[32 - idx - 1].
-        let width_minus_expr_minus_one = |expr: Expr| -> Expr {
-            let Some(semantic::LiteralKind::Int(mut val)) = expr.const_value else {
-                unreachable!("range components are guaranteed to be const exprs");
-            };
-            // OpenQASM indexing is n-based, so we wrap around negative indices.
-            while val < 0 {
-                val += i64::from(width);
-            }
-            Expr::int(i64::from(width) - val - 1, expr.span)
+        let width_minus_expr_minus_one = |val: i64| -> i64 {
+            let val = width - val - 1;
+
+            // OpenQASM indices are width-based, so, we wrap around the width.
+            val.rem_euclid(width)
         };
 
         match idx {
             semantic::Index::Expr(expr) => {
                 let new_expr = if expr.ty.is_const() {
-                    width_minus_expr_minus_one(expr.with_const_value(self))
+                    let (val, span) = unwrap_range_component(Some(&expr.with_const_value(self)), 0);
+                    Expr::int(width_minus_expr_minus_one(val), span)
                 } else {
                     Expr::bin_op(
                         semantic::BinOp::Sub,
                         // Instead of building two nested bin_ops, we just substract 1 from width.
-                        Expr::int(i64::from(width - 1), expr.span),
+                        Expr::int(width - 1, expr.span),
                         expr,
                     )
                 };
                 semantic::Index::Expr(new_expr)
             }
             semantic::Index::Range(range) => {
-                // When changing the endianness of a range, we need to swap the start and end.
-                let start = range.end.map(width_minus_expr_minus_one);
-                let end = range.start.map(width_minus_expr_minus_one);
+                let start = {
+                    let (val, span) = unwrap_range_component(range.start.as_ref(), 0);
+                    Some(Expr::int(width_minus_expr_minus_one(val), span))
+                };
+                let end = {
+                    let (val, span) = unwrap_range_component(range.end.as_ref(), width - 1);
+                    Some(Expr::int(width_minus_expr_minus_one(val), span))
+                };
+                let step = {
+                    let (val, span) = unwrap_range_component(range.step.as_ref(), 1);
+                    Some(Expr::int(-val, span))
+                };
                 semantic::Index::Range(Box::new(semantic::Range {
                     span: range.span,
                     start,
                     end,
-                    step: range.step,
+                    step,
                 }))
             }
         }

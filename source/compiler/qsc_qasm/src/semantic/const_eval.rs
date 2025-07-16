@@ -178,10 +178,11 @@ impl LiteralKind {
                 let (start, step, end) = compute_slice_components(range, size);
                 #[allow(clippy::cast_sign_loss)]
                 #[allow(clippy::cast_possible_truncation)]
-                // When changing the endianness of a range, we need to swap the start and end.
-                let (start, end) = (
-                    (i64::from(size) - end - 1) as usize,
+                // When changing the endianness of a range, we also need to negate the step.
+                let (start, step, end) = (
                     (i64::from(size) - start - 1) as usize,
+                    -step,
+                    (i64::from(size) - end - 1) as usize,
                 );
 
                 let mut new_bitarray_value = BigInt::ZERO;
