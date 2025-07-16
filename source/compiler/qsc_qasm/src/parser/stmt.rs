@@ -5,7 +5,7 @@
 pub(crate) mod tests;
 
 use qsc_data_structures::span::Span;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use super::{
     Result,
@@ -415,7 +415,7 @@ pub fn parse_annotation(s: &mut ParserContext) -> Result<Annotation> {
     let value = if value.is_empty() {
         None
     } else {
-        Some(Rc::from(value))
+        Some(Arc::from(value))
     };
 
     let value_span = value.as_ref().map(|_| Span {
@@ -532,7 +532,7 @@ fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
         let value = if value.is_empty() {
             None
         } else {
-            Some(Rc::from(value))
+            Some(Arc::from(value))
         };
         let value_span = value.as_ref().map(|_| Span {
             lo: stmt_lo + ident_lo + content_lo,
@@ -557,7 +557,7 @@ fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
         let value = if value.is_empty() {
             None
         } else {
-            Some(Rc::from(value))
+            Some(Arc::from(value))
         };
         let value_span = value.as_ref().map(|_| Span {
             lo: stmt_lo + ident_lo + content_lo,
@@ -580,7 +580,7 @@ fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
     let value = if value.is_empty() {
         None
     } else {
-        Some(Rc::from(value))
+        Some(Arc::from(value))
     };
 
     let value_span = value.as_ref().map(|_| Span {
@@ -1823,7 +1823,7 @@ fn parse_calibration_grammar_stmt(s: &mut ParserContext) -> Result<CalibrationGr
         if let LiteralKind::String(name) = lit.kind {
             return Ok(CalibrationGrammarStmt {
                 span: s.span(lo),
-                name: name.to_string(),
+                name,
             });
         }
     }
@@ -1871,7 +1871,11 @@ fn parse_defcal_stmt(s: &mut ParserContext) -> Result<DefCalStmt> {
                 s.advance();
                 level -= 1;
                 if level == 0 {
-                    return Ok(DefCalStmt { span: s.span(lo) });
+                    let content = s.read_from(lo).into();
+                    return Ok(DefCalStmt {
+                        span: s.span(lo),
+                        content,
+                    });
                 }
             }
             _ => s.advance(),
@@ -1906,7 +1910,11 @@ fn parse_cal(s: &mut ParserContext) -> Result<CalibrationStmt> {
                 s.advance();
                 level -= 1;
                 if level == 0 {
-                    return Ok(CalibrationStmt { span: s.span(lo) });
+                    let content = s.read_from(lo).into();
+                    return Ok(CalibrationStmt {
+                        span: s.span(lo),
+                        content,
+                    });
                 }
             }
             _ => s.advance(),

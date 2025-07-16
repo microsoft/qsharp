@@ -4,6 +4,7 @@
 use std::fmt::Write;
 
 pub mod assignment;
+pub mod compiler_errors;
 pub mod decls;
 
 pub mod expression;

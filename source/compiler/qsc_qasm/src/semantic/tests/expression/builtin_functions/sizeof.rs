@@ -266,7 +266,6 @@ fn sizeof_static_array_ref() {
                 has_qubit_params: false
                 parameters:
                     10
-                return_type: void
                 return_type_span: [0-0]
                 body: Block [77-136]:
                     Stmt [91-126]:
@@ -299,7 +298,6 @@ fn sizeof_static_array_ref_omitted_dimension() {
                 has_qubit_params: false
                 parameters:
                     10
-                return_type: void
                 return_type_span: [0-0]
                 body: Block [77-133]:
                     Stmt [91-123]:
@@ -391,7 +389,6 @@ fn sizeof_static_array_ref_invalid_dimension_errors() {
                             has_qubit_params: false
                             parameters:
                                 10
-                            return_type: void
                             return_type_span: [0-0]
                             body: Block [77-136]:
                                 Stmt [91-126]:
@@ -434,7 +431,6 @@ fn sizeof_dyn_array_ref() {
                 has_qubit_params: false
                 parameters:
                     10
-                return_type: void
                 return_type_span: [0-0]
                 body: Block [81-134]:
                     Stmt [95-124]:
@@ -474,7 +470,6 @@ fn sizeof_dyn_array_ref_omitted_dimension() {
                 has_qubit_params: false
                 parameters:
                     10
-                return_type: void
                 return_type_span: [0-0]
                 body: Block [81-131]:
                     Stmt [95-121]:
@@ -516,7 +511,6 @@ fn sizeof_dyn_array_ref_invalid_dimension_lowers_correctly() {
                 has_qubit_params: false
                 parameters:
                     10
-                return_type: void
                 return_type_span: [0-0]
                 body: Block [81-134]:
                     Stmt [95-124]:

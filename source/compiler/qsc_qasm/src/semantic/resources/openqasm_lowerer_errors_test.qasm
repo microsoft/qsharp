@@ -76,7 +76,7 @@ array[int, 1, 2, 3, 1, 2, 3, 1, 2] array_with_more_than_7_dims;
 // NotSupported stretch default values
 stretch stretch_val;
 
-box {
+box [2ns] {
     // ClassicalStmtInBox
     2;
 }
@@ -136,7 +136,7 @@ def non_void_def_should_return() -> int {
 }
 
 // Unimplemented delay
-delay [2ns] q1;
+delay [2ns] q;
 
 // ExternDeclarationInNonGlobalScope
 // Unimplemented
@@ -150,9 +150,6 @@ invalid_arity_call(2);
 
 // CannotCallNonFunction
 x(2);
-
-// NotSupported gate call duration
-x[2ns] q;
 
 // InvalidNumberOfClassicalArgs in gate call
 rx(2.0, 3.0) q;

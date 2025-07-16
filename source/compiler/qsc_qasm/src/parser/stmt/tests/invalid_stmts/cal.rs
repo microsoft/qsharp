@@ -62,8 +62,9 @@ fn defcal_bad_signature() {
         parse,
         "defcal x $0 -> int[8] -> int[8] {}",
         &expect![[r#"
-        Stmt [0-34]:
-            annotations: <empty>
-            kind: DefCalStmt [0-34]"#]],
+            Stmt [0-34]:
+                annotations: <empty>
+                kind: DefCalStmt [0-34]:
+                    content: defcal x $0 -> int[8] -> int[8] {}"#]],
     );
 }
