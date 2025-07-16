@@ -4211,7 +4211,7 @@ impl Lowerer {
                 | Type::UInt(Some(width), _) => {
                     // We don't want to index into the classical type when lowering
                     // the lhs of an assignment expression. Indexing into the classical
-                    // type will is handled in compiler.rs.
+                    // type is handled in compiler.rs.
 
                     // OpenQASM classical types get indexed in little-endian order. But bitarrays
                     // behave as static arrays of 0s and 1s, so, they get indexed in big-endian
