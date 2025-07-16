@@ -63,9 +63,6 @@ export async function maybeShowChangelogPrompt(
           'You will no longer receive "What\'s New" notifications. You can re-enable them from the Q# settings.',
         );
       }
-    } else {
-      // First install or no previous version, just show changelog wihout prompt
-      await vscode.commands.executeCommand("qsharp-vscode.showChangelog");
     }
   }
 }
