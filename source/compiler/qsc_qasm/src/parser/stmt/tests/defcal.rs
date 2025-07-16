@@ -40,6 +40,11 @@ fn cal_block_accept_any_tokens_inside() {
         &expect![[r#"
             Stmt [5-88]:
                 annotations: <empty>
-                kind: DefCalStmt [5-88]"#]],
+                kind: DefCalStmt [5-88]:
+                    content: defcal foo(a, b) q0 q1 {
+                            faoi foaijdf a;
+                            fkfm )(
+                            .314
+                        }"#]],
     );
 }

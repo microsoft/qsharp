@@ -130,7 +130,7 @@ impl FromStr for PragmaKind {
 
 #[derive(Eq, PartialEq, Default)]
 pub struct PragmaConfig {
-    pub pragmas: FxHashMap<PragmaKind, Rc<str>>,
+    pub pragmas: FxHashMap<PragmaKind, Arc<str>>,
 }
 
 impl PragmaConfig {
@@ -140,12 +140,12 @@ impl PragmaConfig {
 
     /// Inserts a pragma into the configuration.
     /// If the pragma already exists, it will be overwritten.
-    pub fn insert<V: Into<Rc<str>>>(&mut self, pragma: PragmaKind, value: V) {
+    pub fn insert<V: Into<Arc<str>>>(&mut self, pragma: PragmaKind, value: V) {
         self.pragmas.insert(pragma, value.into());
     }
 
     #[must_use]
-    pub fn get(&self, key: PragmaKind) -> Option<&Rc<str>> {
+    pub fn get(&self, key: PragmaKind) -> Option<&Arc<str>> {
         self.pragmas.get(&key)
     }
 }
@@ -498,6 +498,7 @@ impl QasmCompiler {
             semast::StmtKind::Box(stmt) => self.compile_box_stmt(stmt),
             semast::StmtKind::Block(stmt) => self.compile_block_stmt(stmt),
             semast::StmtKind::Break(stmt) => self.compile_break_stmt(stmt),
+            semast::StmtKind::Calibration(cal) => self.compile_calibration_stmt(cal),
             semast::StmtKind::CalibrationGrammar(stmt) => {
                 self.compile_calibration_grammar_stmt(stmt)
             }
@@ -643,6 +644,11 @@ impl QasmCompiler {
     }
 
     fn compile_box_stmt(&mut self, stmt: &semast::BoxStmt) -> Option<qsast::Stmt> {
+        // We don't support boxes with duration, so we report an error if it exists.
+        if let Some(duration) = &stmt.duration {
+            self.push_unsupported_error_message("box with duration", duration.span);
+        }
+
         let open = self
             .pragma_config
             .get(PragmaKind::QdkBoxOpen)
@@ -699,11 +705,18 @@ impl QasmCompiler {
         None
     }
 
+    fn compile_calibration_stmt(&mut self, stmt: &semast::CalibrationStmt) -> Option<qsast::Stmt> {
+        // Calibration statements are not supported in the QDK
+        self.push_unsupported_error_message("calibration statements", stmt.span);
+        None
+    }
+
     fn compile_calibration_grammar_stmt(
         &mut self,
         stmt: &semast::CalibrationGrammarStmt,
     ) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("calibration grammar statements", stmt.span);
+        // Calibration grammar statements are not supported in the QDK
+        self.push_unsupported_error_message("calibration grammar statements", stmt.span);
         None
     }
 
@@ -739,9 +752,19 @@ impl QasmCompiler {
         annotations: &List<semast::Annotation>,
     ) -> Option<qsast::Stmt> {
         let symbol = self.symbols[stmt.symbol_id].clone();
+        let return_type = match &symbol.ty {
+            Type::Function(_, return_type) => return_type,
+            _ => {
+                // this can happen if the def statement shadows a non-def symbol
+                // Since the symbol is not a function, we assume it returns an error type.
+                // There is already an error reported for this case.
+                &Arc::from(crate::semantic::types::Type::Err)
+            }
+        };
+
         let name = symbol.name.clone();
 
-        let cargs: Vec<_> = stmt
+        let args: Vec<_> = stmt
             .params
             .iter()
             .map(|arg| {
@@ -758,7 +781,7 @@ impl QasmCompiler {
             .collect();
 
         let body = Some(self.compile_block(&stmt.body));
-        let qsharp_ty = self.map_semantic_type_to_qsharp_type(&stmt.return_type, stmt.span);
+        let qsharp_ty = self.map_semantic_type_to_qsharp_type(return_type, stmt.return_type_span);
         let return_type = map_qsharp_type_to_ast_ty(&qsharp_ty);
         let kind = if stmt.has_qubit_params
             || annotations
@@ -778,7 +801,7 @@ impl QasmCompiler {
         // in QASM can take qubits as arguments and call quantum gates.
         Some(build_function_or_operation(
             name,
-            cargs,
+            args,
             vec![],
             body,
             symbol.span,
@@ -792,12 +815,12 @@ impl QasmCompiler {
     }
 
     fn compile_def_cal_stmt(&mut self, stmt: &semast::DefCalStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("def cal statements", stmt.span);
+        self.push_unsupported_error_message("def cal statements", stmt.span);
         None
     }
 
     fn compile_delay_stmt(&mut self, stmt: &semast::DelayStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("delay statements", stmt.span);
+        self.push_unsupported_error_message("delay statements", stmt.span);
         None
     }
 
@@ -903,6 +926,10 @@ impl QasmCompiler {
     }
 
     fn compile_gate_call_stmt(&mut self, stmt: &semast::GateCall) -> Option<qsast::Stmt> {
+        if let Some(duration) = &stmt.duration {
+            self.push_unsupported_error_message("gate call duration", duration.span);
+        }
+
         let symbol = self.symbols[stmt.symbol_id].clone();
         let mut qubits: Vec<_> = stmt
             .qubits
@@ -1559,7 +1586,6 @@ impl QasmCompiler {
             LiteralKind::Complex(value) => Self::compile_complex_literal(*value, span),
             LiteralKind::Int(value) => Self::compile_int_literal(*value, span),
             LiteralKind::BigInt(value) => Self::compile_bigint_literal(value, span),
-            LiteralKind::String(value) => self.compile_string_literal(value, span),
         }
     }
 
@@ -1747,11 +1773,6 @@ impl QasmCompiler {
 
     fn compile_bigint_literal(value: &BigInt, span: Span) -> qsast::Expr {
         build_lit_bigint_expr(value.clone(), span)
-    }
-
-    fn compile_string_literal(&mut self, _value: &Rc<str>, span: Span) -> qsast::Expr {
-        self.push_unimplemented_error_message("string literal expressions", span);
-        err_expr(span)
     }
 
     /// Pushes an unsupported error with the supplied message.
@@ -2170,6 +2191,10 @@ impl QasmCompiler {
         match ty {
             Type::Bit(_) => crate::types::Type::Result(is_const),
             Type::Qubit => crate::types::Type::Qubit,
+            Type::HardwareQubit => {
+                self.push_unsupported_error_message("hardware qubits", span);
+                crate::types::Type::Err
+            }
             Type::QubitArray(_) => {
                 crate::types::Type::QubitArray(crate::types::ArrayDimensions::One)
             }
@@ -2216,12 +2241,24 @@ impl QasmCompiler {
                 let dims = (array_ref.num_dims).into();
                 Self::make_qsharp_array_ty(&array_ref.base_ty, dims)
             }
-            Type::Gate(cargs, qargs) => {
-                crate::types::Type::Callable(crate::types::CallableKind::Operation, *cargs, *qargs)
+            Type::StaticArrayRef(array_ref) if array_ref.is_mutable => {
+                let msg = format!("mutable array references `{ty}`");
+                self.push_unsupported_error_message(msg, span);
+                crate::types::Type::Err
             }
+            Type::DynArrayRef(array_ref) if array_ref.is_mutable => {
+                let msg = format!("mutable array references `{ty}`");
+                self.push_unsupported_error_message(msg, span);
+                crate::types::Type::Err
+            }
+            Type::Gate(cargs, qargs) => crate::types::Type::Gate(*cargs, *qargs),
             Type::Range => crate::types::Type::Range,
             Type::Void => crate::types::Type::Tuple(vec![]),
-            Type::Function(args, _return_ty) => {
+            Type::Function(args, return_ty) => {
+                // This is a raw conversion of the semantic type to a Q# type.
+                // Any extra promotion to Operation based on attributes/pragmas
+                // will be done later in the compiler.
+
                 let kind = if args.iter().any(|arg| {
                     matches!(arg, Type::Qubit | Type::HardwareQubit | Type::QubitArray(_))
                 }) {
@@ -2229,12 +2266,12 @@ impl QasmCompiler {
                 } else {
                     crate::types::CallableKind::Function
                 };
-                #[allow(clippy::cast_possible_truncation)]
-                let arity = args.len() as u32;
-                // The arity is the number of arguments, not the number of qubits.
-                // Mapping gates into callables matches carg/qarg ordering.
-                // mapping functions isn't as clean yet, so we just mark them as all qubits.
-                crate::types::Type::Callable(kind, arity, 0)
+                let args = args
+                    .iter()
+                    .map(|arg| self.map_semantic_type_to_qsharp_type(arg, Span::default()))
+                    .collect::<Vec<_>>();
+                let return_ty = self.map_semantic_type_to_qsharp_type(return_ty, Span::default());
+                crate::types::Type::Callable(kind, args.into(), return_ty.into())
             }
             Type::Err => crate::types::Type::Err,
             _ => {

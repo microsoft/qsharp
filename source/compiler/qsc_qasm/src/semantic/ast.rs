@@ -6,7 +6,6 @@ use qsc_data_structures::span::Span;
 use std::{
     collections::VecDeque,
     fmt::{self, Display, Formatter},
-    rc::Rc,
     sync::Arc,
 };
 
@@ -59,7 +58,7 @@ impl Display for Stmt {
 pub struct Annotation {
     pub span: Span,
     pub identifier: PathKind,
-    pub value: Option<Rc<str>>,
+    pub value: Option<Arc<str>>,
     pub value_span: Option<Span>,
 }
 
@@ -239,7 +238,7 @@ impl Display for GateOperandKind {
 #[derive(Clone, Debug)]
 pub struct HardwareQubit {
     pub span: Span,
-    pub name: Rc<str>,
+    pub name: Arc<str>,
 }
 
 impl Display for HardwareQubit {
@@ -272,6 +271,7 @@ pub enum StmtKind {
     Box(BoxStmt),
     Block(Box<Block>),
     Break(BreakStmt),
+    Calibration(CalibrationStmt),
     CalibrationGrammar(CalibrationGrammarStmt),
     ClassicalDecl(ClassicalDeclarationStmt),
     Continue(ContinueStmt),
@@ -311,6 +311,7 @@ impl Display for StmtKind {
             StmtKind::Box(box_stmt) => write!(f, "{box_stmt}"),
             StmtKind::Block(block) => write!(f, "{block}"),
             StmtKind::Break(stmt) => write!(f, "{stmt}"),
+            StmtKind::Calibration(cal) => write!(f, "{cal}"),
             StmtKind::CalibrationGrammar(grammar) => write!(f, "{grammar}"),
             StmtKind::ClassicalDecl(decl) => write!(f, "{decl}"),
             StmtKind::Continue(stmt) => write!(f, "{stmt}"),
@@ -342,9 +343,22 @@ impl Display for StmtKind {
 }
 
 #[derive(Clone, Debug)]
+pub struct CalibrationStmt {
+    pub span: Span,
+    pub content: Arc<str>,
+}
+
+impl Display for CalibrationStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "CalibrationStmt", self.span)?;
+        write_field(f, "content", &self.content)
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct CalibrationGrammarStmt {
     pub span: Span,
-    pub name: String,
+    pub name: Arc<str>,
 }
 
 impl Display for CalibrationGrammarStmt {
@@ -357,11 +371,13 @@ impl Display for CalibrationGrammarStmt {
 #[derive(Clone, Debug)]
 pub struct DefCalStmt {
     pub span: Span,
+    pub content: Arc<str>,
 }
 
 impl Display for DefCalStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "DefCalStmt {}", self.span)
+        writeln_header(f, "DefCalStmt", self.span)?;
+        write_field(f, "content", &self.content)
     }
 }
 
@@ -712,7 +728,7 @@ impl Display for QuantumArgument {
 pub struct Pragma {
     pub span: Span,
     pub identifier: Option<PathKind>,
-    pub value: Option<Rc<str>>,
+    pub value: Option<Arc<str>>,
     pub value_span: Option<Span>,
 }
 
@@ -733,7 +749,7 @@ impl Display for Pragma {
 #[derive(Clone, Debug)]
 pub struct IncludeStmt {
     pub span: Span,
-    pub filename: String,
+    pub filename: Arc<str>,
 }
 
 impl Display for IncludeStmt {
@@ -935,7 +951,6 @@ pub struct DefStmt {
     pub has_qubit_params: bool,
     pub params: Box<[SymbolId]>,
     pub body: Block,
-    pub return_type: Arc<crate::semantic::types::Type>,
     pub return_type_span: Span,
 }
 
@@ -945,7 +960,6 @@ impl Display for DefStmt {
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_field(f, "has_qubit_params", &self.has_qubit_params)?;
         writeln_list_field(f, "parameters", &self.params)?;
-        writeln_field(f, "return_type", &self.return_type)?;
         writeln_field(f, "return_type_span", &self.return_type_span)?;
         write_field(f, "body", &self.body)
     }
@@ -1202,9 +1216,9 @@ impl Display for SizeofCallExpr {
 pub struct BuiltinFunctionCall {
     pub span: Span,
     pub fn_name_span: Span,
-    pub name: Rc<str>,
+    pub name: Arc<str>,
     pub function_ty: crate::semantic::types::Type,
-    pub args: Rc<[Expr]>,
+    pub args: Box<[Expr]>,
 }
 
 impl Display for BuiltinFunctionCall {
@@ -1258,7 +1272,6 @@ pub enum LiteralKind {
     Complex(Complex),
     Int(i64),
     BigInt(BigInt),
-    String(Rc<str>),
     Bit(bool),
 }
 
@@ -1280,7 +1293,6 @@ impl Display for LiteralKind {
             LiteralKind::Float(value) => write!(f, "Float({value:?})"),
             LiteralKind::Int(i) => write!(f, "Int({i:?})"),
             LiteralKind::BigInt(i) => write!(f, "BigInt({i:?})"),
-            LiteralKind::String(s) => write!(f, "String({s:?})"),
         }
     }
 }

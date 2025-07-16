@@ -40,6 +40,11 @@ fn cal_block_accept_any_tokens_inside() {
         &expect![[r#"
             Stmt [5-69]:
                 annotations: <empty>
-                kind: CalibrationStmt [5-69]"#]],
+                kind: CalibrationStmt [5-69]:
+                    content: cal {
+                            faoi foaijdf a;
+                            fkfm )(
+                            .314
+                        }"#]],
     );
 }

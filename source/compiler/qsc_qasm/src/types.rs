@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::fmt::{self, Display, Formatter};
+use std::{
+    fmt::{self, Display, Formatter},
+    sync::Arc,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Complex {
@@ -35,8 +38,10 @@ pub enum Type {
     AngleArray(ArrayDimensions, bool),
     QubitArray(ArrayDimensions),
     ResultArray(ArrayDimensions, bool),
-    /// Function or operation, with the number of classical parameters and qubits.
-    Callable(CallableKind, u32, u32),
+    /// # cargs, # qargs
+    Gate(u32, u32),
+    /// kind, args, return ty
+    Callable(CallableKind, Arc<[Type]>, Arc<Type>),
     #[default]
     Err,
 }
@@ -138,8 +143,11 @@ impl Display for Type {
             Type::AngleArray(dim, _) => write!(f, "Angle{dim}"),
             Type::QubitArray(dim) => write!(f, "Qubit{dim}"),
             Type::ResultArray(dim, _) => write!(f, "Result{dim}"),
-            Type::Callable(kind, num_classical, num_qubits) => {
-                write!(f, "Callable({kind}, {num_classical}, {num_qubits})")
+            Type::Callable(kind, args, return_type) => {
+                write!(f, "Callable({kind}, {args:?}, {return_type})")
+            }
+            Type::Gate(cargs, qargs) => {
+                write!(f, "Gate({cargs}, {qargs})")
             }
             Type::Err => write!(f, "Err"),
         }

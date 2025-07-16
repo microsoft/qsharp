@@ -11,7 +11,6 @@ use qsc_data_structures::span::{Span, WithSpan};
 use std::{
     fmt::{self, Display, Formatter},
     hash::Hash,
-    rc::Rc,
     sync::Arc,
 };
 
@@ -58,7 +57,7 @@ impl Display for Stmt {
 pub struct Annotation {
     pub span: Span,
     pub identifier: PathKind,
-    pub value: Option<Rc<str>>,
+    pub value: Option<Arc<str>>,
     pub value_span: Option<Span>,
 }
 
@@ -385,7 +384,7 @@ impl WithSpan for GateOperandKind {
 #[derive(Clone, Debug)]
 pub struct HardwareQubit {
     pub span: Span,
-    pub name: Rc<str>,
+    pub name: Arc<str>,
 }
 
 impl Display for HardwareQubit {
@@ -498,7 +497,7 @@ impl Display for StmtKind {
 #[derive(Clone, Debug)]
 pub struct CalibrationGrammarStmt {
     pub span: Span,
-    pub name: String,
+    pub name: Arc<str>,
 }
 
 impl Display for CalibrationGrammarStmt {
@@ -511,11 +510,13 @@ impl Display for CalibrationGrammarStmt {
 #[derive(Clone, Debug)]
 pub struct DefCalStmt {
     pub span: Span,
+    pub content: Arc<str>,
 }
 
 impl Display for DefCalStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "DefCalStmt {}", self.span)
+        writeln_header(f, "DefCalStmt", self.span)?;
+        write_field(f, "content", &self.content)
     }
 }
 
@@ -617,7 +618,7 @@ impl WithSpan for IdentOrIndexedIdent {
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Ident {
     pub span: Span,
-    pub name: Rc<str>,
+    pub name: Arc<str>,
 }
 
 impl Default for Ident {
@@ -1198,7 +1199,7 @@ impl Display for QuantumArgument {
 pub struct Pragma {
     pub span: Span,
     pub identifier: Option<PathKind>,
-    pub value: Option<Rc<str>>,
+    pub value: Option<Arc<str>>,
     pub value_span: Option<Span>,
 }
 
@@ -1434,26 +1435,15 @@ impl Display for ConstantDeclStmt {
 }
 
 #[derive(Clone, Debug)]
-pub struct CalibrationGrammarDeclaration {
-    span: Span,
-    name: String,
-}
-
-impl Display for CalibrationGrammarDeclaration {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "CalibrationGrammarDeclaration", self.span)?;
-        write_field(f, "name", &self.name)
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct CalibrationStmt {
     pub span: Span,
+    pub content: Arc<str>,
 }
 
 impl Display for CalibrationStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "CalibrationStmt {}", self.span)
+        writeln_header(f, "CalibrationStmt", self.span)?;
+        write_field(f, "content", &self.content)
     }
 }
 

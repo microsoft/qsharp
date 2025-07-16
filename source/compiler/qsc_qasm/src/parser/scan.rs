@@ -63,6 +63,10 @@ impl<'a> ParserContext<'a> {
         self.scanner.span(from)
     }
 
+    pub(super) fn read_from(&self, from: u32) -> &'a str {
+        self.scanner.read_from(from)
+    }
+
     /// Advances the scanner to start of the the next valid token.
     pub(super) fn advance(&mut self) {
         self.scanner.advance();
@@ -139,6 +143,10 @@ impl<'a> Scanner<'a> {
 
     pub(super) fn read(&self) -> &'a str {
         &self.input[self.peek.span]
+    }
+
+    pub(super) fn read_from(&self, from: u32) -> &'a str {
+        &self.input[self.span(from)]
     }
 
     pub(super) fn span(&self, from: u32) -> Span {

@@ -1301,7 +1301,9 @@ pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
             let ty = build_angle_ty_ident();
             wrap_array_ty_by_dims(*dims, ty)
         }
-        crate::types::Type::Callable(_, _, _) => todo!(),
+        crate::types::Type::Callable(_, _, _) | crate::types::Type::Gate(_, _) => {
+            unreachable!("Unexpected callable type in AST conversion")
+        }
         crate::types::Type::Range => build_path_ident_ty("Range"),
         crate::types::Type::Tuple(tys) => {
             if tys.is_empty() {

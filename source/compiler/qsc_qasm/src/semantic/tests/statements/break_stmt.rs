@@ -125,7 +125,6 @@ fn intermediate_def_scope_fails() {
                                             symbol_id: 8
                                             has_qubit_params: false
                                             parameters: <empty>
-                                            return_type: void
                                             return_type_span: [0-0]
                                             body: Block [44-54]:
                                                 Stmt [46-52]:

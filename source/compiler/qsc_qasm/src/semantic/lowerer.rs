@@ -258,13 +258,13 @@ impl Lowerer {
             syntax::StmtKind::Block(stmt) => {
                 semantic::StmtKind::Block(Box::new(self.lower_block(stmt)))
             }
-            syntax::StmtKind::Cal(stmt) => self.lower_calibration(stmt),
-            syntax::StmtKind::CalibrationGrammar(stmt) => self.lower_calibration_grammar(stmt),
+            syntax::StmtKind::Cal(stmt) => Self::lower_calibration(stmt),
+            syntax::StmtKind::CalibrationGrammar(stmt) => Self::lower_calibration_grammar(stmt),
             syntax::StmtKind::ClassicalDecl(stmt) => self.lower_classical_decl(stmt),
             syntax::StmtKind::ConstDecl(stmt) => self.lower_const_decl(stmt),
             syntax::StmtKind::Continue(stmt) => self.lower_continue_stmt(stmt),
             syntax::StmtKind::Def(stmt) => self.lower_def(stmt),
-            syntax::StmtKind::DefCal(stmt) => self.lower_def_cal(stmt),
+            syntax::StmtKind::DefCal(stmt) => Self::lower_def_cal(stmt),
             syntax::StmtKind::Delay(stmt) => self.lower_delay(stmt),
             syntax::StmtKind::End(stmt) => Self::lower_end_stmt(stmt),
             syntax::StmtKind::ExprStmt(stmt) => self.lower_expr_stmt(stmt),
@@ -1172,10 +1172,6 @@ impl Lowerer {
             }
         }
 
-        if let Some(duration) = &stmt.duration {
-            self.push_unsupported_error_message("Box with duration", duration.span);
-        }
-
         semantic::StmtKind::Box(semantic::BoxStmt {
             span: stmt.span,
             duration: stmt
@@ -1214,17 +1210,18 @@ impl Lowerer {
         }
     }
 
-    fn lower_calibration(&mut self, stmt: &syntax::CalibrationStmt) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("calibration stmt", stmt.span);
-        semantic::StmtKind::Err
+    fn lower_calibration(stmt: &syntax::CalibrationStmt) -> semantic::StmtKind {
+        semantic::StmtKind::Calibration(semantic::CalibrationStmt {
+            span: stmt.span,
+            content: stmt.content.clone(),
+        })
     }
 
-    fn lower_calibration_grammar(
-        &mut self,
-        stmt: &syntax::CalibrationGrammarStmt,
-    ) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("calibration grammar stmt", stmt.span);
-        semantic::StmtKind::Err
+    fn lower_calibration_grammar(stmt: &syntax::CalibrationGrammarStmt) -> semantic::StmtKind {
+        semantic::StmtKind::CalibrationGrammar(semantic::CalibrationGrammarStmt {
+            span: stmt.span,
+            name: stmt.name.clone(),
+        })
     }
 
     fn lower_classical_decl(
@@ -1432,7 +1429,6 @@ impl Lowerer {
             has_qubit_params,
             params,
             body,
-            return_type: return_ty,
             return_type_span,
         })
     }
@@ -1523,14 +1519,22 @@ impl Lowerer {
         }
     }
 
-    fn lower_def_cal(&mut self, stmt: &syntax::DefCalStmt) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("def cal stmt", stmt.span);
-        semantic::StmtKind::Err
+    fn lower_def_cal(stmt: &syntax::DefCalStmt) -> semantic::StmtKind {
+        semantic::StmtKind::DefCal(semantic::DefCalStmt {
+            span: stmt.span,
+            content: stmt.content.clone(),
+        })
     }
 
     fn lower_delay(&mut self, stmt: &syntax::DelayStmt) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("delay stmt", stmt.span);
-        semantic::StmtKind::Err
+        let qubits = stmt.qubits.iter().map(|q| self.lower_gate_operand(q));
+        let qubits = list_from_iter(qubits);
+        let duration = self.lower_expr(&stmt.duration);
+        semantic::StmtKind::Delay(semantic::DelayStmt {
+            span: stmt.span,
+            duration,
+            qubits,
+        })
     }
 
     fn lower_end_stmt(stmt: &syntax::EndStmt) -> semantic::StmtKind {
@@ -1915,10 +1919,6 @@ impl Lowerer {
         let qubits = list_from_iter(qubits);
         //   1.5. Lower the duration.
         let duration = stmt.duration.as_ref().map(|d| self.lower_expr(d));
-
-        if let Some(duration) = &duration {
-            self.push_unsupported_error_message("gate call duration", duration.span);
-        }
 
         let name = stmt.name.name.to_string();
 
@@ -4252,12 +4252,6 @@ impl Lowerer {
         self.push_semantic_error(kind);
     }
 
-    /// Pushes an unimplemented error with the supplied message.
-    pub fn push_unimplemented_error_message<S: AsRef<str>>(&mut self, message: S, span: Span) {
-        let kind = SemanticErrorKind::Unimplemented(message.as_ref().to_string(), span);
-        self.push_semantic_error(kind);
-    }
-
     /// Pushes a semantic error with the given kind.
     pub fn push_semantic_error(&mut self, kind: SemanticErrorKind) {
         let kind = crate::ErrorKind::Semantic(crate::semantic::Error(kind));
@@ -4320,7 +4314,7 @@ fn cast_complex_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic
     None
 }
 
-fn get_identifier_name(identifier: &syntax::IdentOrIndexedIdent) -> std::rc::Rc<str> {
+fn get_identifier_name(identifier: &syntax::IdentOrIndexedIdent) -> Arc<str> {
     match identifier {
         syntax::IdentOrIndexedIdent::Ident(ident) => ident.name.clone(),
         syntax::IdentOrIndexedIdent::IndexedIdent(ident) => ident.ident.name.clone(),

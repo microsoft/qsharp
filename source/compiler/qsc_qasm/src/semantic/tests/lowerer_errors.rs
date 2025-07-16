@@ -268,27 +268,6 @@ fn check_lowerer_error_spans_are_correct() {
              101 | }
                  `----
 
-            Qasm.Lowerer.Unimplemented
-
-              x this statement is not yet handled during OpenQASM 3 import: def cal stmt
-                 ,-[Test.qasm:104:1]
-             103 | // Unimplemented defcal
-             104 | defcal {}
-                 : ^^^^^^^^^
-             105 | 
-                 `----
-
-            Qasm.Lowerer.Unimplemented
-
-              x this statement is not yet handled during OpenQASM 3 import: calibration
-              | grammar stmt
-                 ,-[Test.qasm:107:1]
-             106 | // Unimplemented defcalgrammar
-             107 | defcalgrammar "my_grammar";
-                 : ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-             108 | 
-                 `----
-
             Qasm.Lowerer.ExprMustBeConst
 
               x const decl init expr must be a const expression
@@ -347,16 +326,6 @@ fn check_lowerer_error_spans_are_correct() {
              135 | 
                  `----
 
-            Qasm.Lowerer.Unimplemented
-
-              x this statement is not yet handled during OpenQASM 3 import: delay stmt
-                 ,-[Test.qasm:139:1]
-             138 | // Unimplemented delay
-             139 | delay [2ns] q1;
-                 : ^^^^^^^^^^^^^^^
-             140 | 
-                 `----
-
             Qasm.Lowerer.DefDeclarationInNonGlobalScope
 
               x extern declarations must be done in global scope
@@ -387,314 +356,304 @@ fn check_lowerer_error_spans_are_correct() {
              153 | 
                  `----
 
-            Qasm.Lowerer.NotSupported
-
-              x gate call duration are not supported
-                 ,-[Test.qasm:155:3]
-             154 | // NotSupported gate call duration
-             155 | x[2ns] q;
-                 :   ^^^
-             156 | 
-                 `----
-
             Qasm.Lowerer.InvalidNumberOfClassicalArgs
 
               x gate expects 1 classical arguments, but 2 were provided
-                 ,-[Test.qasm:158:1]
-             157 | // InvalidNumberOfClassicalArgs in gate call
-             158 | rx(2.0, 3.0) q;
+                 ,-[Test.qasm:155:1]
+             154 | // InvalidNumberOfClassicalArgs in gate call
+             155 | rx(2.0, 3.0) q;
                  : ^^^^^^^^^^^^^^^
-             159 | 
+             156 | 
                  `----
 
             Qasm.Lowerer.InvalidNumberOfQubitArgs
 
               x gate expects 1 qubit arguments, but 2 were provided
-                 ,-[Test.qasm:161:1]
-             160 | // InvalidNumberOfQubitArgs
-             161 | rx(2.0) q, q;
+                 ,-[Test.qasm:158:1]
+             157 | // InvalidNumberOfQubitArgs
+             158 | rx(2.0) q, q;
                  : ^^^^^^^^^^^^^
-             162 | 
+             159 | 
                  `----
 
             Qasm.Lowerer.BroadcastCallQuantumArgsDisagreeInSize
 
               x first quantum register is of type qubit[1] but found an argument of type
               | qubit[2]
-                 ,-[Test.qasm:164:18]
-             163 | // BroadcastCallQuantumArgsDisagreeInSize
-             164 | ryy(2.0) qreg_1, qreg_2;
+                 ,-[Test.qasm:161:18]
+             160 | // BroadcastCallQuantumArgsDisagreeInSize
+             161 | ryy(2.0) qreg_1, qreg_2;
                  :                  ^^^^^^
-             165 | 
+             162 | 
                  `----
 
             Qasm.Lowerer.ExprMustFitInU32
 
               x ctrl modifier argument must fit in a u32
-                 ,-[Test.qasm:172:6]
-             171 | // ExprMustFitInU32
-             172 | ctrl(5000000000) @ x q;
+                 ,-[Test.qasm:169:6]
+             168 | // ExprMustFitInU32
+             169 | ctrl(5000000000) @ x q;
                  :      ^^^^^^^^^^
-             173 | 
+             170 | 
                  `----
 
             Qasm.Lowerer.CannotCastLiteral
 
               x cannot cast literal expression of type const float to type const uint
-                 ,-[Test.qasm:179:12]
-             178 | // ArraySizeMustBeNonNegativeConstExpr
-             179 | array[int, 2.0] non_int_array_size;
+                 ,-[Test.qasm:176:12]
+             175 | // ArraySizeMustBeNonNegativeConstExpr
+             176 | array[int, 2.0] non_int_array_size;
                  :            ^^^
-             180 | 
+             177 | 
                  `----
 
             Qasm.Lowerer.ExprMustBeNonNegativeInt
 
               x array size must be a non-negative integer
-                 ,-[Test.qasm:182:12]
-             181 | // ArraySizeMustBeNonNegativeConstExpr
-             182 | array[int, -2] negative_array_size;
+                 ,-[Test.qasm:179:12]
+             178 | // ArraySizeMustBeNonNegativeConstExpr
+             179 | array[int, -2] negative_array_size;
                  :            ^^
-             183 | 
+             180 | 
                  `----
 
             Qasm.Lowerer.DesignatorTooLarge
 
               x designator is too large
-                 ,-[Test.qasm:185:12]
-             184 | // DesignatorTooLarge
-             185 | array[int, 5000000000] arr_size_too_large;
+                 ,-[Test.qasm:182:12]
+             181 | // DesignatorTooLarge
+             182 | array[int, 5000000000] arr_size_too_large;
                  :            ^^^^^^^^^^
-             186 | 
+             183 | 
                  `----
 
             Qasm.Lowerer.CannotCastLiteral
 
               x cannot cast literal expression of type const float to type const uint
+                 ,-[Test.qasm:185:5]
+             184 | // TypeWidthMustBePositiveIntConstExpr
+             185 | int[2.0] non_int_width;
+                 :     ^^^
+             186 | 
+                 `----
+
+            Qasm.Lowerer.ExprMustBePositiveInt
+
+              x type width must be a positive integer
                  ,-[Test.qasm:188:5]
              187 | // TypeWidthMustBePositiveIntConstExpr
-             188 | int[2.0] non_int_width;
-                 :     ^^^
-             189 | 
-                 `----
-
-            Qasm.Lowerer.ExprMustBePositiveInt
-
-              x type width must be a positive integer
-                 ,-[Test.qasm:191:5]
-             190 | // TypeWidthMustBePositiveIntConstExpr
-             191 | int[0] zero_width;
+             188 | int[0] zero_width;
                  :     ^
-             192 | int[-2] negative_width;
+             189 | int[-2] negative_width;
                  `----
 
             Qasm.Lowerer.ExprMustBePositiveInt
 
               x type width must be a positive integer
-                 ,-[Test.qasm:192:5]
-             191 | int[0] zero_width;
-             192 | int[-2] negative_width;
+                 ,-[Test.qasm:189:5]
+             188 | int[0] zero_width;
+             189 | int[-2] negative_width;
                  :     ^^
-             193 | 
+             190 | 
                  `----
 
             Qasm.Lowerer.DesignatorTooLarge
 
               x designator is too large
-                 ,-[Test.qasm:195:5]
-             194 | // DesignatorTooLarge
-             195 | int[5000000000] width_too_large;
+                 ,-[Test.qasm:192:5]
+             191 | // DesignatorTooLarge
+             192 | int[5000000000] width_too_large;
                  :     ^^^^^^^^^^
-             196 | 
+             193 | 
                  `----
 
             Qasm.Lowerer.TypeMaxWidthExceeded
 
               x float max width is 64 but 65 was provided
-                 ,-[Test.qasm:198:1]
-             197 | // TypeMaxWidthExceeded
-             198 | float[65] float_width_too_large;
+                 ,-[Test.qasm:195:1]
+             194 | // TypeMaxWidthExceeded
+             195 | float[65] float_width_too_large;
                  : ^^^^^^^^^
-             199 | angle[65] angle_width_too_large;
+             196 | angle[65] angle_width_too_large;
                  `----
 
             Qasm.Lowerer.TypeMaxWidthExceeded
 
               x angle max width is 64 but 65 was provided
-                 ,-[Test.qasm:199:1]
-             198 | float[65] float_width_too_large;
-             199 | angle[65] angle_width_too_large;
+                 ,-[Test.qasm:196:1]
+             195 | float[65] float_width_too_large;
+             196 | angle[65] angle_width_too_large;
                  : ^^^^^^^^^
-             200 | 
+             197 | 
                  `----
 
             Qasm.Lowerer.CannotCastLiteral
 
               x cannot cast literal expression of type const float to type int
-                 ,-[Test.qasm:202:1]
-             201 | // Invalid literal cast in cast_expr_with_target_type_or_default(...)
-             202 | int invalid_lit_cast = 2.0;
+                 ,-[Test.qasm:199:1]
+             198 | // Invalid literal cast in cast_expr_with_target_type_or_default(...)
+             199 | int invalid_lit_cast = 2.0;
                  : ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-             203 | 
+             200 | 
                  `----
 
             Qasm.Lowerer.QuantumTypesInBinaryExpression
 
               x quantum typed values cannot be used in binary expressions
-                 ,-[Test.qasm:211:5]
-             210 | // QuantumTypesInBinaryExpression
-             211 | 1 + q;
+                 ,-[Test.qasm:208:5]
+             207 | // QuantumTypesInBinaryExpression
+             208 | 1 + q;
                  :     ^
-             212 | q + 1;
+             209 | q + 1;
                  `----
 
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type qubit to type const float
-                 ,-[Test.qasm:211:5]
-             210 | // QuantumTypesInBinaryExpression
-             211 | 1 + q;
+                 ,-[Test.qasm:208:5]
+             207 | // QuantumTypesInBinaryExpression
+             208 | 1 + q;
                  :     ^
-             212 | q + 1;
+             209 | q + 1;
                  `----
 
             Qasm.Lowerer.QuantumTypesInBinaryExpression
 
               x quantum typed values cannot be used in binary expressions
-                 ,-[Test.qasm:212:1]
-             211 | 1 + q;
-             212 | q + 1;
+                 ,-[Test.qasm:209:1]
+             208 | 1 + q;
+             209 | q + 1;
                  : ^
-             213 | 
+             210 | 
                  `----
 
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type qubit to type const float
-                 ,-[Test.qasm:212:1]
-             211 | 1 + q;
-             212 | q + 1;
+                 ,-[Test.qasm:209:1]
+             208 | 1 + q;
+             209 | q + 1;
                  : ^
-             213 | 
+             210 | 
                  `----
 
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type angle to type float
-                 ,-[Test.qasm:216:1]
-             215 | angle uncastable_to_int = 2.0;
-             216 | uncastable_to_int + 3;
+                 ,-[Test.qasm:213:1]
+             212 | angle uncastable_to_int = 2.0;
+             213 | uncastable_to_int + 3;
                  : ^^^^^^^^^^^^^^^^^
-             217 | 3 + uncastable_to_int;
+             214 | 3 + uncastable_to_int;
                  `----
 
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type angle to type const float
-                 ,-[Test.qasm:217:5]
-             216 | uncastable_to_int + 3;
-             217 | 3 + uncastable_to_int;
+                 ,-[Test.qasm:214:5]
+             213 | uncastable_to_int + 3;
+             214 | 3 + uncastable_to_int;
                  :     ^^^^^^^^^^^^^^^^^
-             218 | 
+             215 | 
                  `----
 
             Qasm.Lowerer.OperatorNotAllowedForComplexValues
 
               x the operator OrB is not allowed for complex values
-                 ,-[Test.qasm:220:1]
-             219 | // OperatorNotAllowedForComplexValues
-             220 | (2 + 1im) | 3im;
+                 ,-[Test.qasm:217:1]
+             216 | // OperatorNotAllowedForComplexValues
+             217 | (2 + 1im) | 3im;
                  : ^^^^^^^^^^^^^^^
-             221 | 
+             218 | 
                  `----
 
             Qasm.Lowerer.IndexSetOnlyAllowedInAliasStmt
 
               x index sets are only allowed in alias statements
-                 ,-[Test.qasm:223:8]
-             222 | // IndexSetOnlyAllowedInAliasStmt
-             223 | qreg_2[{0, 1}];
+                 ,-[Test.qasm:220:8]
+             219 | // IndexSetOnlyAllowedInAliasStmt
+             220 | qreg_2[{0, 1}];
                  :        ^^^^^^
-             224 | 
+             221 | 
                  `----
 
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type const angle to type const int
-                 ,-[Test.qasm:227:13]
-             226 | array[int, 5] range_error;
-             227 | range_error[const_uncastable_to_int:2.2];
+                 ,-[Test.qasm:224:13]
+             223 | array[int, 5] range_error;
+             224 | range_error[const_uncastable_to_int:2.2];
                  :             ^^^^^^^^^^^^^^^^^^^^^^^
-             228 | 
+             225 | 
                  `----
 
             Qasm.Lowerer.ZeroStepInRange
 
               x range step cannot be zero
-                 ,-[Test.qasm:230:13]
-             229 | // ZeroStepInRange
-             230 | range_error[1:0:3];
+                 ,-[Test.qasm:227:13]
+             226 | // ZeroStepInRange
+             227 | range_error[1:0:3];
                  :             ^^^^^
-             231 | 
+             228 | 
                  `----
 
             Qasm.Lowerer.ZeroSizeArrayAccess
 
               x zero size array access is not allowed
-                 ,-[Test.qasm:234:1]
-             233 | array[int, 2, 0, 3] zero_size_array;
-             234 | zero_size_array[1];
+                 ,-[Test.qasm:231:1]
+             230 | array[int, 2, 0, 3] zero_size_array;
+             231 | zero_size_array[1];
                  : ^^^^^^^^^^^^^^^^^^
-             235 | 
+             232 | 
                  `----
               help: array size must be a positive integer const expression
 
             Qasm.Lowerer.CannotIndexType
 
               x cannot index variables of type bit
-                 ,-[Test.qasm:238:15]
-             237 | bit non_indexable;
-             238 | non_indexable[1];
+                 ,-[Test.qasm:235:15]
+             234 | bit non_indexable;
+             235 | non_indexable[1];
                  :               ^
-             239 | 
+             236 | 
                  `----
 
             Qasm.Lowerer.CannotIndexType
 
               x cannot index variables of type qubit
-                 ,-[Test.qasm:241:11]
-             240 | // TooManyIndices
-             241 | qreg_1[1, 2];
+                 ,-[Test.qasm:238:11]
+             237 | // TooManyIndices
+             238 | qreg_1[1, 2];
                  :           ^
-             242 | 
+             239 | 
                  `----
 
             Qasm.Lowerer.UndefinedSymbol
 
               x undefined symbol: missing_symbol
-                 ,-[Test.qasm:244:1]
-             243 | // Missing symbol in lower_indexed_ident_expr(...)
-             244 | missing_symbol[2];
+                 ,-[Test.qasm:241:1]
+             240 | // Missing symbol in lower_indexed_ident_expr(...)
+             241 | missing_symbol[2];
                  : ^^^^^^^^^^^^^^
-             245 | 
+             242 | 
                  `----
 
             Qasm.Lowerer.CannotIndexType
 
               x cannot index variables of type unknown
-                 ,-[Test.qasm:244:16]
-             243 | // Missing symbol in lower_indexed_ident_expr(...)
-             244 | missing_symbol[2];
+                 ,-[Test.qasm:241:16]
+             240 | // Missing symbol in lower_indexed_ident_expr(...)
+             241 | missing_symbol[2];
                  :                ^
-             245 | 
+             242 | 
                  `----
 
             Qasm.Lowerer.EmptyIndexOperator
 
               x index operator must contain at least one index
-                 ,-[Test.qasm:248:13]
-             247 | bit[4] empty_index;
-             248 | empty_index[];
+                 ,-[Test.qasm:245:13]
+             244 | bit[4] empty_index;
+             245 | empty_index[];
                  :             ^
                  `----
         "#]],
