@@ -3,6 +3,7 @@
 
 import * as vscode from "vscode";
 import { EventType, sendTelemetryEvent } from "./telemetry";
+import { getRandomGuid } from "./utils";
 
 // The latest version for which we want to show the changelog page
 const CHANGELOG_VERSION = "v1.18.0"; // <-- Update this when you want to show a new changelog to users
@@ -44,17 +45,24 @@ export async function maybeShowChangelogPrompt(
       CHANGELOG_VERSION,
     );
     const buttons = ["What's New?", "Don't show this again"];
+    const associatedId = getRandomGuid();
+    sendTelemetryEvent(EventType.ChangelogPromptStart, {
+      associationId: associatedId,
+      qdkVersion: CHANGELOG_VERSION,
+    });
     const choice = await vscode.window.showInformationMessage(
       "The Azure Quantum Development Kit has been updated.",
       ...buttons,
     );
     if (choice === buttons[0]) {
-      sendTelemetryEvent(EventType.ChangelogPrompt, {
+      sendTelemetryEvent(EventType.ChangelogPromptEnd, {
+        associationId: associatedId,
         action: "showChangelog",
       });
       await vscode.commands.executeCommand("qsharp-vscode.showChangelog");
     } else if (choice === buttons[1]) {
-      sendTelemetryEvent(EventType.ChangelogPrompt, {
+      sendTelemetryEvent(EventType.ChangelogPromptEnd, {
+        associationId: associatedId,
         action: "suppressChangelog",
       });
       await vscode.workspace
