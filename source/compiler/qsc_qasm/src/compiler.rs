@@ -8,7 +8,7 @@ use std::{rc::Rc, str::FromStr, sync::Arc};
 
 use error::CompilerErrorKind;
 use num_bigint::BigInt;
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{span::Span, target::Profile};
 use qsc_frontend::{compile::SourceMap, error::WithSource};
 use rustc_hash::FxHashMap;
 
@@ -114,6 +114,7 @@ pub fn compile_to_qsharp_ast_with_config(
 pub enum PragmaKind {
     QdkBoxOpen,
     QdkBoxClose,
+    QdkProfile,
 }
 
 impl FromStr for PragmaKind {
@@ -123,6 +124,7 @@ impl FromStr for PragmaKind {
         match s.to_lowercase().as_str() {
             "qdk.box.open" => Ok(PragmaKind::QdkBoxOpen),
             "qdk.box.close" => Ok(PragmaKind::QdkBoxClose),
+            "qdk.qir.profile" => Ok(PragmaKind::QdkProfile),
             _ => Err(()),
         }
     }
@@ -1113,6 +1115,20 @@ impl QasmCompiler {
             }
             (PragmaKind::QdkBoxOpen | PragmaKind::QdkBoxClose, None) => {
                 self.push_compiler_error(CompilerErrorKind::MissingBoxPragmaTarget(stmt.span));
+            }
+            (PragmaKind::QdkProfile, Some(profile)) => {
+                if Profile::from_str(profile).is_ok() {
+                    self.pragma_config
+                        .insert(PragmaKind::QdkProfile, profile.clone());
+                    return;
+                }
+                self.push_compiler_error(CompilerErrorKind::InvalidProfilePragmaTarget(
+                    profile.to_string(),
+                    stmt.value_span.unwrap_or(stmt.span),
+                ));
+            }
+            (PragmaKind::QdkProfile, None) => {
+                self.push_compiler_error(CompilerErrorKind::MissingProfilePragmaTarget(stmt.span));
             }
         }
     }

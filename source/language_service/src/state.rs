@@ -309,7 +309,6 @@ impl<'a> CompilationStateUpdater<'a> {
             let compilation = match loaded_project.project_type {
                 ProjectType::OpenQASM(sources) => Compilation::new_qasm(
                     configuration.package_type,
-                    configuration.target_profile,
                     sources,
                     loaded_project.errors,
                     &loaded_project.name,

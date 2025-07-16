@@ -14,7 +14,7 @@ use qsc::{
     project,
     qasm::{
         CompileRawQasmResult, CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
-        compiler::compile_to_qsharp_ast_with_config,
+        compiler::{PragmaKind, compile_to_qsharp_ast_with_config},
     },
     resolve,
     target::Profile,
@@ -22,8 +22,8 @@ use qsc::{
 use qsc_linter::{LintLevel, LintOrGroupConfig};
 use qsc_project::{PackageGraphSources, Project, ProjectType};
 use rustc_hash::FxHashMap;
-use std::sync::Arc;
 use std::{iter::once, mem::take};
+use std::{str::FromStr, sync::Arc};
 
 /// The alias that a project gives a dependency in its qsharp.json.
 /// In other words, this is the name that a given project uses to reference
@@ -254,13 +254,10 @@ impl Compilation {
 
     pub(crate) fn new_qasm(
         package_type: PackageType,
-        target_profile: Profile,
         sources: Vec<(Arc<str>, Arc<str>)>,
         project_errors: Vec<project::Error>,
         friendly_name: &Arc<str>,
     ) -> Self {
-        let capabilities = target_profile.into();
-
         let config = CompilerConfig::new(
             QubitSemantics::Qiskit,
             OutputSemantics::OpenQasm,
@@ -269,6 +266,22 @@ impl Compilation {
             None,
         );
         let res = qsc::qasm::semantic::parse_sources(&sources);
+        // Get the first profile pragma if present, otherwise default to `Unrestricted`.
+        let target_profile = res
+            .program
+            .pragmas
+            .iter()
+            .find_map(|p| match (&p.identifier, &p.value) {
+                (Some(id), Some(value))
+                    if PragmaKind::from_str(id.as_string().as_str())
+                        == Ok(PragmaKind::QdkProfile) =>
+                {
+                    Profile::from_str(value).ok()
+                }
+                _ => None,
+            })
+            .unwrap_or(Profile::Unrestricted);
+        let capabilities = target_profile.into();
         let unit = compile_to_qsharp_ast_with_config(res, config);
         let CompileRawQasmResult(store, source_package_id, dependencies, _sig, mut compile_errors) =
             qsc::qasm::compile_openqasm(unit, package_type, capabilities);
@@ -426,7 +439,6 @@ impl Compilation {
                 ref friendly_name,
             } => Self::new_qasm(
                 package_type,
-                target_profile,
                 sources.clone(),
                 Vec::new(), // project errors will stay the same
                 friendly_name,
