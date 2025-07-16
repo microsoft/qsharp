@@ -328,7 +328,7 @@ type EventTypes = {
   [EventType.ChangelogPromptStart]: {
     properties: {
       associationId: string;
-      qdkVersion: string;
+      changelogVersion: string;
     };
     measurements: Empty;
   };

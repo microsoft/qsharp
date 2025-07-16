@@ -48,7 +48,7 @@ export async function maybeShowChangelogPrompt(
     const associatedId = getRandomGuid();
     sendTelemetryEvent(EventType.ChangelogPromptStart, {
       associationId: associatedId,
-      qdkVersion: CHANGELOG_VERSION,
+      changelogVersion: CHANGELOG_VERSION,
     });
     const choice = await vscode.window.showInformationMessage(
       "The Azure Quantum Development Kit has been updated.",
