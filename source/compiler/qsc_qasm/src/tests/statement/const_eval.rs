@@ -196,7 +196,7 @@ fn indexed_ident() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a = [Zero, One];
-        mutable r = [];
+        mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
     Ok(())

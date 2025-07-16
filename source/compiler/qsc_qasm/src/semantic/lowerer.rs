@@ -3897,11 +3897,14 @@ impl Lowerer {
 
             let lit = lowered_expr.get_const_value()?;
 
-            Some(semantic::Expr::new(
-                lowered_expr.span,
-                semantic::ExprKind::Lit(lit.clone()),
-                Type::Int(None, true),
-            ))
+            Some(
+                semantic::Expr::new(
+                    lowered_expr.span,
+                    semantic::ExprKind::Lit(lit.clone()),
+                    Type::Int(None, true),
+                )
+                .with_const_value(self),
+            )
         };
 
         let start = range.start.as_ref().map(&mut lower_and_const_eval);
@@ -4052,6 +4055,15 @@ impl Lowerer {
         // We first cast the sized int, uint, or angle to a bitarray.
         let expr = self.cast_expr_to_type(&Type::BitArray(width, constness), expr);
 
+        // OpenQASM classical types get indexed in little-endian order. But bitarrays
+        // behave as static arrays of 0s and 1s, so, they get indexed in big-endian
+        // order. Therefore, we need to change the endianness of our indices after we
+        // make the cast to bitarray.
+        let indices = indices
+            .into_iter()
+            .map(|idx| self.change_index_endianness(idx, width))
+            .collect();
+
         // Then, we reuse the codepath for lowering indexed arrays.
         // The spec says: "The bit slicing operation always returns a bit array
         //                of size equal to the size of the index set."
@@ -4118,6 +4130,68 @@ impl Lowerer {
         self.lower_indexed_ident_expr_rec(collection, indices.into())
     }
 
+    fn change_index_endianness(&mut self, idx: semantic::Index, width: u32) -> semantic::Index {
+        let idx_span = idx.span();
+        let width = i64::from(width);
+
+        let unwrap_range_component = |expr_opt: Option<&Expr>, default: i64| -> (i64, Span) {
+            if let Some(expr) = expr_opt {
+                let Some(semantic::LiteralKind::Int(val)) = expr.const_value else {
+                    unreachable!("range components are guaranteed to be const exprs");
+                };
+                (val, expr.span)
+            } else {
+                (default, idx_span)
+            }
+        };
+
+        // If we have a variable `var` of a 32-bit type, and we want to change
+        // the endianness of the index when doing var[idx], we need to do var[32 - idx - 1].
+        let width_minus_expr_minus_one = |val: i64| -> i64 {
+            let val = width - val - 1;
+
+            // OpenQASM indices are width-based, so, we wrap around the width.
+            val.rem_euclid(width)
+        };
+
+        match idx {
+            semantic::Index::Expr(expr) => {
+                let new_expr = if expr.ty.is_const() {
+                    let (val, span) = unwrap_range_component(Some(&expr.with_const_value(self)), 0);
+                    Expr::int(width_minus_expr_minus_one(val), span)
+                } else {
+                    Expr::bin_op(
+                        semantic::BinOp::Sub,
+                        // Instead of building two nested bin_ops, we just substract 1 from width.
+                        Expr::int(width - 1, expr.span),
+                        expr,
+                    )
+                };
+                semantic::Index::Expr(new_expr)
+            }
+            semantic::Index::Range(range) => {
+                let start = {
+                    let (val, span) = unwrap_range_component(range.start.as_ref(), 0);
+                    Some(Expr::int(width_minus_expr_minus_one(val), span))
+                };
+                let end = {
+                    let (val, span) = unwrap_range_component(range.end.as_ref(), width - 1);
+                    Some(Expr::int(width_minus_expr_minus_one(val), span))
+                };
+                let step = {
+                    let (val, span) = unwrap_range_component(range.step.as_ref(), 1);
+                    Some(Expr::int(-val, span))
+                };
+                semantic::Index::Range(Box::new(semantic::Range {
+                    span: range.span,
+                    start,
+                    end,
+                    step,
+                }))
+            }
+        }
+    }
+
     /// This method is used to lower the lhs of assignment expressions.
     fn lower_indexed_ident_expr_rec(
         &mut self,
@@ -4152,9 +4226,22 @@ impl Lowerer {
             self.lower_indexed_ident_expr_rec(expr, indices)
         } else {
             match ty {
-                Type::Angle(Some(_), _) | Type::Int(Some(_), _) | Type::UInt(Some(_), _) => {
-                    // We don't want to keep indexing into the classical type when lowering
-                    // the lhs of an assignment expression.
+                Type::Angle(Some(width), _)
+                | Type::Int(Some(width), _)
+                | Type::UInt(Some(width), _) => {
+                    // We don't want to index into the classical type when lowering
+                    // the lhs of an assignment expression. Indexing into the classical
+                    // type is handled in compiler.rs.
+
+                    // OpenQASM classical types get indexed in little-endian order. But bitarrays
+                    // behave as static arrays of 0s and 1s, so, they get indexed in big-endian
+                    // order. Therefore, we need to change the endianness of our indices since we
+                    // will cast to bitarray.
+                    let indices = indices
+                        .into_iter()
+                        .map(|idx| self.change_index_endianness(idx, width))
+                        .collect();
+
                     (expr, indices)
                 }
                 _ => {

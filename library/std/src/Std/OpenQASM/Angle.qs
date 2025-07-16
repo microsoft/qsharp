@@ -8,7 +8,7 @@
 // Export the Angle type and its associated functions.
 export Angle;
 // Export the array conversion functions for Angle.
-export AngleAsBoolArrayBE, AngleAsResultArrayBE;
+export AngleAsBoolArrayBE, AngleAsResultArrayBE, ResultArrayAsAngleBE;
 // Export cast from Angle to other types.
 export AngleAsDouble, AngleAsBool, AngleAsResult;
 // Export cast from other types to Angle.
