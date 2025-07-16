@@ -59,6 +59,7 @@ export enum EventType {
   LanguageModelToolEnd = "Qsharp.LanguageModelToolEnd",
   UpdateCopilotInstructionsStart = "Qsharp.UpdateCopilotInstructionsStart",
   UpdateCopilotInstructionsEnd = "Qsharp.UpdateCopilotInstructionsEnd",
+  ChangelogPrompt = "Qsharp.ChangelogPrompt",
 }
 
 type Empty = { [K in any]: never };
@@ -320,6 +321,12 @@ type EventTypes = {
     properties: {
       reason?: string;
       flowStatus: UserFlowStatus;
+    };
+    measurements: Empty;
+  };
+  [EventType.ChangelogPrompt]: {
+    properties: {
+      action: "showChangelog" | "suppressChangelog";
     };
     measurements: Empty;
   };
