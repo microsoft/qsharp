@@ -515,7 +515,7 @@ fn create_general_dealloc_stmt(
         span: Span::default(),
         kind: StmtKind::Semi(Expr {
             id: assigner.next_node(),
-            span: Span::default(),
+            span: ident.span,
             ty: Ty::UNIT,
             kind: ExprKind::Call(Box::new(call_expr), Box::new(ident.gen_local_ref(assigner))),
         }),

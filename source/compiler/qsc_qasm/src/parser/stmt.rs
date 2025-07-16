@@ -179,7 +179,7 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Stmt> {
 
     Ok(Stmt {
         span: s.span(lo),
-        annotations: attrs.into_boxed_slice(),
+        annotations: list_from_iter(attrs),
         kind: Box::new(kind),
     })
 }
@@ -335,55 +335,100 @@ fn default(span: Span) -> Stmt {
 }
 
 /// Grammar: `AnnotationKeyword RemainingLineContent?`.
-pub fn parse_annotation(s: &mut ParserContext) -> Result<Box<Annotation>> {
-    let lo = s.peek().span.lo;
+pub fn parse_annotation(s: &mut ParserContext) -> Result<Annotation> {
+    let token = s.peek();
+    let stmt_lo = token.span.lo;
     s.expect(WordKinds::Annotation);
 
-    let token = s.peek();
-    let pat = &['\t', ' '];
-    let parts: Vec<&str> = if token.kind == TokenKind::Annotation {
-        let lexeme = s.read();
-        s.advance();
-        // remove @
-        // split lexeme at first space/tab collecting each side
-        shorten(1, 0, lexeme).splitn(2, pat).collect()
-    } else {
+    if token.kind != TokenKind::Annotation {
         return Err(Error::new(ErrorKind::Rule(
             "annotation",
             token.kind,
             token.span,
         )));
+    }
+
+    // read the annotation lexeme, which is the whole line
+    // including the `@` and the rest of the line content.
+    let annotation_line_content = s.read();
+    let annotation_kw_offset = 1; // length of "@"
+    let ident_lo = token.span.lo + annotation_kw_offset;
+    let stmt_hi = token.span.hi;
+
+    // annotation_line_content:
+    // @ a.b.c "some value" more value \nmore content
+    // |.      |                      |
+    // |.      |                      |
+    // |.      ^-------- value -------|
+    // | ^-- ident_lo                 ^-- stmt_hi
+    // |       |                      |
+    // |       ^- annotation_content -^
+    // |^-- annotation_kw_offset
+    // ^-- stmt_lo
+
+    let from_start = annotation_kw_offset.try_into().expect("valid size");
+    let annotation_content = shorten(from_start, 0, annotation_line_content);
+
+    // annotation_content
+    // a.b.c "some value" more value
+    //       ^-- value_lo
+
+    // advance the parser to the next token for the next token in the program
+    s.advance();
+
+    // create a sub-parser context just for the line content
+    // This will tokenize the rest of the line which should be the identifier
+    // and the value, if any.
+
+    let mut c = match s.word_collector {
+        Some(ref mut collector) => {
+            ParserContext::with_word_collector(annotation_content, collector)
+        }
+        None => ParserContext::new(annotation_content),
     };
 
-    let identifier = parts.first().map_or_else(
-        || {
-            Err(Error::new(ErrorKind::Rule(
-                "annotation",
-                token.kind,
-                token.span,
-            )))
-        },
-        |s| Ok(Into::<Rc<str>>::into(*s)),
-    )?;
+    // parse the dotted path identifier
+    let Ok(mut path) = recovering_path(&mut c, WordKinds::PathExpr) else {
+        // We only fail if no parts were parsed, which means
+        // there was no valid identifier found.
+        // annotations must have an identifier.
 
-    if identifier.is_empty() {
-        s.push_error(Error::new(ErrorKind::Rule(
+        return Err(Error::new(ErrorKind::Rule(
             "annotation missing identifier",
             token.kind,
             token.span,
         )));
-    }
+    };
 
-    // remove any leading whitespace from the value side
-    let value = parts
-        .get(1)
-        .map(|s| Into::<Rc<str>>::into(s.trim_start_matches(pat)));
+    // update the path span based on the original lo
+    path.offset(ident_lo);
 
-    Ok(Box::new(Annotation {
-        span: s.span(lo),
-        identifier,
+    // Unlike pragmas, annotations don't need a path segment.
+    // A single identifier is sufficient.
+
+    // we need to get to the first non-whitespace token
+    // after the identifier, which should be the value.
+
+    // This value_lo offset is the start of the value in the annotation line content.
+    let value_lo = c.skip_trivia().hi;
+    let value = trim_front_safely(value_lo.try_into().expect("valid size"), annotation_content);
+    let value = if value.is_empty() {
+        None
+    } else {
+        Some(Rc::from(value))
+    };
+
+    let value_span = value.as_ref().map(|_| Span {
+        lo: value_lo + ident_lo,
+        hi: stmt_hi,
+    });
+
+    Ok(Annotation {
+        span: s.span(stmt_lo),
+        identifier: path,
         value,
-    }))
+        value_span,
+    })
 }
 
 /// Grammar: `INCLUDE StringLiteral SEMICOLON`.
@@ -459,7 +504,11 @@ fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
     // This will tokenize the rest of the line which should be the identifier
     // and the value, if any.
 
-    let mut c = ParserContext::new(pragma_content);
+    let mut c = match s.word_collector {
+        Some(ref mut collector) => ParserContext::with_word_collector(pragma_content, collector),
+        None => ParserContext::new(pragma_content),
+    };
+
     let content_lo = c.skip_trivia().hi;
     // parse the dotted path identifier
     let Ok(mut path) = recovering_path(&mut c, WordKinds::PathExpr) else {

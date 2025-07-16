@@ -339,8 +339,12 @@ export class QscDebugSession extends LoggingDebugSession {
     } else if (result.id == StepResultId.Return) {
       await this.endSession(`ending session`, 0);
     } else if (result.id == StepResultId.Fail) {
-      log.trace(`step result: ${result.id} ${result.value}`);
-      this.sendEvent(new StoppedEvent("exception", QscDebugSession.threadID));
+      log.trace(
+        `step result: ${result.id} ${result.value} (error: ${result.error})`,
+      );
+      this.sendEvent(
+        new StoppedEvent("exception", QscDebugSession.threadID, result.error),
+      );
     } else {
       log.trace(`step result: ${result.id} ${result.value}`);
       this.sendEvent(new StoppedEvent("step", QscDebugSession.threadID));

@@ -10,9 +10,7 @@ fn void_no_args() {
         "extern f();",
         &expect![[r#"
             ExternDecl [0-11]:
-                symbol_id: 8
-                parameters: <empty>
-                return_type: ()"#]],
+                symbol_id: 8"#]],
     );
 }
 
@@ -22,10 +20,7 @@ fn void_one_arg() {
         "extern f(int);",
         &expect![[r#"
             ExternDecl [0-14]:
-                symbol_id: 8
-                parameters:
-                    Int
-                return_type: ()"#]],
+                symbol_id: 8"#]],
     );
 }
 
@@ -35,14 +30,7 @@ fn void_multiple_args() {
         "extern f(uint, int, float, bit, bool);",
         &expect![[r#"
             ExternDecl [0-38]:
-                symbol_id: 8
-                parameters:
-                    Int
-                    Int
-                    Double
-                    Result
-                    bool
-                return_type: ()"#]],
+                symbol_id: 8"#]],
     );
 }
 
@@ -52,9 +40,7 @@ fn return_type() {
         "extern f() -> int;",
         &expect![[r#"
             ExternDecl [0-18]:
-                symbol_id: 8
-                parameters: <empty>
-                return_type: Int"#]],
+                symbol_id: 8"#]],
     );
 }
 
@@ -74,8 +60,6 @@ fn no_allowed_in_non_global_scope() {
                                 annotations: <empty>
                                 kind: ExternDecl [2-13]:
                                     symbol_id: 8
-                                    parameters: <empty>
-                                    return_type: ()
 
             [Qasm.Lowerer.DefDeclarationInNonGlobalScope
 

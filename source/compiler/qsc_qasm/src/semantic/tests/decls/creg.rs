@@ -19,7 +19,7 @@ fn with_no_init_expr_has_generated_lit_expr() {
             [8] Symbol [5-6]:
                 name: a
                 type: bit
-                qsharp_type: Result
+                ty_span: [0-7]
                 io_kind: Default"#]],
     );
 }
@@ -38,7 +38,7 @@ fn array_with_no_init_expr_has_generated_lit_expr() {
             [8] Symbol [5-6]:
                 name: a
                 type: bit[4]
-                qsharp_type: Result[]
+                ty_span: [0-10]
                 io_kind: Default"#]],
     );
 }

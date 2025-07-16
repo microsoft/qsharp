@@ -201,8 +201,9 @@ fn annotation() {
             Stmt [0-47]:
                 annotations:
                     Annotation [0-16]:
-                        identifier: "test.annotation"
+                        identifier: test.annotation
                         value: <none>
+                        value_span: <none>
                 kind: ExternDecl [25-47]:
                     ident: Ident [32-33] "x"
                     parameters:

@@ -35,7 +35,6 @@ pub enum Type {
     AngleArray(ArrayDimensions, bool),
     QubitArray(ArrayDimensions),
     ResultArray(ArrayDimensions, bool),
-    TupleArray(ArrayDimensions, Vec<Type>),
     /// Function or operation, with the number of classical parameters and qubits.
     Callable(CallableKind, u32, u32),
     #[default]
@@ -139,16 +138,6 @@ impl Display for Type {
             Type::AngleArray(dim, _) => write!(f, "Angle{dim}"),
             Type::QubitArray(dim) => write!(f, "Qubit{dim}"),
             Type::ResultArray(dim, _) => write!(f, "Result{dim}"),
-            Type::TupleArray(dim, types) => {
-                write!(f, "(")?;
-                for (i, ty) in types.iter().enumerate() {
-                    if i > 0 {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "{ty}")?;
-                }
-                write!(f, "){dim}")
-            }
             Type::Callable(kind, num_classical, num_qubits) => {
                 write!(f, "Callable({kind}, {num_classical}, {num_qubits})")
             }

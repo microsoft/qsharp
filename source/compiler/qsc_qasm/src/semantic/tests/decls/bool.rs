@@ -19,7 +19,7 @@ fn with_no_init_expr_has_generated_lit_expr() {
             [8] Symbol [5-6]:
                 name: a
                 type: bool
-                qsharp_type: bool
+                ty_span: [0-4]
                 io_kind: Default"#]],
     );
 }
@@ -50,7 +50,7 @@ fn array_with_no_init_expr_has_generated_lit_expr() {
             [8] Symbol [15-16]:
                 name: a
                 type: array[bool, 4]
-                qsharp_type: bool[]
+                ty_span: [0-14]
                 io_kind: Default"#]],
     );
 }
@@ -69,7 +69,7 @@ fn decl_with_lit_false_init_expr() {
             [8] Symbol [5-6]:
                 name: a
                 type: bool
-                qsharp_type: bool
+                ty_span: [0-4]
                 io_kind: Default"#]],
     );
 }
@@ -88,7 +88,7 @@ fn decl_with_lit_true_init_expr() {
             [8] Symbol [5-6]:
                 name: a
                 type: bool
-                qsharp_type: bool
+                ty_span: [0-4]
                 io_kind: Default"#]],
     );
 }
@@ -108,7 +108,7 @@ fn const_decl_with_lit_false_init_expr() {
             [8] Symbol [11-12]:
                 name: a
                 type: const bool
-                qsharp_type: bool
+                ty_span: [6-10]
                 io_kind: Default"#]],
     );
 }
@@ -128,7 +128,7 @@ fn const_decl_with_lit_true_init_expr() {
             [8] Symbol [11-12]:
                 name: a
                 type: const bool
-                qsharp_type: bool
+                ty_span: [6-10]
                 io_kind: Default"#]],
     );
 }

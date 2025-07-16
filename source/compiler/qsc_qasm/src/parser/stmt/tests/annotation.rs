@@ -12,8 +12,9 @@ fn annotation() {
         "@a.b.d 23",
         &expect![[r#"
             Annotation [0-9]:
-                identifier: "a.b.d"
-                value: "23""#]],
+                identifier: a.b.d
+                value: "23"
+                value_span: [7-9]"#]],
     );
 }
 
@@ -24,8 +25,9 @@ fn annotation_ident_only() {
         "@a.b.d",
         &expect![[r#"
             Annotation [0-6]:
-                identifier: "a.b.d"
-                value: <none>"#]],
+                identifier: a.b.d
+                value: <none>
+                value_span: <none>"#]],
     );
 }
 
@@ -35,21 +37,16 @@ fn annotation_missing_ident() {
         parse_annotation,
         "@",
         &expect![[r#"
-            Annotation [0-1]:
-                identifier: ""
-                value: <none>
-
-            [
-                Error(
-                    Rule(
-                        "annotation missing identifier",
-                        Annotation,
-                        Span {
-                            lo: 0,
-                            hi: 1,
-                        },
-                    ),
+            Error(
+                Rule(
+                    "annotation missing identifier",
+                    Annotation,
+                    Span {
+                        lo: 0,
+                        hi: 1,
+                    },
                 ),
-            ]"#]],
+            )
+        "#]],
     );
 }

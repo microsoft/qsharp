@@ -24,7 +24,7 @@ fn to_int_decl_implicitly() {
             [8] Symbol [16-19]:
                 name: reg
                 type: bit[5]
-                qsharp_type: Result[]
+                ty_span: [9-15]
                 io_kind: Default
             ClassicalDeclarationStmt [29-41]:
                 symbol_id: 9
@@ -39,7 +39,7 @@ fn to_int_decl_implicitly() {
             [9] Symbol [33-34]:
                 name: b
                 type: int
-                qsharp_type: Int
+                ty_span: [29-32]
                 io_kind: Default
         "#]],
     );
@@ -140,7 +140,7 @@ fn to_int_with_equal_width_in_decl_implicitly() {
             [8] Symbol [16-19]:
                 name: reg
                 type: bit[5]
-                qsharp_type: Result[]
+                ty_span: [9-15]
                 io_kind: Default
             ClassicalDeclarationStmt [29-44]:
                 symbol_id: 9
@@ -155,7 +155,7 @@ fn to_int_with_equal_width_in_decl_implicitly() {
             [9] Symbol [36-37]:
                 name: a
                 type: int[5]
-                qsharp_type: Int
+                ty_span: [29-35]
                 io_kind: Default
         "#]],
     );

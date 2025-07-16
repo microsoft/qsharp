@@ -25,7 +25,7 @@ fn logical_and() {
             [8] Symbol [14-15]:
                 name: x
                 type: bool
-                qsharp_type: bool
+                ty_span: [9-13]
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
@@ -36,7 +36,7 @@ fn logical_and() {
             [9] Symbol [37-38]:
                 name: y
                 type: bool
-                qsharp_type: bool
+                ty_span: [32-36]
                 io_kind: Default
             ClassicalDeclarationStmt [56-72]:
                 symbol_id: 10
@@ -54,7 +54,7 @@ fn logical_and() {
             [10] Symbol [61-62]:
                 name: a
                 type: bool
-                qsharp_type: bool
+                ty_span: [56-60]
                 io_kind: Default
         "#]],
     );
@@ -80,7 +80,7 @@ fn logical_or() {
             [8] Symbol [14-15]:
                 name: x
                 type: bool
-                qsharp_type: bool
+                ty_span: [9-13]
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
@@ -91,7 +91,7 @@ fn logical_or() {
             [9] Symbol [37-38]:
                 name: y
                 type: bool
-                qsharp_type: bool
+                ty_span: [32-36]
                 io_kind: Default
             ClassicalDeclarationStmt [56-72]:
                 symbol_id: 10
@@ -109,7 +109,7 @@ fn logical_or() {
             [10] Symbol [61-62]:
                 name: a
                 type: bool
-                qsharp_type: bool
+                ty_span: [56-60]
                 io_kind: Default
         "#]],
     );
@@ -135,7 +135,7 @@ fn unop_not_logical_and_unop_not() {
             [8] Symbol [14-15]:
                 name: x
                 type: bool
-                qsharp_type: bool
+                ty_span: [9-13]
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
@@ -146,7 +146,7 @@ fn unop_not_logical_and_unop_not() {
             [9] Symbol [37-38]:
                 name: y
                 type: bool
-                qsharp_type: bool
+                ty_span: [32-36]
                 io_kind: Default
             ClassicalDeclarationStmt [56-74]:
                 symbol_id: 10
@@ -172,7 +172,7 @@ fn unop_not_logical_and_unop_not() {
             [10] Symbol [61-62]:
                 name: a
                 type: bool
-                qsharp_type: bool
+                ty_span: [56-60]
                 io_kind: Default
         "#]],
     );
@@ -198,7 +198,7 @@ fn unop_not_logical_or_unop_not() {
             [8] Symbol [14-15]:
                 name: x
                 type: bool
-                qsharp_type: bool
+                ty_span: [9-13]
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
@@ -209,7 +209,7 @@ fn unop_not_logical_or_unop_not() {
             [9] Symbol [37-38]:
                 name: y
                 type: bool
-                qsharp_type: bool
+                ty_span: [32-36]
                 io_kind: Default
             ClassicalDeclarationStmt [56-74]:
                 symbol_id: 10
@@ -235,7 +235,7 @@ fn unop_not_logical_or_unop_not() {
             [10] Symbol [61-62]:
                 name: a
                 type: bool
-                qsharp_type: bool
+                ty_span: [56-60]
                 io_kind: Default
         "#]],
     );
@@ -261,7 +261,7 @@ fn unop_not_logical_and() {
             [8] Symbol [14-15]:
                 name: x
                 type: bool
-                qsharp_type: bool
+                ty_span: [9-13]
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
@@ -272,7 +272,7 @@ fn unop_not_logical_and() {
             [9] Symbol [37-38]:
                 name: y
                 type: bool
-                qsharp_type: bool
+                ty_span: [32-36]
                 io_kind: Default
             ClassicalDeclarationStmt [56-73]:
                 symbol_id: 10
@@ -294,7 +294,7 @@ fn unop_not_logical_and() {
             [10] Symbol [61-62]:
                 name: a
                 type: bool
-                qsharp_type: bool
+                ty_span: [56-60]
                 io_kind: Default
         "#]],
     );
@@ -320,7 +320,7 @@ fn unop_not_logical_or() {
             [8] Symbol [14-15]:
                 name: x
                 type: bool
-                qsharp_type: bool
+                ty_span: [9-13]
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
@@ -331,7 +331,7 @@ fn unop_not_logical_or() {
             [9] Symbol [37-38]:
                 name: y
                 type: bool
-                qsharp_type: bool
+                ty_span: [32-36]
                 io_kind: Default
             ClassicalDeclarationStmt [56-73]:
                 symbol_id: 10
@@ -353,7 +353,7 @@ fn unop_not_logical_or() {
             [10] Symbol [61-62]:
                 name: a
                 type: bool
-                qsharp_type: bool
+                ty_span: [56-60]
                 io_kind: Default
         "#]],
     );
@@ -379,7 +379,7 @@ fn logical_and_unop_not() {
             [8] Symbol [14-15]:
                 name: x
                 type: bool
-                qsharp_type: bool
+                ty_span: [9-13]
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
@@ -390,7 +390,7 @@ fn logical_and_unop_not() {
             [9] Symbol [37-38]:
                 name: y
                 type: bool
-                qsharp_type: bool
+                ty_span: [32-36]
                 io_kind: Default
             ClassicalDeclarationStmt [56-73]:
                 symbol_id: 10
@@ -412,7 +412,7 @@ fn logical_and_unop_not() {
             [10] Symbol [61-62]:
                 name: a
                 type: bool
-                qsharp_type: bool
+                ty_span: [56-60]
                 io_kind: Default
         "#]],
     );
@@ -438,7 +438,7 @@ fn logical_or_unop_not() {
             [8] Symbol [14-15]:
                 name: x
                 type: bool
-                qsharp_type: bool
+                ty_span: [9-13]
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
@@ -449,7 +449,7 @@ fn logical_or_unop_not() {
             [9] Symbol [37-38]:
                 name: y
                 type: bool
-                qsharp_type: bool
+                ty_span: [32-36]
                 io_kind: Default
             ClassicalDeclarationStmt [56-73]:
                 symbol_id: 10
@@ -471,7 +471,7 @@ fn logical_or_unop_not() {
             [10] Symbol [61-62]:
                 name: a
                 type: bool
-                qsharp_type: bool
+                ty_span: [56-60]
                 io_kind: Default
         "#]],
     );

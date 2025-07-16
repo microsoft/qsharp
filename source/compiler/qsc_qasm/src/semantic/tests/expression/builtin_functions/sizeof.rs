@@ -261,22 +261,23 @@ fn sizeof_static_array_ref() {
     check(
         source,
         &expect![[r#"
-        DefStmt [41-136]:
-            symbol_id: 9
-            has_qubit_params: false
-            parameters:
-                10
-            return_type: ()
-            body: Block [77-136]:
-                Stmt [91-126]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [91-126]:
-                        symbol_id: 11
-                        ty_span: [97-101]
-                        init_expr: Expr [113-125]:
-                            ty: const uint
-                            const_value: Int(4)
-                            kind: Lit: Int(4)"#]],
+            DefStmt [41-136]:
+                symbol_id: 9
+                has_qubit_params: false
+                parameters:
+                    10
+                return_type: void
+                return_type_span: [0-0]
+                body: Block [77-136]:
+                    Stmt [91-126]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [91-126]:
+                            symbol_id: 11
+                            ty_span: [97-101]
+                            init_expr: Expr [113-125]:
+                                ty: const uint
+                                const_value: Int(4)
+                                kind: Lit: Int(4)"#]],
     );
 }
 
@@ -293,22 +294,23 @@ fn sizeof_static_array_ref_omitted_dimension() {
     check(
         source,
         &expect![[r#"
-        DefStmt [41-133]:
-            symbol_id: 9
-            has_qubit_params: false
-            parameters:
-                10
-            return_type: ()
-            body: Block [77-133]:
-                Stmt [91-123]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [91-123]:
-                        symbol_id: 11
-                        ty_span: [97-101]
-                        init_expr: Expr [113-122]:
-                            ty: const uint
-                            const_value: Int(3)
-                            kind: Lit: Int(3)"#]],
+            DefStmt [41-133]:
+                symbol_id: 9
+                has_qubit_params: false
+                parameters:
+                    10
+                return_type: void
+                return_type_span: [0-0]
+                body: Block [77-133]:
+                    Stmt [91-123]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [91-123]:
+                            symbol_id: 11
+                            ty_span: [97-101]
+                            init_expr: Expr [113-122]:
+                                ty: const uint
+                                const_value: Int(3)
+                                kind: Lit: Int(3)"#]],
     );
 }
 
@@ -389,7 +391,8 @@ fn sizeof_static_array_ref_invalid_dimension_errors() {
                             has_qubit_params: false
                             parameters:
                                 10
-                            return_type: ()
+                            return_type: void
+                            return_type_span: [0-0]
                             body: Block [77-136]:
                                 Stmt [91-126]:
                                     annotations: <empty>
@@ -431,7 +434,8 @@ fn sizeof_dyn_array_ref() {
                 has_qubit_params: false
                 parameters:
                     10
-                return_type: ()
+                return_type: void
+                return_type_span: [0-0]
                 body: Block [81-134]:
                     Stmt [95-124]:
                         annotations: <empty>
@@ -470,7 +474,8 @@ fn sizeof_dyn_array_ref_omitted_dimension() {
                 has_qubit_params: false
                 parameters:
                     10
-                return_type: ()
+                return_type: void
+                return_type_span: [0-0]
                 body: Block [81-131]:
                     Stmt [95-121]:
                         annotations: <empty>
@@ -511,7 +516,8 @@ fn sizeof_dyn_array_ref_invalid_dimension_lowers_correctly() {
                 has_qubit_params: false
                 parameters:
                     10
-                return_type: ()
+                return_type: void
+                return_type_span: [0-0]
                 body: Block [81-134]:
                     Stmt [95-124]:
                         annotations: <empty>

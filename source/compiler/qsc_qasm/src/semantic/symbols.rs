@@ -97,7 +97,7 @@ pub struct Symbol {
     pub name: String,
     pub span: Span,
     pub ty: Type,
-    pub qsharp_ty: crate::types::Type,
+    pub ty_span: Span, // used for error reporting
     pub io_kind: IOKind,
     /// Used for const evaluation. This field should only be Some(_)
     /// if the symbol is const. This Expr holds the whole const expr
@@ -107,18 +107,12 @@ pub struct Symbol {
 
 impl Symbol {
     #[must_use]
-    pub fn new(
-        name: &str,
-        span: Span,
-        ty: Type,
-        qsharp_ty: crate::types::Type,
-        io_kind: IOKind,
-    ) -> Self {
+    pub fn new(name: &str, span: Span, ty: Type, ty_span: Span, io_kind: IOKind) -> Self {
         Self {
             name: name.to_string(),
             span,
             ty,
-            qsharp_ty,
+            ty_span,
             io_kind,
             const_expr: None,
         }
@@ -129,7 +123,7 @@ impl Symbol {
             name: name.to_string(),
             span,
             ty: Type::Err,
-            qsharp_ty: crate::types::Type::Err,
+            ty_span: span,
             io_kind: IOKind::Default,
             const_expr: None,
         }
@@ -172,7 +166,7 @@ impl std::fmt::Display for Symbol {
         display_utils::writeln_header(f, "Symbol", self.span)?;
         display_utils::writeln_field(f, "name", &self.name)?;
         display_utils::writeln_field(f, "type", &self.ty)?;
-        display_utils::writeln_field(f, "qsharp_type", &self.qsharp_ty)?;
+        display_utils::writeln_field(f, "ty_span", &self.ty_span)?;
         display_utils::write_field(f, "io_kind", &self.io_kind)
     }
 }
@@ -185,7 +179,7 @@ impl Default for Symbol {
             name: String::default(),
             span: Span::default(),
             ty: Type::Err,
-            qsharp_ty: crate::types::Type::Tuple(vec![]),
+            ty_span: Span::default(),
             io_kind: IOKind::default(),
             const_expr: None,
         }
@@ -320,7 +314,7 @@ impl Default for SymbolTable {
             name: "U".to_string(),
             span: Span::default(),
             ty: Type::Gate(3, 1),
-            qsharp_ty: crate::types::Type::Callable(crate::types::CallableKind::Operation, 3, 1),
+            ty_span: Span::default(),
             io_kind: IOKind::Default,
             const_expr: None,
         })
@@ -330,7 +324,7 @@ impl Default for SymbolTable {
             name: "gphase".to_string(),
             span: Span::default(),
             ty: Type::Gate(1, 0),
-            qsharp_ty: crate::types::Type::Callable(crate::types::CallableKind::Operation, 1, 0),
+            ty_span: Span::default(),
             io_kind: IOKind::Default,
             const_expr: None,
         })
@@ -360,7 +354,7 @@ impl SymbolTable {
             name: "U".to_string(),
             span: Span::default(),
             ty: Type::Gate(3, 1),
-            qsharp_ty: crate::types::Type::Callable(crate::types::CallableKind::Operation, 3, 1),
+            ty_span: Span::default(),
             io_kind: IOKind::Default,
             const_expr: None,
         })
@@ -370,7 +364,7 @@ impl SymbolTable {
             name: "CX".to_string(),
             span: Span::default(),
             ty: Type::Gate(0, 2),
-            qsharp_ty: crate::types::Type::Callable(crate::types::CallableKind::Operation, 0, 2),
+            ty_span: Span::default(),
             io_kind: IOKind::Default,
             const_expr: None,
         })
@@ -395,7 +389,7 @@ impl SymbolTable {
                 name: symbol.to_string(),
                 span: Span::default(),
                 ty,
-                qsharp_ty: crate::types::Type::Double(true),
+                ty_span: Span::default(),
                 io_kind: IOKind::Default,
                 const_expr: Some(Rc::new(expr)),
             })

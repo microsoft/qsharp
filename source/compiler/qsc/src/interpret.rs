@@ -51,7 +51,7 @@ use qsc_data_structures::{
     target::TargetCapabilityFlags,
 };
 use qsc_eval::{
-    Env, State, VariableInfo,
+    Env, ErrorBehavior, State, VariableInfo,
     backend::{Backend, Chain as BackendChain, SparseSim},
     output::Receiver,
     val,
@@ -1051,7 +1051,12 @@ impl Debugger {
         Ok(Self {
             interpreter,
             position_encoding,
-            state: State::new(source_package_id, entry_exec_graph, None),
+            state: State::new(
+                source_package_id,
+                entry_exec_graph,
+                None,
+                ErrorBehavior::StopOnError,
+            ),
         })
     }
 
@@ -1062,7 +1067,12 @@ impl Debugger {
         Self {
             interpreter,
             position_encoding,
-            state: State::new(source_package_id, entry_exec_graph, None),
+            state: State::new(
+                source_package_id,
+                entry_exec_graph,
+                None,
+                ErrorBehavior::StopOnError,
+            ),
         }
     }
 

@@ -7,6 +7,7 @@ use std::{
     collections::VecDeque,
     fmt::{self, Display, Formatter},
     rc::Rc,
+    sync::Arc,
 };
 
 use crate::{
@@ -57,17 +58,18 @@ impl Display for Stmt {
 #[derive(Clone, Debug)]
 pub struct Annotation {
     pub span: Span,
-    pub identifier: Rc<str>,
+    pub identifier: PathKind,
     pub value: Option<Rc<str>>,
+    pub value_span: Option<Span>,
 }
 
 impl Display for Annotation {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let identifier = format!("\"{}\"", self.identifier);
         let value = self.value.as_ref().map(|val| format!("\"{val}\""));
         writeln_header(f, "Annotation", self.span)?;
-        writeln_field(f, "identifier", &identifier)?;
-        write_opt_field(f, "value", value.as_ref())
+        writeln_field(f, "identifier", &self.identifier.as_string())?;
+        writeln_opt_field(f, "value", value.as_ref())?;
+        write_opt_field(f, "value_span", self.value_span.as_ref())
     }
 }
 
@@ -798,16 +800,12 @@ impl Display for QuantumGateDefinition {
 pub struct ExternDecl {
     pub span: Span,
     pub symbol_id: SymbolId,
-    pub params: Box<[crate::types::Type]>,
-    pub return_type: crate::types::Type,
 }
 
 impl Display for ExternDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "ExternDecl", self.span)?;
-        writeln_field(f, "symbol_id", &self.symbol_id)?;
-        writeln_list_field(f, "parameters", &self.params)?;
-        write_field(f, "return_type", &self.return_type)
+        write_field(f, "symbol_id", &self.symbol_id)
     }
 }
 
@@ -937,7 +935,8 @@ pub struct DefStmt {
     pub has_qubit_params: bool,
     pub params: Box<[SymbolId]>,
     pub body: Block,
-    pub return_type: crate::types::Type,
+    pub return_type: Arc<crate::semantic::types::Type>,
+    pub return_type_span: Span,
 }
 
 impl Display for DefStmt {
@@ -947,6 +946,7 @@ impl Display for DefStmt {
         writeln_field(f, "has_qubit_params", &self.has_qubit_params)?;
         writeln_list_field(f, "parameters", &self.params)?;
         writeln_field(f, "return_type", &self.return_type)?;
+        writeln_field(f, "return_type_span", &self.return_type_span)?;
         write_field(f, "body", &self.body)
     }
 }

@@ -1319,11 +1319,6 @@ pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
                 }
             }
         }
-        crate::types::Type::TupleArray(dims, tys) => {
-            assert!(!tys.is_empty());
-            let ty = map_qsharp_type_to_ast_ty(&crate::types::Type::Tuple(tys.clone()));
-            wrap_array_ty_by_dims(*dims, ty)
-        }
         crate::types::Type::Err => Ty::default(),
     }
 }
@@ -1568,9 +1563,10 @@ fn build_idents(idents: &[&str]) -> Option<Box<[Ident]>> {
     }
 }
 
-pub(crate) fn build_attr<S>(name: S, value: Option<S>, span: Span) -> Attr
+pub(crate) fn build_attr<S, T>(name: S, value: Option<T>, span: Span) -> Attr
 where
     S: AsRef<str>,
+    T: AsRef<str>,
 {
     let name = Box::new(Ident {
         span,

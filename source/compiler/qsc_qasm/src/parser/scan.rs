@@ -15,7 +15,7 @@ pub(super) struct NoBarrierError;
 
 pub(crate) struct ParserContext<'a> {
     scanner: Scanner<'a>,
-    word_collector: Option<&'a mut ValidWordCollector>,
+    pub(super) word_collector: Option<&'a mut ValidWordCollector>,
 }
 
 /// Scans over the token stream. Notably enforces LL(1) parser behavior via

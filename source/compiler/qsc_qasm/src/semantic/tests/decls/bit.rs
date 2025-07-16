@@ -19,7 +19,7 @@ fn with_no_init_expr_has_generated_lit_expr() {
             [8] Symbol [4-5]:
                 name: a
                 type: bit
-                qsharp_type: Result
+                ty_span: [0-3]
                 io_kind: Default"#]],
     );
 }
@@ -38,7 +38,7 @@ fn array_with_no_init_expr_has_generated_lit_expr() {
             [8] Symbol [7-8]:
                 name: a
                 type: bit[4]
-                qsharp_type: Result[]
+                ty_span: [0-6]
                 io_kind: Default"#]],
     );
 }
@@ -57,7 +57,7 @@ fn decl_with_lit_0_init_expr() {
             [8] Symbol [4-5]:
                 name: a
                 type: bit
-                qsharp_type: Result
+                ty_span: [0-3]
                 io_kind: Default"#]],
     );
 }
@@ -76,7 +76,7 @@ fn decl_with_lit_1_init_expr() {
             [8] Symbol [4-5]:
                 name: a
                 type: bit
-                qsharp_type: Result
+                ty_span: [0-3]
                 io_kind: Default"#]],
     );
 }
@@ -96,7 +96,7 @@ fn const_decl_with_lit_0_init_expr() {
             [8] Symbol [10-11]:
                 name: a
                 type: const bit
-                qsharp_type: Result
+                ty_span: [6-9]
                 io_kind: Default"#]],
     );
 }
@@ -116,7 +116,7 @@ fn const_decl_with_lit_1_init_expr() {
             [8] Symbol [10-11]:
                 name: a
                 type: const bit
-                qsharp_type: Result
+                ty_span: [6-9]
                 io_kind: Default"#]],
     );
 }

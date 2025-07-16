@@ -24,7 +24,7 @@ fn to_bit_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: angle
-                qsharp_type: Angle
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-42]:
                 symbol_id: 9
@@ -39,7 +39,7 @@ fn to_bit_implicitly() {
             [9] Symbol [36-37]:
                 name: y
                 type: bit
-                qsharp_type: Result
+                ty_span: [32-35]
                 io_kind: Default
         "#]],
     );
@@ -64,7 +64,7 @@ fn explicit_width_to_bit_implicitly_fails() {
             [8] Symbol [19-20]:
                 name: x
                 type: angle[64]
-                qsharp_type: Angle
+                ty_span: [9-18]
                 io_kind: Default
             ClassicalDeclarationStmt [36-46]:
                 symbol_id: 9
@@ -79,7 +79,7 @@ fn explicit_width_to_bit_implicitly_fails() {
             [9] Symbol [40-41]:
                 name: y
                 type: bit
-                qsharp_type: Result
+                ty_span: [36-39]
                 io_kind: Default
         "#]],
     );
@@ -103,7 +103,7 @@ fn to_bool_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: angle
-                qsharp_type: Angle
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-43]:
                 symbol_id: 9
@@ -118,7 +118,7 @@ fn to_bool_implicitly() {
             [9] Symbol [37-38]:
                 name: y
                 type: bool
-                qsharp_type: bool
+                ty_span: [32-36]
                 io_kind: Default
         "#]],
     );
@@ -591,7 +591,7 @@ fn to_angle_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: angle
-                qsharp_type: Angle
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-44]:
                 symbol_id: 9
@@ -602,7 +602,7 @@ fn to_angle_implicitly() {
             [9] Symbol [38-39]:
                 name: y
                 type: angle
-                qsharp_type: Angle
+                ty_span: [32-37]
                 io_kind: Default
         "#]],
     );
@@ -627,7 +627,7 @@ fn to_explicit_angle_implicitly() {
             [8] Symbol [15-16]:
                 name: x
                 type: angle
-                qsharp_type: Angle
+                ty_span: [9-14]
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
@@ -642,7 +642,7 @@ fn to_explicit_angle_implicitly() {
             [9] Symbol [41-42]:
                 name: y
                 type: angle[4]
-                qsharp_type: Angle
+                ty_span: [32-40]
                 io_kind: Default
         "#]],
     );
@@ -668,7 +668,7 @@ fn width_promotion() {
             [8] Symbol [19-20]:
                 name: x
                 type: angle[32]
-                qsharp_type: Angle
+                ty_span: [9-18]
                 io_kind: Default
             ClassicalDeclarationStmt [36-54]:
                 symbol_id: 9
@@ -679,7 +679,7 @@ fn width_promotion() {
             [9] Symbol [46-47]:
                 name: y
                 type: angle[48]
-                qsharp_type: Angle
+                ty_span: [36-45]
                 io_kind: Default
             ClassicalDeclarationStmt [63-77]:
                 symbol_id: 10
@@ -705,7 +705,7 @@ fn width_promotion() {
             [10] Symbol [67-68]:
                 name: z
                 type: bit
-                qsharp_type: Result
+                ty_span: [63-66]
                 io_kind: Default
         "#]],
     );

@@ -30,6 +30,10 @@ import { getGithubSourceContent, setGithubEndpoint } from "./projectSystem.js";
 import { initCodegen } from "./qirGeneration.js";
 import { initTelemetry } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
+import {
+  maybeShowChangelogPrompt,
+  registerChangelogCommand,
+} from "./changelog.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -68,12 +72,10 @@ export async function activate(
   );
 
   context.subscriptions.push(...(await activateLanguageService(context)));
-
   context.subscriptions.push(...startOtherQSharpDiagnostics());
-
   context.subscriptions.push(...registerQSharpNotebookHandlers());
-
   context.subscriptions.push(CircuitEditorProvider.register(context));
+  context.subscriptions.push(...registerChangelogCommand(context));
 
   await initAzureWorkspaces(context);
   initCodegen(context);
@@ -85,6 +87,9 @@ export async function activate(
   registerLanguageModelTools(context);
   // fire-and-forget
   registerGhCopilotInstructionsCommand(context);
+
+  // Show prompt after update if not suppressed
+  maybeShowChangelogPrompt(context);
 
   log.info("Q# extension activated.");
 

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    Env, Error, State, StepAction, StepResult, Value,
+    Env, Error, ErrorBehavior, State, StepAction, StepResult, Value,
     backend::{Backend, SparseSim},
     debug::Frame,
     exec_graph_section,
@@ -30,7 +30,7 @@ pub(super) fn eval_graph(
     env: &mut Env,
     out: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
-    let mut state = State::new(package, graph, None);
+    let mut state = State::new(package, graph, None, ErrorBehavior::FailOnError);
     let StepResult::Return(value) =
         state.eval(globals, env, sim, out, &[], StepAction::Continue)?
     else {

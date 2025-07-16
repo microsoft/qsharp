@@ -106,12 +106,12 @@ fn stretch() {
     assert!(
         unit.errors[0]
             .to_string()
-            .contains("stretch type values are not supported"),
+            .contains("stretch default values are not supported"),
     );
     assert!(
         unit.errors[1]
             .to_string()
-            .contains("stretch default values are not supported"),
+            .contains("stretch type values are not supported"),
     );
 }
 

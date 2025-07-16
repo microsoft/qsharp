@@ -19,7 +19,7 @@ fn implicit_bitness_default() {
             [8] Symbol [15-16]:
                 name: x
                 type: complex[float]
-                qsharp_type: Complex
+                ty_span: [0-14]
                 io_kind: Default"#]],
     );
 }
@@ -38,7 +38,7 @@ fn explicit_bitness_default() {
             [8] Symbol [19-20]:
                 name: x
                 type: complex[float[42]]
-                qsharp_type: Complex
+                ty_span: [0-18]
                 io_kind: Default"#]],
     );
 }
@@ -58,7 +58,7 @@ fn const_implicit_bitness_double_img_only() {
             [8] Symbol [21-22]:
                 name: x
                 type: const complex[float]
-                qsharp_type: Complex
+                ty_span: [6-20]
                 io_kind: Default"#]],
     );
 }
@@ -78,7 +78,7 @@ fn const_implicit_bitness_int_img_only() {
             [8] Symbol [21-22]:
                 name: x
                 type: const complex[float]
-                qsharp_type: Complex
+                ty_span: [6-20]
                 io_kind: Default"#]],
     );
 }
@@ -98,7 +98,7 @@ fn const_explicit_bitness_double_img_only() {
             [8] Symbol [25-26]:
                 name: x
                 type: const complex[float[42]]
-                qsharp_type: Complex
+                ty_span: [6-24]
                 io_kind: Default"#]],
     );
 }
@@ -118,7 +118,7 @@ fn const_explicit_bitness_int_img_only() {
             [8] Symbol [25-26]:
                 name: x
                 type: const complex[float[42]]
-                qsharp_type: Complex
+                ty_span: [6-24]
                 io_kind: Default"#]],
     );
 }
@@ -137,7 +137,7 @@ fn implicit_bitness_double_img_only() {
             [8] Symbol [15-16]:
                 name: x
                 type: complex[float]
-                qsharp_type: Complex
+                ty_span: [0-14]
                 io_kind: Default"#]],
     );
 }
@@ -156,7 +156,7 @@ fn implicit_bitness_int_img_only() {
             [8] Symbol [15-16]:
                 name: x
                 type: complex[float]
-                qsharp_type: Complex
+                ty_span: [0-14]
                 io_kind: Default"#]],
     );
 }
@@ -176,7 +176,7 @@ fn const_implicit_bitness_double_real_only() {
             [8] Symbol [21-22]:
                 name: x
                 type: const complex[float]
-                qsharp_type: Complex
+                ty_span: [6-20]
                 io_kind: Default"#]],
     );
 }
@@ -196,7 +196,7 @@ fn const_implicit_bitness_int_real_only() {
             [8] Symbol [21-22]:
                 name: x
                 type: const complex[float]
-                qsharp_type: Complex
+                ty_span: [6-20]
                 io_kind: Default"#]],
     );
 }
@@ -215,7 +215,7 @@ fn implicit_bitness_double_real_only() {
             [8] Symbol [15-16]:
                 name: x
                 type: complex[float]
-                qsharp_type: Complex
+                ty_span: [0-14]
                 io_kind: Default"#]],
     );
 }
@@ -234,7 +234,7 @@ fn implicit_bitness_int_real_only() {
             [8] Symbol [15-16]:
                 name: x
                 type: complex[float]
-                qsharp_type: Complex
+                ty_span: [0-14]
                 io_kind: Default"#]],
     );
 }
@@ -260,7 +260,7 @@ fn implicit_bitness_simple_double_pos_im() {
             [8] Symbol [15-16]:
                 name: x
                 type: complex[float]
-                qsharp_type: Complex
+                ty_span: [0-14]
                 io_kind: Default"#]],
     );
 }
@@ -286,7 +286,7 @@ fn implicit_bitness_simple_double_neg_im() {
             [8] Symbol [15-16]:
                 name: x
                 type: complex[float]
-                qsharp_type: Complex
+                ty_span: [0-14]
                 io_kind: Default"#]],
     );
 }
@@ -313,7 +313,7 @@ fn const_implicit_bitness_simple_double_neg_im() {
             [8] Symbol [21-22]:
                 name: x
                 type: const complex[float]
-                qsharp_type: Complex
+                ty_span: [6-20]
                 io_kind: Default"#]],
     );
 }
@@ -347,7 +347,7 @@ fn implicit_bitness_simple_double_neg_real() {
             [8] Symbol [15-16]:
                 name: x
                 type: complex[float]
-                qsharp_type: Complex
+                ty_span: [0-14]
                 io_kind: Default"#]],
     );
 }
@@ -382,7 +382,7 @@ fn const_implicit_bitness_simple_double_neg_real() {
             [8] Symbol [21-22]:
                 name: x
                 type: const complex[float]
-                qsharp_type: Complex
+                ty_span: [6-20]
                 io_kind: Default"#]],
     );
 }

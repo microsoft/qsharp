@@ -172,11 +172,13 @@ fn annotations_in_single_stmt_while_stmt() {
                     body: Stmt [23-55]:
                         annotations:
                             Annotation [23-27]:
-                                identifier: "foo"
+                                identifier: foo
                                 value: <none>
+                                value_span: <none>
                             Annotation [36-40]:
-                                identifier: "bar"
+                                identifier: bar
                                 value: <none>
+                                value_span: <none>
                         kind: AssignStmt [49-55]:
                             lhs: Ident [49-50] "x"
                             rhs: Expr [53-54]: Lit: Int(5)"#]],

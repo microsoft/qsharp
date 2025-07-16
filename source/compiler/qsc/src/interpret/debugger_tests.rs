@@ -147,6 +147,8 @@ mod given_debugger {
             expect_next(&mut debugger);
             expect_next(&mut debugger);
             expect_next(&mut debugger);
+            expect_next(&mut debugger);
+            expect_next(&mut debugger);
             let expected = "42";
             expect_return(debugger, expected);
             Ok(())
@@ -168,6 +170,7 @@ mod given_debugger {
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
             expect_bp(&mut debugger, &ids, expected_id);
+            expect_next(&mut debugger);
             expect_next(&mut debugger);
             expect_next(&mut debugger);
             let expected = "42";
@@ -200,6 +203,9 @@ mod given_debugger {
             expect_next(&mut debugger);
             expect_next(&mut debugger);
             expect_next(&mut debugger);
+            expect_next(&mut debugger);
+            expect_next(&mut debugger);
+            expect_next(&mut debugger);
             let expected = "42";
             expect_return(debugger, expected);
             Ok(())
@@ -227,6 +233,7 @@ mod given_debugger {
             expect_in(&mut debugger);
             expect_out(&mut debugger);
             expect_out(&mut debugger);
+            expect_next(&mut debugger);
             expect_next(&mut debugger);
             let expected = "42";
             expect_return(debugger, expected);
