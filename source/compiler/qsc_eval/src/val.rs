@@ -275,17 +275,23 @@ impl Value {
     /// Updates a value in an array in-place.
     /// # Panics
     /// This will panic if the [Value] is not a [`Value::Array`].
-    pub fn update_array(&mut self, index: usize, value: Self) -> core::result::Result<(), usize> {
+    pub fn update_array(
+        &mut self,
+        index: i64,
+        value: Self,
+        span: PackageSpan,
+    ) -> core::result::Result<(), Error> {
         let Value::Array(arr) = self else {
             panic!("value should be Array, got {}", self.type_name());
         };
         let arr = Rc::get_mut(arr).expect("array should be uniquely referenced");
-        match arr.get_mut(index) {
+        let i = index_allowing_negative(arr.len(), index, span)?;
+        match arr.get_mut(i) {
             Some(v) => {
                 *v = value;
                 Ok(())
             }
-            None => Err(index),
+            None => Err(Error::IndexOutOfRange(index, span)),
         }
     }
 
@@ -479,11 +485,27 @@ pub fn index_array(
     index: i64,
     span: PackageSpan,
 ) -> std::result::Result<Value, Error> {
-    let i = index.as_index(span)?;
+    let i = index_allowing_negative(arr.len(), index, span)?;
     match arr.get(i) {
         Some(v) => Ok(v.clone()),
         None => Err(Error::IndexOutOfRange(index, span)),
     }
+}
+
+/// Converts an index to a usize, allowing for negative indices that count from the end of the array.
+/// Valid range is `-len` to `len - 1`, where `len` is the length of the array.
+pub fn index_allowing_negative(
+    len: usize,
+    index: i64,
+    span: PackageSpan,
+) -> std::result::Result<usize, Error> {
+    let i = if index >= 0 {
+        index.as_index(span)?
+    } else {
+        len.checked_sub((-index).as_index(span)?)
+            .ok_or(Error::IndexOutOfRange(index, span))?
+    };
+    Ok(i)
 }
 
 pub fn make_range(
@@ -534,7 +556,7 @@ pub fn update_index_single(
     if index < 0 {
         return Err(Error::InvalidNegativeInt(index, span));
     }
-    let i = index.as_index(span)?;
+    let i = index_allowing_negative(values.len(), index, span)?;
     let mut values = values.to_vec();
     match values.get_mut(i) {
         Some(value) => {
@@ -557,7 +579,7 @@ pub fn update_index_range(
     let mut values = values.to_vec();
     let update = update.unwrap_array();
     for (idx, update) in range.into_iter().zip(update.iter()) {
-        let i = idx.as_index(span)?;
+        let i = index_allowing_negative(values.len(), idx, span)?;
         match values.get_mut(i) {
             Some(value) => {
                 *value = update.clone();
