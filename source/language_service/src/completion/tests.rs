@@ -164,25 +164,24 @@ struct ActualCompletions<'a> {
 
 impl std::fmt::Debug for ActualCompletions<'_> {
     fn fmt(&self, output: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut first = true;
+        let (found, not_found): (Vec<_>, Vec<_>) =
+            self.completions.iter().partition(|(_, c)| c.is_some());
 
-        for (label, c) in &self.completions {
-            if let Some(c) = c {
-                if first {
-                    first = false;
-                    writeln!(output, "found, sorted:")?;
-                }
-                writeln!(output, "  {label:?} ({:?})", c.kind,)?;
+        if !found.is_empty() {
+            write!(output, "found, sorted:")?;
+            for (label, c) in &found {
+                let c = c.expect("expected completion item");
+                write!(output, "\n  {label:?} ({:?})", c.kind)?;
                 if let Some(detail) = &c.detail {
-                    writeln!(output, "    detail: {detail:?}")?;
+                    write!(output, "\n    detail: {detail:?}")?;
                 }
 
                 if let Some(edits) = &c.additional_text_edits {
-                    writeln!(output, "    additional_text_edits:")?;
+                    write!(output, "\n    additional_text_edits:")?;
                     for edit in edits {
-                        writeln!(
+                        write!(
                             output,
-                            "      [{}:{}-{}:{}] {:?}",
+                            "\n      [{}:{}-{}:{}] {:?}",
                             edit.range.start.line,
                             edit.range.start.column,
                             edit.range.end.line,
@@ -194,15 +193,14 @@ impl std::fmt::Debug for ActualCompletions<'_> {
             }
         }
 
-        first = true;
+        if !not_found.is_empty() && !found.is_empty() {
+            write!(output, "\n\n")?; // Add blank line between sections
+        }
 
-        for (label, c) in &self.completions {
-            if c.is_none() {
-                if first {
-                    first = false;
-                    writeln!(output, "\nnot found:")?;
-                }
-                writeln!(output, "  {label:?}")?;
+        if !not_found.is_empty() {
+            write!(output, "not found:")?;
+            for (label, _) in not_found {
+                write!(output, "\n  {label:?}")?;
             }
         }
 
@@ -224,7 +222,6 @@ fn ignore_unstable_namespace() {
 
             not found:
               "Microsoft.Quantum.Unstable"
-
         "#]],
     );
 }
@@ -249,7 +246,6 @@ fn ignore_unstable_callable() {
 
             not found:
               "UnstableFake"
-
         "#]],
     );
 }
@@ -282,7 +278,6 @@ fn ignore_internal_callable() {
 
             not found:
               "Hidden"
-
         "#]],
     );
 }
@@ -306,7 +301,6 @@ fn in_block_contains_std_functions_from_open_namespace() {
                 detail: "operation FakeCtlAdj() : Unit is Adj + Ctl"
               "FakeWithParam" (Function)
                 detail: "operation FakeWithParam(x : Int) : Unit"
-
         "#]],
     );
 }
@@ -336,7 +330,6 @@ fn in_block_contains_std_functions() {
                 detail: "operation FakeWithParam(x : Int) : Unit"
                 additional_text_edits:
                   [1:4-1:4] "import FakeStdLib.FakeWithParam;\n    "
-
         "#]],
     );
 }
@@ -360,7 +353,6 @@ fn in_block_contains_newtypes() {
                 detail: "struct Udt { x : Int, y : Int }"
                 additional_text_edits:
                   [2:8-2:8] "import FakeStdLib.Udt;\n        "
-
         "#]],
     );
 }
@@ -383,7 +375,6 @@ fn types_only_in_signature() {
 
             not found:
               "Bar"
-
         "#]],
     );
 }
@@ -403,7 +394,6 @@ fn in_block_no_auto_open() {
             found, sorted:
               "Fake" (Function)
                 detail: "operation Fake() : Unit"
-
         "#]],
     );
 }
@@ -423,7 +413,6 @@ fn in_block_with_alias() {
             found, sorted:
               "Alias.Fake" (Function)
                 detail: "operation Fake() : Unit"
-
         "#]],
     );
 }
@@ -449,7 +438,6 @@ fn members_of_aliased_namespace() {
               "Alias.Fake"
               "Alias.Library"
               "Foo"
-
         "#]],
     );
 }
@@ -473,7 +461,6 @@ fn aliased_exact_import() {
             not found:
               "Fake"
               "Alias.Fake"
-
         "#]],
     );
 }
@@ -495,7 +482,6 @@ fn open_from_dependency() {
             found, sorted:
               "Baz" (Function)
                 detail: "operation Baz() : Unit"
-
         "#]],
     );
 }
@@ -525,7 +511,6 @@ fn open_with_alias_from_dependency() {
             not found:
               "Baz"
               "Bar"
-
         "#]],
     );
 }
@@ -555,7 +540,6 @@ fn import_ns_with_alias_from_dependency() {
             not found:
               "Baz"
               "Bar"
-
         "#]],
     );
 }
@@ -577,7 +561,6 @@ fn exact_import_from_dependency() {
             found, sorted:
               "Baz" (Function)
                 detail: "operation Baz() : Unit"
-
         "#]],
     );
 }
@@ -603,7 +586,6 @@ fn in_block_from_other_namespace() {
                 detail: "operation Foo() : Unit"
                 additional_text_edits:
                   [1:4-1:4] "import Other.Foo;\n    "
-
         "#]],
     );
 }
@@ -630,7 +612,6 @@ fn auto_open_multiple_files() {
                 detail: "operation FooOperation() : Unit"
                 additional_text_edits:
                   [0:16-0:16] "import Foo.FooOperation;\n "
-
         "#]],
     );
 }
@@ -650,7 +631,6 @@ fn in_block_nested_op() {
             found, sorted:
               "Foo" (Function)
                 detail: "operation Foo() : Unit"
-
         "#]],
     );
 }
@@ -669,10 +649,8 @@ fn in_block_hidden_nested_op() {
     }"#},
         &["Bar"],
         &expect![[r#"
-
             not found:
               "Bar"
-
         "#]],
     );
 }
@@ -690,7 +668,6 @@ fn in_namespace_contains_open() {
         &expect![[r#"
             found, sorted:
               "open" (Keyword)
-
         "#]],
     );
 }
@@ -706,7 +683,6 @@ fn top_level_contains_namespace() {
         &expect![[r#"
             found, sorted:
               "namespace" (Keyword)
-
         "#]],
     );
 }
@@ -723,7 +699,6 @@ fn attributes() {
         &expect![[r#"
             found, sorted:
               "EntryPoint" (Interface)
-
         "#]],
     );
 }
@@ -744,7 +719,6 @@ fn stdlib_udt() {
                 detail: "function TakesUdt(input : Udt) : Udt"
                 additional_text_edits:
                   [1:4-1:4] "import FakeStdLib.TakesUdt;\n    "
-
         "#]],
     );
 }
@@ -768,7 +742,6 @@ fn notebook_top_level() {
                 detail: "operation Fake() : Unit"
                 additional_text_edits:
                   [0:0-0:0] "import FakeStdLib.Fake;\n"
-
         "#]],
     );
 }
@@ -789,7 +762,6 @@ fn notebook_top_level_global() {
                 detail: "operation Fake() : Unit"
                 additional_text_edits:
                   [0:0-0:0] "import FakeStdLib.Fake;\n"
-
         "#]],
     );
 }
@@ -810,7 +782,6 @@ fn notebook_top_level_namespace_already_open_for_global() {
             found, sorted:
               "Fake" (Function)
                 detail: "operation Fake() : Unit"
-
         "#]],
     );
 }
@@ -833,7 +804,6 @@ fn notebook_block() {
                 detail: "operation Fake() : Unit"
                 additional_text_edits:
                   [0:0-0:0] "import FakeStdLib.Fake;\n"
-
         "#]],
     );
 }
@@ -864,7 +834,6 @@ fn notebook_auto_open_start_of_cell_empty() {
                 detail: "operation Fake() : Unit"
                 additional_text_edits:
                   [1:0-1:0] "import FakeStdLib.Fake;\n"
-
         "#]],
     );
 }
@@ -896,7 +865,6 @@ fn notebook_auto_open_start_of_cell() {
                 detail: "operation Fake() : Unit"
                 additional_text_edits:
                   [1:0-1:0] "import FakeStdLib.Fake;\n"
-
         "#]],
     );
 }
@@ -921,7 +889,6 @@ fn notebook_last_expr() {
                 detail: "operation Fake() : Unit"
                 additional_text_edits:
                   [1:0-1:0] "import FakeStdLib.Fake;\n"
-
         "#]],
     );
 }
@@ -945,7 +912,6 @@ fn local_vars() {
 
             not found:
               "foo"
-
         "#]],
     );
 }
@@ -971,7 +937,6 @@ fn local_items() {
                 detail: "newtype Custom = String"
               "Foo" (Function)
                 detail: "operation Foo() : Unit"
-
         "#]],
     );
 }
@@ -992,7 +957,6 @@ fn type_params() {
 
             not found:
               "Bar"
-
         "#]],
     );
 }
@@ -1011,10 +975,8 @@ fn scoped_local_vars() {
     }"#,
         &["foo"],
         &expect![[r#"
-
             not found:
               "foo"
-
         "#]],
     );
 }
@@ -1038,7 +1000,6 @@ fn callable_params() {
                 detail: "bar : Custom"
               "foo" (Variable)
                 detail: "foo : Int"
-
         "#]],
     );
 }
@@ -1065,7 +1026,6 @@ fn local_var_in_callable_parent_scope() {
             not found:
               "foo"
               "bar"
-
         "#]],
     );
 }
@@ -1138,7 +1098,6 @@ fn dont_import_if_already_glob_imported() {
                 detail: "operation Bar() : Unit"
               "Foo" (Function)
                 detail: "operation Foo() : Unit"
-
         "#]],
     );
 }
@@ -1169,7 +1128,6 @@ fn glob_import_item_with_same_name() {
                 detail: "operation Bar() : Unit"
                 additional_text_edits:
                   [10:12-10:12] "import Foo.Bar;\n            "
-
         "#]],
     );
 }
@@ -1200,7 +1158,6 @@ fn dont_import_if_already_directly_imported() {
                 detail: "operation Bar() : Unit"
                 additional_text_edits:
                   [7:12-7:12] "import FooNs.Bar;\n            "
-
         "#]],
     );
 }
@@ -1221,7 +1178,6 @@ fn auto_import_from_qir_runtime() {
                 detail: "operation AllocateQubitArray(size : Int) : Qubit[]"
                 additional_text_edits:
                   [2:12-2:12] "import QIR.Runtime.AllocateQubitArray;\n            "
-
         "#]],
     );
 }
@@ -1241,7 +1197,6 @@ fn dont_generate_import_for_core_prelude() {
             found, sorted:
               "Length" (Function)
                 detail: "function Length<'T>(a : 'T[]) : Int"
-
         "#]],
     );
 }
@@ -1262,7 +1217,6 @@ fn dont_generate_import_for_stdlib_prelude() {
             found, sorted:
               "MResetZ" (Function)
                 detail: "operation MResetZ(target : Qubit) : Result"
-
         "#]],
     );
 }
@@ -1282,7 +1236,6 @@ fn callable_from_same_file() {
             found, sorted:
               "MyCallable" (Function)
                 detail: "function MyCallable() : Unit"
-
         "#]],
     );
 }
@@ -1307,7 +1260,6 @@ fn member_completion() {
             found, sorted:
               "MyCallable" (Function)
                 detail: "function MyCallable() : Unit"
-
         "#]],
     );
 }
@@ -1338,7 +1290,6 @@ fn member_completion_in_imported_namespace() {
               "MyCallable" (Function)
                 detail: "function MyCallable() : Unit"
               "Bar" (Module)
-
         "#]],
     );
 }
@@ -1362,7 +1313,6 @@ fn namespace_completion() {
         &expect![[r#"
             found, sorted:
               "Foo" (Module)
-
         "#]],
     );
 }
@@ -1388,7 +1338,6 @@ fn nested_namespace() {
 
             not found:
               "MyCallable2"
-
         "#]],
     );
 }
@@ -1408,7 +1357,6 @@ fn std_member() {
               "Fake" (Function)
                 detail: "operation Fake() : Unit"
               "Library" (Module)
-
         "#]],
     );
 }
@@ -1427,7 +1375,6 @@ fn open_namespace() {
 
             not found:
               "Fake"
-
         "#]],
     );
 }
@@ -1446,7 +1393,6 @@ fn open_namespace_no_semi() {
 
             not found:
               "Fake"
-
         "#]],
     );
 }
@@ -1466,7 +1412,6 @@ fn open_namespace_no_semi_followed_by_decl() {
 
             not found:
               "Fake"
-
         "#]],
     );
 }
@@ -1486,7 +1431,6 @@ fn open_namespace_partial_path_part() {
 
             not found:
               "Fake"
-
         "#]],
     );
 }
@@ -1513,7 +1457,6 @@ fn let_stmt_type() {
             not found:
               "Main"
               "FakeWithParam"
-
         "#]],
     );
 }
@@ -1542,7 +1485,6 @@ fn let_stmt_type_before_next_stmt() {
             not found:
               "Main"
               "FakeWithParam"
-
         "#]],
     );
 }
@@ -1567,7 +1509,6 @@ fn type_position_namespace() {
               "Int"
               "Main"
               "FakeWithParam"
-
         "#]],
     );
 }
@@ -1588,7 +1529,6 @@ fn udt_base_type_part() {
             not found:
               "Qubit"
               "FakeWithParam"
-
         "#]],
     );
 }
@@ -1615,7 +1555,6 @@ fn struct_init() {
               "Int"
               "Main"
               "FakeWithParam"
-
         "#]],
     );
 }
@@ -1640,7 +1579,6 @@ fn struct_init_path_part() {
               "Int"
               "Main"
               "FakeWithParam"
-
         "#]],
     );
 }
@@ -1664,7 +1602,6 @@ fn struct_init_path_part_in_field_assigment() {
 
             not found:
               "Qubit"
-
         "#]],
     );
 }
@@ -1690,7 +1627,6 @@ fn export_path() {
               "Qubit"
               "Int"
               "FakeWithParam"
-
         "#]],
     );
 }
@@ -1717,7 +1653,6 @@ fn export_path_part() {
               "Int"
               "Main"
               "FakeStdLib"
-
         "#]],
     );
 }
@@ -1736,7 +1671,6 @@ fn partially_typed_name() {
             found, sorted:
               "Foo" (Function)
                 detail: "function Foo() : Unit"
-
         "#]],
     );
 }
@@ -1760,7 +1694,6 @@ fn from_dependency_main() {
                 detail: "function OtherFunc() : Unit"
                 additional_text_edits:
                   [0:17-0:17] "import MyDep.Other.OtherFunc;\n "
-
         "#]],
     );
 }
@@ -1778,7 +1711,6 @@ fn package_aliases() {
 
             not found:
               "Main"
-
         "#]],
     );
 }
@@ -1803,7 +1735,6 @@ fn package_alias_members() {
               "Main"
               "Other.Sub"
               "Sub"
-
         "#]],
     );
 }
@@ -1829,7 +1760,6 @@ fn dependency_namespace_members() {
               "Other"
               "MainFunc"
               "Other.Sub"
-
         "#]],
     );
 }
@@ -1853,7 +1783,6 @@ fn package_alias_members_in_open() {
               "MainFunc"
               "Other.Sub"
               "Sub"
-
         "#]],
     );
 }
@@ -1885,7 +1814,6 @@ fn member_completion_in_imported_namespace_from_dependency() {
               "CallableInFoo" (Function)
                 detail: "function CallableInFoo() : Unit"
               "Bar" (Module)
-
         "#]],
     );
 }
@@ -1917,7 +1845,6 @@ fn aliased_namespace_in_dependency() {
               "CallableInFoo" (Function)
                 detail: "function CallableInFoo() : Unit"
               "Bar" (Module)
-
         "#]],
     );
 }
@@ -1945,11 +1872,9 @@ fn open_does_not_match_pkg_alias() {
         ",
         &["CallableInFoo", "Bar"],
         &expect![[r#"
-
             not found:
               "CallableInFoo"
               "Bar"
-
         "#]],
     );
 }
@@ -1971,7 +1896,6 @@ fn field_access_expr() {
             found, sorted:
               "bar" (Field)
                 detail: "Int"
-
         "#]],
     );
 }
@@ -1986,7 +1910,6 @@ fn input_type_missing() {
               "Udt" (Interface)
                 detail: "struct Udt { x : Int, y : Int }"
               "Library" (Module)
-
         "#]],
     );
 }
@@ -2011,7 +1934,6 @@ fn notebook_top_level_path_part() {
 
             not found:
               "FakeStdLib"
-
         "#]],
     );
 }
@@ -2034,7 +1956,6 @@ fn field_access_path() {
             found, sorted:
               "bar" (Field)
                 detail: "Int"
-
         "#]],
     );
 }
@@ -2058,7 +1979,6 @@ fn notebook_top_level_path_part_in_type() {
             not found:
               "FakeStdLib"
               "FakeWithParam"
-
         "#]],
     );
 }
@@ -2076,7 +1996,6 @@ fn prefix_ops() {
             not found:
               "and"
               "or"
-
         "#]],
     );
 }
@@ -2093,7 +2012,6 @@ fn binary_ops() {
 
             not found:
               "not"
-
         "#]],
     );
 }
@@ -2106,7 +2024,6 @@ fn array_size() {
         &expect![[r#"
             found, sorted:
               "size" (Keyword)
-
         "#]],
     );
 }
@@ -2120,7 +2037,6 @@ fn path_segment_partial_ident_is_keyword() {
             found, sorted:
               "StructFn" (Interface)
                 detail: "struct StructFn { inner : (Int -> Int) }"
-
         "#]],
     );
 }
@@ -2134,10 +2050,8 @@ fn path_segment_followed_by_wslash() {
         "namespace Test { import FakeStdLib.w↘/ }",
         &["StructFn"],
         &expect![[r#"
-
             not found:
               "StructFn"
-
         "#]],
     );
 }
@@ -2150,10 +2064,8 @@ fn path_segment_followed_by_op_token() {
         "namespace Test { import FakeStdLib.<↘<< }",
         &["StructFn"],
         &expect![[r#"
-
             not found:
               "StructFn"
-
         "#]],
     );
 }
@@ -2167,7 +2079,6 @@ fn path_segment_before_glob() {
             found, sorted:
               "StructFn" (Interface)
                 detail: "struct StructFn { inner : (Int -> Int) }"
-
         "#]],
     );
 }
@@ -2181,7 +2092,6 @@ fn path_segment_before_glob_with_alias() {
             found, sorted:
               "StructFn" (Interface)
                 detail: "struct StructFn { inner : (Int -> Int) }"
-
         "#]],
     );
 }
@@ -2203,7 +2113,6 @@ fn field_in_initializer() {
             found, sorted:
               "bar" (Field)
                 detail: "Int"
-
         "#]],
     );
 }
@@ -2222,7 +2131,6 @@ fn stdlib_struct_field_init() {
             found, sorted:
               "x" (Field)
                 detail: "Int"
-
         "#]],
     );
 }
@@ -2241,7 +2149,6 @@ fn newtype_named_field() {
             found, sorted:
               "field" (Field)
                 detail: "Int"
-
         "#]],
     );
 }
@@ -2265,7 +2172,6 @@ fn field_access_path_chained() {
 
             not found:
               "fieldBar"
-
         "#]],
     );
 }
@@ -2288,7 +2194,6 @@ fn field_access_expr_chained() {
 
             not found:
               "fieldBar"
-
         "#]],
     );
 }
@@ -2314,7 +2219,6 @@ fn field_assignment_rhs() {
 
             not found:
               "bar"
-
         "#]],
     );
 }
@@ -2340,7 +2244,6 @@ fn field_access_local_shadows_global() {
 
             not found:
               "Fake"
-
         "#]],
     );
 }
@@ -2356,7 +2259,6 @@ fn ty_param_in_signature() {
             found, sorted:
               "'T" (TypeParameter)
               "FakeStdLib" (Module)
-
         "#]],
     );
 }
@@ -2372,7 +2274,6 @@ fn ty_param_in_return_type() {
             found, sorted:
               "'T" (TypeParameter)
               "FakeStdLib" (Module)
-
         "#]],
     );
 }
@@ -2388,7 +2289,6 @@ fn path_segment_in_return_type() {
             found, sorted:
               "Udt" (Interface)
                 detail: "struct Udt { x : Int, y : Int }"
-
         "#]],
     );
 }
@@ -2404,7 +2304,6 @@ fn return_type_in_partial_callable_signature() {
             found, sorted:
               "'T" (TypeParameter)
               "FakeStdLib" (Module)
-
         "#]],
     );
 }
@@ -2420,7 +2319,6 @@ fn arg_type_in_partial_callable_signature() {
             found, sorted:
               "'T" (TypeParameter)
               "FakeStdLib" (Module)
-
         "#]],
     );
 }
@@ -2436,7 +2334,6 @@ fn incomplete_return_type_in_partial_callable_signature() {
             found, sorted:
               "'T" (TypeParameter)
               "FakeStdLib" (Module)
-
         "#]],
     );
 }

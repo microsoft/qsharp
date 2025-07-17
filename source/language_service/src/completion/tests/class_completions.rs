@@ -15,10 +15,8 @@ fn iterable_not_included_in_completions() {
         }",
         &["Iterable"],
         &expect![[r#"
-
             not found:
               "Iterable"
-
         "#]],
     );
 }
@@ -32,10 +30,8 @@ fn num_not_included_in_completions() {
         }",
         &["Num"],
         &expect![[r#"
-
             not found:
               "Num"
-
         "#]],
     );
 }
@@ -63,7 +59,6 @@ fn all_prim_classes_in_completions() {
               "Show" (Class)
               "Signed" (Class)
               "Sub" (Class)
-
         "#]],
     );
 }
@@ -91,7 +86,6 @@ fn classes_appear_after_plus_too() {
               "Show" (Class)
               "Signed" (Class)
               "Sub" (Class)
-
         "#]],
     );
 }

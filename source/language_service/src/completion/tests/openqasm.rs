@@ -74,7 +74,6 @@ fn in_empty_file_contains_openqasm() {
         &expect![[r#"
             found, sorted:
               "OPENQASM" (Keyword)
-
         "#]],
     );
 }
@@ -93,7 +92,6 @@ fn in_file_after_openqasm_contains_keywords_containing_i() {
               "include" (Keyword)
               "input" (Keyword)
               "inv" (Keyword)
-
         "#]],
     );
 }
@@ -109,7 +107,6 @@ fn in_file_after_openqasm_contains_annotations_containing_i() {
         &expect![[r#"
             found, sorted:
               "SimulatableIntrinsic" (Interface)
-
         "#]],
     );
 }
@@ -130,7 +127,6 @@ fn local_vars() {
                 detail: "angle_value : Double"
               "num_samples" (Variable)
                 detail: "num_samples : Int"
-
         "#]],
     );
 }
@@ -152,7 +148,6 @@ fn local_vars_doesnt_pick_up_variables_declared_after_cursor() {
 
             not found:
               "angle_value"
-
         "#]],
     );
 }
