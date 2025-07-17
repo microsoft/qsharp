@@ -3950,10 +3950,10 @@ impl Lowerer {
         // at this point, we know that at least one of the operands is a duration subtype.
         // we need to figure out which one is not a duration subtype and
         // verify that is is a literal or a constant expression.
-        let (duration_expr, other_expr) = if type_is_duration_subtype(&left_type) {
-            (&lhs, &rhs)
+        let other_expr = if type_is_duration_subtype(&left_type) {
+            &rhs
         } else {
-            (&rhs, &lhs)
+            &lhs
         };
         if !other_expr.ty.is_const()
             || !matches!(

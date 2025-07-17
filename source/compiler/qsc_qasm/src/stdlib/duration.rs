@@ -19,7 +19,7 @@ impl Duration {
         Self { value, unit }
     }
 
-    fn to_nanoseconds(&self) -> f64 {
+    fn to_nanoseconds(self) -> f64 {
         match self.unit {
             TimeUnit::Ns => self.value,
             TimeUnit::Us => self.value * 1_000.0,
@@ -38,7 +38,14 @@ impl Display for Duration {
 
 impl PartialEq for Duration {
     fn eq(&self, other: &Self) -> bool {
-        self.value == other.value && self.unit == other.unit
+        if self.unit == other.unit {
+            f64::EPSILON > (self.value - other.value).abs()
+        } else {
+            // Convert both to nanoseconds for comparison
+            let self_ns = self.to_nanoseconds();
+            let other_ns = other.to_nanoseconds();
+            f64::EPSILON > (self_ns - other_ns).abs()
+        }
     }
 }
 
@@ -106,6 +113,7 @@ impl Mul<i64> for Duration {
     type Output = Self;
 
     fn mul(self, rhs: i64) -> Self::Output {
+        #[allow(clippy::cast_precision_loss)]
         let value = self.value * rhs as f64;
         Self {
             value,
@@ -120,14 +128,12 @@ impl Div<Duration> for Duration {
     fn div(self, rhs: Self) -> Self::Output {
         if self.unit == TimeUnit::Dt || rhs.unit == TimeUnit::Dt {
             // either are dt, treat both as dt?
-            let value = self.value / rhs.value;
-            value
+            self.value / rhs.value
         } else {
             // Normalize to a common unit (e.g., nanoseconds)
             let self_ns = self.to_nanoseconds();
             let rhs_ns = rhs.to_nanoseconds();
-            let value = self_ns / rhs_ns;
-            value
+            self_ns / rhs_ns
         }
     }
 }
@@ -148,6 +154,7 @@ impl Div<i64> for Duration {
     type Output = Self;
 
     fn div(self, rhs: i64) -> Self::Output {
+        #[allow(clippy::cast_precision_loss)]
         let value = self.value / rhs as f64;
         Self {
             value,
@@ -170,6 +177,8 @@ impl From<f64> for LiteralKind {
 
 impl From<i64> for LiteralKind {
     fn from(value: i64) -> Self {
-        LiteralKind::Duration(Duration::new(value as f64, TimeUnit::default()))
+        #[allow(clippy::cast_precision_loss)]
+        let value = value as f64;
+        LiteralKind::Duration(Duration::new(value, TimeUnit::default()))
     }
 }

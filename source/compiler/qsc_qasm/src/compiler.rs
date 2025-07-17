@@ -51,7 +51,7 @@ use crate::{
         symbols::{IOKind, Symbol, SymbolId, SymbolTable},
         types::{Type, promote_types},
     },
-    stdlib::{complex::Complex, duration},
+    stdlib::complex::Complex,
 };
 
 use crate::semantic::ast as semast;
