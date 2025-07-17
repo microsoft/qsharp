@@ -15,13 +15,14 @@ use crate::{
         writeln_field, writeln_header, writeln_list_field, writeln_opt_field,
     },
     parser::ast::{List, PathKind},
-    semantic::symbols::SymbolId,
-    stdlib::{angle::Angle, complex::Complex},
+    semantic::{
+        symbols::SymbolId,
+        types::{ArrayDimensions, Type},
+    },
+    stdlib::{angle::Angle, complex::Complex, duration::Duration},
 };
 
 use crate::parser::ast as syntax;
-
-use super::types::ArrayDimensions;
 
 #[derive(Clone, Debug)]
 pub struct Program {
@@ -87,122 +88,6 @@ impl Display for MeasureExpr {
     }
 }
 
-/// A binary operator.
-#[derive(Clone, Copy, Debug)]
-pub enum BinOp {
-    /// Addition: `+`.
-    Add,
-    /// Bitwise AND: `&`.
-    AndB,
-    /// Logical AND: `&&`.
-    AndL,
-    /// Division: `/`.
-    Div,
-    /// Equality: `==`.
-    Eq,
-    /// Exponentiation: `**`.
-    Exp,
-    /// Greater than: `>`.
-    Gt,
-    /// Greater than or equal: `>=`.
-    Gte,
-    /// Less than: `<`.
-    Lt,
-    /// Less than or equal: `<=`.
-    Lte,
-    /// Modulus: `%`.
-    Mod,
-    /// Multiplication: `*`.
-    Mul,
-    /// Inequality: `!=`.
-    Neq,
-    /// Bitwise OR: `|`.
-    OrB,
-    /// Logical OR: `||`.
-    OrL,
-    /// Shift left: `<<`.
-    Shl,
-    /// Shift right: `>>`.
-    Shr,
-    /// Subtraction: `-`.
-    Sub,
-    /// Bitwise XOR: `^`.
-    XorB,
-}
-
-impl Display for BinOp {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            BinOp::Add => write!(f, "Add"),
-            BinOp::AndB => write!(f, "AndB"),
-            BinOp::AndL => write!(f, "AndL"),
-            BinOp::Div => write!(f, "Div"),
-            BinOp::Eq => write!(f, "Eq"),
-            BinOp::Exp => write!(f, "Exp"),
-            BinOp::Gt => write!(f, "Gt"),
-            BinOp::Gte => write!(f, "Gte"),
-            BinOp::Lt => write!(f, "Lt"),
-            BinOp::Lte => write!(f, "Lte"),
-            BinOp::Mod => write!(f, "Mod"),
-            BinOp::Mul => write!(f, "Mul"),
-            BinOp::Neq => write!(f, "Neq"),
-            BinOp::OrB => write!(f, "OrB"),
-            BinOp::OrL => write!(f, "OrL"),
-            BinOp::Shl => write!(f, "Shl"),
-            BinOp::Shr => write!(f, "Shr"),
-            BinOp::Sub => write!(f, "Sub"),
-            BinOp::XorB => write!(f, "XorB"),
-        }
-    }
-}
-
-impl From<syntax::BinOp> for BinOp {
-    fn from(value: syntax::BinOp) -> Self {
-        match value {
-            syntax::BinOp::Add => BinOp::Add,
-            syntax::BinOp::AndB => BinOp::AndB,
-            syntax::BinOp::AndL => BinOp::AndL,
-            syntax::BinOp::Div => BinOp::Div,
-            syntax::BinOp::Eq => BinOp::Eq,
-            syntax::BinOp::Exp => BinOp::Exp,
-            syntax::BinOp::Gt => BinOp::Gt,
-            syntax::BinOp::Gte => BinOp::Gte,
-            syntax::BinOp::Lt => BinOp::Lt,
-            syntax::BinOp::Lte => BinOp::Lte,
-            syntax::BinOp::Mod => BinOp::Mod,
-            syntax::BinOp::Mul => BinOp::Mul,
-            syntax::BinOp::Neq => BinOp::Neq,
-            syntax::BinOp::OrB => BinOp::OrB,
-            syntax::BinOp::OrL => BinOp::OrL,
-            syntax::BinOp::Shl => BinOp::Shl,
-            syntax::BinOp::Shr => BinOp::Shr,
-            syntax::BinOp::Sub => BinOp::Sub,
-            syntax::BinOp::XorB => BinOp::XorB,
-        }
-    }
-}
-
-/// A unary operator.
-#[derive(Clone, Copy, Debug)]
-pub enum UnaryOp {
-    /// Negation: `-`.
-    Neg,
-    /// Bitwise NOT: `~`.
-    NotB,
-    /// Logical NOT: `!`.
-    NotL,
-}
-
-impl Display for UnaryOp {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            UnaryOp::Neg => write!(f, "Neg"),
-            UnaryOp::NotB => write!(f, "NotB"),
-            UnaryOp::NotL => write!(f, "NotL"),
-        }
-    }
-}
-
 #[derive(Clone, Debug, Default)]
 pub struct GateOperand {
     pub span: Span,
@@ -244,21 +129,6 @@ pub struct HardwareQubit {
 impl Display for HardwareQubit {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "HardwareQubit {}: {}", self.span, self.name)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct AliasDeclStmt {
-    pub symbol_id: SymbolId,
-    pub exprs: List<Expr>,
-    pub span: Span,
-}
-
-impl Display for AliasDeclStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "AliasDeclStmt", self.span)?;
-        writeln_field(f, "symbol_id", &self.symbol_id)?;
-        write_list_field(f, "exprs", &self.exprs)
     }
 }
 
@@ -343,58 +213,32 @@ impl Display for StmtKind {
 }
 
 #[derive(Clone, Debug)]
-pub struct CalibrationStmt {
+pub struct AliasDeclStmt {
+    pub symbol_id: SymbolId,
+    pub exprs: List<Expr>,
     pub span: Span,
-    pub content: Arc<str>,
 }
 
-impl Display for CalibrationStmt {
+impl Display for AliasDeclStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "CalibrationStmt", self.span)?;
-        write_field(f, "content", &self.content)
+        writeln_header(f, "AliasDeclStmt", self.span)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        write_list_field(f, "exprs", &self.exprs)
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct CalibrationGrammarStmt {
+pub struct AssignStmt {
     pub span: Span,
-    pub name: Arc<str>,
+    pub lhs: Expr,
+    pub rhs: Expr,
 }
 
-impl Display for CalibrationGrammarStmt {
+impl Display for AssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "CalibrationGrammarStmt", self.span)?;
-        write_field(f, "name", &self.name)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct DefCalStmt {
-    pub span: Span,
-    pub content: Arc<str>,
-}
-
-impl Display for DefCalStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "DefCalStmt", self.span)?;
-        write_field(f, "content", &self.content)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct IfStmt {
-    pub span: Span,
-    pub condition: Expr,
-    pub if_body: Stmt,
-    pub else_body: Option<Stmt>,
-}
-
-impl Display for IfStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "IfStmt", self.span)?;
-        writeln_field(f, "condition", &self.condition)?;
-        writeln_field(f, "if_body", &self.if_body)?;
-        write_opt_field(f, "else_body", self.else_body.as_ref())
+        writeln_header(f, "AssignStmt", self.span)?;
+        writeln_field(f, "lhs", &self.lhs)?;
+        write_field(f, "rhs", &self.rhs)
     }
 }
 
@@ -412,17 +256,17 @@ impl Display for BarrierStmt {
 }
 
 #[derive(Clone, Debug)]
-pub struct ResetStmt {
+pub struct BoxStmt {
     pub span: Span,
-    pub reset_token_span: Span,
-    pub operand: Box<GateOperand>,
+    pub duration: Option<Expr>,
+    pub body: List<Stmt>,
 }
 
-impl Display for ResetStmt {
+impl Display for BoxStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "ResetStmt", self.span)?;
-        writeln_field(f, "reset_token_span", &self.reset_token_span)?;
-        write_field(f, "operand", &self.operand)
+        writeln_header(f, "BoxStmt", self.span)?;
+        writeln_opt_field(f, "duration", self.duration.as_ref())?;
+        write_list_field(f, "body", &self.body)
     }
 }
 
@@ -453,6 +297,49 @@ impl Display for BreakStmt {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct CalibrationStmt {
+    pub span: Span,
+    pub content: Arc<str>,
+}
+
+impl Display for CalibrationStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "CalibrationStmt", self.span)?;
+        write_field(f, "content", &self.content)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct CalibrationGrammarStmt {
+    pub span: Span,
+    pub name: Arc<str>,
+}
+
+impl Display for CalibrationGrammarStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "CalibrationGrammarStmt", self.span)?;
+        write_field(f, "name", &self.name)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ClassicalDeclarationStmt {
+    pub span: Span,
+    pub ty_span: Span,
+    pub symbol_id: SymbolId,
+    pub init_expr: Box<Expr>,
+}
+
+impl Display for ClassicalDeclarationStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "ClassicalDeclarationStmt", self.span)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "ty_span", &self.ty_span)?;
+        write_field(f, "init_expr", self.init_expr.as_ref())
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct ContinueStmt {
     pub span: Span,
@@ -461,6 +348,66 @@ pub struct ContinueStmt {
 impl Display for ContinueStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write_header(f, "ContinueStmt", self.span)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct DefStmt {
+    pub span: Span,
+    pub symbol_id: SymbolId,
+    pub has_qubit_params: bool,
+    pub params: Box<[SymbolId]>,
+    pub body: Block,
+    pub return_type_span: Span,
+}
+
+impl Display for DefStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "DefStmt", self.span)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "has_qubit_params", &self.has_qubit_params)?;
+        writeln_list_field(f, "parameters", &self.params)?;
+        writeln_field(f, "return_type_span", &self.return_type_span)?;
+        write_field(f, "body", &self.body)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct DefCalStmt {
+    pub span: Span,
+    pub content: Arc<str>,
+}
+
+impl Display for DefCalStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "DefCalStmt", self.span)?;
+        write_field(f, "content", &self.content)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct DelayStmt {
+    pub span: Span,
+    pub duration: Expr,
+    pub qubits: List<GateOperand>,
+}
+
+impl Display for DelayStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "DelayStmt", self.span)?;
+        writeln_field(f, "duration", &self.duration)?;
+        write_list_field(f, "qubits", &self.qubits)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct EndStmt {
+    pub span: Span,
+}
+
+impl Display for EndStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "End {}", self.span)
     }
 }
 
@@ -477,12 +424,316 @@ impl Display for ExprStmt {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct ExternDecl {
+    pub span: Span,
+    pub symbol_id: SymbolId,
+}
+
+impl Display for ExternDecl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "ExternDecl", self.span)?;
+        write_field(f, "symbol_id", &self.symbol_id)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ForStmt {
+    pub span: Span,
+    pub loop_variable: SymbolId,
+    pub set_declaration: Box<EnumerableSet>,
+    pub body: Stmt,
+}
+
+impl Display for ForStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "ForStmt", self.span)?;
+        writeln_field(f, "loop_variable", &self.loop_variable)?;
+        writeln_field(f, "iterable", &self.set_declaration)?;
+        write_field(f, "body", &self.body)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct GateCall {
+    pub span: Span,
+    pub modifiers: List<QuantumGateModifier>,
+    pub symbol_id: SymbolId,
+    pub gate_name_span: Span,
+    pub args: List<Expr>,
+    pub qubits: List<GateOperand>,
+    pub duration: Option<Expr>,
+    pub classical_arity: u32,
+    pub quantum_arity: u32,
+}
+
+impl Display for GateCall {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "GateCall", self.span)?;
+        writeln_list_field(f, "modifiers", &self.modifiers)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "gate_name_span", &self.gate_name_span)?;
+        writeln_list_field(f, "args", &self.args)?;
+        writeln_list_field(f, "qubits", &self.qubits)?;
+        writeln_opt_field(f, "duration", self.duration.as_ref())?;
+        writeln_field(f, "classical_arity", &self.classical_arity)?;
+        write_field(f, "quantum_arity", &self.quantum_arity)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct IfStmt {
+    pub span: Span,
+    pub condition: Expr,
+    pub if_body: Stmt,
+    pub else_body: Option<Stmt>,
+}
+
+impl Display for IfStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "IfStmt", self.span)?;
+        writeln_field(f, "condition", &self.condition)?;
+        writeln_field(f, "if_body", &self.if_body)?;
+        write_opt_field(f, "else_body", self.else_body.as_ref())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct IncludeStmt {
+    pub span: Span,
+    pub filename: Arc<str>,
+}
+
+impl Display for IncludeStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "IncludeStmt", self.span)?;
+        write_field(f, "filename", &self.filename)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct IndexedClassicalTypeAssignStmt {
+    pub span: Span,
+    pub lhs: Expr,
+    pub indices: VecDeque<Index>,
+    pub rhs: Expr,
+}
+
+impl Display for IndexedClassicalTypeAssignStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "IndexedClassicalTypeAssignStmt", self.span)?;
+        writeln_field(f, "lhs", &self.lhs)?;
+        writeln_field(f, "rhs", &self.rhs)?;
+        write_list_field(f, "indices", &self.indices)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct InputDeclaration {
+    pub span: Span,
+    // We don't have a type span here, because input decls are in
+    // the symbol table which tracks the ty span separately.
+    pub symbol_id: SymbolId,
+}
+
+impl Display for InputDeclaration {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "InputDeclaration", self.span)?;
+        write_field(f, "symbol_id", &self.symbol_id)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct OutputDeclaration {
+    pub span: Span,
+    pub ty_span: Span,
+    pub symbol_id: SymbolId,
+    pub init_expr: Box<Expr>,
+}
+
+impl Display for OutputDeclaration {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "OutputDeclaration", self.span)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "ty_span", &self.ty_span)?;
+        write_field(f, "init_expr", &self.init_expr)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct MeasureArrowStmt {
+    pub span: Span,
+    pub measurement: MeasureExpr,
+    pub target: Option<Box<Expr>>,
+}
+
+impl Display for MeasureArrowStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "MeasureArrowStmt", self.span)?;
+        writeln_field(f, "measurement", &self.measurement)?;
+        write_opt_field(f, "target", self.target.as_ref())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Pragma {
+    pub span: Span,
+    pub identifier: Option<PathKind>,
+    pub value: Option<Arc<str>>,
+    pub value_span: Option<Span>,
+}
+
+impl Display for Pragma {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let value = self.value.as_ref().map(|val| format!("\"{val}\""));
+        writeln_header(f, "Pragma", self.span)?;
+        writeln_opt_field(
+            f,
+            "identifier",
+            self.identifier.as_ref().map(PathKind::as_string).as_ref(),
+        )?;
+        writeln_opt_field(f, "value", value.as_ref())?;
+        write_opt_field(f, "value_span", self.value_span.as_ref())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct QuantumGateDefinition {
+    pub span: Span,
+    pub name_span: Span,
+    pub symbol_id: SymbolId,
+    pub params: Box<[SymbolId]>,
+    pub qubits: Box<[SymbolId]>,
+    pub body: Block,
+}
+
+impl Display for QuantumGateDefinition {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "Gate", self.span)?;
+        writeln_field(f, "name_span", &self.name_span)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_list_field(f, "parameters", &self.params)?;
+        writeln_list_field(f, "qubits", &self.qubits)?;
+        write_field(f, "body", &self.body)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct QubitDeclaration {
+    pub span: Span,
+    pub symbol_id: SymbolId,
+}
+
+impl Display for QubitDeclaration {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "QubitDeclaration", self.span)?;
+        write_field(f, "symbol_id", &self.symbol_id)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct QubitArrayDeclaration {
+    pub span: Span,
+    pub symbol_id: SymbolId,
+    /// This `Expr` is const, but we don't substitute by the `LiteralKind` yet
+    /// to be able to provide Span and Type information to the Language Service.
+    pub size: Expr,
+    pub size_span: Span,
+}
+
+impl Display for QubitArrayDeclaration {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "QubitArrayDeclaration", self.span)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "size", &self.size)?;
+        write_field(f, "size_span", &self.size_span)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ResetStmt {
+    pub span: Span,
+    pub reset_token_span: Span,
+    pub operand: Box<GateOperand>,
+}
+
+impl Display for ResetStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "ResetStmt", self.span)?;
+        writeln_field(f, "reset_token_span", &self.reset_token_span)?;
+        write_field(f, "operand", &self.operand)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ReturnStmt {
+    pub span: Span,
+    pub expr: Option<Box<Expr>>,
+}
+
+impl Display for ReturnStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "ReturnStmt", self.span)?;
+        write_opt_field(f, "expr", self.expr.as_ref())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SwitchStmt {
+    pub span: Span,
+    pub target: Expr,
+    pub cases: List<SwitchCase>,
+    /// Note that `None` is quite different to `[]` in this case; the latter is
+    /// an explicitly empty body, whereas the absence of a default might mean
+    /// that the switch is inexhaustive, and a linter might want to complain.
+    pub default: Option<Block>,
+}
+
+impl Display for SwitchStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "SwitchStmt", self.span)?;
+        writeln_field(f, "target", &self.target)?;
+        writeln_list_field(f, "cases", &self.cases)?;
+        write_opt_field(f, "default_case", self.default.as_ref())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SwitchCase {
+    pub span: Span,
+    pub labels: List<Expr>,
+    pub block: Block,
+}
+
+impl Display for SwitchCase {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "SwitchCase", self.span)?;
+        writeln_list_field(f, "labels", &self.labels)?;
+        write_field(f, "block", &self.block)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct WhileLoop {
+    pub span: Span,
+    pub condition: Expr,
+    pub body: Stmt,
+}
+
+impl Display for WhileLoop {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "WhileLoop", self.span)?;
+        writeln_field(f, "condition", &self.condition)?;
+        write_field(f, "body", &self.body)
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct Expr {
     pub span: Span,
     pub kind: Box<ExprKind>,
     pub const_value: Option<LiteralKind>,
-    pub ty: super::types::Type,
+    pub ty: Type,
 }
 
 impl Display for Expr {
@@ -513,7 +764,7 @@ impl Expr {
         Expr {
             span,
             kind: Box::new(ExprKind::Lit(val.clone())),
-            ty: super::types::Type::Int(None, true),
+            ty: Type::Int(None, true),
             const_value: Some(val),
         }
     }
@@ -524,7 +775,7 @@ impl Expr {
         Expr {
             span,
             kind: Box::new(ExprKind::Lit(val.clone())),
-            ty: super::types::Type::UInt(None, true),
+            ty: Type::UInt(None, true),
             const_value: Some(val),
         }
     }
@@ -535,7 +786,7 @@ impl Expr {
         Expr {
             span,
             kind: Box::new(ExprKind::Lit(val.clone())),
-            ty: super::types::Type::Float(None, true),
+            ty: Type::Float(None, true),
             const_value: Some(val),
         }
     }
@@ -545,11 +796,11 @@ impl Expr {
         name: &str,
         span: Span,
         fn_name_span: Span,
-        function_ty: crate::semantic::types::Type,
+        function_ty: Type,
         args: &[Expr],
         output: LiteralKind,
     ) -> Self {
-        let crate::semantic::types::Type::Function(_, ty) = &function_ty else {
+        let Type::Function(_, ty) = &function_ty else {
             unreachable!("if we hit this there is a bug in the builtin functions implementation");
         };
 
@@ -582,6 +833,47 @@ impl Expr {
             kind: Box::new(ExprKind::BinaryOp(BinaryOpExpr { op, lhs, rhs })),
             const_value: None,
             ty,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub enum ExprKind {
+    /// An expression with invalid syntax that can't be parsed.
+    #[default]
+    Err,
+    CapturedIdent(SymbolId),
+    Ident(SymbolId),
+    UnaryOp(UnaryOpExpr),
+    BinaryOp(BinaryOpExpr),
+    Lit(LiteralKind),
+    FunctionCall(FunctionCall),
+    BuiltinFunctionCall(BuiltinFunctionCall),
+    Cast(Cast),
+    IndexedExpr(IndexedExpr),
+    Paren(Expr),
+    Measure(MeasureExpr),
+    SizeofCall(SizeofCallExpr),
+    DurationofCall(DurationofCallExpr),
+}
+
+impl Display for ExprKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ExprKind::Err => write!(f, "Err"),
+            ExprKind::CapturedIdent(id) => write!(f, "CapturedSymbolId({id})"),
+            ExprKind::Ident(id) => write!(f, "SymbolId({id})"),
+            ExprKind::UnaryOp(expr) => write!(f, "{expr}"),
+            ExprKind::BinaryOp(expr) => write!(f, "{expr}"),
+            ExprKind::Lit(lit) => write!(f, "Lit: {lit}"),
+            ExprKind::FunctionCall(call) => write!(f, "{call}"),
+            ExprKind::BuiltinFunctionCall(call) => write!(f, "{call}"),
+            ExprKind::Cast(expr) => write!(f, "{expr}"),
+            ExprKind::IndexedExpr(expr) => write!(f, "{expr}"),
+            ExprKind::Paren(expr) => write!(f, "Paren {expr}"),
+            ExprKind::Measure(expr) => write!(f, "{expr}"),
+            ExprKind::SizeofCall(call) => write!(f, "{call}"),
+            ExprKind::DurationofCall(call) => write!(f, "{call}"),
         }
     }
 }
@@ -746,292 +1038,6 @@ impl Display for QuantumArgument {
 }
 
 #[derive(Clone, Debug)]
-pub struct Pragma {
-    pub span: Span,
-    pub identifier: Option<PathKind>,
-    pub value: Option<Arc<str>>,
-    pub value_span: Option<Span>,
-}
-
-impl Display for Pragma {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let value = self.value.as_ref().map(|val| format!("\"{val}\""));
-        writeln_header(f, "Pragma", self.span)?;
-        writeln_opt_field(
-            f,
-            "identifier",
-            self.identifier.as_ref().map(PathKind::as_string).as_ref(),
-        )?;
-        writeln_opt_field(f, "value", value.as_ref())?;
-        write_opt_field(f, "value_span", self.value_span.as_ref())
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct IncludeStmt {
-    pub span: Span,
-    pub filename: Arc<str>,
-}
-
-impl Display for IncludeStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "IncludeStmt", self.span)?;
-        write_field(f, "filename", &self.filename)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct QubitDeclaration {
-    pub span: Span,
-    pub symbol_id: SymbolId,
-}
-
-impl Display for QubitDeclaration {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "QubitDeclaration", self.span)?;
-        write_field(f, "symbol_id", &self.symbol_id)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct QubitArrayDeclaration {
-    pub span: Span,
-    pub symbol_id: SymbolId,
-    /// This `Expr` is const, but we don't substitute by the `LiteralKind` yet
-    /// to be able to provide Span and Type information to the Language Service.
-    pub size: Expr,
-    pub size_span: Span,
-}
-
-impl Display for QubitArrayDeclaration {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "QubitArrayDeclaration", self.span)?;
-        writeln_field(f, "symbol_id", &self.symbol_id)?;
-        writeln_field(f, "size", &self.size)?;
-        write_field(f, "size_span", &self.size_span)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct QuantumGateDefinition {
-    pub span: Span,
-    pub name_span: Span,
-    pub symbol_id: SymbolId,
-    pub params: Box<[SymbolId]>,
-    pub qubits: Box<[SymbolId]>,
-    pub body: Block,
-}
-
-impl Display for QuantumGateDefinition {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "Gate", self.span)?;
-        writeln_field(f, "name_span", &self.name_span)?;
-        writeln_field(f, "symbol_id", &self.symbol_id)?;
-        writeln_list_field(f, "parameters", &self.params)?;
-        writeln_list_field(f, "qubits", &self.qubits)?;
-        write_field(f, "body", &self.body)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ExternDecl {
-    pub span: Span,
-    pub symbol_id: SymbolId,
-}
-
-impl Display for ExternDecl {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "ExternDecl", self.span)?;
-        write_field(f, "symbol_id", &self.symbol_id)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct GateCall {
-    pub span: Span,
-    pub modifiers: List<QuantumGateModifier>,
-    pub symbol_id: SymbolId,
-    pub gate_name_span: Span,
-    pub args: List<Expr>,
-    pub qubits: List<GateOperand>,
-    pub duration: Option<Expr>,
-    pub classical_arity: u32,
-    pub quantum_arity: u32,
-}
-
-impl Display for GateCall {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "GateCall", self.span)?;
-        writeln_list_field(f, "modifiers", &self.modifiers)?;
-        writeln_field(f, "symbol_id", &self.symbol_id)?;
-        writeln_field(f, "gate_name_span", &self.gate_name_span)?;
-        writeln_list_field(f, "args", &self.args)?;
-        writeln_list_field(f, "qubits", &self.qubits)?;
-        writeln_opt_field(f, "duration", self.duration.as_ref())?;
-        writeln_field(f, "classical_arity", &self.classical_arity)?;
-        write_field(f, "quantum_arity", &self.quantum_arity)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct DelayStmt {
-    pub span: Span,
-    pub duration: Expr,
-    pub qubits: List<GateOperand>,
-}
-
-impl Display for DelayStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "DelayStmt", self.span)?;
-        writeln_field(f, "duration", &self.duration)?;
-        write_list_field(f, "qubits", &self.qubits)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct BoxStmt {
-    pub span: Span,
-    pub duration: Option<Expr>,
-    pub body: List<Stmt>,
-}
-
-impl Display for BoxStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "BoxStmt", self.span)?;
-        writeln_opt_field(f, "duration", self.duration.as_ref())?;
-        write_list_field(f, "body", &self.body)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct MeasureArrowStmt {
-    pub span: Span,
-    pub measurement: MeasureExpr,
-    pub target: Option<Box<Expr>>,
-}
-
-impl Display for MeasureArrowStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "MeasureArrowStmt", self.span)?;
-        writeln_field(f, "measurement", &self.measurement)?;
-        write_opt_field(f, "target", self.target.as_ref())
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ClassicalDeclarationStmt {
-    pub span: Span,
-    pub ty_span: Span,
-    pub symbol_id: SymbolId,
-    pub init_expr: Box<Expr>,
-}
-
-impl Display for ClassicalDeclarationStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "ClassicalDeclarationStmt", self.span)?;
-        writeln_field(f, "symbol_id", &self.symbol_id)?;
-        writeln_field(f, "ty_span", &self.ty_span)?;
-        write_field(f, "init_expr", self.init_expr.as_ref())
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct InputDeclaration {
-    pub span: Span,
-    pub symbol_id: SymbolId,
-}
-
-impl Display for InputDeclaration {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "InputDeclaration", self.span)?;
-        write_field(f, "symbol_id", &self.symbol_id)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct OutputDeclaration {
-    pub span: Span,
-    pub ty_span: Span,
-    pub symbol_id: SymbolId,
-    pub init_expr: Box<Expr>,
-}
-
-impl Display for OutputDeclaration {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "OutputDeclaration", self.span)?;
-        writeln_field(f, "symbol_id", &self.symbol_id)?;
-        writeln_field(f, "ty_span", &self.ty_span)?;
-        write_field(f, "init_expr", &self.init_expr)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct DefStmt {
-    pub span: Span,
-    pub symbol_id: SymbolId,
-    pub has_qubit_params: bool,
-    pub params: Box<[SymbolId]>,
-    pub body: Block,
-    pub return_type_span: Span,
-}
-
-impl Display for DefStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "DefStmt", self.span)?;
-        writeln_field(f, "symbol_id", &self.symbol_id)?;
-        writeln_field(f, "has_qubit_params", &self.has_qubit_params)?;
-        writeln_list_field(f, "parameters", &self.params)?;
-        writeln_field(f, "return_type_span", &self.return_type_span)?;
-        write_field(f, "body", &self.body)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ReturnStmt {
-    pub span: Span,
-    pub expr: Option<Box<Expr>>,
-}
-
-impl Display for ReturnStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "ReturnStmt", self.span)?;
-        write_opt_field(f, "expr", self.expr.as_ref())
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct WhileLoop {
-    pub span: Span,
-    pub condition: Expr,
-    pub body: Stmt,
-}
-
-impl Display for WhileLoop {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "WhileLoop", self.span)?;
-        writeln_field(f, "condition", &self.condition)?;
-        write_field(f, "body", &self.body)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ForStmt {
-    pub span: Span,
-    pub loop_variable: SymbolId,
-    pub set_declaration: Box<EnumerableSet>,
-    pub body: Stmt,
-}
-
-impl Display for ForStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "ForStmt", self.span)?;
-        writeln_field(f, "loop_variable", &self.loop_variable)?;
-        writeln_field(f, "iterable", &self.set_declaration)?;
-        write_field(f, "body", &self.body)
-    }
-}
-
-#[derive(Clone, Debug)]
 pub enum EnumerableSet {
     Set(Set),
     Range(Box<Range>),
@@ -1045,112 +1051,6 @@ impl Display for EnumerableSet {
             EnumerableSet::Range(range) => write!(f, "{range}"),
             EnumerableSet::Expr(expr) => write!(f, "{expr}"),
         }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct SwitchStmt {
-    pub span: Span,
-    pub target: Expr,
-    pub cases: List<SwitchCase>,
-    /// Note that `None` is quite different to `[]` in this case; the latter is
-    /// an explicitly empty body, whereas the absence of a default might mean
-    /// that the switch is inexhaustive, and a linter might want to complain.
-    pub default: Option<Block>,
-}
-
-impl Display for SwitchStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "SwitchStmt", self.span)?;
-        writeln_field(f, "target", &self.target)?;
-        writeln_list_field(f, "cases", &self.cases)?;
-        write_opt_field(f, "default_case", self.default.as_ref())
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct SwitchCase {
-    pub span: Span,
-    pub labels: List<Expr>,
-    pub block: Block,
-}
-
-impl Display for SwitchCase {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "SwitchCase", self.span)?;
-        writeln_list_field(f, "labels", &self.labels)?;
-        write_field(f, "block", &self.block)
-    }
-}
-
-#[derive(Clone, Debug, Default)]
-pub enum ExprKind {
-    /// An expression with invalid syntax that can't be parsed.
-    #[default]
-    Err,
-    CapturedIdent(SymbolId),
-    Ident(SymbolId),
-    UnaryOp(UnaryOpExpr),
-    BinaryOp(BinaryOpExpr),
-    Lit(LiteralKind),
-    FunctionCall(FunctionCall),
-    BuiltinFunctionCall(BuiltinFunctionCall),
-    Cast(Cast),
-    IndexedExpr(IndexedExpr),
-    Paren(Expr),
-    Measure(MeasureExpr),
-    SizeofCall(SizeofCallExpr),
-}
-
-impl Display for ExprKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            ExprKind::Err => write!(f, "Err"),
-            ExprKind::CapturedIdent(id) => write!(f, "CapturedSymbolId({id})"),
-            ExprKind::Ident(id) => write!(f, "SymbolId({id})"),
-            ExprKind::UnaryOp(expr) => write!(f, "{expr}"),
-            ExprKind::BinaryOp(expr) => write!(f, "{expr}"),
-            ExprKind::Lit(lit) => write!(f, "Lit: {lit}"),
-            ExprKind::FunctionCall(call) => write!(f, "{call}"),
-            ExprKind::BuiltinFunctionCall(call) => write!(f, "{call}"),
-            ExprKind::Cast(expr) => write!(f, "{expr}"),
-            ExprKind::IndexedExpr(expr) => write!(f, "{expr}"),
-            ExprKind::Paren(expr) => write!(f, "Paren {expr}"),
-            ExprKind::Measure(expr) => write!(f, "{expr}"),
-            ExprKind::SizeofCall(call) => write!(f, "{call}"),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct AssignStmt {
-    pub span: Span,
-    pub lhs: Expr,
-    pub rhs: Expr,
-}
-
-impl Display for AssignStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "AssignStmt", self.span)?;
-        writeln_field(f, "lhs", &self.lhs)?;
-        write_field(f, "rhs", &self.rhs)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct IndexedClassicalTypeAssignStmt {
-    pub span: Span,
-    pub lhs: Expr,
-    pub indices: VecDeque<Index>,
-    pub rhs: Expr,
-}
-
-impl Display for IndexedClassicalTypeAssignStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "IndexedClassicalTypeAssignStmt", self.span)?;
-        writeln_field(f, "lhs", &self.lhs)?;
-        writeln_field(f, "rhs", &self.rhs)?;
-        write_list_field(f, "indices", &self.indices)
     }
 }
 
@@ -1232,6 +1132,24 @@ impl Display for SizeofCallExpr {
     }
 }
 
+#[derive(Clone, Debug)]
+
+pub struct DurationofCallExpr {
+    pub span: Span,
+    pub fn_name_span: Span,
+    pub duration: Duration,
+    pub scope: Block,
+}
+
+impl Display for DurationofCallExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "DurationofCallExpr", self.span)?;
+        writeln_field(f, "fn_name_span", &self.fn_name_span)?;
+        writeln_field(f, "duration", &self.duration)?;
+        write_field(f, "scope", &self.scope)
+    }
+}
+
 /// The information in this struct is aimed to be consumed
 /// by the language service. The result of the computation
 /// is already stored in the [`Expr::const_value`] field by
@@ -1241,7 +1159,7 @@ pub struct BuiltinFunctionCall {
     pub span: Span,
     pub fn_name_span: Span,
     pub name: Arc<str>,
-    pub function_ty: crate::semantic::types::Type,
+    pub function_ty: Type,
     pub args: Box<[Expr]>,
 }
 
@@ -1273,7 +1191,7 @@ impl Display for CastKind {
 #[derive(Clone, Debug)]
 pub struct Cast {
     pub span: Span,
-    pub ty: crate::semantic::types::Type,
+    pub ty: Type,
     pub expr: Expr,
     pub kind: CastKind,
 }
@@ -1308,7 +1226,7 @@ pub enum LiteralKind {
     Array(Array),
     Bitstring(BigInt, u32),
     Bool(bool),
-    Duration(f64, TimeUnit),
+    Duration(Duration),
     Float(f64),
     Complex(Complex),
     Int(i64),
@@ -1328,8 +1246,8 @@ impl Display for LiteralKind {
             LiteralKind::Bit(b) => write!(f, "Bit({:?})", u8::from(*b)),
             LiteralKind::Bool(b) => write!(f, "Bool({b:?})"),
             LiteralKind::Complex(value) => write!(f, "Complex({value})"),
-            LiteralKind::Duration(value, unit) => {
-                write!(f, "Duration({value:?}, {unit:?})")
+            LiteralKind::Duration(value) => {
+                write!(f, "Duration({value})")
             }
             LiteralKind::Float(value) => write!(f, "Float({value:?})"),
             LiteralKind::Int(i) => write!(f, "Int({i:?})"),
@@ -1354,7 +1272,7 @@ impl Array {
     pub fn from_default(
         dims: ArrayDimensions,
         default: impl FnOnce() -> Expr,
-        base_ty: &super::types::Type,
+        base_ty: &Type,
     ) -> Self {
         let dims_vec: Vec<_> = dims.clone().into_iter().collect();
         let data = Self::from_default_recursive(&dims_vec, default, base_ty);
@@ -1364,7 +1282,7 @@ impl Array {
     fn from_default_recursive(
         dims: &[u32],
         default: impl FnOnce() -> Expr,
-        base_ty: &super::types::Type,
+        base_ty: &Type,
     ) -> Vec<Expr> {
         if dims.is_empty() {
             vec![]
@@ -1385,7 +1303,7 @@ impl Array {
             let expr = Expr::new(
                 Default::default(),
                 ExprKind::Lit(LiteralKind::Array(array)),
-                super::types::Type::make_array_ty(&dims[1..], base_ty),
+                Type::make_array_ty(&dims[1..], base_ty),
             );
             let dim_size = dims[0] as usize;
             vec![expr; dim_size]
@@ -1464,7 +1382,7 @@ impl Display for Index {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum TimeUnit {
     Dt,
     /// Nanoseconds.
@@ -1474,6 +1392,7 @@ pub enum TimeUnit {
     /// Milliseconds.
     Ms,
     /// Seconds.
+    #[default]
     S,
 }
 
@@ -1501,13 +1420,118 @@ impl From<crate::parser::ast::TimeUnit> for TimeUnit {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct EndStmt {
-    pub span: Span,
+/// A binary operator.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BinOp {
+    /// Addition: `+`.
+    Add,
+    /// Bitwise AND: `&`.
+    AndB,
+    /// Logical AND: `&&`.
+    AndL,
+    /// Division: `/`.
+    Div,
+    /// Equality: `==`.
+    Eq,
+    /// Exponentiation: `**`.
+    Exp,
+    /// Greater than: `>`.
+    Gt,
+    /// Greater than or equal: `>=`.
+    Gte,
+    /// Less than: `<`.
+    Lt,
+    /// Less than or equal: `<=`.
+    Lte,
+    /// Modulus: `%`.
+    Mod,
+    /// Multiplication: `*`.
+    Mul,
+    /// Inequality: `!=`.
+    Neq,
+    /// Bitwise OR: `|`.
+    OrB,
+    /// Logical OR: `||`.
+    OrL,
+    /// Shift left: `<<`.
+    Shl,
+    /// Shift right: `>>`.
+    Shr,
+    /// Subtraction: `-`.
+    Sub,
+    /// Bitwise XOR: `^`.
+    XorB,
 }
 
-impl Display for EndStmt {
+impl Display for BinOp {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "End {}", self.span)
+        match self {
+            BinOp::Add => write!(f, "Add"),
+            BinOp::AndB => write!(f, "AndB"),
+            BinOp::AndL => write!(f, "AndL"),
+            BinOp::Div => write!(f, "Div"),
+            BinOp::Eq => write!(f, "Eq"),
+            BinOp::Exp => write!(f, "Exp"),
+            BinOp::Gt => write!(f, "Gt"),
+            BinOp::Gte => write!(f, "Gte"),
+            BinOp::Lt => write!(f, "Lt"),
+            BinOp::Lte => write!(f, "Lte"),
+            BinOp::Mod => write!(f, "Mod"),
+            BinOp::Mul => write!(f, "Mul"),
+            BinOp::Neq => write!(f, "Neq"),
+            BinOp::OrB => write!(f, "OrB"),
+            BinOp::OrL => write!(f, "OrL"),
+            BinOp::Shl => write!(f, "Shl"),
+            BinOp::Shr => write!(f, "Shr"),
+            BinOp::Sub => write!(f, "Sub"),
+            BinOp::XorB => write!(f, "XorB"),
+        }
+    }
+}
+
+impl From<syntax::BinOp> for BinOp {
+    fn from(value: syntax::BinOp) -> Self {
+        match value {
+            syntax::BinOp::Add => BinOp::Add,
+            syntax::BinOp::AndB => BinOp::AndB,
+            syntax::BinOp::AndL => BinOp::AndL,
+            syntax::BinOp::Div => BinOp::Div,
+            syntax::BinOp::Eq => BinOp::Eq,
+            syntax::BinOp::Exp => BinOp::Exp,
+            syntax::BinOp::Gt => BinOp::Gt,
+            syntax::BinOp::Gte => BinOp::Gte,
+            syntax::BinOp::Lt => BinOp::Lt,
+            syntax::BinOp::Lte => BinOp::Lte,
+            syntax::BinOp::Mod => BinOp::Mod,
+            syntax::BinOp::Mul => BinOp::Mul,
+            syntax::BinOp::Neq => BinOp::Neq,
+            syntax::BinOp::OrB => BinOp::OrB,
+            syntax::BinOp::OrL => BinOp::OrL,
+            syntax::BinOp::Shl => BinOp::Shl,
+            syntax::BinOp::Shr => BinOp::Shr,
+            syntax::BinOp::Sub => BinOp::Sub,
+            syntax::BinOp::XorB => BinOp::XorB,
+        }
+    }
+}
+
+/// A unary operator.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UnaryOp {
+    /// Negation: `-`.
+    Neg,
+    /// Bitwise NOT: `~`.
+    NotB,
+    /// Logical NOT: `!`.
+    NotL,
+}
+
+impl Display for UnaryOp {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            UnaryOp::Neg => write!(f, "Neg"),
+            UnaryOp::NotB => write!(f, "NotB"),
+            UnaryOp::NotL => write!(f, "NotL"),
+        }
     }
 }

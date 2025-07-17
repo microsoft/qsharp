@@ -1002,6 +1002,11 @@ impl QasmCompiler {
         )
     }
 
+    fn compile_durationof_call_expr(&mut self, expr: &semast::DurationofCallExpr) -> qsast::Expr {
+        self.push_unsupported_error_message("durationof call", expr.span);
+        err_expr(expr.span)
+    }
+
     fn compile_gate_call_stmt(&mut self, stmt: &semast::GateCall) -> Option<qsast::Stmt> {
         if let Some(duration) = &stmt.duration {
             self.push_unsupported_error_message("gate call duration", duration.span);
@@ -1501,6 +1506,9 @@ impl QasmCompiler {
             semast::ExprKind::Paren(pexpr) => self.compile_paren_expr(pexpr, expr.span),
             semast::ExprKind::Measure(mexpr) => self.compile_measure_expr(mexpr, &expr.ty),
             semast::ExprKind::SizeofCall(sizeof_call) => self.compile_sizeof_call_expr(sizeof_call),
+            semast::ExprKind::DurationofCall(duration_call) => {
+                self.compile_durationof_call_expr(duration_call)
+            }
         }
     }
 
@@ -1694,8 +1702,8 @@ impl QasmCompiler {
             }
             LiteralKind::Bit(value) => Self::compile_bit_literal(*value, span),
             LiteralKind::Bool(value) => Self::compile_bool_literal(*value, span),
-            LiteralKind::Duration(value, time_unit) => {
-                self.compile_duration_literal(*value, *time_unit, span)
+            LiteralKind::Duration(duration) => {
+                self.compile_duration_literal(duration.value, duration.unit, span)
             }
             LiteralKind::Float(value) => Self::compile_float_literal(*value, span),
             LiteralKind::Complex(value) => Self::compile_complex_literal(*value, span),

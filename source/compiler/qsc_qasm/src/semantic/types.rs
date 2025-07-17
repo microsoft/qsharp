@@ -18,6 +18,7 @@ pub enum Type {
     // scalar types
     Bit(bool),
     Bool(bool),
+    // Duration is always const, but we keep the bool to match the other types
     Duration(bool),
     Stretch(bool),
 
@@ -80,7 +81,7 @@ impl From<ArrayBaseType> for Type {
     fn from(value: ArrayBaseType) -> Self {
         match value {
             ArrayBaseType::Bool => Self::Bool(false),
-            ArrayBaseType::Duration => Self::Duration(false),
+            ArrayBaseType::Duration => Self::Duration(true),
             ArrayBaseType::Angle(width) => Self::Angle(width, false),
             ArrayBaseType::Complex(width) => Self::Complex(width, false),
             ArrayBaseType::Float(width) => Self::Float(width, false),
@@ -96,7 +97,7 @@ impl TryFrom<Type> for ArrayBaseType {
     fn try_from(value: Type) -> Result<Self, ()> {
         match value {
             Type::Bool(false) => Ok(Self::Bool),
-            Type::Duration(false) => Ok(Self::Duration),
+            Type::Duration(true) => Ok(Self::Duration),
             Type::Angle(width, false) => Ok(Self::Angle(width)),
             Type::Complex(width, false) => Ok(Self::Complex(width)),
             Type::Float(width, false) => Ok(Self::Float(width)),
@@ -164,6 +165,10 @@ impl Display for DynArrayRefType {
     }
 }
 
+fn write_always_const_ty_omitting_mutabilty(f: &mut Formatter<'_>, name: &str) -> std::fmt::Result {
+    write_ty_with_designator_and_const(f, false, None, name)
+}
+
 fn write_ty_with_const(f: &mut Formatter<'_>, is_const: bool, name: &str) -> std::fmt::Result {
     write_ty_with_designator_and_const(f, is_const, None, name)
 }
@@ -229,8 +234,8 @@ impl Display for Type {
         match self {
             Type::Bit(is_const) => write_ty_with_const(f, *is_const, "bit"),
             Type::Bool(is_const) => write_ty_with_const(f, *is_const, "bool"),
-            Type::Duration(is_const) => write_ty_with_const(f, *is_const, "duration"),
-            Type::Stretch(is_const) => write_ty_with_const(f, *is_const, "stretch"),
+            Type::Duration(_) => write_always_const_ty_omitting_mutabilty(f, "duration"),
+            Type::Stretch(_) => write_always_const_ty_omitting_mutabilty(f, "stretch"),
             Type::Angle(width, is_const) => {
                 write_ty_with_designator_and_const(f, *is_const, *width, "angle")
             }
@@ -349,13 +354,12 @@ impl Type {
             Type::BitArray(_, is_const)
             | Type::Bit(is_const)
             | Type::Bool(is_const)
-            | Type::Duration(is_const)
-            | Type::Stretch(is_const)
             | Type::Angle(_, is_const)
             | Type::Complex(_, is_const)
             | Type::Float(_, is_const)
             | Type::Int(_, is_const)
             | Type::UInt(_, is_const) => *is_const,
+            Type::Duration(_) | Type::Stretch(_) => true,
             _ => false,
         }
     }
@@ -503,8 +507,6 @@ impl Type {
         match self {
             Type::Bit(_) => Self::Bit(true),
             Type::Bool(_) => Self::Bool(true),
-            Type::Duration(_) => Self::Duration(true),
-            Type::Stretch(_) => Self::Stretch(true),
             Type::Angle(w, _) => Self::Angle(*w, true),
             Type::Complex(w, _) => Self::Complex(*w, true),
             Type::Float(w, _) => Self::Float(*w, true),
@@ -519,8 +521,6 @@ impl Type {
         match self {
             Type::Bit(_) => Self::Bit(false),
             Type::Bool(_) => Self::Bool(false),
-            Type::Duration(_) => Self::Duration(false),
-            Type::Stretch(_) => Self::Stretch(false),
             Type::Angle(w, _) => Self::Angle(*w, false),
             Type::Complex(w, _) => Self::Complex(*w, false),
             Type::Float(w, _) => Self::Float(*w, false),
@@ -1372,32 +1372,57 @@ pub(crate) fn binary_op_is_supported_for_types(op: BinOp, lhs_ty: &Type, rhs_ty:
 
         // Arithmetic
         BinOp::Add | BinOp::Sub => {
-            base_types_equal(lhs_ty, rhs_ty)
+            let duration_case = both_types_are_duration_subtypes(lhs_ty, rhs_ty);
+
+            let base_case = base_types_equal(lhs_ty, rhs_ty)
                 && matches!(
                     lhs_ty,
                     Int(..) | UInt(..) | Float(..) | Angle(..) | Complex(..)
-                )
+                );
+            duration_case || base_case
         }
         BinOp::Mul => {
-            let uint_angle_exception = (matches!(lhs_ty, Angle(..)) && matches!(rhs_ty, UInt(..)))
+            let duration_case = (type_is_duration_subtype(lhs_ty)
+                && matches!(&rhs_ty, Type::Float(_, _) | Type::Int(..) | Type::UInt(..),))
+                || (type_is_duration_subtype(rhs_ty)
+                    && matches!(&lhs_ty, Type::Float(_, _) | Type::Int(..) | Type::UInt(..)));
+
+            let uint_angle_case = (matches!(lhs_ty, Angle(..)) && matches!(rhs_ty, UInt(..)))
                 || (matches!(lhs_ty, UInt(..)) && matches!(rhs_ty, Angle(..)));
 
             let base_case = base_types_equal(lhs_ty, rhs_ty)
                 && matches!(lhs_ty, Int(..) | UInt(..) | Float(..));
 
-            uint_angle_exception || base_case
+            duration_case || uint_angle_case || base_case
         }
         BinOp::Div => {
-            let uint_angle_exception = matches!(lhs_ty, Angle(..)) && matches!(rhs_ty, UInt(..));
+            let duration_base_case = both_types_are_duration_subtypes(lhs_ty, rhs_ty);
+            let duration_asymmetric_case = type_is_duration_subtype(lhs_ty)
+                && matches!(&rhs_ty, Type::Float(_, _) | Type::Int(..) | Type::UInt(..));
+            let duration_case = duration_base_case || duration_asymmetric_case;
+
+            let uint_angle_case = matches!(lhs_ty, Angle(..)) && matches!(rhs_ty, UInt(..));
 
             let base_case = base_types_equal(lhs_ty, rhs_ty)
                 && matches!(lhs_ty, Int(..) | UInt(..) | Float(..) | Angle(..));
 
-            uint_angle_exception || base_case
+            duration_case || uint_angle_case || base_case
         }
         BinOp::Mod => base_types_equal(lhs_ty, rhs_ty) && matches!(lhs_ty, Int(..) | UInt(..)),
         BinOp::Exp => {
             base_types_equal(lhs_ty, rhs_ty) && matches!(lhs_ty, Int(..) | UInt(..) | Float(..))
         }
     }
+}
+
+pub(crate) fn both_types_are_duration_subtypes(left_type: &Type, right_type: &Type) -> bool {
+    type_is_duration_subtype(left_type) && type_is_duration_subtype(right_type)
+}
+
+pub(crate) fn either_type_is_duration_subtype(left_type: &Type, right_type: &Type) -> bool {
+    type_is_duration_subtype(left_type) || type_is_duration_subtype(right_type)
+}
+
+pub(crate) fn type_is_duration_subtype(ty: &Type) -> bool {
+    matches!(ty, Type::Duration(_) | Type::Stretch(_))
 }

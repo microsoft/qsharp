@@ -81,9 +81,6 @@ bool binary_negation_not_supported = true;
 // NotSupported arrays with more than 7 dimensions
 array[int, 1, 2, 3, 1, 2, 3, 1, 2] array_with_more_than_7_dims;
 
-// NotSupported stretch default values
-stretch stretch_val;
-
 box [2ns] {
     // ClassicalStmtInBox
     2;
@@ -262,6 +259,26 @@ func_called_like_gate q;
 // GateCallMissingParams
 h;
 
-
 // FuncMissingParams
 func_called_like_gate;
+
+// ExternDeclarationCannotReturnDuration
+extern extern_function_with_duration_return(int) -> duration;
+
+// ExternDeclarationCannotReturnDuration
+extern extern_function_with_stretch_return(int) -> stretch;
+
+// DefParameterCannotBeDuration
+def function_with_duration_param(qubit q, duration d) {
+    delay[d] q;
+}
+
+// DefParameterCannotBeDuration
+def function_with_duration_array_param(qubit q, readonly array[duration, 2, 3] d) {
+    delay[d[0][0]] q;
+}
+
+// DefParameterCannotBeDuration
+def function_with_stretch_param(qubit q, stretch d) {
+    delay[d] q;
+}

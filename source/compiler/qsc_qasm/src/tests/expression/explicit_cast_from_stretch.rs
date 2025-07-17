@@ -19,9 +19,9 @@ use expect_test::expect;
 //===============
 
 #[test]
-fn duration_to_bool_fails() {
+fn stretch_to_bool_fails() {
     let source = "
-        duration a;
+        stretch a;
         bool(a);
     ";
     check(
@@ -29,9 +29,9 @@ fn duration_to_bool_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const bool
+              x cannot cast expression of type stretch to type const bool
                ,-[Test.qasm:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         bool(a);
                :         ^^^^^^^
              4 |     
@@ -39,11 +39,11 @@ fn duration_to_bool_fails() {
 
             Qasm.Compiler.NotSupported
 
-              x duration type values are not supported
+              x stretch type values are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^
              3 |         bool(a);
                `----
 
@@ -52,8 +52,8 @@ fn duration_to_bool_fails() {
               x timing literals are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^^^^
              3 |         bool(a);
                `----
         "#]],
@@ -65,9 +65,9 @@ fn duration_to_bool_fails() {
 //===================
 
 #[test]
-fn duration_to_duration() {
+fn stretch_to_duration_fails() {
     let source = "
-        duration a;
+        stretch a;
         duration(a);
     ";
     check(
@@ -75,11 +75,11 @@ fn duration_to_duration() {
         &expect![[r#"
             Qasm.Compiler.NotSupported
 
-              x duration type values are not supported
+              x stretch type values are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^
              3 |         duration(a);
                `----
 
@@ -88,8 +88,8 @@ fn duration_to_duration() {
               x timing literals are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^^^^
              3 |         duration(a);
                `----
         "#]],
@@ -101,9 +101,9 @@ fn duration_to_duration() {
 //===================
 
 #[test]
-fn duration_to_stretch_fails() {
+fn stretch_to_stretch() {
     let source = "
-        duration a;
+        stretch a;
         stretch(a);
     ";
     check(
@@ -111,11 +111,11 @@ fn duration_to_stretch_fails() {
         &expect![[r#"
             Qasm.Compiler.NotSupported
 
-              x duration type values are not supported
+              x stretch type values are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^
              3 |         stretch(a);
                `----
 
@@ -124,8 +124,8 @@ fn duration_to_stretch_fails() {
               x timing literals are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^^^^
              3 |         stretch(a);
                `----
         "#]],
@@ -137,9 +137,9 @@ fn duration_to_stretch_fails() {
 //=========================
 
 #[test]
-fn duration_to_int_fails() {
+fn stretch_to_int_fails() {
     let source = "
-        duration a;
+        stretch a;
         int(a);
     ";
     check(
@@ -147,9 +147,9 @@ fn duration_to_int_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const int
+              x cannot cast expression of type stretch to type const int
                ,-[Test.qasm:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         int(a);
                :         ^^^^^^
              4 |     
@@ -157,11 +157,11 @@ fn duration_to_int_fails() {
 
             Qasm.Compiler.NotSupported
 
-              x duration type values are not supported
+              x stretch type values are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^
              3 |         int(a);
                `----
 
@@ -170,8 +170,8 @@ fn duration_to_int_fails() {
               x timing literals are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^^^^
              3 |         int(a);
                `----
         "#]],
@@ -179,9 +179,9 @@ fn duration_to_int_fails() {
 }
 
 #[test]
-fn duration_to_sized_int_fails() {
+fn stretch_to_sized_int_fails() {
     let source = "
-        duration a;
+        stretch a;
         int[32](a);
     ";
     check(
@@ -189,9 +189,9 @@ fn duration_to_sized_int_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const int[32]
+              x cannot cast expression of type stretch to type const int[32]
                ,-[Test.qasm:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         int[32](a);
                :         ^^^^^^^^^^
              4 |     
@@ -199,11 +199,11 @@ fn duration_to_sized_int_fails() {
 
             Qasm.Compiler.NotSupported
 
-              x duration type values are not supported
+              x stretch type values are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^
              3 |         int[32](a);
                `----
 
@@ -212,8 +212,8 @@ fn duration_to_sized_int_fails() {
               x timing literals are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^^^^
              3 |         int[32](a);
                `----
         "#]],
@@ -225,9 +225,9 @@ fn duration_to_sized_int_fails() {
 //===========================
 
 #[test]
-fn duration_to_uint_fails() {
+fn stretch_to_uint_fails() {
     let source = "
-        duration a;
+        stretch a;
         uint(a);
     ";
     check(
@@ -235,9 +235,9 @@ fn duration_to_uint_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const uint
+              x cannot cast expression of type stretch to type const uint
                ,-[Test.qasm:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         uint(a);
                :         ^^^^^^^
              4 |     
@@ -245,11 +245,11 @@ fn duration_to_uint_fails() {
 
             Qasm.Compiler.NotSupported
 
-              x duration type values are not supported
+              x stretch type values are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^
              3 |         uint(a);
                `----
 
@@ -258,8 +258,8 @@ fn duration_to_uint_fails() {
               x timing literals are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^^^^
              3 |         uint(a);
                `----
         "#]],
@@ -267,9 +267,9 @@ fn duration_to_uint_fails() {
 }
 
 #[test]
-fn duration_to_sized_uint_fails() {
+fn stretch_to_sized_uint_fails() {
     let source = "
-        duration a;
+        stretch a;
         uint[32](a);
     ";
     check(
@@ -277,9 +277,9 @@ fn duration_to_sized_uint_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const uint[32]
+              x cannot cast expression of type stretch to type const uint[32]
                ,-[Test.qasm:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         uint[32](a);
                :         ^^^^^^^^^^^
              4 |     
@@ -287,11 +287,11 @@ fn duration_to_sized_uint_fails() {
 
             Qasm.Compiler.NotSupported
 
-              x duration type values are not supported
+              x stretch type values are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^
              3 |         uint[32](a);
                `----
 
@@ -300,8 +300,8 @@ fn duration_to_sized_uint_fails() {
               x timing literals are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^^^^
              3 |         uint[32](a);
                `----
         "#]],
@@ -313,9 +313,9 @@ fn duration_to_sized_uint_fails() {
 //=============================
 
 #[test]
-fn duration_to_float_fails() {
+fn stretch_to_float_fails() {
     let source = "
-        duration a;
+        stretch a;
         float(a);
     ";
     check(
@@ -323,9 +323,9 @@ fn duration_to_float_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const float
+              x cannot cast expression of type stretch to type const float
                ,-[Test.qasm:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         float(a);
                :         ^^^^^^^^
              4 |     
@@ -333,11 +333,11 @@ fn duration_to_float_fails() {
 
             Qasm.Compiler.NotSupported
 
-              x duration type values are not supported
+              x stretch type values are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^
              3 |         float(a);
                `----
 
@@ -346,8 +346,8 @@ fn duration_to_float_fails() {
               x timing literals are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^^^^
              3 |         float(a);
                `----
         "#]],
@@ -355,9 +355,9 @@ fn duration_to_float_fails() {
 }
 
 #[test]
-fn duration_to_sized_float_fails() {
+fn stretch_to_sized_float_fails() {
     let source = "
-        duration a;
+        stretch a;
         float[32](a);
     ";
     check(
@@ -365,9 +365,9 @@ fn duration_to_sized_float_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const float[32]
+              x cannot cast expression of type stretch to type const float[32]
                ,-[Test.qasm:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         float[32](a);
                :         ^^^^^^^^^^^^
              4 |     
@@ -375,11 +375,11 @@ fn duration_to_sized_float_fails() {
 
             Qasm.Compiler.NotSupported
 
-              x duration type values are not supported
+              x stretch type values are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^
              3 |         float[32](a);
                `----
 
@@ -388,8 +388,8 @@ fn duration_to_sized_float_fails() {
               x timing literals are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^^^^
              3 |         float[32](a);
                `----
         "#]],
@@ -401,9 +401,9 @@ fn duration_to_sized_float_fails() {
 //=============================
 
 #[test]
-fn duration_to_angle_fails() {
+fn stretch_to_angle_fails() {
     let source = "
-        duration a;
+        stretch a;
         angle(a);
     ";
     check(
@@ -411,9 +411,9 @@ fn duration_to_angle_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const angle
+              x cannot cast expression of type stretch to type const angle
                ,-[Test.qasm:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         angle(a);
                :         ^^^^^^^^
              4 |     
@@ -421,11 +421,11 @@ fn duration_to_angle_fails() {
 
             Qasm.Compiler.NotSupported
 
-              x duration type values are not supported
+              x stretch type values are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^
              3 |         angle(a);
                `----
 
@@ -434,8 +434,8 @@ fn duration_to_angle_fails() {
               x timing literals are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^^^^
              3 |         angle(a);
                `----
         "#]],
@@ -443,9 +443,9 @@ fn duration_to_angle_fails() {
 }
 
 #[test]
-fn duration_to_sized_angle_fails() {
+fn stretch_to_sized_angle_fails() {
     let source = "
-        duration a;
+        stretch a;
         angle[32](a);
     ";
     check(
@@ -453,9 +453,9 @@ fn duration_to_sized_angle_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const angle[32]
+              x cannot cast expression of type stretch to type const angle[32]
                ,-[Test.qasm:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         angle[32](a);
                :         ^^^^^^^^^^^^
              4 |     
@@ -463,11 +463,11 @@ fn duration_to_sized_angle_fails() {
 
             Qasm.Compiler.NotSupported
 
-              x duration type values are not supported
+              x stretch type values are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^
              3 |         angle[32](a);
                `----
 
@@ -476,8 +476,8 @@ fn duration_to_sized_angle_fails() {
               x timing literals are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^^^^
              3 |         angle[32](a);
                `----
         "#]],
@@ -489,9 +489,9 @@ fn duration_to_sized_angle_fails() {
 //=================================
 
 #[test]
-fn duration_to_complex_fails() {
+fn stretch_to_complex_fails() {
     let source = "
-        duration a;
+        stretch a;
         complex(a);
     ";
     check(
@@ -499,9 +499,9 @@ fn duration_to_complex_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const complex[float]
+              x cannot cast expression of type stretch to type const complex[float]
                ,-[Test.qasm:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         complex(a);
                :         ^^^^^^^^^^
              4 |     
@@ -509,11 +509,11 @@ fn duration_to_complex_fails() {
 
             Qasm.Compiler.NotSupported
 
-              x duration type values are not supported
+              x stretch type values are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^
              3 |         complex(a);
                `----
 
@@ -522,8 +522,8 @@ fn duration_to_complex_fails() {
               x timing literals are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^^^^
              3 |         complex(a);
                `----
         "#]],
@@ -531,9 +531,9 @@ fn duration_to_complex_fails() {
 }
 
 #[test]
-fn duration_to_sized_complex_fails() {
+fn stretch_to_sized_complex_fails() {
     let source = "
-        duration a;
+        stretch a;
         complex[float[32]](a);
     ";
     check(
@@ -541,9 +541,9 @@ fn duration_to_sized_complex_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const complex[float[32]]
+              x cannot cast expression of type stretch to type const complex[float[32]]
                ,-[Test.qasm:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         complex[float[32]](a);
                :         ^^^^^^^^^^^^^^^^^^^^^
              4 |     
@@ -551,11 +551,11 @@ fn duration_to_sized_complex_fails() {
 
             Qasm.Compiler.NotSupported
 
-              x duration type values are not supported
+              x stretch type values are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^
              3 |         complex[float[32]](a);
                `----
 
@@ -564,8 +564,8 @@ fn duration_to_sized_complex_fails() {
               x timing literals are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^^^^
              3 |         complex[float[32]](a);
                `----
         "#]],
@@ -577,9 +577,9 @@ fn duration_to_sized_complex_fails() {
 //=================================
 
 #[test]
-fn duration_to_bit_fails() {
+fn stretch_to_bit_fails() {
     let source = "
-        duration a;
+        stretch a;
         bit(a);
     ";
     check(
@@ -587,9 +587,9 @@ fn duration_to_bit_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const bit
+              x cannot cast expression of type stretch to type const bit
                ,-[Test.qasm:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         bit(a);
                :         ^^^^^^
              4 |     
@@ -597,11 +597,11 @@ fn duration_to_bit_fails() {
 
             Qasm.Compiler.NotSupported
 
-              x duration type values are not supported
+              x stretch type values are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^
              3 |         bit(a);
                `----
 
@@ -610,8 +610,8 @@ fn duration_to_bit_fails() {
               x timing literals are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^^^^
              3 |         bit(a);
                `----
         "#]],
@@ -619,9 +619,9 @@ fn duration_to_bit_fails() {
 }
 
 #[test]
-fn duration_to_bitarray_fails() {
+fn stretch_to_bitarray_fails() {
     let source = "
-        duration a;
+        stretch a;
         bit[32](a);
     ";
     check(
@@ -629,9 +629,9 @@ fn duration_to_bitarray_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const bit[32]
+              x cannot cast expression of type stretch to type const bit[32]
                ,-[Test.qasm:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         bit[32](a);
                :         ^^^^^^^^^^
              4 |     
@@ -639,11 +639,11 @@ fn duration_to_bitarray_fails() {
 
             Qasm.Compiler.NotSupported
 
-              x duration type values are not supported
+              x stretch type values are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^
              3 |         bit[32](a);
                `----
 
@@ -652,8 +652,8 @@ fn duration_to_bitarray_fails() {
               x timing literals are not supported
                ,-[Test.qasm:2:9]
              1 | 
-             2 |         duration a;
-               :         ^^^^^^^^^^^
+             2 |         stretch a;
+               :         ^^^^^^^^^^
              3 |         bit[32](a);
                `----
         "#]],
