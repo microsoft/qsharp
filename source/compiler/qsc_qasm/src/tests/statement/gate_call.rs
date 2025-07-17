@@ -323,7 +323,7 @@ fn cx_called_with_one_qubit_generates_error() {
          3 |         qubit[2] q;
          4 |         cx q[0];
            :         ^^^^^^^^
-         5 |
+         5 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
@@ -349,7 +349,7 @@ fn cx_called_with_too_many_qubits_generates_error() {
          3 |         qubit[3] q;
          4 |         cx q[0], q[1], q[2];
            :         ^^^^^^^^^^^^^^^^^^^^
-         5 |
+         5 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
@@ -375,7 +375,7 @@ fn rx_gate_with_no_angles_generates_error() {
          3 |         qubit q;
          4 |         rx q;
            :         ^^^^^
-         5 |
+         5 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
@@ -422,7 +422,7 @@ fn rx_gate_with_too_many_angles_generates_error() {
          3 |         qubit q;
          4 |         rx(2.0, 3.0) q;
            :         ^^^^^^^^^^^^^^^
-         5 |
+         5 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
@@ -955,7 +955,7 @@ fn broadcast_with_different_register_sizes_fails() {
          4 |         qubit[2] targets;
          5 |         ctrl @ x ctrls, targets;
            :                         ^^^^^^^
-         6 |
+         6 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
@@ -1222,7 +1222,7 @@ fn qasm2_cx_called_with_one_qubit_generates_error() {
          4 |         qreg q[2];
          5 |         CX q[0];
            :         ^^^^^^^^
-         6 |
+         6 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
@@ -1249,7 +1249,7 @@ fn qasm2_cx_called_with_too_many_qubits_generates_error() {
          4 |         qreg q[3];
          5 |         cx q[0], q[1], q[2];
            :         ^^^^^^^^^^^^^^^^^^^^
-         6 |
+         6 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
@@ -1276,7 +1276,7 @@ fn qasm2_rx_gate_with_no_angles_generates_error() {
          4 |         qreg q[1];
          5 |         rx q;
            :         ^^^^^
-         6 |
+         6 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
@@ -1325,7 +1325,7 @@ fn qasm2_rx_gate_with_too_many_angles_generates_error() {
          4 |         qreg q[1];
          5 |         rx(2.0, 3.0) q;
            :         ^^^^^^^^^^^^^^^
-         6 |
+         6 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
@@ -1683,7 +1683,7 @@ fn qasm2_broadcast_with_different_register_sizes_fails() {
          5 |         qreg targets[2];
          6 |         CX ctrls, targets;
            :                   ^^^^^^^
-         7 |
+         7 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));

@@ -130,10 +130,10 @@ fn funcall_with_too_few_arguments_generates_error() {
 
           x gate expects 1 classical arguments, but 0 were provided
            ,-[Test.qasm:6:9]
-         5 |
+         5 | 
          6 |         square();
            :         ^^^^^^^^
-         7 |
+         7 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
@@ -158,10 +158,10 @@ fn funcall_with_too_many_arguments_generates_error() {
 
           x gate expects 1 classical arguments, but 2 were provided
            ,-[Test.qasm:6:9]
-         5 |
+         5 | 
          6 |         square(2, 3);
            :         ^^^^^^^^^^^^
-         7 |
+         7 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
@@ -233,10 +233,10 @@ fn classical_decl_initialized_with_incompatible_funcall_errors() {
 
           x cannot cast expression of type angle to type float
            ,-[Test.qasm:6:19]
-         5 |
+         5 | 
          6 |         float a = square(2.0);
            :                   ^^^^^^^^^^^
-         7 |
+         7 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
@@ -285,10 +285,10 @@ fn funcall_implicit_arg_cast_uint_to_qubit_errors() {
 
           x cannot cast expression of type const int to type qubit[2]
            ,-[Test.qasm:6:24]
-         5 |
+         5 | 
          6 |         bit p = parity(2);
            :                        ^
-         7 |
+         7 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
