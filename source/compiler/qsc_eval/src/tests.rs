@@ -1734,24 +1734,7 @@ fn array_slice_out_of_range_expr() {
 
 #[test]
 fn array_index_negative_expr() {
-    check_expr(
-        "",
-        "[1, 2, 3][-2]",
-        &expect![[r#"
-            InvalidIndex(
-                -2,
-                PackageSpan {
-                    package: PackageId(
-                        2,
-                    ),
-                    span: Span {
-                        lo: 10,
-                        hi: 12,
-                    },
-                },
-            )
-        "#]],
-    );
+    check_expr("", "[1, 2, 3][-2]", &expect!["2"]);
 }
 
 #[test]
@@ -1769,6 +1752,50 @@ fn array_index_out_of_range_expr() {
                     span: Span {
                         lo: 10,
                         hi: 11,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn array_index_out_of_range_with_length_expr() {
+    check_expr(
+        "",
+        "[1, 2, 3][3]",
+        &expect![[r#"
+            IndexOutOfRange(
+                3,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 10,
+                        hi: 11,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn array_index_out_of_range_with_negative_length_minus_one_expr() {
+    check_expr(
+        "",
+        "[1, 2, 3][-4]",
+        &expect![[r#"
+            IndexOutOfRange(
+                -4,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 10,
+                        hi: 12,
                     },
                 },
             )
@@ -2273,24 +2300,11 @@ fn update_array_with_range_out_of_range_err() {
 }
 
 #[test]
-fn update_array_with_range_negative_index_err() {
+fn update_array_with_range_negative_index() {
     check_expr(
         "",
         "[0, 1, 2, 3] w/ -1..0 <- [10, 11, 12, 13]",
-        &expect![[r#"
-            InvalidIndex(
-                -1,
-                PackageSpan {
-                    package: PackageId(
-                        2,
-                    ),
-                    span: Span {
-                        lo: 16,
-                        hi: 21,
-                    },
-                },
-            )
-        "#]],
+        &expect!["[11, 1, 2, 10]"],
     );
 }
 
