@@ -15,7 +15,7 @@ export function registerChangelogCommand(
     vscode.commands.registerCommand("qsharp-vscode.showChangelog", async () => {
       const changelogUri = vscode.Uri.joinPath(
         context.extensionUri,
-        "CHANGELOG.md",
+        "changelog.md",
       );
       await vscode.commands.executeCommand(
         "markdown.showPreview",
