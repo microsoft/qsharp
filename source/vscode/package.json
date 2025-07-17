@@ -211,6 +211,10 @@
           "when": "qsharp-vscode.treeItemSupportsDownload"
         },
         {
+          "command": "qsharp-vscode.downloadRawResults",
+          "when": "qsharp-vscode.treeItemSupportsDownload"
+        },
+        {
           "command": "qsharp-vscode.getQir",
           "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
@@ -418,6 +422,11 @@
         "category": "QDK",
         "title": "Download Azure Quantum job results",
         "icon": "$(cloud-download)"
+      },
+      {
+        "command": "qsharp-vscode.downloadRawResults",
+        "category": "QDK",
+        "title": "Download Azure Quantum job results as text"
       },
       {
         "command": "qsharp-vscode.setTargetProfile",

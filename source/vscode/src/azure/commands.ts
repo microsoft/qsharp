@@ -241,58 +241,65 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
     ),
   );
 
+  async function downloadResults(arg?: WorkspaceTreeItem, forceText?: boolean) {
+    // Could be run via the treeItem icon or the menu command.
+    const treeItem = arg || currentTreeItem;
+    if (treeItem?.type !== "job") return;
+
+    const job = treeItem.itemData as Job;
+
+    if (!job.outputDataUri) {
+      log.error("Download called for job with null outputDataUri", job);
+      return;
+    }
+
+    const fileUri = vscode.Uri.parse(job.outputDataUri);
+    const [, container, blob] = fileUri.path.split("/");
+
+    const quantumUris = new QuantumUris(
+      treeItem.workspace.endpointUri,
+      treeItem.workspace.id,
+    );
+
+    try {
+      const token = await getTokenForWorkspace(treeItem.workspace);
+      if (!token) return;
+
+      const file = await getJobFiles(container, blob, token, quantumUris);
+      const buckets =
+        !forceText && getHistogramBucketsFromData(file, job.shots);
+      if (buckets) {
+        sendMessageToPanel({ panelType: "histogram", id: job.name }, true, {
+          ...buckets,
+          suppressSettings: true, // Don't want to show noise settings on downloaded results
+        });
+      } else {
+        const doc = await vscode.workspace.openTextDocument({
+          content: file,
+          language: "json",
+        });
+        vscode.window.showTextDocument(doc);
+      }
+    } catch (e: any) {
+      log.error("Failed to download result file. ", e);
+      vscode.window.showErrorMessage("Failed to download the results file.", {
+        modal: true,
+        detail: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
   context.subscriptions.push(
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.downloadResults`,
-      async (arg: WorkspaceTreeItem) => {
-        // Could be run via the treeItem icon or the menu command.
-        const treeItem = arg || currentTreeItem;
-        if (treeItem?.type !== "job") return;
+      async (arg: WorkspaceTreeItem) => await downloadResults(arg),
+    ),
+  );
 
-        const job = treeItem.itemData as Job;
-
-        if (!job.outputDataUri) {
-          log.error("Download called for job with null outputDataUri", job);
-          return;
-        }
-
-        const fileUri = vscode.Uri.parse(job.outputDataUri);
-        const [, container, blob] = fileUri.path.split("/");
-
-        const quantumUris = new QuantumUris(
-          treeItem.workspace.endpointUri,
-          treeItem.workspace.id,
-        );
-
-        try {
-          const token = await getTokenForWorkspace(treeItem.workspace);
-          if (!token) return;
-
-          const file = await getJobFiles(container, blob, token, quantumUris);
-          const buckets = getHistogramBucketsFromData(file, job.shots);
-          if (buckets) {
-            sendMessageToPanel({ panelType: "histogram", id: job.name }, true, {
-              ...buckets,
-              suppressSettings: true, // Don't want to show noise settings on downloaded results
-            });
-          } else {
-            const doc = await vscode.workspace.openTextDocument({
-              content: file,
-              language: "json",
-            });
-            vscode.window.showTextDocument(doc);
-          }
-        } catch (e: any) {
-          log.error("Failed to download result file. ", e);
-          vscode.window.showErrorMessage(
-            "Failed to download the results file.",
-            {
-              modal: true,
-              detail: e instanceof Error ? e.message : undefined,
-            },
-          );
-        }
-      },
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      `${qsharpExtensionId}.downloadRawResults`,
+      async () => await downloadResults(undefined, true),
     ),
   );
 
