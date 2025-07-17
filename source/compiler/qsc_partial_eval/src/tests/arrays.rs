@@ -269,8 +269,8 @@ fn result_array_value_at_index() {
 }
 
 #[test]
-fn result_array_value_at_negative_index_raises_error() {
-    let error = get_partial_evaluation_error(indoc! {r#"
+fn result_array_value_at_negative_index_works() {
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             @EntryPoint()
             operation Main() : Result {
@@ -280,11 +280,15 @@ fn result_array_value_at_negative_index_raises_error() {
             }
         }
     "#});
-    assert_error(
-        &error,
-        &expect![[
-            r#"EvaluationFailed("value cannot be used as an index: -1", PackageSpan { package: PackageId(2), span: Span { lo: 177, hi: 179 } })"#
-        ]],
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(1), args( Qubit(1), Result(1), )
+                Call id(2), args( Result(1), Pointer, )
+                Return"#]],
     );
 }
 

@@ -1462,8 +1462,7 @@ impl State {
                 if index < 0 {
                     return Err(Error::InvalidNegativeInt(index, span));
                 }
-                let i = index.as_index(span)?;
-                self.update_array_index_single(env, globals, lhs, span, i, update)
+                self.update_array_index_single(env, globals, lhs, span, index, update)
             }
             range @ Value::Range(..) => {
                 self.update_array_index_range(env, globals, lhs, span, &range, update)
@@ -1598,16 +1597,14 @@ impl State {
         globals: &impl PackageStoreLookup,
         lhs: ExprId,
         span: PackageSpan,
-        index: usize,
+        index: i64,
         rhs: Value,
     ) -> Result<(), Error> {
         let lhs = globals.get_expr((self.package, lhs).into());
         match &lhs.kind {
             &ExprKind::Var(Res::Local(id), _) => match env.get_mut(id) {
                 Some(var) => {
-                    var.value.update_array(index, rhs).map_err(|idx| {
-                        Error::IndexOutOfRange(idx.try_into().expect("index should be valid"), span)
-                    })?;
+                    var.value.update_array(index, rhs, span)?;
                 }
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
@@ -1642,13 +1639,7 @@ impl State {
                         if idx < 0 {
                             return Err(Error::InvalidNegativeInt(idx, range_span));
                         }
-                        let i = idx.as_index(range_span)?;
-                        var.value.update_array(i, rhs.clone()).map_err(|idx| {
-                            Error::IndexOutOfRange(
-                                idx.try_into().expect("index should be valid"),
-                                range_span,
-                            )
-                        })?;
+                        var.value.update_array(idx, rhs.clone(), range_span)?;
                     }
                 }
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
