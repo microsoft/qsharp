@@ -8,7 +8,7 @@ use qsc_data_structures::span::Span;
 
 use super::ast::{BinOp, Expr, ExprKind, Index, LiteralKind, Range};
 use crate::parser::ast as syntax;
-use crate::semantic::Lowerer;
+use crate::semantic::{Lowerer, SemanticErrorKind};
 use core::fmt;
 use std::fmt::{Display, Formatter};
 use std::{cmp::max, sync::Arc};
@@ -425,6 +425,7 @@ impl Type {
             | Type::Int(Some(size), constness)
             | Type::UInt(Some(size), constness)
             | Type::BitArray(size, constness) => indexed_type_builder(
+                ctx,
                 || Type::Bit(*constness),
                 |d| {
                     let ArrayDimensions::One(size) = d else {
@@ -436,6 +437,7 @@ impl Type {
                 index,
             ),
             Type::QubitArray(size) => indexed_type_builder(
+                ctx,
                 || Type::Qubit,
                 |d| {
                     let ArrayDimensions::One(size) = d else {
@@ -447,6 +449,7 @@ impl Type {
                 index,
             ),
             Type::Array(array) => indexed_type_builder(
+                ctx,
                 || array.base_ty.clone().into(),
                 |dims| {
                     Type::Array(ArrayType {
@@ -517,6 +520,7 @@ impl Type {
 /// Finally it takes the dimensions of the array being indexed and the indices
 /// used to index it. The function returns the type of the result after indexing.
 fn indexed_type_builder(
+    ctx: &mut Lowerer,
     base_ty_builder: impl Fn() -> Type,
     array_ty_builder: impl Fn(ArrayDimensions) -> Type,
     dims: &ArrayDimensions,
@@ -534,7 +538,7 @@ fn indexed_type_builder(
 
         // If we have a range we need to compute the size of the slice
         Index::Range(range) => {
-            if let Some(slice_size) = compute_slice_size(range, first_dim) {
+            if let Some(slice_size) = compute_slice_size(ctx, range, first_dim) {
                 [slice_size].into_iter().chain(dims).collect::<Vec<_>>()
             } else {
                 return Type::Err;
@@ -555,12 +559,31 @@ fn indexed_type_builder(
 ///
 /// Rust's % operator performs a remainder operator, not a modulo operation.
 /// We need to use `i64::rem_euclid` instead.
-pub(crate) fn wrap_index_value(val: i64, dimension_size: i64) -> i64 {
-    val.rem_euclid(dimension_size)
+pub(crate) fn wrap_index_value(
+    ctx: &mut Lowerer,
+    idx: i64,
+    dimension_size: i64,
+    span: Span,
+) -> Option<i64> {
+    if (-dimension_size..dimension_size).contains(&idx) {
+        Some(if idx < 0 { idx + dimension_size } else { idx })
+    } else {
+        ctx.push_semantic_error(SemanticErrorKind::IndexOutOfBounds(
+            -dimension_size,
+            dimension_size - 1,
+            idx,
+            span,
+        ));
+        None
+    }
 }
 
 /// Computes the slice's start, step, and end.
-pub(crate) fn compute_slice_components(range: &Range, dimension_size: u32) -> (i64, i64, i64) {
+pub(crate) fn compute_slice_components(
+    ctx: &mut Lowerer,
+    range: &Range,
+    dimension_size: u32,
+) -> Option<(i64, i64, i64)> {
     // Helper function to extract the literal value from the start,
     // step, and end components of the range. These expressions are
     // guaranteed to be of literals of type `int` by this point.
@@ -579,14 +602,14 @@ pub(crate) fn compute_slice_components(range: &Range, dimension_size: u32) -> (i
     let step = unwrap_lit_or_default(range.step.as_ref(), 1);
     let end = unwrap_lit_or_default(range.end.as_ref(), i64::from(dimension_size) - 1);
 
-    let start = wrap_index_value(start, i64::from(dimension_size));
-    let end = wrap_index_value(end, i64::from(dimension_size));
+    let start = wrap_index_value(ctx, start, i64::from(dimension_size), range.span)?;
+    let end = wrap_index_value(ctx, end, i64::from(dimension_size), range.span)?;
 
-    (start, step, end)
+    Some((start, step, end))
 }
 
 /// This function returns `None` if the range step is zero.
-fn compute_slice_size(range: &Range, dimension_size: u32) -> Option<u32> {
+fn compute_slice_size(ctx: &mut Lowerer, range: &Range, dimension_size: u32) -> Option<u32> {
     // If the dimension is zero, the slice will also have size zero.
     // If the dimension size is zero, the slice will always be empty.
     // So we return Some(0) as the size of the slice.
@@ -594,7 +617,7 @@ fn compute_slice_size(range: &Range, dimension_size: u32) -> Option<u32> {
         return Some(0);
     }
 
-    let (start, step, end) = compute_slice_components(range, dimension_size);
+    let (start, step, end) = compute_slice_components(ctx, range, dimension_size)?;
 
     // <https://openqasm.com/language/types.html#register-concatenation-and-slicing>
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]

@@ -164,7 +164,8 @@ impl LiteralKind {
                 };
 
                 #[allow(clippy::cast_sign_loss)]
-                let idx = super::types::wrap_index_value(idx, i64::from(size)) as u64;
+                let idx =
+                    super::types::wrap_index_value(ctx, idx, i64::from(size), index.span())? as u64;
 
                 // We need to change the endianness of the index.
                 // Our bitarrays are stored as BigInts, but indexing into OpenQASM bit registers
@@ -175,7 +176,7 @@ impl LiteralKind {
                 Some(Self::Bit((value & mask) != BigInt::ZERO))
             }
             Index::Range(range) => {
-                let (start, step, end) = compute_slice_components(range, size);
+                let (start, step, end) = compute_slice_components(ctx, range, size)?;
                 #[allow(clippy::cast_sign_loss)]
                 #[allow(clippy::cast_possible_truncation)]
                 // When changing the endianness of a range, we also need to negate the step.

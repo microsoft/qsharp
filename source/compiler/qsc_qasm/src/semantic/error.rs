@@ -136,6 +136,9 @@ pub enum SemanticErrorKind {
     #[error("indexed must be a single expression")]
     #[diagnostic(code("Qasm.Lowerer.IndexMustBeSingleExpr"))]
     IndexMustBeSingleExpr(#[label] Span),
+    #[error("index must be in the range [{0}, {1}] but it was {2}")]
+    #[diagnostic(code("Qasm.Lowerer.IndexOutOfBounds"))]
+    IndexOutOfBounds(i64, i64, i64, #[label] Span),
     #[error("index sets are only allowed in alias statements")]
     #[diagnostic(code("Qasm.Lowerer.IndexSetOnlyAllowedInAliasStmt"))]
     IndexSetOnlyAllowedInAliasStmt(#[label] Span),
