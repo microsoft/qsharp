@@ -26,12 +26,11 @@ fn on_a_single_qubit() {
 }
 
 #[test]
-fn on_a_single_qubit_with_variables() {
+fn cannot_have_a_negative_duration() {
     check_stmt_kinds(
         "qubit q;
-        duration stride = 5ns;
-        int p = 2;
-        delay [p * stride] q;",
+        duration d = 1s - 4s;
+        delay [d] q;",
         &expect![[r#"
             Program:
                 version: <none>
@@ -41,53 +40,88 @@ fn on_a_single_qubit_with_variables() {
                         annotations: <empty>
                         kind: QubitDeclaration [0-8]:
                             symbol_id: 8
-                    Stmt [17-39]:
+                    Stmt [17-38]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [17-39]:
+                        kind: ClassicalDeclarationStmt [17-38]:
                             symbol_id: 9
                             ty_span: [17-25]
-                            init_expr: Expr [35-38]:
+                            init_expr: Expr [30-37]:
                                 ty: duration
-                                kind: Lit: Duration(5.0, Ns)
-                    Stmt [48-58]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [48-58]:
-                            symbol_id: 10
-                            ty_span: [48-51]
-                            init_expr: Expr [56-57]:
-                                ty: int
-                                kind: Lit: Int(2)
-                    Stmt [67-88]:
-                        annotations: <empty>
-                        kind: DelayStmt [67-88]:
-                            duration: Expr [74-84]:
-                                ty: float
+                                const_value: Duration(-3.0 s)
                                 kind: BinaryOpExpr:
-                                    op: Mul
-                                    lhs: Expr [74-75]:
-                                        ty: float
-                                        kind: Cast [0-0]:
-                                            ty: float
-                                            expr: Expr [74-75]:
-                                                ty: int
-                                                kind: SymbolId(10)
-                                    rhs: Expr [78-84]:
+                                    op: Sub
+                                    lhs: Expr [30-32]:
                                         ty: duration
-                                        kind: SymbolId(9)
+                                        kind: Lit: Duration(1.0 s)
+                                    rhs: Expr [35-37]:
+                                        ty: duration
+                                        kind: Lit: Duration(4.0 s)
+                    Stmt [47-59]:
+                        annotations: <empty>
+                        kind: DelayStmt [47-59]:
+                            duration: Expr [54-55]:
+                                ty: duration
+                                const_value: Duration(-3.0 s)
+                                kind: SymbolId(9)
                             qubits:
-                                GateOperand [86-87]:
-                                    kind: Expr [86-87]:
+                                GateOperand [57-58]:
+                                    kind: Expr [57-58]:
                                         ty: qubit
                                         kind: SymbolId(8)
 
-            [Qasm.Lowerer.CannotCast
+            [Qasm.Lowerer.DesignatorMustBePositiveDuration
 
-              x cannot cast expression of type duration to type float
-               ,-[test:4:20]
-             3 |         int p = 2;
-             4 |         delay [p * stride] q;
-               :                    ^^^^^^
+              x designator must be a positive duration
+               ,-[test:3:16]
+             2 |         duration d = 1s - 4s;
+             3 |         delay [d] q;
+               :                ^
                `----
             ]"#]],
+    );
+}
+
+#[test]
+fn on_a_single_qubit_with_variables() {
+    check_stmt_kinds(
+        "qubit q;
+        duration stride = 5ns;
+        const int p = 2;
+        delay [p * stride] q;",
+        &expect![[r#"
+            QubitDeclaration [0-8]:
+                symbol_id: 8
+            ClassicalDeclarationStmt [17-39]:
+                symbol_id: 9
+                ty_span: [17-25]
+                init_expr: Expr [35-38]:
+                    ty: duration
+                    const_value: Duration(5.0 ns)
+                    kind: Lit: Duration(5.0 ns)
+            ClassicalDeclarationStmt [48-64]:
+                symbol_id: 10
+                ty_span: [54-57]
+                init_expr: Expr [62-63]:
+                    ty: const int
+                    const_value: Int(2)
+                    kind: Lit: Int(2)
+            DelayStmt [73-94]:
+                duration: Expr [80-90]:
+                    ty: duration
+                    const_value: Duration(10.0 ns)
+                    kind: BinaryOpExpr:
+                        op: Mul
+                        lhs: Expr [80-81]:
+                            ty: const int
+                            kind: SymbolId(10)
+                        rhs: Expr [84-90]:
+                            ty: duration
+                            kind: SymbolId(9)
+                qubits:
+                    GateOperand [92-93]:
+                        kind: Expr [92-93]:
+                            ty: qubit
+                            kind: SymbolId(8)
+        "#]],
     );
 }

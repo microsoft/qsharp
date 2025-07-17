@@ -3955,14 +3955,8 @@ impl Lowerer {
         } else {
             &lhs
         };
-        if !other_expr.ty.is_const()
-            || !matches!(
-                &*other_expr.kind,
-                semantic::ExprKind::Lit(
-                    semantic::LiteralKind::Int(_) | semantic::LiteralKind::Float(_)
-                )
-            )
-        {
+
+        if !other_expr.ty.is_const() {
             // the other expression must be a literal or a constant expression
             // if it is not, we cannot perform the operation.
             return unsupported_binop(op, left_type, right_type, span);

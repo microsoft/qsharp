@@ -60,6 +60,13 @@ impl Add for Duration {
                 value,
                 unit: TimeUnit::Dt,
             }
+        } else if self.unit == rhs.unit {
+            // both are the same unit, just add
+            let value = self.value + rhs.value;
+            Self {
+                value,
+                unit: self.unit,
+            }
         } else {
             // Normalize to a common unit (e.g., nanoseconds)
             let self_ns = self.to_nanoseconds();
@@ -83,6 +90,13 @@ impl Sub for Duration {
             Self {
                 value,
                 unit: TimeUnit::Dt,
+            }
+        } else if self.unit == rhs.unit {
+            // both are the same unit, just add
+            let value = self.value - rhs.value;
+            Self {
+                value,
+                unit: self.unit,
             }
         } else {
             // Normalize to a common unit (e.g., nanoseconds)

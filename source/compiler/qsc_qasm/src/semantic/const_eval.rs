@@ -630,7 +630,7 @@ impl BinaryOpExpr {
             },
             BinOp::Mul => match lhs_ty {
                 Type::Int(..) => match &self.rhs.ty {
-                    Type::Duration(..) => {
+                    Type::Duration(..) | Type::Stretch(..) => {
                         rewrap_lit!((lhs, rhs), (Int(lhs), Duration(rhs)), Duration(rhs * lhs))
                     }
                     _ => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs * rhs)),
@@ -650,13 +650,13 @@ impl BinaryOpExpr {
                         #[allow(clippy::cast_sign_loss)]
                         Angle(rhs * u64::try_from(lhs).ok()?)
                     }),
-                    Type::Duration(..) => {
+                    Type::Duration(..) | Type::Stretch(..) => {
                         rewrap_lit!((lhs, rhs), (Int(lhs), Duration(rhs)), Duration(rhs * lhs))
                     }
                     _ => None,
                 },
                 Type::Float(..) => match &self.rhs.ty {
-                    Type::Duration(..) => {
+                    Type::Duration(..) | Type::Stretch(..) => {
                         rewrap_lit!((lhs, rhs), (Float(lhs), Duration(rhs)), Duration(rhs * lhs))
                     }
                     _ => rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Float(lhs * rhs)),
@@ -730,7 +730,7 @@ impl BinaryOpExpr {
                     rewrap_lit!((lhs, rhs), (Complex(lhs), Complex(rhs)), Complex(lhs / rhs))
                 }
                 Type::Duration(..) | Type::Stretch(..) => match &self.rhs.ty {
-                    Type::Duration(..) => {
+                    Type::Duration(..) | Type::Stretch(..) => {
                         rewrap_lit!((lhs, rhs), (Duration(lhs), Duration(rhs)), Float(lhs / rhs))
                     }
                     Type::Int(..) | Type::UInt(..) => {
