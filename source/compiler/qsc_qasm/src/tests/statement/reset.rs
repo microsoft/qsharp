@@ -229,7 +229,7 @@ fn on_a_zero_len_qubit_register_fails() {
 
               x quantum register size must be a positive integer
                ,-[Test.qasm:2:15]
-             1 |
+             1 | 
              2 |         qubit[0] q;
                :               ^
              3 |         reset q;
