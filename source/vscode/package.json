@@ -211,6 +211,10 @@
           "when": "qsharp-vscode.treeItemSupportsDownload"
         },
         {
+          "command": "qsharp-vscode.downloadRawResults",
+          "when": "qsharp-vscode.treeItemSupportsDownload"
+        },
+        {
           "command": "qsharp-vscode.getQir",
           "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
@@ -280,6 +284,11 @@
         },
         {
           "command": "qsharp-vscode.downloadResults",
+          "group": "inline",
+          "when": "view == quantum-workspaces && viewItem == result-download"
+        },
+        {
+          "command": "qsharp-vscode.downloadRawResults",
           "group": "inline",
           "when": "view == quantum-workspaces && viewItem == result-download"
         },
@@ -416,8 +425,14 @@
       {
         "command": "qsharp-vscode.downloadResults",
         "category": "QDK",
-        "title": "Download Azure Quantum job results",
-        "icon": "$(cloud-download)"
+        "title": "Download Azure Quantum job results as histogram",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "qsharp-vscode.downloadRawResults",
+        "category": "QDK",
+        "title": "Download Azure Quantum job results as text",
+        "icon": "$(output)"
       },
       {
         "command": "qsharp-vscode.setTargetProfile",
