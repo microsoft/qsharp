@@ -242,7 +242,7 @@ impl Display for MeasureExpr {
 }
 
 /// A binary operator.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BinOp {
     /// Addition: `+`.
     Add,
