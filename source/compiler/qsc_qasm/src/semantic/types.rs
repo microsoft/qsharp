@@ -555,10 +555,9 @@ fn indexed_type_builder(
 
 /// The spec says: "Indexing of arrays is n-based i.e., negative indices are allowed."
 /// <https://openqasm.com/language/types.html#arrays>
-/// Does that means indexes always wrap around and there is no index out of bounds error?
 ///
-/// Rust's % operator performs a remainder operator, not a modulo operation.
-/// We need to use `i64::rem_euclid` instead.
+/// We interpret this as allowing indexing in the range [-N, N-1], where N is the size
+/// of the array, which matches Python and Q# behavior.
 pub(crate) fn wrap_index_value(
     ctx: &mut Lowerer,
     idx: i64,
