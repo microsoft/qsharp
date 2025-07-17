@@ -14,7 +14,11 @@ import {
   openqasmLanguageId,
   qsharpLanguageId,
 } from "../common.js";
-import { getTarget, getShowDevDiagnostics } from "../config.js";
+import {
+  getTarget,
+  getShowDevDiagnostics,
+  getOpenQasmEnableSpecMode,
+} from "../config.js";
 import {
   fetchGithubRaw,
   findManifestDirectory,
@@ -317,7 +321,8 @@ function registerConfigurationChangeHandlers(
   return vscode.workspace.onDidChangeConfiguration((event) => {
     if (
       event.affectsConfiguration("Q#.qir.targetProfile") ||
-      event.affectsConfiguration("Q#.dev.showDevDiagnostics")
+      event.affectsConfiguration("Q#.dev.showDevDiagnostics") ||
+      event.affectsConfiguration("qdk.openqasm.enableSpecMode")
     ) {
       updateLanguageServiceConfiguration(languageService);
     }
@@ -329,6 +334,7 @@ async function updateLanguageServiceConfiguration(
 ) {
   const targetProfile = getTarget();
   const showDevDiagnostics = getShowDevDiagnostics();
+  const openqasmSpecMode = getOpenQasmEnableSpecMode();
 
   switch (targetProfile) {
     case "base":
@@ -341,11 +347,13 @@ async function updateLanguageServiceConfiguration(
   }
   log.debug("Target profile set to: " + targetProfile);
   log.debug("Show dev diagnostics set to: " + showDevDiagnostics);
+  log.debug("OpenQASM spec mode set to: " + openqasmSpecMode);
 
   // Update all configuration settings
   languageService.updateConfiguration({
     targetProfile: targetProfile,
     devDiagnostics: showDevDiagnostics,
+    openqasmSpecMode: openqasmSpecMode,
     lints: [{ lint: "needlessOperation", level: "warn" }],
   });
 }
