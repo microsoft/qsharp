@@ -77,15 +77,21 @@ pub enum SemanticErrorKind {
     #[error("complex numbers in assignment binary expressions are not yet supported")]
     #[diagnostic(code("Qasm.Lowerer.ComplexBinaryAssignment"))]
     ComplexBinaryAssignment(#[label] Span),
-    #[error("designator must be a positive literal integer")]
-    #[diagnostic(code("Qasm.Lowerer.DesignatorMustBePositiveIntLiteral"))]
-    DesignatorMustBePositiveIntLiteral(#[label] Span),
     #[error("def declarations must be done in global scope")]
     #[diagnostic(code("Qasm.Lowerer.DefDeclarationInNonGlobalScope"))]
     DefDeclarationInNonGlobalScope(#[label] Span),
+    #[error("designator must be a positive duration")]
+    #[diagnostic(code("Qasm.Lowerer.DesignatorMustBePositiveDuration"))]
+    DesignatorMustBePositiveDuration(#[label] Span),
+    #[error("designator must be a positive literal integer")]
+    #[diagnostic(code("Qasm.Lowerer.DesignatorMustBePositiveIntLiteral"))]
+    DesignatorMustBePositiveIntLiteral(#[label] Span),
     #[error("designator is too large")]
     #[diagnostic(code("Qasm.Lowerer.DesignatorTooLarge"))]
     DesignatorTooLarge(#[label] Span),
+    #[error("duration must be known at compile time")]
+    #[diagnostic(code("Qasm.Lowerer.DurationMustBeKnownAtCompileTime"))]
+    DurationMustBeKnownAtCompileTime(#[label] Span),
     #[error("index operator must contain at least one index")]
     #[diagnostic(code("Qasm.Lowerer.EmptyIndexOperator"))]
     EmptyIndexOperator(#[label] Span),
@@ -95,6 +101,9 @@ pub enum SemanticErrorKind {
     #[error("{0} must be an integer")]
     #[diagnostic(code("Qasm.Lowerer.ExprMustBeInt"))]
     ExprMustBeInt(String, #[label] Span),
+    #[error("expression must be a duration")]
+    #[diagnostic(code("Qasm.Lowerer.ExprMustBeDuration"))]
+    ExprMustBeDuration(#[label] Span),
     #[error("{0} must be a non-negative integer")]
     #[diagnostic(code("Qasm.Lowerer.ExprMustBeNonNegativeInt"))]
     ExprMustBeNonNegativeInt(String, #[label] Span),

@@ -51,7 +51,7 @@ use crate::{
         symbols::{IOKind, Symbol, SymbolId, SymbolTable},
         types::{Type, promote_types},
     },
-    stdlib::complex::Complex,
+    stdlib::{complex::Complex, duration},
 };
 
 use crate::semantic::ast as semast;
@@ -1579,8 +1579,8 @@ impl QasmCompiler {
             }
             LiteralKind::Bit(value) => Self::compile_bit_literal(*value, span),
             LiteralKind::Bool(value) => Self::compile_bool_literal(*value, span),
-            LiteralKind::Duration(value, time_unit) => {
-                self.compile_duration_literal(*value, *time_unit, span)
+            LiteralKind::Duration(duration) => {
+                self.compile_duration_literal(duration.value, duration.unit, span)
             }
             LiteralKind::Float(value) => Self::compile_float_literal(*value, span),
             LiteralKind::Complex(value) => Self::compile_complex_literal(*value, span),

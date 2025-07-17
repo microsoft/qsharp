@@ -16,7 +16,7 @@ use crate::{
     },
     parser::ast::{List, PathKind},
     semantic::symbols::SymbolId,
-    stdlib::{angle::Angle, complex::Complex},
+    stdlib::{angle::Angle, complex::Complex, duration::Duration},
 };
 
 use crate::parser::ast as syntax;
@@ -1282,7 +1282,7 @@ pub enum LiteralKind {
     Array(Array),
     Bitstring(BigInt, u32),
     Bool(bool),
-    Duration(f64, TimeUnit),
+    Duration(Duration),
     Float(f64),
     Complex(Complex),
     Int(i64),
@@ -1302,8 +1302,8 @@ impl Display for LiteralKind {
             LiteralKind::Bit(b) => write!(f, "Bit({:?})", u8::from(*b)),
             LiteralKind::Bool(b) => write!(f, "Bool({b:?})"),
             LiteralKind::Complex(value) => write!(f, "Complex({value})"),
-            LiteralKind::Duration(value, unit) => {
-                write!(f, "Duration({value:?}, {unit:?})")
+            LiteralKind::Duration(value) => {
+                write!(f, "Duration({value})")
             }
             LiteralKind::Float(value) => write!(f, "Float({value:?})"),
             LiteralKind::Int(i) => write!(f, "Int({i:?})"),
@@ -1437,10 +1437,11 @@ impl Display for Index {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum TimeUnit {
     Dt,
     /// Nanoseconds.
+    #[default]
     Ns,
     /// Microseconds.
     Us,
