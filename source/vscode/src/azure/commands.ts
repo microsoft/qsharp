@@ -241,7 +241,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
     ),
   );
 
-  async function downloadResults(arg?: WorkspaceTreeItem, forceText?: boolean) {
+  async function downloadResults(arg?: WorkspaceTreeItem, showText?: boolean) {
     // Could be run via the treeItem icon or the menu command.
     const treeItem = arg || currentTreeItem;
     if (treeItem?.type !== "job") return;
@@ -266,14 +266,17 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
       if (!token) return;
 
       const file = await getJobFiles(container, blob, token, quantumUris);
-      const buckets =
-        !forceText && getHistogramBucketsFromData(file, job.shots);
+      const buckets = !showText && getHistogramBucketsFromData(file, job.shots);
       if (buckets) {
         sendMessageToPanel({ panelType: "histogram", id: job.name }, true, {
           ...buckets,
           suppressSettings: true, // Don't want to show noise settings on downloaded results
         });
       } else {
+        if (!showText)
+          vscode.window.showInformationMessage(
+            "Unable to display results as a histogram. Opening as text.",
+          );
         const doc = await vscode.workspace.openTextDocument({
           content: file,
           language: "json",
@@ -292,14 +295,14 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.downloadResults`,
-      async (arg: WorkspaceTreeItem) => await downloadResults(arg),
+      async (arg: WorkspaceTreeItem) => await downloadResults(arg, false),
     ),
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.downloadRawResults`,
-      async () => await downloadResults(undefined, true),
+      async (arg: WorkspaceTreeItem) => await downloadResults(arg, true),
     ),
   );
 
