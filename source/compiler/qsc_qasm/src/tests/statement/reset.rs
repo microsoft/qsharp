@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::tests::compile_qasm_to_qir;
 use crate::{
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
     tests::{
@@ -10,9 +11,6 @@ use crate::{
 };
 use expect_test::expect;
 use miette::Report;
-use qsc::target::Profile;
-
-use crate::tests::compile_qasm_to_qir;
 
 #[test]
 fn reset_calls_are_generated_from_qasm() -> miette::Result<(), Vec<Report>> {
@@ -59,6 +57,7 @@ fn reset_with_base_profile_is_rewritten_without_resets() -> miette::Result<(), V
     let source = r#"
         OPENQASM 3.0;
         include "stdgates.inc";
+        #pragma qdk.qir.profile Base
         bit[1] meas;
         qubit[1] q;
         reset q[0];
@@ -66,7 +65,7 @@ fn reset_with_base_profile_is_rewritten_without_resets() -> miette::Result<(), V
         meas[0] = measure q[0];
     "#;
 
-    let qir = compile_qasm_to_qir(source, Profile::Base)?;
+    let qir = compile_qasm_to_qir(source)?;
     expect![[
         r#"
         %Result = type opaque
@@ -112,6 +111,7 @@ fn reset_with_adaptive_ri_profile_generates_reset_qir() -> miette::Result<(), Ve
     let source = r#"
         OPENQASM 3.0;
         include "stdgates.inc";
+        #pragma qdk.qir.profile Adaptive_RI
         bit[1] meas;
         qubit[1] q;
         reset q[0];
@@ -119,7 +119,7 @@ fn reset_with_adaptive_ri_profile_generates_reset_qir() -> miette::Result<(), Ve
         meas[0] = measure q[0];
     "#;
 
-    let qir = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
+    let qir = compile_qasm_to_qir(source)?;
     expect![
         r#"
         %Result = type opaque
@@ -229,7 +229,7 @@ fn on_a_zero_len_qubit_register_fails() {
 
               x quantum register size must be a positive integer
                ,-[Test.qasm:2:15]
-             1 | 
+             1 |
              2 |         qubit[0] q;
                :               ^
              3 |         reset q;

@@ -18,7 +18,6 @@ use crate::{
     tests::{compile_fragments, compile_with_config, fail_on_compilation_errors},
 };
 use miette::Report;
-use qsc::target::Profile;
 
 use super::compile_qasm_best_effort;
 
@@ -118,5 +117,5 @@ fn stretch() {
 #[test]
 fn gate_decl_with_missing_seq_item_doesnt_panic() {
     let source = r#"gate g1 x,,y {}"#;
-    compile_qasm_best_effort(source, Profile::Unrestricted);
+    compile_qasm_best_effort(source);
 }

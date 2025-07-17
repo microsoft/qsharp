@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use core::panic;
+
 use crate::tests::compile_qasm_to_qsharp;
 use expect_test::expect;
 use miette::Report;
@@ -169,7 +171,7 @@ fn target_with_param_raises_error() {
 
           x sample_box_target is not defined or is not a valid target for box usage
            ,-[Test.qasm:2:29]
-         1 | 
+         1 |
          2 |         pragma qdk.box.open sample_box_target
            :                             ^^^^^^^^^^^^^^^^^
          3 |         def sample_box_target(int i) {}
@@ -194,7 +196,7 @@ fn unknown_pragma_raises_error() {
 
           x pragma statement: qdk.box.unknown are not supported
            ,-[Test.qasm:2:9]
-         1 | 
+         1 |
          2 |         pragma qdk.box.unknown sample_box_target
            :         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
          3 |         def sample_box_target(int i) {}
@@ -221,7 +223,7 @@ fn target_with_return_value_raises_error() {
 
           x sample_box_target is not defined or is not a valid target for box usage
            ,-[Test.qasm:2:29]
-         1 | 
+         1 |
          2 |         pragma qdk.box.open sample_box_target
            :                             ^^^^^^^^^^^^^^^^^
          3 |         def sample_box_target() -> int {
@@ -245,7 +247,7 @@ fn unknown_target_with_return_value_raises_error() {
 
           x sample_box_target is not defined or is not a valid target for box usage
            ,-[Test.qasm:2:29]
-         1 | 
+         1 |
          2 |         pragma qdk.box.open sample_box_target
            :                             ^^^^^^^^^^^^^^^^^
          3 |         box {}
