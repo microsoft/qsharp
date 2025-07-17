@@ -186,6 +186,17 @@ impl QasmCompiler {
         for pragma in &program.pragmas {
             self.compile_pragma_stmt(pragma);
         }
+        // Get the first profile pragma if present, otherwise default to `Unrestricted`.
+        let target_profile = self.pragma_config.pragmas
+            .iter()
+            .find_map(|(kind, value)|
+                if matches!(kind, PragmaKind::QdkProfile) {
+                    Some(Profile::from_str(value).expect("Invalid profile pragma; only a valid profile should be store in pragma_config."))
+                } else {
+                    None
+                }
+            )
+            .unwrap_or(Profile::Unrestricted);
         self.compile_stmts(&program.statements);
         let (package, signature) = match program_ty {
             ProgramType::File => self.build_file(),
@@ -193,7 +204,13 @@ impl QasmCompiler {
             ProgramType::Fragments => (self.build_fragments(), None),
         };
 
-        QasmCompileUnit::new(self.source_map, self.errors, package, signature)
+        QasmCompileUnit::new(
+            self.source_map,
+            self.errors,
+            package,
+            signature,
+            target_profile,
+        )
     }
 
     /// Build a package with namespace and an operation

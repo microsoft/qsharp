@@ -476,18 +476,10 @@ pub(crate) fn into_qsc_args(
 
 #[allow(clippy::needless_pass_by_value)]
 #[allow(clippy::type_complexity)]
-pub(crate) fn into_openqasm_args(
-    program: ProgramConfig,
-) -> (Vec<(Arc<str>, Arc<str>)>, qsc::TargetCapabilityFlags) {
-    let capabilities = qsc::target::Profile::from_str(&program.profile())
-        .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()))
-        .into();
-
+pub(crate) fn into_openqasm_arg(program: ProgramConfig) -> Vec<(Arc<str>, Arc<str>)> {
     let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
     let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
-    let sources = pkg_graph.root.sources;
-
-    (sources, capabilities)
+    pkg_graph.root.sources
 }
 
 pub(crate) fn is_openqasm_program(program: &ProgramConfig) -> bool {
