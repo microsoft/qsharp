@@ -1760,6 +1760,50 @@ fn array_index_out_of_range_expr() {
 }
 
 #[test]
+fn array_index_out_of_range_with_length_expr() {
+    check_expr(
+        "",
+        "[1, 2, 3][3]",
+        &expect![[r#"
+            IndexOutOfRange(
+                3,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 10,
+                        hi: 11,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn array_index_out_of_range_with_negative_length_minus_one_expr() {
+    check_expr(
+        "",
+        "[1, 2, 3][-4]",
+        &expect![[r#"
+            IndexOutOfRange(
+                -4,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 10,
+                        hi: 12,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn literal_big_int_expr() {
     check_expr(
         "",
