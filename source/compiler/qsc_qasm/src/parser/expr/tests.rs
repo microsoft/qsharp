@@ -1190,3 +1190,24 @@ fn addition_of_casts() {
                     arg: Expr [13-14]: Lit: Int(1)"#]],
     );
 }
+
+#[test]
+fn duration_of() {
+    check_expr(
+        "durationof({x $0;})",
+        &expect![[r#"
+            Expr [0-19]: DurationofCall [0-19]:
+                name_span: [0-10]
+                scope: Block [11-18]:
+                    Stmt [12-17]:
+                        annotations: <empty>
+                        kind: GateCall [12-17]:
+                            modifiers: <empty>
+                            name: Ident [12-13] "x"
+                            args: <empty>
+                            duration: <none>
+                            qubits:
+                                GateOperand [14-16]:
+                                    kind: HardwareQubit [14-16]: 0"#]],
+    );
+}

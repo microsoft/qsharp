@@ -14,8 +14,9 @@ fn on_a_single_qubit() {
                 symbol_id: 8
             DelayStmt [17-31]:
                 duration: Expr [24-27]:
-                    ty: const duration
-                    kind: Lit: Duration(5.0, Ns)
+                    ty: duration
+                    const_value: Duration(5.0 ns)
+                    kind: Lit: Duration(5.0 ns)
                 qubits:
                     GateOperand [29-30]:
                         kind: Expr [29-30]:

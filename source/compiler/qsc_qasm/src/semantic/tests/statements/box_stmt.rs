@@ -364,8 +364,9 @@ fn with_duration_fails() {
         &expect![[r#"
             BoxStmt [0-13]:
                 duration: Expr [5-8]:
-                    ty: const duration
-                    kind: Lit: Duration(4.0, Us)
+                    ty: duration
+                    const_value: Duration(4.0 us)
+                    kind: Lit: Duration(4.0 us)
                 body: <empty>
         "#]],
     );

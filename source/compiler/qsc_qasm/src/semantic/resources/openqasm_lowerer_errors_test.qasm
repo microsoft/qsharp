@@ -73,9 +73,6 @@ bool binary_negation_not_supported = true;
 // NotSupported arrays with more than 7 dimensions
 array[int, 1, 2, 3, 1, 2, 3, 1, 2] array_with_more_than_7_dims;
 
-// NotSupported stretch default values
-stretch stretch_val;
-
 box [2ns] {
     // ClassicalStmtInBox
     2;

@@ -833,6 +833,7 @@ impl Lowerer {
             syntax::ExprKind::Lit(lit) => self.lower_lit_expr(lit, None),
             syntax::ExprKind::Paren(pexpr) => self.lower_paren_expr(pexpr, expr.span),
             syntax::ExprKind::UnaryOp(expr) => self.lower_unary_op_expr(expr),
+            syntax::ExprKind::DurationOf(expr) => self.lower_duration_of_expr(expr),
         }
     }
 
@@ -1120,6 +1121,17 @@ impl Lowerer {
         }
     }
 
+    fn lower_duration_of_expr(&mut self, expr: &syntax::DurationofCall) -> semantic::Expr {
+        let scope = self.lower_block(&expr.scope);
+        let ty = Type::Duration(true);
+        let kind = semantic::ExprKind::DurationofCall(semantic::DurationofCallExpr {
+            span: expr.span,
+            fn_name_span: expr.name_span,
+            scope,
+        });
+        semantic::Expr::new(expr.span, kind, ty)
+    }
+
     fn lower_annotations(annotations: &[Box<syntax::Annotation>]) -> Vec<semantic::Annotation> {
         annotations
             .iter()
@@ -1277,7 +1289,10 @@ impl Lowerer {
             None => self.cast_expr_with_target_type_or_default(None, &ty, stmt_span),
         };
 
-        if init_expr.ty.is_const() {
+        // If the type is a duration subtype, we need to evaluate the init_expr
+        // to get the const value and set it in the symbol.
+        // This is because duration subtypes can only be const.
+        if type_is_duration_subtype(&init_expr.ty) {
             init_expr = init_expr.with_const_value(self);
             symbol = symbol.with_const_expr(Rc::new(init_expr.clone()));
         }
@@ -3439,6 +3454,7 @@ impl Lowerer {
             }
             Type::BitArray(size, _) => Self::cast_bitarray_expr_to_type(*size, ty, expr),
             Type::Array(..) => Self::cast_array_expr_to_type(ty, expr),
+            Type::Duration(..) | Type::Stretch(..) => cast_duration_subtype_expr_to_type(ty, expr),
             _ => None,
         }
     }
@@ -3894,22 +3910,10 @@ impl Lowerer {
         let left_type = lhs.ty.clone();
         let right_type = rhs.ty.clone();
 
-        // // The spec says that only these operators are allowed on durations and stretches.
-        // if !matches!(
-        //     op,
-        //     syntax::BinOp::Add | syntax::BinOp::Sub | syntax::BinOp::Mul | syntax::BinOp::Div
-        // ) {
-        //     return unsupported_binop(op, left_type, right_type, span);
-        // }
-
         // <https://openqasm.com/language/types.html#converting-duration-to-other-types>
         // Division of two durations results in a machine-precision float
         // No other operations between durations are allowed.
         if both_types_are_duration_subtypes(&left_type, &right_type) {
-            // if op == syntax::BinOp::Mul {
-            //     return unsupported_binop(op, left_type, right_type, span);
-            // }
-
             let ty = if op == syntax::BinOp::Div {
                 // Division of two durations results in a machine-precision float
                 Type::Float(None, true)
@@ -4539,6 +4543,22 @@ fn cast_complex_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic
         // when handling the widths, that is, ignoring them, since complex
         // numbers are a pair of floats.
         return Some(rhs.clone());
+    }
+    None
+}
+
+fn cast_duration_subtype_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic::Expr> {
+    assert!(matches!(rhs.ty, Type::Duration(..) | Type::Stretch(..)));
+
+    // we know the rhs is a duration or a stretch
+    // if the target type is a duration subtype, we can 'cast' it
+    if type_is_duration_subtype(ty) {
+        // duration can only 'cast' to a duration subtype.
+        // We aren't going to actually cast, we just
+        // change the type of the expression.
+        let mut expr = rhs.clone();
+        expr.ty = ty.clone();
+        return Some(expr);
     }
     None
 }

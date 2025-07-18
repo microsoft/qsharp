@@ -1093,6 +1093,7 @@ pub enum ExprKind {
     Paren(Expr),
     Measure(MeasureExpr),
     SizeofCall(SizeofCallExpr),
+    DurationofCall(DurationofCallExpr),
 }
 
 impl Display for ExprKind {
@@ -1110,6 +1111,7 @@ impl Display for ExprKind {
             ExprKind::Paren(expr) => write!(f, "Paren {expr}"),
             ExprKind::Measure(expr) => write!(f, "{expr}"),
             ExprKind::SizeofCall(call) => write!(f, "{call}"),
+            ExprKind::DurationofCall(call) => write!(f, "{call}"),
         }
     }
 }
@@ -1220,6 +1222,22 @@ impl Display for SizeofCallExpr {
         writeln_field(f, "array", &self.array)?;
         writeln_field(f, "array_dims", &self.array_dims)?;
         write_field(f, "dim", &self.dim)
+    }
+}
+
+#[derive(Clone, Debug)]
+
+pub struct DurationofCallExpr {
+    pub span: Span,
+    pub fn_name_span: Span,
+    pub scope: Block,
+}
+
+impl Display for DurationofCallExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "DurationofCallExpr", self.span)?;
+        writeln_field(f, "fn_name_span", &self.fn_name_span)?;
+        write_field(f, "scope", &self.scope)
     }
 }
 
