@@ -43,6 +43,7 @@ pub(crate) struct Compilation {
     pub kind: CompilationKind,
     pub dependencies: FxHashMap<PackageId, Option<PackageAlias>>,
     pub test_cases: Vec<(String, Span)>,
+    pub is_single_file: bool,
 }
 
 #[derive(Debug)]
@@ -68,6 +69,7 @@ pub(crate) enum CompilationKind {
 
 impl Compilation {
     /// Creates a new `Compilation` by compiling sources.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         package_type: PackageType,
         target_profile: Profile,
@@ -76,9 +78,13 @@ impl Compilation {
         package_graph_sources: PackageGraphSources,
         project_errors: Vec<project::Error>,
         friendly_name: &Arc<str>,
+        is_single_file: bool,
     ) -> Self {
-        let mut buildable_program =
-            prepare_package_store(target_profile.into(), package_graph_sources.clone());
+        let mut buildable_program = prepare_package_store(
+            target_profile.into(),
+            package_graph_sources.clone(),
+            is_single_file,
+        );
 
         let mut compile_errors = take(&mut buildable_program.dependency_errors);
 
@@ -129,6 +135,7 @@ impl Compilation {
             project_errors,
             dependencies: user_code_dependencies.into_iter().collect(),
             test_cases,
+            is_single_file,
         }
     }
 
@@ -151,8 +158,11 @@ impl Compilation {
                 let ProjectType::QSharp(sources) = &p.project_type else {
                     unreachable!("Project type should be Q#")
                 };
-                let buildable_program =
-                    prepare_package_store(target_profile.into(), sources.clone());
+                let buildable_program = prepare_package_store(
+                    target_profile.into(),
+                    sources.clone(),
+                    project.as_ref().is_none_or(|p| p.is_single_file),
+                );
 
                 (
                     SourceMap::new(buildable_program.user_code.sources, None),
@@ -241,6 +251,8 @@ impl Compilation {
 
         let test_cases = unit.package.get_test_callables();
 
+        let is_single_file = project.as_ref().is_none_or(|p| p.is_single_file);
+
         Self {
             package_store,
             user_package_id: package_id,
@@ -249,18 +261,16 @@ impl Compilation {
             kind: CompilationKind::Notebook { project },
             test_cases,
             dependencies,
+            is_single_file,
         }
     }
 
     pub(crate) fn new_qasm(
         package_type: PackageType,
-        target_profile: Profile,
         sources: Vec<(Arc<str>, Arc<str>)>,
         project_errors: Vec<project::Error>,
         friendly_name: &Arc<str>,
     ) -> Self {
-        let capabilities = target_profile.into();
-
         let config = CompilerConfig::new(
             QubitSemantics::Qiskit,
             OutputSemantics::OpenQasm,
@@ -270,8 +280,15 @@ impl Compilation {
         );
         let res = qsc::qasm::semantic::parse_sources(&sources);
         let unit = compile_to_qsharp_ast_with_config(res, config);
-        let CompileRawQasmResult(store, source_package_id, dependencies, _sig, mut compile_errors) =
-            qsc::qasm::compile_openqasm(unit, package_type, capabilities);
+        let target_profile = unit.profile();
+        let CompileRawQasmResult(
+            store,
+            source_package_id,
+            dependencies,
+            _sig,
+            mut compile_errors,
+            _,
+        ) = qsc::qasm::compile_openqasm(unit, package_type);
 
         let compile_unit = store
             .get(source_package_id)
@@ -296,6 +313,7 @@ impl Compilation {
             project_errors,
             dependencies: dependencies.into_iter().collect(),
             test_cases: vec![],
+            is_single_file: true,
         }
     }
 
@@ -405,6 +423,7 @@ impl Compilation {
                 package_graph_sources.clone(),
                 Vec::new(), // project errors will stay the same
                 friendly_name,
+                self.is_single_file,
             ),
             CompilationKind::Notebook { ref project } => {
                 let sources = self
@@ -426,7 +445,6 @@ impl Compilation {
                 ref friendly_name,
             } => Self::new_qasm(
                 package_type,
-                target_profile,
                 sources.clone(),
                 Vec::new(), // project errors will stay the same
                 friendly_name,

@@ -110,7 +110,7 @@ fn compile_and_run_qasm_internal(source: &str, debug: bool) -> String {
         Option::<&mut InMemorySourceResolver>::None,
         config,
     );
-    let (source_map, errors, package, sig) = unit.into_tuple();
+    let (source_map, errors, package, sig, _) = unit.into_tuple();
     assert!(errors.is_empty(), "QASM compilation failed: {errors:?}");
 
     let Some(signature) = sig else {
@@ -221,7 +221,7 @@ fn compile_project(project_folder: &str) {
         panic!("project should be a Q# project");
     };
     let buildable_program =
-        BuildableProgram::new(TargetCapabilityFlags::all(), package_graph_sources);
+        BuildableProgram::new(TargetCapabilityFlags::all(), package_graph_sources, false);
 
     if !buildable_program.dependency_errors.is_empty() {
         for e in buildable_program.dependency_errors {

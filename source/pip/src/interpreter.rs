@@ -364,7 +364,7 @@ impl Interpreter {
                 let ProjectType::QSharp(package_graph_sources) = project.project_type else {
                     unreachable!("Project type should be Q#")
                 };
-                BuildableProgram::new(target, package_graph_sources)
+                BuildableProgram::new(target, package_graph_sources, project.is_single_file)
             } else {
                 panic!("file system hooks should have been passed in with a manifest descriptor")
             }
@@ -374,7 +374,7 @@ impl Interpreter {
                 LanguageFeatures::from_iter(language_features),
                 None,
             );
-            BuildableProgram::new(target, graph)
+            BuildableProgram::new(target, graph, true)
         };
 
         match interpret::Interpreter::new(
@@ -500,7 +500,7 @@ impl Interpreter {
         );
         let res = qsc::qasm::semantic::parse_sources(&sources);
         let unit = compile_to_qsharp_ast_with_config(res, config);
-        let (sources, errors, package, _) = unit.into_tuple();
+        let (sources, errors, package, _, _) = unit.into_tuple();
 
         if !errors.is_empty() {
             let errors = errors

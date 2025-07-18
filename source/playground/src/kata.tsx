@@ -3,7 +3,7 @@
 
 import { useState } from "preact/hooks";
 import { QscEventTarget } from "qsharp-lang";
-import { Editor, getProfile } from "./editor.js";
+import { Editor } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 import { Markdown } from "qsharp-lang/ux";
 
@@ -110,7 +110,6 @@ function LessonElem(props: Props & { section: KataSection }) {
                     showShots={false}
                     showExpr={false}
                     shotError={shotError}
-                    profile={getProfile()}
                     setAst={() => ({})}
                     setHir={() => ({})}
                     setRir={() => ({})}
@@ -175,7 +174,6 @@ function ExerciseElem(props: Props & { section: KataSection }) {
           onRestartCompiler={props.onRestartCompiler}
           code={exercise.placeholderCode}
           kataSection={exercise}
-          profile={getProfile()}
           setAst={() => ({})}
           setHir={() => ({})}
           setRir={() => ({})}

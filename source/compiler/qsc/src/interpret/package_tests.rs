@@ -19,7 +19,7 @@ fn import_and_call_reexport() {
                 indoc! {"
                     import Foo.DependencyA.Foo;
                     function Main() : Unit {
-                        Foo([1, 2]); 
+                        Foo([1, 2]);
                         Foo.DependencyA.MagicFunction();
                     }"}
                 .into(),
@@ -53,7 +53,7 @@ fn import_and_call_reexport() {
     };
 
     // This builds all the dependencies
-    let buildable_program = BuildableProgram::new(TargetCapabilityFlags::all(), pkg_graph);
+    let buildable_program = BuildableProgram::new(TargetCapabilityFlags::all(), pkg_graph, false);
 
     assert!(
         buildable_program.dependency_errors.is_empty(),
@@ -132,7 +132,7 @@ fn directly_call_reexport() {
     };
 
     // This builds all the dependencies
-    let buildable_program = BuildableProgram::new(TargetCapabilityFlags::all(), pkg_graph);
+    let buildable_program = BuildableProgram::new(TargetCapabilityFlags::all(), pkg_graph, false);
 
     assert!(
         buildable_program.dependency_errors.is_empty(),
