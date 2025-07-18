@@ -41,11 +41,15 @@ def on_import() -> None:
     log_telemetry("qsharp.import", 1)
 
 
-def on_run(shots: int) -> None:
+def on_run(shots: int, noise: bool, qubit_loss: bool) -> None:
     log_telemetry(
         "qsharp.run",
         1,
-        properties={"shots": get_next_power_of_ten_bucket(shots)},
+        properties={
+            "shots": get_next_power_of_ten_bucket(shots),
+            "noise": noise,
+            "qubit_loss": qubit_loss,
+        },
     )
 
 
@@ -58,11 +62,15 @@ def on_run_end(durationMs: float, shots: int) -> None:
     )
 
 
-def on_run_qasm(shots: int) -> None:
+def on_run_qasm(shots: int, noise: bool, qubit_loss: bool) -> None:
     log_telemetry(
         "qsharp.run_qasm",
         1,
-        properties={"shots": get_next_power_of_ten_bucket(shots)},
+        properties={
+            "shots": get_next_power_of_ten_bucket(shots),
+            "noise": noise,
+            "qubit_loss": qubit_loss,
+        },
     )
 
 
