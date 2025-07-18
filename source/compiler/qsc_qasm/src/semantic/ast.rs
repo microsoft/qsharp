@@ -16,7 +16,7 @@ use crate::{
     },
     parser::ast::{List, PathKind},
     semantic::symbols::SymbolId,
-    stdlib::{angle::Angle, complex::Complex},
+    stdlib::{angle::Angle, complex::Complex, duration::Duration},
 };
 
 use crate::parser::ast as syntax;
@@ -1093,6 +1093,7 @@ pub enum ExprKind {
     Paren(Expr),
     Measure(MeasureExpr),
     SizeofCall(SizeofCallExpr),
+    DurationofCall(DurationofCallExpr),
 }
 
 impl Display for ExprKind {
@@ -1110,6 +1111,7 @@ impl Display for ExprKind {
             ExprKind::Paren(expr) => write!(f, "Paren {expr}"),
             ExprKind::Measure(expr) => write!(f, "{expr}"),
             ExprKind::SizeofCall(call) => write!(f, "{call}"),
+            ExprKind::DurationofCall(call) => write!(f, "{call}"),
         }
     }
 }
@@ -1223,6 +1225,22 @@ impl Display for SizeofCallExpr {
     }
 }
 
+#[derive(Clone, Debug)]
+
+pub struct DurationofCallExpr {
+    pub span: Span,
+    pub fn_name_span: Span,
+    pub scope: Block,
+}
+
+impl Display for DurationofCallExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "DurationofCallExpr", self.span)?;
+        writeln_field(f, "fn_name_span", &self.fn_name_span)?;
+        write_field(f, "scope", &self.scope)
+    }
+}
+
 /// The information in this struct is aimed to be consumed
 /// by the language service. The result of the computation
 /// is already stored in the [`Expr::const_value`] field by
@@ -1282,7 +1300,7 @@ pub enum LiteralKind {
     Array(Array),
     Bitstring(BigInt, u32),
     Bool(bool),
-    Duration(f64, TimeUnit),
+    Duration(Duration),
     Float(f64),
     Complex(Complex),
     Int(i64),
@@ -1302,8 +1320,8 @@ impl Display for LiteralKind {
             LiteralKind::Bit(b) => write!(f, "Bit({:?})", u8::from(*b)),
             LiteralKind::Bool(b) => write!(f, "Bool({b:?})"),
             LiteralKind::Complex(value) => write!(f, "Complex({value})"),
-            LiteralKind::Duration(value, unit) => {
-                write!(f, "Duration({value:?}, {unit:?})")
+            LiteralKind::Duration(value) => {
+                write!(f, "Duration({value})")
             }
             LiteralKind::Float(value) => write!(f, "Float({value:?})"),
             LiteralKind::Int(i) => write!(f, "Int({i:?})"),
@@ -1437,10 +1455,11 @@ impl Display for Index {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum TimeUnit {
     Dt,
     /// Nanoseconds.
+    #[default]
     Ns,
     /// Microseconds.
     Us,
