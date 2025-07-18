@@ -165,6 +165,10 @@ impl Display for DynArrayRefType {
     }
 }
 
+fn write_always_const_ty_omitting_mutabilty(f: &mut Formatter<'_>, name: &str) -> std::fmt::Result {
+    write_ty_with_designator_and_const(f, false, None, name)
+}
+
 fn write_ty_with_const(f: &mut Formatter<'_>, is_const: bool, name: &str) -> std::fmt::Result {
     write_ty_with_designator_and_const(f, is_const, None, name)
 }
@@ -230,8 +234,8 @@ impl Display for Type {
         match self {
             Type::Bit(is_const) => write_ty_with_const(f, *is_const, "bit"),
             Type::Bool(is_const) => write_ty_with_const(f, *is_const, "bool"),
-            Type::Duration(_) => write_ty_with_const(f, false, "duration"),
-            Type::Stretch(_) => write_ty_with_const(f, false, "stretch"),
+            Type::Duration(_) => write_always_const_ty_omitting_mutabilty(f, "duration"),
+            Type::Stretch(_) => write_always_const_ty_omitting_mutabilty(f, "stretch"),
             Type::Angle(width, is_const) => {
                 write_ty_with_designator_and_const(f, *is_const, *width, "angle")
             }
