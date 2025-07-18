@@ -105,7 +105,6 @@ fn addition_with_duration_and_non_duration_value_errors() {
                             ty_span: [29-32]
                             init_expr: Expr [29-35]:
                                 ty: const int
-                                const_value: Int(0)
                                 kind: Lit: Int(0)
                     Stmt [44-63]:
                         annotations: <empty>
@@ -171,7 +170,7 @@ fn addition_assign_op_errors_as_duration_is_const() {
               x cannot update const variable a
                ,-[test:4:9]
              3 |         duration b;
-             4 |         a += a;
+             4 |         a += b;
                :         ^
              5 |     
                `----
@@ -276,7 +275,7 @@ fn subtraction_assign_op_errors_as_duration_is_const() {
               x cannot update const variable a
                ,-[test:4:9]
              3 |         duration b;
-             4 |         a -= a;
+             4 |         a -= b;
                :         ^
              5 |     
                `----

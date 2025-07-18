@@ -128,6 +128,15 @@ impl Expr {
                 // in [`Lowerer::lower_sizeof_call_expr`].
                 None
             }
+            ExprKind::DurationofCall(_) => {
+                // We can't evaluate `durationof` calls, and we can't evaluate the
+                // blocks within them to derive the duration. For type and semantic
+                // checks we assume that the `durationof` call is a const expression
+                // with a 0 duration value.
+                let value = Duration::default();
+                let kind = LiteralKind::Duration(value);
+                Some(kind)
+            }
             ExprKind::Err => None,
         }
     }
