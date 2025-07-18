@@ -720,6 +720,7 @@ impl Lowerer {
         }
     }
 
+    /// We lower a binary-assign statement like `a += 2;` as `a = a + 2;`.
     fn lower_simple_assign_op_stmt(
         &mut self,
         ident: &syntax::Ident,
@@ -728,6 +729,8 @@ impl Lowerer {
         span: Span,
     ) -> semantic::StmtKind {
         let lhs = self.lower_ident_expr(ident);
+
+        // Check that lhs can be updated.
         let ty = lhs.ty.clone();
         if ty.is_const() {
             let kind =
@@ -736,18 +739,15 @@ impl Lowerer {
             return semantic::StmtKind::Err;
         }
 
+        // Construct the rhs binary expression.
         let rhs = match rhs {
-            syntax::ValueExpr::Expr(expr) => {
-                let expr = self.lower_expr(expr);
-                self.cast_expr_with_target_type_or_default(Some(expr), &ty, span)
-            }
-            syntax::ValueExpr::Measurement(measure_expr) => {
-                let expr = self.lower_measure_expr(measure_expr);
-                self.cast_expr_to_type(&ty, &expr)
-            }
+            syntax::ValueExpr::Expr(expr) => self.lower_expr(expr),
+            syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
         };
-
         let binary_expr = self.lower_binary_op_expr(op, lhs.clone(), rhs, span);
+
+        // Cast the binary expression to the type of the lhs.
+        let binary_expr = self.cast_expr_with_target_type_or_default(Some(binary_expr), &ty, span);
 
         semantic::StmtKind::Assign(semantic::AssignStmt {
             span,
@@ -767,6 +767,7 @@ impl Lowerer {
 
         let (lhs, classical_indices) = self.lower_indexed_ident_expr(indexed_ident);
 
+        // Check that lhs can be updated.
         if lhs.ty.is_const() {
             let kind = SemanticErrorKind::CannotUpdateConstVariable(
                 indexed_ident.ident.name.to_string(),
@@ -793,19 +794,17 @@ impl Lowerer {
             );
         }
 
-        let indexed_ty = &lhs.ty;
+        // Construct the rhs binary expression.
         let rhs = match rhs {
-            syntax::ValueExpr::Expr(expr) => {
-                let expr = self.lower_expr(expr);
-                self.cast_expr_with_target_type_or_default(Some(expr), indexed_ty, span)
-            }
-            syntax::ValueExpr::Measurement(measure_expr) => {
-                let expr = self.lower_measure_expr(measure_expr);
-                self.cast_expr_to_type(indexed_ty, &expr)
-            }
+            syntax::ValueExpr::Expr(expr) => self.lower_expr(expr),
+            syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
         };
-
         let binary_expr = self.lower_binary_op_expr(op, lhs.clone(), rhs, span);
+
+        // Cast the binary expression to the type of the lhs.
+        let indexed_ty = &lhs.ty;
+        let binary_expr =
+            self.cast_expr_with_target_type_or_default(Some(binary_expr), indexed_ty, span);
 
         semantic::StmtKind::Assign(semantic::AssignStmt {
             span,
