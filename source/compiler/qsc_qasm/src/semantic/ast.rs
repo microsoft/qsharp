@@ -1230,6 +1230,7 @@ impl Display for SizeofCallExpr {
 pub struct DurationofCallExpr {
     pub span: Span,
     pub fn_name_span: Span,
+    pub duration: Duration,
     pub scope: Block,
 }
 
@@ -1237,6 +1238,7 @@ impl Display for DurationofCallExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "DurationofCallExpr", self.span)?;
         writeln_field(f, "fn_name_span", &self.fn_name_span)?;
+        writeln_field(f, "duration", &self.duration)?;
         write_field(f, "scope", &self.scope)
     }
 }

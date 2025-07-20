@@ -35,12 +35,14 @@ use crate::parser::QasmSource;
 use crate::parser::ast::List;
 use crate::parser::ast::list_from_iter;
 use crate::semantic::ast::Expr;
+use crate::semantic::passes::DurationAccumulator;
 use crate::semantic::types::base_types_equal;
 use crate::semantic::types::both_types_are_duration_subtypes;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
 use crate::semantic::types::either_type_is_duration_subtype;
 use crate::semantic::types::type_is_duration_subtype;
+use crate::semantic::visit::Visitor;
 use crate::stdlib::angle::Angle;
 use crate::stdlib::builtin_functions;
 use crate::stdlib::complex::Complex;
@@ -1136,10 +1138,17 @@ impl Lowerer {
 
     fn lower_duration_of_expr(&mut self, expr: &syntax::DurationofCall) -> semantic::Expr {
         let scope = self.lower_block(&expr.scope);
+
+        // We need to visit the block to accumulate the duration of the statements
+        let mut acc = DurationAccumulator::new();
+        acc.visit_block(&scope);
+        let duration = acc.get_duration();
+
         let ty = Type::Duration(true);
         let kind = semantic::ExprKind::DurationofCall(semantic::DurationofCallExpr {
             span: expr.span,
             fn_name_span: expr.name_span,
+            duration,
             scope,
         });
         semantic::Expr::new(expr.span, kind, ty)
