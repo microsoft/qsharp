@@ -390,7 +390,7 @@ impl With<'_> {
                 // Any other form is not valid so generates an error.
                 _ => {
                     self.lowerer.errors.push(Error::InvalidAttrArgs(
-                        "profile name".to_string(),
+                        "empty or profile name".to_string(),
                         attr.arg.span,
                     ));
                     None

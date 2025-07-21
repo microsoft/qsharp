@@ -8,9 +8,7 @@ use crate::{
 };
 use qsc_circuit::circuit_to_qsharp::circuits_to_qsharp;
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{
-    SourceMap, check_for_entry_profile, entrypoint_profile_in_project_error,
-};
+use qsc_frontend::compile::{SourceMap, check_for_entry_profile};
 use qsc_passes::PackageType;
 use qsc_project::PackageGraphSources;
 use rustc_hash::FxHashMap;
@@ -102,7 +100,7 @@ pub fn prepare_package_store(
         if package_graph_sources.has_manifest {
             dependency_errors.push(Error::from_map(
                 &SourceMap::new(sources, None),
-                ErrorKind::Frontend(entrypoint_profile_in_project_error(span)),
+                ErrorKind::EntryPointProfileInProject(span),
             ));
         } else {
             capabilities = profile.into();
