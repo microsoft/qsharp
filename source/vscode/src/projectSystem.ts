@@ -322,16 +322,12 @@ export async function fetchGithubRaw(
 }
 
 /**
- * Updates the target profile in the qsharp.json manifest for the given document URI.
+ * Opens the qsharp.json manifest in vscode for the given document URI.
  *
  * @param documentUri The URI of the document for which to update the manifest profile.
- * @param newProfile The new target profile to set in the manifest.
  * @throws Error if the manifest cannot be found or parsed.
  */
-export async function updateManifestProfile(
-  documentUri: vscode.Uri,
-  newProfile: string,
-): Promise<void> {
+export async function openManifestFile(documentUri: vscode.Uri): Promise<void> {
   const manifestInfo = await findManifestDocument(documentUri.toString());
   if (!manifestInfo) {
     throw new Error(
@@ -339,16 +335,6 @@ export async function updateManifestProfile(
     );
   }
   const manifestUri = manifestInfo.manifest;
-  const manifestBytes = await vscode.workspace.fs.readFile(manifestUri);
-  let manifestJson: any;
-  try {
-    manifestJson = JSON.parse(new TextDecoder().decode(manifestBytes));
-  } catch (e) {
-    throw new Error("Could not parse qsharp.json: " + e);
-  }
-  manifestJson.targetProfile = newProfile;
-  const updated = new TextEncoder().encode(
-    JSON.stringify(manifestJson, null, 2),
-  );
-  await vscode.workspace.fs.writeFile(manifestUri, updated);
+
+  await vscode.window.showTextDocument(manifestUri);
 }

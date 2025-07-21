@@ -21,7 +21,7 @@ import {
 } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { qsharpExtensionId } from "./common";
-import { updateManifestProfile } from "./projectSystem";
+import { openManifestFile } from "./projectSystem";
 
 const generateQirTimeoutMs = 120000;
 
@@ -102,6 +102,9 @@ async function getQirForProgram(
     error_msg +=
       "using the Adaptive_RIF profile is not supported for targets that can only accept Adaptive_RI profile QIR.";
   }
+  if (hasManifest) {
+    error_msg += " Please update the QIR target via the qsharp.json.";
+  }
 
   // Check that the current target is base or adaptive_ri profile, and current doc has no errors.
   if (
@@ -109,57 +112,28 @@ async function getQirForProgram(
     isSubmittingAdaptiveToBaseAzureTarget ||
     isSubmittingUnsupportedAdaptiveProfile
   ) {
-    const title =
-      "Set the QIR target profile to " +
-      (targetSupportsAdaptive ? "Adaptive_RI" : "Base") +
-      " to continue";
-    const result = await vscode.window.showWarningMessage(
+    await vscode.window.showErrorMessage(
       // if supports_adaptive is undefined, use the generic codegen message
       error_msg,
       { modal: true },
-      {
-        title: title,
-        action: "set",
-      },
-      { title: "Cancel", action: "cancel", isCloseAffordance: true },
+      { title: "Okay", isCloseAffordance: true },
     );
-    if (result?.action !== "set") {
-      throw new QirGenerationError(
-        error_msg + " Please update the QIR target via the qsharp.json.",
+    // Open the manifest file to allow the user to update the profile.
+    const docUri = documentUri ?? vscode.window.activeTextEditor?.document.uri;
+    if (!docUri) {
+      vscode.window.showErrorMessage(
+        "Could not determine the document URI to open qsharp.json.",
       );
     } else {
-      // Try to update the qsharp.json manifest automatically.
       try {
-        // Use the provided documentUri, fallback to activeTextEditor if not provided
-        const docUri =
-          documentUri ?? vscode.window.activeTextEditor?.document.uri;
-        if (!docUri) {
-          vscode.window.showErrorMessage(
-            "Could not determine the document URI to update qsharp.json.",
-          );
-        } else {
-          try {
-            await updateManifestProfile(
-              docUri,
-              targetSupportsAdaptive ? "adaptive_ri" : "base",
-            );
-            vscode.window.showInformationMessage(
-              `Updated 'profile' in qsharp.json to '${targetSupportsAdaptive ? "adaptive_ri" : "base"}'.`,
-            );
-            config.profile = targetSupportsAdaptive ? "adaptive_ri" : "base";
-          } catch (e: any) {
-            vscode.window.showErrorMessage(
-              "Failed to update qsharp.json: " + (e?.message ?? e),
-            );
-            return "";
-          }
-        }
+        await openManifestFile(docUri);
       } catch (e: any) {
         vscode.window.showErrorMessage(
-          "Failed to update qsharp.json: " + e.message,
+          "Failed to open qsharp.json: " + (e?.message ?? e),
         );
       }
     }
+    throw new QirGenerationError(error_msg);
   }
 
   // Create a temporary worker just to get the QIR, as it may loop/panic during codegen.
