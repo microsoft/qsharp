@@ -50,10 +50,11 @@ fn import_and_call_reexport() {
         )]
         .into_iter()
         .collect(),
+        has_manifest: true,
     };
 
     // This builds all the dependencies
-    let buildable_program = BuildableProgram::new(TargetCapabilityFlags::all(), pkg_graph, false);
+    let buildable_program = BuildableProgram::new(TargetCapabilityFlags::all(), pkg_graph);
 
     assert!(
         buildable_program.dependency_errors.is_empty(),
@@ -129,10 +130,11 @@ fn directly_call_reexport() {
         )]
         .into_iter()
         .collect(),
+        has_manifest: true,
     };
 
     // This builds all the dependencies
-    let buildable_program = BuildableProgram::new(TargetCapabilityFlags::all(), pkg_graph, false);
+    let buildable_program = BuildableProgram::new(TargetCapabilityFlags::all(), pkg_graph);
 
     assert!(
         buildable_program.dependency_errors.is_empty(),
