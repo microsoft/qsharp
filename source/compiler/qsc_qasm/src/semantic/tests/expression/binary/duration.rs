@@ -23,12 +23,12 @@ fn addition_with_units_normalizes_correctly() {
                         op: Add
                         lhs: Expr [22-39]:
                             ty: duration
-                            const_value: Duration(1003006000.0 ns)
+                            const_value: Duration(1003006.0 us)
                             kind: BinaryOpExpr:
                                 op: Add
                                 lhs: Expr [22-32]:
                                     ty: duration
-                                    const_value: Duration(1003000000.0 ns)
+                                    const_value: Duration(1003.0 ms)
                                     kind: BinaryOpExpr:
                                         op: Add
                                         lhs: Expr [22-25]:

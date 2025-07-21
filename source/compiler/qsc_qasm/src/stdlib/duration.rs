@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod tests;
+
 use std::{
     fmt::{self, Display, Formatter},
     ops::{Add, Div, Mul, Sub},
@@ -19,13 +22,70 @@ impl Duration {
         Self { value, unit }
     }
 
-    fn to_nanoseconds(self) -> f64 {
-        match self.unit {
-            TimeUnit::Ns => self.value,
-            TimeUnit::Us => self.value * 1_000.0,
-            TimeUnit::Ms => self.value * 1_000_000.0,
-            TimeUnit::S => self.value * 1_000_000_000.0,
-            TimeUnit::Dt => todo!("Duration in dt is not supported"),
+    /// Returns the smaller (more precise) time unit between two units.
+    /// The order from smallest to largest is: Dt < Ns < Us < Ms < S
+    fn smaller_unit(unit1: TimeUnit, unit2: TimeUnit) -> TimeUnit {
+        use TimeUnit::*;
+        match (unit1, unit2) {
+            (Dt, _) | (_, Dt) => Dt, // Dt is always the smallest
+            (Ns, _) | (_, Ns) => Ns, // Ns is smallest among non-Dt units
+            (Us, _) | (_, Us) => Us, // Us is next smallest
+            (Ms, _) | (_, Ms) => Ms, // Ms is next smallest
+            (S, S) => S,             // Both are seconds
+        }
+    }
+
+    /// Converts this duration to the specified time unit.
+    fn convert_to_unit(self, target_unit: TimeUnit) -> Self {
+        let converted_value = match (self.unit, target_unit) {
+            (TimeUnit::Us, TimeUnit::Ns)
+            | (TimeUnit::Ms, TimeUnit::Us)
+            | (TimeUnit::S, TimeUnit::Ms) => self.value * 1_000.0,
+            (TimeUnit::Ms, TimeUnit::Ns) | (TimeUnit::S, TimeUnit::Us) => self.value * 1_000_000.0,
+            (TimeUnit::S, TimeUnit::Ns) => self.value * 1_000_000_000.0,
+            (TimeUnit::Ns, TimeUnit::Us)
+            | (TimeUnit::Us, TimeUnit::Ms)
+            | (TimeUnit::Ms, TimeUnit::S) => self.value / 1_000.0,
+            (TimeUnit::Ns, TimeUnit::Ms) | (TimeUnit::Us, TimeUnit::S) => self.value / 1_000_000.0,
+            (TimeUnit::Ns, TimeUnit::S) => self.value / 1_000_000_000.0,
+            (TimeUnit::Dt, _)
+            | (_, TimeUnit::Dt)
+            | (TimeUnit::Us, TimeUnit::Us)
+            | (TimeUnit::Ns, TimeUnit::Ns)
+            | (TimeUnit::Ms, TimeUnit::Ms)
+            | (TimeUnit::S, TimeUnit::S) => self.value,
+        };
+
+        Self {
+            value: converted_value,
+            unit: target_unit,
+        }
+    }
+
+    /// Normalizes two durations to the same time unit, returning a tuple of the normalized durations.
+    /// Chooses the smaller (more precise) unit between the two for better precision.
+    pub fn normalize_pair(self, other: Self) -> (Self, Self) {
+        if self.unit == other.unit {
+            // Same unit, no conversion needed
+            (self, other)
+        } else if self.unit == TimeUnit::Dt || other.unit == TimeUnit::Dt {
+            // If either is Dt, convert both to Dt (preserving the special handling)
+            (
+                Self {
+                    value: self.value,
+                    unit: TimeUnit::Dt,
+                },
+                Self {
+                    value: other.value,
+                    unit: TimeUnit::Dt,
+                },
+            )
+        } else {
+            // Choose the smaller (more precise) unit
+            let target_unit = Self::smaller_unit(self.unit, other.unit);
+            let converted_self = self.convert_to_unit(target_unit);
+            let converted_other = other.convert_to_unit(target_unit);
+            (converted_self, converted_other)
         }
     }
 }
@@ -38,14 +98,9 @@ impl Display for Duration {
 
 impl PartialEq for Duration {
     fn eq(&self, other: &Self) -> bool {
-        if self.unit == other.unit {
-            f64::EPSILON > (self.value - other.value).abs()
-        } else {
-            // Convert both to nanoseconds for comparison
-            let self_ns = self.to_nanoseconds();
-            let other_ns = other.to_nanoseconds();
-            f64::EPSILON > (self_ns - other_ns).abs()
-        }
+        // Convert both to a common unit for comparison
+        let (normalized_self, normalized_other) = self.normalize_pair(*other);
+        f64::EPSILON > (normalized_self.value - normalized_other.value).abs()
     }
 }
 
@@ -53,29 +108,12 @@ impl Add for Duration {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        if self.unit == TimeUnit::Dt || rhs.unit == TimeUnit::Dt {
-            // either are dt, treat both as dt?
-            let value = self.value + rhs.value;
-            Self {
-                value,
-                unit: TimeUnit::Dt,
-            }
-        } else if self.unit == rhs.unit {
-            // both are the same unit, just add
-            let value = self.value + rhs.value;
-            Self {
-                value,
-                unit: self.unit,
-            }
-        } else {
-            // Normalize to a common unit (e.g., nanoseconds)
-            let self_ns = self.to_nanoseconds();
-            let rhs_ns = rhs.to_nanoseconds();
-            let value = self_ns + rhs_ns;
-            Self {
-                value,
-                unit: TimeUnit::Ns,
-            }
+        // Normalize to a common unit and add
+        let (normalized_self, normalized_rhs) = self.normalize_pair(rhs);
+        let value = normalized_self.value + normalized_rhs.value;
+        Self {
+            value,
+            unit: normalized_self.unit,
         }
     }
 }
@@ -84,29 +122,12 @@ impl Sub for Duration {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        if self.unit == TimeUnit::Dt || rhs.unit == TimeUnit::Dt {
-            // either are dt, treat both as dt?
-            let value = self.value - rhs.value;
-            Self {
-                value,
-                unit: TimeUnit::Dt,
-            }
-        } else if self.unit == rhs.unit {
-            // both are the same unit, just add
-            let value = self.value - rhs.value;
-            Self {
-                value,
-                unit: self.unit,
-            }
-        } else {
-            // Normalize to a common unit (e.g., nanoseconds)
-            let self_ns = self.to_nanoseconds();
-            let rhs_ns = rhs.to_nanoseconds();
-            let value = self_ns - rhs_ns;
-            Self {
-                value,
-                unit: TimeUnit::Ns,
-            }
+        // Normalize to a common unit and subtract
+        let (normalized_self, normalized_rhs) = self.normalize_pair(rhs);
+        let value = normalized_self.value - normalized_rhs.value;
+        Self {
+            value,
+            unit: normalized_self.unit,
         }
     }
 }
@@ -140,15 +161,9 @@ impl Div<Duration> for Duration {
     type Output = f64;
 
     fn div(self, rhs: Self) -> Self::Output {
-        if self.unit == TimeUnit::Dt || rhs.unit == TimeUnit::Dt {
-            // either are dt, treat both as dt?
-            self.value / rhs.value
-        } else {
-            // Normalize to a common unit (e.g., nanoseconds)
-            let self_ns = self.to_nanoseconds();
-            let rhs_ns = rhs.to_nanoseconds();
-            self_ns / rhs_ns
-        }
+        // Normalize to a common unit and divide
+        let (normalized_self, normalized_rhs) = self.normalize_pair(rhs);
+        normalized_self.value / normalized_rhs.value
     }
 }
 
