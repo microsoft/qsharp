@@ -76,7 +76,7 @@ fn test_entrypoint_attr_wrong_args() {
         &expect![[r#"
             [
                 InvalidAttrArgs(
-                    "profile name",
+                    "empty or profile name",
                     Span {
                         lo: 33,
                         hi: 40,
