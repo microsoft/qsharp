@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from enum import Enum
-from typing import Any, Callable, Optional, Dict, List, Tuple
+from typing import Any, Callable, Optional, Dict, List, Tuple, Self
 
 # pylint: disable=unused-argument
 # E302 is fighting with the formatter for number of blank lines
@@ -303,7 +303,7 @@ class Interpreter:
         list_directory: Callable[[str], List[Dict[str, str]]],
         resolve_path: Callable[[str, str], str],
         fetch_github: Callable[[str, str, str, str], str],
-        **kwargs
+        **kwargs,
     ) -> Any:
         """
         Imports OpenQASM source code into the active Q# interpreter.
@@ -419,7 +419,7 @@ def circuit_qasm_program(
     list_directory: Callable[[str], List[Dict[str, str]]],
     resolve_path: Callable[[str, str], str],
     fetch_github: Callable[[str, str, str, str], str],
-    **kwargs
+    **kwargs,
 ) -> Circuit:
     """
     Synthesizes a circuit for an OpenQASM program.
@@ -455,7 +455,7 @@ def compile_qasm_program_to_qir(
     list_directory: Callable[[str], List[Dict[str, str]]],
     resolve_path: Callable[[str, str], str],
     fetch_github: Callable[[str, str, str, str], str],
-    **kwargs
+    **kwargs,
 ) -> str:
     """
     Compiles the OpenQASM source code into a program that can be submitted to a
@@ -493,7 +493,7 @@ def compile_qasm_to_qsharp(
     list_directory: Callable[[str], List[Dict[str, str]]],
     resolve_path: Callable[[str, str], str],
     fetch_github: Callable[[str, str, str, str], str],
-    **kwargs
+    **kwargs,
 ) -> str:
     """
     Converts a OpenQASM program to Q#.
@@ -525,7 +525,7 @@ def resource_estimate_qasm_program(
     list_directory: Callable[[str], List[Dict[str, str]]],
     resolve_path: Callable[[str, str], str],
     fetch_github: Callable[[str, str, str, str], str],
-    **kwargs
+    **kwargs,
 ) -> str:
     """
     Estimates the resource requirements for executing OpenQASM source code.
@@ -559,7 +559,7 @@ def run_qasm_program(
     list_directory: Callable[[str], List[Dict[str, str]]],
     resolve_path: Callable[[str, str], str],
     fetch_github: Callable[[str, str, str, str], str],
-    **kwargs
+    **kwargs,
 ) -> Any:
     """
     Runs the given OpenQASM program for the given number of shots.
@@ -607,7 +607,7 @@ def estimate_custom(
     logical_depth_factor: Optional[float] = None,
     max_physical_qubits: Optional[int] = None,
     max_duration: Optional[int] = None,
-    error_budget_pruning: bool = False
+    error_budget_pruning: bool = False,
 ) -> Dict:
     """
     Estimates quantum resources for a given algorithm, qubit, and code.
@@ -628,3 +628,38 @@ def estimate_custom(
         Dict: A dictionary with resource estimation results.
     """
     ...
+
+class Field:
+    name: str
+    value: ValueIR  # this is a `ValueIR`, but python can't refer to it before it's declared
+
+    def __init__(self, name: str, value: ValueIR): ...
+    def __str__(self):
+        return f"{self.name}: {repr(self.value)}"
+
+    def __eq__(self, rhs: Self):
+        return self.name == rhs.name and self.value == rhs.value
+
+class ValueIR:
+    def udt(ty_name: str, fields: List[Field]) -> Self: ...
+    def tuple(values: List[Self]) -> Self: ...
+    def array(values: List[Self]) -> Self: ...
+    def bool(value: bool) -> Self: ...
+    def int(value: int) -> Self: ...
+    def float(value: float) -> Self: ...
+    def str(value: str) -> Self: ...
+    def pauli(value: Pauli) -> Self: ...
+    def result(value: Result) -> Self: ...
+    def __str__(self):
+        buffer = f"type {self.ty_name}:"
+        for field in self.fields:
+            buffer = buffer + f"\n  {field}"
+        return buffer
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __eq__(self, rhs: Self):
+        # This implementation purposely ommits `self.ty_name == rhs.ty_name`
+        # to make testing easier. This is just a prototype for now, so it's fine.
+        return all(a == b for a, b in zip(self.fields, rhs.fields))

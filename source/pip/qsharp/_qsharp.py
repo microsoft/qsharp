@@ -10,6 +10,10 @@ from ._native import (  # type: ignore
     Output,
     Circuit,
     GlobalCallable,
+    Pauli,
+    Result,
+    Field,
+    ValueIR,
 )
 from typing import (
     Any,
@@ -20,6 +24,7 @@ from typing import (
     TypedDict,
     Union,
     List,
+    Self,
     overload,
 )
 from .estimator._estimator import EstimatorResult, EstimatorParams
@@ -28,6 +33,56 @@ import os
 import sys
 import types
 from time import monotonic
+
+
+def type_name(obj: Any):
+    return repr(obj.__class__).split(".")[-1].removesuffix("'>")
+
+
+def lower_python_obj(obj: Any) -> ValueIR:
+    ty = type(obj)
+
+    # Base case: Primitive types
+    if ty is bool:
+        return ValueIR.bool(obj)
+    elif ty is int:
+        return ValueIR.int(obj)
+    elif ty is float:
+        return ValueIR.float(obj)
+    elif ty is str:
+        return ValueIR.str(obj)
+    elif ty is Pauli:
+        return ValueIR.pauli(obj)
+    elif ty is Result:
+        return ValueIR.result(obj)
+
+    # Rercursive case: Tuple
+    if ty is tuple:
+        return ValueIR.tuple([lower_python_obj(elt) for elt in obj])
+
+    # Rercursive case: Array
+    if ty is list:
+        return ValueIR.array([lower_python_obj(elt) for elt in obj])
+
+    # Rercursive case: Struct
+    if hasattr(obj, "__slots__"):
+        fields = []
+        for name in obj.__slots__:
+            if name == "__dict__":
+                for name, val in obj.__dict__.items():
+                    fields.append(Field(name, lower_python_obj(val)))
+            else:
+                val = getattr(obj, name)
+                fields.append(Field(name, lower_python_obj(val)))
+    elif hasattr(obj, "__dict__"):
+        fields = [
+            Field(name, lower_python_obj(val)) for name, val in obj.__dict__.items()
+        ]
+    else:
+        fields = []
+
+    return ValueIR.udt(type_name(obj), fields)
+
 
 _interpreter: Union["Interpreter", None] = None
 _config: Union["Config", None] = None
@@ -435,10 +490,12 @@ def _make_callable(callable: GlobalCallable, namespace: List[str], callable_name
                     pass
             print(output, flush=True)
 
-        if len(args) == 1:
-            args = args[0]
-        elif len(args) == 0:
+        if len(args) == 0:
             args = None
+        elif len(args) == 1:
+            args = lower_python_obj(args[0])
+        else:
+            args = lower_python_obj(args)
 
         return get_interpreter().invoke(callable, args, callback)
 

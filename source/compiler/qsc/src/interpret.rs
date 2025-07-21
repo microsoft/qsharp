@@ -363,7 +363,7 @@ impl Interpreter {
     /// Get the input and output types of a given value representing a global item.
     /// # Panics
     /// Panics if the item is not callable or a type that can be invoked as a callable.
-    pub fn global_tys(&self, item_id: &Value) -> Option<(ty::Ty, ty::Ty)> {
+    pub fn global_callable_ty(&self, item_id: &Value) -> Option<(ty::Ty, ty::Ty)> {
         let Value::Global(item_id, _) = item_id else {
             panic!("value is not a global callable");
         };
@@ -386,6 +386,38 @@ impl Interpreter {
                 Some((udt.get_pure_ty(), ty::Ty::Err))
             }
             _ => panic!("item is not callable"),
+        }
+    }
+
+    /// Get the input and output types of a given value representing a global item.
+    /// # Panics
+    /// Panics if the item is not callable or a type that can be invoked as a callable.
+    pub fn udt_ty(&self, item_id: &crate::hir::ItemId) -> Option<&ty::Udt> {
+        let crate::hir::ItemId {
+            package: package_id_opt,
+            item: local_item_id,
+        } = item_id;
+
+        let package_id = if let Some(package_id) = package_id_opt {
+            package_id
+        } else {
+            &self.compiler.package_id()
+        };
+
+        let unit = self
+            .compiler
+            .package_store()
+            .get(*package_id)
+            .expect("package should exist in the package store");
+
+        let item = unit.package.items.get(*local_item_id)?;
+
+        match &item.kind {
+            qsc_hir::hir::ItemKind::Ty(_, udt) => {
+                // We don't handle UDTs, so we return an error type that prevents later code from processing this item.
+                Some(udt)
+            }
+            _ => panic!("item is not a UDT"),
         }
     }
 

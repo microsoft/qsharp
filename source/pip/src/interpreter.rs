@@ -78,6 +78,9 @@ fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
     m.add_class::<StateDumpData>()?;
     m.add_class::<Circuit>()?;
     m.add_class::<GlobalCallable>()?;
+    m.add_class::<ValueIR>()?;
+    m.add_class::<Field>()?;
+    m.add_class::<UdtValue>()?;
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
     m.add("QSharpError", py.get_type::<QSharpError>())?;
     register_noisy_simulator_submodule(py, m)?;
@@ -596,9 +599,9 @@ impl Interpreter {
             Some(callable) => {
                 let (input_ty, output_ty) = self
                     .interpreter
-                    .global_tys(&callable.0)
+                    .global_callable_ty(&callable.0)
                     .ok_or(QSharpError::new_err("callable not found"))?;
-                let args = args_to_values(py, args, &input_ty, &output_ty)?;
+                let args = args_to_values(self, py, args, &input_ty, &output_ty)?;
                 self.interpreter.invoke_with_noise(
                     &mut receiver,
                     callable.0,
@@ -629,10 +632,10 @@ impl Interpreter {
         let mut receiver = OptionalCallbackReceiver { callback, py };
         let (input_ty, output_ty) = self
             .interpreter
-            .global_tys(&callable.0)
+            .global_callable_ty(&callable.0)
             .ok_or(QSharpError::new_err("callable not found"))?;
 
-        let args = args_to_values(py, args, &input_ty, &output_ty)?;
+        let args = args_to_values(self, py, args, &input_ty, &output_ty)?;
 
         match self.interpreter.invoke(&mut receiver, callable.0, args) {
             Ok(value) => Ok(ValueWrapper(value).into_pyobject(py)?.unbind()),
@@ -659,10 +662,10 @@ impl Interpreter {
             })?;
             let (input_ty, output_ty) = self
                 .interpreter
-                .global_tys(&callable.0)
+                .global_callable_ty(&callable.0)
                 .ok_or(QSharpError::new_err("callable not found"))?;
 
-            let args = args_to_values(py, args, &input_ty, &output_ty)?;
+            let args = args_to_values(self, py, args, &input_ty, &output_ty)?;
             match self.interpreter.qirgen_from_callable(&callable.0, args) {
                 Ok(qir) => Ok(qir),
                 Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
@@ -699,9 +702,9 @@ impl Interpreter {
             (None, None, Some(callable)) => {
                 let (input_ty, output_ty) = self
                     .interpreter
-                    .global_tys(&callable.0)
+                    .global_callable_ty(&callable.0)
                     .ok_or(QSharpError::new_err("callable not found"))?;
-                let args = args_to_values(py, args, &input_ty, &output_ty)?;
+                let args = args_to_values(self, py, args, &input_ty, &output_ty)?;
                 CircuitEntryPoint::Callable(callable.0, args)
             }
             _ => {
@@ -734,9 +737,9 @@ impl Interpreter {
             })?;
             let (input_ty, output_ty) = self
                 .interpreter
-                .global_tys(&callable.0)
+                .global_callable_ty(&callable.0)
                 .ok_or(QSharpError::new_err("callable not found"))?;
-            let args = args_to_values(py, args, &input_ty, &output_ty)?;
+            let args = args_to_values(self, py, args, &input_ty, &output_ty)?;
             estimate_call(&mut self.interpreter, callable.0, args, job_params)
         };
         match results {
@@ -766,7 +769,179 @@ impl Interpreter {
     }
 }
 
+#[pyclass]
+#[derive(Clone)]
+enum ValueIR {
+    Udt(UdtValue),
+    Primitive(PrimitiveValue),
+    Tuple(Vec<ValueIR>),
+    Array(Vec<ValueIR>),
+}
+
+impl ValueIR {
+    fn ty_name(&self) -> String {
+        fn ty_name_rec(val: &ValueIR, f: &mut String) -> std::fmt::Result {
+            match val {
+                ValueIR::Udt(udt) => write!(f, "{}", udt.ty_name),
+                ValueIR::Primitive(primitive) => match primitive {
+                    PrimitiveValue::Bool(_) => write!(f, "Bool"),
+                    PrimitiveValue::Int(_) => write!(f, "Int"),
+                    PrimitiveValue::Float(_) => write!(f, "Double"),
+                    PrimitiveValue::Str(_) => write!(f, "String"),
+                    PrimitiveValue::Result(_) => write!(f, "Result"),
+                    PrimitiveValue::Pauli(_) => write!(f, "Pauli"),
+                },
+                ValueIR::Tuple(tuple) => {
+                    write!(f, "(")?;
+                    for value in tuple {
+                        ty_name_rec(value, f)?;
+                    }
+                    write!(f, ")")
+                }
+                ValueIR::Array(array) => {
+                    write!(f, "[")?;
+                    for value in array {
+                        ty_name_rec(value, f)?;
+                    }
+                    write!(f, "]")
+                }
+            }
+        }
+        let mut buffer = String::new();
+        ty_name_rec(self, &mut buffer).expect("writing to String should succeed");
+        buffer
+    }
+}
+
+#[pymethods]
+impl ValueIR {
+    #[staticmethod]
+    fn udt(ty_name: String, fields: Vec<Field>) -> Self {
+        Self::Udt(UdtValue { ty_name, fields })
+    }
+
+    #[staticmethod]
+    fn tuple(values: Vec<ValueIR>) -> Self {
+        Self::Tuple(values)
+    }
+
+    #[staticmethod]
+    fn array(values: Vec<ValueIR>) -> Self {
+        Self::Array(values)
+    }
+
+    #[staticmethod]
+    fn bool(value: bool) -> Self {
+        Self::Primitive(PrimitiveValue::Bool(value))
+    }
+
+    #[staticmethod]
+    fn int(value: i64) -> Self {
+        Self::Primitive(PrimitiveValue::Int(value))
+    }
+
+    #[staticmethod]
+    fn float(value: f64) -> Self {
+        Self::Primitive(PrimitiveValue::Float(value))
+    }
+
+    #[staticmethod]
+    fn str(value: String) -> Self {
+        Self::Primitive(PrimitiveValue::Str(value))
+    }
+
+    #[staticmethod]
+    fn result(value: Result) -> Self {
+        Self::Primitive(PrimitiveValue::Result(value))
+    }
+
+    #[staticmethod]
+    fn pauli(value: Pauli) -> Self {
+        Self::Primitive(PrimitiveValue::Pauli(value))
+    }
+}
+
+impl From<ValueIR> for Value {
+    fn from(value: ValueIR) -> Self {
+        match value {
+            ValueIR::Udt(compound_value) => {
+                let mut tuple = Vec::new();
+                for field in compound_value.fields {
+                    tuple.push(field.value.into());
+                }
+                Value::Tuple(tuple.into())
+            }
+            ValueIR::Primitive(prim) => match prim {
+                PrimitiveValue::Bool(v) => Value::Bool(v),
+                PrimitiveValue::Int(v) => Value::Int(v),
+                PrimitiveValue::Float(v) => Value::Double(v),
+                PrimitiveValue::Str(v) => Value::String(v.into()),
+                PrimitiveValue::Result(v) => {
+                    Value::Result(qsc::interpret::Result::Val(v == Result::One))
+                }
+                PrimitiveValue::Pauli(v) => Value::Pauli(match v {
+                    Pauli::I => fir::Pauli::I,
+                    Pauli::X => fir::Pauli::X,
+                    Pauli::Y => fir::Pauli::Y,
+                    Pauli::Z => fir::Pauli::Z,
+                }),
+            },
+            ValueIR::Tuple(values) => {
+                if values.len() == 1 {
+                    values
+                        .into_iter()
+                        .next()
+                        .expect("there is one element")
+                        .into()
+                } else {
+                    let values: Rc<[_]> =
+                        values.into_iter().map(std::convert::Into::into).collect();
+                    Value::Tuple(values)
+                }
+            }
+            ValueIR::Array(values) => {
+                let values: Vec<_> = values.into_iter().map(std::convert::Into::into).collect();
+                Value::Array(values.into())
+            }
+        }
+    }
+}
+
+#[pyclass]
+#[derive(Clone)]
+struct UdtValue {
+    ty_name: String,
+    fields: Vec<Field>,
+}
+
+#[pyclass]
+#[derive(Clone)]
+struct Field {
+    name: String,
+    value: ValueIR,
+}
+
+#[pymethods]
+impl Field {
+    #[new]
+    fn new(name: String, value: ValueIR) -> Self {
+        Self { name, value }
+    }
+}
+
+#[pyclass]
+#[derive(Clone)]
+enum PrimitiveValue {
+    Bool(bool),
+    Int(i64),
+    Float(f64),
+    Str(String),
+    Result(Result),
+    Pauli(Pauli),
+}
+
 fn args_to_values(
+    ctx: &Interpreter,
     py: Python,
     args: Option<PyObject>,
     input_ty: &Ty,
@@ -774,12 +949,12 @@ fn args_to_values(
 ) -> PyResult<Value> {
     // If the types are not supported, we can't convert the arguments or return value.
     // Check this before trying to convert the arguments, and return an error if the types are not supported.
-    if let Some(ty) = first_unsupported_interop_ty(input_ty) {
+    if let Some(ty) = first_unsupported_interop_ty(ctx, input_ty) {
         return Err(QSharpError::new_err(format!(
             "unsupported input type: `{ty}`"
         )));
     }
-    if let Some(ty) = first_unsupported_interop_ty(output_ty) {
+    if let Some(ty) = first_unsupported_interop_ty(ctx, output_ty) {
         return Err(QSharpError::new_err(format!(
             "unsupported output type: `{ty}`"
         )));
@@ -799,13 +974,16 @@ fn args_to_values(
             )));
         };
         // This conversion will produce errors if the types don't match or can't be converted.
-        Ok(convert_obj_with_ty(py, &args, input_ty)?)
+        Ok(convert_obj_with_ty(ctx, py, &args, input_ty)?)
     }
 }
 
 /// Finds any Q# type recursively that does not support interop with Python, meaning our code cannot convert it back and forth
 /// across the interop boundary.
-fn first_unsupported_interop_ty(ty: &Ty) -> Option<&Ty> {
+fn first_unsupported_interop_ty<'ctx, 'ty>(ctx: &'ctx Interpreter, ty: &'ty Ty) -> Option<&'ctx Ty>
+where
+    'ty: 'ctx,
+{
     match ty {
         Ty::Prim(prim_ty) => match prim_ty {
             Prim::Pauli
@@ -821,65 +999,223 @@ fn first_unsupported_interop_ty(ty: &Ty) -> Option<&Ty> {
         },
         Ty::Tuple(tup) => tup
             .iter()
-            .find(|t| first_unsupported_interop_ty(t).is_some()),
-        Ty::Array(ty) => first_unsupported_interop_ty(ty),
+            .find(|t| first_unsupported_interop_ty(ctx, t).is_some()),
+        Ty::Array(ty) => first_unsupported_interop_ty(ctx, ty),
+        Ty::Udt(_, res) => {
+            let qsc::hir::Res::Item(item_id) = res else {
+                panic!("Udt should be an item");
+            };
+            let Some(udt) = ctx.interpreter.udt_ty(item_id) else {
+                return Some(ty);
+            };
+
+            check_first_unsupported_udt_ty(ctx, &udt.definition)
+        }
         _ => Some(ty),
+    }
+}
+
+fn check_first_unsupported_udt_ty<'ctx, 'udt_def>(
+    ctx: &'ctx Interpreter,
+    udt_def: &'udt_def qsc::hir::ty::UdtDef,
+) -> Option<&'ctx Ty>
+where
+    'udt_def: 'ctx,
+{
+    match &udt_def.kind {
+        qsc::hir::ty::UdtDefKind::Field(udt_field) => {
+            first_unsupported_interop_ty(ctx, &udt_field.ty)
+        }
+        qsc::hir::ty::UdtDefKind::Tuple(udt_defs) => udt_defs
+            .iter()
+            .find_map(|udt_def| check_first_unsupported_udt_ty(ctx, udt_def)),
     }
 }
 
 /// Given a type, convert a Python object into a Q# value of that type. This will recur through tuples and arrays,
 /// and will return an error if the type is not supported or the object cannot be converted.
-fn convert_obj_with_ty(py: Python, obj: &PyObject, ty: &Ty) -> PyResult<Value> {
+fn convert_obj_with_ty(ctx: &Interpreter, py: Python, obj: &PyObject, ty: &Ty) -> PyResult<Value> {
     match ty {
         Ty::Prim(prim_ty) => match prim_ty {
+            Prim::Bool | Prim::Double | Prim::Int | Prim::String | Prim::Result | Prim::Pauli => {
+                let value_ir = obj.extract::<ValueIR>(py)?;
+                Ok(value_ir.into())
+            }
             Prim::BigInt => Ok(Value::BigInt(obj.extract::<BigInt>(py)?)),
-            Prim::Bool => Ok(Value::Bool(obj.extract::<bool>(py)?)),
-            Prim::Double => Ok(Value::Double(obj.extract::<f64>(py)?)),
-            Prim::Int => Ok(Value::Int(obj.extract::<i64>(py)?)),
-            Prim::String => Ok(Value::String(obj.extract::<String>(py)?.into())),
-            Prim::Result => Ok(Value::Result(qsc::interpret::Result::Val(
-                obj.extract::<Result>(py)? == Result::One,
-            ))),
-            Prim::Pauli => Ok(Value::Pauli(match obj.extract::<Pauli>(py)? {
-                Pauli::I => fir::Pauli::I,
-                Pauli::X => fir::Pauli::X,
-                Pauli::Y => fir::Pauli::Y,
-                Pauli::Z => fir::Pauli::Z,
-            })),
             Prim::Qubit | Prim::Range | Prim::RangeTo | Prim::RangeFrom | Prim::RangeFull => {
                 unimplemented!("primitive input type: {prim_ty:?}")
             }
         },
         Ty::Tuple(tup) => {
-            if tup.len() == 1 {
-                let value = convert_obj_with_ty(py, obj, &tup[0]);
-                Ok(Value::Tuple(vec![value?].into()))
-            } else {
-                let obj = obj.extract::<Vec<PyObject>>(py)?;
-                if obj.len() != tup.len() {
+            let value_ir = obj.extract::<ValueIR>(py)?;
+            if let ValueIR::Tuple(values) = &value_ir {
+                if tup.len() != values.len() {
                     return Err(QSharpError::new_err(format!(
                         "mismatched tuple arity: expected {}, got {}",
                         tup.len(),
-                        obj.len()
+                        values.len()
                     )));
                 }
-                let mut values = Vec::with_capacity(obj.len());
-                for (i, ty) in tup.iter().enumerate() {
-                    values.push(convert_obj_with_ty(py, &obj[i], ty)?);
-                }
-                Ok(Value::Tuple(values.into()))
             }
+            Ok(value_ir.into())
         }
-        Ty::Array(ty) => {
-            let obj = obj.extract::<Vec<PyObject>>(py)?;
-            let mut values = Vec::with_capacity(obj.len());
-            for item in &obj {
-                values.push(convert_obj_with_ty(py, item, ty)?);
-            }
-            Ok(Value::Array(values.into()))
+        Ty::Array(..) => {
+            let value_ir = obj.extract::<ValueIR>(py)?;
+            Ok(value_ir.into())
+        }
+        Ty::Udt(_, res) => {
+            let value_ir = obj.extract::<ValueIR>(py)?;
+            let ValueIR::Udt(udt_value) = &value_ir else {
+                return Err(QSharpError::new_err(format!(
+                    "mismatched types: expected {}, found {}",
+                    ty,
+                    value_ir.ty_name()
+                )));
+            };
+
+            let qsc::hir::Res::Item(item_id) = res else {
+                panic!("Udt should be an item");
+            };
+            let Some(udt) = ctx.interpreter.udt_ty(item_id) else {
+                unreachable!(
+                    "we verified that the udt is defined in `first_unsupported_interop_ty`"
+                );
+            };
+            verify_that_udt_matches_value(ctx, udt, udt_value)?;
+            Ok(value_ir.into())
         }
         _ => unimplemented!("input type: {ty}"),
     }
+}
+
+fn verify_that_udt_matches_value(
+    ctx: &Interpreter,
+    udt: &qsc::hir::ty::Udt,
+    value: &UdtValue,
+) -> PyResult<()> {
+    if *udt.name != *value.ty_name {
+        return Err(QSharpError::new_err(format!(
+            "mismatched types: expected {}, got {}",
+            udt.name, value.ty_name
+        )));
+    }
+
+    verify_that_udt_def_matches_fields(ctx, &udt.name, &udt.definition, &value.fields)
+}
+
+fn verify_that_udt_def_matches_fields(
+    ctx: &Interpreter,
+    udt_name: &str,
+    udt_def: &qsc::hir::ty::UdtDef,
+    fields: &[Field],
+) -> PyResult<()> {
+    match &udt_def.kind {
+        qsc::hir::ty::UdtDefKind::Field(udt_field) => {
+            let Some(udt_field_name) = udt_field.name.clone() else {
+                return Err(QSharpError::new_err(format!(
+                    "unsupported: {udt_name} has anonymous fields",
+                )));
+            };
+
+            if fields.is_empty() {
+                return Err(QSharpError::new_err(format!(
+                    "mismatched types: missing {udt_field_name} field in {udt_name}",
+                )));
+            }
+
+            let field_value = &fields[0];
+            let field_value_name = &field_value.name;
+
+            if *udt_field_name != *field_value_name {
+                return Err(QSharpError::new_err(format!(
+                    "mismatched types: expected field {udt_field_name}, found {field_value_name}",
+                )));
+            }
+
+            verify_that_field_type_matches_field_value(ctx, &udt_field.ty, &field_value.value)?;
+        }
+        qsc::hir::ty::UdtDefKind::Tuple(udt_defs) => {
+            for (idx, udt_def) in udt_defs.iter().enumerate() {
+                if let Some(field) = fields.get(idx) {
+                    verify_that_udt_def_matches_fields(ctx, udt_name, udt_def, &[field.clone()])?;
+                } else {
+                    verify_that_udt_def_matches_fields(ctx, udt_name, udt_def, &[])?;
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn verify_that_field_type_matches_field_value(
+    ctx: &Interpreter,
+    ty: &Ty,
+    value: &ValueIR,
+) -> PyResult<()> {
+    match ty {
+        Ty::Arrow(..) | Ty::Infer(..) | Ty::Param { .. } | Ty::Err => {
+            unreachable!("we verified unsupported types in `first_unsupported_interop_ty`");
+        }
+        Ty::Prim(prim) => {
+            match (prim, value) {
+                (Prim::Pauli, ValueIR::Primitive(PrimitiveValue::Pauli(..)))
+                // | (Prim::BigInt, ValueIR::Primitive(PrimitiveValue::))
+                | (Prim::Bool, ValueIR::Primitive(PrimitiveValue::Bool(..)))
+                | (Prim::Double, ValueIR::Primitive(PrimitiveValue::Float(..)))
+                | (Prim::Int, ValueIR::Primitive(PrimitiveValue::Int(..)))
+                | (Prim::String, ValueIR::Primitive(PrimitiveValue::Str(..)))
+                | (Prim::Result, ValueIR::Primitive(PrimitiveValue::Result(..))) => (),
+                _ => {
+                    return Err(QSharpError::new_err(format!(
+                    "mismatched types: expected {}, found {}",
+                    ty,
+                    value.ty_name()
+                )));
+                }
+            }
+        }
+        Ty::Array(ty) => {
+            if let ValueIR::Array(values) = value {
+            } else {
+                return Err(QSharpError::new_err(format!(
+                    "mismatched types: expected {}, found {}",
+                    ty,
+                    value.ty_name()
+                )));
+            }
+        }
+        Ty::Tuple(items) => {
+            if let ValueIR::Tuple(values) = value {
+            } else {
+                return Err(QSharpError::new_err(format!(
+                    "mismatched types: expected {}, found {}",
+                    ty,
+                    value.ty_name()
+                )));
+            }
+        }
+        Ty::Udt(_, res) => {
+            let ValueIR::Udt(udt_value) = &value else {
+                return Err(QSharpError::new_err(format!(
+                    "mismatched types: expected {}, found {}",
+                    ty,
+                    value.ty_name()
+                )));
+            };
+            let qsc::hir::Res::Item(item_id) = res else {
+                panic!("Udt should be an item");
+            };
+            let Some(udt) = ctx.interpreter.udt_ty(item_id) else {
+                unreachable!(
+                    "we verified that the udt is defined in `first_unsupported_interop_ty`"
+                );
+            };
+            verify_that_udt_matches_value(ctx, udt, udt_value)?;
+        }
+    }
+
+    Ok(())
 }
 
 #[pyfunction]
