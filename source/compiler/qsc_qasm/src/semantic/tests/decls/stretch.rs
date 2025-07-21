@@ -15,8 +15,8 @@ fn with_no_init_expr_has_generated_lit_expr() {
                 ty_span: [0-7]
                 init_expr: Expr [0-10]:
                     ty: stretch
-                    const_value: Duration(0.0 ns)
-                    kind: Lit: Duration(0.0 ns)
+                    const_value: Duration(0.0 s)
+                    kind: Lit: Duration(0.0 s)
             [8] Symbol [8-9]:
                 name: a
                 type: stretch
@@ -88,8 +88,8 @@ fn spec_sample() {
                 ty_span: [134-141]
                 init_expr: Expr [134-144]:
                     ty: stretch
-                    const_value: Duration(0.0 ns)
-                    kind: Lit: Duration(0.0 ns)
+                    const_value: Duration(0.0 s)
+                    kind: Lit: Duration(0.0 s)
             [42] Symbol [142-143]:
                 name: c
                 type: stretch
@@ -108,7 +108,7 @@ fn spec_sample() {
                             kind: SymbolId(40)
                         rhs: Expr [221-226]:
                             ty: duration
-                            const_value: Duration(0.0 ns)
+                            const_value: Duration(0.0 s)
                             kind: BinaryOpExpr:
                                 op: Mul
                                 lhs: Expr [221-222]:
@@ -175,8 +175,8 @@ fn spec_sample_2() {
                 ty_span: [49-56]
                 init_expr: Expr [49-59]:
                     ty: stretch
-                    const_value: Duration(0.0 ns)
-                    kind: Lit: Duration(0.0 ns)
+                    const_value: Duration(0.0 s)
+                    kind: Lit: Duration(0.0 s)
             [40] Symbol [57-58]:
                 name: a
                 type: stretch
@@ -187,8 +187,8 @@ fn spec_sample_2() {
                 ty_span: [72-79]
                 init_expr: Expr [72-82]:
                     ty: stretch
-                    const_value: Duration(0.0 ns)
-                    kind: Lit: Duration(0.0 ns)
+                    const_value: Duration(0.0 s)
+                    kind: Lit: Duration(0.0 s)
             [41] Symbol [80-81]:
                 name: b
                 type: stretch

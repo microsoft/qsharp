@@ -1359,13 +1359,13 @@ impl Display for Index {
 pub enum TimeUnit {
     Dt,
     /// Nanoseconds.
-    #[default]
     Ns,
     /// Microseconds.
     Us,
     /// Milliseconds.
     Ms,
     /// Seconds.
+    #[default]
     S,
 }
 

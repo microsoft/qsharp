@@ -38,8 +38,8 @@ fn stretch_to_bool_fails() {
                             ty_span: [9-16]
                             init_expr: Expr [9-19]:
                                 ty: stretch
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [28-36]:
                         annotations: <empty>
                         kind: ExprStmt [28-36]:
@@ -78,8 +78,8 @@ fn stretch_to_duration_changes_ty() {
                 ty_span: [9-16]
                 init_expr: Expr [9-19]:
                     ty: stretch
-                    const_value: Duration(0.0 ns)
-                    kind: Lit: Duration(0.0 ns)
+                    const_value: Duration(0.0 s)
+                    kind: Lit: Duration(0.0 s)
             ExprStmt [28-40]:
                 expr: Expr [28-39]:
                     ty: duration
@@ -106,8 +106,8 @@ fn stretch_to_stretch() {
                 ty_span: [9-16]
                 init_expr: Expr [9-19]:
                     ty: stretch
-                    const_value: Duration(0.0 ns)
-                    kind: Lit: Duration(0.0 ns)
+                    const_value: Duration(0.0 s)
+                    kind: Lit: Duration(0.0 s)
             ExprStmt [28-39]:
                 expr: Expr [28-38]:
                     ty: stretch
@@ -130,8 +130,8 @@ fn stretch_to_stretch_is_no_op() {
                 ty_span: [9-16]
                 init_expr: Expr [9-19]:
                     ty: stretch
-                    const_value: Duration(0.0 ns)
-                    kind: Lit: Duration(0.0 ns)
+                    const_value: Duration(0.0 s)
+                    kind: Lit: Duration(0.0 s)
             ExprStmt [28-39]:
                 expr: Expr [28-38]:
                     ty: stretch
@@ -164,8 +164,8 @@ fn stretch_to_int_fails() {
                             ty_span: [9-16]
                             init_expr: Expr [9-19]:
                                 ty: stretch
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [28-35]:
                         annotations: <empty>
                         kind: ExprStmt [28-35]:
@@ -206,8 +206,8 @@ fn stretch_to_sized_int_fails() {
                             ty_span: [9-16]
                             init_expr: Expr [9-19]:
                                 ty: stretch
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [28-39]:
                         annotations: <empty>
                         kind: ExprStmt [28-39]:
@@ -252,8 +252,8 @@ fn stretch_to_uint_fails() {
                             ty_span: [9-16]
                             init_expr: Expr [9-19]:
                                 ty: stretch
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [28-36]:
                         annotations: <empty>
                         kind: ExprStmt [28-36]:
@@ -294,8 +294,8 @@ fn stretch_to_sized_uint_fails() {
                             ty_span: [9-16]
                             init_expr: Expr [9-19]:
                                 ty: stretch
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [28-40]:
                         annotations: <empty>
                         kind: ExprStmt [28-40]:
@@ -340,8 +340,8 @@ fn stretch_to_float_fails() {
                             ty_span: [9-16]
                             init_expr: Expr [9-19]:
                                 ty: stretch
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [28-37]:
                         annotations: <empty>
                         kind: ExprStmt [28-37]:
@@ -382,8 +382,8 @@ fn stretch_to_sized_float_fails() {
                             ty_span: [9-16]
                             init_expr: Expr [9-19]:
                                 ty: stretch
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [28-41]:
                         annotations: <empty>
                         kind: ExprStmt [28-41]:
@@ -428,8 +428,8 @@ fn stretch_to_angle_fails() {
                             ty_span: [9-16]
                             init_expr: Expr [9-19]:
                                 ty: stretch
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [28-37]:
                         annotations: <empty>
                         kind: ExprStmt [28-37]:
@@ -470,8 +470,8 @@ fn stretch_to_sized_angle_fails() {
                             ty_span: [9-16]
                             init_expr: Expr [9-19]:
                                 ty: stretch
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [28-41]:
                         annotations: <empty>
                         kind: ExprStmt [28-41]:
@@ -516,8 +516,8 @@ fn stretch_to_complex_fails() {
                             ty_span: [9-16]
                             init_expr: Expr [9-19]:
                                 ty: stretch
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [28-39]:
                         annotations: <empty>
                         kind: ExprStmt [28-39]:
@@ -558,8 +558,8 @@ fn stretch_to_sized_complex_fails() {
                             ty_span: [9-16]
                             init_expr: Expr [9-19]:
                                 ty: stretch
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [28-50]:
                         annotations: <empty>
                         kind: ExprStmt [28-50]:
@@ -604,8 +604,8 @@ fn stretch_to_bit_fails() {
                             ty_span: [9-16]
                             init_expr: Expr [9-19]:
                                 ty: stretch
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [28-35]:
                         annotations: <empty>
                         kind: ExprStmt [28-35]:
@@ -646,8 +646,8 @@ fn stretch_to_bitarray_fails() {
                             ty_span: [9-16]
                             init_expr: Expr [9-19]:
                                 ty: stretch
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [28-39]:
                         annotations: <empty>
                         kind: ExprStmt [28-39]:

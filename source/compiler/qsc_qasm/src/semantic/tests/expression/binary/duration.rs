@@ -96,8 +96,8 @@ fn addition_with_duration_and_non_duration_value_errors() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-35]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [29-35]:
@@ -150,8 +150,8 @@ fn addition_assign_op_errors_as_duration_is_const() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-40]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [29-40]:
@@ -159,8 +159,8 @@ fn addition_assign_op_errors_as_duration_is_const() {
                             ty_span: [29-37]
                             init_expr: Expr [29-40]:
                                 ty: duration
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [49-56]:
                         annotations: <empty>
                         kind: Err
@@ -255,8 +255,8 @@ fn subtraction_assign_op_errors_as_duration_is_const() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-40]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [29-40]:
@@ -264,8 +264,8 @@ fn subtraction_assign_op_errors_as_duration_is_const() {
                             ty_span: [29-37]
                             init_expr: Expr [29-40]:
                                 ty: duration
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [49-56]:
                         annotations: <empty>
                         kind: Err

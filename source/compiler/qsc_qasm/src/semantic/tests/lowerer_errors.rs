@@ -316,7 +316,7 @@ fn check_lowerer_error_spans_are_correct() {
              132 | 
                  `----
 
-            Qasm.Lowerer.DefDeclarationInNonGlobalScope
+            Qasm.Lowerer.ExternDeclarationInNonGlobalScope
 
               x extern declarations must be done in global scope
                  ,-[Test.qasm:141:5]

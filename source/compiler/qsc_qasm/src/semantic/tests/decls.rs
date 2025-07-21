@@ -38,8 +38,8 @@ fn duration_and_stretch_types_without_init_exprs() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-39]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [29-39]:
@@ -47,8 +47,8 @@ fn duration_and_stretch_types_without_init_exprs() {
                             ty_span: [29-36]
                             init_expr: Expr [29-39]:
                                 ty: stretch
-                                const_value: Duration(0.0 ns)
-                                kind: Lit: Duration(0.0 ns)"#]],
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)"#]],
     );
 }
 

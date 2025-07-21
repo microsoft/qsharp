@@ -15,8 +15,8 @@ fn with_no_init_expr_has_generated_lit_expr() {
                 ty_span: [0-8]
                 init_expr: Expr [0-11]:
                     ty: duration
-                    const_value: Duration(0.0 ns)
-                    kind: Lit: Duration(0.0 ns)
+                    const_value: Duration(0.0 s)
+                    kind: Lit: Duration(0.0 s)
             [8] Symbol [9-10]:
                 name: a
                 type: duration
