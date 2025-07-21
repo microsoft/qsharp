@@ -420,7 +420,6 @@ export function Editor(props: {
       </div>
       <div class="code-editor" ref={editorDiv}></div>
       <div class="button-row">
-        {props.kataSection ? null : <></>}
         {props.showExpr ? (
           <>
             <span>Start</span>

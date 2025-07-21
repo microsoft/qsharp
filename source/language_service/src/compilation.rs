@@ -68,7 +68,6 @@ pub(crate) enum CompilationKind {
 
 impl Compilation {
     /// Creates a new `Compilation` by compiling sources.
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         package_type: PackageType,
         target_profile: Profile,
@@ -438,19 +437,6 @@ impl Compilation {
         self.user_package_id = new.user_package_id;
         self.test_cases = new.test_cases;
         self.compile_errors = new.compile_errors;
-    }
-
-    #[must_use]
-    /// Returns true if the compilation has a manifest file.
-    pub fn has_manifest(&self) -> bool {
-        match &self.kind {
-            CompilationKind::OpenProject {
-                package_graph_sources,
-                ..
-            } => package_graph_sources.has_manifest,
-            CompilationKind::Notebook { .. } => false,
-            CompilationKind::OpenQASM { .. } => false,
-        }
     }
 }
 
