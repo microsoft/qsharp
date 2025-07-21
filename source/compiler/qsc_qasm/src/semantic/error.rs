@@ -113,8 +113,11 @@ pub enum SemanticErrorKind {
     #[error("{0} must fit in a u32")]
     #[diagnostic(code("Qasm.Lowerer.ExprMustFitInU32"))]
     ExprMustFitInU32(String, #[label] Span),
+    #[error("extern declarations cannot return durations or stretches")]
+    #[diagnostic(code("Qasm.Lowerer.ExternDeclarationCannotReturnDuration"))]
+    ExternDeclarationCannotReturnDuration(#[label] Span),
     #[error("extern declarations must be done in global scope")]
-    #[diagnostic(code("Qasm.Lowerer.DefDeclarationInNonGlobalScope"))]
+    #[diagnostic(code("Qasm.Lowerer.ExternDeclarationInNonGlobalScope"))]
     ExternDeclarationInNonGlobalScope(#[label] Span),
     #[error("failed to compile all expressions in expression list")]
     #[diagnostic(code("Qasm.Lowerer.FailedToCompileExpressionList"))]

@@ -1656,6 +1656,12 @@ impl Lowerer {
             (crate::semantic::types::Type::Void, Span::default())
         };
 
+        if type_is_duration_subtype(&return_ty) {
+            // extern functions cannot return durations, so we push an error.
+            let kind = SemanticErrorKind::ExternDeclarationCannotReturnDuration(ty_span);
+            self.push_semantic_error(kind);
+        }
+
         // extern functions can take of any number of arguments whose types correspond to the classical types of OpenQASM.
         // However, they cannot take qubits as parameters. We don't check the param types as they
         // are parse errors.
