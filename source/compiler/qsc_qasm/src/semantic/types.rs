@@ -460,6 +460,40 @@ impl Type {
                 &array.dims,
                 index,
             ),
+            Type::StaticArrayRef(array) => indexed_type_builder(
+                ctx,
+                || array.base_ty.clone().into(),
+                |dims| {
+                    Type::StaticArrayRef(StaticArrayRefType {
+                        base_ty: array.base_ty.clone(),
+                        dims: dims.clone(),
+                        is_mutable: array.is_mutable,
+                    })
+                },
+                &array.dims,
+                index,
+            ),
+            Type::DynArrayRef(array) => {
+                // In this case we only care about the number of dimensions and not about
+                // the size of the dimensions. So, we create a dummy `ArrayDimensions`
+                // enconding the num_dims to be able to use the same infrastructure we
+                // use for the other array types.
+                let dummy_dims: ArrayDimensions = (&vec![0u32; array.num_dims as usize][..]).into();
+                indexed_type_builder(
+                    ctx,
+                    || array.base_ty.clone().into(),
+                    |dims| {
+                        Type::DynArrayRef(DynArrayRefType {
+                            base_ty: array.base_ty.clone(),
+                            num_dims: u32::try_from(dims.num_dims())
+                                .expect("there are at most 7 dimensions"),
+                            is_mutable: array.is_mutable,
+                        })
+                    },
+                    &dummy_dims,
+                    index,
+                )
+            }
             _ => {
                 let kind = super::error::SemanticErrorKind::CannotIndexType(self.to_string(), span);
                 ctx.push_semantic_error(kind);
