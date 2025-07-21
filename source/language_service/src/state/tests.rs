@@ -262,7 +262,7 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
         [dir(
             "parent",
             [
-                file("qsharp.json", r#"{}"#),
+                file("qsharp.json", r#"{ "targetProfile": "adaptive_ri" }"#),
                 dir(
                     "src",
                     [file(
@@ -281,16 +281,7 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
     let test_cases = std::cell::RefCell::new(Vec::new());
     let mut updater = new_updater_with_file_system(&errors, &test_cases, &fs);
 
-    let manifest_path = "parent/qsharp.json";
-    let success = update_manifest_field(
-        &fs,
-        manifest_path,
-        "targetProfile",
-        serde_json::Value::String("adaptive_ri".to_string()),
-    );
-    assert!(success, "Failed to update manifest profile");
-
-    // Trigger a document update to re-read the manifest
+    // Trigger a document update to read the file
     updater
         .update_document(
             "parent/src/main.qs",
@@ -321,7 +312,7 @@ async fn base_profile_rca_errors_are_reported_when_compilation_succeeds() {
         [dir(
             "parent",
             [
-                file("qsharp.json", r#"{}"#),
+                file("qsharp.json", r#"{ "targetProfile": "base" }"#),
                 dir(
                     "src",
                     [file(
@@ -338,15 +329,6 @@ async fn base_profile_rca_errors_are_reported_when_compilation_succeeds() {
     let errors = std::cell::RefCell::new(Vec::new());
     let test_cases = std::cell::RefCell::new(Vec::new());
     let mut updater = new_updater_with_file_system(&errors, &test_cases, &fs);
-
-    let manifest_path = "parent/qsharp.json";
-    let success = update_manifest_field(
-        &fs,
-        manifest_path,
-        "targetProfile",
-        serde_json::Value::String("base".to_string()),
-    );
-    assert!(success, "Failed to update manifest profile");
 
     // Trigger a document update to re-read the manifest
     updater
