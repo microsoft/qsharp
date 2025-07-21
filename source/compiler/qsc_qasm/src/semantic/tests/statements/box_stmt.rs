@@ -103,7 +103,6 @@ fn box_cannot_have_a_negative_duration() {
 }
 
 #[test]
-#[ignore = "Duration type, stretch type, and delay are not supported yet"]
 fn box_can_contain_delay() {
     check_stmt_kinds(
         r#"
@@ -116,70 +115,48 @@ fn box_can_contain_delay() {
             }
         "#,
         &expect![[r#"
-            Program:
-                version: <none>
-                pragmas: <empty>
-                statements:
-                    Stmt [49-57]:
+            QubitDeclaration [49-57]:
+                symbol_id: 40
+            ClassicalDeclarationStmt [70-89]:
+                symbol_id: 41
+                ty_span: [70-78]
+                init_expr: Expr [83-88]:
+                    ty: duration
+                    const_value: Duration(300.0 ns)
+                    kind: Lit: Duration(300.0 ns)
+            ClassicalDeclarationStmt [102-120]:
+                symbol_id: 42
+                ty_span: [102-109]
+                init_expr: Expr [114-119]:
+                    ty: stretch
+                    const_value: Duration(600.0 ns)
+                    kind: BinaryOpExpr:
+                        op: Mul
+                        lhs: Expr [114-115]:
+                            ty: const int
+                            kind: Lit: Int(2)
+                        rhs: Expr [118-119]:
+                            ty: duration
+                            kind: SymbolId(41)
+            BoxStmt [133-182]:
+                duration: Expr [138-139]:
+                    ty: stretch
+                    const_value: Duration(600.0 ns)
+                    kind: SymbolId(42)
+                body:
+                    Stmt [157-168]:
                         annotations: <empty>
-                        kind: QubitDeclaration [49-57]:
-                            symbol_id: 40
-                    Stmt [70-89]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [70-89]:
-                            symbol_id: 41
-                            ty_span: [70-78]
-                            init_expr: Expr [83-88]:
+                        kind: DelayStmt [157-168]:
+                            duration: Expr [163-164]:
                                 ty: duration
                                 const_value: Duration(300.0 ns)
-                                kind: Lit: Duration(300.0 ns)
-                    Stmt [102-120]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [102-120]:
-                            symbol_id: 42
-                            ty_span: [102-109]
-                            init_expr: Expr [114-119]:
-                                ty: duration
-                                const_value: Duration(600.0 ns)
-                                kind: BinaryOpExpr:
-                                    op: Mul
-                                    lhs: Expr [114-115]:
-                                        ty: const int
-                                        kind: Lit: Int(2)
-                                    rhs: Expr [118-119]:
-                                        ty: duration
-                                        kind: SymbolId(41)
-                    Stmt [133-182]:
-                        annotations: <empty>
-                        kind: BoxStmt [133-182]:
-                            duration: Expr [138-139]:
-                                ty: stretch
-                                const_value: Duration(600.0 ns)
-                                kind: SymbolId(42)
-                            body:
-                                Stmt [157-168]:
-                                    annotations: <empty>
-                                    kind: DelayStmt [157-168]:
-                                        duration: Expr [163-164]:
-                                            ty: duration
-                                            const_value: Duration(300.0 ns)
-                                            kind: SymbolId(41)
-                                        qubits:
-                                            GateOperand [166-167]:
-                                                kind: Expr [166-167]:
-                                                    ty: qubit
-                                                    kind: SymbolId(40)
-
-            [Qasm.Lowerer.CannotCast
-
-              x cannot cast expression of type duration to type stretch
-               ,-[test:5:25]
-             4 |             duration a = 300ns;
-             5 |             stretch c = 2 * a;
-               :                         ^^^^^
-             6 |             box [c] {
-               `----
-            ]"#]],
+                                kind: SymbolId(41)
+                            qubits:
+                                GateOperand [166-167]:
+                                    kind: Expr [166-167]:
+                                        ty: qubit
+                                        kind: SymbolId(40)
+        "#]],
     );
 }
 
