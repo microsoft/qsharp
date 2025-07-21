@@ -3,27 +3,33 @@
 
 use crate::{
     semantic::{
-        ast::{BoxStmt, DelayStmt, GateCall},
+        ast::{Block, BoxStmt, DelayStmt, GateCall},
         visit::Visitor,
     },
     stdlib::duration::Duration,
 };
 
 pub(crate) struct DurationAccumulator {
-    pub(crate) durations: Vec<Duration>,
+    durations: Vec<Duration>,
 }
 
 impl DurationAccumulator {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             durations: Vec::new(),
         }
     }
 
-    pub fn get_duration(&self) -> Duration {
-        self.durations
-            .iter()
-            .copied()
+    /// Visits the block and accumulates the durations of all relevant
+    /// statements that have a duration.
+    /// Returns the total duration of all statements in the block.
+    #[must_use]
+    pub fn get_duration(scope: &Block) -> Duration {
+        let mut accumulator = DurationAccumulator::new();
+        accumulator.visit_block(scope);
+        accumulator
+            .durations
+            .into_iter()
             .reduce(|acc, d| acc + d)
             .unwrap_or_default()
     }

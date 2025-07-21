@@ -42,7 +42,6 @@ use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
 use crate::semantic::types::either_type_is_duration_subtype;
 use crate::semantic::types::type_is_duration_subtype;
-use crate::semantic::visit::Visitor;
 use crate::stdlib::angle::Angle;
 use crate::stdlib::builtin_functions;
 use crate::stdlib::complex::Complex;
@@ -1139,10 +1138,7 @@ impl Lowerer {
     fn lower_duration_of_expr(&mut self, expr: &syntax::DurationofCall) -> semantic::Expr {
         let scope = self.lower_block(&expr.scope);
 
-        // We need to visit the block to accumulate the duration of the statements
-        let mut acc = DurationAccumulator::new();
-        acc.visit_block(&scope);
-        let duration = acc.get_duration();
+        let duration = DurationAccumulator::get_duration(&scope);
 
         let ty = Type::Duration(true);
         let kind = semantic::ExprKind::DurationofCall(semantic::DurationofCallExpr {
