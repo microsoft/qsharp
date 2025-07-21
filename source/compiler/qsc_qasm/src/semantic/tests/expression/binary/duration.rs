@@ -324,37 +324,12 @@ fn multiplication_by_duration_is_not_supported() {
                             symbol_id: 10
                             ty_span: [61-69]
                             init_expr: Expr [74-79]:
-                                ty: duration
-                                kind: BinaryOpExpr:
-                                    op: Mul
-                                    lhs: Expr [74-75]:
-                                        ty: duration
-                                        kind: SymbolId(8)
-                                    rhs: Expr [78-79]:
-                                        ty: duration
-                                        kind: SymbolId(9)
+                                ty: unknown
+                                kind: Err
 
-            [Qasm.Lowerer.UnsupportedBinaryOp
+            [Qasm.Lowerer.CannotApplyOperatorToTypes
 
-              x Mul is not supported between types duration and duration
-               ,-[test:4:22]
-             3 |         duration b = 2ms;
-             4 |         duration x = a * b;
-               :                      ^^^^^
-             5 |     
-               `----
-            , Qasm.Lowerer.DurationMustBeKnownAtCompileTime
-
-              x duration must be known at compile time
-               ,-[test:4:22]
-             3 |         duration b = 2ms;
-             4 |         duration x = a * b;
-               :                      ^^^^^
-             5 |     
-               `----
-            , Qasm.Lowerer.UnsupportedBinaryOp
-
-              x Mul is not supported between types duration and duration
+              x cannot apply operator Mul to types duration and duration
                ,-[test:4:22]
              3 |         duration b = 2ms;
              4 |         duration x = a * b;

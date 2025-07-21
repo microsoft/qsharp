@@ -56,9 +56,6 @@ pub enum ConstEvalError {
     #[error("{0} doesn't fit in {1}")]
     #[diagnostic(code("Qasm.Lowerer.ValueOverflow"))]
     ValueOverflow(String, String, #[label] Span),
-    #[error("{0} is not supported between types {1} and {2}")]
-    #[diagnostic(code("Qasm.Lowerer.UnsupportedBinaryOp"))]
-    UnsupportedBinaryOp(String, String, String, #[label] Span),
 }
 
 impl Expr {
@@ -330,12 +327,7 @@ impl BinaryOpExpr {
         let lhs_ty = &self.lhs.ty;
 
         if !binary_op_is_supported_for_types(self.op, &self.lhs.ty, &self.rhs.ty) {
-            ctx.push_const_eval_error(ConstEvalError::UnsupportedBinaryOp(
-                self.op.to_string(),
-                self.lhs.ty.to_string(),
-                self.rhs.ty.to_string(),
-                self.span(),
-            ));
+            // The lowerer should have pushed an error for unsupported binary ops
             return None;
         }
 

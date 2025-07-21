@@ -37,6 +37,7 @@ use crate::parser::ast::list_from_iter;
 use crate::semantic::ast::Expr;
 use crate::semantic::passes::DurationAccumulator;
 use crate::semantic::types::base_types_equal;
+use crate::semantic::types::binary_op_is_supported_for_types;
 use crate::semantic::types::both_types_are_duration_subtypes;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
@@ -3933,6 +3934,10 @@ impl Lowerer {
 
         let left_type = lhs.ty.clone();
         let right_type = rhs.ty.clone();
+
+        if !binary_op_is_supported_for_types(op.into(), &left_type, &right_type) {
+            return unsupported_binop(op, left_type, right_type, span);
+        }
 
         // <https://openqasm.com/language/types.html#converting-duration-to-other-types>
         // Division of two durations results in a machine-precision float

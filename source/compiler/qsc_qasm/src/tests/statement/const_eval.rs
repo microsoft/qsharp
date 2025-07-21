@@ -1978,53 +1978,13 @@ fn binary_op_with_non_supported_types_fails() {
     let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
     let errs_string = errs.join("\n");
     expect![[r#"
-        Qasm.Lowerer.UnsupportedBinaryOp
+        Qasm.Lowerer.CannotApplyOperatorToTypes
 
-          x Div is not supported between types const int and duration
+          x cannot apply operator Div to types const int and duration
            ,-[Test.qasm:2:23]
          1 | 
          2 |         const int a = 2 / 0s;
            :                       ^^^^^^
-         3 |         def f() { a; }
-           `----
-
-        Qasm.Lowerer.DurationMustBeKnownAtCompileTime
-
-          x duration must be known at compile time
-           ,-[Test.qasm:2:23]
-         1 | 
-         2 |         const int a = 2 / 0s;
-           :                       ^^^^^^
-         3 |         def f() { a; }
-           `----
-
-        Qasm.Lowerer.CannotCast
-
-          x cannot cast expression of type duration to type const int
-           ,-[Test.qasm:2:23]
-         1 | 
-         2 |         const int a = 2 / 0s;
-           :                       ^^^^^^
-         3 |         def f() { a; }
-           `----
-
-        Qasm.Lowerer.UnsupportedBinaryOp
-
-          x Div is not supported between types const int and duration
-           ,-[Test.qasm:2:23]
-         1 | 
-         2 |         const int a = 2 / 0s;
-           :                       ^^^^^^
-         3 |         def f() { a; }
-           `----
-
-        Qasm.Compiler.NotSupported
-
-          x timing literals are not supported
-           ,-[Test.qasm:2:27]
-         1 | 
-         2 |         const int a = 2 / 0s;
-           :                           ^^
          3 |         def f() { a; }
            `----
     "#]]
