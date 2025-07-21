@@ -646,7 +646,7 @@ export async function submitJob(
     containerUri: sasResponse.sasUri,
     inputDataUri: `${storageAccount}/${containerName}/inputData`,
     inputDataFormat: "qir.v1",
-    outputDataFormat: "microsoft.quantum-results.v1",
+    outputDataFormat: "microsoft.quantum-results.v2",
     inputParams: {
       entryPoint: "ENTRYPOINT__main",
       arguments: [],

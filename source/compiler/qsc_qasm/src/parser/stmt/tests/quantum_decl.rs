@@ -33,8 +33,9 @@ fn annotated_quantum_decl() {
             Stmt [9-36]:
                 annotations:
                     Annotation [9-19]:
-                        identifier: "a.b.c"
+                        identifier: a.b.c
                         value: "123"
+                        value_span: [16-19]
                 kind: QubitDeclaration [28-36]:
                     ty: QubitType [28-33]:
                         size: <none>
@@ -55,14 +56,17 @@ fn multi_annotated_quantum_decl() {
             Stmt [9-108]:
                 annotations:
                     Annotation [9-57]:
-                        identifier: "g.h"
+                        identifier: g.h
                         value: "dolor sit amet, consectetur adipiscing elit"
+                        value_span: [14-57]
                     Annotation [66-72]:
-                        identifier: "d.e.f"
+                        identifier: d.e.f
                         value: <none>
+                        value_span: <none>
                     Annotation [81-91]:
-                        identifier: "a.b.c"
+                        identifier: a.b.c
                         value: "123"
+                        value_span: [88-91]
                 kind: QubitDeclaration [100-108]:
                     ty: QubitType [100-105]:
                         size: <none>

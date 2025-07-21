@@ -24,6 +24,7 @@ import { supportsAdaptive, targetSupportQir } from "./providerProperties";
 import { startRefreshCycle } from "./treeRefresher";
 import { getTokenForWorkspace } from "./auth";
 import { qsharpExtensionId } from "../common";
+import { sendMessageToPanel } from "../webviewPanel";
 
 const workspacesSecret = `${qsharpExtensionId}.workspaces`;
 
@@ -240,52 +241,68 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
     ),
   );
 
+  async function downloadResults(arg?: WorkspaceTreeItem, showText?: boolean) {
+    // Could be run via the treeItem icon or the menu command.
+    const treeItem = arg || currentTreeItem;
+    if (treeItem?.type !== "job") return;
+
+    const job = treeItem.itemData as Job;
+
+    if (!job.outputDataUri) {
+      log.error("Download called for job with null outputDataUri", job);
+      return;
+    }
+
+    const fileUri = vscode.Uri.parse(job.outputDataUri);
+    const [, container, blob] = fileUri.path.split("/");
+
+    const quantumUris = new QuantumUris(
+      treeItem.workspace.endpointUri,
+      treeItem.workspace.id,
+    );
+
+    try {
+      const token = await getTokenForWorkspace(treeItem.workspace);
+      if (!token) return;
+
+      const file = await getJobFiles(container, blob, token, quantumUris);
+      const buckets = !showText && getHistogramBucketsFromData(file, job.shots);
+      if (buckets) {
+        sendMessageToPanel({ panelType: "histogram", id: job.name }, true, {
+          ...buckets,
+          suppressSettings: true, // Don't want to show noise settings on downloaded results
+        });
+      } else {
+        if (!showText)
+          vscode.window.showInformationMessage(
+            "Unable to display results as a histogram. Opening as text.",
+          );
+        const doc = await vscode.workspace.openTextDocument({
+          content: file,
+          language: "json",
+        });
+        vscode.window.showTextDocument(doc);
+      }
+    } catch (e: any) {
+      log.error("Failed to download result file. ", e);
+      vscode.window.showErrorMessage("Failed to download the results file.", {
+        modal: true,
+        detail: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
   context.subscriptions.push(
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.downloadResults`,
-      async (arg: WorkspaceTreeItem) => {
-        // Could be run via the treeItem icon or the menu command.
-        const treeItem = arg || currentTreeItem;
-        if (treeItem?.type !== "job") return;
+      async (arg: WorkspaceTreeItem) => await downloadResults(arg, false),
+    ),
+  );
 
-        const job = treeItem.itemData as Job;
-
-        if (!job.outputDataUri) {
-          log.error("Download called for job with null outputDataUri", job);
-          return;
-        }
-
-        const fileUri = vscode.Uri.parse(job.outputDataUri);
-        const [, container, blob] = fileUri.path.split("/");
-
-        const quantumUris = new QuantumUris(
-          treeItem.workspace.endpointUri,
-          treeItem.workspace.id,
-        );
-
-        try {
-          const token = await getTokenForWorkspace(treeItem.workspace);
-          if (!token) return;
-
-          const file = await getJobFiles(container, blob, token, quantumUris);
-          if (file) {
-            const doc = await vscode.workspace.openTextDocument({
-              content: file,
-              language: "json",
-            });
-            vscode.window.showTextDocument(doc);
-          }
-        } catch (e: any) {
-          log.error("Failed to download result file. ", e);
-          vscode.window.showErrorMessage(
-            "Failed to download the results file.",
-            {
-              modal: true,
-              detail: e instanceof Error ? e.message : undefined,
-            },
-          );
-        }
-      },
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      `${qsharpExtensionId}.downloadRawResults`,
+      async (arg: WorkspaceTreeItem) => await downloadResults(arg, true),
     ),
   );
 
@@ -330,4 +347,67 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
       },
     ),
   );
+}
+
+type Buckets = {
+  buckets: [string, number][];
+  shotCount: number;
+};
+function getHistogramBucketsFromData(
+  file: string,
+  shotCount?: number,
+): Buckets | undefined {
+  try {
+    const parsed = JSON.parse(file);
+    if (!parsed || typeof parsed !== "object") {
+      throw "Histogram data is not in the expected format";
+    }
+    if (parsed.DataFormat === "microsoft.quantum-results.v2") {
+      // New 'v2' format will be in the format
+      // {
+      //   "DataFormat": "microsoft.quantum-results.v2",
+      //   "Results": [
+      //     {
+      //       "Histogram": [
+      //         { "Outcome": [0, 1, 1, 1], "Display": "[0, 1, 1, 1]", "Count": 8 },
+      //         { "Outcome": [1, 1, 0, 0], "Display": "[1, 1, 0, 0]", "Count": 10 },
+      // etc..
+      // Only Results[0] is used (batching may have more entries, but we don't support that)
+      type v2Bucket = { Display: string; Count: number };
+      const histogramData: v2Bucket[] = parsed.Results?.[0]?.Histogram;
+      if (!Array.isArray(histogramData)) throw "Histogram data not found";
+      const buckets: Array<[string, number]> = [];
+      let shotTotal = 0;
+      histogramData.forEach((entry) => {
+        shotTotal += entry.Count;
+        buckets.push([entry.Display, entry.Count]);
+      });
+
+      return { buckets, shotCount: shotTotal };
+    } else if (Array.isArray(parsed.Histogram)) {
+      // v1 format should be an object with a "Histogram" property, which is an array of ["label", <float>, ...] entries.
+      // e.g., something as simple as: {"Histogram":["(0, 0)",0.54,"(1, 1)",0.46]}
+      // Note this doesn't include the shotCount, so we need it from the job
+      if (!shotCount || !Number.isInteger(shotCount)) {
+        throw "job.shots data was not a positive integer";
+      }
+
+      // Turn the flat histogram list into buckets for the histogram.
+      const histogram: Array<string | number> = parsed.Histogram;
+      const buckets: Array<[string, number]> = [];
+      for (let i = 0; i < parsed.Histogram.length; i += 2) {
+        const label = histogram[i].toString();
+        const value = histogram[i + 1]; // This is a percentage, not a count
+        if (typeof value !== "number") throw "Invalid histogram value";
+        buckets.push([label, Math.round(value * shotCount)]);
+      }
+
+      return { buckets, shotCount };
+    } else {
+      throw "Unrecognized histogram file format";
+    }
+  } catch (e: any) {
+    log.debug("Failed to parse job results as histogram data.", file, e);
+  }
+  return undefined;
 }

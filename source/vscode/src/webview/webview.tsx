@@ -38,6 +38,7 @@ type HistogramState = {
   panelId: string;
   buckets: Array<[string, number]>;
   shotCount: number;
+  suppressSettings?: boolean;
 };
 
 type EstimatesState = {
@@ -95,6 +96,7 @@ function onMessage(event: any) {
         panelId: message.panelId,
         buckets: message.buckets as Array<[string, number]>,
         shotCount: message.shotCount,
+        suppressSettings: message.suppressSettings,
       };
       break;
     }
@@ -187,15 +189,19 @@ function App({ state }: { state: State }) {
             onFilter={onFilter}
             shotsHeader={true}
           ></Histogram>
-          <p style="margin-top: 8px; font-size: 0.8em">
-            Note: If a{" "}
-            <a href="vscode://settings/Q%23.simulation.pauliNoise">
-              noise model
-            </a>{" "}
-            or any{" "}
-            <a href="vscode://settings/Q%23.simulation.qubitLoss">qubit loss</a>{" "}
-            has been configured, this may impact results
-          </p>
+          {state.suppressSettings ? null : (
+            <p style="margin-top: 8px; font-size: 0.8em">
+              Note: If a{" "}
+              <a href="vscode://settings/Q%23.simulation.pauliNoise">
+                noise model
+              </a>{" "}
+              or any{" "}
+              <a href="vscode://settings/Q%23.simulation.qubitLoss">
+                qubit loss
+              </a>{" "}
+              has been configured, this may impact results
+            </p>
+          )}
         </>
       );
     case "estimates":

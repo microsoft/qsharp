@@ -15,7 +15,7 @@ pub(super) struct NoBarrierError;
 
 pub(crate) struct ParserContext<'a> {
     scanner: Scanner<'a>,
-    word_collector: Option<&'a mut ValidWordCollector>,
+    pub(super) word_collector: Option<&'a mut ValidWordCollector>,
 }
 
 /// Scans over the token stream. Notably enforces LL(1) parser behavior via
@@ -61,6 +61,10 @@ impl<'a> ParserContext<'a> {
 
     pub(super) fn span(&self, from: u32) -> Span {
         self.scanner.span(from)
+    }
+
+    pub(super) fn read_from(&self, from: u32) -> &'a str {
+        self.scanner.read_from(from)
     }
 
     /// Advances the scanner to start of the the next valid token.
@@ -139,6 +143,10 @@ impl<'a> Scanner<'a> {
 
     pub(super) fn read(&self) -> &'a str {
         &self.input[self.peek.span]
+    }
+
+    pub(super) fn read_from(&self, from: u32) -> &'a str {
+        &self.input[self.span(from)]
     }
 
     pub(super) fn span(&self, from: u32) -> Span {

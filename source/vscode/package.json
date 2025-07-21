@@ -139,6 +139,11 @@
           "tags": [
             "hidden"
           ]
+        },
+        "Q#.notifications.suppressUpdateNotifications": {
+          "type": "boolean",
+          "default": false,
+          "description": "Suppress notifications about new QDK updates. If true, you will not be prompted about new features after updates."
         }
       }
     },
@@ -186,6 +191,10 @@
         },
         {
           "command": "qsharp-vscode.downloadResults",
+          "when": "qsharp-vscode.treeItemSupportsDownload"
+        },
+        {
+          "command": "qsharp-vscode.downloadRawResults",
           "when": "qsharp-vscode.treeItemSupportsDownload"
         },
         {
@@ -254,6 +263,11 @@
         },
         {
           "command": "qsharp-vscode.downloadResults",
+          "group": "inline",
+          "when": "view == quantum-workspaces && viewItem == result-download"
+        },
+        {
+          "command": "qsharp-vscode.downloadRawResults",
           "group": "inline",
           "when": "view == quantum-workspaces && viewItem == result-download"
         },
@@ -390,8 +404,14 @@
       {
         "command": "qsharp-vscode.downloadResults",
         "category": "QDK",
-        "title": "Download Azure Quantum job results",
-        "icon": "$(cloud-download)"
+        "title": "Download Azure Quantum job results as histogram",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "qsharp-vscode.downloadRawResults",
+        "category": "QDK",
+        "title": "Download Azure Quantum job results as text",
+        "icon": "$(output)"
       },
       {
         "command": "qsharp-vscode.createNotebook",
@@ -412,6 +432,11 @@
         "command": "qsharp-vscode.addProjectReference",
         "category": "QDK",
         "title": "Add Q# project reference"
+      },
+      {
+        "command": "qsharp-vscode.showChangelog",
+        "title": "Show Changelog",
+        "category": "QDK"
       }
     ],
     "breakpoints": [

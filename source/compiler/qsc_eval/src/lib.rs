@@ -37,7 +37,7 @@ use num_bigint::BigInt;
 use output::Receiver;
 use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap, span::Span};
 use qsc_fir::fir::{
-    self, BinOp, CallableImpl, ExecGraph, ExecGraphNode, Expr, ExprId, ExprKind, Field,
+    self, BinOp, BlockId, CallableImpl, ExecGraph, ExecGraphNode, Expr, ExprId, ExprKind, Field,
     FieldAssign, Global, Lit, LocalItemId, LocalVarId, PackageId, PackageStoreLookup, PatId,
     PatKind, PrimField, Res, StmtId, StoreItemId, StringComponent, UnOp,
 };
@@ -290,7 +290,7 @@ pub fn eval(
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     receiver: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
-    let mut state = State::new(package, exec_graph, seed);
+    let mut state = State::new(package, exec_graph, seed, ErrorBehavior::FailOnError);
     let res = state.eval(globals, env, sim, receiver, &[], StepAction::Continue)?;
     let StepResult::Return(value) = res else {
         panic!("eval should always return a value");
@@ -314,7 +314,7 @@ pub fn invoke(
     callable: Value,
     args: Value,
 ) -> Result<Value, (Error, Vec<Frame>)> {
-    let mut state = State::new(package, Vec::new().into(), seed);
+    let mut state = State::new(package, Vec::new().into(), seed, ErrorBehavior::FailOnError);
     // Push the callable value into the state stack and then the args value so they are ready for evaluation.
     state.set_val_register(callable);
     state.push_val();
@@ -360,7 +360,7 @@ pub enum StepResult {
     StepIn,
     StepOut,
     Return(Value),
-    Fail,
+    Fail(String),
 }
 
 trait AsIndex {
@@ -560,6 +560,14 @@ struct Scope {
 
 type CallableCountKey = (StoreItemId, bool, bool);
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ErrorBehavior {
+    /// Fail execution if an error is encountered.
+    FailOnError,
+    /// Stop execution on the first error encountered.
+    StopOnError,
+}
+
 pub struct State {
     exec_graph_stack: Vec<ExecGraph>,
     idx: u32,
@@ -573,11 +581,18 @@ pub struct State {
     rng: RefCell<StdRng>,
     call_counts: FxHashMap<CallableCountKey, i64>,
     qubit_counter: Option<QubitCounter>,
+    error_behavior: ErrorBehavior,
+    last_error: Option<(Error, Vec<Frame>)>,
 }
 
 impl State {
     #[must_use]
-    pub fn new(package: PackageId, exec_graph: ExecGraph, classical_seed: Option<u64>) -> Self {
+    pub fn new(
+        package: PackageId,
+        exec_graph: ExecGraph,
+        classical_seed: Option<u64>,
+        error_behavior: ErrorBehavior,
+    ) -> Self {
         let rng = match classical_seed {
             Some(seed) => RefCell::new(StdRng::seed_from_u64(seed)),
             None => RefCell::new(StdRng::from_entropy()),
@@ -595,6 +610,8 @@ impl State {
             rng,
             call_counts: FxHashMap::default(),
             qubit_counter: None,
+            error_behavior,
+            last_error: None,
         }
     }
 
@@ -671,10 +688,28 @@ impl State {
         frames
     }
 
+    fn set_last_error(&mut self, error: Error, frames: Vec<Frame>) {
+        assert!(
+            self.last_error.replace((error, frames)).is_none(),
+            "last error should not be set twice"
+        );
+    }
+
+    fn get_last_error(&mut self) -> Result<(), (Error, Vec<Frame>)> {
+        // Use `is_none` to check for last error, as it avoids the unconditional
+        // `mem::replace` call that `take` would perform.
+        if self.last_error.is_none() {
+            Ok(())
+        } else {
+            Err(self.last_error.take().expect("last error should be set"))
+        }
+    }
+
     /// # Errors
     /// Returns the first error encountered during execution.
     /// # Panics
     /// When returning a value in the middle of execution.
+    #[allow(clippy::too_many_lines)]
     pub fn eval(
         &mut self,
         globals: &impl PackageStoreLookup,
@@ -698,9 +733,20 @@ impl State {
                 }
                 Some(ExecGraphNode::Expr(expr)) => {
                     self.idx += 1;
-                    self.eval_expr(env, sim, globals, out, *expr)
-                        .map_err(|e| (e, self.get_stack_frames()))?;
-                    continue;
+                    match self.eval_expr(env, sim, globals, out, *expr) {
+                        Ok(()) => continue,
+                        Err(e) => {
+                            if self.error_behavior == ErrorBehavior::StopOnError {
+                                let error_str = e.to_string();
+                                self.set_last_error(e, self.get_stack_frames());
+                                // Clear the execution graph stack to indicate that execution has failed.
+                                // This will prevent further execution steps.
+                                self.exec_graph_stack.clear();
+                                return Ok(StepResult::Fail(error_str));
+                            }
+                            return Err((e, self.get_stack_frames()));
+                        }
+                    }
                 }
                 Some(ExecGraphNode::Stmt(stmt)) => {
                     self.idx += 1;
@@ -710,10 +756,6 @@ impl State {
                         Some(value) => value,
                         None => continue,
                     }
-                }
-                Some(ExecGraphNode::Fail) => {
-                    self.idx += 1;
-                    return Ok(StepResult::Fail);
                 }
                 Some(ExecGraphNode::Jump(idx)) => {
                     self.idx = *idx;
@@ -767,6 +809,16 @@ impl State {
                     self.idx += 1;
                     continue;
                 }
+                Some(ExecGraphNode::BlockEnd(id)) => {
+                    self.idx += 1;
+                    match self.check_for_block_exit_break(globals, *id, step, current_frame) {
+                        Some((result, span)) => {
+                            self.current_span = span;
+                            return Ok(result);
+                        }
+                        None => continue,
+                    }
+                }
                 None => {
                     // We have reached the end of the current graph without reaching an explicit return node,
                     // usually indicating the partial execution of a single sub-expression.
@@ -784,6 +836,11 @@ impl State {
 
             return Ok(res);
         }
+
+        // If we made it out of the execution loop, we either reached the end of the graph,
+        // a return expression, or hit a runtime error. Check here for the error case
+        // and return it if it exists.
+        self.get_last_error()?;
 
         Ok(StepResult::Return(self.get_result()))
     }
@@ -818,6 +875,25 @@ impl State {
                 }
             },
         )
+    }
+
+    fn check_for_block_exit_break(
+        &self,
+        globals: &impl PackageStoreLookup,
+        block: BlockId,
+        step: StepAction,
+        current_frame: usize,
+    ) -> Option<(StepResult, Span)> {
+        if step == StepAction::Next && current_frame >= self.call_stack.len() {
+            let block = globals.get_block((self.package, block).into());
+            let span = Span {
+                lo: block.span.hi - 1,
+                hi: block.span.hi,
+            };
+            Some((StepResult::Next, span))
+        } else {
+            None
+        }
     }
 
     pub fn get_result(&mut self) -> Value {
@@ -1175,6 +1251,7 @@ impl State {
         out: &mut impl Receiver,
     ) -> Result<(), Error> {
         self.push_frame(Vec::new().into(), callee_id, functor);
+        self.current_span = callee_span.span;
         self.increment_call_count(callee_id, functor);
         let name = &callee.name.name;
         let val = match name.as_ref() {
@@ -1385,8 +1462,7 @@ impl State {
                 if index < 0 {
                     return Err(Error::InvalidNegativeInt(index, span));
                 }
-                let i = index.as_index(span)?;
-                self.update_array_index_single(env, globals, lhs, span, i, update)
+                self.update_array_index_single(env, globals, lhs, span, index, update)
             }
             range @ Value::Range(..) => {
                 self.update_array_index_range(env, globals, lhs, span, &range, update)
@@ -1521,16 +1597,14 @@ impl State {
         globals: &impl PackageStoreLookup,
         lhs: ExprId,
         span: PackageSpan,
-        index: usize,
+        index: i64,
         rhs: Value,
     ) -> Result<(), Error> {
         let lhs = globals.get_expr((self.package, lhs).into());
         match &lhs.kind {
             &ExprKind::Var(Res::Local(id), _) => match env.get_mut(id) {
                 Some(var) => {
-                    var.value.update_array(index, rhs).map_err(|idx| {
-                        Error::IndexOutOfRange(idx.try_into().expect("index should be valid"), span)
-                    })?;
+                    var.value.update_array(index, rhs, span)?;
                 }
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
@@ -1565,13 +1639,7 @@ impl State {
                         if idx < 0 {
                             return Err(Error::InvalidNegativeInt(idx, range_span));
                         }
-                        let i = idx.as_index(range_span)?;
-                        var.value.update_array(i, rhs.clone()).map_err(|idx| {
-                            Error::IndexOutOfRange(
-                                idx.try_into().expect("index should be valid"),
-                                range_span,
-                            )
-                        })?;
+                        var.value.update_array(idx, rhs.clone(), range_span)?;
                     }
                 }
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),

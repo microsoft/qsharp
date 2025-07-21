@@ -112,7 +112,7 @@ fn to_bool_implicitly() {
             [8] Symbol [14-15]:
                 name: x
                 type: bit
-                qsharp_type: Result
+                ty_span: [10-13]
                 io_kind: Default
             ClassicalDeclarationStmt [30-41]:
                 symbol_id: 9
@@ -127,7 +127,7 @@ fn to_bool_implicitly() {
             [9] Symbol [35-36]:
                 name: y
                 type: bool
-                qsharp_type: bool
+                ty_span: [30-34]
                 io_kind: Default
         "#]],
     );
@@ -152,7 +152,7 @@ fn to_implicit_int_implicitly() {
             [8] Symbol [13-14]:
                 name: x
                 type: bit
-                qsharp_type: Result
+                ty_span: [9-12]
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
                 symbol_id: 9
@@ -167,7 +167,7 @@ fn to_implicit_int_implicitly() {
             [9] Symbol [32-33]:
                 name: y
                 type: int
-                qsharp_type: Int
+                ty_span: [28-31]
                 io_kind: Default
         "#]],
     );
@@ -192,7 +192,7 @@ fn to_explicit_int_implicitly() {
             [8] Symbol [13-14]:
                 name: x
                 type: bit
-                qsharp_type: Result
+                ty_span: [9-12]
                 io_kind: Default
             ClassicalDeclarationStmt [28-42]:
                 symbol_id: 9
@@ -207,7 +207,7 @@ fn to_explicit_int_implicitly() {
             [9] Symbol [36-37]:
                 name: y
                 type: int[32]
-                qsharp_type: Int
+                ty_span: [28-35]
                 io_kind: Default
         "#]],
     );
@@ -232,7 +232,7 @@ fn to_implicit_uint_implicitly() {
             [8] Symbol [13-14]:
                 name: x
                 type: bit
-                qsharp_type: Result
+                ty_span: [9-12]
                 io_kind: Default
             ClassicalDeclarationStmt [28-39]:
                 symbol_id: 9
@@ -247,7 +247,7 @@ fn to_implicit_uint_implicitly() {
             [9] Symbol [33-34]:
                 name: y
                 type: uint
-                qsharp_type: Int
+                ty_span: [28-32]
                 io_kind: Default
         "#]],
     );
@@ -272,7 +272,7 @@ fn to_explicit_uint_implicitly() {
             [8] Symbol [13-14]:
                 name: x
                 type: bit
-                qsharp_type: Result
+                ty_span: [9-12]
                 io_kind: Default
             ClassicalDeclarationStmt [28-43]:
                 symbol_id: 9
@@ -287,7 +287,7 @@ fn to_explicit_uint_implicitly() {
             [9] Symbol [37-38]:
                 name: y
                 type: uint[32]
-                qsharp_type: Int
+                ty_span: [28-36]
                 io_kind: Default
         "#]],
     );
@@ -312,7 +312,7 @@ fn to_explicit_bigint_implicitly() {
             [8] Symbol [13-14]:
                 name: x
                 type: bit
-                qsharp_type: Result
+                ty_span: [9-12]
                 io_kind: Default
             ClassicalDeclarationStmt [28-42]:
                 symbol_id: 9
@@ -327,7 +327,7 @@ fn to_explicit_bigint_implicitly() {
             [9] Symbol [36-37]:
                 name: y
                 type: int[65]
-                qsharp_type: BigInt
+                ty_span: [28-35]
                 io_kind: Default
         "#]],
     );
@@ -352,7 +352,7 @@ fn to_implicit_float_implicitly() {
             [8] Symbol [13-14]:
                 name: x
                 type: bit
-                qsharp_type: Result
+                ty_span: [9-12]
                 io_kind: Default
             ClassicalDeclarationStmt [28-40]:
                 symbol_id: 9
@@ -367,7 +367,7 @@ fn to_implicit_float_implicitly() {
             [9] Symbol [34-35]:
                 name: y
                 type: float
-                qsharp_type: Double
+                ty_span: [28-33]
                 io_kind: Default
         "#]],
     );

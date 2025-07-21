@@ -3,8 +3,7 @@
 
 use std::sync::Arc;
 
-use super::{CompletionItem, get_completions};
-use crate::{Compilation, Encoding, test_utils::get_sources_and_markers};
+use crate::{Compilation, completion::tests::check, test_utils::get_sources_and_markers};
 use expect_test::{Expect, expect};
 use indoc::indoc;
 use qsc::{
@@ -53,136 +52,68 @@ pub fn compile_with_markers(source_with_markers: &str) -> (Compilation, Position
     )
 }
 
-fn check(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
+fn check_single_file(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
     let (compilation, cursor_position, _) = compile_with_markers(source_with_cursor);
-    let actual_completions =
-        get_completions(&compilation, "<source>", cursor_position, Encoding::Utf8);
-    let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
-        .iter()
-        .map(|comp| {
-            actual_completions
-                .items
-                .iter()
-                .find(|item| item.label == **comp)
-        })
-        .collect();
 
-    expect.assert_debug_eq(&checked_completions);
+    check(
+        &compilation,
+        "<source>",
+        cursor_position,
+        completions_to_check,
+        expect,
+    );
 }
 
 #[test]
 fn in_empty_file_contains_openqasm() {
-    check(
+    check_single_file(
         indoc! {r#"
         ↘
     }"#},
         &["OPENQASM"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "OPENQASM",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000OPENQASM",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            found, sorted:
+              "OPENQASM" (Keyword)
         "#]],
     );
 }
 
 #[test]
 fn in_file_after_openqasm_contains_keywords_containing_i() {
-    check(
+    check_single_file(
         indoc! {r#"
         OPENQASM 3.0;
         i↘
     }"#},
         &["if", "include", "input", "inv"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "if",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000if",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "include",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000include",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "input",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000input",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "inv",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000inv",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            found, sorted:
+              "if" (Keyword)
+              "include" (Keyword)
+              "input" (Keyword)
+              "inv" (Keyword)
         "#]],
     );
 }
 
 #[test]
 fn in_file_after_openqasm_contains_annotations_containing_i() {
-    check(
+    check_single_file(
         indoc! {r#"
         OPENQASM 3.0;
         i↘
     }"#},
         &["SimulatableIntrinsic"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "SimulatableIntrinsic",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0000SimulatableIntrinsic",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            found, sorted:
+              "SimulatableIntrinsic" (Interface)
         "#]],
     );
 }
 
 #[test]
 fn local_vars() {
-    check(
+    check_single_file(
         indoc! {r#"
         OPENQASM 3.0;
         input int num_samples;
@@ -191,41 +122,18 @@ fn local_vars() {
     }"#},
         &["num_samples", "angle_value"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "num_samples",
-                        kind: Variable,
-                        sort_text: Some(
-                            "0100num_samples",
-                        ),
-                        detail: Some(
-                            "num_samples : Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "angle_value",
-                        kind: Variable,
-                        sort_text: Some(
-                            "0100angle_value",
-                        ),
-                        detail: Some(
-                            "angle_value : Double",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            found, sorted:
+              "angle_value" (Variable)
+                detail: "angle_value : Double"
+              "num_samples" (Variable)
+                detail: "num_samples : Int"
         "#]],
     );
 }
 
 #[test]
 fn local_vars_doesnt_pick_up_variables_declared_after_cursor() {
-    check(
+    check_single_file(
         indoc! {r#"
         OPENQASM 3.0;
         input int num_samples;
@@ -234,22 +142,12 @@ fn local_vars_doesnt_pick_up_variables_declared_after_cursor() {
     }"#},
         &["num_samples", "angle_value"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "num_samples",
-                        kind: Variable,
-                        sort_text: Some(
-                            "0100num_samples",
-                        ),
-                        detail: Some(
-                            "num_samples : Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-            ]
+            found, sorted:
+              "num_samples" (Variable)
+                detail: "num_samples : Int"
+
+            not found:
+              "angle_value"
         "#]],
     );
 }

@@ -313,25 +313,11 @@ fn with_duration_fails() {
     check_stmt_kinds(
         "box [4us] { }",
         &expect![[r#"
-            Program:
-                version: <none>
-                pragmas: <empty>
-                statements:
-                    Stmt [0-13]:
-                        annotations: <empty>
-                        kind: BoxStmt [0-13]:
-                            duration: Expr [5-8]:
-                                ty: const duration
-                                kind: Lit: Duration(4.0, Us)
-                            body: <empty>
-
-            [Qasm.Lowerer.NotSupported
-
-              x Box with duration are not supported
-               ,-[test:1:6]
-             1 | box [4us] { }
-               :      ^^^
-               `----
-            ]"#]],
+            BoxStmt [0-13]:
+                duration: Expr [5-8]:
+                    ty: const duration
+                    kind: Lit: Duration(4.0, Us)
+                body: <empty>
+        "#]],
     );
 }

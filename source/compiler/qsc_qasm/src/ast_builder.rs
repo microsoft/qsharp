@@ -1301,7 +1301,9 @@ pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
             let ty = build_angle_ty_ident();
             wrap_array_ty_by_dims(*dims, ty)
         }
-        crate::types::Type::Callable(_, _, _) => todo!(),
+        crate::types::Type::Callable(_, _, _) | crate::types::Type::Gate(_, _) => {
+            unreachable!("Unexpected callable type in AST conversion")
+        }
         crate::types::Type::Range => build_path_ident_ty("Range"),
         crate::types::Type::Tuple(tys) => {
             if tys.is_empty() {
@@ -1318,11 +1320,6 @@ pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
                     ..Default::default()
                 }
             }
-        }
-        crate::types::Type::TupleArray(dims, tys) => {
-            assert!(!tys.is_empty());
-            let ty = map_qsharp_type_to_ast_ty(&crate::types::Type::Tuple(tys.clone()));
-            wrap_array_ty_by_dims(*dims, ty)
         }
         crate::types::Type::Err => Ty::default(),
     }
@@ -1568,9 +1565,10 @@ fn build_idents(idents: &[&str]) -> Option<Box<[Ident]>> {
     }
 }
 
-pub(crate) fn build_attr<S>(name: S, value: Option<S>, span: Span) -> Attr
+pub(crate) fn build_attr<S, T>(name: S, value: Option<T>, span: Span) -> Attr
 where
     S: AsRef<str>,
+    T: AsRef<str>,
 {
     let name = Box::new(Ident {
         span,

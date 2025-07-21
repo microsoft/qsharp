@@ -371,6 +371,7 @@ impl Lowerer {
             self.exec_graph.push(ExecGraphNode::Unit);
         }
         if self.enable_debug {
+            self.exec_graph.push(ExecGraphNode::BlockEnd(id));
             self.exec_graph.push(ExecGraphNode::PopScope);
         }
         self.blocks.insert(id, block);
@@ -560,11 +561,7 @@ impl Lowerer {
             hir::ExprKind::Fail(message) => {
                 // Ensure the right-hand side expression is lowered first so that it
                 // is executed before the fail node, if any.
-                let fail = fir::ExprKind::Fail(self.lower_expr(message));
-                if self.enable_debug {
-                    self.exec_graph.push(ExecGraphNode::Fail);
-                }
-                fail
+                fir::ExprKind::Fail(self.lower_expr(message))
             }
             hir::ExprKind::Field(container, field) => {
                 let container = self.lower_expr(container);

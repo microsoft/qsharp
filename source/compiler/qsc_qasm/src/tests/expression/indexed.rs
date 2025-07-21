@@ -216,7 +216,7 @@ fn indexed_uint() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             mutable a = 15;
-            Std.OpenQASM.Convert.IntAsResultArrayBE(a, 4)[1];
+            Std.OpenQASM.Convert.IntAsResultArrayBE(a, 4)[2];
         "#]],
     );
 }
@@ -248,10 +248,10 @@ fn indexed_uint_with_step() {
     check_qasm_to_qsharp(
         source,
         &expect![[r#"
-        import Std.OpenQASM.Intrinsic.*;
-        mutable a = 15;
-        Std.OpenQASM.Convert.IntAsResultArrayBE(a, 4)[0..2...];
-    "#]],
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = 15;
+            Std.OpenQASM.Convert.IntAsResultArrayBE(a, 4)[3..-2..0];
+        "#]],
     );
 }
 
@@ -284,7 +284,7 @@ fn indexed_angle() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             mutable a = Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI(), 4);
-            Std.OpenQASM.Angle.AngleAsResultArrayBE(a)[1];
+            Std.OpenQASM.Angle.AngleAsResultArrayBE(a)[2];
         "#]],
     );
 }
@@ -321,7 +321,7 @@ fn indexed_angle_with_step() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             mutable a = Std.OpenQASM.Angle.DoubleAsAngle(Std.Math.PI(), 4);
-            Std.OpenQASM.Angle.AngleAsResultArrayBE(a)[0..2...];
+            Std.OpenQASM.Angle.AngleAsResultArrayBE(a)[3..-2..0];
         "#]],
     );
 }
@@ -358,7 +358,87 @@ fn index_into_array_and_then_into_int() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             mutable a = [1, 2, 3];
-            mutable b = Std.OpenQASM.Convert.IntAsResultArrayBE(a[1], 4)[1];
+            mutable b = Std.OpenQASM.Convert.IntAsResultArrayBE(a[1], 4)[2];
+        "#]],
+    );
+}
+
+#[test]
+fn negative_index_edge_case_succeeds() {
+    let source = r#"
+        const bit[4] a = "1010";
+        const bit b = a[-4];
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            let a = [One, Zero, One, Zero];
+            let b = One;
+        "#]],
+    );
+}
+
+#[test]
+fn negative_index_out_of_bounds_errors() {
+    let source = r#"
+        const bit[4] a = "1010";
+        const bit b = a[-5];
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            Qasm.Lowerer.IndexOutOfBounds
+
+              x index must be in the range [-4, 3] but it was -5
+               ,-[Test.qasm:3:26]
+             2 |         const bit[4] a = "1010";
+             3 |         const bit b = a[-5];
+               :                          ^
+             4 |     
+               `----
+        "#]],
+    );
+}
+
+#[test]
+fn positive_index_edge_case_succeeds() {
+    let source = r#"
+        const bit[4] a = "1010";
+        const bit b = a[3];
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            let a = [One, Zero, One, Zero];
+            let b = Zero;
+        "#]],
+    );
+}
+
+#[test]
+fn positive_index_out_of_bounds_errors() {
+    let source = r#"
+        const bit[4] a = "1010";
+        const bit b = a[4];
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            Qasm.Lowerer.IndexOutOfBounds
+
+              x index must be in the range [-4, 3] but it was 4
+               ,-[Test.qasm:3:25]
+             2 |         const bit[4] a = "1010";
+             3 |         const bit b = a[4];
+               :                         ^
+             4 |     
+               `----
         "#]],
     );
 }

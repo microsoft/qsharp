@@ -19,7 +19,7 @@ fn implicit_bitness_int_default() {
             [8] Symbol [5-6]:
                 name: x
                 type: uint
-                qsharp_type: Int
+                ty_span: [0-4]
                 io_kind: Default"#]],
     );
 }
@@ -39,7 +39,7 @@ fn const_implicit_bitness_int_lit() {
             [8] Symbol [11-12]:
                 name: x
                 type: const uint
-                qsharp_type: Int
+                ty_span: [6-10]
                 io_kind: Default"#]],
     );
 }
@@ -58,7 +58,7 @@ fn implicit_bitness_int_hex_cap() {
             [8] Symbol [5-6]:
                 name: x
                 type: uint
-                qsharp_type: Int
+                ty_span: [0-4]
                 io_kind: Default"#]],
     );
 }
@@ -78,7 +78,7 @@ fn const_implicit_bitness_int_hex_low() {
             [8] Symbol [11-12]:
                 name: x
                 type: const uint
-                qsharp_type: Int
+                ty_span: [6-10]
                 io_kind: Default"#]],
     );
 }
@@ -98,7 +98,7 @@ fn const_implicit_bitness_int_hex_cap() {
             [8] Symbol [11-12]:
                 name: y
                 type: const uint
-                qsharp_type: Int
+                ty_span: [6-10]
                 io_kind: Default"#]],
     );
 }
@@ -117,7 +117,7 @@ fn implicit_bitness_int_octal_low() {
             [8] Symbol [5-6]:
                 name: x
                 type: uint
-                qsharp_type: Int
+                ty_span: [0-4]
                 io_kind: Default"#]],
     );
 }
@@ -136,7 +136,7 @@ fn implicit_bitness_int_octal_cap() {
             [8] Symbol [5-6]:
                 name: x
                 type: uint
-                qsharp_type: Int
+                ty_span: [0-4]
                 io_kind: Default"#]],
     );
 }
@@ -156,7 +156,7 @@ fn const_implicit_bitness_int_octal_low() {
             [8] Symbol [11-12]:
                 name: x
                 type: const uint
-                qsharp_type: Int
+                ty_span: [6-10]
                 io_kind: Default"#]],
     );
 }
@@ -176,7 +176,7 @@ fn const_implicit_bitness_int_octal_cap() {
             [8] Symbol [11-12]:
                 name: x
                 type: const uint
-                qsharp_type: Int
+                ty_span: [6-10]
                 io_kind: Default"#]],
     );
 }
@@ -195,7 +195,7 @@ fn implicit_bitness_int_binary_low() {
             [8] Symbol [5-6]:
                 name: x
                 type: uint
-                qsharp_type: Int
+                ty_span: [0-4]
                 io_kind: Default"#]],
     );
 }
@@ -214,7 +214,7 @@ fn implicit_bitness_int_binary_cap() {
             [8] Symbol [5-6]:
                 name: x
                 type: uint
-                qsharp_type: Int
+                ty_span: [0-4]
                 io_kind: Default"#]],
     );
 }
@@ -234,7 +234,7 @@ fn const_implicit_bitness_int_binary_low() {
             [8] Symbol [11-12]:
                 name: x
                 type: const uint
-                qsharp_type: Int
+                ty_span: [6-10]
                 io_kind: Default"#]],
     );
 }
@@ -254,7 +254,7 @@ fn const_implicit_bitness_int_binary_cap() {
             [8] Symbol [11-12]:
                 name: x
                 type: const uint
-                qsharp_type: Int
+                ty_span: [6-10]
                 io_kind: Default"#]],
     );
 }
@@ -273,7 +273,7 @@ fn implicit_bitness_int_formatted() {
             [8] Symbol [5-6]:
                 name: x
                 type: uint
-                qsharp_type: Int
+                ty_span: [0-4]
                 io_kind: Default"#]],
     );
 }
@@ -293,7 +293,7 @@ fn const_implicit_bitness_int_formatted() {
             [8] Symbol [11-12]:
                 name: x
                 type: const uint
-                qsharp_type: Int
+                ty_span: [6-10]
                 io_kind: Default"#]],
     );
 }
@@ -312,7 +312,7 @@ fn const_explicit_bitness_int() {
             [8] Symbol [9-10]:
                 name: x
                 type: uint[10]
-                qsharp_type: Int
+                ty_span: [0-8]
                 io_kind: Default"#]],
     );
 }
@@ -340,7 +340,7 @@ fn assigning_uint_to_negative_lit() {
             [8] Symbol [15-16]:
                 name: x
                 type: const uint[10]
-                qsharp_type: Int
+                ty_span: [6-14]
                 io_kind: Default"#]],
     );
 }
@@ -368,7 +368,7 @@ fn implicit_bitness_uint_const_negative_decl() {
             [8] Symbol [11-12]:
                 name: x
                 type: const uint
-                qsharp_type: Int
+                ty_span: [6-10]
                 io_kind: Default"#]],
     );
 }
@@ -396,7 +396,7 @@ fn explicit_bitness_uint_const_negative_decl() {
             [8] Symbol [15-16]:
                 name: x
                 type: const uint[32]
-                qsharp_type: Int
+                ty_span: [6-14]
                 io_kind: Default"#]],
     );
 }

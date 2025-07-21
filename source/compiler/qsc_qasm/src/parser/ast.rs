@@ -11,7 +11,6 @@ use qsc_data_structures::span::{Span, WithSpan};
 use std::{
     fmt::{self, Display, Formatter},
     hash::Hash,
-    rc::Rc,
     sync::Arc,
 };
 
@@ -57,17 +56,18 @@ impl Display for Stmt {
 #[derive(Clone, Debug)]
 pub struct Annotation {
     pub span: Span,
-    pub identifier: Rc<str>,
-    pub value: Option<Rc<str>>,
+    pub identifier: PathKind,
+    pub value: Option<Arc<str>>,
+    pub value_span: Option<Span>,
 }
 
 impl Display for Annotation {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let identifier = format!("\"{}\"", self.identifier);
         let value = self.value.as_ref().map(|val| format!("\"{val}\""));
         writeln_header(f, "Annotation", self.span)?;
-        writeln_field(f, "identifier", &identifier)?;
-        write_opt_field(f, "value", value.as_ref())
+        writeln_field(f, "identifier", &self.identifier.as_string())?;
+        writeln_opt_field(f, "value", value.as_ref())?;
+        write_opt_field(f, "value_span", self.value_span.as_ref())
     }
 }
 
@@ -134,7 +134,7 @@ impl PathKind {
             PathKind::Ok(path) => match &path.segments {
                 Some(segments) => {
                     if segments.is_empty() {
-                        return path.name.to_string();
+                        return path.name.name.to_string();
                     }
                     let mut value = String::new();
                     for segment in segments {
@@ -147,7 +147,7 @@ impl PathKind {
                     value.push_str(&path.name.name);
                     value
                 }
-                None => path.name.to_string(),
+                None => path.name.name.to_string(),
             },
             PathKind::Err(Some(path)) => {
                 let mut value = String::new();
@@ -384,7 +384,7 @@ impl WithSpan for GateOperandKind {
 #[derive(Clone, Debug)]
 pub struct HardwareQubit {
     pub span: Span,
-    pub name: Rc<str>,
+    pub name: Arc<str>,
 }
 
 impl Display for HardwareQubit {
@@ -497,7 +497,7 @@ impl Display for StmtKind {
 #[derive(Clone, Debug)]
 pub struct CalibrationGrammarStmt {
     pub span: Span,
-    pub name: String,
+    pub name: Arc<str>,
 }
 
 impl Display for CalibrationGrammarStmt {
@@ -510,11 +510,13 @@ impl Display for CalibrationGrammarStmt {
 #[derive(Clone, Debug)]
 pub struct DefCalStmt {
     pub span: Span,
+    pub content: Arc<str>,
 }
 
 impl Display for DefCalStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "DefCalStmt {}", self.span)
+        writeln_header(f, "DefCalStmt", self.span)?;
+        write_field(f, "content", &self.content)
     }
 }
 
@@ -616,7 +618,7 @@ impl WithSpan for IdentOrIndexedIdent {
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Ident {
     pub span: Span,
-    pub name: Rc<str>,
+    pub name: Arc<str>,
 }
 
 impl Default for Ident {
@@ -1197,7 +1199,7 @@ impl Display for QuantumArgument {
 pub struct Pragma {
     pub span: Span,
     pub identifier: Option<PathKind>,
-    pub value: Option<Rc<str>>,
+    pub value: Option<Arc<str>>,
     pub value_span: Option<Span>,
 }
 
@@ -1433,26 +1435,15 @@ impl Display for ConstantDeclStmt {
 }
 
 #[derive(Clone, Debug)]
-pub struct CalibrationGrammarDeclaration {
-    span: Span,
-    name: String,
-}
-
-impl Display for CalibrationGrammarDeclaration {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "CalibrationGrammarDeclaration", self.span)?;
-        write_field(f, "name", &self.name)
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct CalibrationStmt {
     pub span: Span,
+    pub content: Arc<str>,
 }
 
 impl Display for CalibrationStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "CalibrationStmt {}", self.span)
+        writeln_header(f, "CalibrationStmt", self.span)?;
+        write_field(f, "content", &self.content)
     }
 }
 
