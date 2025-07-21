@@ -103,8 +103,6 @@ export type ProgramConfig = (
   profile?: TargetProfile;
   /** The type of project. This is used to determine how to load the project. */
   projectType?: ProjectType;
-  /** True if this config represents a single-file program, false if it's a project. */
-  isSingleFile?: boolean;
 };
 
 // WebWorker also support being explicitly terminated to tear down the worker thread
@@ -289,6 +287,7 @@ export function toWasmProgramConfig(
         dependencies: {},
       },
       packages: {},
+      hasManifest: false, // "sources" is only used in scenarios where there is no manifest
     };
   } else {
     // A full package graph is passed in.
@@ -299,7 +298,6 @@ export function toWasmProgramConfig(
     packageGraphSources,
     profile: program.profile || defaultProfile,
     projectType: program.projectType || "qsharp",
-    isSingleFile: program.isSingleFile ?? false,
   };
 }
 

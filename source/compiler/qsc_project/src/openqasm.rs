@@ -56,7 +56,6 @@ where
                         errors,
                         project_type: super::ProjectType::OpenQASM(vec![]),
                         target_profile: Profile::Unrestricted,
-                        is_single_file: true, // OpenQASM projects are always single-file
                     };
                 }
             }
@@ -105,7 +104,6 @@ where
         errors,
         project_type: super::ProjectType::OpenQASM(sources),
         target_profile: Profile::Unrestricted,
-        is_single_file: true, // OpenQASM projects are always single-file
     }
 }
 

@@ -74,7 +74,8 @@ async function getQirForProgram(
 ): Promise<string> {
   let result = "";
   const isLocalQirGeneration = targetSupportsAdaptive === undefined;
-  if (config.isSingleFile) {
+  const hasManifest = config.packageGraphSources.hasManifest;
+  if (!hasManifest) {
     config.profile = "unrestricted";
   }
   const isUnrestricted = config.profile === "unrestricted";
@@ -104,7 +105,7 @@ async function getQirForProgram(
 
   // Check that the current target is base or adaptive_ri profile, and current doc has no errors.
   if (
-    (!config.isSingleFile && isUnrestricted) ||
+    (hasManifest && isUnrestricted) ||
     isSubmittingAdaptiveToBaseAzureTarget ||
     isSubmittingUnsupportedAdaptiveProfile
   ) {

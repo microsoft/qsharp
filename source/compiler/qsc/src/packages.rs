@@ -35,9 +35,8 @@ impl BuildableProgram {
     pub fn new(
         capabilities: TargetCapabilityFlags,
         package_graph_sources: PackageGraphSources,
-        is_single_file: bool,
     ) -> Self {
-        prepare_package_store(capabilities, package_graph_sources, is_single_file)
+        prepare_package_store(capabilities, package_graph_sources)
     }
 }
 
@@ -84,7 +83,6 @@ fn convert_circuit_sources(
 pub fn prepare_package_store(
     mut capabilities: TargetCapabilityFlags,
     package_graph_sources: PackageGraphSources,
-    is_single_file: bool,
 ) -> BuildableProgram {
     let mut dependency_errors = Vec::new();
 
@@ -101,13 +99,13 @@ pub fn prepare_package_store(
     // If the entry profile is set, we need to ensure that the user code is compiled with it.
     if let Some((profile, span)) = entry_profile {
         // If this is a project (qsharp.json present), emit error with span
-        if is_single_file {
-            capabilities = profile.into();
-        } else {
+        if package_graph_sources.has_manifest {
             dependency_errors.push(Error::from_map(
                 &SourceMap::new(sources, None),
                 ErrorKind::Frontend(entrypoint_profile_in_project_error(span)),
             ));
+        } else {
+            capabilities = profile.into();
         }
     }
 

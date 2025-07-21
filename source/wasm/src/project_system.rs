@@ -29,7 +29,6 @@ export interface IProgramConfig {
     packageGraphSources: IPackageGraphSources;
     profile: TargetProfile;
     projectType: ProjectType;
-    isSingleFile: boolean;
 }
 "#;
 
@@ -73,9 +72,6 @@ extern "C" {
 
     #[wasm_bindgen(method, getter, structural)]
     fn profile(this: &ProgramConfig) -> String;
-
-    #[wasm_bindgen(method, getter, structural)]
-    fn isSingleFile(this: &ProgramConfig) -> bool;
 
     #[wasm_bindgen(method, getter, structural)]
     fn projectType(this: &ProgramConfig) -> String;
@@ -272,6 +268,7 @@ impl From<qsc_project::PackageGraphSources> for PackageGraphSources {
                 .into_iter()
                 .map(|(pkg_key, pkg_info)| (pkg_key.to_string(), pkg_info.into()))
                 .collect(),
+            has_manifest: value.has_manifest,
         }
     }
 }
@@ -281,6 +278,7 @@ serializable_type! {
     {
         pub root: PackageInfo,
         pub packages: FxHashMap<PackageKey,PackageInfo>,
+        pub has_manifest: bool,
     },
     r#"
     export type PackageKey = string;
@@ -288,6 +286,7 @@ serializable_type! {
     export interface IPackageGraphSources {
         root: IPackageInfo;
         packages: Record<PackageKey,IPackageInfo>;
+        hasManifest: boolean;
     }"#,
     IPackageGraphSources
 }
@@ -320,21 +319,21 @@ impl TryFrom<qsc_project::Project> for IProjectConfig {
                 &value.errors,
             ));
         }
-        let project_type = match value.project_type {
-            qsc_project::ProjectType::QSharp(..) => "qsharp".into(),
-            qsc_project::ProjectType::OpenQASM(..) => "openqasm".into(),
-        };
-        let package_graph_sources = match value.project_type {
-            qsc_project::ProjectType::QSharp(pgs) => pgs,
-            qsc_project::ProjectType::OpenQASM(res) => qsc_project::PackageGraphSources {
-                root: qsc_project::PackageInfo {
-                    sources: res,
-                    language_features: LanguageFeatures::default(),
-                    dependencies: FxHashMap::default(),
-                    package_type: None,
+        let (project_type, package_graph_sources) = match value.project_type {
+            qsc_project::ProjectType::QSharp(pgs) => ("qsharp".into(), pgs),
+            qsc_project::ProjectType::OpenQASM(res) => (
+                "openqasm".into(),
+                qsc_project::PackageGraphSources {
+                    root: qsc_project::PackageInfo {
+                        sources: res,
+                        language_features: LanguageFeatures::default(),
+                        dependencies: FxHashMap::default(),
+                        package_type: None,
+                    },
+                    packages: FxHashMap::default(),
+                    has_manifest: false,
                 },
-                packages: FxHashMap::default(),
-            },
+            ),
         };
         let profile = value.target_profile.to_str().to_string().to_lowercase();
         let project_config = ProjectConfig {
@@ -344,7 +343,6 @@ impl TryFrom<qsc_project::Project> for IProjectConfig {
             package_graph_sources: package_graph_sources.into(),
             project_type,
             profile,
-            is_single_file: value.is_single_file,
         };
         Ok(project_config.into())
     }
@@ -359,7 +357,6 @@ serializable_type! {
         pub lints: Vec<LintOrGroupConfig>,
         pub project_type: String,
         pub profile: String,
-        pub is_single_file: bool,
     },
     r#"export interface IProjectConfig {
         /**
@@ -381,10 +378,6 @@ serializable_type! {
          * QIR target profile for the project, as set in qsharp.json.
          */
         profile: TargetProfile;
-        /**
-         * True if this config represents a single-file program, false if it's a project.
-         */
-        isSingleFile: boolean;
     }"#,
     IProjectConfig
 }
@@ -401,6 +394,7 @@ impl From<PackageGraphSources> for qsc_project::PackageGraphSources {
                 .into_iter()
                 .map(|(k, v)| (Arc::from(k), v.into()))
                 .collect(),
+            has_manifest: value.has_manifest,
         }
     }
 }
@@ -455,9 +449,7 @@ pub(crate) fn into_qsc_args(
         .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()));
     let capabilities = profile.into();
 
-    // Use the isSingleFile getter from ProgramConfig to set the is_single_file flag correctly.
-    let is_single_file = program.isSingleFile();
-    let buildable_program = BuildableProgram::new(capabilities, pkg_graph, is_single_file);
+    let buildable_program = BuildableProgram::new(capabilities, pkg_graph);
 
     if !ignore_dependency_errors && !buildable_program.dependency_errors.is_empty() {
         return Err(buildable_program.dependency_errors);

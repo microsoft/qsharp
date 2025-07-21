@@ -182,7 +182,6 @@ export function Editor(props: {
     const config = {
       sources: [["code", code]],
       languageFeatures: [],
-      isSingleFile: true, // Always single file for the playground
     } as ProgramConfig;
 
     try {

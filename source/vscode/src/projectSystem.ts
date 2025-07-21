@@ -239,12 +239,12 @@ async function singleFileProject(
         dependencies: {},
       },
       packages: {},
+      hasManifest: false,
     },
     lints: [],
     errors: [],
     projectType: "qsharp",
     profile: "unrestricted",
-    isSingleFile: true,
   };
 }
 

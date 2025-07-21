@@ -35,6 +35,7 @@ fn mock_program() -> Project {
                 package_type: Some(qsc_project::PackageType::Lib),
             },
         )]),
+        has_manifest: true,
     };
     Project {
         lints: vec![],
@@ -43,7 +44,6 @@ fn mock_program() -> Project {
         name: "project".into(),
         project_type: qsc_project::ProjectType::QSharp(package_graph_sources),
         target_profile: qsc_data_structures::target::Profile::Unrestricted,
-        is_single_file: false,
     }
 }
 
@@ -53,11 +53,8 @@ fn test_prepare_package_store() {
     let ProjectType::QSharp(package_graph_sources) = program.project_type else {
         panic!("project should be a Q# project");
     };
-    let buildable_program = super::prepare_package_store(
-        TargetCapabilityFlags::default(),
-        package_graph_sources,
-        false,
-    );
+    let buildable_program =
+        super::prepare_package_store(TargetCapabilityFlags::default(), package_graph_sources);
 
     expect![[r"
             []
@@ -134,11 +131,8 @@ fn missing_dependency_doesnt_force_failure() {
         .dependencies
         .insert("NonExistent".into(), "nonexistent-dep-key".into());
 
-    let buildable_program = super::prepare_package_store(
-        TargetCapabilityFlags::default(),
-        package_graph_sources,
-        false,
-    );
+    let buildable_program =
+        super::prepare_package_store(TargetCapabilityFlags::default(), package_graph_sources);
 
     expect![[r"
             []
@@ -217,11 +211,8 @@ fn dependency_error() {
         .sources[0]
         .1 = "broken_syntax".into();
 
-    let buildable_program = super::prepare_package_store(
-        TargetCapabilityFlags::default(),
-        package_graph_sources,
-        false,
-    );
+    let buildable_program =
+        super::prepare_package_store(TargetCapabilityFlags::default(), package_graph_sources);
 
     expect![[r#"
         [

@@ -45,10 +45,10 @@ fn basic_manifest() {
                             package_type: None,
                         },
                         packages: {},
+                        has_manifest: true,
                     },
                 ),
                 target_profile: Unrestricted,
-                is_single_file: false,
             }"#]],
     );
 }
@@ -130,10 +130,10 @@ fn circular_imports() {
                             package_type: None,
                         },
                         packages: {},
+                        has_manifest: true,
                     },
                 ),
                 target_profile: Unrestricted,
-                is_single_file: false,
             }"#]],
     );
 }
@@ -172,10 +172,10 @@ fn different_files_same_manifest() {
                             package_type: None,
                         },
                         packages: {},
+                        has_manifest: true,
                     },
                 ),
                 target_profile: Unrestricted,
-                is_single_file: false,
             }"#]],
     );
 }
@@ -206,10 +206,10 @@ fn empty_manifest() {
                             package_type: None,
                         },
                         packages: {},
+                        has_manifest: true,
                     },
                 ),
                 target_profile: Unrestricted,
-                is_single_file: false,
             }"#]],
     );
 }
@@ -252,10 +252,10 @@ fn folder_structure() {
                             package_type: None,
                         },
                         packages: {},
+                        has_manifest: true,
                     },
                 ),
                 target_profile: Unrestricted,
-                is_single_file: false,
             }"#]],
     );
 }
@@ -293,10 +293,10 @@ fn hidden_files() {
                             package_type: None,
                         },
                         packages: {},
+                        has_manifest: true,
                     },
                 ),
                 target_profile: Unrestricted,
-                is_single_file: false,
             }"#]],
     );
 }
@@ -338,10 +338,10 @@ fn peer_file() {
                             package_type: None,
                         },
                         packages: {},
+                        has_manifest: true,
                     },
                 ),
                 target_profile: Unrestricted,
-                is_single_file: false,
             }"#]],
     );
 }
@@ -372,10 +372,10 @@ fn language_feature() {
                             package_type: None,
                         },
                         packages: {},
+                        has_manifest: true,
                     },
                 ),
                 target_profile: Unrestricted,
-                is_single_file: false,
             }"#]],
     );
 }
@@ -422,10 +422,10 @@ fn with_local_dep() {
                                 package_type: None,
                             },
                         },
+                        has_manifest: true,
                     },
                 ),
                 target_profile: Unrestricted,
-                is_single_file: false,
             }"#]],
     );
 }
@@ -487,10 +487,10 @@ fn transitive_dep() {
                                 package_type: None,
                             },
                         },
+                        has_manifest: true,
                     },
                 ),
                 target_profile: Unrestricted,
-                is_single_file: false,
             }"#]],
     );
 }
@@ -525,10 +525,10 @@ fn explicit_files_list() {
                             package_type: None,
                         },
                         packages: {},
+                        has_manifest: true,
                     },
                 ),
                 target_profile: Unrestricted,
-                is_single_file: false,
             }"#]],
     );
 }
@@ -568,10 +568,10 @@ fn explicit_files_list_missing_entry() {
                             package_type: None,
                         },
                         packages: {},
+                        has_manifest: true,
                     },
                 ),
                 target_profile: Unrestricted,
-                is_single_file: false,
             }"#]],
     );
 }
@@ -609,19 +609,19 @@ fn circular_dep() {
                             package_type: None,
                         },
                         packages: {},
+                        has_manifest: true,
                     },
                 ),
                 target_profile: Unrestricted,
-                is_single_file: false,
             }"#]],
     );
 }
 
 #[test]
-fn single_file_sets_is_single_file_true() {
+fn single_file_sets_has_manifest_false() {
     let project = Project::from_single_file("Test".into(), "namespace Test {}".into());
     assert!(
-        project.is_single_file,
-        "Expected is_single_file to be true for single-file scenario"
+        !project.has_manifest(),
+        "Expected has_manifest to be false for single-file scenario"
     );
 }
