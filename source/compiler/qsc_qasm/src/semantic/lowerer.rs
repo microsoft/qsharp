@@ -36,6 +36,7 @@ use crate::parser::ast::List;
 use crate::parser::ast::list_from_iter;
 use crate::semantic::ast::Expr;
 use crate::semantic::passes::DurationAccumulator;
+use crate::semantic::types::ArrayBaseType;
 use crate::semantic::types::base_types_equal;
 use crate::semantic::types::binary_op_is_supported_for_types;
 use crate::semantic::types::both_types_are_duration_subtypes;
@@ -1532,12 +1533,24 @@ impl Lowerer {
         let ty = match &*typed_param.ty {
             syntax::DefParameterType::ArrayReference(ty) => {
                 let tydef = syntax::TypeDef::ArrayReference(ty.clone());
-                self.get_semantic_type_from_tydef(&tydef, false)
+                let ty = self.get_semantic_type_from_tydef(&tydef, false);
+                if let Type::StaticArrayRef(array_ref) = &ty {
+                    if array_ref.base_ty == ArrayBaseType::Duration {
+                        let kind = SemanticErrorKind::DefParameterCannotBeDuration(tydef.span());
+                        self.push_semantic_error(kind);
+                    }
+                }
+                ty
             }
             syntax::DefParameterType::Qubit(ty) => self.lower_qubit_type(ty),
             syntax::DefParameterType::Scalar(ty) => {
                 let tydef = syntax::TypeDef::Scalar(ty.clone());
-                self.get_semantic_type_from_tydef(&tydef, false)
+                let ty = self.get_semantic_type_from_tydef(&tydef, false);
+                if type_is_duration_subtype(&ty) {
+                    let kind = SemanticErrorKind::DefParameterCannotBeDuration(tydef.span());
+                    self.push_semantic_error(kind);
+                }
+                ty
             }
         };
 

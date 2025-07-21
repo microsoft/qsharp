@@ -80,6 +80,9 @@ pub enum SemanticErrorKind {
     #[error("def declarations must be done in global scope")]
     #[diagnostic(code("Qasm.Lowerer.DefDeclarationInNonGlobalScope"))]
     DefDeclarationInNonGlobalScope(#[label] Span),
+    #[error("def parameters cannot be duration or stretch values")]
+    #[diagnostic(code("Qasm.Lowerer.DefParameterCannotBeDuration"))]
+    DefParameterCannotBeDuration(#[label] Span),
     #[error("designator must be a positive duration")]
     #[diagnostic(code("Qasm.Lowerer.DesignatorMustBePositiveDuration"))]
     DesignatorMustBePositiveDuration(#[label] Span),

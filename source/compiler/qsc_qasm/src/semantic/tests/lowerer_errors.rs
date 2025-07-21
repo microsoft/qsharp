@@ -645,6 +645,107 @@ fn check_lowerer_error_spans_are_correct() {
              241 | bit[4] empty_index;
              242 | empty_index[];
                  :             ^
+             243 | 
+                 `----
+
+            Qasm.Lowerer.ExternDeclarationCannotReturnDuration
+
+              x extern declarations cannot return durations or stretches
+                 ,-[Test.qasm:245:53]
+             244 | // ExternDeclarationCannotReturnDuration
+             245 | extern extern_function_with_duration_return(int) -> duration;
+                 :                                                     ^^^^^^^^
+             246 | 
+                 `----
+
+            Qasm.Lowerer.ExternDeclarationCannotReturnDuration
+
+              x extern declarations cannot return durations or stretches
+                 ,-[Test.qasm:248:52]
+             247 | // ExternDeclarationCannotReturnDuration
+             248 | extern extern_function_with_stretch_return(int) -> stretch;
+                 :                                                    ^^^^^^^
+             249 | 
+                 `----
+
+            Qasm.Lowerer.DefParameterCannotBeDuration
+
+              x def parameters cannot be duration or stretch values
+                 ,-[Test.qasm:251:43]
+             250 | // DefParameterCannotBeDuration
+             251 | def function_with_duration_param(qubit q, duration d) {
+                 :                                           ^^^^^^^^
+             252 |     delay[d] q;
+                 `----
+
+            Qasm.Lowerer.DurationMustBeKnownAtCompileTime
+
+              x duration must be known at compile time
+                 ,-[Test.qasm:252:11]
+             251 | def function_with_duration_param(qubit q, duration d) {
+             252 |     delay[d] q;
+                 :           ^
+             253 | }
+                 `----
+
+            Qasm.Lowerer.DefParameterCannotBeDuration
+
+              x def parameters cannot be duration or stretch values
+                 ,-[Test.qasm:256:49]
+             255 | // DefParameterCannotBeDuration
+             256 | def function_with_duration_array_param(qubit q, readonly array[duration, 2, 3] d) {
+                 :                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             257 |     delay[d[0][0]] q;
+                 `----
+
+            Qasm.Lowerer.CannotIndexType
+
+              x cannot index variables of type readonly array[duration, 2, 3]
+                 ,-[Test.qasm:257:11]
+             256 | def function_with_duration_array_param(qubit q, readonly array[duration, 2, 3] d) {
+             257 |     delay[d[0][0]] q;
+                 :           ^
+             258 | }
+                 `----
+
+            Qasm.Lowerer.CannotIndexType
+
+              x cannot index variables of type unknown
+                 ,-[Test.qasm:257:16]
+             256 | def function_with_duration_array_param(qubit q, readonly array[duration, 2, 3] d) {
+             257 |     delay[d[0][0]] q;
+                 :                ^
+             258 | }
+                 `----
+
+            Qasm.Lowerer.ExprMustBeDuration
+
+              x expression must be a duration
+                 ,-[Test.qasm:257:11]
+             256 | def function_with_duration_array_param(qubit q, readonly array[duration, 2, 3] d) {
+             257 |     delay[d[0][0]] q;
+                 :           ^^^
+             258 | }
+                 `----
+
+            Qasm.Lowerer.DefParameterCannotBeDuration
+
+              x def parameters cannot be duration or stretch values
+                 ,-[Test.qasm:261:42]
+             260 | // DefParameterCannotBeDuration
+             261 | def function_with_stretch_param(qubit q, stretch d) {
+                 :                                          ^^^^^^^
+             262 |     delay[d] q;
+                 `----
+
+            Qasm.Lowerer.DurationMustBeKnownAtCompileTime
+
+              x duration must be known at compile time
+                 ,-[Test.qasm:262:11]
+             261 | def function_with_stretch_param(qubit q, stretch d) {
+             262 |     delay[d] q;
+                 :           ^
+             263 | }
                  `----
         "#]],
     );
