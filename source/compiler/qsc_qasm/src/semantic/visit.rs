@@ -22,6 +22,7 @@ use crate::{
             SwitchCase, SwitchStmt, TimeUnit, UnaryOp, UnaryOpExpr, Version, WhileLoop,
         },
         symbols::SymbolId,
+        types::Type,
     },
 };
 
@@ -257,6 +258,7 @@ pub trait Visitor: Sized {
     fn visit_unary_op(&mut self, _op: UnaryOp) {}
     fn visit_time_unit(&mut self, _unit: TimeUnit) {}
     fn visit_path_kind(&mut self, _path: PathKind) {}
+    fn visit_ty(&mut self, _ty: &Type) {}
 }
 
 pub fn walk_program(vis: &mut impl Visitor, program: &Program) {
@@ -523,6 +525,7 @@ pub fn walk_while_loop(vis: &mut impl Visitor, stmt: &WhileLoop) {
 pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
     vis.visit_span(expr.span);
     expr.const_value.iter().for_each(|v| vis.visit_literal(v));
+    vis.visit_ty(&expr.ty);
     match expr.kind.as_ref() {
         ExprKind::Ident(id) => vis.visit_symbol_id(*id),
         ExprKind::UnaryOp(expr) => vis.visit_unary_op_expr(expr),
@@ -562,11 +565,13 @@ pub fn walk_function_call_expr(vis: &mut impl Visitor, expr: &FunctionCall) {
 pub fn walk_builtin_function_call_expr(vis: &mut impl Visitor, expr: &BuiltinFunctionCall) {
     vis.visit_span(expr.span);
     vis.visit_span(expr.fn_name_span);
+    vis.visit_ty(&expr.function_ty);
     expr.args.iter().for_each(|a| vis.visit_expr(a));
 }
 
 pub fn walk_cast_expr(vis: &mut impl Visitor, expr: &Cast) {
     vis.visit_span(expr.span);
+    vis.visit_ty(&expr.ty);
     vis.visit_expr(&expr.expr);
 }
 
