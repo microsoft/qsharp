@@ -255,10 +255,8 @@ fn invalid_profile_target() -> miette::Result<(), Vec<Report>> {
 
     assert!(unit.has_errors(), "Expected compilation to fail");
 
-    expect![[
-        r#"Error(Compiler(Error(InvalidProfilePragmaTarget("Foo", Span { lo: 65, hi: 68 }))))"#
-    ]]
-    .assert_eq(&format!("{:?}", &unit.errors[0].error()));
+    expect![[r#""Foo is not a supported QIR Profile, please specify a valid target""#]]
+        .assert_eq(&format!("{:?}", &unit.errors[0].to_string()));
     Ok(())
 }
 
@@ -285,7 +283,7 @@ fn missing_profile_target() -> miette::Result<(), Vec<Report>> {
 
     assert!(unit.has_errors(), "Expected compilation to fail");
 
-    expect![[r#"Error(Compiler(Error(InvalidProfilePragmaTarget("<empty>", Span { lo: 41, hi: 64 }))))"#]]
-        .assert_eq(&format!("{:?}", &unit.errors[0].error()));
+    expect![[r#""<empty> is not a supported QIR Profile, please specify a valid target""#]]
+    .assert_eq(&format!("{:?}", &unit.errors[0].to_string()));
     Ok(())
 }
