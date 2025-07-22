@@ -147,7 +147,7 @@ impl Display for StaticArrayRefType {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct DynArrayRefType {
     pub base_ty: ArrayBaseType,
-    pub num_dims: u32,
+    pub num_dims: DynArrayRefDimensions,
     pub is_mutable: bool,
 }
 
@@ -331,7 +331,11 @@ impl Type {
         }
     }
 
-    pub(crate) fn make_dyn_array_ref_ty(num_dims: u32, base_ty: &Self, is_mutable: bool) -> Self {
+    pub(crate) fn make_dyn_array_ref_ty(
+        num_dims: DynArrayRefDimensions,
+        base_ty: &Self,
+        is_mutable: bool,
+    ) -> Self {
         if let Ok(base_ty) = base_ty.clone().try_into() {
             Self::DynArrayRef(DynArrayRefType {
                 base_ty,
@@ -406,17 +410,6 @@ impl Type {
         }
     }
 
-    #[must_use]
-    pub fn num_dims(&self) -> usize {
-        match self {
-            Type::Array(array) => array.dims.num_dims(),
-            Type::DynArrayRef(array) => array.num_dims as usize,
-            Type::StaticArrayRef(array) => array.dims.num_dims(),
-            Type::BitArray(..) | Type::QubitArray(..) => 1,
-            _ => 0,
-        }
-    }
-
     /// Get the indexed type of a type given a list of indices.
     /// For example, if the type is `Int[2][3]`, the indexed type is `Int[2]`.
     /// If the type is `Int[2]`, the indexed type is `Int`.
@@ -487,15 +480,14 @@ impl Type {
                 // the size of the dimensions. So, we create a dummy `ArrayDimensions`
                 // enconding the num_dims to be able to use the same infrastructure we
                 // use for the other array types.
-                let dummy_dims: ArrayDimensions = (&vec![0u32; array.num_dims as usize][..]).into();
+                let dummy_dims: ArrayDimensions = array.num_dims.into();
                 indexed_type_builder(
                     ctx,
                     || array.base_ty.clone().into(),
                     |dims| {
                         Type::DynArrayRef(DynArrayRefType {
                             base_ty: array.base_ty.clone(),
-                            num_dims: u32::try_from(dims.num_dims())
-                                .expect("there are at most 7 dimensions"),
+                            num_dims: dims.into(),
                             is_mutable: array.is_mutable,
                         })
                     },
@@ -747,7 +739,7 @@ impl Display for ArrayDimensions {
 
 impl ArrayDimensions {
     #[must_use]
-    pub fn num_dims(&self) -> usize {
+    pub fn num_dims(&self) -> u32 {
         match self {
             ArrayDimensions::One(_) => 1,
             ArrayDimensions::Two(_, _) => 2,
@@ -811,6 +803,86 @@ impl From<&[u32]> for ArrayDimensions {
                 dims[0], dims[1], dims[2], dims[3], dims[4], dims[5], dims[6],
             ),
             _ => ArrayDimensions::Err,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum DynArrayRefDimensions {
+    One = 1,
+    Two = 2,
+    Three = 3,
+    Four = 4,
+    Five = 5,
+    Six = 6,
+    Seven = 7,
+    Err = 0,
+}
+
+impl Display for DynArrayRefDimensions {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DynArrayRefDimensions::One => write!(f, "1"),
+            DynArrayRefDimensions::Two => write!(f, "2"),
+            DynArrayRefDimensions::Three => write!(f, "3"),
+            DynArrayRefDimensions::Four => write!(f, "4"),
+            DynArrayRefDimensions::Five => write!(f, "5"),
+            DynArrayRefDimensions::Six => write!(f, "6"),
+            DynArrayRefDimensions::Seven => write!(f, "7"),
+            DynArrayRefDimensions::Err => write!(f, "Err"),
+        }
+    }
+}
+
+impl From<DynArrayRefDimensions> for u32 {
+    fn from(value: DynArrayRefDimensions) -> Self {
+        value as u32
+    }
+}
+
+impl From<u32> for DynArrayRefDimensions {
+    fn from(value: u32) -> Self {
+        match value {
+            1 => Self::One,
+            2 => Self::Two,
+            3 => Self::Three,
+            4 => Self::Four,
+            5 => Self::Five,
+            6 => Self::Six,
+            7 => Self::Seven,
+            _ => Self::Err,
+        }
+    }
+}
+
+impl From<ArrayDimensions> for DynArrayRefDimensions {
+    fn from(value: ArrayDimensions) -> Self {
+        match value {
+            ArrayDimensions::One(..) => Self::One,
+            ArrayDimensions::Two(..) => Self::Two,
+            ArrayDimensions::Three(..) => Self::Three,
+            ArrayDimensions::Four(..) => Self::Four,
+            ArrayDimensions::Five(..) => Self::Five,
+            ArrayDimensions::Six(..) => Self::Six,
+            ArrayDimensions::Seven(..) => Self::Seven,
+            ArrayDimensions::Err => Self::Err,
+        }
+    }
+}
+
+impl From<DynArrayRefDimensions> for ArrayDimensions {
+    /// This implementation is only meant to be used as a helper method
+    /// for [`Type::get_indexed_type`].
+    fn from(value: DynArrayRefDimensions) -> Self {
+        match value {
+            DynArrayRefDimensions::One => Self::One(0),
+            DynArrayRefDimensions::Two => Self::Two(0, 0),
+            DynArrayRefDimensions::Three => Self::Three(0, 0, 0),
+            DynArrayRefDimensions::Four => Self::Four(0, 0, 0, 0),
+            DynArrayRefDimensions::Five => Self::Five(0, 0, 0, 0, 0),
+            DynArrayRefDimensions::Six => Self::Six(0, 0, 0, 0, 0, 0),
+            DynArrayRefDimensions::Seven => Self::Seven(0, 0, 0, 0, 0, 0, 0),
+            DynArrayRefDimensions::Err => Self::Err,
         }
     }
 }

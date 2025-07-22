@@ -113,6 +113,23 @@ impl From<&crate::semantic::types::ArrayDimensions> for ArrayDimensions {
     }
 }
 
+impl From<crate::semantic::types::DynArrayRefDimensions> for ArrayDimensions {
+    fn from(value: crate::semantic::types::DynArrayRefDimensions) -> Self {
+        match value {
+            crate::semantic::types::DynArrayRefDimensions::One => Self::One,
+            crate::semantic::types::DynArrayRefDimensions::Two => Self::Two,
+            crate::semantic::types::DynArrayRefDimensions::Three => Self::Three,
+            crate::semantic::types::DynArrayRefDimensions::Four => Self::Four,
+            crate::semantic::types::DynArrayRefDimensions::Five => Self::Five,
+            crate::semantic::types::DynArrayRefDimensions::Six => Self::Six,
+            crate::semantic::types::DynArrayRefDimensions::Seven => Self::Seven,
+            crate::semantic::types::DynArrayRefDimensions::Err => {
+                unimplemented!("Array dimensions greater than seven are not supported.")
+            }
+        }
+    }
+}
+
 impl Display for Type {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {

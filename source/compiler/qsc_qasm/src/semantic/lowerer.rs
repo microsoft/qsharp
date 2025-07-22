@@ -1804,7 +1804,7 @@ impl Lowerer {
                     span: expr.span,
                     fn_name_span: expr.name.span,
                     array: first_arg,
-                    array_dims,
+                    array_dims: array_dims.into(),
                     dim: second_arg,
                 });
 
@@ -2944,7 +2944,7 @@ impl Lowerer {
                     return Type::Err;
                 }
 
-                Type::make_dyn_array_ref_ty(num_dims, &base_ty, is_mutable)
+                Type::make_dyn_array_ref_ty(num_dims.into(), &base_ty, is_mutable)
             }
         }
     }
