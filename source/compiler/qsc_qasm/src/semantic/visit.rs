@@ -7,7 +7,7 @@
 use qsc_data_structures::span::Span;
 
 use crate::{
-    parser::ast::PathKind,
+    parser::ast::{Ident, Path, PathKind},
     semantic::{
         ast::{
             AliasDeclStmt, Annotation, Array, AssignStmt, BarrierStmt, BinOp, BinaryOpExpr, Block,
@@ -251,14 +251,27 @@ pub trait Visitor: Sized {
         walk_array(self, array);
     }
 
+    fn visit_path(&mut self, path: &Path) {
+        walk_path(self, path);
+    }
+
+    fn visit_path_kind(&mut self, path: &PathKind) {
+        walk_path_kind(self, path);
+    }
+
+    fn visit_ident(&mut self, _: &Ident) {}
+
+    fn visit_idents(&mut self, idents: &[Ident]) {
+        walk_idents(self, idents);
+    }
+
     // Terminal nodes that typically don't need further traversal
-    fn visit_span(&mut self, _span: Span) {}
-    fn visit_symbol_id(&mut self, _symbol_id: SymbolId) {}
-    fn visit_bin_op(&mut self, _op: BinOp) {}
-    fn visit_unary_op(&mut self, _op: UnaryOp) {}
-    fn visit_time_unit(&mut self, _unit: TimeUnit) {}
-    fn visit_path_kind(&mut self, _path: PathKind) {}
-    fn visit_ty(&mut self, _ty: &Type) {}
+    fn visit_span(&mut self, _: Span) {}
+    fn visit_symbol_id(&mut self, _: SymbolId) {}
+    fn visit_bin_op(&mut self, _: BinOp) {}
+    fn visit_unary_op(&mut self, _: UnaryOp) {}
+    fn visit_time_unit(&mut self, _: TimeUnit) {}
+    fn visit_ty(&mut self, _: &Type) {}
 }
 
 pub fn walk_program(vis: &mut impl Visitor, program: &Program) {
@@ -276,7 +289,7 @@ pub fn walk_pragma(vis: &mut impl Visitor, pragma: &Pragma) {
     pragma
         .identifier
         .iter()
-        .for_each(|id| vis.visit_path_kind(id.clone()));
+        .for_each(|id| vis.visit_path_kind(id));
     pragma
         .value_span
         .iter()
@@ -329,7 +342,7 @@ pub fn walk_stmt(vis: &mut impl Visitor, stmt: &Stmt) {
 
 pub fn walk_annotation(vis: &mut impl Visitor, annotation: &Annotation) {
     vis.visit_span(annotation.span);
-    vis.visit_path_kind(annotation.identifier.clone());
+    vis.visit_path_kind(&annotation.identifier);
     annotation
         .value_span
         .iter()
@@ -677,4 +690,25 @@ pub fn walk_literal(vis: &mut impl Visitor, literal: &LiteralKind) {
 
 pub fn walk_array(vis: &mut impl Visitor, array: &Array) {
     array.data.iter().for_each(|e| vis.visit_expr(e));
+}
+
+pub fn walk_path(vis: &mut impl Visitor, path: &Path) {
+    if let Some(ref parts) = path.segments {
+        vis.visit_idents(parts);
+    }
+    vis.visit_ident(&path.name);
+}
+
+pub fn walk_path_kind(vis: &mut impl Visitor, path: &PathKind) {
+    match path {
+        PathKind::Ok(path) => vis.visit_path(path),
+        PathKind::Err(Some(incomplete_path)) => {
+            vis.visit_idents(&incomplete_path.segments);
+        }
+        PathKind::Err(None) => {}
+    }
+}
+
+pub fn walk_idents(vis: &mut impl Visitor, idents: &[Ident]) {
+    idents.iter().for_each(|i| vis.visit_ident(i));
 }

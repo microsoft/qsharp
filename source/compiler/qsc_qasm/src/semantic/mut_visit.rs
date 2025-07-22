@@ -7,7 +7,7 @@
 use qsc_data_structures::span::Span;
 
 use crate::{
-    parser::ast::PathKind,
+    parser::ast::{Ident, Path, PathKind},
     semantic::{
         ast::{
             AliasDeclStmt, Annotation, Array, AssignStmt, BarrierStmt, BinOp, BinaryOpExpr, Block,
@@ -254,14 +254,29 @@ pub trait MutVisitor: Sized {
         walk_array(self, array);
     }
 
+    fn visit_path(&mut self, path: &mut Path) {
+        walk_path(self, path);
+    }
+
+    fn visit_path_kind(&mut self, path: &mut PathKind) {
+        walk_path_kind(self, path);
+    }
+
+    fn visit_ident(&mut self, ident: &mut Ident) {
+        walk_ident(self, ident);
+    }
+
+    fn visit_idents(&mut self, ident: &mut [Ident]) {
+        walk_idents(self, ident);
+    }
+
     // Terminal nodes that typically don't need further traversal
-    fn visit_span(&mut self, _span: &mut Span) {}
-    fn visit_symbol_id(&mut self, _symbol_id: &mut SymbolId) {}
-    fn visit_bin_op(&mut self, _op: &mut BinOp) {}
-    fn visit_unary_op(&mut self, _op: &mut UnaryOp) {}
-    fn visit_time_unit(&mut self, _unit: &mut TimeUnit) {}
-    fn visit_path_kind(&mut self, _path: &mut PathKind) {}
-    fn visit_ty(&mut self, _ty: &mut Type) {}
+    fn visit_span(&mut self, _: &mut Span) {}
+    fn visit_symbol_id(&mut self, _: &mut SymbolId) {}
+    fn visit_bin_op(&mut self, _: &mut BinOp) {}
+    fn visit_unary_op(&mut self, _: &mut UnaryOp) {}
+    fn visit_time_unit(&mut self, _: &mut TimeUnit) {}
+    fn visit_ty(&mut self, _: &mut Type) {}
 }
 
 pub fn walk_program(vis: &mut impl MutVisitor, program: &mut Program) {
@@ -694,4 +709,36 @@ pub fn walk_literal(vis: &mut impl MutVisitor, literal: &mut LiteralKind) {
 
 pub fn walk_array(vis: &mut impl MutVisitor, array: &mut Array) {
     array.data.iter_mut().for_each(|e| vis.visit_expr(e));
+}
+
+pub fn walk_path(vis: &mut impl MutVisitor, path: &mut Path) {
+    vis.visit_span(&mut path.span);
+    if let Some(ref mut parts) = path.segments {
+        vis.visit_idents(parts);
+    }
+    vis.visit_ident(&mut path.name);
+}
+
+pub fn walk_path_kind(vis: &mut impl MutVisitor, path: &mut PathKind) {
+    match path {
+        PathKind::Ok(path) => vis.visit_path(path),
+        PathKind::Err(Some(incomplete_path)) => {
+            vis.visit_span(&mut incomplete_path.span);
+
+            for ref mut ident in &mut incomplete_path.segments {
+                vis.visit_ident(ident);
+            }
+        }
+        PathKind::Err(None) => {}
+    }
+}
+
+pub fn walk_ident(vis: &mut impl MutVisitor, ident: &mut Ident) {
+    vis.visit_span(&mut ident.span);
+}
+
+pub fn walk_idents(vis: &mut impl MutVisitor, idents: &mut [Ident]) {
+    for ref mut ident in idents {
+        vis.visit_ident(ident);
+    }
 }
