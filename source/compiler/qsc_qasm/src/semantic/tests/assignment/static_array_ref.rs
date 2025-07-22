@@ -356,3 +356,106 @@ fn assign_to_readonly_static_array_ref_errors() {
             ]"#]],
     );
 }
+
+#[test]
+fn classical_indexing_assign_to_mutable_static_array_ref() {
+    let source = r#"
+        def f(mutable array[int[32], 2, 3] a) {
+            a[0, 0][5:8] = "1010";
+        }
+    "#;
+    check_stmt_kinds(
+        source,
+        &expect![[r#"
+            DefStmt [9-93]:
+                symbol_id: 8
+                has_qubit_params: false
+                parameters:
+                    9
+                return_type_span: [0-0]
+                body: Block [47-93]:
+                    Stmt [61-83]:
+                        annotations: <empty>
+                        kind: IndexedClassicalTypeAssignStmt [61-83]:
+                            lhs: Expr [61-67]:
+                                ty: int[32]
+                                kind: IndexedExpr [61-67]:
+                                    collection: Expr [61-64]:
+                                        ty: mutable array[int[32], 3]
+                                        kind: IndexedExpr [61-64]:
+                                            collection: Expr [61-62]:
+                                                ty: mutable array[int[32], 2, 3]
+                                                kind: SymbolId(9)
+                                            index: Expr [63-64]:
+                                                ty: const int
+                                                kind: Lit: Int(0)
+                                    index: Expr [66-67]:
+                                        ty: const int
+                                        kind: Lit: Int(0)
+                            rhs: Expr [76-82]:
+                                ty: bit[4]
+                                kind: Lit: Bitstring("1010")
+                            indices:
+                                Range [69-72]:
+                                    start: Expr [69-70]:
+                                        ty: const int
+                                        const_value: Int(26)
+                                        kind: Lit: Int(26)
+                                    step: Expr [69-72]:
+                                        ty: const int
+                                        const_value: Int(-1)
+                                        kind: Lit: Int(-1)
+                                    end: Expr [71-72]:
+                                        ty: const int
+                                        const_value: Int(23)
+                                        kind: Lit: Int(23)
+        "#]],
+    );
+}
+
+#[test]
+fn classical_indexing_assign_to_readonly_static_array_ref_errors() {
+    let source = r#"
+        def f(readonly array[int[32], 2, 3] a) {
+            a[0, 0][5:8] = "1010";
+        }
+    "#;
+    check_stmt_kinds(
+        source,
+        &expect![[r#"
+            Program:
+                version: <none>
+                pragmas: <empty>
+                statements:
+                    Stmt [9-94]:
+                        annotations: <empty>
+                        kind: DefStmt [9-94]:
+                            symbol_id: 8
+                            has_qubit_params: false
+                            parameters:
+                                9
+                            return_type_span: [0-0]
+                            body: Block [48-94]:
+                                Stmt [62-84]:
+                                    annotations: <empty>
+                                    kind: AssignStmt [62-84]:
+                                        lhs: Expr [62-74]:
+                                            ty: unknown
+                                            kind: Err
+                                        rhs: Expr [62-84]:
+                                            ty: unknown
+                                            kind: Err
+
+            [Qasm.Lowerer.CannotUpdateReadonlyArrayRef
+
+              x cannot update readonly array reference a
+               ,-[test:3:13]
+             2 |         def f(readonly array[int[32], 2, 3] a) {
+             3 |             a[0, 0][5:8] = "1010";
+               :             ^
+             4 |         }
+               `----
+              help: mutable array references must be declared with the keyword `mutable`
+            ]"#]],
+    );
+}
