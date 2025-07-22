@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use core::panic;
-
 use crate::tests::compile_qasm_to_qsharp;
 use expect_test::expect;
 use miette::Report;
