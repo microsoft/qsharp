@@ -274,3 +274,163 @@ fn array_slice_with_zero_step_errors() {
             ]"#]],
     );
 }
+
+#[test]
+fn index_into_readonly_static_array_ref() {
+    let source = "
+        def function_with_array_param(readonly array[bool, 2, 3] a) {
+            a[0, 0];
+        }
+    ";
+
+    check_stmt_kinds(
+        source,
+        &expect![[r#"
+            DefStmt [9-101]:
+                symbol_id: 8
+                has_qubit_params: false
+                parameters:
+                    9
+                return_type_span: [0-0]
+                body: Block [69-101]:
+                    Stmt [83-91]:
+                        annotations: <empty>
+                        kind: ExprStmt [83-91]:
+                            expr: Expr [83-89]:
+                                ty: bool
+                                kind: IndexedExpr [83-89]:
+                                    collection: Expr [83-86]:
+                                        ty: readonly array[bool, 3]
+                                        kind: IndexedExpr [83-86]:
+                                            collection: Expr [83-84]:
+                                                ty: readonly array[bool, 2, 3]
+                                                kind: SymbolId(9)
+                                            index: Expr [85-86]:
+                                                ty: const int
+                                                kind: Lit: Int(0)
+                                    index: Expr [88-89]:
+                                        ty: const int
+                                        kind: Lit: Int(0)
+        "#]],
+    );
+}
+
+#[test]
+fn index_into_mutable_static_array_ref() {
+    let source = "
+        def function_with_array_param(mutable array[bool, 2, 3] a) {
+            a[0, 0];
+        }
+    ";
+
+    check_stmt_kinds(
+        source,
+        &expect![[r#"
+            DefStmt [9-100]:
+                symbol_id: 8
+                has_qubit_params: false
+                parameters:
+                    9
+                return_type_span: [0-0]
+                body: Block [68-100]:
+                    Stmt [82-90]:
+                        annotations: <empty>
+                        kind: ExprStmt [82-90]:
+                            expr: Expr [82-88]:
+                                ty: bool
+                                kind: IndexedExpr [82-88]:
+                                    collection: Expr [82-85]:
+                                        ty: mutable array[bool, 3]
+                                        kind: IndexedExpr [82-85]:
+                                            collection: Expr [82-83]:
+                                                ty: mutable array[bool, 2, 3]
+                                                kind: SymbolId(9)
+                                            index: Expr [84-85]:
+                                                ty: const int
+                                                kind: Lit: Int(0)
+                                    index: Expr [87-88]:
+                                        ty: const int
+                                        kind: Lit: Int(0)
+        "#]],
+    );
+}
+
+#[test]
+fn index_into_readonly_dyn_array_ref() {
+    let source = "
+        def function_with_array_param(readonly array[bool, #dim = 2] a) {
+            a[0, 0];
+        }
+    ";
+
+    check_stmt_kinds(
+        source,
+        &expect![[r#"
+            DefStmt [9-105]:
+                symbol_id: 8
+                has_qubit_params: false
+                parameters:
+                    9
+                return_type_span: [0-0]
+                body: Block [73-105]:
+                    Stmt [87-95]:
+                        annotations: <empty>
+                        kind: ExprStmt [87-95]:
+                            expr: Expr [87-93]:
+                                ty: bool
+                                kind: IndexedExpr [87-93]:
+                                    collection: Expr [87-90]:
+                                        ty: readonly array[bool, #dim = 1]
+                                        kind: IndexedExpr [87-90]:
+                                            collection: Expr [87-88]:
+                                                ty: readonly array[bool, #dim = 2]
+                                                kind: SymbolId(9)
+                                            index: Expr [89-90]:
+                                                ty: const int
+                                                kind: Lit: Int(0)
+                                    index: Expr [92-93]:
+                                        ty: const int
+                                        kind: Lit: Int(0)
+        "#]],
+    );
+}
+
+#[test]
+fn index_into_mutable_dyn_array_ref() {
+    let source = "
+        def function_with_array_param(mutable array[bool, #dim = 2] a) {
+            a[0, 0];
+        }
+    ";
+
+    check_stmt_kinds(
+        source,
+        &expect![[r#"
+            DefStmt [9-104]:
+                symbol_id: 8
+                has_qubit_params: false
+                parameters:
+                    9
+                return_type_span: [0-0]
+                body: Block [72-104]:
+                    Stmt [86-94]:
+                        annotations: <empty>
+                        kind: ExprStmt [86-94]:
+                            expr: Expr [86-92]:
+                                ty: bool
+                                kind: IndexedExpr [86-92]:
+                                    collection: Expr [86-89]:
+                                        ty: mutable array[bool, #dim = 1]
+                                        kind: IndexedExpr [86-89]:
+                                            collection: Expr [86-87]:
+                                                ty: mutable array[bool, #dim = 2]
+                                                kind: SymbolId(9)
+                                            index: Expr [88-89]:
+                                                ty: const int
+                                                kind: Lit: Int(0)
+                                    index: Expr [91-92]:
+                                        ty: const int
+                                        kind: Lit: Int(0)
+        "#]],
+    );
+}

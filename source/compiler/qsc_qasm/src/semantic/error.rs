@@ -64,6 +64,10 @@ pub enum SemanticErrorKind {
     #[diagnostic(help("mutable variables must be declared without the keyword `const`"))]
     #[diagnostic(code("Qasm.Lowerer.CannotUpdateConstVariable"))]
     CannotUpdateConstVariable(String, #[label] Span),
+    #[error("cannot update readonly array reference {0}")]
+    #[diagnostic(help("mutable array references must be declared with the keyword `mutable`"))]
+    #[diagnostic(code("Qasm.Lowerer.CannotUpdateReadonlyArrayRef"))]
+    CannotUpdateReadonlyArrayRef(String, #[label] Span),
     #[error("cannot cast expression of type {0} to type {1} as it would cause truncation")]
     #[diagnostic(code("Qasm.Lowerer.CastWouldCauseTruncation"))]
     CastWouldCauseTruncation(String, String, #[label] Span),
