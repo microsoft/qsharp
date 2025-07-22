@@ -361,6 +361,15 @@ impl Type {
     }
 
     #[must_use]
+    pub fn is_readonly_array_ref(&self) -> bool {
+        match self {
+            Type::StaticArrayRef(array_ref) => !array_ref.is_mutable,
+            Type::DynArrayRef(array_ref) => !array_ref.is_mutable,
+            _ => false,
+        }
+    }
+
+    #[must_use]
     pub fn is_err(&self) -> bool {
         matches!(self, Type::Err)
     }

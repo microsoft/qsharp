@@ -632,6 +632,13 @@ impl Lowerer {
             return semantic::StmtKind::Err;
         }
 
+        if lhs.ty.is_readonly_array_ref() {
+            let kind =
+                SemanticErrorKind::CannotUpdateReadonlyArrayRef(ident.name.to_string(), ident.span);
+            self.push_semantic_error(kind);
+            return semantic::StmtKind::Err;
+        }
+
         semantic::StmtKind::Assign(semantic::AssignStmt { span, lhs, rhs })
     }
 
@@ -735,6 +742,13 @@ impl Lowerer {
         if ty.is_const() {
             let kind =
                 SemanticErrorKind::CannotUpdateConstVariable(ident.name.to_string(), ident.span);
+            self.push_semantic_error(kind);
+            return semantic::StmtKind::Err;
+        }
+
+        if lhs.ty.is_readonly_array_ref() {
+            let kind =
+                SemanticErrorKind::CannotUpdateReadonlyArrayRef(ident.name.to_string(), ident.span);
             self.push_semantic_error(kind);
             return semantic::StmtKind::Err;
         }
@@ -4091,6 +4105,15 @@ impl Lowerer {
         assert!(!indexed_ident.indices.is_empty());
 
         let collection = self.lower_ident_expr(&indexed_ident.ident);
+
+        if collection.ty.is_readonly_array_ref() {
+            let kind = SemanticErrorKind::CannotUpdateReadonlyArrayRef(
+                indexed_ident.ident.name.to_string(),
+                indexed_ident.ident.span,
+            );
+            self.push_semantic_error(kind);
+            return (err_expr!(Type::Err, indexed_ident.span), Default::default());
+        }
 
         // We flatten the multiple square brackets, converting
         // a[1, 2][5, 7][2, 4:8]
