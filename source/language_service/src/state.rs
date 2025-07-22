@@ -287,13 +287,13 @@ impl<'a> CompilationStateUpdater<'a> {
             let (configuration, compilation_overrides) = match loaded_project.project_type {
                 ProjectType::QSharp(ref package_graph_sources) => {
                     let compilation_overrides = PartialConfiguration {
+                        target_profile: Some(loaded_project.target_profile),
                         language_features: Some(package_graph_sources.root.language_features),
                         lints_config: loaded_project.lints,
                         package_type: package_graph_sources.root.package_type.map(|x| match x {
                             qsc_project::PackageType::Exe => qsc::PackageType::Exe,
                             qsc_project::PackageType::Lib => qsc::PackageType::Lib,
                         }),
-                        ..PartialConfiguration::default()
                     };
 
                     (

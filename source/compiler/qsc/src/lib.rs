@@ -8,7 +8,6 @@ pub mod incremental;
 pub mod interpret;
 pub mod location;
 pub mod packages;
-pub mod target;
 
 pub use qsc_formatter::formatter;
 
@@ -78,6 +77,10 @@ pub mod parse {
 
 pub mod partial_eval {
     pub use qsc_partial_eval::Error;
+}
+
+pub mod target {
+    pub use qsc_data_structures::target::Profile;
 }
 
 pub mod qasm;
