@@ -1799,7 +1799,7 @@ impl Lowerer {
             // If the first argument is a dynamic reference. We can only compute the length
             // of the requested dimension at runtime, and the ouput is of type `uint`.
             Type::DynArrayRef(ref_ty) => {
-                let array_dims = ref_ty.num_dims;
+                let array_dims = ref_ty.dims;
                 let kind = semantic::ExprKind::SizeofCall(semantic::SizeofCallExpr {
                     span: expr.span,
                     fn_name_span: expr.name.span,

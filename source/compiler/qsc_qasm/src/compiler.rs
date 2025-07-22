@@ -2238,7 +2238,7 @@ impl QasmCompiler {
                 Self::make_qsharp_array_ty(&array_ref.base_ty, dims)
             }
             Type::DynArrayRef(array_ref) if !array_ref.is_mutable => {
-                let dims = (array_ref.num_dims).into();
+                let dims = (array_ref.dims).into();
                 Self::make_qsharp_array_ty(&array_ref.base_ty, dims)
             }
             Type::StaticArrayRef(array_ref) if array_ref.is_mutable => {

@@ -113,17 +113,17 @@ impl From<&crate::semantic::types::ArrayDimensions> for ArrayDimensions {
     }
 }
 
-impl From<crate::semantic::types::DynArrayRefDimensions> for ArrayDimensions {
-    fn from(value: crate::semantic::types::DynArrayRefDimensions) -> Self {
+impl From<crate::semantic::types::Dims> for ArrayDimensions {
+    fn from(value: crate::semantic::types::Dims) -> Self {
         match value {
-            crate::semantic::types::DynArrayRefDimensions::One => Self::One,
-            crate::semantic::types::DynArrayRefDimensions::Two => Self::Two,
-            crate::semantic::types::DynArrayRefDimensions::Three => Self::Three,
-            crate::semantic::types::DynArrayRefDimensions::Four => Self::Four,
-            crate::semantic::types::DynArrayRefDimensions::Five => Self::Five,
-            crate::semantic::types::DynArrayRefDimensions::Six => Self::Six,
-            crate::semantic::types::DynArrayRefDimensions::Seven => Self::Seven,
-            crate::semantic::types::DynArrayRefDimensions::Err => {
+            crate::semantic::types::Dims::One => Self::One,
+            crate::semantic::types::Dims::Two => Self::Two,
+            crate::semantic::types::Dims::Three => Self::Three,
+            crate::semantic::types::Dims::Four => Self::Four,
+            crate::semantic::types::Dims::Five => Self::Five,
+            crate::semantic::types::Dims::Six => Self::Six,
+            crate::semantic::types::Dims::Seven => Self::Seven,
+            crate::semantic::types::Dims::Err => {
                 unimplemented!("Array dimensions greater than seven are not supported.")
             }
         }
