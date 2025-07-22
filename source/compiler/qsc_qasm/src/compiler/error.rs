@@ -27,13 +27,10 @@ pub enum CompilerErrorKind {
     #[error("Box pragma is missing target")]
     #[diagnostic(code("Qasm.Compiler.MissingBoxPragmaTarget"))]
     MissingBoxPragmaTarget(#[label] Span),
-    #[error("{0} is not a supported QIR Profile")]
-    #[help("Supported profiles include `unrestricted`, `base`, `adaptive_ri`, and `adaptive_rif`.")]
+    #[error("{0} is not a supported QIR Profile, please specify a valid target")]
+    #[help("Supported profiles include `Unrestricted`, `Base`, `Adaptive_RI`, and `Adaptive_RIF`.")]
     #[diagnostic(code("Qasm.Compiler.InvalidProfilePragmaTarget"))]
     InvalidProfilePragmaTarget(String, #[label] Span),
-    #[error("Profile pragma is missing target")]
-    #[diagnostic(code("Qasm.Compiler.MissingProfilePragmaTarget"))]
-    MissingProfilePragmaTarget(#[label] Span),
     #[error("{0} are not supported")]
     #[diagnostic(code("Qasm.Compiler.NotSupported"))]
     NotSupported(String, #[label] Span),

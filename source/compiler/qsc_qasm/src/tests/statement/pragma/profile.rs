@@ -285,7 +285,7 @@ fn missing_profile_target() -> miette::Result<(), Vec<Report>> {
 
     assert!(unit.has_errors(), "Expected compilation to fail");
 
-    expect!["Error(Compiler(Error(MissingProfilePragmaTarget(Span { lo: 41, hi: 64 }))))"]
+    expect![[r#"Error(Compiler(Error(InvalidProfilePragmaTarget("<empty>", Span { lo: 41, hi: 64 }))))"#]]
         .assert_eq(&format!("{:?}", &unit.errors[0].error()));
     Ok(())
 }
