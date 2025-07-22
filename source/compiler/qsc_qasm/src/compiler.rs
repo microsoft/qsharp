@@ -114,7 +114,7 @@ pub fn compile_to_qsharp_ast_with_config(
 pub enum PragmaKind {
     QdkBoxOpen,
     QdkBoxClose,
-    QdkProfile,
+    QdkQirProfile,
 }
 
 impl FromStr for PragmaKind {
@@ -124,7 +124,7 @@ impl FromStr for PragmaKind {
         match s.to_lowercase().as_str() {
             "qdk.box.open" => Ok(PragmaKind::QdkBoxOpen),
             "qdk.box.close" => Ok(PragmaKind::QdkBoxClose),
-            "qdk.qir.profile" => Ok(PragmaKind::QdkProfile),
+            "qdk.qir.profile" => Ok(PragmaKind::QdkQirProfile),
             _ => Err(()),
         }
     }
@@ -190,7 +190,7 @@ impl QasmCompiler {
         let target_profile = self.pragma_config.pragmas
             .iter()
             .find_map(|(kind, value)|
-                if matches!(kind, PragmaKind::QdkProfile) {
+                if matches!(kind, PragmaKind::QdkQirProfile) {
                     Some(Profile::from_str(value).expect("Invalid profile pragma; only a valid profile should be store in pragma_config."))
                 } else {
                     None
@@ -1133,10 +1133,10 @@ impl QasmCompiler {
             (PragmaKind::QdkBoxOpen | PragmaKind::QdkBoxClose, None) => {
                 self.push_compiler_error(CompilerErrorKind::MissingBoxPragmaTarget(stmt.span));
             }
-            (PragmaKind::QdkProfile, Some(profile)) => {
+            (PragmaKind::QdkQirProfile, Some(profile)) => {
                 if Profile::from_str(profile).is_ok() {
                     self.pragma_config
-                        .insert(PragmaKind::QdkProfile, profile.clone());
+                        .insert(PragmaKind::QdkQirProfile, profile.clone());
                     return;
                 }
                 self.push_compiler_error(CompilerErrorKind::InvalidProfilePragmaTarget(
@@ -1144,7 +1144,7 @@ impl QasmCompiler {
                     stmt.value_span.unwrap_or(stmt.span),
                 ));
             }
-            (PragmaKind::QdkProfile, None) => {
+            (PragmaKind::QdkQirProfile, None) => {
                 self.push_compiler_error(CompilerErrorKind::MissingProfilePragmaTarget(stmt.span));
             }
         }
