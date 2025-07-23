@@ -32,11 +32,6 @@ pub enum CompilerErrorKind {
     )]
     #[diagnostic(code("Qasm.Compiler.InvalidProfilePragmaTarget"))]
     InvalidProfilePragmaTarget(String, #[label] Span),
-    #[error(
-        "Duplicate `qdk.qir.profile` pragma. Only one `qdk.qir.profile` pragma should be specified."
-    )]
-    #[diagnostic(code("Qasm.Compiler.MultipleProfilePragmas"))]
-    MultipleProfilePragmas(#[label] Span),
     #[error("{0} are not supported")]
     #[diagnostic(code("Qasm.Compiler.NotSupported"))]
     NotSupported(String, #[label] Span),
