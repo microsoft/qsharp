@@ -186,8 +186,28 @@ impl QasmCompiler {
         for pragma in &program.pragmas {
             self.compile_pragma_stmt(pragma);
         }
-        // Get the first profile pragma if present, otherwise default to `Unrestricted`.
-        let target_profile = self.pragma_config.pragmas
+
+        self.compile_stmts(&program.statements);
+        let (package, signature) = match program_ty {
+            ProgramType::File => self.build_file(),
+            ProgramType::Operation => self.build_operation(),
+            ProgramType::Fragments => (self.build_fragments(), None),
+        };
+
+        let target_profile = self.get_profile();
+        QasmCompileUnit::new(
+            self.source_map,
+            self.errors,
+            package,
+            signature,
+            target_profile,
+        )
+    }
+
+    /// Gets the profile for compilation from the first profile
+    /// pragma if present, otherwise default to `Unrestricted`.
+    fn get_profile(&self) -> Profile {
+        self.pragma_config.pragmas
             .iter()
             .find_map(|(kind, value)|
                 if matches!(kind, PragmaKind::QdkQirProfile) {
@@ -196,21 +216,7 @@ impl QasmCompiler {
                     None
                 }
             )
-            .unwrap_or(Profile::Unrestricted);
-        self.compile_stmts(&program.statements);
-        let (package, signature) = match program_ty {
-            ProgramType::File => self.build_file(),
-            ProgramType::Operation => self.build_operation(),
-            ProgramType::Fragments => (self.build_fragments(), None),
-        };
-
-        QasmCompileUnit::new(
-            self.source_map,
-            self.errors,
-            package,
-            signature,
-            target_profile,
-        )
+            .unwrap_or(Profile::Unrestricted)
     }
 
     /// Build a package with namespace and an operation

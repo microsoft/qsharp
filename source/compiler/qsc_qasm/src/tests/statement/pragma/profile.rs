@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::tests::{compile, compile_qasm_to_qir};
+use crate::tests::{check_qasm_to_qsharp, compile_qasm_to_qir};
 use expect_test::expect;
 use miette::Report;
 
@@ -233,7 +233,7 @@ fn profile_pragma_compiles_with_base() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn invalid_profile_target() -> miette::Result<(), Vec<Report>> {
+fn invalid_profile_target_errors() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
         #pragma qdk.qir.profile Foo
@@ -251,17 +251,26 @@ fn invalid_profile_target() -> miette::Result<(), Vec<Report>> {
         results = measure qs;
     "#;
 
-    let unit = compile(source)?;
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        Qasm.Compiler.InvalidProfilePragmaTarget
 
-    assert!(unit.has_errors(), "Expected compilation to fail");
-
-    expect![[r#""Invalid or missing QIR Profile: 'Foo'. Please specify one of: `Unrestricted`, `Base`, `Adaptive_RI`, `Adaptive_RIF`.""#]]
-        .assert_eq(&format!("{:?}", &unit.errors[0].to_string()));
+          x Invalid or missing QIR Profile: 'Foo'. Please specify one of:
+          | `Unrestricted`, `Base`, `Adaptive_RI`, `Adaptive_RIF`.
+           ,-[Test.qasm:3:33]
+         2 |         include "stdgates.inc";
+         3 |         #pragma qdk.qir.profile Foo
+           :                                 ^^^
+         4 | 
+           `----
+    "#]],
+    );
     Ok(())
 }
 
 #[test]
-fn missing_profile_target() -> miette::Result<(), Vec<Report>> {
+fn missing_profile_target_errors() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
         #pragma qdk.qir.profile
@@ -279,11 +288,20 @@ fn missing_profile_target() -> miette::Result<(), Vec<Report>> {
         results = measure qs;
     "#;
 
-    let unit = compile(source)?;
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        Qasm.Compiler.InvalidProfilePragmaTarget
 
-    assert!(unit.has_errors(), "Expected compilation to fail");
-
-    expect![[r#""Invalid or missing QIR Profile: ''. Please specify one of: `Unrestricted`, `Base`, `Adaptive_RI`, `Adaptive_RIF`.""#]]
-    .assert_eq(&format!("{:?}", &unit.errors[0].to_string()));
+          x Invalid or missing QIR Profile: ''. Please specify one of: `Unrestricted`,
+          | `Base`, `Adaptive_RI`, `Adaptive_RIF`.
+           ,-[Test.qasm:3:9]
+         2 |         include "stdgates.inc";
+         3 |         #pragma qdk.qir.profile
+           :         ^^^^^^^^^^^^^^^^^^^^^^^
+         4 | 
+           `----
+    "#]],
+    );
     Ok(())
 }
