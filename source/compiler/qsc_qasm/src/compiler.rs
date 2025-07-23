@@ -1146,7 +1146,7 @@ impl QasmCompiler {
             }
             (PragmaKind::QdkQirProfile, None) => {
                 self.push_compiler_error(CompilerErrorKind::InvalidProfilePragmaTarget(
-                    "<empty>".to_string(),
+                    String::new(),
                     stmt.span,
                 ));
             }
