@@ -1140,9 +1140,16 @@ impl QasmCompiler {
                 self.push_compiler_error(CompilerErrorKind::MissingBoxPragmaTarget(stmt.span));
             }
             (PragmaKind::QdkQirProfile, Some(profile)) => {
+                // For this pragma, we only keep the first instance.
                 if Profile::from_str(profile).is_ok() {
-                    self.pragma_config
-                        .insert(PragmaKind::QdkQirProfile, profile.clone());
+                    if !self
+                        .pragma_config
+                        .pragmas
+                        .contains_key(&PragmaKind::QdkQirProfile)
+                    {
+                        self.pragma_config
+                            .insert(PragmaKind::QdkQirProfile, profile.clone());
+                    }
                     return;
                 }
                 self.push_compiler_error(CompilerErrorKind::InvalidProfilePragmaTarget(
