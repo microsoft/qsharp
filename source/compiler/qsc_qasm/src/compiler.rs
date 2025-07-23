@@ -1142,20 +1142,24 @@ impl QasmCompiler {
             (PragmaKind::QdkQirProfile, Some(profile)) => {
                 // For this pragma, we only keep the first instance.
                 if Profile::from_str(profile).is_ok() {
-                    if !self
+                    if self
                         .pragma_config
                         .pragmas
                         .contains_key(&PragmaKind::QdkQirProfile)
                     {
+                        self.push_compiler_error(CompilerErrorKind::MultipleProfilePragmas(
+                            stmt.span,
+                        ));
+                    } else {
                         self.pragma_config
                             .insert(PragmaKind::QdkQirProfile, profile.clone());
                     }
-                    return;
+                } else {
+                    self.push_compiler_error(CompilerErrorKind::InvalidProfilePragmaTarget(
+                        profile.to_string(),
+                        stmt.value_span.unwrap_or(stmt.span),
+                    ));
                 }
-                self.push_compiler_error(CompilerErrorKind::InvalidProfilePragmaTarget(
-                    profile.to_string(),
-                    stmt.value_span.unwrap_or(stmt.span),
-                ));
             }
             (PragmaKind::QdkQirProfile, None) => {
                 self.push_compiler_error(CompilerErrorKind::InvalidProfilePragmaTarget(
