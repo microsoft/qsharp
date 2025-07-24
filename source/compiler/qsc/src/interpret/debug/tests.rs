@@ -105,6 +105,53 @@ fn stack_traces_can_cross_eval_session_and_file_boundaries() {
 }
 
 #[test]
+fn test_line_number_off_by_one_issue() {
+    let source = indoc! { r#"
+        namespace Test {
+            function Main() : Unit {
+                fail "line 3";
+            }
+        }
+        "#};
+
+    let source_map = SourceMap::new(
+        [("test.qs".into(), source.into())],
+        Some("Test.Main()".into()),
+    );
+
+    let (std_id, store) = crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+    let mut interpreter = Interpreter::new(
+        source_map,
+        PackageType::Exe,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+        store,
+        &[(std_id, None)],
+    )
+    .expect("Failed to compile base environment.");
+
+    let (result, _) = eval(&mut interpreter);
+
+    match result {
+        Ok(_) => panic!("Expected error"),
+        Err(e) => {
+            let stack_trace = e[0]
+                .stack_trace()
+                .expect("code should have a valid stack trace");
+            println!("Current stack trace:");
+            println!("{}", stack_trace);
+            // The fail statement is on line 3 (1-based), so it should show line 3, not line 2
+            expect![[r#"
+                Error: line 3
+                Call stack:
+                    at Test.Main in test.qs:3:8
+            "#]]
+            .assert_eq(stack_trace);
+        }
+    }
+}
+
+#[test]
 fn stack_traces_can_cross_file_and_entry_boundaries() {
     let source1 = indoc! { r#"
         namespace Test {
