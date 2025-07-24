@@ -8,7 +8,6 @@ use expect_test::expect;
 use miette::Report;
 
 #[test]
-#[ignore = "unimplemented"]
 fn classical() -> miette::Result<(), Vec<Report>> {
     let source = "
         bit[2] a;
@@ -29,7 +28,6 @@ fn classical() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "unimplemented"]
 fn quantum() -> miette::Result<(), Vec<Report>> {
     let source = "
         bit[2] a;
@@ -50,7 +48,6 @@ fn quantum() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "qasm parser does not support old-style decls yet"]
 fn classical_old_style_decls() -> miette::Result<(), Vec<Report>> {
     let source = "
         bit[2] a;

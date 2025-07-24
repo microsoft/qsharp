@@ -19,9 +19,9 @@ use expect_test::expect;
 //===============
 
 #[test]
-fn duration_to_bool_fails() {
+fn stretch_to_bool_fails() {
     let source = "
-        duration a;
+        stretch a;
         bool(a);
     ";
     check(
@@ -31,27 +31,27 @@ fn duration_to_bool_fails() {
                 version: <none>
                 pragmas: <empty>
                 statements:
-                    Stmt [9-20]:
+                    Stmt [9-19]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-20]:
+                        kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
-                            ty_span: [9-17]
-                            init_expr: Expr [9-20]:
-                                ty: duration
+                            ty_span: [9-16]
+                            init_expr: Expr [9-19]:
+                                ty: stretch
                                 const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
-                    Stmt [29-37]:
+                    Stmt [28-36]:
                         annotations: <empty>
-                        kind: ExprStmt [29-37]:
-                            expr: Expr [29-36]:
-                                ty: duration
+                        kind: ExprStmt [28-36]:
+                            expr: Expr [28-35]:
+                                ty: stretch
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const bool
+              x cannot cast expression of type stretch to type const bool
                ,-[test:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         bool(a);
                :         ^^^^^^^
              4 |     
@@ -65,23 +65,23 @@ fn duration_to_bool_fails() {
 //===================
 
 #[test]
-fn duration_to_duration() {
+fn stretch_to_duration_changes_ty() {
     let source = "
-        duration a;
+        stretch a;
         duration(a);
     ";
     check(
         source,
         &expect![[r#"
-            ClassicalDeclarationStmt [9-20]:
+            ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
-                ty_span: [9-17]
-                init_expr: Expr [9-20]:
-                    ty: duration
+                ty_span: [9-16]
+                init_expr: Expr [9-19]:
+                    ty: stretch
                     const_value: Duration(0.0 s)
                     kind: Lit: Duration(0.0 s)
-            ExprStmt [29-41]:
-                expr: Expr [29-40]:
+            ExprStmt [28-40]:
+                expr: Expr [28-39]:
                     ty: duration
                     kind: SymbolId(8)
         "#]],
@@ -93,23 +93,47 @@ fn duration_to_duration() {
 //===================
 
 #[test]
-fn duration_to_stretch_changes_ty() {
+fn stretch_to_stretch() {
     let source = "
-        duration a;
+        stretch a;
         stretch(a);
     ";
     check(
         source,
         &expect![[r#"
-            ClassicalDeclarationStmt [9-20]:
+            ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
-                ty_span: [9-17]
-                init_expr: Expr [9-20]:
-                    ty: duration
+                ty_span: [9-16]
+                init_expr: Expr [9-19]:
+                    ty: stretch
                     const_value: Duration(0.0 s)
                     kind: Lit: Duration(0.0 s)
-            ExprStmt [29-40]:
-                expr: Expr [29-39]:
+            ExprStmt [28-39]:
+                expr: Expr [28-38]:
+                    ty: stretch
+                    kind: SymbolId(8)
+        "#]],
+    );
+}
+
+#[test]
+fn stretch_to_stretch_is_no_op() {
+    let source = "
+        stretch a;
+        stretch(a);
+    ";
+    check(
+        source,
+        &expect![[r#"
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [9-19]:
+                    ty: stretch
+                    const_value: Duration(0.0 s)
+                    kind: Lit: Duration(0.0 s)
+            ExprStmt [28-39]:
+                expr: Expr [28-38]:
                     ty: stretch
                     kind: SymbolId(8)
         "#]],
@@ -121,9 +145,9 @@ fn duration_to_stretch_changes_ty() {
 //=========================
 
 #[test]
-fn duration_to_int_fails() {
+fn stretch_to_int_fails() {
     let source = "
-        duration a;
+        stretch a;
         int(a);
     ";
     check(
@@ -133,27 +157,27 @@ fn duration_to_int_fails() {
                 version: <none>
                 pragmas: <empty>
                 statements:
-                    Stmt [9-20]:
+                    Stmt [9-19]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-20]:
+                        kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
-                            ty_span: [9-17]
-                            init_expr: Expr [9-20]:
-                                ty: duration
+                            ty_span: [9-16]
+                            init_expr: Expr [9-19]:
+                                ty: stretch
                                 const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
-                    Stmt [29-36]:
+                    Stmt [28-35]:
                         annotations: <empty>
-                        kind: ExprStmt [29-36]:
-                            expr: Expr [29-35]:
-                                ty: duration
+                        kind: ExprStmt [28-35]:
+                            expr: Expr [28-34]:
+                                ty: stretch
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const int
+              x cannot cast expression of type stretch to type const int
                ,-[test:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         int(a);
                :         ^^^^^^
              4 |     
@@ -163,9 +187,9 @@ fn duration_to_int_fails() {
 }
 
 #[test]
-fn duration_to_sized_int_fails() {
+fn stretch_to_sized_int_fails() {
     let source = "
-        duration a;
+        stretch a;
         int[32](a);
     ";
     check(
@@ -175,27 +199,27 @@ fn duration_to_sized_int_fails() {
                 version: <none>
                 pragmas: <empty>
                 statements:
-                    Stmt [9-20]:
+                    Stmt [9-19]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-20]:
+                        kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
-                            ty_span: [9-17]
-                            init_expr: Expr [9-20]:
-                                ty: duration
+                            ty_span: [9-16]
+                            init_expr: Expr [9-19]:
+                                ty: stretch
                                 const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
-                    Stmt [29-40]:
+                    Stmt [28-39]:
                         annotations: <empty>
-                        kind: ExprStmt [29-40]:
-                            expr: Expr [29-39]:
-                                ty: duration
+                        kind: ExprStmt [28-39]:
+                            expr: Expr [28-38]:
+                                ty: stretch
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const int[32]
+              x cannot cast expression of type stretch to type const int[32]
                ,-[test:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         int[32](a);
                :         ^^^^^^^^^^
              4 |     
@@ -209,9 +233,9 @@ fn duration_to_sized_int_fails() {
 //===========================
 
 #[test]
-fn duration_to_uint_fails() {
+fn stretch_to_uint_fails() {
     let source = "
-        duration a;
+        stretch a;
         uint(a);
     ";
     check(
@@ -221,27 +245,27 @@ fn duration_to_uint_fails() {
                 version: <none>
                 pragmas: <empty>
                 statements:
-                    Stmt [9-20]:
+                    Stmt [9-19]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-20]:
+                        kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
-                            ty_span: [9-17]
-                            init_expr: Expr [9-20]:
-                                ty: duration
+                            ty_span: [9-16]
+                            init_expr: Expr [9-19]:
+                                ty: stretch
                                 const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
-                    Stmt [29-37]:
+                    Stmt [28-36]:
                         annotations: <empty>
-                        kind: ExprStmt [29-37]:
-                            expr: Expr [29-36]:
-                                ty: duration
+                        kind: ExprStmt [28-36]:
+                            expr: Expr [28-35]:
+                                ty: stretch
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const uint
+              x cannot cast expression of type stretch to type const uint
                ,-[test:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         uint(a);
                :         ^^^^^^^
              4 |     
@@ -251,9 +275,9 @@ fn duration_to_uint_fails() {
 }
 
 #[test]
-fn duration_to_sized_uint_fails() {
+fn stretch_to_sized_uint_fails() {
     let source = "
-        duration a;
+        stretch a;
         uint[32](a);
     ";
     check(
@@ -263,27 +287,27 @@ fn duration_to_sized_uint_fails() {
                 version: <none>
                 pragmas: <empty>
                 statements:
-                    Stmt [9-20]:
+                    Stmt [9-19]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-20]:
+                        kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
-                            ty_span: [9-17]
-                            init_expr: Expr [9-20]:
-                                ty: duration
+                            ty_span: [9-16]
+                            init_expr: Expr [9-19]:
+                                ty: stretch
                                 const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
-                    Stmt [29-41]:
+                    Stmt [28-40]:
                         annotations: <empty>
-                        kind: ExprStmt [29-41]:
-                            expr: Expr [29-40]:
-                                ty: duration
+                        kind: ExprStmt [28-40]:
+                            expr: Expr [28-39]:
+                                ty: stretch
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const uint[32]
+              x cannot cast expression of type stretch to type const uint[32]
                ,-[test:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         uint[32](a);
                :         ^^^^^^^^^^^
              4 |     
@@ -297,9 +321,9 @@ fn duration_to_sized_uint_fails() {
 //=============================
 
 #[test]
-fn duration_to_float_fails() {
+fn stretch_to_float_fails() {
     let source = "
-        duration a;
+        stretch a;
         float(a);
     ";
     check(
@@ -309,27 +333,27 @@ fn duration_to_float_fails() {
                 version: <none>
                 pragmas: <empty>
                 statements:
-                    Stmt [9-20]:
+                    Stmt [9-19]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-20]:
+                        kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
-                            ty_span: [9-17]
-                            init_expr: Expr [9-20]:
-                                ty: duration
+                            ty_span: [9-16]
+                            init_expr: Expr [9-19]:
+                                ty: stretch
                                 const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
-                    Stmt [29-38]:
+                    Stmt [28-37]:
                         annotations: <empty>
-                        kind: ExprStmt [29-38]:
-                            expr: Expr [29-37]:
-                                ty: duration
+                        kind: ExprStmt [28-37]:
+                            expr: Expr [28-36]:
+                                ty: stretch
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const float
+              x cannot cast expression of type stretch to type const float
                ,-[test:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         float(a);
                :         ^^^^^^^^
              4 |     
@@ -339,9 +363,9 @@ fn duration_to_float_fails() {
 }
 
 #[test]
-fn duration_to_sized_float_fails() {
+fn stretch_to_sized_float_fails() {
     let source = "
-        duration a;
+        stretch a;
         float[32](a);
     ";
     check(
@@ -351,27 +375,27 @@ fn duration_to_sized_float_fails() {
                 version: <none>
                 pragmas: <empty>
                 statements:
-                    Stmt [9-20]:
+                    Stmt [9-19]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-20]:
+                        kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
-                            ty_span: [9-17]
-                            init_expr: Expr [9-20]:
-                                ty: duration
+                            ty_span: [9-16]
+                            init_expr: Expr [9-19]:
+                                ty: stretch
                                 const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
-                    Stmt [29-42]:
+                    Stmt [28-41]:
                         annotations: <empty>
-                        kind: ExprStmt [29-42]:
-                            expr: Expr [29-41]:
-                                ty: duration
+                        kind: ExprStmt [28-41]:
+                            expr: Expr [28-40]:
+                                ty: stretch
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const float[32]
+              x cannot cast expression of type stretch to type const float[32]
                ,-[test:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         float[32](a);
                :         ^^^^^^^^^^^^
              4 |     
@@ -385,9 +409,9 @@ fn duration_to_sized_float_fails() {
 //=============================
 
 #[test]
-fn duration_to_angle_fails() {
+fn stretch_to_angle_fails() {
     let source = "
-        duration a;
+        stretch a;
         angle(a);
     ";
     check(
@@ -397,27 +421,27 @@ fn duration_to_angle_fails() {
                 version: <none>
                 pragmas: <empty>
                 statements:
-                    Stmt [9-20]:
+                    Stmt [9-19]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-20]:
+                        kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
-                            ty_span: [9-17]
-                            init_expr: Expr [9-20]:
-                                ty: duration
+                            ty_span: [9-16]
+                            init_expr: Expr [9-19]:
+                                ty: stretch
                                 const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
-                    Stmt [29-38]:
+                    Stmt [28-37]:
                         annotations: <empty>
-                        kind: ExprStmt [29-38]:
-                            expr: Expr [29-37]:
-                                ty: duration
+                        kind: ExprStmt [28-37]:
+                            expr: Expr [28-36]:
+                                ty: stretch
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const angle
+              x cannot cast expression of type stretch to type const angle
                ,-[test:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         angle(a);
                :         ^^^^^^^^
              4 |     
@@ -427,9 +451,9 @@ fn duration_to_angle_fails() {
 }
 
 #[test]
-fn duration_to_sized_angle_fails() {
+fn stretch_to_sized_angle_fails() {
     let source = "
-        duration a;
+        stretch a;
         angle[32](a);
     ";
     check(
@@ -439,27 +463,27 @@ fn duration_to_sized_angle_fails() {
                 version: <none>
                 pragmas: <empty>
                 statements:
-                    Stmt [9-20]:
+                    Stmt [9-19]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-20]:
+                        kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
-                            ty_span: [9-17]
-                            init_expr: Expr [9-20]:
-                                ty: duration
+                            ty_span: [9-16]
+                            init_expr: Expr [9-19]:
+                                ty: stretch
                                 const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
-                    Stmt [29-42]:
+                    Stmt [28-41]:
                         annotations: <empty>
-                        kind: ExprStmt [29-42]:
-                            expr: Expr [29-41]:
-                                ty: duration
+                        kind: ExprStmt [28-41]:
+                            expr: Expr [28-40]:
+                                ty: stretch
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const angle[32]
+              x cannot cast expression of type stretch to type const angle[32]
                ,-[test:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         angle[32](a);
                :         ^^^^^^^^^^^^
              4 |     
@@ -473,9 +497,9 @@ fn duration_to_sized_angle_fails() {
 //=================================
 
 #[test]
-fn duration_to_complex_fails() {
+fn stretch_to_complex_fails() {
     let source = "
-        duration a;
+        stretch a;
         complex(a);
     ";
     check(
@@ -485,27 +509,27 @@ fn duration_to_complex_fails() {
                 version: <none>
                 pragmas: <empty>
                 statements:
-                    Stmt [9-20]:
+                    Stmt [9-19]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-20]:
+                        kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
-                            ty_span: [9-17]
-                            init_expr: Expr [9-20]:
-                                ty: duration
+                            ty_span: [9-16]
+                            init_expr: Expr [9-19]:
+                                ty: stretch
                                 const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
-                    Stmt [29-40]:
+                    Stmt [28-39]:
                         annotations: <empty>
-                        kind: ExprStmt [29-40]:
-                            expr: Expr [29-39]:
-                                ty: duration
+                        kind: ExprStmt [28-39]:
+                            expr: Expr [28-38]:
+                                ty: stretch
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const complex[float]
+              x cannot cast expression of type stretch to type const complex[float]
                ,-[test:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         complex(a);
                :         ^^^^^^^^^^
              4 |     
@@ -515,9 +539,9 @@ fn duration_to_complex_fails() {
 }
 
 #[test]
-fn duration_to_sized_complex_fails() {
+fn stretch_to_sized_complex_fails() {
     let source = "
-        duration a;
+        stretch a;
         complex[float[32]](a);
     ";
     check(
@@ -527,27 +551,27 @@ fn duration_to_sized_complex_fails() {
                 version: <none>
                 pragmas: <empty>
                 statements:
-                    Stmt [9-20]:
+                    Stmt [9-19]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-20]:
+                        kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
-                            ty_span: [9-17]
-                            init_expr: Expr [9-20]:
-                                ty: duration
+                            ty_span: [9-16]
+                            init_expr: Expr [9-19]:
+                                ty: stretch
                                 const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
-                    Stmt [29-51]:
+                    Stmt [28-50]:
                         annotations: <empty>
-                        kind: ExprStmt [29-51]:
-                            expr: Expr [29-50]:
-                                ty: duration
+                        kind: ExprStmt [28-50]:
+                            expr: Expr [28-49]:
+                                ty: stretch
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const complex[float[32]]
+              x cannot cast expression of type stretch to type const complex[float[32]]
                ,-[test:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         complex[float[32]](a);
                :         ^^^^^^^^^^^^^^^^^^^^^
              4 |     
@@ -561,9 +585,9 @@ fn duration_to_sized_complex_fails() {
 //=================================
 
 #[test]
-fn duration_to_bit_fails() {
+fn stretch_to_bit_fails() {
     let source = "
-        duration a;
+        stretch a;
         bit(a);
     ";
     check(
@@ -573,27 +597,27 @@ fn duration_to_bit_fails() {
                 version: <none>
                 pragmas: <empty>
                 statements:
-                    Stmt [9-20]:
+                    Stmt [9-19]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-20]:
+                        kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
-                            ty_span: [9-17]
-                            init_expr: Expr [9-20]:
-                                ty: duration
+                            ty_span: [9-16]
+                            init_expr: Expr [9-19]:
+                                ty: stretch
                                 const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
-                    Stmt [29-36]:
+                    Stmt [28-35]:
                         annotations: <empty>
-                        kind: ExprStmt [29-36]:
-                            expr: Expr [29-35]:
-                                ty: duration
+                        kind: ExprStmt [28-35]:
+                            expr: Expr [28-34]:
+                                ty: stretch
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const bit
+              x cannot cast expression of type stretch to type const bit
                ,-[test:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         bit(a);
                :         ^^^^^^
              4 |     
@@ -603,9 +627,9 @@ fn duration_to_bit_fails() {
 }
 
 #[test]
-fn duration_to_bitarray_fails() {
+fn stretch_to_bitarray_fails() {
     let source = "
-        duration a;
+        stretch a;
         bit[32](a);
     ";
     check(
@@ -615,27 +639,27 @@ fn duration_to_bitarray_fails() {
                 version: <none>
                 pragmas: <empty>
                 statements:
-                    Stmt [9-20]:
+                    Stmt [9-19]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-20]:
+                        kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
-                            ty_span: [9-17]
-                            init_expr: Expr [9-20]:
-                                ty: duration
+                            ty_span: [9-16]
+                            init_expr: Expr [9-19]:
+                                ty: stretch
                                 const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
-                    Stmt [29-40]:
+                    Stmt [28-39]:
                         annotations: <empty>
-                        kind: ExprStmt [29-40]:
-                            expr: Expr [29-39]:
-                                ty: duration
+                        kind: ExprStmt [28-39]:
+                            expr: Expr [28-38]:
+                                ty: stretch
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const bit[32]
+              x cannot cast expression of type stretch to type const bit[32]
                ,-[test:3:9]
-             2 |         duration a;
+             2 |         stretch a;
              3 |         bit[32](a);
                :         ^^^^^^^^^^
              4 |     
