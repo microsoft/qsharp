@@ -19,7 +19,7 @@ fn import_and_call_reexport() {
                 indoc! {"
                     import Foo.DependencyA.Foo;
                     function Main() : Unit {
-                        Foo([1, 2]);
+                        Foo([1, 2]); 
                         Foo.DependencyA.MagicFunction();
                     }"}
                 .into(),
@@ -50,7 +50,6 @@ fn import_and_call_reexport() {
         )]
         .into_iter()
         .collect(),
-        has_manifest: true,
     };
 
     // This builds all the dependencies
@@ -130,7 +129,6 @@ fn directly_call_reexport() {
         )]
         .into_iter()
         .collect(),
-        has_manifest: true,
     };
 
     // This builds all the dependencies

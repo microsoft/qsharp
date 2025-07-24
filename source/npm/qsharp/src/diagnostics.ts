@@ -71,7 +71,7 @@ function tryParseQdkDiagnostics(e: unknown): QdkDiagnostics | undefined {
 function shortMessage(errors: IQSharpError[]) {
   const error = errors[0];
 
-  return `${error.diagnostic.message}${friendlyLocation(
+  return `${error.diagnostic.message} at ${friendlyLocation(
     error.document,
     error.diagnostic.range,
   )}`;
@@ -81,9 +81,6 @@ function shortMessage(errors: IQSharpError[]) {
  * Constructs a human-readable location string for an error.
  */
 function friendlyLocation(uriOrName: string, range: IRange) {
-  if (uriOrName === "<project>") {
-    return "";
-  }
   // Don't make any assumptions about the format of uriOrName,
   // it could be a file path, a URI with an arbitrary scheme, or just a name.
   // If it contains slashes, we assume it's a path and extract the basename.
@@ -101,5 +98,5 @@ function friendlyLocation(uriOrName: string, range: IRange) {
       ? `:${range.start.line + 1}:${range.start.character + 1}`
       : "";
 
-  return ` at ${basename}${lineColumn}`;
+  return `${basename}${lineColumn}`;
 }

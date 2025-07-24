@@ -99,9 +99,6 @@ pub enum Error {
     NoEntryPoint,
     #[error("unsupported runtime capabilities for code generation")]
     #[diagnostic(code("Qsc.Interpret.UnsupportedRuntimeCapabilities"))]
-    #[diagnostic(help(
-        "@EntryPoint attribute argument should be 'Base', 'Adaptive_RI' or 'Adaptive_RIF'"
-    ))]
     UnsupportedRuntimeCapabilities,
     #[error("expression does not evaluate to an operation")]
     #[diagnostic(code("Qsc.Interpret.NotAnOperation"))]

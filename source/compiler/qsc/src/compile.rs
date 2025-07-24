@@ -2,9 +2,7 @@
 // Licensed under the MIT License.
 
 use miette::{Diagnostic, Report};
-use qsc_data_structures::{
-    language_features::LanguageFeatures, span::Span, target::TargetCapabilityFlags,
-};
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 pub use qsc_frontend::compile::Dependencies;
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, SourceMap},
@@ -47,11 +45,6 @@ pub enum ErrorKind {
     /// `OpenQASM` compilation errors.
     #[diagnostic(transparent)]
     OpenQasm(#[from] crate::qasm::error::Error),
-
-    #[error(
-        "The @EntryPoint attribute with a profile argument is not allowed in a Q# project (with qsharp.json). Please specify the profile in qsharp.json instead."
-    )]
-    EntryPointProfileInProject(#[label] Span),
 }
 
 /// Compiles a package from its AST representation.

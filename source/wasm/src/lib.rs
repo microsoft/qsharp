@@ -26,7 +26,7 @@ use qsc::{
 use resource_estimator::{self as re, estimate_entry};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{fmt::Write, sync::Arc};
+use std::{fmt::Write, str::FromStr, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 mod debug_service;
@@ -218,10 +218,15 @@ pub fn get_library_source_content(name: &str) -> Option<String> {
 }
 
 #[wasm_bindgen]
-pub fn get_ast(code: &str, language_features: Vec<String>) -> Result<String, String> {
+pub fn get_ast(
+    code: &str,
+    language_features: Vec<String>,
+    profile: &str,
+) -> Result<String, String> {
     let language_features = LanguageFeatures::from_iter(language_features);
     let sources = SourceMap::new([("code".into(), code.into())], None);
-    let profile = Profile::Unrestricted;
+    let profile =
+        Profile::from_str(profile).map_err(|()| format!("Invalid target profile {profile}"))?;
     let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
             store,
@@ -237,10 +242,15 @@ pub fn get_ast(code: &str, language_features: Vec<String>) -> Result<String, Str
 }
 
 #[wasm_bindgen]
-pub fn get_hir(code: &str, language_features: Vec<String>) -> Result<String, String> {
+pub fn get_hir(
+    code: &str,
+    language_features: Vec<String>,
+    profile: &str,
+) -> Result<String, String> {
     let language_features = LanguageFeatures::from_iter(language_features);
     let sources = SourceMap::new([("code".into(), code.into())], None);
-    let profile = Profile::Unrestricted;
+    let profile =
+        Profile::from_str(profile).map_err(|()| format!("Invalid target profile {profile}"))?;
     let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
             store,

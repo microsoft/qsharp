@@ -11,9 +11,8 @@ use crate::{
 };
 use expect_test::{Expect, expect};
 use miette::Diagnostic;
-use qsc::{LanguageFeatures, PackageType, line_column::Encoding};
+use qsc::{LanguageFeatures, PackageType, line_column::Encoding, target::Profile};
 use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel, LintOrGroupConfig};
-use serde_json::Value;
 use std::{
     cell::RefCell,
     fmt::{Display, Write},
@@ -258,49 +257,30 @@ async fn compile_error() {
 
 #[tokio::test]
 async fn rca_errors_are_reported_when_compilation_succeeds() {
-    let fs = FsNode::Dir(
-        [dir(
-            "parent",
-            [
-                file("qsharp.json", r#"{ "targetProfile": "adaptive_ri" }"#),
-                dir(
-                    "src",
-                    [file(
-                        "main.qs",
-                        r#"namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }"#,
-                    )],
-                ),
-            ],
-        )]
-        .into_iter()
-        .collect(),
-    );
+    let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
-    let fs = std::rc::Rc::new(std::cell::RefCell::new(fs));
-    let errors = std::cell::RefCell::new(Vec::new());
-    let test_cases = std::cell::RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&errors, &test_cases, &fs);
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::AdaptiveRI),
+        package_type: Some(PackageType::Lib),
+        ..WorkspaceConfigurationUpdate::default()
+    });
 
-    // Trigger a document update to read the file
     updater
-        .update_document(
-            "parent/src/main.qs",
-            1,
-            r#"namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }"#,
-            "qsharp",
-        )
+        .update_document("single/foo.qs", 1, "namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }", "qsharp")
         .await;
 
-    // we expect two errors, one for `set x = 2.0` and one for `x`
+    // we expect two errors, one for `set x = 2` and one for `x`
     expect_errors(
         &errors,
         &expect![[r#"
             [
-              uri: "parent/src/main.qs" version: Some(1) errors: [
+              uri: "single/foo.qs" version: Some(1) errors: [
                 cannot use a dynamic double value
-                  [parent/src/main.qs] [set x = 2.0]
+                  [single/foo.qs] [set x = 2.0]
                 cannot use a dynamic double value
-                  [parent/src/main.qs] [x]
+                  [single/foo.qs] [x]
               ],
             ]"#]],
     );
@@ -308,50 +288,32 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
 
 #[tokio::test]
 async fn base_profile_rca_errors_are_reported_when_compilation_succeeds() {
-    let fs = FsNode::Dir(
-        [dir(
-            "parent",
-            [
-                file("qsharp.json", r#"{ "targetProfile": "base" }"#),
-                dir(
-                    "src",
-                    [file(
-                        "main.qs",
-                        r#"namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }"#,
-                    )],
-                ),
-            ],
-        )]
-        .into_iter()
-        .collect(),
-    );
-    let fs = std::rc::Rc::new(std::cell::RefCell::new(fs));
-    let errors = std::cell::RefCell::new(Vec::new());
-    let test_cases = std::cell::RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&errors, &test_cases, &fs);
+    let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
-    // Trigger a document update to re-read the manifest
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Base),
+        package_type: Some(PackageType::Lib),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
     updater
-        .update_document(
-            "parent/src/main.qs",
-            1,
-            r#"namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }"#,
-            "qsharp",
-        )
+        .update_document("single/foo.qs", 1, "namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }", "qsharp")
         .await;
 
-    // we expect three errors: one for `MResetZ(q) == One`, one for `set x = 2.0`, and one for `x`
+    // we expect two errors, one for `set x = 2.0` and one for `x`
     expect_errors(
         &errors,
         &expect![[r#"
             [
-              uri: "parent/src/main.qs" version: Some(1) errors: [
+              uri: "single/foo.qs" version: Some(1) errors: [
                 cannot use a dynamic bool value
-                  [parent/src/main.qs] [MResetZ(q) == One]
+                  [single/foo.qs] [MResetZ(q) == One]
                 cannot use a dynamic double value
-                  [parent/src/main.qs] [set x = 2.0]
+                  [single/foo.qs] [set x = 2.0]
                 cannot use a dynamic double value
-                  [parent/src/main.qs] [x]
+                  [single/foo.qs] [x]
               ],
             ]"#]],
     );
@@ -397,41 +359,19 @@ async fn package_type_update_causes_error() {
 
 #[tokio::test]
 async fn target_profile_update_fixes_error() {
-    let fs = FsNode::Dir(
-        [dir(
-            "parent",
-            [
-                file("qsharp.json", r#"{}"#),
-                dir(
-                    "src",
-                    [file(
-                        "main.qs",
-                        r#"namespace Foo { operation Main() : Unit { use q = Qubit(); if M(q) == Zero { Message("hi") } } }"#,
-                    )],
-                ),
-            ],
-        )]
-        .into_iter()
-        .collect(),
-    );
-    let fs = Rc::new(RefCell::new(fs));
     let errors = RefCell::new(Vec::new());
     let test_cases = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&errors, &test_cases, &fs);
+    let mut updater = new_updater(&errors, &test_cases);
 
-    let manifest_path = "parent/qsharp.json";
-    let success = update_manifest_field(
-        &fs,
-        manifest_path,
-        "targetProfile",
-        Value::String("base".to_string()),
-    );
-    assert!(success, "Failed to update manifest profile");
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Base),
+        package_type: Some(PackageType::Lib),
+        ..WorkspaceConfigurationUpdate::default()
+    });
 
-    // Trigger a document update to re-read the manifest
     updater
         .update_document(
-            "parent/src/main.qs",
+            "single/foo.qs",
             1,
             r#"namespace Foo { operation Main() : Unit { use q = Qubit(); if M(q) == Zero { Message("hi") } } }"#,
             "qsharp",
@@ -442,75 +382,42 @@ async fn target_profile_update_fixes_error() {
         &errors,
         &expect![[r#"
             [
-              uri: "parent/src/main.qs" version: Some(1) errors: [
+              uri: "single/foo.qs" version: Some(1) errors: [
                 cannot use a dynamic bool value
-                  [parent/src/main.qs] [M(q) == Zero]
+                  [single/foo.qs] [M(q) == Zero]
               ],
             ]"#]],
     );
 
-    let success = update_manifest_field(
-        &fs,
-        manifest_path,
-        "targetProfile",
-        Value::String("unrestricted".to_string()),
-    );
-    assert!(success, "Failed to update manifest profile");
-
-    // Trigger a document update to re-read the manifest
-    updater
-        .update_document(
-            "parent/src/main.qs",
-            2,
-            r#"namespace Foo { operation Main() : Unit { use q = Qubit(); if M(q) == Zero { Message("hi") } } }"#,
-            "qsharp",
-        )
-        .await;
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Unrestricted),
+        ..WorkspaceConfigurationUpdate::default()
+    });
 
     expect_errors(
         &errors,
         &expect![[r#"
             [
-              uri: "parent/src/main.qs" version: Some(2) errors: [],
+              uri: "single/foo.qs" version: Some(1) errors: [],
             ]"#]],
     );
 }
 
 #[tokio::test]
 async fn target_profile_update_updates_test_cases() {
-    let fs = FsNode::Dir(
-        [dir(
-            "parent",
-            [
-                file("qsharp.json", r#"{}"#),
-                dir(
-                    "src",
-                    [file(
-                        "main.qs",
-                        r#"@Config(Base) @Test() operation BaseTest() : Unit {}"#,
-                    )],
-                ),
-            ],
-        )]
-        .into_iter()
-        .collect(),
-    );
-    let fs = Rc::new(RefCell::new(fs));
     let errors = RefCell::new(Vec::new());
     let test_cases = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&errors, &test_cases, &fs);
+    let mut updater = new_updater(&errors, &test_cases);
 
-    // Set profile to unrestricted, expect test case to NOT appear
-    assert!(update_manifest_field(
-        &fs,
-        "parent/qsharp.json",
-        "targetProfile",
-        Value::String("unrestricted".to_string())
-    ));
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Unrestricted),
+        package_type: Some(PackageType::Lib),
+        ..WorkspaceConfigurationUpdate::default()
+    });
 
     updater
         .update_document(
-            "parent/src/main.qs",
+            "single/foo.qs",
             1,
             r#"@Config(Base) @Test() operation BaseTest() : Unit {}"#,
             "qsharp",
@@ -529,33 +436,20 @@ async fn target_profile_update_updates_test_cases() {
     // reset accumulated test cases after each check
     test_cases.borrow_mut().clear();
 
-    // Set profile to base, expect test case to appear
-    assert!(update_manifest_field(
-        &fs,
-        "parent/qsharp.json",
-        "targetProfile",
-        Value::String("base".to_string())
-    ));
-
-    // Trigger a document update to re-read the manifest
-    updater
-        .update_document(
-            "parent/src/main.qs",
-            2,
-            r#"@Config(Base) @Test() operation BaseTest() : Unit {}"#,
-            "qsharp",
-        )
-        .await;
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Base),
+        ..WorkspaceConfigurationUpdate::default()
+    });
 
     expect![[r#"
         [
             TestCallables {
                 callables: [
                     TestCallable {
-                        callable_name: "main.BaseTest",
-                        compilation_uri: "parent/qsharp.json",
+                        callable_name: "foo.BaseTest",
+                        compilation_uri: "single/foo.qs",
                         location: Location {
-                            source: "parent/src/main.qs",
+                            source: "single/foo.qs",
                             range: Range {
                                 start: Position {
                                     line: 0,
@@ -567,7 +461,7 @@ async fn target_profile_update_updates_test_cases() {
                                 },
                             },
                         },
-                        friendly_name: "parent",
+                        friendly_name: "foo.qs",
                     },
                 ],
             },
@@ -578,30 +472,12 @@ async fn target_profile_update_updates_test_cases() {
 
 #[tokio::test]
 async fn target_profile_update_causes_error_in_stdlib() {
-    let fs = FsNode::Dir(
-        [dir(
-            "parent",
-            [
-                file("qsharp.json", r#"{}"#),
-                dir(
-                    "src",
-                    [file(
-                        "main.qs",
-                        r#"namespace Foo { @EntryPoint() operation Main() : Unit { use q = Qubit(); let r = M(q); let b = Microsoft.Quantum.Convert.ResultAsBool(r); } }"#,
-                    )],
-                ),
-            ],
-        )]
-        .into_iter()
-        .collect(),
-    );
-    let fs = Rc::new(RefCell::new(fs));
     let errors = RefCell::new(Vec::new());
     let test_cases = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&errors, &test_cases, &fs);
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater.update_document(
-        "parent/src/main.qs",
+        "single/foo.qs",
         1,
         r#"namespace Foo { @EntryPoint() operation Main() : Unit { use q = Qubit(); let r = M(q); let b = Microsoft.Quantum.Convert.ResultAsBool(r); } }"#,
         "qsharp",
@@ -609,32 +485,18 @@ async fn target_profile_update_causes_error_in_stdlib() {
 
     expect_errors(&errors, &expect!["[]"]);
 
-    let manifest_path = "parent/qsharp.json";
-    let success = update_manifest_field(
-        &fs,
-        manifest_path,
-        "targetProfile",
-        Value::String("base".to_string()),
-    );
-    assert!(success, "Failed to update manifest profile");
-
-    // Trigger a document update to re-read the manifest
-    updater
-        .update_document(
-            "parent/src/main.qs",
-            2,
-            r#"namespace Foo { @EntryPoint() operation Main() : Unit { use q = Qubit(); let r = M(q); let b = Microsoft.Quantum.Convert.ResultAsBool(r); } }"#,
-            "qsharp",
-        )
-        .await;
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Base),
+        ..WorkspaceConfigurationUpdate::default()
+    });
 
     expect_errors(
         &errors,
         &expect![[r#"
             [
-              uri: "parent/src/main.qs" version: Some(2) errors: [
+              uri: "single/foo.qs" version: Some(1) errors: [
                 cannot use a dynamic bool value
-                  [parent/src/main.qs] [Microsoft.Quantum.Convert.ResultAsBool(r)]
+                  [single/foo.qs] [Microsoft.Quantum.Convert.ResultAsBool(r)]
               ],
             ]"#]],
     );
@@ -2628,56 +2490,6 @@ async fn test_show_test_diagnostics_in_notebook() {
               ],
             ]"#]],
     );
-}
-
-/// Standalone helper to update a field in a manifest JSON file in the virtual file system.
-/// `fs` is the root `FsNode`, `manifest_path` is the path to the manifest (e.g., "project/qsharp.json").
-/// `field` is the key to update, and `value` is the new value (as a `serde_json::Value`).
-/// Returns true if the update was successful.
-fn update_manifest_field(
-    fs: &Rc<RefCell<FsNode>>,
-    manifest_path: &str,
-    field: &str,
-    value: serde_json::Value,
-) -> bool {
-    let mut fs = fs.borrow_mut();
-    let components: Vec<&str> = manifest_path.split('/').collect();
-    let mut node = &mut *fs;
-    for (i, comp) in components.iter().enumerate() {
-        match node {
-            crate::tests::test_fs::FsNode::Dir(entries) => {
-                if let Some(next) = entries.get_mut(*comp) {
-                    node = next;
-                } else {
-                    return false;
-                }
-            }
-            crate::tests::test_fs::FsNode::File(_) => {
-                if i == components.len() - 1 {
-                    break;
-                }
-                return false;
-            }
-        }
-    }
-    if let crate::tests::test_fs::FsNode::File(contents) = node {
-        let mut json: serde_json::Value = match serde_json::from_str(&*contents) {
-            Ok(j) => j,
-            Err(_) => return false,
-        };
-        if let Some(obj) = json.as_object_mut() {
-            obj.insert(field.to_string(), value);
-        } else {
-            return false;
-        }
-        let Ok(new_contents) = serde_json::to_string_pretty(&json) else {
-            return false;
-        };
-        *contents = new_contents.into();
-        true
-    } else {
-        false
-    }
 }
 
 impl Display for DiagnosticUpdate {
