@@ -450,8 +450,8 @@ fn init_float_with_int_value_greater_than_safely_representable_values() {
 
             [Qasm.Lowerer.InvalidCastValueRange
 
-              x assigning const int values to float must be in a range that be converted
-              | to float
+              x assigning const int values to float must be in a range that can be
+              | converted to float
                ,-[test:1:11]
              1 | float a = 9007199254740993;
                :           ^^^^^^^^^^^^^^^^
