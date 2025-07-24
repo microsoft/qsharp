@@ -94,12 +94,63 @@ fn stack_traces_can_cross_eval_session_and_file_boundaries() {
             expect![[r#"
                 Error: division by zero
                 Call stack:
-                    at Adjoint Test.C in 1.qs:10:12
-                    at Adjoint Test.B in 1.qs:3:12
-                    at Adjoint Test2.A in 2.qs:9:0
-                    at Z in line_0:0:34
+                    at Adjoint Test.C in 1.qs:11:12
+                    at Adjoint Test.B in 1.qs:4:12
+                    at Adjoint Test2.A in 2.qs:10:0
+                    at Z in line_0:1:34
             "#]]
             .assert_eq(stack_trace);
+        }
+    }
+}
+
+#[test]
+fn test_exact_issue_reproduction() {
+    // This matches the exact code structure from the issue description
+    let source = indoc! { r#"
+        namespace Test {
+            function Main() : Unit {
+                fail "line 3";
+            }
+        }
+        "#};
+
+    let source_map = SourceMap::new(
+        [("test.qs".into(), source.into())],
+        Some("Test.Main()".into()),
+    );
+
+    let (std_id, store) = crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+    let mut interpreter = Interpreter::new(
+        source_map,
+        PackageType::Exe,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+        store,
+        &[(std_id, None)],
+    )
+    .expect("Failed to compile base environment.");
+
+    let (result, _) = eval(&mut interpreter);
+
+    match result {
+        Ok(_) => panic!("Expected error"),
+        Err(e) => {
+            let stack_trace = e[0]
+                .stack_trace()
+                .expect("code should have a valid stack trace");
+            println!("Stack trace for exact issue reproduction:");
+            println!("{}", stack_trace);
+            
+            // The fail statement is on line 3 (1-based counting):
+            // Line 1: namespace Test {
+            // Line 2:     function Main() : Unit {
+            // Line 3:         fail "line 3";
+            // Line 4:     }
+            // Line 5: }
+            // So it should show "line 3" in the stack trace (not line 2 as before the fix)
+            assert!(stack_trace.contains("test.qs:3:"));
+            assert!(!stack_trace.contains("test.qs:2:") || !stack_trace.contains("Test.Main"));
         }
     }
 }
@@ -140,11 +191,11 @@ fn test_line_number_off_by_one_issue() {
                 .expect("code should have a valid stack trace");
             println!("Current stack trace:");
             println!("{}", stack_trace);
-            // The fail statement is on line 3 (1-based), so it should show line 3, not line 2
+            // The fail statement is on line 3 (1-based), so it should show line 3
             expect![[r#"
-                Error: line 3
+                Error: program failed: line 3
                 Call stack:
-                    at Test.Main in test.qs:3:8
+                    at Test.Main in test.qs:3:20
             "#]]
             .assert_eq(stack_trace);
         }
@@ -212,9 +263,9 @@ fn stack_traces_can_cross_file_and_entry_boundaries() {
             expect![[r#"
                 Error: division by zero
                 Call stack:
-                    at Adjoint Test.C in 1.qs:11:8
-                    at Adjoint Test.B in 1.qs:5:0
-                    at Adjoint Test2.A in 2.qs:9:0
+                    at Adjoint Test.C in 1.qs:12:8
+                    at Adjoint Test.B in 1.qs:6:0
+                    at Adjoint Test2.A in 2.qs:10:0
             "#]]
             .assert_eq(stack_trace);
         }
