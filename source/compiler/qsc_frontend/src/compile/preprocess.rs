@@ -8,9 +8,8 @@ use qsc_ast::{
         TopLevelNode, UnOp,
     },
     mut_visit::{MutVisitor, walk_stmt},
-    visit::Visitor,
 };
-use qsc_data_structures::{span::Span, target::Profile};
+use qsc_data_structures::span::Span;
 use qsc_hir::hir;
 use std::rc::Rc;
 
@@ -18,34 +17,6 @@ use super::{SourceMap, TargetCapabilityFlags};
 
 #[cfg(test)]
 mod tests;
-
-/// Transformation to detect `@EntryPoint` attribute in the AST.
-#[derive(Default)]
-pub struct DetectEntryPointProfile {
-    pub profile: Option<(Profile, Span)>,
-}
-
-impl DetectEntryPointProfile {
-    #[must_use]
-    pub fn new() -> Self {
-        Self { profile: None }
-    }
-}
-
-impl Visitor<'_> for DetectEntryPointProfile {
-    fn visit_attr(&mut self, attr: &Attr) {
-        if hir::Attr::from_str(attr.name.name.as_ref()) == Ok(hir::Attr::EntryPoint) {
-            // Try to parse the argument as a profile name
-            if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
-                if let ExprKind::Path(PathKind::Ok(path)) = inner.kind.as_ref() {
-                    if let Ok(profile) = Profile::from_str(path.name.name.as_ref()) {
-                        self.profile = Some((profile, path.span));
-                    }
-                }
-            }
-        }
-    }
-}
 
 #[derive(PartialEq, Hash, Clone, Debug)]
 pub struct TrackedName {

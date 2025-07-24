@@ -7,6 +7,7 @@ use crate::{
 };
 use expect_test::expect;
 use miette::Report;
+use qsc::target::Profile;
 
 use super::{compile_qasm_to_qir, compile_with_config};
 
@@ -226,7 +227,6 @@ fn qir_generation_using_qiskit_semantics_multiple_bit_arrays_are_reversed_in_ord
     let source = r#"
 OPENQASM 3.0;
 include "stdgates.inc";
-#pragma qdk.qir.profile Adaptive_RI
 output bit[2] c;
 output bit[3] c2;
 qubit[5] q;
@@ -248,7 +248,7 @@ c2[1] = measure q[3];
 c2[2] = measure q[4];
     "#;
 
-    let qir = compile_qasm_to_qir(source)?;
+    let qir = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
     expect![[r#"
         %Result = type opaque
         %Qubit = type opaque
@@ -318,7 +318,6 @@ fn qir_generation_for_box_with_simulatable_intrinsic() -> miette::Result<(), Vec
     let source = r#"
     OPENQASM 3.0;
     include "stdgates.inc";
-    #pragma qdk.qir.profile Adaptive_RI
     #pragma qdk.box.open box_begin
     #pragma qdk.box.close box_end
 
@@ -336,7 +335,7 @@ fn qir_generation_for_box_with_simulatable_intrinsic() -> miette::Result<(), Vec
     c = measure q;
     "#;
 
-    let qir = compile_qasm_to_qir(source)?;
+    let qir = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
     expect![[r#"
         %Result = type opaque
         %Qubit = type opaque
@@ -384,7 +383,6 @@ fn qir_generation_for_box_with_qdk_qir_intrinsic() -> miette::Result<(), Vec<Rep
     let source = r#"
     OPENQASM 3.0;
     include "stdgates.inc";
-    #pragma qdk.qir.profile Adaptive_RI
     #pragma qdk.box.open box_begin
     #pragma qdk.box.close box_end
 
@@ -402,7 +400,7 @@ fn qir_generation_for_box_with_qdk_qir_intrinsic() -> miette::Result<(), Vec<Rep
     c = measure q;
     "#;
 
-    let qir = compile_qasm_to_qir(source)?;
+    let qir = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
     expect![[r#"
         %Result = type opaque
         %Qubit = type opaque

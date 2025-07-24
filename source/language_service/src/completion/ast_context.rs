@@ -21,7 +21,7 @@ pub(super) struct AstContext<'a> {
     offset: u32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 enum Context<'a> {
     /// The cursor is on a path or incomplete path.
     Path(PathKind),
@@ -31,7 +31,7 @@ enum Context<'a> {
         record: &'a Expr,
     },
     /// The cursor is on an attribute.
-    AttrArg(String),
+    AttrArg,
 }
 
 impl<'a> AstContext<'a> {
@@ -51,8 +51,7 @@ impl<'a> AstContext<'a> {
     }
 
     fn set_context(&mut self, context: Context<'a>) {
-        // Ignores update of contex if the cursor is in an attribute argument
-        if matches!(self.context, Some(Context::AttrArg(_))) {
+        if matches!(self.context, Some(Context::AttrArg)) {
             return;
         }
         self.context = Some(context);
@@ -116,8 +115,8 @@ impl<'a> Visitor<'a> for AstContext<'a> {
     }
 
     fn visit_attr(&mut self, attr: &'a Attr) {
-        if attr.arg.span.contains(self.offset) {
-            self.set_context(Context::AttrArg(attr.name.name.clone().to_string()));
+        if attr.arg.span.touches(self.offset) {
+            self.set_context(Context::AttrArg);
         }
     }
 }
@@ -157,14 +156,9 @@ impl AstContext<'_> {
         }
     }
 
-    /// Returns the name of the attribute, if the cursor is on an attribute argument.
-    /// If the cursor is not on an attribute argument, returns `None`.
-    pub fn get_name_of_attr_for_attr_arg(&self) -> Option<String> {
-        if let Some(Context::AttrArg(name)) = &self.context {
-            Some(name.clone())
-        } else {
-            None
-        }
+    /// Returns whether the cursor is in an attribute argument.
+    pub fn is_in_attr_arg(&self) -> bool {
+        matches!(self.context, Some(Context::AttrArg))
     }
 
     fn idents_before_cursor(&self) -> impl Iterator<Item = &Ident> {

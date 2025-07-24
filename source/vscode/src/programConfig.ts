@@ -9,6 +9,7 @@ import {
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { isOpenQasmDocument, isQdkDocument } from "./common";
+import { getTarget } from "./config";
 import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 import { loadOpenQasmProject, loadProject } from "./projectSystem";
 
@@ -104,6 +105,9 @@ export async function getProgramForDocument(
     showModalError: boolean;
   } = { showModalError: false },
 ): Promise<FullProgramConfigOrError> {
+  // Target profile comes from settings
+  const profile = getTarget();
+
   // Project configs come from the document
   try {
     const program = await invokeAndReportCommandDiagnostics(
@@ -113,7 +117,7 @@ export async function getProgramForDocument(
       options,
     );
 
-    return { success: true, programConfig: program };
+    return { success: true, programConfig: { profile, ...program } };
   } catch (e: unknown) {
     return {
       success: false,
