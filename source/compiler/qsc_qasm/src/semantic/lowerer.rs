@@ -632,6 +632,13 @@ impl Lowerer {
             return semantic::StmtKind::Err;
         }
 
+        if lhs.ty.is_readonly_array_ref() {
+            let kind =
+                SemanticErrorKind::CannotUpdateReadonlyArrayRef(ident.name.to_string(), ident.span);
+            self.push_semantic_error(kind);
+            return semantic::StmtKind::Err;
+        }
+
         semantic::StmtKind::Assign(semantic::AssignStmt { span, lhs, rhs })
     }
 
@@ -735,6 +742,13 @@ impl Lowerer {
         if ty.is_const() {
             let kind =
                 SemanticErrorKind::CannotUpdateConstVariable(ident.name.to_string(), ident.span);
+            self.push_semantic_error(kind);
+            return semantic::StmtKind::Err;
+        }
+
+        if lhs.ty.is_readonly_array_ref() {
+            let kind =
+                SemanticErrorKind::CannotUpdateReadonlyArrayRef(ident.name.to_string(), ident.span);
             self.push_semantic_error(kind);
             return semantic::StmtKind::Err;
         }
@@ -1785,12 +1799,12 @@ impl Lowerer {
             // If the first argument is a dynamic reference. We can only compute the length
             // of the requested dimension at runtime, and the ouput is of type `uint`.
             Type::DynArrayRef(ref_ty) => {
-                let array_dims = ref_ty.num_dims;
+                let array_dims = ref_ty.dims;
                 let kind = semantic::ExprKind::SizeofCall(semantic::SizeofCallExpr {
                     span: expr.span,
                     fn_name_span: expr.name.span,
                     array: first_arg,
-                    array_dims,
+                    array_dims: array_dims.into(),
                     dim: second_arg,
                 });
 
@@ -2930,7 +2944,7 @@ impl Lowerer {
                     return Type::Err;
                 }
 
-                Type::make_dyn_array_ref_ty(num_dims, &base_ty, is_mutable)
+                Type::make_dyn_array_ref_ty(num_dims.into(), &base_ty, is_mutable)
             }
         }
     }
@@ -4091,6 +4105,15 @@ impl Lowerer {
         assert!(!indexed_ident.indices.is_empty());
 
         let collection = self.lower_ident_expr(&indexed_ident.ident);
+
+        if collection.ty.is_readonly_array_ref() {
+            let kind = SemanticErrorKind::CannotUpdateReadonlyArrayRef(
+                indexed_ident.ident.name.to_string(),
+                indexed_ident.ident.span,
+            );
+            self.push_semantic_error(kind);
+            return (err_expr!(Type::Err, indexed_ident.span), Default::default());
+        }
 
         // We flatten the multiple square brackets, converting
         // a[1, 2][5, 7][2, 4:8]

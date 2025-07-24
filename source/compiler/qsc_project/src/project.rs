@@ -8,12 +8,13 @@ use crate::{
 use async_trait::async_trait;
 use futures::FutureExt;
 use miette::Diagnostic;
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::Profile};
 use qsc_linter::LintOrGroupConfig;
 use rustc_hash::FxHashMap;
 use std::{
     cell::RefCell,
     path::{Path, PathBuf},
+    str::FromStr,
     sync::Arc,
 };
 use thiserror::Error;
@@ -46,6 +47,8 @@ pub struct Project {
     pub errors: Vec<Error>,
     /// The type of project. This is used to determine how to load the project.
     pub project_type: ProjectType,
+    /// QIR target profile for this project (from manifest or default)
+    pub target_profile: Profile,
 }
 
 impl Project {
@@ -64,6 +67,7 @@ impl Project {
                 package_type: None,
             },
             packages: FxHashMap::default(),
+            has_manifest: false,
         };
         Self {
             path: name,
@@ -71,7 +75,14 @@ impl Project {
             lints: Vec::default(),
             errors: Vec::default(),
             project_type: ProjectType::QSharp(source),
+            target_profile: Profile::Unrestricted,
         }
+    }
+
+    #[must_use]
+    /// Returns true if the project is a Q# project with a manifest.
+    pub fn has_manifest(&self) -> bool {
+        matches!(self.project_type, ProjectType::QSharp(ref sources) if sources.has_manifest)
     }
 }
 
@@ -387,7 +398,16 @@ pub trait FileSystemAsync {
             errors,
             name,
             path: manifest_path,
-            project_type: ProjectType::QSharp(PackageGraphSources { root, packages }),
+            project_type: ProjectType::QSharp(PackageGraphSources {
+                root,
+                packages,
+                has_manifest: true,
+            }),
+            target_profile: manifest
+                .target_profile
+                .as_deref()
+                .and_then(|s| Profile::from_str(s).ok())
+                .unwrap_or(Profile::Unrestricted),
         })
     }
 
@@ -715,6 +735,7 @@ pub struct PackageInfo {
 pub struct PackageGraphSources {
     pub root: PackageInfo,
     pub packages: FxHashMap<PackageKey, PackageInfo>,
+    pub has_manifest: bool,
 }
 
 #[derive(Debug)]
@@ -815,6 +836,7 @@ impl PackageGraphSources {
                 package_type,
             },
             packages: FxHashMap::default(),
+            has_manifest: false,
         }
     }
 }

@@ -147,7 +147,7 @@ impl Display for StaticArrayRefType {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct DynArrayRefType {
     pub base_ty: ArrayBaseType,
-    pub num_dims: u32,
+    pub dims: Dims,
     pub is_mutable: bool,
 }
 
@@ -160,7 +160,7 @@ impl Display for DynArrayRefType {
         }
 
         let base_ty: Type = self.base_ty.clone().into();
-        write!(f, "array[{}, #dim = {}]", base_ty, self.num_dims)
+        write!(f, "array[{}, #dim = {}]", base_ty, self.dims)
     }
 }
 
@@ -331,11 +331,11 @@ impl Type {
         }
     }
 
-    pub(crate) fn make_dyn_array_ref_ty(num_dims: u32, base_ty: &Self, is_mutable: bool) -> Self {
+    pub(crate) fn make_dyn_array_ref_ty(num_dims: Dims, base_ty: &Self, is_mutable: bool) -> Self {
         if let Ok(base_ty) = base_ty.clone().try_into() {
             Self::DynArrayRef(DynArrayRefType {
                 base_ty,
-                num_dims,
+                dims: num_dims,
                 is_mutable,
             })
         } else {
@@ -356,6 +356,15 @@ impl Type {
             | Type::Float(_, is_const)
             | Type::Int(_, is_const)
             | Type::UInt(_, is_const) => *is_const,
+            _ => false,
+        }
+    }
+
+    #[must_use]
+    pub fn is_readonly_array_ref(&self) -> bool {
+        match self {
+            Type::StaticArrayRef(array_ref) => !array_ref.is_mutable,
+            Type::DynArrayRef(array_ref) => !array_ref.is_mutable,
             _ => false,
         }
     }
@@ -394,17 +403,6 @@ impl Type {
                 Into::<Self>::into(array.base_ty.clone()).is_inferred_output_type()
             }
             _ => false,
-        }
-    }
-
-    #[must_use]
-    pub fn num_dims(&self) -> usize {
-        match self {
-            Type::Array(array) => array.dims.num_dims(),
-            Type::DynArrayRef(array) => array.num_dims as usize,
-            Type::StaticArrayRef(array) => array.dims.num_dims(),
-            Type::BitArray(..) | Type::QubitArray(..) => 1,
-            _ => 0,
         }
     }
 
@@ -460,6 +458,39 @@ impl Type {
                 &array.dims,
                 index,
             ),
+            Type::StaticArrayRef(array) => indexed_type_builder(
+                ctx,
+                || array.base_ty.clone().into(),
+                |dims| {
+                    Type::StaticArrayRef(StaticArrayRefType {
+                        base_ty: array.base_ty.clone(),
+                        dims: dims.clone(),
+                        is_mutable: array.is_mutable,
+                    })
+                },
+                &array.dims,
+                index,
+            ),
+            Type::DynArrayRef(array) => {
+                // In this case we only care about the number of dimensions and not about
+                // the size of the dimensions. So, we create a dummy `ArrayDimensions`
+                // enconding the num_dims to be able to use the same infrastructure we
+                // use for the other array types.
+                let dummy_dims: ArrayDimensions = array.dims.into();
+                indexed_type_builder(
+                    ctx,
+                    || array.base_ty.clone().into(),
+                    |dims| {
+                        Type::DynArrayRef(DynArrayRefType {
+                            base_ty: array.base_ty.clone(),
+                            dims: dims.into(),
+                            is_mutable: array.is_mutable,
+                        })
+                    },
+                    &dummy_dims,
+                    index,
+                )
+            }
             _ => {
                 let kind = super::error::SemanticErrorKind::CannotIndexType(self.to_string(), span);
                 ctx.push_semantic_error(kind);
@@ -704,7 +735,7 @@ impl Display for ArrayDimensions {
 
 impl ArrayDimensions {
     #[must_use]
-    pub fn num_dims(&self) -> usize {
+    pub fn num_dims(&self) -> u32 {
         match self {
             ArrayDimensions::One(_) => 1,
             ArrayDimensions::Two(_, _) => 2,
@@ -768,6 +799,86 @@ impl From<&[u32]> for ArrayDimensions {
                 dims[0], dims[1], dims[2], dims[3], dims[4], dims[5], dims[6],
             ),
             _ => ArrayDimensions::Err,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum Dims {
+    One = 1,
+    Two = 2,
+    Three = 3,
+    Four = 4,
+    Five = 5,
+    Six = 6,
+    Seven = 7,
+    Err = 0,
+}
+
+impl Display for Dims {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Dims::One => write!(f, "1"),
+            Dims::Two => write!(f, "2"),
+            Dims::Three => write!(f, "3"),
+            Dims::Four => write!(f, "4"),
+            Dims::Five => write!(f, "5"),
+            Dims::Six => write!(f, "6"),
+            Dims::Seven => write!(f, "7"),
+            Dims::Err => write!(f, "Err"),
+        }
+    }
+}
+
+impl From<Dims> for u32 {
+    fn from(value: Dims) -> Self {
+        value as u32
+    }
+}
+
+impl From<u32> for Dims {
+    fn from(value: u32) -> Self {
+        match value {
+            1 => Self::One,
+            2 => Self::Two,
+            3 => Self::Three,
+            4 => Self::Four,
+            5 => Self::Five,
+            6 => Self::Six,
+            7 => Self::Seven,
+            _ => Self::Err,
+        }
+    }
+}
+
+impl From<ArrayDimensions> for Dims {
+    fn from(value: ArrayDimensions) -> Self {
+        match value {
+            ArrayDimensions::One(..) => Self::One,
+            ArrayDimensions::Two(..) => Self::Two,
+            ArrayDimensions::Three(..) => Self::Three,
+            ArrayDimensions::Four(..) => Self::Four,
+            ArrayDimensions::Five(..) => Self::Five,
+            ArrayDimensions::Six(..) => Self::Six,
+            ArrayDimensions::Seven(..) => Self::Seven,
+            ArrayDimensions::Err => Self::Err,
+        }
+    }
+}
+
+impl From<Dims> for ArrayDimensions {
+    /// This implementation is only meant to be used as a helper method
+    /// for [`Type::get_indexed_type`].
+    fn from(value: Dims) -> Self {
+        match value {
+            Dims::One => Self::One(0),
+            Dims::Two => Self::Two(0, 0),
+            Dims::Three => Self::Three(0, 0, 0),
+            Dims::Four => Self::Four(0, 0, 0, 0),
+            Dims::Five => Self::Five(0, 0, 0, 0, 0),
+            Dims::Six => Self::Six(0, 0, 0, 0, 0, 0),
+            Dims::Seven => Self::Seven(0, 0, 0, 0, 0, 0, 0),
+            Dims::Err => Self::Err,
         }
     }
 }
