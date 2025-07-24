@@ -164,5 +164,5 @@ fn fuzz_2397() {
 #[test]
 fn fuzz_2620() {
     let source = "sqrt(888888888888888888);";
-    compile_qasm_best_effort(source);
+    compile_qasm_best_effort(source, Profile::Unrestricted);
 }
