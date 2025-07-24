@@ -22,11 +22,6 @@
       "type": "string",
       "enum": ["exe", "lib"]
     },
-    "targetProfile": {
-      "title": "Target QIR Profile",
-      "type": "string",
-      "enum": ["unrestricted", "adaptive_ri", "adaptive_rif", "base"]
-    },
     "lints": {
       "title": "Lints",
       "type": "array",

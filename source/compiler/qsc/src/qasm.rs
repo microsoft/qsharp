@@ -4,7 +4,7 @@
 use std::sync::Arc;
 use std::vec;
 
-use qsc_data_structures::target::Profile;
+use qsc_data_structures::target::TargetCapabilityFlags;
 use qsc_frontend::compile::PackageStore;
 use qsc_frontend::error::WithSource;
 use qsc_hir::hir::PackageId;
@@ -49,14 +49,17 @@ pub struct CompileRawQasmResult(
     pub Vec<(PackageId, Option<std::sync::Arc<str>>)>,
     pub Option<OperationSignature>,
     pub Vec<crate::compile::Error>,
-    pub Profile,
 );
 
 #[must_use]
-pub fn compile_openqasm(unit: QasmCompileUnit, package_type: PackageType) -> CompileRawQasmResult {
-    let (source_map, openqasm_errors, package, sig, profile) = unit.into_tuple();
+pub fn compile_openqasm(
+    unit: QasmCompileUnit,
+    package_type: PackageType,
+    capabilities: TargetCapabilityFlags,
+) -> CompileRawQasmResult {
+    let (source_map, openqasm_errors, package, sig) = unit.into_tuple();
 
-    let (stdid, mut store) = package_store_with_stdlib(profile.into());
+    let (stdid, mut store) = package_store_with_stdlib(capabilities);
     let dependencies = vec![(PackageId::CORE, None), (stdid, None)];
 
     let (mut unit, compile_errors) = crate::compile::compile_ast(
@@ -65,7 +68,7 @@ pub fn compile_openqasm(unit: QasmCompileUnit, package_type: PackageType) -> Com
         package,
         source_map.clone(),
         package_type,
-        profile.into(),
+        capabilities,
     );
     unit.expose();
     let source_package_id = store.insert(unit);
@@ -91,14 +94,7 @@ pub fn compile_openqasm(unit: QasmCompileUnit, package_type: PackageType) -> Com
         compile_errors
     };
 
-    CompileRawQasmResult(
-        store,
-        source_package_id,
-        dependencies,
-        sig,
-        surfaced_errors,
-        profile,
-    )
+    CompileRawQasmResult(store, source_package_id, dependencies, sig, surfaced_errors)
 }
 
 #[must_use]
@@ -107,6 +103,7 @@ pub fn parse_and_compile_raw_qasm<R: SourceResolver, S: Into<Arc<str>>>(
     path: S,
     resolver: Option<&mut R>,
     package_type: PackageType,
+    capabilities: TargetCapabilityFlags,
 ) -> CompileRawQasmResult {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
@@ -115,7 +112,7 @@ pub fn parse_and_compile_raw_qasm<R: SourceResolver, S: Into<Arc<str>>>(
         Some("program".into()),
         None,
     );
-    parse_and_compile_with_config(source, path, resolver, config, package_type)
+    parse_and_compile_with_config(source, path, resolver, config, package_type, capabilities)
 }
 
 #[must_use]
@@ -125,9 +122,10 @@ pub fn parse_and_compile_with_config<R: SourceResolver, S: Into<Arc<str>>>(
     resolver: Option<&mut R>,
     config: CompilerConfig,
     package_type: PackageType,
+    capabilities: TargetCapabilityFlags,
 ) -> CompileRawQasmResult {
     let unit = parse_and_compile_to_qsharp_ast_with_config(source, path, resolver, config);
-    compile_openqasm(unit, package_type)
+    compile_openqasm(unit, package_type, capabilities)
 }
 
 #[must_use]

@@ -3,14 +3,12 @@
 
 import { getCompilerWorker, log } from "qsharp-lang";
 import * as vscode from "vscode";
-
+import { getTarget, setTarget } from "./config";
 import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 import {
   FullProgramConfig,
   getActiveProgram,
   getVisibleProgram,
-  getVisibleQdkDocumentUri,
-  getActiveQdkDocumentUri,
 } from "./programConfig";
 import {
   EventType,
@@ -21,7 +19,6 @@ import {
 } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { qsharpExtensionId } from "./common";
-import { openManifestFile } from "./projectSystem";
 
 const generateQirTimeoutMs = 120000;
 
@@ -41,12 +38,10 @@ export async function getQirForVisibleSource(
   if (!program.success) {
     throw new QirGenerationError(program.errorMsg);
   }
-  const docUri = getVisibleQdkDocumentUri();
   return getQirForProgram(
     program.programConfig,
     getVisibleDocumentType(),
     targetSupportsAdaptive,
-    docUri,
   );
 }
 
@@ -57,12 +52,10 @@ export async function getQirForActiveWindow(
   if (!program.success) {
     throw new QirGenerationError(program.errorMsg);
   }
-  const docUri = getActiveQdkDocumentUri();
   return getQirForProgram(
     program.programConfig,
     getActiveDocumentType(),
     targetSupportsAdaptive,
-    docUri,
   );
 }
 
@@ -70,18 +63,14 @@ async function getQirForProgram(
   config: FullProgramConfig,
   telemetryDocumentType: QsharpDocumentType,
   targetSupportsAdaptive?: boolean,
-  documentUri?: vscode.Uri,
 ): Promise<string> {
   let result = "";
   const isLocalQirGeneration = targetSupportsAdaptive === undefined;
-  const hasManifest = config.packageGraphSources.hasManifest;
-  if (!hasManifest) {
-    config.profile = "unrestricted";
-  }
-  const isUnrestricted = config.profile === "unrestricted";
+  const targetProfile = config.profile;
+  const isUnrestricted = targetProfile === "unrestricted";
   const isUnsupportedAdaptiveSubmissionProfile =
-    config.profile === "adaptive_rif";
-  const isTargetProfileBase = config.profile === "base";
+    targetProfile === "adaptive_rif";
+  const isTargetProfileBase = targetProfile === "base";
   const isSubmittingAdaptiveToBaseAzureTarget =
     !isTargetProfileBase && targetSupportsAdaptive === false;
   const isSubmittingUnsupportedAdaptiveProfile =
@@ -102,38 +91,35 @@ async function getQirForProgram(
     error_msg +=
       "using the Adaptive_RIF profile is not supported for targets that can only accept Adaptive_RI profile QIR.";
   }
-  if (hasManifest) {
-    error_msg += " Please update the QIR target via the qsharp.json.";
-  }
 
   // Check that the current target is base or adaptive_ri profile, and current doc has no errors.
   if (
-    (hasManifest && isUnrestricted) ||
+    isUnrestricted ||
     isSubmittingAdaptiveToBaseAzureTarget ||
     isSubmittingUnsupportedAdaptiveProfile
   ) {
-    await vscode.window.showErrorMessage(
+    const title =
+      "Set the QIR target profile to " +
+      (targetSupportsAdaptive ? "Adaptive_RI" : "Base") +
+      " to continue";
+    const result = await vscode.window.showWarningMessage(
       // if supports_adaptive is undefined, use the generic codegen message
       error_msg,
       { modal: true },
-      { title: "Okay", isCloseAffordance: true },
+      {
+        title: title,
+        action: "set",
+      },
+      { title: "Cancel", action: "cancel", isCloseAffordance: true },
     );
-    // Open the manifest file to allow the user to update the profile.
-    const docUri = documentUri ?? vscode.window.activeTextEditor?.document.uri;
-    if (!docUri) {
-      vscode.window.showErrorMessage(
-        "Could not determine the document URI to open qsharp.json.",
+    if (result?.action !== "set") {
+      throw new QirGenerationError(
+        error_msg +
+          " Please update the QIR target via the status bar selector or extension settings.",
       );
     } else {
-      try {
-        await openManifestFile(docUri);
-      } catch (e: any) {
-        vscode.window.showErrorMessage(
-          "Failed to open qsharp.json: " + (e?.message ?? e),
-        );
-      }
+      await setTarget(targetSupportsAdaptive ? "adaptive_ri" : "base");
     }
-    throw new QirGenerationError(error_msg);
   }
 
   // Create a temporary worker just to get the QIR, as it may loop/panic during codegen.
@@ -147,13 +133,12 @@ async function getQirForProgram(
     const start = performance.now();
     sendTelemetryEvent(
       EventType.GenerateQirStart,
-      {
-        associationId,
-        targetProfile: config.profile,
-        documentType: telemetryDocumentType,
-      },
+      { associationId, targetProfile, documentType: telemetryDocumentType },
       {},
     );
+
+    // Override the program config with the new target profile (if updated above)
+    config.profile = getTarget();
 
     result = await vscode.window.withProgress(
       {

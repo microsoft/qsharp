@@ -414,7 +414,7 @@ test("cancel worker", () => {
     const code = `namespace MyQuantumApp {
       import Std.Diagnostics.*;
 
-      @EntryPoint(AdaptiveRI)
+      @EntryPoint()
       operation Main() : Result[] {
           repeat {} until false;
           return [];
@@ -439,7 +439,7 @@ test("cancel worker", () => {
       .catch((err) => {
         cancelledArray.push(err);
       });
-    compiler.getHir(code, []).catch((err) => {
+    compiler.getHir(code, [], "adaptive_ri").catch((err) => {
       cancelledArray.push(err);
     });
 
@@ -450,7 +450,7 @@ test("cancel worker", () => {
 
       // Start a new compiler and ensure that works fine
       const compiler2 = getCompilerWorker();
-      const result = await compiler2.getHir(code, []);
+      const result = await compiler2.getHir(code, [], "adaptive_ri");
       compiler2.terminate();
 
       // getHir should have worked
@@ -570,7 +570,7 @@ namespace Sample2 {
 
     @Test()
     function test2() : Unit {}
-  }
+  }    
 }
 `,
     "qsharp",

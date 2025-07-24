@@ -35,7 +35,6 @@ fn mock_program() -> Project {
                 package_type: Some(qsc_project::PackageType::Lib),
             },
         )]),
-        has_manifest: true,
     };
     Project {
         lints: vec![],
@@ -43,7 +42,6 @@ fn mock_program() -> Project {
         path: "project/qsharp.json".into(),
         name: "project".into(),
         project_type: qsc_project::ProjectType::QSharp(package_graph_sources),
-        target_profile: qsc_data_structures::target::Profile::Unrestricted,
     }
 }
 

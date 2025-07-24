@@ -33,7 +33,7 @@ use std::{fmt::Write, sync::Arc};
 
 use miette::Diagnostic;
 use qsc_ast::ast::Package;
-use qsc_data_structures::{span::Span, target::Profile};
+use qsc_data_structures::span::Span;
 use qsc_frontend::{compile::SourceMap, error::WithSource};
 use thiserror::Error;
 
@@ -251,10 +251,6 @@ pub struct QasmCompileUnit {
     /// The signature of the operation created from the QASM source code.
     /// None if the program type is `ProgramType::Fragments`.
     signature: Option<OperationSignature>,
-    /// The QIR profile used for the compilation.
-    /// This is used to determine the QIR profile that the generated code
-    /// will use.
-    profile: Profile,
 }
 
 /// Represents a QASM compilation unit.
@@ -268,14 +264,12 @@ impl QasmCompileUnit {
         errors: Vec<WithSource<crate::Error>>,
         package: Package,
         signature: Option<OperationSignature>,
-        profile: Profile,
     ) -> Self {
         Self {
             source_map,
             errors,
             package,
             signature,
-            profile,
         }
     }
 
@@ -291,12 +285,6 @@ impl QasmCompileUnit {
         self.errors.clone()
     }
 
-    /// Returns the QIR target profile associated with the compilation unit.
-    #[must_use]
-    pub fn profile(&self) -> Profile {
-        self.profile
-    }
-
     /// Deconstructs the compilation unit into its owned parts.
     #[must_use]
     pub fn into_tuple(
@@ -306,15 +294,8 @@ impl QasmCompileUnit {
         Vec<WithSource<crate::Error>>,
         Package,
         Option<OperationSignature>,
-        Profile,
     ) {
-        (
-            self.source_map,
-            self.errors,
-            self.package,
-            self.signature,
-            self.profile,
-        )
+        (self.source_map, self.errors, self.package, self.signature)
     }
 }
 
