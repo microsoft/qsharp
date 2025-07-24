@@ -239,10 +239,12 @@ async function singleFileProject(
         dependencies: {},
       },
       packages: {},
+      hasManifest: false,
     },
     lints: [],
     errors: [],
     projectType: "qsharp",
+    profile: "unrestricted",
   };
 }
 
@@ -317,4 +319,22 @@ export async function fetchGithubRaw(
   }
 
   return text;
+}
+
+/**
+ * Opens the qsharp.json manifest in vscode for the given document URI.
+ *
+ * @param documentUri The URI of the document for which to update the manifest profile.
+ * @throws Error if the manifest cannot be found or parsed.
+ */
+export async function openManifestFile(documentUri: vscode.Uri): Promise<void> {
+  const manifestInfo = await findManifestDocument(documentUri.toString());
+  if (!manifestInfo) {
+    throw new Error(
+      "Could not find qsharp.json manifest for the current document.",
+    );
+  }
+  const manifestUri = manifestInfo.manifest;
+
+  await vscode.window.showTextDocument(manifestUri);
 }
