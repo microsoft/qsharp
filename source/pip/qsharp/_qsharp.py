@@ -94,6 +94,19 @@ def lower_python_obj(obj: object, visited: set[object] | None) -> ValueIR:
     return ValueIR.udt(fields)
 
 
+def python_args_to_interpreter_args(args):
+    """
+    Helper function to turn the `*args` argument of this module
+    to the format expected by the Q# interpreter.
+    """
+    if len(args) == 0:
+        return None
+    elif len(args) == 1:
+        return lower_python_obj(args[0])
+    else:
+        return lower_python_obj(args)
+
+
 _interpreter: Union["Interpreter", None] = None
 _config: Union["Config", None] = None
 
@@ -500,12 +513,7 @@ def _make_callable(callable: GlobalCallable, namespace: List[str], callable_name
                     pass
             print(output, flush=True)
 
-        if len(args) == 0:
-            args = None
-        elif len(args) == 1:
-            args = lower_python_obj(args[0])
-        else:
-            args = lower_python_obj(args)
+        args = python_args_to_interpreter_args(args)
 
         return get_interpreter().invoke(callable, args, callback)
 
@@ -584,10 +592,7 @@ def run(
 
     callable = None
     if isinstance(entry_expr, Callable) and hasattr(entry_expr, "__global_callable"):
-        if len(args) == 1:
-            args = args[0]
-        elif len(args) == 0:
-            args = None
+        args = python_args_to_interpreter_args(args)
         callable = entry_expr.__global_callable
         entry_expr = None
 
@@ -670,10 +675,7 @@ def compile(entry_expr: Union[str, Callable], *args) -> QirInputData:
     target_profile = _config._config.get("targetProfile", "unspecified")
     telemetry_events.on_compile(target_profile)
     if isinstance(entry_expr, Callable) and hasattr(entry_expr, "__global_callable"):
-        if len(args) == 1:
-            args = args[0]
-        elif len(args) == 0:
-            args = None
+        args = python_args_to_interpreter_args(args)
         ll_str = get_interpreter().qir(
             entry_expr=None, callable=entry_expr.__global_callable, args=args
         )
@@ -709,10 +711,7 @@ def circuit(
     start = monotonic()
     telemetry_events.on_circuit()
     if isinstance(entry_expr, Callable) and hasattr(entry_expr, "__global_callable"):
-        if len(args) == 1:
-            args = args[0]
-        elif len(args) == 0:
-            args = None
+        args = python_args_to_interpreter_args(args)
         res = get_interpreter().circuit(
             callable=entry_expr.__global_callable, args=args
         )
@@ -762,10 +761,7 @@ def estimate(
     telemetry_events.on_estimate()
     start = monotonic()
     if isinstance(entry_expr, Callable) and hasattr(entry_expr, "__global_callable"):
-        if len(args) == 1:
-            args = args[0]
-        elif len(args) == 0:
-            args = None
+        args = python_args_to_interpreter_args(args)
         res_str = get_interpreter().estimate(
             param_str, callable=entry_expr.__global_callable, args=args
         )
