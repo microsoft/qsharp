@@ -170,11 +170,11 @@ pub fn compile_all_with_config<P: Into<Arc<str>>>(
     Ok(unit)
 }
 
-fn compile_qasm_to_qir(source: &str) -> Result<String, Vec<Report>> {
+fn compile_qasm_to_qir(source: &str, profile: Profile) -> Result<String, Vec<Report>> {
     let unit = compile(source)?;
     fail_on_compilation_errors(&unit);
     let package = unit.package;
-    let qir = generate_qir_from_ast(package, unit.source_map, unit.profile).map_err(|errors| {
+    let qir = generate_qir_from_ast(package, unit.source_map, profile).map_err(|errors| {
         errors
             .iter()
             .map(|e| Report::new(e.clone()))
@@ -185,7 +185,9 @@ fn compile_qasm_to_qir(source: &str) -> Result<String, Vec<Report>> {
 
 /// used to do full compilation with best effort of the input.
 /// This is useful for fuzz testing.
-fn compile_qasm_best_effort(source: &str) {
+fn compile_qasm_best_effort(source: &str, profile: Profile) {
+    let (stdid, store) = package_store_with_stdlib(profile.into());
+
     let mut resolver = InMemorySourceResolver::from_iter([]);
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
@@ -201,9 +203,8 @@ fn compile_qasm_best_effort(source: &str) {
         Some(&mut resolver),
         config,
     );
-    let (sources, _, package, _, profile) = unit.into_tuple();
+    let (sources, _, package, _) = unit.into_tuple();
 
-    let (stdid, store) = package_store_with_stdlib(profile.into());
     let dependencies = vec![(PackageId::CORE, None), (stdid, None)];
 
     let (mut _unit, _errors) = compile_ast(

@@ -4,6 +4,7 @@
 use crate::tests::{compile_qasm_to_qir, compile_qasm_to_qsharp};
 use expect_test::expect;
 use miette::Report;
+use qsc::target::Profile;
 
 #[test]
 fn u_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
@@ -231,7 +232,6 @@ fn barrier_can_be_called_without_qubits() -> miette::Result<(), Vec<Report>> {
 fn barrier_generates_qir() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
-        #pragma qdk.qir.profile Adaptive_RI
         bit[1] c;
         qubit[2] q;
         barrier q[0], q[1];
@@ -241,7 +241,7 @@ fn barrier_generates_qir() -> miette::Result<(), Vec<Report>> {
         c[0] = measure q[0];
     "#;
 
-    let qsharp = compile_qasm_to_qir(source)?;
+    let qsharp = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
     expect![[
         r#"
         %Result = type opaque
@@ -591,7 +591,6 @@ fn custom_gate_can_be_called_with_pow_modifier() -> miette::Result<(), Vec<Repor
 fn simulatable_intrinsic_on_gate_stmt_generates_correct_qir() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
-        #pragma qdk.qir.profile Adaptive_RI
 
         @SimulatableIntrinsic
         gate my_gate q {
@@ -603,7 +602,7 @@ fn simulatable_intrinsic_on_gate_stmt_generates_correct_qir() -> miette::Result<
         bit result = measure q;
     "#;
 
-    let qsharp = compile_qasm_to_qir(source)?;
+    let qsharp = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
     expect![[r#"
         %Result = type opaque
         %Qubit = type opaque
@@ -642,7 +641,6 @@ fn simulatable_intrinsic_on_gate_stmt_generates_correct_qir() -> miette::Result<
 fn qdk_qir_intrinsic_on_gate_stmt_generates_correct_qir() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
-        #pragma qdk.qir.profile Adaptive_RI
 
         @qdk.qir.intrinsic
         gate my_gate q {
@@ -654,7 +652,7 @@ fn qdk_qir_intrinsic_on_gate_stmt_generates_correct_qir() -> miette::Result<(), 
         bit result = measure q;
     "#;
 
-    let qsharp = compile_qasm_to_qir(source)?;
+    let qsharp = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
     expect![[r#"
         %Result = type opaque
         %Qubit = type opaque
@@ -1128,7 +1126,6 @@ fn qasm2_barrier_generates_qir() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         OPENQASM 2.0;
         include "qelib1.inc";
-        #pragma qdk.qir.profile Adaptive_RI
         creg c[1];
         qubit[2] q;
         barrier q[0], q[1];
@@ -1138,7 +1135,7 @@ fn qasm2_barrier_generates_qir() -> miette::Result<(), Vec<Report>> {
         c[0] = measure q[0];
     "#;
 
-    let qsharp = compile_qasm_to_qir(source)?;
+    let qsharp = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
     expect![[
         r#"
         %Result = type opaque
@@ -1387,7 +1384,6 @@ fn qasm2_simulatable_intrinsic_on_gate_stmt_generates_correct_qir()
     let source = r#"
         OPENQASM 2.0;
         include "qelib1.inc";
-        #pragma qdk.qir.profile Adaptive_RI
 
         @SimulatableIntrinsic
         gate my_gate q {
@@ -1400,7 +1396,7 @@ fn qasm2_simulatable_intrinsic_on_gate_stmt_generates_correct_qir()
         result = measure q;
     "#;
 
-    let qsharp = compile_qasm_to_qir(source)?;
+    let qsharp = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
     expect![[r#"
         %Result = type opaque
         %Qubit = type opaque
@@ -1443,7 +1439,6 @@ fn qasm2_qdk_qir_intrinsic_on_gate_stmt_generates_correct_qir() -> miette::Resul
     let source = r#"
         OPENQASM 2.0;
         include "qelib1.inc";
-        #pragma qdk.qir.profile Adaptive_RI
 
         @qdk.qir.intrinsic
         gate my_gate q {
@@ -1456,7 +1451,7 @@ fn qasm2_qdk_qir_intrinsic_on_gate_stmt_generates_correct_qir() -> miette::Resul
         result = measure q;
     "#;
 
-    let qsharp = compile_qasm_to_qir(source)?;
+    let qsharp = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
     expect![[r#"
         %Result = type opaque
         %Qubit = type opaque
