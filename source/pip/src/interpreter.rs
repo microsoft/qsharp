@@ -63,6 +63,9 @@ fn verify_classes_are_sendable() {
     is_send::<Output>();
     is_send::<StateDumpData>();
     is_send::<Circuit>();
+    is_send::<ValueIR>();
+    is_send::<Field>();
+    is_send::<UdtValue>();
 }
 
 #[pymodule]
@@ -782,7 +785,7 @@ impl ValueIR {
     fn ty_name(&self) -> String {
         fn ty_name_rec(val: &ValueIR, f: &mut String) -> std::fmt::Result {
             match val {
-                ValueIR::Udt(udt) => write!(f, "{}", udt.ty_name),
+                ValueIR::Udt(_) => write!(f, "Udt"),
                 ValueIR::Primitive(primitive) => match primitive {
                     PrimitiveValue::Bool(_) => write!(f, "Bool"),
                     PrimitiveValue::Int(_) => write!(f, "Int"),
@@ -816,8 +819,8 @@ impl ValueIR {
 #[pymethods]
 impl ValueIR {
     #[staticmethod]
-    fn udt(ty_name: String, fields: Vec<Field>) -> Self {
-        Self::Udt(UdtValue { ty_name, fields })
+    fn udt(fields: Vec<Field>) -> Self {
+        Self::Udt(UdtValue { fields })
     }
 
     #[staticmethod]
@@ -910,7 +913,6 @@ impl From<ValueIR> for Value {
 #[pyclass]
 #[derive(Clone)]
 struct UdtValue {
-    ty_name: String,
     fields: Vec<Field>,
 }
 
@@ -1093,13 +1095,6 @@ fn verify_that_udt_matches_value(
     udt: &qsc::hir::ty::Udt,
     value: &UdtValue,
 ) -> PyResult<()> {
-    if *udt.name != *value.ty_name {
-        return Err(QSharpError::new_err(format!(
-            "mismatched types: expected {}, got {}",
-            udt.name, value.ty_name
-        )));
-    }
-
     verify_that_udt_def_matches_fields(ctx, &udt.name, &udt.definition, &value.fields)
 }
 

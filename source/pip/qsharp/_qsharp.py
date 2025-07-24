@@ -35,53 +35,63 @@ import types
 from time import monotonic
 
 
-def type_name(obj: Any):
-    return repr(obj.__class__).split(".")[-1].removesuffix("'>")
+def lower_python_obj(obj: object, visited: set[object] | None) -> ValueIR:
+    if visited is None:
+        visited = set()
 
+    if id(obj) in visited:
+        raise "cannot send circular objects"
 
-def lower_python_obj(obj: Any) -> ValueIR:
-    ty = type(obj)
+    visited = visited.copy().add(id(obj))
 
     # Base case: Primitive types
-    if ty is bool:
+    if isinstance(obj, bool):
         return ValueIR.bool(obj)
-    elif ty is int:
+    elif isinstance(obj, int):
         return ValueIR.int(obj)
-    elif ty is float:
+    elif isinstance(obj, float):
         return ValueIR.float(obj)
-    elif ty is str:
+    elif isinstance(obj, str):
         return ValueIR.str(obj)
-    elif ty is Pauli:
+    elif isinstance(obj, Pauli):
         return ValueIR.pauli(obj)
-    elif ty is Result:
+    elif isinstance(obj, Result):
         return ValueIR.result(obj)
 
-    # Rercursive case: Tuple
-    if ty is tuple:
-        return ValueIR.tuple([lower_python_obj(elt) for elt in obj])
+    # Recursive case: Tuple
+    if isinstance(obj, tuple):
+        return ValueIR.tuple([lower_python_obj(elt, visited) for elt in obj])
 
-    # Rercursive case: Array
-    if ty is list:
-        return ValueIR.array([lower_python_obj(elt) for elt in obj])
+    # Recursive case: Array
+    if isinstance(obj, list):
+        return ValueIR.array([lower_python_obj(elt, visited) for elt in obj])
 
-    # Rercursive case: Struct
+    # Recusive case: Dict
+    if isinstance(obj, dict):
+        fields = [
+            Field(name, lower_python_obj(val, visited)) for name, val in obj.items()
+        ]
+        return ValueIR.udt(fields)
+
+    # Recursive case: Struct
     if hasattr(obj, "__slots__"):
         fields = []
         for name in obj.__slots__:
             if name == "__dict__":
                 for name, val in obj.__dict__.items():
-                    fields.append(Field(name, lower_python_obj(val)))
+                    fields.append(Field(name, lower_python_obj(val, visited)))
             else:
                 val = getattr(obj, name)
-                fields.append(Field(name, lower_python_obj(val)))
+                fields.append(Field(name, lower_python_obj(val, visited)))
     elif hasattr(obj, "__dict__"):
         fields = [
-            Field(name, lower_python_obj(val)) for name, val in obj.__dict__.items()
+            Field(name, lower_python_obj(val, visited))
+            for name, val in obj.__dict__.items()
         ]
     else:
         fields = []
 
-    return ValueIR.udt(type_name(obj), fields)
+    return ValueIR.udt(fields)
 
 
 _interpreter: Union["Interpreter", None] = None
