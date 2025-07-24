@@ -107,23 +107,7 @@ fn casting_large_int_to_float_errors() {
                         annotations: <empty>
                         kind: Err
 
-            [Qasm.Lowerer.InvalidCastValueRange
-
-              x assigning const int values to const float must be in a range that can be
-              | converted to const float
-               ,-[test:1:6]
-             1 | sqrt(888888888888888888);
-               :      ^^^^^^^^^^^^^^^^^^
-               `----
-            , Qasm.Lowerer.InvalidCastValueRange
-
-              x assigning int values to float must be in a range that can be converted
-              | to float
-               ,-[test:1:6]
-             1 | sqrt(888888888888888888);
-               :      ^^^^^^^^^^^^^^^^^^
-               `----
-            , Qasm.Lowerer.NoValidOverloadForBuiltinFunction
+            [Qasm.Lowerer.NoValidOverloadForBuiltinFunction
 
               x There is no valid overload of `sqrt` for inputs: (const int)
               | Overloads available are:

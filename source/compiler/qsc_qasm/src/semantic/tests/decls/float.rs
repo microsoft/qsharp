@@ -456,13 +456,6 @@ fn init_float_with_int_value_greater_than_safely_representable_values() {
              1 | float a = 9007199254740993;
                :           ^^^^^^^^^^^^^^^^
                `----
-            , Qasm.Lowerer.CannotCastLiteral
-
-              x cannot cast literal expression of type const int to type float
-               ,-[test:1:11]
-             1 | float a = 9007199254740993;
-               :           ^^^^^^^^^^^^^^^^
-               `----
             ]"#]],
     );
 }

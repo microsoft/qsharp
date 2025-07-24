@@ -140,8 +140,8 @@ fn try_implicit_cast_inputs(
             value_expr.kind = Box::new(ExprKind::Lit(
                 input.get_const_value().expect("input should be const"),
             ));
-            if let Some(coerced_input) =
-                ctx.try_coerce_literal_expr_to_type(ty, &value_expr, &value)
+            if let Ok(coerced_input) =
+                Lowerer::try_coerce_literal_expr_to_type(ty, &value_expr, &value)
             {
                 new_inputs.push(coerced_input.with_const_value(ctx));
             } else {
