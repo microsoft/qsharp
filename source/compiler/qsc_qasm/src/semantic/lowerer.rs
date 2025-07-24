@@ -3078,7 +3078,7 @@ impl Lowerer {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn try_coerce_literal_expr_to_type(
+    pub(crate) fn try_coerce_literal_expr_to_type(
         &mut self,
         ty: &Type,
         rhs: &semantic::Expr,
@@ -4294,7 +4294,12 @@ impl Lowerer {
         self.push_semantic_error(kind);
     }
 
-    fn push_invalid_literal_cast_error(&mut self, target_ty: &Type, expr_ty: &Type, span: Span) {
+    pub(crate) fn push_invalid_literal_cast_error(
+        &mut self,
+        target_ty: &Type,
+        expr_ty: &Type,
+        span: Span,
+    ) {
         if target_ty.is_err() || expr_ty.is_err() {
             // if either type is an error, we don't need to push an error
             return;

@@ -92,3 +92,47 @@ fn sqrt_complex() {
         "#]],
     );
 }
+
+#[test]
+fn casting_large_int_to_float_errors() {
+    let source = "sqrt(888888888888888888);";
+    check_stmt_kinds(
+        source,
+        &expect![[r#"
+        Program:
+            version: <none>
+            pragmas: <empty>
+            statements:
+                Stmt [0-25]:
+                    annotations: <empty>
+                    kind: Err
+
+        [Qasm.Lowerer.InvalidCastValueRange
+
+          x assigning const int values to const float must be in a range that be
+          | converted to const float
+           ,-[test:1:6]
+         1 | sqrt(888888888888888888);
+           :      ^^^^^^^^^^^^^^^^^^
+           `----
+        , Qasm.Lowerer.InvalidCastValueRange
+
+          x assigning int values to float must be in a range that be converted to
+          | float
+           ,-[test:1:6]
+         1 | sqrt(888888888888888888);
+           :      ^^^^^^^^^^^^^^^^^^
+           `----
+        , Qasm.Lowerer.NoValidOverloadForBuiltinFunction
+
+          x There is no valid overload of `sqrt` for inputs: (const int)
+          | Overloads available are:
+          |     def sqrt(const float) -> const float
+          |     def sqrt(const complex[float]) -> const complex[float]
+           ,-[test:1:1]
+         1 | sqrt(888888888888888888);
+           : ^^^^^^^^^^^^^^^^^^^^^^^^
+           `----
+        ]"#]],
+    );
+}
