@@ -4453,10 +4453,8 @@ impl Lowerer {
             if QASM2_STDGATES.contains(&name) {
                 return Some(QASM2_STDGATES_INC);
             }
-        } else {
-            if QASM3_STDGATES.contains(&name) {
-                return Some(QASM3_STDGATES_INC);
-            }
+        } else if QASM3_STDGATES.contains(&name) {
+            return Some(QASM3_STDGATES_INC);
         }
         None
     }
