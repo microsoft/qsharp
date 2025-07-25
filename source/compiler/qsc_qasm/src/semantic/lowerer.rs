@@ -1584,7 +1584,7 @@ impl Lowerer {
                         semantic::StmtKind::Err
                     }
                     Type::Function(..) => {
-                        // gate call is missing qubits but the parser doesn't know that
+                        // function call is missing args but the parser doesn't know that
                         self.push_semantic_error(SemanticErrorKind::FuncMissingParams(
                             symbol.ty.to_string(),
                             expr.span,
@@ -1888,6 +1888,8 @@ impl Lowerer {
                 (params_ty.clone(), (**return_ty).clone())
             }
             Type::Gate(..) => {
+                // The parser thinks that the gate call is a function call due to mising qubits.
+                // We provide a better error message for gates that are called like functions.
                 self.push_semantic_error(SemanticErrorKind::GateCalledLikeFunc(
                     symbol.ty.to_string(),
                     expr.span,
@@ -1990,9 +1992,10 @@ impl Lowerer {
         //    and get its symbol_id & symbol. Make sure to use the name that could've
         //    been overriden by the Q# name and the span of the original name.
         if self.symbols.get_symbol_by_name(&name).is_none() {
-            if let Some(include) = self.std_includes_gate(&name) {
+            if let Some(include) = self.get_include_file_defining_standard_gate(&name) {
                 // The symbol is not defined, but the name is a standard gate name
-                // and it is being used like a gate call. Give the user a hint.
+                // and it is being used like a gate call. Tell the user that that they likely
+                // need the appropriate include.
                 self.push_semantic_error(SemanticErrorKind::StdGateCalledButNotIncluded(
                     include.to_string(),
                     stmt.span,
@@ -2005,7 +2008,8 @@ impl Lowerer {
         let (classical_arity, quantum_arity) = match &symbol.ty {
             Type::Gate(classical_arity, quantum_arity) => (*classical_arity, *quantum_arity),
             Type::Function(_, _) => {
-                // provide a better error message for functions that are called like gates
+                // Symbol table says this is a function, but the parser thinks it is a gate call
+                // likely due to missing parentheses. Provide a better error message for functions that are called like gates
                 self.push_semantic_error(SemanticErrorKind::FuncCalledLikeGate(
                     symbol.ty.to_string(),
                     symbol.span,
@@ -2013,6 +2017,7 @@ impl Lowerer {
                 return vec![semantic::StmtKind::Err];
             }
             _ => {
+                // catch all remaining cases where the symbol is not a gate.
                 self.push_semantic_error(SemanticErrorKind::CannotCallNonGate(symbol.span));
                 return vec![semantic::StmtKind::Err];
             }
@@ -4448,7 +4453,7 @@ impl Lowerer {
         WithSource::from_map(&self.source_map, error)
     }
 
-    pub fn std_includes_gate(&self, name: &str) -> Option<&'static str> {
+    pub fn get_include_file_defining_standard_gate(&self, name: &str) -> Option<&'static str> {
         if self.version == Some(QASM2_VERSION) {
             if QASM2_STDGATES.contains(&name) {
                 return Some(QASM2_STDGATES_INC);
