@@ -8,11 +8,11 @@ Below are some of the highlights for the 1.19 release of the QDK.
 
 Simulation in the QDK can now model qubit loss, which can occur with some probability on some modalities.
 
-For simulation run directly in VS Code, such as via the 'Histogram' CodeLens, this can be controlled via a VS Code setting. The screen shot below shows setting qubit loss to 0.5% and running a Bell pair simulation. For convenience, the VS Code setting is easily accessible from a link on the histogram window (shown in a red circle below)
+For simulations run directly in VS Code, such as using the 'Histogram' CodeLens, this can be controlled via a VS Code setting. The screenshot below shows setting qubit loss to 0.5% and running a Bell pair simulation. For convenience, the VS Code setting is easily accessible from a link on the histogram window (shown in a red circle below).
 
 <img width="1000" alt="image" src="https://github.com/user-attachments/assets/298250b8-bdda-4529-aa40-804b787153b0" />
 
-The qubit loss probability can also be specified if running a simulation via the Python API
+The qubit loss probability can also be specified if running a simulation via the Python API.
 
 ```python
 result = qsharp.run("BellPair()", 100, qubit_loss=0.5)
@@ -34,7 +34,7 @@ operation CheckForLoss() : Unit {
 }
 ```
 
-The sample Jupyter Notebook at <https://github.com/microsoft/qsharp/blob/main/samples/notebooks/noise.ipynb> contains more details.
+You can find more details in the sample Jupyter Notebook at <https://github.com/microsoft/qsharp/blob/main/samples/notebooks/noise.ipynb>.
 
 ### Debugger improvements
 
@@ -42,7 +42,7 @@ When debugging, previously if you navigated up the call stack using the area cir
 
 <img width="1000" alt="image" src="https://github.com/user-attachments/assets/971ef5f7-d4f3-49dd-b002-923a63fca65b" />
 
-Call stacks reported when an runtime error occurs now also show the source location for each frame in the call stack.
+Call stacks reported when a runtime error occurs now also show the source location for each frame in the call stack.
 
 ### OpenQASM improvements
 
@@ -76,9 +76,9 @@ In this release we have relaxed the checks performed on code marked with the `@T
 
 ### Azure Quantum job reporting
 
-When submitting jobs to Azure using the VS Code "Quantum Workspaces" explorer view, previously jobs would use the v1 reporting format, which does not include details for each shot results. The default format for job submission in this release is now v2, which includes the results of each shot.
+When submitting jobs to Azure using the VS Code "Quantum Workspaces" explorer view, previously jobs would use the v1 reporting format, which does not include details for each shot's results. The default format for job submission in this release is now v2, which includes the results of each shot.
 
-We also added an additonal icon beside successfully completed jobs so the results may be shown as a histogram, or as the raw text. The below screen shot shows fetching each from a completed job.
+We also added an additional icon beside successfully completed jobs so the results may be shown as a histogram or as the raw text. The below screenshot shows fetching both formats from a completed job.
 
 <img width="1000" alt="image" src="https://github.com/user-attachments/assets/c19bf68e-401c-40b9-bd50-d765217d2323" />
 
