@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { getCompilerWorker, log } from "qsharp-lang";
+import { getCompilerWorker, log, TargetProfile } from "qsharp-lang";
 import * as vscode from "vscode";
 
 import { invokeAndReportCommandDiagnostics } from "./diagnostics";
@@ -66,6 +66,17 @@ export async function getQirForActiveWindow(
   );
 }
 
+const TargetProfileValues: TargetProfile[] = [
+  "base",
+  "adaptive_ri",
+  "adaptive_rif",
+  "unrestricted",
+];
+
+function isValidProfile(value: string): value is TargetProfile {
+  return TargetProfileValues.includes(value as TargetProfile);
+}
+
 async function getQirForProgram(
   config: FullProgramConfig,
   telemetryDocumentType: QsharpDocumentType,
@@ -76,7 +87,36 @@ async function getQirForProgram(
   const isLocalQirGeneration = targetSupportsAdaptive === undefined;
   const hasManifest = config.packageGraphSources.hasManifest;
   if (!hasManifest) {
-    config.profile = "unrestricted";
+    let profile = "";
+    const worker = getCompilerWorker(compilerWorkerScriptPath);
+    const compilerTimeout = setTimeout(() => {
+      worker.terminate();
+    }, generateQirTimeoutMs);
+    try {
+      profile = await invokeAndReportCommandDiagnostics(
+        () => worker.getEntryPointProfile(config),
+        { populateProblemsView: true, showModalError: true },
+      );
+      clearTimeout(compilerTimeout);
+    } catch (e: any) {
+      log.error("Codegen error. ", e.toString());
+      if (e.toString() === "terminated") {
+        throw new QirGenerationError(
+          "QIR generation was cancelled or timed out.",
+        );
+      } else {
+        throw new QirGenerationError(
+          `QIR generation failed due to error: "${e.toString()}". Please ensure the code is compatible with a QIR profile ` +
+            "by setting the target QIR profile to 'base' or 'adaptive_ri' and fixing any errors.",
+        );
+      }
+    } finally {
+      worker.terminate();
+    }
+
+    if (isValidProfile(profile)) {
+      config.profile = profile as TargetProfile;
+    }
   }
   const isUnrestricted = config.profile === "unrestricted";
   const isUnsupportedAdaptiveSubmissionProfile =
@@ -108,7 +148,7 @@ async function getQirForProgram(
 
   // Check that the current target is base or adaptive_ri profile, and current doc has no errors.
   if (
-    (hasManifest && isUnrestricted) ||
+    isUnrestricted ||
     isSubmittingAdaptiveToBaseAzureTarget ||
     isSubmittingUnsupportedAdaptiveProfile
   ) {
@@ -118,19 +158,19 @@ async function getQirForProgram(
       { modal: true },
       { title: "Okay", isCloseAffordance: true },
     );
-    // Open the manifest file to allow the user to update the profile.
-    const docUri = documentUri ?? vscode.window.activeTextEditor?.document.uri;
-    if (!docUri) {
-      vscode.window.showErrorMessage(
-        "Could not determine the document URI to open qsharp.json.",
-      );
-    } else {
-      try {
-        await openManifestFile(docUri);
-      } catch (e: any) {
-        vscode.window.showErrorMessage(
-          "Failed to open qsharp.json: " + (e?.message ?? e),
-        );
+    if (hasManifest) {
+      // Open the manifest file to allow the user to update the profile.
+      const docUri =
+        documentUri ?? vscode.window.activeTextEditor?.document.uri;
+      if (docUri != undefined) {
+        try {
+          await openManifestFile(docUri);
+        } catch {
+          // If the manifest file cannot be opened, just log the error.
+          log.error(
+            "Could not open qsharp.json manifest to update the QIR target profile.",
+          );
+        }
       }
     }
     throw new QirGenerationError(error_msg);

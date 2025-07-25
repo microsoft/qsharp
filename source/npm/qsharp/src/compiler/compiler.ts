@@ -60,6 +60,8 @@ export interface ICompiler {
     eventHandler: IQscEventTarget,
   ): Promise<void>;
 
+  getEntryPointProfile(program: ProgramConfig): Promise<string>;
+
   getQir(program: ProgramConfig): Promise<string>;
 
   getEstimates(
@@ -199,6 +201,13 @@ export class Compiler implements ICompiler {
         pauliNoise,
         qubitLoss,
       ),
+    );
+  }
+
+  async getEntryPointProfile(program: ProgramConfig): Promise<string> {
+    const config = toWasmProgramConfig(program, "unrestricted");
+    return callAndTransformExceptions(async () =>
+      this.wasm.check_for_entry_profile(config),
     );
   }
 
@@ -348,6 +357,7 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
     getHir: "request",
     getRir: "request",
     getQir: "request",
+    getEntryPointProfile: "request",
     getEstimates: "request",
     getCircuit: "request",
     getDocumentation: "request",

@@ -424,6 +424,16 @@ impl From<PackageInfo> for qsc_project::PackageInfo {
     }
 }
 
+// ToDo: figure out how to handle error cases
+pub(crate) fn check_for_entry_profile(program: &ProgramConfig) -> Result<String, String> {
+    let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
+    let mut errors = Vec::new();
+    match qsc::packages::check_for_entry_profile(&pkg_graph.into(), &mut errors) {
+        Some(profile) => Ok(profile.to_str().to_lowercase()),
+        None => Ok(String::new()),
+    }
+}
+
 /// This returns the common parameters that the compiler/interpreter uses
 #[allow(clippy::type_complexity)]
 #[allow(clippy::needless_pass_by_value)]

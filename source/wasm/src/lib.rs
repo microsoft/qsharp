@@ -48,6 +48,12 @@ thread_local! {
     };
 }
 
+/// Checks for the entry profile in the provided Q# code and returns the profile and span if found.
+#[wasm_bindgen]
+pub fn check_for_entry_profile(program: &ProgramConfig) -> Result<String, String> {
+    project_system::check_for_entry_profile(program)
+}
+
 #[wasm_bindgen]
 #[must_use]
 pub fn git_hash() -> String {
