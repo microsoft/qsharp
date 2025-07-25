@@ -52,6 +52,17 @@ impl Angle {
             val += TAU;
         }
 
+        // Handle the edge case where modulo returns tau due to floating-point precision
+        // we've seen this when the user rotates by f64::EPSILON / 2.0 causing the value
+        // to be still equal to tau after the modulo operation.
+        if val >= TAU {
+            val = 0.;
+        }
+
+        assert!(val >= 0., "Value must be >= 0.");
+        assert!(val < TAU, "Value must be < tau.");
+        assert!(size > 0, "Size must be > 0");
+
         // If the size is > f64::MANTISSA_DIGITS, the cast to f64
         // on the next lines will loose precission.
         if size > f64::MANTISSA_DIGITS {
