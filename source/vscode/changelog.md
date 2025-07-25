@@ -28,14 +28,17 @@ operation CheckForLoss() : Unit {
     let res = MResetZ(q);
     if IsLossResult(res) {
         // Handle qubit loss here
+    } else {
+        // Handle Zero or One result
     }
+}
 ```
 
 The sample Jupyter Notebook at <https://github.com/microsoft/qsharp/blob/main/samples/notebooks/noise.ipynb> contains more details.
 
 ### Debugger improvements
 
-When debugging, previously if you naviated up the call stack using the area circled below, the `Locals` view would not change context to reflect the state of the variables in the selected stack frame. This has now been implemented.
+When debugging, previously if you navigated up the call stack using the area circled below, the `Locals` view would not change context to reflect the state of the variables in the selected stack frame. This has now been implemented.
 
 <img width="1000" alt="image" src="https://github.com/user-attachments/assets/971ef5f7-d4f3-49dd-b002-923a63fca65b" />
 
