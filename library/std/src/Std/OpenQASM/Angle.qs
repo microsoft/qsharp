@@ -85,6 +85,13 @@ function DoubleAsAngle(value : Double, size : Int) : Angle {
         value = value + tau;
     }
 
+    // Handle the edge case where modulo returns tau due to floating-point precision
+    // we've seen this when the user rotates by f64::EPSILON / 2.0 causing the value
+    // to be still equal to tau after the modulo operation.
+    if value >= tau {
+        value = 0.;
+    }
+
     Std.Diagnostics.Fact(value >= 0., "Value must be >= 0.");
     Std.Diagnostics.Fact(value < tau, "Value must be < tau.");
     Std.Diagnostics.Fact(size > 0, "Size must be > 0");
