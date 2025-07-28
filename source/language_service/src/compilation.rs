@@ -268,14 +268,8 @@ impl Compilation {
         let res = qsc::qasm::semantic::parse_sources(&sources);
         let unit = compile_to_qsharp_ast_with_config(res, config);
         let target_profile = unit.profile();
-        let CompileRawQasmResult(
-            store,
-            source_package_id,
-            dependencies,
-            _sig,
-            mut compile_errors,
-            _,
-        ) = qsc::qasm::compile_openqasm(unit, package_type);
+        let CompileRawQasmResult(store, source_package_id, dependencies, _sig, mut compile_errors) =
+            qsc::qasm::compile_openqasm(unit, package_type);
 
         let compile_unit = store
             .get(source_package_id)

@@ -228,11 +228,7 @@ impl ProjectLoader {
         project_config.try_into()
     }
 
-    pub fn get_entry_profile(
-        &self,
-        file_name: String,
-        source: String,
-    ) -> Result<Option<String>, String> {
+    pub fn get_entry_profile(file_name: String, source: String) -> Result<Option<String>, String> {
         let entry_profile = qsc_frontend::compile::check_for_entry_profile(&SourceMap::new(
             [(Arc::<str>::from(file_name), Arc::<str>::from(source))],
             None,

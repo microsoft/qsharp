@@ -35,7 +35,7 @@ export class ProjectLoader {
   ): Promise<wasm.TargetProfile | undefined> {
     return callAndTransformExceptions(
       async () =>
-        this.nativeLoader.get_entry_profile(fileName, source) as
+        wasm.ProjectLoader.get_entry_profile(fileName, source) as
           | wasm.TargetProfile
           | undefined,
     );
