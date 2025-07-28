@@ -64,8 +64,8 @@ pub fn git_hash() -> String {
 #[wasm_bindgen]
 pub fn get_qir(program: ProgramConfig) -> Result<String, String> {
     if is_openqasm_program(&program) {
-        let sources = into_openqasm_arg(program);
-        get_qir_from_openqasm(&sources)
+        let (profile, sources) = into_openqasm_arg(program);
+        get_qir_from_openqasm(profile, &sources)
     } else {
         let (source_map, capabilities, language_features, store, deps) =
             into_qsc_args(program, None, false).map_err(compile_errors_into_qsharp_errors_json)?;
@@ -91,8 +91,11 @@ pub(crate) fn get_qir_from_qsharp(
         .map_err(interpret_errors_into_qsharp_errors_json)
 }
 
-pub(crate) fn get_qir_from_openqasm(sources: &[(Arc<str>, Arc<str>)]) -> Result<String, String> {
-    let (entry_expr, mut interpreter) = get_interpreter_from_openqasm(sources)?;
+pub(crate) fn get_qir_from_openqasm(
+    profile: Profile,
+    sources: &[(Arc<str>, Arc<str>)],
+) -> Result<String, String> {
+    let (entry_expr, mut interpreter) = get_interpreter_from_openqasm(profile, sources)?;
     interpreter
         .qirgen(&entry_expr)
         .map_err(interpret_errors_into_qsharp_errors_json)
@@ -101,8 +104,8 @@ pub(crate) fn get_qir_from_openqasm(sources: &[(Arc<str>, Arc<str>)]) -> Result<
 #[wasm_bindgen]
 pub fn get_estimates(program: ProgramConfig, expr: &str, params: &str) -> Result<String, String> {
     if is_openqasm_program(&program) {
-        let sources = into_openqasm_arg(program);
-        get_estimates_from_openqasm(&sources, params)
+        let (profile, sources) = into_openqasm_arg(program);
+        get_estimates_from_openqasm(profile, &sources, params)
     } else {
         let (source_map, capabilities, language_features, store, deps) =
             into_qsc_args(program, Some(expr.into()), false).map_err(|mut e| {
@@ -130,10 +133,11 @@ pub fn get_estimates(program: ProgramConfig, expr: &str, params: &str) -> Result
 }
 
 pub(crate) fn get_estimates_from_openqasm(
+    profile: Profile,
     sources: &[(Arc<str>, Arc<str>)],
     params: &str,
 ) -> Result<String, String> {
-    let (_, mut interpreter) = get_interpreter_from_openqasm(sources)?;
+    let (_, mut interpreter) = get_interpreter_from_openqasm(profile, sources)?;
     estimate_entry(&mut interpreter, params).map_err(|e| match &e[0] {
         re::Error::Interpreter(interpret::Error::Eval(e)) => e.to_string(),
         re::Error::Interpreter(_) => {
@@ -150,8 +154,8 @@ pub fn get_circuit(
     operation: Option<IOperationInfo>,
 ) -> Result<JsValue, String> {
     if is_openqasm_program(&program) {
-        let sources = into_openqasm_arg(program);
-        let (_, mut interpreter) = get_interpreter_from_openqasm(&sources)?;
+        let (profile, sources) = into_openqasm_arg(program);
+        let (_, mut interpreter) = get_interpreter_from_openqasm(profile, &sources)?;
         let circuit = interpreter
             .circuit(CircuitEntryPoint::EntryPoint, simulate)
             .map_err(interpret_errors_into_qsharp_errors_json)?;
@@ -500,14 +504,14 @@ pub fn runWithNoise(
     let qubitLoss = qubitLoss.as_f64().unwrap_or(0.0);
 
     if is_openqasm_program(&program) {
-        let sources = into_openqasm_arg(program);
+        let (profile, sources) = into_openqasm_arg(program);
         let source_name = sources
             .iter()
             .map(|x| x.0.clone())
             .next()
             .expect("There must be a source to process")
             .to_string();
-        let (entry_expr, mut interpreter) = get_interpreter_from_openqasm(&sources)?;
+        let (entry_expr, mut interpreter) = get_interpreter_from_openqasm(profile, &sources)?;
         if let Err(err) = interpreter.set_entry_expr(&entry_expr) {
             return Err(interpret_errors_into_qsharp_errors_json(err).into());
         }
@@ -663,18 +667,21 @@ pub fn generate_docs(additional_program: Option<ProgramConfig>) -> Vec<IDocFile>
 }
 
 fn get_debugger_from_openqasm(
+    profile: Profile,
     sources: &[(Arc<str>, Arc<str>)],
 ) -> Result<(String, interpret::Interpreter), String> {
-    get_configured_interpreter_from_openqasm(sources, true)
+    get_configured_interpreter_from_openqasm(profile, sources, true)
 }
 
 fn get_interpreter_from_openqasm(
+    profile: Profile,
     sources: &[(Arc<str>, Arc<str>)],
 ) -> Result<(String, interpret::Interpreter), String> {
-    get_configured_interpreter_from_openqasm(sources, false)
+    get_configured_interpreter_from_openqasm(profile, sources, false)
 }
 
 fn get_configured_interpreter_from_openqasm(
+    profile: Profile,
     sources: &[(Arc<str>, Arc<str>)],
     dbg: bool,
 ) -> Result<(String, interpret::Interpreter), String> {
@@ -684,7 +691,7 @@ fn get_configured_interpreter_from_openqasm(
         .expect("There should be at least one source");
     let mut resolver = sources.iter().cloned().collect::<InMemorySourceResolver>();
 
-    let CompileRawQasmResult(store, source_package_id, dependencies, sig, errors, profile) =
+    let CompileRawQasmResult(store, source_package_id, dependencies, sig, errors, _) =
         qsc::qasm::parse_and_compile_raw_qasm(
             source.clone(),
             file.clone(),

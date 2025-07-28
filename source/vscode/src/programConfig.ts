@@ -6,6 +6,7 @@ import {
   IQSharpError,
   ProgramConfig,
   QdkDiagnostics,
+  TargetProfile,
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { isOpenQasmDocument, isQdkDocument } from "./common";
@@ -51,7 +52,8 @@ export type FullProgramConfigOrError =
 export async function getActiveProgram(
   options: {
     showModalError: boolean;
-  } = { showModalError: false },
+    defaultProfile?: TargetProfile;
+  } = { showModalError: false, defaultProfile: "unrestricted" },
 ): Promise<FullProgramConfigOrError> {
   const doc = getActiveQdkDocument();
   if (!doc) {
@@ -102,7 +104,8 @@ export async function getProgramForDocument(
   doc: vscode.TextDocument,
   options: {
     showModalError: boolean;
-  } = { showModalError: false },
+    defaultProfile?: TargetProfile;
+  } = { showModalError: false, defaultProfile: "unrestricted" },
 ): Promise<FullProgramConfigOrError> {
   // Project configs come from the document
   try {
@@ -113,7 +116,11 @@ export async function getProgramForDocument(
       options,
     );
 
-    return { success: true, programConfig: program };
+    if (program.profile === null) {
+      program.profile = options.defaultProfile || "unrestricted";
+    }
+
+    return { success: true, programConfig: program as FullProgramConfig };
   } catch (e: unknown) {
     return {
       success: false,

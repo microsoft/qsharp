@@ -49,7 +49,7 @@ pub struct CompileRawQasmResult(
     pub Vec<(PackageId, Option<std::sync::Arc<str>>)>,
     pub Option<OperationSignature>,
     pub Vec<crate::compile::Error>,
-    pub Profile,
+    pub Profile, // ToDo: remove this
 );
 
 #[must_use]

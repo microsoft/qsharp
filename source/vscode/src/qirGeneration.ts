@@ -118,6 +118,15 @@ async function getQirForProgram(
       config.profile = profile as TargetProfile;
     }
   }
+
+  if (config.profile === undefined) {
+    config.profile = isLocalQirGeneration
+      ? "adaptive_rif"
+      : targetSupportsAdaptive
+        ? "adaptive_ri"
+        : "base";
+  }
+
   const isUnrestricted = config.profile === "unrestricted";
   const isUnsupportedAdaptiveSubmissionProfile =
     config.profile === "adaptive_rif";
@@ -137,7 +146,7 @@ async function getQirForProgram(
     error_msg += "is not supported when using the unrestricted profile.";
   } else if (isSubmittingAdaptiveToBaseAzureTarget) {
     error_msg +=
-      "using the Adaptive_RI profile is not supported for targets that can only accept Base profile QIR.";
+      "using the Adaptive_RI or Adaptive_RIF profiles is not supported for targets that can only accept Base profile QIR.";
   } else if (isSubmittingUnsupportedAdaptiveProfile) {
     error_msg +=
       "using the Adaptive_RIF profile is not supported for targets that can only accept Adaptive_RI profile QIR.";

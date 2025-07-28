@@ -28,4 +28,16 @@ export class ProjectLoader {
       this.nativeLoader.load_openqasm_project(document),
     );
   }
+
+  async getEntryProfile(
+    fileName: string,
+    source: string,
+  ): Promise<wasm.TargetProfile | undefined> {
+    return callAndTransformExceptions(
+      async () =>
+        this.nativeLoader.get_entry_profile(fileName, source) as
+          | wasm.TargetProfile
+          | undefined,
+    );
+  }
 }

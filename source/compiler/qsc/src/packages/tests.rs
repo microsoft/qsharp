@@ -37,13 +37,14 @@ fn mock_program() -> Project {
         )]),
         has_manifest: true,
     };
+
     Project {
         lints: vec![],
         errors: vec![],
         path: "project/qsharp.json".into(),
         name: "project".into(),
         project_type: qsc_project::ProjectType::QSharp(package_graph_sources),
-        target_profile: qsc_data_structures::target::Profile::Unrestricted,
+        target_profile: Some(qsc_data_structures::target::Profile::Unrestricted),
     }
 }
 
