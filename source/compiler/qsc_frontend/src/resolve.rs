@@ -559,7 +559,7 @@ fn resolve_and_bind_namespace_imports_and_exports(
     // this may not resolve all imports, as import resolution is iterative
     for item in &namespace.items {
         if let ItemKind::ImportOrExport(decl) = &*item.kind {
-            let bound = resolver.resolve_and_bind_import_or_export(
+            let bound = resolver.resolve_and_bind_import_or_export_decl(
                 decl,
                 Some(ns),
                 Some(&namespace.name),
@@ -995,8 +995,9 @@ impl Resolver {
         }
     }
 
-    #[allow(clippy::too_many_lines)]
-    fn resolve_and_bind_import_or_export(
+    /// True if this call caused new names to become available in the scope.
+    /// This is used to decide whether we should keep iterating.
+    fn resolve_and_bind_import_or_export_decl(
         &mut self,
         decl: &ImportOrExportDecl,
         current_namespace: Option<NamespaceId>,
@@ -1009,14 +1010,19 @@ impl Resolver {
             &self.dropped_names,
         );
 
-        let mut something_changed = false;
+        if decl.is_export() && current_namespace.is_none() {
+            self.errors.push(Error::ExportFromLocalScope(decl.span));
+            return false;
+        }
+
+        let mut any_imports_were_bound = false;
         for valid_item in decl_items {
-            let res = match &valid_item.kind {
+            let import_was_bound = match &valid_item.kind {
                 ImportKind::Wildcard => {
                     // we should have handled these already
                     false
                 }
-                ImportKind::Direct { alias: _ } => {
+                ImportKind::Direct { .. } => {
                     if attempted_imports_to_resolution_results
                         .get(&valid_item.name().id)
                         .is_some_and(Result::is_ok)
@@ -1025,152 +1031,177 @@ impl Resolver {
                         continue;
                     }
 
-                    let import_item_id = match self.names.get(valid_item.name().id) {
-                        Some(Res::Item(item_id, ..)) => *item_id,
-                        _ => panic!("unexpected resolution for import name"),
-                    };
-                    match self.resolve_path(NameKind::Importable, valid_item.path) {
-                        Ok(Res::Importable(imported_item_kind, _visibility)) => {
-                            // TODO: check visibility? Not sure how I'm using this yet. Probably not at all.
-                            //
-                            // Successfully resolved. Bind this import's name as term/ty/importable
-                            // or any combination thereof so that it can be resolved from
-                            // expressions, other declarations, imports, etc
+                    let (resolution_result, import_was_bound) =
+                        self.try_resolve_and_bind_import_or_export(current_namespace, &valid_item);
 
-                            // If the import item has the same namespace and name as the item
-                            // we just imported, we can skip binding it.
+                    attempted_imports_to_resolution_results
+                        .insert(valid_item.name().id, resolution_result);
 
-                            let bind_result = if valid_item.is_export {
-                                // If this an export, we bind in the global scope.
-
-                                let current_namespace = current_namespace
-                                    .expect("current namespace should be set for exports");
-
-                                // Declare in the global scope
-                                match imported_item_kind {
-                                    ImportableItemKind::Callable(imported_item_id, status) => {
-                                        bind_imported_callable_name(
-                                            valid_item.name(),
-                                            current_namespace,
-                                            import_item_id,
-                                            imported_item_id,
-                                            status,
-                                            &mut self.names,
-                                            &mut self.globals,
-                                        )
-                                    }
-                                    ImportableItemKind::Ty(imported_item_id, status) => {
-                                        bind_imported_ty_name(
-                                            valid_item.name(),
-                                            current_namespace,
-                                            import_item_id,
-                                            imported_item_id,
-                                            status,
-                                            &mut self.names,
-                                            &mut self.globals,
-                                        )
-                                    }
-                                    ImportableItemKind::Namespace(
-                                        original_namespace_id,
-                                        namespace_item_id,
-                                    ) => {
-                                        // Inserting this name as an alias for namespace_id
-                                        let res = self
-                                            .globals
-                                            .namespaces
-                                            .insert_or_find_namespace_from_root_with_id(
-                                                vec![valid_item.name().name.clone()],
-                                                current_namespace,
-                                                original_namespace_id,
-                                            );
-
-                                        match res {
-                                            Ok(()) => bind_exported_namespace_name(
-                                                valid_item.name(),
-                                                current_namespace,
-                                                import_item_id,
-                                                namespace_item_id,
-                                                original_namespace_id,
-                                                &mut self.names,
-                                                &mut self.globals,
-                                            ),
-                                            Err(_) => Err(Error::ClobberedNamespace {
-                                                namespace_name: valid_item.name().name.to_string(),
-                                                span: valid_item.name().span,
-                                            }),
-                                        }
-                                    }
-                                }
-                            } else {
-                                // If this is an import, we bind in the namespace-local scope.
-                                match imported_item_kind {
-                                    ImportableItemKind::Callable(imported_item_id, status) => self
-                                        .bind_imported_callable_name_in_current_scope(
-                                            valid_item.name(),
-                                            current_namespace,
-                                            import_item_id,
-                                            imported_item_id,
-                                            status,
-                                        ),
-                                    ImportableItemKind::Ty(imported_item_id, status) => self
-                                        .bind_imported_ty_name_in_current_scope(
-                                            valid_item.name(),
-                                            current_namespace,
-                                            import_item_id,
-                                            imported_item_id,
-                                            status,
-                                        ),
-                                    ImportableItemKind::Namespace(namespace_id, _) => {
-                                        // A direct import of a namespace is the same as an open with an alias
-                                        // TODO: add this namespace as an importable into the scope as well?
-
-                                        let current_opens = self
-                                            .current_scope_mut()
-                                            .opens
-                                            .entry(vec![valid_item.name().name.clone()])
-                                            .or_default();
-
-                                        let open = Open {
-                                            namespace: namespace_id,
-                                            span: valid_item.path.full_span(),
-                                        };
-                                        if !current_opens.contains(&open) {
-                                            current_opens.push(open);
-                                        }
-                                        Ok(())
-                                    }
-                                }
-                            };
-
-                            let new_import_was_bound = bind_result.is_ok();
-
-                            // Mark attempted import as resolved, even though binding may have failed
-                            // we won't reattempt failed bindings, but we would reattempt failed resolutions
-                            attempted_imports_to_resolution_results
-                                .insert(valid_item.name().id, Ok(()));
-
-                            if let Err(err) = bind_result {
-                                self.errors.push(err);
-                            }
-
-                            new_import_was_bound
-                        }
-                        Ok(res) => {
-                            unreachable!(
-                                "we should never resolve an importable item to a non-importable res: {res:?}"
-                            );
-                        }
-                        Err(err) => {
-                            attempted_imports_to_resolution_results
-                                .insert(valid_item.name().id, Err(err));
-                            false
-                        }
-                    }
+                    import_was_bound
                 }
             };
-            something_changed = something_changed || res;
+            any_imports_were_bound = any_imports_were_bound || import_was_bound;
         }
-        something_changed
+        any_imports_were_bound
+    }
+
+    fn try_resolve_and_bind_import_or_export(
+        &mut self,
+        current_namespace: Option<NamespaceId>,
+        valid_item: &ValidImportOrExportItem<'_>,
+    ) -> (Result<(), Error>, bool) {
+        match self.resolve_path(NameKind::Importable, valid_item.path) {
+            Ok(Res::Importable(imported_item_kind, _visibility)) => {
+                let import_item_id = match self.names.get(valid_item.name().id) {
+                    Some(Res::Item(item_id, ..)) => *item_id,
+                    _ => panic!("unexpected resolution for import name"),
+                };
+                // TODO: check visibility? Not sure how I'm using this yet. Probably not at all.
+                //
+                // Successfully resolved. Bind this import's name as term/ty/importable
+                // or any combination thereof so that it can be resolved from
+                // expressions, other declarations, imports, etc
+
+                // If the import item has the same namespace and name as the item
+                // we just imported, we can skip binding it.
+
+                let bind_result = if valid_item.is_export {
+                    // If this an export, we bind in the global scope.
+                    self.bind_export(
+                        valid_item.name(),
+                        import_item_id,
+                        &imported_item_kind,
+                        current_namespace.expect("current namespace should be set for exports"),
+                    )
+                } else {
+                    // If this is an import, we bind in the current scope (block or namespace)
+                    self.bind_import_in_current_scope(
+                        current_namespace,
+                        &valid_item,
+                        import_item_id,
+                        &imported_item_kind,
+                    )
+                };
+
+                let new_import_was_bound = bind_result.is_ok();
+
+                if let Err(err) = bind_result {
+                    self.errors.push(err);
+                }
+
+                (Ok(()), new_import_was_bound)
+            }
+            Err(err) => (Err(err), false),
+            Ok(res) => {
+                unreachable!(
+                    "we should never resolve an importable item to a non-importable res: {res:?}"
+                );
+            }
+        }
+    }
+
+    fn bind_import_in_current_scope(
+        &mut self,
+        current_namespace: Option<NamespaceId>,
+        valid_item: &ValidImportOrExportItem<'_>,
+        import_item_id: ItemId,
+        imported_item_kind: &ImportableItemKind,
+    ) -> Result<(), Error> {
+        match imported_item_kind {
+            ImportableItemKind::Callable(imported_item_id, status) => self
+                .bind_imported_callable_name_in_current_scope(
+                    valid_item.name(),
+                    current_namespace,
+                    import_item_id,
+                    *imported_item_id,
+                    *status,
+                ),
+            ImportableItemKind::Ty(imported_item_id, status) => self
+                .bind_imported_ty_name_in_current_scope(
+                    valid_item.name(),
+                    current_namespace,
+                    import_item_id,
+                    *imported_item_id,
+                    *status,
+                ),
+            ImportableItemKind::Namespace(namespace_id, _) => {
+                // A direct import of a namespace is the same as an open with an alias
+                // TODO: add this namespace as an importable into the scope as well?
+
+                let current_opens = self
+                    .current_scope_mut()
+                    .opens
+                    .entry(vec![valid_item.name().name.clone()])
+                    .or_default();
+
+                let open = Open {
+                    namespace: *namespace_id,
+                    span: valid_item.path.full_span(),
+                };
+                if !current_opens.contains(&open) {
+                    current_opens.push(open);
+                }
+                Ok(())
+            }
+        }
+    }
+
+    fn bind_export(
+        &mut self,
+        name: &Ident,
+        export_item_id: ItemId,
+        imported_item_kind: &ImportableItemKind,
+        namespace: NamespaceId,
+    ) -> Result<(), Error> {
+        match *imported_item_kind {
+            ImportableItemKind::Callable(imported_item_id, imported_item_status) => {
+                bind_callable_export(
+                    name,
+                    namespace,
+                    export_item_id,
+                    imported_item_id,
+                    imported_item_status,
+                    &mut self.names,
+                    &mut self.globals,
+                )
+            }
+            ImportableItemKind::Ty(imported_item_id, imported_item_status) => bind_ty_export(
+                name,
+                namespace,
+                export_item_id,
+                imported_item_id,
+                imported_item_status,
+                &mut self.names,
+                &mut self.globals,
+            ),
+            ImportableItemKind::Namespace(original_namespace_id, namespace_item_id) => {
+                // Inserting this name as an alias for namespace_id
+                let res = self
+                    .globals
+                    .namespaces
+                    .insert_or_find_namespace_from_root_with_id(
+                        vec![name.name.clone()],
+                        namespace,
+                        original_namespace_id,
+                    );
+
+                match res {
+                    Ok(()) => bind_namespace_export(
+                        name,
+                        namespace,
+                        export_item_id,
+                        namespace_item_id,
+                        original_namespace_id,
+                        &mut self.names,
+                        &mut self.globals,
+                    ),
+                    Err(_) => Err(Error::ClobberedNamespace {
+                        namespace_name: name.name.to_string(),
+                        span: name.span,
+                    }),
+                }
+            }
+        }
     }
 
     fn resolve_and_bind_local_imports_and_exports<T>(&mut self, stmts: &[T])
@@ -1222,7 +1253,7 @@ impl Resolver {
                 let stmt = &**stmt;
                 if let ast::StmtKind::Item(item) = &*stmt.kind {
                     if let ItemKind::ImportOrExport(decl) = &*item.kind {
-                        let bound = self.resolve_and_bind_import_or_export(
+                        let bound = self.resolve_and_bind_import_or_export_decl(
                             decl,
                             None,
                             None,
@@ -2124,7 +2155,7 @@ fn bind_namespace_name(
     names.insert(node_id, res);
 }
 
-fn bind_exported_namespace_name(
+fn bind_namespace_export(
     name: &Ident,
     parent_id: NamespaceId,
     import_item_id: ItemId,
@@ -2302,16 +2333,16 @@ fn bind_callable_name(
     }
 }
 
-fn bind_imported_callable_name(
+fn bind_callable_export(
     name: &Ident,
     namespace: NamespaceId,
-    import_item_id: ItemId,
+    export_item_id: ItemId,
     original_item_id: ItemId,
     status: ItemStatus,
     names: &mut IndexMap<NodeId, Res>,
     scope: &mut GlobalScope,
 ) -> Result<(), Error> {
-    names.insert(name.id, Res::Item(import_item_id, status));
+    names.insert(name.id, Res::Item(export_item_id, status));
 
     match scope
         .importables
@@ -2411,7 +2442,7 @@ fn bind_ty(
     }
 }
 
-fn bind_imported_ty_name(
+fn bind_ty_export(
     name: &Ident,
     namespace: NamespaceId,
     import_item_id: ItemId,

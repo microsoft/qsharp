@@ -5907,12 +5907,13 @@ fn export_from_local_scope_disallowed() {
         "},
         &expect![[r#"
             namespace namespace3 {
-                operation item1() : Unit {
-                    // ExportNotAllowed("Foo", Span { lo: 44, hi: 47 })
+                operation item1() : Unit {}
+                operation item2() : Unit {
+                    export Foo as item3;
                 }
             }
 
-            // ExportNotAllowed("Foo", Span { lo: 44, hi: 47 })
+            // ExportFromLocalScope(Span { lo: 85, hi: 96 })
         "#]],
     );
 }
