@@ -12,7 +12,7 @@ from ._native import (  # type: ignore
     GlobalCallable,
     Pauli,
     Result,
-    ValueIR,
+    UdtValue,
     TypeIR,
     TypeKind,
     PrimitiveKind,
@@ -38,7 +38,7 @@ from time import monotonic
 from dataclasses import make_dataclass, field
 
 
-def lower_python_obj(obj: object, visited: set[object] | None = None) -> ValueIR:
+def lower_python_obj(obj: object, visited: set[object] | None = None) -> Any:
     if visited is None:
         visited = set()
 
@@ -48,35 +48,22 @@ def lower_python_obj(obj: object, visited: set[object] | None = None) -> ValueIR
     visited = visited.copy().add(id(obj))
 
     # Base case: Primitive types
-    if isinstance(obj, bool):
-        return ValueIR.bool(obj)
-    elif isinstance(obj, int):
-        return ValueIR.int(obj)
-    elif isinstance(obj, float):
-        return ValueIR.double(obj)
-    elif isinstance(obj, complex):
-        return ValueIR.complex(obj)
-    elif isinstance(obj, str):
-        return ValueIR.str(obj)
-    elif isinstance(obj, Pauli):
-        return ValueIR.pauli(obj)
-    elif isinstance(obj, Result):
-        return ValueIR.result(obj)
+    if isinstance(obj, (bool, int, float, complex, str, Pauli, Result)):
+        return obj
 
     # Recursive case: Tuple
     if isinstance(obj, tuple):
-        return ValueIR.tuple([lower_python_obj(elt, visited) for elt in obj])
+        return tuple(lower_python_obj(elt, visited) for elt in obj)
 
     # Recursive case: Array
     if isinstance(obj, list):
-        return ValueIR.array([lower_python_obj(elt, visited) for elt in obj])
+        return [lower_python_obj(elt, visited) for elt in obj]
 
     # Recusive case: Dict
     if isinstance(obj, dict):
-        fields = {name: lower_python_obj(val, visited) for name, val in obj.items()}
-        return ValueIR.udt(fields)
+        return {name: lower_python_obj(val, visited) for name, val in obj.items()}
 
-    # Recursive case: Struct
+    # Recursive case: Class
     if hasattr(obj, "__slots__"):
         fields = {}
         for name in obj.__slots__:
@@ -91,9 +78,9 @@ def lower_python_obj(obj: object, visited: set[object] | None = None) -> ValueIR
             name: lower_python_obj(val, visited) for name, val in obj.__dict__.items()
         }
     else:
-        fields = []
+        fields = {}
 
-    return ValueIR.udt(fields)
+    return fields
 
 
 def python_args_to_interpreter_args(args):
@@ -532,27 +519,30 @@ def _make_callable(callable: GlobalCallable, namespace: List[str], callable_name
 
 
 def qsharp_value_to_python_value(obj):
-    if not isinstance(obj, ValueIR):
+    # Base case: Primitive types
+    if isinstance(obj, (bool, int, float, complex, str, Pauli, Result)):
         return obj
 
-    match obj.kind():
-        case TypeKind.Primitive:
-            return obj.unwrap_primitive()
-        case TypeKind.Tuple:
-            return tuple(
-                qsharp_value_to_python_value(elt) for elt in obj.unwrap_tuple()
-            )
-        case TypeKind.Array:
-            return [qsharp_value_to_python_value(elt) for elt in obj.unwrap_array()]
-        case TypeKind.Udt:
-            udt = obj.unwrap_udt()
-            class_name = udt.name
-            fields = []
-            for name, value_ir in udt.fields.items():
-                val = qsharp_value_to_python_value(value_ir)
-                ty = type(val)
-                fields.append((name, ty, field(default=val)))
-            return make_dataclass(class_name, fields)()
+    # Recursive case: Tuple
+    if isinstance(obj, tuple):
+        # Special case Value::UNIT maps to None.
+        if not obj:
+            return None
+        return tuple(qsharp_value_to_python_value(elt) for elt in obj)
+
+    # Recursive case: Array
+    if isinstance(obj, list):
+        return [qsharp_value_to_python_value(elt) for elt in obj]
+
+    # Recursive case: Udt
+    if isinstance(obj, UdtValue):
+        class_name = obj.name
+        fields = []
+        for name, value_ir in obj.fields.items():
+            val = qsharp_value_to_python_value(value_ir)
+            ty = type(val)
+            fields.append((name, ty, field(default=val)))
+        return make_dataclass(class_name, fields)()
 
 
 def make_class_rec(qsharp_type: TypeIR) -> type:
@@ -569,6 +559,8 @@ def make_class_rec(qsharp_type: TypeIR) -> type:
                         ty = int
                     case PrimitiveKind.Double:
                         ty = float
+                    case PrimitiveKind.Double:
+                        ty = complex
                     case PrimitiveKind.String:
                         ty = str
                     case PrimitiveKind.Pauli:

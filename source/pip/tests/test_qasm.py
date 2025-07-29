@@ -543,24 +543,6 @@ def test_callables_with_unsupported_types_raise_errors_on_call() -> None:
         code.Unsupported()
 
 
-def test_callables_with_unsupported_udt_types_raise_errors_on_call() -> None:
-    init()
-    import_openqasm(
-        "def Unsupported(complex a)  { }", program_type=ProgramType.Fragments
-    )
-    with pytest.raises(QSharpError, match='unsupported input type: `UDT<"Complex":'):
-        code.Unsupported()
-
-
-def test_callable_with_unsupported_udt_return_types_raise_errors_on_call() -> None:
-    init()
-    import_openqasm(
-        "def Unsupported() -> complex { end; }", program_type=ProgramType.Fragments
-    )
-    with pytest.raises(QSharpError, match='unsupported output type: `UDT<"Complex":'):
-        code.Unsupported()
-
-
 def test_circuit_from_program() -> None:
     init()
 

@@ -637,7 +637,7 @@ def test_callable_with_tuple_exposed_into_env_fails_incorrect_types() -> None:
     assert qsharp.code.Identity((4, 5.0)) == (4, 5.0)
     assert qsharp.code.Identity((4, 5)) == (4, 5.0)
     assert qsharp.code.Identity([4, 5.0]) == (4, 5.0)
-    with pytest.raises(qsharp.QSharpError):
+    with pytest.raises(TypeError):
         qsharp.code.Identity((4, 5, 6))
     with pytest.raises(TypeError):
         qsharp.code.Identity(4)
@@ -694,29 +694,10 @@ def test_callables_with_unsupported_return_types_raise_errors_on_call() -> None:
         qsharp.code.Unsupported()
 
 
-def test_callables_with_unsupported_udt_types_raise_errors_on_call() -> None:
-    qsharp.init()
-    qsharp.eval("function Unsupported(a : Std.Math.Complex) : Unit { }")
-    with pytest.raises(
-        qsharp.QSharpError, match='unsupported input type: `UDT<"Complex":'
-    ):
-        qsharp.code.Unsupported()
-
-
-def test_callable_with_unsupported_udt_return_types_raise_errors_on_call() -> None:
-    qsharp.init()
-    qsharp.eval('function Unsupported() : Std.Math.Complex { fail "won\'t be called" }')
-    with pytest.raises(
-        qsharp.QSharpError, match='unsupported output type: `UDT<"Complex":'
-    ):
-        qsharp.code.Unsupported()
-
-
-def test_struct_call_constructor_not_exposed_into_env() -> None:
+def test_struct_call_constructor_exposed_into_env() -> None:
     qsharp.init()
     qsharp.eval("struct CustomUDT { a : Int }")
-    with pytest.raises(AttributeError):
-        qsharp.code.CustomUDT
+    qsharp.code.CustomUDT(2)
 
 
 def test_lambdas_not_exposed_into_env() -> None:

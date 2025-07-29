@@ -13,8 +13,8 @@ use crate::{
         get_search_path, resource_estimate_qasm_program, run_qasm_program,
     },
     interpreter::data_interop::{
-        PrimitiveKind, TypeIR, TypeKind, UdtIR, UdtValue, ValueIR, collect_udt_fields,
-        convert_value_ir_with_ty, type_ir_from_qsharp_ty, typed_value_to_value_ir,
+        PrimitiveKind, TypeIR, TypeKind, UdtFields, UdtIR, UdtValue, collect_udt_fields,
+        convert_value_ir_with_ty, type_ir_from_qsharp_ty, typed_value_to_python_obj,
     },
     noisy_simulator::register_noisy_simulator_submodule,
 };
@@ -23,7 +23,7 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use pyo3::{
     IntoPyObjectExt, create_exception,
-    exceptions::{PyException, PyValueError},
+    exceptions::{PyException, PyTypeError, PyValueError},
     prelude::*,
     types::{PyDict, PyList, PyString, PyTuple, PyType},
 };
@@ -69,8 +69,8 @@ fn verify_classes_are_sendable() {
     is_send::<Output>();
     is_send::<StateDumpData>();
     is_send::<Circuit>();
-    is_send::<ValueIR>();
     is_send::<UdtValue>();
+    is_send::<UdtFields>();
     is_send::<TypeIR>();
     is_send::<TypeKind>();
     is_send::<PrimitiveKind>();
@@ -90,7 +90,6 @@ fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
     m.add_class::<StateDumpData>()?;
     m.add_class::<Circuit>()?;
     m.add_class::<GlobalCallable>()?;
-    m.add_class::<ValueIR>()?;
     m.add_class::<UdtValue>()?;
     m.add_class::<TypeIR>()?;
     m.add_class::<TypeKind>()?;
@@ -471,7 +470,7 @@ impl Interpreter {
                         create_py_class(&self.interpreter, py, make_class, &namespace, &name, &ty)?;
                     }
                 }
-                typed_value_to_value_ir(&self.interpreter, &value, &ty)?.into_py_any(py)
+                typed_value_to_python_obj(&self.interpreter, py, &value, &ty)
             }
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -658,7 +657,7 @@ impl Interpreter {
         match result {
             Ok(value) => {
                 if let Some(ty) = result_ty {
-                    typed_value_to_value_ir(&self.interpreter, &value, &ty)?.into_py_any(py)
+                    typed_value_to_python_obj(&self.interpreter, py, &value, &ty)
                 } else {
                     Ok(ValueWrapper(value).into_pyobject(py)?.unbind())
                 }
@@ -684,9 +683,7 @@ impl Interpreter {
         let args = args_to_values(&self.interpreter, py, args, &input_ty, &output_ty)?;
 
         match self.interpreter.invoke(&mut receiver, callable.0, args) {
-            Ok(value) => {
-                typed_value_to_value_ir(&self.interpreter, &value, &output_ty)?.into_py_any(py)
-            }
+            Ok(value) => typed_value_to_python_obj(&self.interpreter, py, &value, &output_ty),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
@@ -837,7 +834,7 @@ fn args_to_values(
         )));
     }
 
-    // Conver the Python arguments to Q# values, treating None as an empty tuple aka `Unit`.
+    // Convert the Python arguments to Q# values, treating None as an empty tuple aka `Unit`.
     if matches!(&input_ty, Ty::Tuple(tup) if tup.is_empty()) {
         // Special case for unit, where args should be None
         if args.is_some() {
@@ -851,8 +848,7 @@ fn args_to_values(
             )));
         };
         // This conversion will produce errors if the types don't match or can't be converted.
-        let value_ir = args.extract::<ValueIR>(py)?;
-        Ok(convert_value_ir_with_ty(ctx, value_ir, input_ty)?)
+        Ok(convert_value_ir_with_ty(ctx, py, &args, input_ty)?)
     }
 }
 
@@ -1150,7 +1146,7 @@ impl<'py> IntoPyObject<'py> for ValueWrapper {
             },
             Value::Tuple(val) => {
                 if val.is_empty() {
-                    // Special case Value::unit as None
+                    // Special case Value::UNIT maps to None.
                     Ok(py.None().into_bound(py))
                 } else {
                     PyTuple::new(py, val.iter().map(|v| ValueWrapper(v.clone())))?
