@@ -555,14 +555,14 @@ def qsharp_value_to_python_value(obj):
             return make_dataclass(class_name, fields)()
 
 
-def _make_class_rec(qsharp_type: TypeIR) -> type:
-    class_name = qsharp_type.udt().name
+def make_class_rec(qsharp_type: TypeIR) -> type:
+    class_name = qsharp_type.unwrap_udt().name
     fields = {}
-    for field in qsharp_type.udt().fields:
+    for field in qsharp_type.unwrap_udt().fields:
         ty = None
         match field[1].kind():
             case TypeKind.Primitive:
-                match field[1].primitive():
+                match field[1].unwrap_primitive():
                     case PrimitiveKind.Bool:
                         ty = bool
                     case PrimitiveKind.Int:
@@ -580,7 +580,7 @@ def _make_class_rec(qsharp_type: TypeIR) -> type:
             case TypeKind.Array:
                 ty = None
             case TypeKind.Udt:
-                ty = _make_class_rec(field[1])
+                ty = make_class_rec(field[1])
         fields[field[0]] = ty
 
     return make_dataclass(
@@ -615,7 +615,7 @@ def _make_class(qsharp_type: TypeIR, namespace: List[str], class_name: str):
             module = new_module
         accumulated_namespace += "."
 
-    QSharpClass = _make_class_rec(qsharp_type)
+    QSharpClass = make_class_rec(qsharp_type)
 
     # Each class is annotated so that we know it is auto-generated and can be removed on a re-init of the interpreter.
     QSharpClass.__qsharp_class = True
