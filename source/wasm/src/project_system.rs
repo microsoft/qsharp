@@ -4,7 +4,10 @@
 use crate::{diagnostic::project_errors_into_qsharp_errors, serializable_type};
 use async_trait::async_trait;
 use miette::Report;
-use qsc::{LanguageFeatures, linter::LintOrGroupConfig, packages::BuildableProgram};
+use qsc::{
+    LanguageFeatures, SourceMap, linter::LintOrGroupConfig, packages::BuildableProgram,
+    target::Profile,
+};
 use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, JSProjectHost, PackageCache};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -224,6 +227,15 @@ impl ProjectLoader {
         // Will return error if project has errors
         project_config.try_into()
     }
+
+    pub fn get_entry_profile(file_name: String, source: String) -> Result<Option<String>, String> {
+        let entry_profile = qsc_frontend::compile::get_entry_profile(&SourceMap::new(
+            [(Arc::<str>::from(file_name), Arc::<str>::from(source))],
+            None,
+        ))
+        .map(|(p, _)| p.to_str().to_string().to_lowercase());
+        Ok(entry_profile)
+    }
 }
 
 fn project_errors_into_qsharp_errors_json(
@@ -335,7 +347,9 @@ impl TryFrom<qsc_project::Project> for IProjectConfig {
                 },
             ),
         };
-        let profile = value.target_profile.to_str().to_string().to_lowercase();
+        let profile = value
+            .target_profile
+            .map(|p| p.to_str().to_string().to_lowercase());
         let project_config = ProjectConfig {
             project_name: value.name.to_string(),
             project_uri: value.path.to_string(),
@@ -356,7 +370,7 @@ serializable_type! {
         pub package_graph_sources: PackageGraphSources,
         pub lints: Vec<LintOrGroupConfig>,
         pub project_type: String,
-        pub profile: String,
+        pub profile: Option<String>,
     },
     r#"export interface IProjectConfig {
         /**
@@ -377,7 +391,7 @@ serializable_type! {
         /**
          * QIR target profile for the project, as set in qsharp.json.
          */
-        profile: TargetProfile;
+        profile?: TargetProfile;
     }"#,
     IProjectConfig
 }
@@ -420,6 +434,35 @@ impl From<PackageInfo> for qsc_project::PackageInfo {
                     "expected one of 'exe' or 'lib' -- should be guaranteed by TS types"
                 ),
             }),
+        }
+    }
+}
+
+#[allow(clippy::doc_markdown)]
+/// Gets the name of a profile specification in the source code of the program, if present.
+/// This is either a profile pragma in OpenQASM or an `@EntryPoint` attribute in Q#.
+/// An empty string is returned if no profile is found, or if parse errors are encountered.
+/// Otherwise errors are ignored.
+pub(crate) fn get_source_profile(program: &ProgramConfig) -> String {
+    if is_openqasm_program(program) {
+        let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
+        let sources = pkg_graph.root.sources;
+        for (_, contents) in &sources {
+            let (program, errors) = qsc::qasm::parser::parse(contents);
+            if errors.is_empty() {
+                let target_profile = qsc_project::openqasm::get_first_profile_pragma(&program);
+                if let Some(profile) = target_profile {
+                    return profile.to_str().to_lowercase();
+                }
+            }
+        }
+        String::new()
+    } else {
+        let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
+        let mut errors = Vec::new();
+        match qsc::packages::get_entry_profile(&pkg_graph.into(), &mut errors) {
+            Some(profile) => profile.to_str().to_lowercase(),
+            None => String::new(),
         }
     }
 }
@@ -476,10 +519,14 @@ pub(crate) fn into_qsc_args(
 
 #[allow(clippy::needless_pass_by_value)]
 #[allow(clippy::type_complexity)]
-pub(crate) fn into_openqasm_arg(program: ProgramConfig) -> Vec<(Arc<str>, Arc<str>)> {
+pub(crate) fn into_openqasm_arg(program: ProgramConfig) -> (Profile, Vec<(Arc<str>, Arc<str>)>) {
     let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
     let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
-    pkg_graph.root.sources
+
+    let profile = qsc::target::Profile::from_str(&program.profile())
+        .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()));
+
+    (profile, pkg_graph.root.sources)
 }
 
 pub(crate) fn is_openqasm_program(program: &ProgramConfig) -> bool {

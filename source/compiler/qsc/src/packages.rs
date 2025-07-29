@@ -7,8 +7,8 @@ use crate::{
     hir::PackageId,
 };
 use qsc_circuit::circuit_to_qsharp::circuits_to_qsharp;
-use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{SourceMap, check_for_entry_profile};
+use qsc_data_structures::{language_features::LanguageFeatures, target::Profile};
+use qsc_frontend::{compile::SourceMap, error::WithSource};
 use qsc_passes::PackageType;
 use qsc_project::PackageGraphSources;
 use rustc_hash::FxHashMap;
@@ -76,6 +76,47 @@ fn convert_circuit_sources(
     processed_sources
 }
 
+#[must_use]
+pub fn get_entry_profile(
+    package_graph_sources: &PackageGraphSources,
+    dependency_errors: &mut Vec<WithSource<ErrorKind>>,
+) -> Option<Profile> {
+    // Convert circuit files in user code to generated Q# before entry profile check
+    let mut sources = package_graph_sources.root.sources.clone();
+    sources = convert_circuit_sources(sources, dependency_errors);
+
+    let converted_source_map = SourceMap::new(sources.clone(), None);
+
+    // Check if the entry profile is set in the source code.
+    let entry_profile = qsc_frontend::compile::get_entry_profile(&converted_source_map);
+
+    if let Some((profile, mut span)) = entry_profile {
+        // If the entry profile is set, we need to ensure that the user code is compiled with it.
+        if package_graph_sources.has_manifest {
+            // Need to convert the span to the original source map
+            let original_source_map =
+                SourceMap::new(package_graph_sources.root.sources.clone(), None);
+            let converted_source = converted_source_map.find_by_offset(span.hi);
+            let original_source =
+                converted_source.and_then(|s| original_source_map.find_by_name(&s.name));
+            if let (Some(converted), Some(original)) = (converted_source, original_source) {
+                // Adjust the span to account for the offset of the original source
+                span = span - converted.offset + original.offset;
+            }
+
+            dependency_errors.push(Error::from_map(
+                &SourceMap::new(package_graph_sources.root.sources.clone(), None),
+                ErrorKind::EntryPointProfileInProject(span),
+            ));
+            None
+        } else {
+            Some(profile)
+        }
+    } else {
+        None
+    }
+}
+
 /// Given a program config, prepare the package store by compiling all dependencies in the correct order and inserting them.
 #[must_use]
 pub fn prepare_package_store(
@@ -84,27 +125,11 @@ pub fn prepare_package_store(
 ) -> BuildableProgram {
     let mut dependency_errors = Vec::new();
 
-    // Convert circuit files in user code to generated Q# before entry profile check
-    let mut sources = package_graph_sources.root.sources.clone();
-    sources = convert_circuit_sources(sources, &mut dependency_errors);
-
-    // Check if the entry profile is set in the source code.
-    let entry_profile = check_for_entry_profile(
-        &SourceMap::new(sources.clone(), None),
-        package_graph_sources.root.language_features,
-    );
+    let entry_profile = get_entry_profile(&package_graph_sources, &mut dependency_errors);
 
     // If the entry profile is set, we need to ensure that the user code is compiled with it.
-    if let Some((profile, span)) = entry_profile {
-        // If this is a project (qsharp.json present), emit error with span
-        if package_graph_sources.has_manifest {
-            dependency_errors.push(Error::from_map(
-                &SourceMap::new(sources, None),
-                ErrorKind::EntryPointProfileInProject(span),
-            ));
-        } else {
-            capabilities = profile.into();
-        }
+    if let Some(profile) = entry_profile {
+        capabilities = profile.into();
     }
 
     let (std_id, mut package_store) = package_store_with_stdlib(capabilities);

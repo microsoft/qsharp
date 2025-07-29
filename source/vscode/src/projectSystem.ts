@@ -171,11 +171,6 @@ export async function loadProject(
 ): Promise<IProjectConfig> {
   const manifestDocument = await findManifestDocument(documentUri.toString());
 
-  if (!manifestDocument) {
-    // return just the one file if we are in single file mode
-    return await singleFileProject(documentUri);
-  }
-
   if (!projectLoader) {
     projectLoader = await getProjectLoader({
       findManifestDirectory,
@@ -184,6 +179,11 @@ export async function loadProject(
       fetchGithub: fetchGithubRaw,
       resolvePath: async (a, b) => resolvePath(a, b),
     });
+  }
+
+  if (!manifestDocument) {
+    // return just the one file if we are in single file mode
+    return await singleFileProject(documentUri);
   }
 
   const project = await projectLoader!.loadQSharpProject(
@@ -225,6 +225,10 @@ async function singleFileProject(
   documentUri: vscode.Uri,
 ): Promise<IProjectConfig> {
   const file = await vscode.workspace.openTextDocument(documentUri);
+  const profile = await projectLoader!.getEntryProfile(
+    file.fileName,
+    file.getText(),
+  );
 
   return {
     projectName: Utils.basename(documentUri),
@@ -244,7 +248,7 @@ async function singleFileProject(
     lints: [],
     errors: [],
     projectType: "qsharp",
-    profile: "unrestricted",
+    profile,
   };
 }
 

@@ -4,7 +4,6 @@
 use std::sync::Arc;
 use std::vec;
 
-use qsc_data_structures::target::Profile;
 use qsc_frontend::compile::PackageStore;
 use qsc_frontend::error::WithSource;
 use qsc_hir::hir::PackageId;
@@ -49,7 +48,6 @@ pub struct CompileRawQasmResult(
     pub Vec<(PackageId, Option<std::sync::Arc<str>>)>,
     pub Option<OperationSignature>,
     pub Vec<crate::compile::Error>,
-    pub Profile,
 );
 
 #[must_use]
@@ -91,14 +89,7 @@ pub fn compile_openqasm(unit: QasmCompileUnit, package_type: PackageType) -> Com
         compile_errors
     };
 
-    CompileRawQasmResult(
-        store,
-        source_package_id,
-        dependencies,
-        sig,
-        surfaced_errors,
-        profile,
-    )
+    CompileRawQasmResult(store, source_package_id, dependencies, sig, surfaced_errors)
 }
 
 #[must_use]

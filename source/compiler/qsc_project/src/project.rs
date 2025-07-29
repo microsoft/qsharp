@@ -9,6 +9,7 @@ use async_trait::async_trait;
 use futures::FutureExt;
 use miette::Diagnostic;
 use qsc_data_structures::{language_features::LanguageFeatures, target::Profile};
+use qsc_frontend::compile::{SourceMap, get_entry_profile};
 use qsc_linter::LintOrGroupConfig;
 use rustc_hash::FxHashMap;
 use std::{
@@ -47,8 +48,9 @@ pub struct Project {
     pub errors: Vec<Error>,
     /// The type of project. This is used to determine how to load the project.
     pub project_type: ProjectType,
-    /// QIR target profile for this project (from manifest or default)
-    pub target_profile: Profile,
+    /// QIR target profile for this project from user source (from manifest or entry point attribute)
+    /// Is `None` if the project does not specify a profile.
+    pub target_profile: Option<Profile>,
 }
 
 impl Project {
@@ -61,7 +63,7 @@ impl Project {
             .map_or_else(|| name.clone(), |f| f.to_string_lossy().into());
         let source = PackageGraphSources {
             root: PackageInfo {
-                sources: vec![(name.clone(), contents)],
+                sources: vec![(name.clone(), contents.clone())],
                 language_features: LanguageFeatures::default(),
                 dependencies: FxHashMap::default(),
                 package_type: None,
@@ -69,13 +71,17 @@ impl Project {
             packages: FxHashMap::default(),
             has_manifest: false,
         };
+
+        let target_profile =
+            get_entry_profile(&SourceMap::new([(name.clone(), contents)], None)).map(|(p, _)| p);
+
         Self {
             path: name,
             name: display_name,
             lints: Vec::default(),
             errors: Vec::default(),
             project_type: ProjectType::QSharp(source),
-            target_profile: Profile::Unrestricted,
+            target_profile,
         }
     }
 
@@ -406,8 +412,7 @@ pub trait FileSystemAsync {
             target_profile: manifest
                 .target_profile
                 .as_deref()
-                .and_then(|s| Profile::from_str(s).ok())
-                .unwrap_or(Profile::Unrestricted),
+                .and_then(|s| Profile::from_str(s).ok()),
         })
     }
 

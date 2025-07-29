@@ -531,11 +531,8 @@ pub fn parse_all(
 }
 
 #[must_use]
-pub fn check_for_entry_profile(
-    sources: &SourceMap,
-    language_features: LanguageFeatures,
-) -> Option<(Profile, Span)> {
-    let (ast_package, parse_errors) = parse_all(sources, language_features);
+pub fn get_entry_profile(sources: &SourceMap) -> Option<(Profile, Span)> {
+    let (ast_package, parse_errors) = parse_all(sources, LanguageFeatures::default());
 
     if !parse_errors.is_empty() {
         return None;
