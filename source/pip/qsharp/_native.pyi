@@ -131,6 +131,7 @@ class Interpreter:
         list_directory: Callable[[str], List[Dict[str, str]]],
         resolve_path: Callable[[str, str], str],
         make_callable: Optional[Callable[[GlobalCallable], None]],
+        make_class: Optional[Callable[[TypeIR, List[str], str], None]],
     ) -> None:
         """
         Initializes the Q# interpreter.
@@ -629,24 +630,22 @@ def estimate_custom(
     """
     ...
 
-class Field:
-    name: str
-    value: ValueIR
-
-    def __init__(self, name: str, value: ValueIR): ...
-    def __str__(self):
-        return f"{self.name}: {repr(self.value)}"
-
-    def __eq__(self, rhs: Self):
-        return self.name == rhs.name and self.value == rhs.value
+class UdtValue:
+    name: Optional[str]
+    fields: Dict[str, ValueIR]
 
 class ValueIR:
-    def udt(fields: List[Field]) -> Self: ...
+    def kind(self) -> TypeKind: ...
+    def unwrap_primitive(self) -> Any: ...
+    def unwrap_udt(self) -> UdtValue: ...
+    def unwrap_tuple(self) -> List[ValueIR]: ...
+    def unwrap_array(self) -> List[ValueIR]: ...
+    def udt(fields: Dict[str, ValueIR]) -> Self: ...
     def tuple(values: List[Self]) -> Self: ...
     def array(values: List[Self]) -> Self: ...
     def bool(value: bool) -> Self: ...
     def int(value: int) -> Self: ...
-    def float(value: float) -> Self: ...
+    def double(value: float) -> Self: ...
     def str(value: str) -> Self: ...
     def pauli(value: Pauli) -> Self: ...
     def result(value: Result) -> Self: ...
@@ -663,3 +662,44 @@ class ValueIR:
         # This implementation purposely ommits `self.ty_name == rhs.ty_name`
         # to make testing easier. This is just a prototype for now, so it's fine.
         return all(a == b for a, b in zip(self.fields, rhs.fields))
+
+class TypeKind(Enum):
+    """
+    A Q# type kind.
+    """
+
+    Primitive: int
+    Tuple: int
+    Array: int
+    Udt: int
+
+class PrimitiveKind(Enum):
+    """
+    A Q# primtive.
+    """
+
+    Bool: int
+    Int: int
+    Double: int
+    String: int
+    Pauli: int
+    Result: int
+
+class UdtIR:
+    """
+    A Q# Udt.
+    """
+
+    name: str
+    fields: List[Tuple[str, TypeIR]]
+
+class TypeIR:
+    """
+    A Q# type.
+    """
+
+    def kind(self) -> TypeKind: ...
+    def primitive(self) -> PrimitiveKind: ...
+    def tuple(self) -> List[TypeIR]: ...
+    def array(self) -> List[TypeIR]: ...
+    def udt(self) -> UdtIR: ...

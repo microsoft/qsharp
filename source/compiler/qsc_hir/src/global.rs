@@ -116,6 +116,7 @@ pub struct PackageIter<'a> {
 }
 
 impl PackageIter<'_> {
+    #[allow(clippy::too_many_lines)]
     fn global_item(&mut self, item: &Item) -> Option<Global> {
         let parent = item.parent.map(|parent| {
             &self
@@ -183,6 +184,27 @@ impl PackageIter<'_> {
 
                 Some(Global {
                     namespace: namespace.into(),
+                    name: Rc::clone(&name.name),
+                    visibility,
+                    status,
+                    kind: Kind::Ty(Ty { id }),
+                })
+            }
+            (ItemKind::Ty(name, def), None) => {
+                self.next = Some(Global {
+                    namespace: Vec::new(),
+                    name: alias.map_or_else(|| Rc::clone(&name.name), |alias| alias.name.clone()),
+                    visibility,
+                    status,
+                    kind: Kind::Term(Term {
+                        id,
+                        scheme: def.cons_scheme(id),
+                        intrinsic: false,
+                    }),
+                });
+
+                Some(Global {
+                    namespace: Vec::new(),
                     name: Rc::clone(&name.name),
                     visibility,
                     status,

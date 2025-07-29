@@ -12,8 +12,10 @@ from ._native import (  # type: ignore
     GlobalCallable,
     Pauli,
     Result,
-    Field,
     ValueIR,
+    TypeIR,
+    TypeKind,
+    PrimitiveKind,
 )
 from typing import (
     Any,
@@ -33,14 +35,15 @@ import os
 import sys
 import types
 from time import monotonic
+from dataclasses import make_dataclass, field
 
 
-def lower_python_obj(obj: object, visited: set[object] | None) -> ValueIR:
+def lower_python_obj(obj: object, visited: set[object] | None = None) -> ValueIR:
     if visited is None:
         visited = set()
 
     if id(obj) in visited:
-        raise "cannot send circular objects"
+        raise QSharpError("Cannot send circular objects from Python to Q#.")
 
     visited = visited.copy().add(id(obj))
 
@@ -50,7 +53,9 @@ def lower_python_obj(obj: object, visited: set[object] | None) -> ValueIR:
     elif isinstance(obj, int):
         return ValueIR.int(obj)
     elif isinstance(obj, float):
-        return ValueIR.float(obj)
+        return ValueIR.double(obj)
+    elif isinstance(obj, complex):
+        return ValueIR.complex(obj)
     elif isinstance(obj, str):
         return ValueIR.str(obj)
     elif isinstance(obj, Pauli):
@@ -68,26 +73,23 @@ def lower_python_obj(obj: object, visited: set[object] | None) -> ValueIR:
 
     # Recusive case: Dict
     if isinstance(obj, dict):
-        fields = [
-            Field(name, lower_python_obj(val, visited)) for name, val in obj.items()
-        ]
+        fields = {name: lower_python_obj(val, visited) for name, val in obj.items()}
         return ValueIR.udt(fields)
 
     # Recursive case: Struct
     if hasattr(obj, "__slots__"):
-        fields = []
+        fields = {}
         for name in obj.__slots__:
             if name == "__dict__":
                 for name, val in obj.__dict__.items():
-                    fields.append(Field(name, lower_python_obj(val, visited)))
+                    fields[name] = lower_python_obj(val, visited)
             else:
                 val = getattr(obj, name)
-                fields.append(Field(name, lower_python_obj(val, visited)))
+                fields[name] = lower_python_obj(val, visited)
     elif hasattr(obj, "__dict__"):
-        fields = [
-            Field(name, lower_python_obj(val, visited))
-            for name, val in obj.__dict__.items()
-        ]
+        fields = {
+            name: lower_python_obj(val, visited) for name, val in obj.__dict__.items()
+        }
     else:
         fields = []
 
@@ -276,11 +278,13 @@ def init(
             ) from e
 
     # Loop through the environment module and remove any dynamically added attributes that represent
-    # Q# callables. This is necessary to avoid conflicts with the new interpreter instance.
+    # Q# callables or structs. This is necessary to avoid conflicts with the new interpreter instance.
     keys_to_remove = []
     for key in code.__dict__:
-        if hasattr(code.__dict__[key], "__global_callable") or isinstance(
-            code.__dict__[key], types.ModuleType
+        if (
+            hasattr(code.__dict__[key], "__global_callable")
+            or hasattr(code.__dict__[key], "__qsharp_class")
+            or isinstance(code.__dict__[key], types.ModuleType)
         ):
             keys_to_remove.append(key)
     for key in keys_to_remove:
@@ -303,6 +307,7 @@ def init(
         resolve,
         fetch_github,
         _make_callable,
+        _make_class,
     )
 
     _config = Config(target_profile, language_features, manifest_contents, project_root)
@@ -464,9 +469,10 @@ def eval(
     telemetry_events.on_eval()
     start_time = monotonic()
 
-    results["result"] = get_interpreter().interpret(
+    output = get_interpreter().interpret(
         source, on_save_events if save_events else callback
     )
+    results["result"] = qsharp_value_to_python_value(output)
 
     durationMs = (monotonic() - start_time) * 1000
     telemetry_events.on_eval_end(durationMs)
@@ -515,13 +521,107 @@ def _make_callable(callable: GlobalCallable, namespace: List[str], callable_name
 
         args = python_args_to_interpreter_args(args)
 
-        return get_interpreter().invoke(callable, args, callback)
+        output = get_interpreter().invoke(callable, args, callback)
+        return qsharp_value_to_python_value(output)
 
     # Each callable is annotated so that we know it is auto-generated and can be removed on a re-init of the interpreter.
     _callable.__global_callable = callable
 
     # Add the callable to the module.
     module.__setattr__(callable_name, _callable)
+
+
+def qsharp_value_to_python_value(obj):
+    if not isinstance(obj, ValueIR):
+        return obj
+
+    match obj.kind():
+        case TypeKind.Primitive:
+            return obj.unwrap_primitive()
+        case TypeKind.Tuple:
+            return tuple(
+                qsharp_value_to_python_value(elt) for elt in obj.unwrap_tuple()
+            )
+        case TypeKind.Array:
+            return [qsharp_value_to_python_value(elt) for elt in obj.unwrap_array()]
+        case TypeKind.Udt:
+            udt = obj.unwrap_udt()
+            class_name = udt.name
+            fields = []
+            for name, value_ir in udt.fields.items():
+                val = qsharp_value_to_python_value(value_ir)
+                ty = type(val)
+                fields.append((name, ty, field(default=val)))
+            return make_dataclass(class_name, fields)()
+
+
+def _make_class_rec(qsharp_type: TypeIR) -> type:
+    class_name = qsharp_type.udt().name
+    fields = {}
+    for field in qsharp_type.udt().fields:
+        ty = None
+        match field[1].kind():
+            case TypeKind.Primitive:
+                match field[1].primitive():
+                    case PrimitiveKind.Bool:
+                        ty = bool
+                    case PrimitiveKind.Int:
+                        ty = int
+                    case PrimitiveKind.Double:
+                        ty = float
+                    case PrimitiveKind.String:
+                        ty = str
+                    case PrimitiveKind.Pauli:
+                        ty = Pauli
+                    case PrimitiveKind.Result:
+                        ty = Result
+            case TypeKind.Tuple:
+                ty = None
+            case TypeKind.Array:
+                ty = None
+            case TypeKind.Udt:
+                ty = _make_class_rec(field[1])
+        fields[field[0]] = ty
+
+    return make_dataclass(
+        class_name,
+        fields,
+    )
+
+
+def _make_class(qsharp_type: TypeIR, namespace: List[str], class_name: str):
+    """
+    Helper function to create a python class given a description of it. This will be
+    used by the underlying native code to create classes on the fly corresponding to
+    the currently initialized interpreter instance.
+    """
+
+    module = code
+    # Create a name that will be used to collect the hierachy of namespace identifiers if they exist and use that
+    # to register created modules with the system.
+    accumulated_namespace = "qsharp.code"
+    accumulated_namespace += "."
+    for name in namespace:
+        accumulated_namespace += name
+        # Use the existing entry, which should already be a module.
+        if hasattr(module, name):
+            module = module.__getattribute__(name)
+        else:
+            # This namespace entry doesn't exist as a module yet, so create it, add it to the environment, and
+            # add it to sys.modules so it supports import properly.
+            new_module = types.ModuleType(accumulated_namespace)
+            module.__setattr__(name, new_module)
+            sys.modules[accumulated_namespace] = new_module
+            module = new_module
+        accumulated_namespace += "."
+
+    QSharpClass = _make_class_rec(qsharp_type)
+
+    # Each class is annotated so that we know it is auto-generated and can be removed on a re-init of the interpreter.
+    QSharpClass.__qsharp_class = True
+
+    # Add the class to the module.
+    module.__setattr__(class_name, QSharpClass)
 
 
 def run(
@@ -608,6 +708,7 @@ def run(
             callable,
             args,
         )
+        run_results = qsharp_value_to_python_value(run_results)
         results[-1]["result"] = run_results
         if on_result:
             on_result(results[-1])

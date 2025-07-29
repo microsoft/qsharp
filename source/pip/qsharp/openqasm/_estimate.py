@@ -14,6 +14,7 @@ from ..estimator import EstimatorParams, EstimatorResult
 from .._qsharp import (
     get_interpreter,
     ipython_helper,
+    python_args_to_interpreter_args,
 )
 from .. import telemetry_events
 
@@ -67,10 +68,7 @@ def estimate(
     telemetry_events.on_estimate_qasm()
     start = monotonic()
     if isinstance(source, Callable) and hasattr(source, "__global_callable"):
-        if len(args) == 1:
-            args = args[0]
-        elif len(args) == 0:
-            args = None
+        args = python_args_to_interpreter_args(args)
         res_str = get_interpreter().estimate(
             param_str, callable=source.__global_callable, args=args
         )

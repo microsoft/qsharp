@@ -23,7 +23,10 @@ pub use qsc_eval::{
     val::Result,
     val::Value,
 };
-use qsc_hir::{global, ty};
+use qsc_hir::{
+    global,
+    ty::{self, Ty},
+};
 use qsc_linter::{HirLint, Lint, LintKind, LintLevel};
 use qsc_lowerer::{map_fir_package_to_hir, map_hir_package_to_fir};
 use qsc_partial_eval::ProgramEntry;
@@ -148,6 +151,7 @@ pub struct Interpreter {
 }
 
 pub type InterpretResult = std::result::Result<Value, Vec<Error>>;
+pub type TypedInterpretResult = std::result::Result<(Value, qsc_hir::ty::Ty), Vec<Error>>;
 
 impl Interpreter {
     /// Creates a new incremental compiler, compiling the passed in sources.
@@ -389,9 +393,45 @@ impl Interpreter {
         }
     }
 
-    /// Get the input and output types of a given value representing a global item.
+    /// Given a package ID, returns all the types in the package.
+    /// Note this does not currently include re-exports.
+    #[allow(clippy::type_complexity)]
+    fn package_types(
+        &self,
+        package_id: PackageId,
+    ) -> Vec<(Vec<Rc<str>>, Rc<str>, qsc_hir::hir::ItemId)> {
+        let mut exported_items = Vec::new();
+        let package = &self
+            .compiler
+            .package_store()
+            .get(map_fir_package_to_hir(package_id))
+            .expect("package should exist in the package store")
+            .package;
+        for global in global::iter_package(Some(map_fir_package_to_hir(package_id)), package) {
+            if let global::Kind::Ty(ty) = global.kind
+                && self.udt_ty(&ty.id).is_some()
+            {
+                exported_items.push((global.namespace, global.name, ty.id));
+            }
+        }
+        exported_items
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub fn user_types(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, qsc_hir::hir::ItemId)> {
+        self.package_types(self.source_package)
+    }
+
+    /// Get the global types defined in the open package being interpreted, which will include any items
+    /// defined by calls to `eval_fragments` and the like.
+    #[allow(clippy::type_complexity)]
+    pub fn source_types(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, qsc_hir::hir::ItemId)> {
+        self.package_types(self.package)
+    }
+
+    /// Get the type of a UDT given its `item_id`.
     /// # Panics
-    /// Panics if the item is not callable or a type that can be invoked as a callable.
+    /// Panics if the item is not a UDT.
     pub fn udt_ty(&self, item_id: &crate::hir::ItemId) -> Option<&ty::Udt> {
         let crate::hir::ItemId {
             package: package_id_opt,
@@ -413,10 +453,7 @@ impl Interpreter {
         let item = unit.package.items.get(*local_item_id)?;
 
         match &item.kind {
-            qsc_hir::hir::ItemKind::Ty(_, udt) => {
-                // We don't handle UDTs, so we return an error type that prevents later code from processing this item.
-                Some(udt)
-            }
+            qsc_hir::hir::ItemKind::Ty(_, udt) => Some(udt),
             _ => panic!("item is not a UDT"),
         }
     }
@@ -511,7 +548,7 @@ impl Interpreter {
         &mut self,
         receiver: &mut impl Receiver,
         fragments: &str,
-    ) -> InterpretResult {
+    ) -> TypedInterpretResult {
         let label = self.next_line_label();
 
         let mut increment = self
@@ -520,9 +557,23 @@ impl Interpreter {
             .map_err(into_errors)?;
         // Clear the entry expression, as we are evaluating fragments and a fragment with a `@EntryPoint` attribute
         // should not change what gets executed.
+
         increment.clear_entry();
 
+        let ty = if let Some(stmt) = increment.hir.stmts.last() {
+            match &stmt.kind {
+                qsc_hir::hir::StmtKind::Expr(expr) => expr.ty.clone(),
+                qsc_hir::hir::StmtKind::Item(..)
+                | qsc_hir::hir::StmtKind::Local(..)
+                | qsc_hir::hir::StmtKind::Qubit(..)
+                | qsc_hir::hir::StmtKind::Semi(..) => Ty::UNIT,
+            }
+        } else {
+            Ty::UNIT
+        };
+
         self.eval_increment(receiver, increment)
+            .map(|val| (val, ty))
     }
 
     /// It is assumed that if there were any parse errors on the fragments, the caller would have
@@ -1006,8 +1057,8 @@ impl Interpreter {
         let mut sink = std::io::sink();
         let mut out = GenericReceiver::new(&mut sink);
         let (store_item_id, functor_app) = match self.eval_fragments(&mut out, operation_expr)? {
-            Value::Closure(b) => (b.id, b.functor),
-            Value::Global(item_id, functor_app) => (item_id, functor_app),
+            (Value::Closure(b), _) => (b.id, b.functor),
+            (Value::Global(item_id, functor_app), _) => (item_id, functor_app),
             _ => return Err(vec![Error::NotAnOperation]),
         };
         let package = map_fir_package_to_hir(store_item_id.package);
