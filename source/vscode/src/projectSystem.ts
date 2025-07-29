@@ -225,6 +225,7 @@ async function singleFileProject(
   documentUri: vscode.Uri,
 ): Promise<IProjectConfig> {
   const file = await vscode.workspace.openTextDocument(documentUri);
+  // ToDo: the `getEntryProfile` doesn't acutally use the project loader object. Can I call it without it?
   const profile = await projectLoader!.getEntryProfile(
     file.fileName,
     file.getText(),

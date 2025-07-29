@@ -6,7 +6,7 @@ mod integration_tests;
 
 use super::{FileSystemAsync, Project};
 use qsc_data_structures::target::Profile;
-use qsc_qasm::parser::ast::{Program, StmtKind};
+use qsc_qasm::parser::ast::{PathKind, Program, StmtKind};
 use rustc_hash::FxHashSet;
 use std::{path::Path, str::FromStr as _, sync::Arc};
 
@@ -149,7 +149,7 @@ pub fn get_first_profile_pragma(program: &Program) -> Option<Profile> {
             let name_str = pragma
                 .identifier
                 .as_ref()
-                .map_or_else(String::new, qsc_qasm::parser::ast::PathKind::as_string);
+                .map_or_else(String::new, PathKind::as_string);
 
             if name_str.to_lowercase() == "qdk.qir.profile" {
                 if let Some(ref value) = pragma.value {

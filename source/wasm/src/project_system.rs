@@ -228,13 +228,13 @@ impl ProjectLoader {
         project_config.try_into()
     }
 
-    pub fn get_entry_profile(file_name: String, source: String) -> Result<Option<String>, String> {
-        let entry_profile = qsc_frontend::compile::get_entry_profile(&SourceMap::new(
+    // ToDo: this doesn't use the project loader object, can I call it without it?
+    pub fn get_entry_profile(file_name: String, source: String) -> Option<String> {
+        qsc_frontend::compile::get_entry_profile(&SourceMap::new(
             [(Arc::<str>::from(file_name), Arc::<str>::from(source))],
             None,
         ))
-        .map(|(p, _)| p.to_str().to_string().to_lowercase());
-        Ok(entry_profile)
+        .map(|(p, _)| p.to_str().to_string().to_lowercase())
     }
 }
 

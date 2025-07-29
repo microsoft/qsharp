@@ -87,6 +87,8 @@ async function getQirForProgram(
   const isLocalQirGeneration = targetSupportsAdaptive === undefined;
   const hasManifest = config.packageGraphSources.hasManifest;
   if (!hasManifest) {
+    // ToDo: this is a lot of weird work to do just to get the profile,
+    // and uses a totally different code path from the language service.
     let profile = "";
     const worker = getCompilerWorker(compilerWorkerScriptPath);
     const compilerTimeout = setTimeout(() => {
