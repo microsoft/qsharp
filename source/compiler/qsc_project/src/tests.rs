@@ -48,7 +48,7 @@ fn basic_manifest() {
                         has_manifest: true,
                     },
                 ),
-                target_profile: Unrestricted,
+                target_profile: None,
             }"#]],
     );
 }
@@ -133,7 +133,7 @@ fn circular_imports() {
                         has_manifest: true,
                     },
                 ),
-                target_profile: Unrestricted,
+                target_profile: None,
             }"#]],
     );
 }
@@ -175,7 +175,7 @@ fn different_files_same_manifest() {
                         has_manifest: true,
                     },
                 ),
-                target_profile: Unrestricted,
+                target_profile: None,
             }"#]],
     );
 }
@@ -209,7 +209,7 @@ fn empty_manifest() {
                         has_manifest: true,
                     },
                 ),
-                target_profile: Unrestricted,
+                target_profile: None,
             }"#]],
     );
 }
@@ -255,7 +255,7 @@ fn folder_structure() {
                         has_manifest: true,
                     },
                 ),
-                target_profile: Unrestricted,
+                target_profile: None,
             }"#]],
     );
 }
@@ -296,7 +296,7 @@ fn hidden_files() {
                         has_manifest: true,
                     },
                 ),
-                target_profile: Unrestricted,
+                target_profile: None,
             }"#]],
     );
 }
@@ -341,7 +341,7 @@ fn peer_file() {
                         has_manifest: true,
                     },
                 ),
-                target_profile: Unrestricted,
+                target_profile: None,
             }"#]],
     );
 }
@@ -375,7 +375,7 @@ fn language_feature() {
                         has_manifest: true,
                     },
                 ),
-                target_profile: Unrestricted,
+                target_profile: None,
             }"#]],
     );
 }
@@ -425,7 +425,7 @@ fn with_local_dep() {
                         has_manifest: true,
                     },
                 ),
-                target_profile: Unrestricted,
+                target_profile: None,
             }"#]],
     );
 }
@@ -490,7 +490,7 @@ fn transitive_dep() {
                         has_manifest: true,
                     },
                 ),
-                target_profile: Unrestricted,
+                target_profile: None,
             }"#]],
     );
 }
@@ -528,7 +528,7 @@ fn explicit_files_list() {
                         has_manifest: true,
                     },
                 ),
-                target_profile: Unrestricted,
+                target_profile: None,
             }"#]],
     );
 }
@@ -571,7 +571,7 @@ fn explicit_files_list_missing_entry() {
                         has_manifest: true,
                     },
                 ),
-                target_profile: Unrestricted,
+                target_profile: None,
             }"#]],
     );
 }
@@ -612,7 +612,7 @@ fn circular_dep() {
                         has_manifest: true,
                     },
                 ),
-                target_profile: Unrestricted,
+                target_profile: None,
             }"#]],
     );
 }
