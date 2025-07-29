@@ -697,7 +697,59 @@ def test_callables_with_unsupported_return_types_raise_errors_on_call() -> None:
 def test_struct_call_constructor_exposed_into_env() -> None:
     qsharp.init()
     qsharp.eval("struct CustomUDT { a : Int }")
-    qsharp.code.CustomUDT(2)
+    val = qsharp.code.CustomUDT(2)
+    assert val.a == 2
+
+
+def test_udts_are_accepted_as_input() -> None:
+    qsharp.init()
+    qsharp.eval(
+        """
+        struct Data { a : Int, b : Int }
+        function SwapData(data : Data) : Data {
+            new Data { a = data.b, b = data.a }
+        }
+        """
+    )
+    # Dict
+    val = qsharp.code.SwapData({"a": 2, "b": 3})
+    assert val.a == 3 and val.b == 2
+
+    # qsharp.code class
+    val = qsharp.code.SwapData(qsharp.code.Data(2, 3))
+    assert val.a == 3 and val.b == 2
+
+    # Custom class
+    class CustomData:
+        def __init__(self, a, b):
+            self.a = a
+            self.b = b
+
+    val = qsharp.code.SwapData(CustomData(2, 3))
+    assert val.a == 3 and val.b == 2
+
+    # Custom class with slots
+    class CustomDataWithSlots:
+        __slots__ = ["a", "b"]
+
+        def __init__(self, a, b):
+            self.a = a
+            self.b = b
+
+    val = qsharp.code.SwapData(CustomDataWithSlots(2, 3))
+    assert val.a == 3 and val.b == 2
+
+    # Custom class with slots and dynamic values
+    class CustomDataWithSlotsAndDynValues:
+        __slots__ = ["a", "__dict__"]
+
+        def __init__(self, a):
+            self.a = a
+
+    data = CustomDataWithSlotsAndDynValues(2)
+    data.b = 3
+    val = qsharp.code.SwapData(data)
+    assert val.a == 3 and val.b == 2
 
 
 def test_lambdas_not_exposed_into_env() -> None:

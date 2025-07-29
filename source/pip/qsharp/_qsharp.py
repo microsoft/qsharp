@@ -538,11 +538,13 @@ def qsharp_value_to_python_value(obj):
     if isinstance(obj, UdtValue):
         class_name = obj.name
         fields = []
+        args = []
         for name, value_ir in obj.fields.items():
             val = qsharp_value_to_python_value(value_ir)
             ty = type(val)
-            fields.append((name, ty, field(default=val)))
-        return make_dataclass(class_name, fields)()
+            args.append(val)
+            fields.append((name, ty))
+        return make_dataclass(class_name, fields)(*args)
 
 
 def make_class_rec(qsharp_type: TypeIR) -> type:
@@ -568,9 +570,13 @@ def make_class_rec(qsharp_type: TypeIR) -> type:
                     case PrimitiveKind.Result:
                         ty = Result
             case TypeKind.Tuple:
-                ty = None
+                # Special case Value::UNIT maps to None.
+                if not field[1].unwrap_tuple():
+                    ty = type(None)
+                else:
+                    ty = tuple
             case TypeKind.Array:
-                ty = None
+                ty = list
             case TypeKind.Udt:
                 ty = make_class_rec(field[1])
         fields[field[0]] = ty
