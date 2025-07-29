@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use futures::FutureExt;
 use miette::Diagnostic;
 use qsc_data_structures::{language_features::LanguageFeatures, target::Profile};
-use qsc_frontend::compile::{SourceMap, check_for_entry_profile};
+use qsc_frontend::compile::{SourceMap, get_entry_profile};
 use qsc_linter::LintOrGroupConfig;
 use rustc_hash::FxHashMap;
 use std::{
@@ -72,10 +72,8 @@ impl Project {
             has_manifest: false,
         };
 
-        // ToDo: deal with the span by making error, maybe
-        let entry_profile =
-            check_for_entry_profile(&SourceMap::new([(name.clone(), contents)], None))
-                .map(|(p, _)| p);
+        let target_profile =
+            get_entry_profile(&SourceMap::new([(name.clone(), contents)], None)).map(|(p, _)| p);
 
         Self {
             path: name,
@@ -83,7 +81,7 @@ impl Project {
             lints: Vec::default(),
             errors: Vec::default(),
             project_type: ProjectType::QSharp(source),
-            target_profile: entry_profile,
+            target_profile,
         }
     }
 

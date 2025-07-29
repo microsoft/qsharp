@@ -229,7 +229,7 @@ impl ProjectLoader {
     }
 
     pub fn get_entry_profile(file_name: String, source: String) -> Result<Option<String>, String> {
-        let entry_profile = qsc_frontend::compile::check_for_entry_profile(&SourceMap::new(
+        let entry_profile = qsc_frontend::compile::get_entry_profile(&SourceMap::new(
             [(Arc::<str>::from(file_name), Arc::<str>::from(source))],
             None,
         ))
@@ -438,28 +438,31 @@ impl From<PackageInfo> for qsc_project::PackageInfo {
     }
 }
 
-// ToDo: figure out how to handle error cases
-pub(crate) fn check_for_entry_profile(program: &ProgramConfig) -> Result<String, String> {
+#[allow(clippy::doc_markdown)]
+/// Gets the name of a profile specification in the source code of the program, if present.
+/// This is either a profile pragma in OpenQASM or an `@EntryPoint` attribute in Q#.
+/// An empty string is returned if no profile is found, or if parse errors are encountered.
+/// Otherwise errors are ignored.
+pub(crate) fn get_source_profile(program: &ProgramConfig) -> String {
     if is_openqasm_program(program) {
         let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
         let sources = pkg_graph.root.sources;
-        for (name, contents) in &sources {
+        for (_, contents) in &sources {
             let (program, errors) = qsc::qasm::parser::parse(contents);
-            log::info!("Checking for entry profile in OpenQASM file: {}", name);
             if errors.is_empty() {
                 let target_profile = qsc_project::openqasm::get_first_profile_pragma(&program);
                 if let Some(profile) = target_profile {
-                    return Ok(profile.to_str().to_lowercase());
+                    return profile.to_str().to_lowercase();
                 }
             }
         }
-        Ok(String::new())
+        String::new()
     } else {
         let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
         let mut errors = Vec::new();
-        match qsc::packages::check_for_entry_profile(&pkg_graph.into(), &mut errors) {
-            Some(profile) => Ok(profile.to_str().to_lowercase()),
-            None => Ok(String::new()),
+        match qsc::packages::get_entry_profile(&pkg_graph.into(), &mut errors) {
+            Some(profile) => profile.to_str().to_lowercase(),
+            None => String::new(),
         }
     }
 }

@@ -77,7 +77,7 @@ fn convert_circuit_sources(
 }
 
 #[must_use]
-pub fn check_for_entry_profile(
+pub fn get_entry_profile(
     package_graph_sources: &PackageGraphSources,
     dependency_errors: &mut Vec<WithSource<ErrorKind>>,
 ) -> Option<Profile> {
@@ -88,7 +88,7 @@ pub fn check_for_entry_profile(
     let converted_source_map = SourceMap::new(sources.clone(), None);
 
     // Check if the entry profile is set in the source code.
-    let entry_profile = qsc_frontend::compile::check_for_entry_profile(&converted_source_map);
+    let entry_profile = qsc_frontend::compile::get_entry_profile(&converted_source_map);
 
     if let Some((profile, mut span)) = entry_profile {
         // If the entry profile is set, we need to ensure that the user code is compiled with it.
@@ -125,7 +125,7 @@ pub fn prepare_package_store(
 ) -> BuildableProgram {
     let mut dependency_errors = Vec::new();
 
-    let entry_profile = check_for_entry_profile(&package_graph_sources, &mut dependency_errors);
+    let entry_profile = get_entry_profile(&package_graph_sources, &mut dependency_errors);
 
     // If the entry profile is set, we need to ensure that the user code is compiled with it.
     if let Some(profile) = entry_profile {

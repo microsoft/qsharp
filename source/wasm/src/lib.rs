@@ -48,10 +48,12 @@ thread_local! {
     };
 }
 
-/// Checks for the entry profile in the provided Q# code and returns the profile and span if found.
+/// Checks for a profile in the provided Q# or QASM source code and returns the profile if found.
+/// Otherwise, returns an empty string.
 #[wasm_bindgen]
-pub fn check_for_entry_profile(program: &ProgramConfig) -> Result<String, String> {
-    project_system::check_for_entry_profile(program)
+#[must_use]
+pub fn get_source_profile(program: &ProgramConfig) -> String {
+    project_system::get_source_profile(program)
 }
 
 #[wasm_bindgen]

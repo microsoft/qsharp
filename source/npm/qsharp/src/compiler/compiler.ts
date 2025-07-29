@@ -60,7 +60,7 @@ export interface ICompiler {
     eventHandler: IQscEventTarget,
   ): Promise<void>;
 
-  getEntryPointProfile(program: ProgramConfig): Promise<string>;
+  getSourceProfile(program: ProgramConfig): Promise<string>;
 
   getQir(program: ProgramConfig): Promise<string>;
 
@@ -204,10 +204,10 @@ export class Compiler implements ICompiler {
     );
   }
 
-  async getEntryPointProfile(program: ProgramConfig): Promise<string> {
+  async getSourceProfile(program: ProgramConfig): Promise<string> {
     const config = toWasmProgramConfig(program, "unrestricted");
     return callAndTransformExceptions(async () =>
-      this.wasm.check_for_entry_profile(config),
+      this.wasm.get_source_profile(config),
     );
   }
 
@@ -357,7 +357,7 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
     getHir: "request",
     getRir: "request",
     getQir: "request",
-    getEntryPointProfile: "request",
+    getSourceProfile: "request",
     getEstimates: "request",
     getCircuit: "request",
     getDocumentation: "request",

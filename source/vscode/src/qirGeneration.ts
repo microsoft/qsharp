@@ -94,7 +94,7 @@ async function getQirForProgram(
     }, generateQirTimeoutMs);
     try {
       profile = await invokeAndReportCommandDiagnostics(
-        () => worker.getEntryPointProfile(config),
+        () => worker.getSourceProfile(config),
         { populateProblemsView: true, showModalError: true },
       );
       clearTimeout(compilerTimeout);
