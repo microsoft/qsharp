@@ -23,7 +23,7 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use pyo3::{
     IntoPyObjectExt, create_exception,
-    exceptions::{PyException, PyTypeError, PyValueError},
+    exceptions::{PyException, PyValueError},
     prelude::*,
     types::{PyDict, PyList, PyString, PyTuple, PyType},
 };
