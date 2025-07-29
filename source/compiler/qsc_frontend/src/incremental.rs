@@ -197,6 +197,7 @@ impl Compiler {
             ast: AstPackage {
                 package: ast,
                 names: self.resolver.names().clone(),
+                globals: self.resolver.globals().clone(),
                 locals: self.resolver.locals().clone(),
                 tys: self.checker.table().clone(),
             },
@@ -236,6 +237,7 @@ impl Compiler {
             ast: AstPackage {
                 package: ast,
                 names: self.resolver.names().clone(),
+                globals: self.resolver.globals().clone(),
                 locals: self.resolver.locals().clone(),
                 tys: self.checker.table().clone(),
             },
@@ -271,19 +273,14 @@ impl Compiler {
         self.resolver
             .extend_dropped_names(cond_compile.into_names());
         self.resolver.bind_fragments(ast, &mut unit.assigner);
-        self.resolver.bind_and_resolve_imports_and_exports(ast);
+        self.resolver
+            .resolve_and_bind_all_namespace_imports_and_exports(ast);
         self.resolver.with(&mut unit.assigner).visit_package(ast);
 
         self.checker.check_package(self.resolver.names(), ast);
         self.checker.solve(self.resolver.names());
 
-        let package = self.lower(
-            &mut unit.assigner,
-            &*ast,
-            // not an ideal clone, but it is once per fragment, and the namespace tree is
-            // relatively lightweight
-            self.resolver.namespaces().clone(),
-        );
+        let package = self.lower(&mut unit.assigner, &*ast);
 
         let errors = self
             .resolver
@@ -390,15 +387,10 @@ impl Compiler {
         (package, with_source(errors, sources, offset))
     }
 
-    fn lower(
-        &mut self,
-        hir_assigner: &mut HirAssigner,
-        package: &ast::Package,
-        namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
-    ) -> hir::Package {
+    fn lower(&mut self, hir_assigner: &mut HirAssigner, package: &ast::Package) -> hir::Package {
         self.lowerer
             .with(hir_assigner, self.resolver.names(), self.checker.table())
-            .lower_package(package, namespaces)
+            .lower_package(package)
     }
 }
 

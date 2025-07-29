@@ -62,10 +62,10 @@ fn compile_and_run_internal(sources: SourceMap, debug: bool) -> String {
     ) {
         Ok(interpreter) => interpreter,
         Err(errors) => {
-            for error in &errors {
-                eprintln!("error: {error}");
+            for error in errors {
+                eprintln!("error: {:?}", miette::Report::new(error));
             }
-            panic!("compilation failed (first error: {})", errors[0]);
+            panic!("compilation failed");
         }
     };
 
@@ -79,10 +79,10 @@ fn compile_and_run_internal(sources: SourceMap, debug: bool) -> String {
     let val = match interpreter.eval_entry(&mut out) {
         Ok(val) => val,
         Err(errors) => {
-            for error in &errors {
-                eprintln!("error: {error}");
+            for error in errors {
+                eprintln!("error: {:?}", miette::Report::new(error));
             }
-            panic!("execution failed (first error: {})", errors[0]);
+            panic!("execution failed");
         }
     };
     String::from_utf8(output).expect("output should be valid UTF-8") + &val.to_string()
@@ -154,10 +154,10 @@ fn compile_and_run_qasm_internal(source: &str, debug: bool) -> String {
     ) {
         Ok(interpreter) => interpreter,
         Err(errors) => {
-            for error in &errors {
-                eprintln!("error: {error}");
+            for error in errors {
+                eprintln!("error: {:?}", miette::Report::new(error));
             }
-            panic!("compilation failed (first error: {})", errors[0]);
+            panic!("compilation failed");
         }
     };
 
@@ -171,10 +171,10 @@ fn compile_and_run_qasm_internal(source: &str, debug: bool) -> String {
     let val = match interpreter.eval_entry(&mut out) {
         Ok(val) => val,
         Err(errors) => {
-            for error in &errors {
-                eprintln!("error: {error}");
+            for error in errors {
+                eprintln!("error: {:?}", miette::Report::new(error));
             }
-            panic!("execution failed (first error: {})", errors[0]);
+            panic!("execution failed");
         }
     };
     String::from_utf8(output).expect("output should be valid UTF-8") + &val.to_string()
@@ -195,10 +195,10 @@ fn compile(sources: SourceMap) {
             check_lints(&interpreter);
         }
         Err(errors) => {
-            for error in &errors {
-                eprintln!("error: {error}");
+            for error in errors {
+                eprintln!("error: {}", miette::Report::new(error));
             }
-            panic!("compilation failed (first error: {})", errors[0]);
+            panic!("compilation failed");
         }
     }
 }
@@ -211,7 +211,7 @@ fn compile_project(project_folder: &str) {
 
     if !project.errors.is_empty() {
         for e in project.errors {
-            eprintln!("{e}");
+            eprintln!("{:?}", miette::Report::new(e));
         }
         panic!("project should load without errors");
     }
@@ -225,7 +225,7 @@ fn compile_project(project_folder: &str) {
 
     if !buildable_program.dependency_errors.is_empty() {
         for e in buildable_program.dependency_errors {
-            eprintln!("{e}");
+            eprintln!("{:?}", miette::Report::new(e));
         }
         panic!("dependencies should compile without errors");
     }
@@ -251,10 +251,10 @@ fn compile_project(project_folder: &str) {
             check_lints(&interpreter);
         }
         Err(errors) => {
-            for error in &errors {
-                eprintln!("error: {error}");
+            for error in errors {
+                eprintln!("error: {}", miette::Report::new(error));
             }
-            panic!("compilation failed (first error: {})", errors[0]);
+            panic!("compilation failed");
         }
     }
 }
@@ -266,9 +266,9 @@ fn check_lints(interpreter: &Interpreter) {
         .filter(|lint| lint.level != qsc::linter::LintLevel::Allow)
         .collect();
     if !lints.is_empty() {
-        for lint in &lints {
-            eprintln!("lint: {lint}");
+        for lint in lints {
+            eprintln!("lint: {}", miette::Report::new(lint));
         }
-        panic!("linting failed (first lint: {})", lints[0]);
+        panic!("linting failed");
     }
 }

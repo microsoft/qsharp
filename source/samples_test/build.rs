@@ -208,12 +208,12 @@ fn compile_{file_stem_cleaned}() {{
 
 fn collect_qsharp_project_folders(path: &Path) -> Vec<PathBuf> {
     // Recursively search for all qsharp.json projects in the samples directory and return
-    // a list of their containing folders
+    // a list of their containing folders. Skip the well-known scratch directory.
     let mut projects = Vec::new();
     let mut paths = read_dir(path).expect("folder should exist and be readable");
     while let Some(Ok(dir_entry)) = paths.next() {
         let entry = &dir_entry.path();
-        if entry.is_dir() {
+        if entry.is_dir() && entry.file_name().and_then(OsStr::to_str) != Some("scratch") {
             projects.append(&mut collect_qsharp_project_folders(entry));
         } else if Some("qsharp.json") == entry.file_name().and_then(OsStr::to_str) {
             projects.push(

@@ -347,7 +347,7 @@ fn insert_core_call() {
                 .expect("QIR runtime should be inserted at instantiation of core Table");
             let allocate = self
                 .core
-                .resolve_term(ns, "__quantum__rt__qubit_allocate")
+                .resolve_callable(ns, "__quantum__rt__qubit_allocate")
                 .expect("qubit allocation should be in core");
             let allocate_ty = allocate
                 .scheme
@@ -416,7 +416,7 @@ fn insert_core_call() {
                     body: SpecDecl 3 [18-41]: Impl:
                         Block 4 [39-41] [Type Unit]:
                             Stmt 6 [0-0]: Semi: Expr 7 [0-0] [Type Qubit]: Call:
-                                Expr 8 [0-0] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                Expr 8 [0-0] [Type (Unit => Qubit)]: Var: Item 6 (Package 0)
                                 Expr 9 [0-0] [Type Unit]: Unit
                     adj: <none>
                     ctl: <none>

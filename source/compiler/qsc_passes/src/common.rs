@@ -97,7 +97,7 @@ pub(crate) fn create_gen_core_ref(
     span: Span,
 ) -> Expr {
     let term = core
-        .resolve_term(namespace, name)
+        .resolve_callable(namespace, name)
         .expect("term should resolve");
 
     let ty = term

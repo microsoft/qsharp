@@ -9,7 +9,7 @@ pub mod preprocess;
 use crate::{
     error::WithSource,
     lower::{self, Lowerer},
-    resolve::{self, Locals, Names, Resolver},
+    resolve::{self, GlobalScope, Locals, Names, Resolver},
     typeck::{self, Checker, Table},
 };
 
@@ -59,9 +59,10 @@ impl CompileUnit {
 #[derive(Debug, Default)]
 pub struct AstPackage {
     pub package: ast::Package,
-    pub tys: Table,
     pub names: Names,
+    pub globals: GlobalScope,
     pub locals: Locals,
+    pub tys: Table,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -397,8 +398,8 @@ pub fn compile_ast(
     let ResolveResult {
         names,
         locals,
+        globals,
         errors: name_errors,
-        namespaces,
     } = resolve_all(
         store,
         dependencies,
@@ -410,7 +411,7 @@ pub fn compile_ast(
     let mut lowerer = Lowerer::new();
     let package = lowerer
         .with(&mut hir_assigner, &names, &tys)
-        .lower_package(&ast_package, namespaces);
+        .lower_package(&ast_package);
     HirValidator::default().visit_package(&package);
     let lower_errors = lowerer.drain_errors();
 
@@ -427,9 +428,10 @@ pub fn compile_ast(
         package,
         ast: AstPackage {
             package: ast_package,
-            tys,
             names,
+            globals,
             locals,
+            tys,
         },
         assigner: hir_assigner,
         sources,
@@ -532,8 +534,8 @@ pub fn parse_all(
 
 pub(crate) struct ResolveResult {
     pub names: Names,
+    pub globals: GlobalScope,
     pub locals: Locals,
-    pub namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
     pub errors: Vec<resolve::Error>,
 }
 
@@ -569,18 +571,18 @@ fn resolve_all(
     errors.extend(globals.add_local_package(assigner, package));
     let mut resolver = Resolver::new(globals, dropped_names);
 
-    // bind all exported symbols in a follow-on step
-    resolver.bind_and_resolve_imports_and_exports(package);
+    // bind all imports and exports in a follow-on step
+    resolver.resolve_and_bind_all_namespace_imports_and_exports(package);
 
     // resolve all symbols
     resolver.with(assigner).visit_package(package);
-    let (names, locals, mut resolver_errors, namespaces) = resolver.into_result();
+    let (names, globals, locals, mut resolver_errors) = resolver.into_result();
     errors.append(&mut resolver_errors);
 
     ResolveResult {
         names,
+        globals,
         locals,
-        namespaces,
         errors,
     }
 }

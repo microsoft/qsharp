@@ -71,10 +71,10 @@ impl GlobalTable {
             }
             hir::ItemKind::Export(
                 _,
-                ItemId {
+                hir::Res::Item(ItemId {
                     package: other_package,
                     item: exported_item,
-                },
+                }),
             ) => {
                 // If this item is an export, then we need to grab the ID that it references.
                 // It could be from the same package, or it could be from another package.
@@ -90,6 +90,7 @@ impl GlobalTable {
                 // and recursively resolve it (it could be another export, i.e. a chain of exports.
                 self.handle_item(resolved_export, package_id, store);
             }
+            hir::ItemKind::Export(..) => {}
         }
     }
 }

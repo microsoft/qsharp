@@ -258,19 +258,17 @@ pub(crate) fn compile_notebook_with_fake_stdlib<'a, I>(cells: I) -> Compilation
 where
     I: Iterator<Item = (&'a str, &'a str)>,
 {
-    let std_source_map = SourceMap::new(
-        [(FAKE_STDLIB_NAME.into(), FAKE_STDLIB_CONTENTS.into())],
-        None,
-    );
+    let (std_id, package_store) = compile_fake_stdlib();
 
-    let store = qsc::PackageStore::new(qsc::compile::core());
+    let mut dependencies = vec![(std_id, None)];
+
     let mut compiler = Compiler::new(
-        std_source_map,
+        SourceMap::default(),
         PackageType::Lib,
         Profile::Unrestricted.into(),
         LanguageFeatures::default(),
-        store,
-        &[],
+        package_store,
+        &dependencies,
     )
     .expect("expected incremental compiler creation to succeed");
 
@@ -289,13 +287,15 @@ where
     let source_package_id = compiler.source_package_id();
     let (package_store, package_id) = compiler.into_package_store();
 
+    dependencies.push((source_package_id, None));
+
     Compilation {
         package_store,
         user_package_id: package_id,
         compile_errors: errors,
         kind: CompilationKind::Notebook { project: None },
         project_errors: Vec::new(),
-        dependencies: [(source_package_id, None)].into_iter().collect(),
+        dependencies: dependencies.into_iter().collect(),
         test_cases: Default::default(),
     }
 }

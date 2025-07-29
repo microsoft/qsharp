@@ -1,19 +1,21 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+mod import_item;
 #[cfg(test)]
 mod tests;
 
+use crate::compile::preprocess::TrackedName;
+use crate::resolve::import_item::{ValidImportOrExportItem, iter_valid_items};
 use miette::Diagnostic;
+use qsc_ast::ast::{ImportOrExportDecl, ItemKind, Package};
 use qsc_ast::{
     ast::{
-        self, CallableBody, CallableDecl, ClassConstraints, Ident, Idents, NodeId, PathKind,
-        SpecBody, SpecGen, TopLevelNode, TypeParameter,
+        self, CallableBody, CallableDecl, ClassConstraints, Ident, Idents, ImportKind, Item,
+        NodeId, PathKind, SpecBody, SpecGen, TopLevelNode, TypeParameter,
     },
     visit::{self as ast_visit, Visitor as AstVisitor, walk_attr},
 };
-
-use qsc_ast::ast::{ImportOrExportDecl, ImportOrExportItem, Item, ItemKind, Package};
 use qsc_data_structures::{
     index_map::IndexMap,
     namespaces::{ClobberedNamespace, NamespaceId, NamespaceTreeRoot, PRELUDE},
@@ -26,11 +28,9 @@ use qsc_hir::{
     ty::{ParamId, Prim},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::cmp::Ordering;
+use std::{cmp::Ordering, ops::Deref};
 use std::{collections::hash_map::Entry, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
-
-use crate::compile::preprocess::TrackedName;
 
 // All AST Path nodes that are namespace paths get mapped
 // All AST Ident nodes get mapped, except those under AST Path nodes
@@ -56,7 +56,7 @@ pub fn path_as_field_accessor<'a>(
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Res {
     /// A global or local item.
     Item(ItemId, ItemStatus),
@@ -71,18 +71,34 @@ pub enum Res {
     PrimTy(Prim),
     /// The unit type.
     UnitTy,
-    /// An export, which could be from another package.
-    ExportedItem(ItemId, Option<Ident>),
+    /// Something that can be imported
+    Importable(ImportableItemKind, ImportableVisibility),
 }
 
 impl Res {
     #[must_use]
     pub fn item_id(&self) -> Option<ItemId> {
         match self {
-            Res::Item(id, _) | Res::ExportedItem(id, _) => Some(*id),
+            Res::Item(id, ..)
+            | Res::Importable(
+                ImportableItemKind::Callable(id, _) | ImportableItemKind::Ty(id, _),
+                ..,
+            ) => Some(*id),
             _ => None,
         }
     }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum ImportableItemKind {
+    Callable(ItemId, ItemStatus), // Callable, or term?
+    Ty(ItemId, ItemStatus),
+    Namespace(NamespaceId, Option<ItemId>), // not all namespaces have item IDs
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum ImportableVisibility {
+    Unused,
 }
 
 #[derive(Clone, Debug, Diagnostic, Error, PartialEq)]
@@ -116,6 +132,10 @@ pub(super) enum Error {
     #[diagnostic(code("Qsc.Resolve.Duplicate"))]
     Duplicate(String, String, #[label] Span),
 
+    #[error("duplicate declaration of `{0}`")]
+    #[diagnostic(code("Qsc.Resolve.DuplicateName"))]
+    DuplicateName(String, #[label] Span),
+
     #[error("duplicate name `{0}` in pattern")]
     #[diagnostic(help("a name cannot shadow another name in the same pattern"))]
     #[diagnostic(code("Qsc.Resolve.DuplicateBinding"))]
@@ -128,9 +148,14 @@ pub(super) enum Error {
     #[diagnostic(code("Qsc.Resolve.DuplicateIntrinsic"))]
     DuplicateIntrinsic(String, #[label] Span),
 
-    #[error("duplicate export of `{0}`")]
-    #[diagnostic(code("Qsc.Resolve.DuplicateExport"))]
-    DuplicateExport(String, #[label] Span),
+    #[error("duplicate export of item `{name}`")]
+    DuplicateExport {
+        name: String,
+        #[label]
+        span: Span,
+        #[label("item was previously exported here")]
+        existing_span: Span,
+    },
 
     #[error("`{0}` not found")]
     #[diagnostic(code("Qsc.Resolve.NotFound"))]
@@ -148,48 +173,22 @@ pub(super) enum Error {
     #[diagnostic(code("Qsc.Resolve.Unimplemented"))]
     Unimplemented(String, #[label] Span),
 
-    #[error("this export is not a callable or type")]
-    #[diagnostic(code("Qsc.Resolve.ExportedNonItem"))]
-    ExportedNonItem(#[label] Span),
-
     #[error("export statements are not allowed in a local scope")]
     #[diagnostic(code("Qsc.Resolve.ExportFromLocalScope"))]
     ExportFromLocalScope(#[label] Span),
 
-    #[error("imported non-item")]
-    #[diagnostic(help("only callables, namespaces, and non-primitive types can be imported"))]
-    #[diagnostic(code("Qsc.Resolve.ImportedNonItem"))]
-    ImportedNonItem(#[label] Span),
-
-    #[error("imported symbol that already exists in scope")]
-    #[diagnostic(help("alias this import or rename the existing symbol"))]
-    #[diagnostic(code("Qsc.Resolve.ImportedDuplicate"))]
-    ImportedDuplicate(String, #[label] Span),
-
-    #[error("glob import does not resolve to a namespace")]
-    #[diagnostic(help("ensure the path {0} exists and is a namespace"))]
-    #[diagnostic(code("Qsc.Resolve.GlobImportNamespaceNotFound"))]
-    GlobImportNamespaceNotFound(String, #[label] Span),
-
-    #[error("glob exports are not supported")]
-    #[diagnostic(code("Qsc.Resolve.GlobExportNotSupported"))]
-    GlobExportNotSupported(#[label] Span),
-
-    #[error("aliasing a glob import is invalid")]
-    #[diagnostic(help("try `import {namespace_name} as {alias}` instead"))]
-    #[diagnostic(code("Qsc.Resolve.GlobImportAliasNotSupported"))]
-    GlobImportAliasNotSupported {
-        namespace_name: String,
-        alias: String,
-        #[label]
-        span: Span,
-    },
-    #[error("this namespace overwrites (clobbers) an existing external namespace of the same name")]
+    #[error(
+        "namespace export {namespace_name} overwrites (clobbers) an existing external namespace of the same name"
+    )]
     ClobberedNamespace {
         namespace_name: String,
         #[label]
         span: Span,
     },
+
+    #[error("reexporting a namespace from another package is not supported")]
+    #[diagnostic(code("Qsc.Resolve.CrossPackageNamespaceReexport"))]
+    CrossPackageNamespaceReexport(#[label] Span),
 }
 
 #[derive(Debug, Clone)]
@@ -199,11 +198,14 @@ pub struct Scope {
     span: Span,
     kind: ScopeKind,
     /// Open statements. The key is the namespace name or alias.
+    /// TODO: why would the key be a namespace name? isn't it a single ident?
     opens: FxHashMap<Vec<Rc<str>>, Vec<Open>>,
     /// Local newtype declarations.
     tys: FxHashMap<Rc<str>, ScopeItemEntry>,
     /// Local callable and newtype declarations.
     terms: FxHashMap<Rc<str>, ScopeItemEntry>,
+    /// Importable items, such as callables, types, and namespaces.
+    importables: FxHashMap<Rc<str>, Res>,
     /// Local variables, including callable parameters, for loop bindings, etc.
     /// The u32 is the `valid_at` offset - the lowest offset at which the variable name is available.
     /// It's used to determine which variables are visible at a specific offset in the scope.
@@ -231,7 +233,6 @@ impl ScopeItemEntry {
 
 #[derive(PartialEq, Debug, Clone, Default)]
 pub enum ItemSource {
-    Exported,
     // if the item was imported with an alias, the alias is stored here
     Imported(Option<Ident>),
     #[default]
@@ -246,17 +247,24 @@ impl Scope {
             opens: FxHashMap::default(),
             tys: FxHashMap::default(),
             terms: FxHashMap::default(),
+            importables: FxHashMap::default(),
             vars: FxHashMap::default(),
             ty_vars: FxHashMap::default(),
         }
     }
 
-    fn item(&self, kind: NameKind, name: &str) -> Option<&ItemId> {
-        let items = match kind {
-            NameKind::Ty => &self.tys,
-            NameKind::Term => &self.terms,
-        };
-        items.get(name).map(|x| &x.id)
+    fn item(&self, kind: NameKind, name: &str) -> Option<Res> {
+        match kind {
+            NameKind::Term => self
+                .terms
+                .get(name)
+                .map(|x| Res::Item(x.id, ItemStatus::Available)),
+            NameKind::Ty => self
+                .tys
+                .get(name)
+                .map(|x| Res::Item(x.id, ItemStatus::Available)),
+            NameKind::Importable => self.importables.get(name).cloned(),
+        }
     }
 
     /// A `ScopeKind, Span` pair uniquely identifies a scope.
@@ -304,12 +312,6 @@ impl Locals {
     fn get_scope_mut(&mut self, id: ScopeId) -> &mut Scope {
         self.scopes
             .get_mut(id)
-            .unwrap_or_else(|| panic!("scope with id {id:?} should exist"))
-    }
-
-    fn get_scope(&self, id: ScopeId) -> &Scope {
-        self.scopes
-            .get(id)
             .unwrap_or_else(|| panic!("scope with id {id:?} should exist"))
     }
 
@@ -368,8 +370,16 @@ pub enum LocalKind {
 pub struct GlobalScope {
     tys: IndexMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
     terms: IndexMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
+    // imports: IndexMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
+    // Technically the name could exist both as a namespace and an item
+    // within the same namespace, as we don't explicitly disallow that.
+    // We don't go out of our way to detect this condition, so the name
+    // resolution will be somewhat undeterministic in this case.
+    importables: IndexMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
+    namespace_items: IndexMap<NamespaceId, Res>, // TODO: do we need this? Maybe namespace->itemId mapping can live in the lowerer
     namespaces: NamespaceTreeRoot,
     intrinsics: FxHashSet<Rc<str>>,
+    self_exported_item_ids: FxHashMap<ItemId, Span>,
 }
 
 impl GlobalScope {
@@ -379,9 +389,11 @@ impl GlobalScope {
 
     fn get(&self, kind: NameKind, namespace: NamespaceId, name: &str) -> Option<&Res> {
         let items = match kind {
-            NameKind::Ty => &self.tys,
             NameKind::Term => &self.terms,
+            NameKind::Ty => &self.tys,
+            NameKind::Importable => &self.importables,
         };
+        // eprintln!("looking up name {name} in namespace {namespace:?}");
         items.get(namespace).and_then(|items| items.get(name))
     }
 
@@ -399,16 +411,6 @@ impl GlobalScope {
     ) -> NamespaceId {
         self.namespaces.insert_or_find_namespace_from_root(ns, root)
     }
-
-    fn insert_or_find_namespace_from_root_with_id(
-        &mut self,
-        name: Vec<Rc<str>>,
-        root: NamespaceId,
-        base_id: NamespaceId,
-    ) -> Result<(), ClobberedNamespace> {
-        self.namespaces
-            .insert_or_find_namespace_from_root_with_id(name, root, base_id)
-    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -420,8 +422,11 @@ enum ScopeKind {
 
 #[derive(Clone, Copy, Debug)]
 enum NameKind {
-    Ty,
     Term,
+    Ty,
+    /// Something that we can import: a callable, a UDT,
+    /// a namespace, or another import
+    Importable,
 }
 
 #[derive(Debug, Clone)]
@@ -462,11 +467,12 @@ pub(super) struct Resolver {
     errors: Vec<Error>,
 }
 
-/// This visitor is used for an intermediate step between binding and full resolution.
-/// We use this visitor to resolve all exported and imported symbols, so that they are
-/// available during the resolution stage.
-struct ExportImportVisitor<'a> {
-    resolver: &'a mut Resolver,
+pub(super) struct ExportImportVisitor<'a> {
+    pub(super) resolver: &'a mut Resolver,
+    /// Some state change that could cause other imports to
+    /// resolve differently, a new bound import, or a new open added
+    new_imports_bound: bool,
+    attempted_imports: FxHashMap<NodeId, Result<(), Error>>,
 }
 
 impl ExportImportVisitor<'_> {
@@ -480,6 +486,28 @@ impl ExportImportVisitor<'_> {
 }
 
 impl AstVisitor<'_> for ExportImportVisitor<'_> {
+    fn visit_namespace(&mut self, namespace: &ast::Namespace) {
+        let ns = self
+            .resolver
+            .globals
+            .find_namespace(namespace.name.str_iter())
+            .expect("namespace should exist by this point");
+
+        let root_id = self.resolver.globals.namespaces.root_id();
+        self.with_scope(namespace.span, ScopeKind::Namespace(ns), |visitor| {
+            let new_imports_bound = resolve_and_bind_namespace_imports_and_exports(
+                namespace,
+                ns,
+                root_id,
+                &mut visitor.attempted_imports,
+                visitor.resolver,
+            );
+            visitor.new_imports_bound = new_imports_bound || visitor.new_imports_bound;
+        });
+    }
+
+    // TODO: maybe make this a check in the parser
+    // TODO: we're not actually hitting this in the case we expect!
     fn visit_item(&mut self, item: &Item) {
         item.attrs.iter().for_each(|a| self.visit_attr(a));
         match &*item.kind {
@@ -491,56 +519,84 @@ impl AstVisitor<'_> for ExportImportVisitor<'_> {
             _ => ast_visit::walk_item(self, item),
         }
     }
+}
 
-    fn visit_namespace(&mut self, namespace: &ast::Namespace) {
-        let ns = self
-            .resolver
-            .globals
-            .find_namespace(namespace.name.str_iter())
-            .expect("namespace should exist by this point");
-        let root_id = self.resolver.globals.namespaces.root_id();
-        let kind = ScopeKind::Namespace(ns);
-        self.with_scope(namespace.span, kind, |visitor| {
-            // the below line ensures that this namespace opens itself, in case
-            // we are re-opening a namespace. This is important, as without this,
-            // a re-opened namespace would only have knowledge of its scopes.
-            visitor.resolver.bind_open(&namespace.name, None, root_id);
-            for item in &namespace.items {
-                match &*item.kind {
-                    ItemKind::ImportOrExport(decl) => {
-                        visitor
-                            .resolver
-                            .bind_import_or_export(decl, Some((ns, &namespace.name)));
-                    }
-                    ItemKind::Open(PathKind::Ok(path), alias) => {
-                        // we only need to bind opens that are in top-level namespaces, outside of callables.
-                        // this is because this is for the intermediate export-binding pass
-                        // and in the export-binding pass, we only need to know what symbols are available
-                        // in the scope of the exports. Exports are only allowed from namespaces scopes.
-                        // Put another way,
-                        // ```
-                        // // this is allowed, so we need to bind the "open B" for the export to work
-                        // namespace A { open B; export { SomethingFromB }; }
-                        //
-                        // // this is disallowed, so we don't need to bind the "open B" for the export
-                        // namespace A { callable foo() { open B; export { SomethingFromB }; } }
-                        //                                        ^^^^^^ export from non-namespace scope is not allowed
-                        // ```
-                        visitor
-                            .resolver
-                            .bind_open(path.as_ref(), alias.as_deref(), ns);
-                    }
-                    _ => ast_visit::walk_item(visitor, item),
+fn resolve_and_bind_namespace_imports_and_exports(
+    namespace: &ast::Namespace,
+    ns: NamespaceId,
+    root_id: NamespaceId,
+    attempted_imports: &mut FxHashMap<NodeId, Result<(), Error>>,
+    resolver: &mut Resolver,
+) -> bool {
+    let mut new_imports_bound = false;
+    // Start by adding the opens and glob imports in this scope
+
+    // the below line ensures that this namespace opens itself, in case
+    // we are re-declaring a namespace. This is important, as without this,
+    // a re-declared namespace would only have knowledge of the items declared within this declaration.
+    // TODO: test this claim
+    resolver.add_open(&namespace.name, None, root_id);
+
+    // Handle all opens first
+    for item in &*namespace.items {
+        if let ItemKind::Open(PathKind::Ok(path), alias) = &*item.kind {
+            resolver.add_open(path.as_ref(), alias.as_deref(), ns);
+        }
+    }
+
+    // Glob imports are treated as opens, handle them too
+    for item in &namespace.items {
+        if let ItemKind::ImportOrExport(decl) = &*item.kind {
+            for item in iter_valid_items(decl) {
+                if let ImportKind::Wildcard = item.kind {
+                    resolver.add_open(item.path, None, ns);
                 }
             }
-        });
+        }
     }
+
+    // now, attempt to resolve all imports (exports included), and bind the names
+    // this may not resolve all imports, as import resolution is iterative
+    for item in &namespace.items {
+        if let ItemKind::ImportOrExport(decl) = &*item.kind {
+            let bound = resolver.resolve_and_bind_import_or_export(
+                decl,
+                Some(ns),
+                Some(&namespace.name),
+                attempted_imports,
+            );
+            new_imports_bound = bound || new_imports_bound;
+        }
+    }
+    new_imports_bound
 }
 
 impl Resolver {
-    pub(crate) fn bind_and_resolve_imports_and_exports(&mut self, package: &Package) {
-        let mut visitor = ExportImportVisitor { resolver: self };
-        visitor.visit_package(package);
+    pub(crate) fn resolve_and_bind_all_namespace_imports_and_exports(&mut self, package: &Package) {
+        let mut visitor = ExportImportVisitor {
+            resolver: self,
+            new_imports_bound: false,
+            attempted_imports: FxHashMap::default(),
+        };
+        for i in 1..=100 {
+            visitor.new_imports_bound = false;
+            visitor.visit_package(package);
+            if !visitor.new_imports_bound {
+                // If no imports were resolved in this pass, we are done.
+                break;
+            }
+
+            // TODO: technically an error, not a panic
+            assert!(
+                i < 100,
+                "could not finish resolving imports after 100 iterations"
+            );
+        }
+        for (_, result) in visitor.attempted_imports.drain() {
+            if let Err(err) = result {
+                self.errors.push(err);
+            }
+        }
     }
 
     pub(super) fn new(globals: GlobalTable, dropped_names: Vec<TrackedName>) -> Self {
@@ -582,8 +638,8 @@ impl Resolver {
         &self.names
     }
 
-    pub(crate) fn namespaces(&self) -> &qsc_data_structures::namespaces::NamespaceTreeRoot {
-        &self.globals.namespaces
+    pub(super) fn globals(&self) -> &GlobalScope {
+        &self.globals
     }
 
     pub(super) fn locals(&self) -> &Locals {
@@ -601,13 +657,8 @@ impl Resolver {
         }
     }
 
-    pub(super) fn into_result(self) -> (Names, Locals, Vec<Error>, NamespaceTreeRoot) {
-        (
-            self.names,
-            self.locals,
-            self.errors,
-            self.globals.namespaces,
-        )
+    pub(super) fn into_result(self) -> (Names, GlobalScope, Locals, Vec<Error>) {
+        (self.names, self.globals, self.locals, self.errors)
     }
 
     pub(super) fn extend_dropped_names(&mut self, dropped_names: Vec<TrackedName>) {
@@ -633,6 +684,19 @@ impl Resolver {
                 }
             }
         }
+
+        let stmts = ast
+            .nodes
+            .iter()
+            .filter_map(|node| {
+                if let TopLevelNode::Stmt(stmt) = node {
+                    Some(stmt.as_ref())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        self.resolve_and_bind_local_imports_and_exports(&stmts);
     }
 
     fn check_item_status(&mut self, res: &Res, name: String, span: Span) {
@@ -663,13 +727,13 @@ impl Resolver {
             PathKind::Err(incomplete_path) => {
                 // First we check if the the path can be resolved as a field accessor.
                 // We do this by checking if the first part of the path is a local variable.
-                if let (NameKind::Term, Some(incomplet_path)) = (kind, incomplete_path) {
-                    let first = incomplet_path
+                if let (NameKind::Term, Some(incomplete_path)) = (kind, incomplete_path) {
+                    let first = incomplete_path
                         .segments
                         .first()
                         .expect("path `segments` should have at least one element");
                     match resolve(
-                        NameKind::Term,
+                        kind,
                         &self.globals,
                         self.locals.get_scopes(&self.curr_scope_chain),
                         first,
@@ -684,6 +748,7 @@ impl Resolver {
                         _ => return Ok(()), // The path is assumed to not be a field accessor, so move on.
                     }
                 }
+
                 Ok(())
             }
         }
@@ -700,7 +765,7 @@ impl Resolver {
                 .first()
                 .expect("path `segments` should have at least one element");
             match resolve(
-                NameKind::Term,
+                kind,
                 &self.globals,
                 self.locals.get_scopes(&self.curr_scope_chain),
                 first,
@@ -728,6 +793,12 @@ impl Resolver {
         ) {
             Ok(res) => {
                 self.check_item_status(&res, path.name.name.to_string(), path.span);
+                // eprintln!(
+                //     "resolved path {} id {} to {:?}",
+                //     path.full_name(),
+                //     path.id,
+                //     res
+                // );
                 self.names.insert(path.id, res.clone());
                 Ok(res)
             }
@@ -788,12 +859,11 @@ impl Resolver {
         }
     }
 
-    fn bind_open(
+    fn resolve_namespace(
         &mut self,
-        name: &impl Idents,
-        alias: Option<&Ident>,
+        ns: &impl Idents,
         current_namespace: NamespaceId,
-    ) {
+    ) -> Option<NamespaceId> {
         let (_current_ns_name, current_namespace) = self
             .globals
             .namespaces
@@ -801,32 +871,53 @@ impl Resolver {
         // try scoping from the current namespace, and then use the absolute namespace as the backup
         let id = if let Some(id) = (*current_namespace)
             .borrow()
-            .get_namespace_id(name.str_iter())
+            .get_namespace_id(ns.str_iter())
         {
             id
-        } else if let Some(id) = self.globals.namespaces.get_namespace_id(name.str_iter()) {
+        } else if let Some(id) = self.globals.namespaces.get_namespace_id(ns.str_iter()) {
             id
         } else {
-            let error = Error::NotFound(name.full_name().to_string(), name.full_span());
-            self.errors.push(error);
+            return None;
+        };
+        Some(id)
+    }
+
+    /// Adds this namespace to the current scope's opens. Namespace path is resolved
+    /// relative to the current namespace.
+    fn add_open(
+        &mut self,
+        path: &impl Idents,
+        alias: Option<&Ident>,
+        current_namespace: NamespaceId,
+    ) {
+        // eprintln!(
+        //     "adding open for path {}, alias {:?}",
+        //     path.full_name(),
+        //     alias
+        // );
+        let ns_id = self.resolve_namespace(path, current_namespace);
+        let Some(id) = ns_id else {
+            self.errors.push(Error::NotFound(
+                path.full_name().to_string(),
+                path.full_span(),
+            ));
             return;
         };
 
         let alias = alias.as_ref().map_or(vec![], |a| vec![Rc::clone(&a.name)]);
-        {
-            let current_opens = self
-                .current_scope_mut()
-                .opens
-                .entry(alias.clone())
-                .or_default();
 
-            let open = Open {
-                namespace: id,
-                span: name.full_span(),
-            };
-            if !current_opens.contains(&open) {
-                current_opens.push(open);
-            }
+        let current_opens = self
+            .current_scope_mut()
+            .opens
+            .entry(alias.clone())
+            .or_default();
+
+        let open = Open {
+            namespace: id,
+            span: path.full_span(),
+        };
+        if !current_opens.contains(&open) {
+            current_opens.push(open);
         }
     }
 
@@ -834,41 +925,31 @@ impl Resolver {
         &mut self,
         assigner: &mut Assigner,
         item: &ast::Item,
-        namespace: Option<NamespaceId>,
+        _namespace: Option<NamespaceId>,
     ) {
         match &*item.kind {
-            ast::ItemKind::Open(name, alias) => {
-                if let PathKind::Ok(path) = name {
-                    self.bind_open(
-                        path.as_ref(),
-                        alias.as_deref(),
-                        namespace.unwrap_or_else(|| self.globals.namespaces.root_id()),
-                    );
-                }
-            }
+            ast::ItemKind::Open(..) => {}
             ast::ItemKind::Callable(decl) => {
                 let id = intrapackage(assigner.next_item());
-                self.names.insert(
-                    decl.name.id,
-                    Res::Item(
-                        id,
-                        ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs)),
-                    ),
-                );
-                self.current_scope_mut().terms.insert(
+                let item_status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs));
+                self.names.insert(decl.name.id, Res::Item(id, item_status));
+                let scope = self.current_scope_mut();
+                scope.terms.insert(
                     Rc::clone(&decl.name.name),
                     ScopeItemEntry::new(id, ItemSource::Declared),
+                );
+                scope.importables.insert(
+                    Rc::clone(&decl.name.name),
+                    Res::Importable(
+                        ImportableItemKind::Callable(id, item_status),
+                        ImportableVisibility::Unused,
+                    ),
                 );
             }
             ast::ItemKind::Ty(name, _) => {
                 let id = intrapackage(assigner.next_item());
-                self.names.insert(
-                    name.id,
-                    Res::Item(
-                        id,
-                        ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs)),
-                    ),
-                );
+                let item_status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs));
+                self.names.insert(name.id, Res::Item(id, item_status));
                 let scope = self.current_scope_mut();
                 scope.tys.insert(
                     Rc::clone(&name.name),
@@ -877,17 +958,19 @@ impl Resolver {
                 scope.terms.insert(
                     Rc::clone(&name.name),
                     ScopeItemEntry::new(id, ItemSource::Declared),
+                );
+                scope.importables.insert(
+                    Rc::clone(&name.name),
+                    Res::Importable(
+                        ImportableItemKind::Ty(id, item_status),
+                        ImportableVisibility::Unused,
+                    ),
                 );
             }
             ast::ItemKind::Struct(decl) => {
                 let id = intrapackage(assigner.next_item());
-                self.names.insert(
-                    decl.name.id,
-                    Res::Item(
-                        id,
-                        ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs)),
-                    ),
-                );
+                let item_status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs));
+                self.names.insert(decl.name.id, Res::Item(id, item_status));
                 let scope = self.current_scope_mut();
                 scope.tys.insert(
                     Rc::clone(&decl.name.name),
@@ -897,276 +980,273 @@ impl Resolver {
                     Rc::clone(&decl.name.name),
                     ScopeItemEntry::new(id, ItemSource::Declared),
                 );
+                scope.importables.insert(
+                    Rc::clone(&decl.name.name),
+                    Res::Importable(
+                        ImportableItemKind::Ty(id, item_status),
+                        ImportableVisibility::Unused,
+                    ),
+                );
             }
-            ast::ItemKind::Err | ast::ItemKind::ImportOrExport(..) => (),
+            ast::ItemKind::ImportOrExport(decl) => {
+                assign_item_id(&mut self.names, || intrapackage(assigner.next_item()), decl);
+            }
+            ast::ItemKind::Err => (),
         }
     }
 
     #[allow(clippy::too_many_lines)]
-    fn bind_import_or_export(
+    fn resolve_and_bind_import_or_export(
         &mut self,
         decl: &ImportOrExportDecl,
-        current_namespace: Option<(NamespaceId, &[Ident])>,
-    ) {
-        let (current_namespace, current_namespace_name) = if let Some((a, b)) = current_namespace {
-            (Some(a), Some(b))
-        } else {
-            (None, None)
-        };
+        current_namespace: Option<NamespaceId>,
+        current_namespace_name: Option<&[Ident]>,
+        attempted_imports_to_resolution_results: &mut FxHashMap<NodeId, Result<(), Error>>,
+    ) -> bool {
+        let decl_items = filter_dropped_names(
+            iter_valid_items(decl),
+            current_namespace_name,
+            &self.dropped_names,
+        );
 
-        let current_namespace_name: Option<Rc<str>> =
-            current_namespace_name.map(|ns| ns.full_name());
-        let is_export = decl.is_export();
-
-        for decl_item in decl
-            .items()
-            // filter out any dropped names
-            // this is so you can still export an item that has been conditionally removed from compilation
-            // without a resolution error in the export statement itself
-            // This is not a perfect solution, re-exporting an aliased name from another namespace that has been
-            // conditionally compiled out will still fail. However, this is the only way to solve this
-            // problem without upleveling the preprocessor into the resolver, so it can do resolution-aware
-            // dropped_names population.
-            .filter(|item| {
-                if let (Some(current_namespace_name), PathKind::Ok(path)) =
-                    (&current_namespace_name, &item.path)
-                {
-                    let item_as_tracked_name = path_as_tracked_name(path, current_namespace_name);
-                    !self.dropped_names.contains(&item_as_tracked_name)
-                } else {
-                    true
+        let mut something_changed = false;
+        for valid_item in decl_items {
+            let res = match &valid_item.kind {
+                ImportKind::Wildcard => {
+                    // we should have handled these already
+                    false
                 }
-            })
-            .collect::<Vec<_>>()
-        {
-            let PathKind::Ok(path) = &decl_item.path else {
-                continue;
-            };
-            let Some(decl_item_name) = decl_item.name() else {
-                continue;
-            };
-            let mut decl_alias = decl_item.alias.clone();
-            if decl_item.is_glob {
-                self.bind_glob_import_or_export(decl_item, decl.is_export());
-                continue;
-            }
-
-            let (term_result, ty_result) = (
-                self.resolve_path(NameKind::Term, path),
-                self.resolve_path(NameKind::Ty, path),
-            );
-
-            if let (Err(err), Err(_)) = (&term_result, &ty_result) {
-                // try to see if it is a namespace
-                match self.handle_namespace_import_or_export(
-                    is_export,
-                    decl_item,
-                    current_namespace,
-                    err,
-                ) {
-                    Ok(()) => (),
-                    Err(_) => {
-                        self.errors.push(Error::ClobberedNamespace {
-                            namespace_name: decl_item_name.name.to_string(),
-                            span: decl_item.span,
-                        });
-                    }
-                }
-                continue;
-            }
-
-            let local_name = decl_item_name.name.clone();
-
-            {
-                let scope = self.current_scope_mut();
-                // if the item already exists in the scope, return a duplicate error
-                let scope_term_result = scope.terms.get(&local_name);
-                let scope_ty_result = scope.tys.get(&local_name);
-                match (is_export, scope_term_result, scope_ty_result) {
-                    // if either has already been exported or imported, generate a duplicate import or export error
-                    (true, Some(entry), _) | (true, _, Some(entry))
-                        if entry.source == ItemSource::Exported =>
+                ImportKind::Direct { alias: _ } => {
+                    if attempted_imports_to_resolution_results
+                        .get(&valid_item.name().id)
+                        .is_some_and(Result::is_ok)
                     {
-                        let err =
-                            Error::DuplicateExport(local_name.to_string(), decl_item_name.span);
-                        self.errors.push(err);
+                        // If this item has already been bound, skip it.
                         continue;
                     }
-                    (false, Some(entry), _) | (true, _, Some(entry))
-                        if matches!(entry.source, ItemSource::Imported(..)) =>
-                    {
-                        // only push this error if the import is of a different item.
-                        // this is for the re-runnability of jupyter cells.
-                        // we want to be able to re-run a cell which may have an import in
-                        // it, meaning it would evaluate the same import multiple times.
-                        //
-                        // if the import is of a different item, though, then we should throw an
-                        // error because the import introduces a conflict.
-                        match (term_result, ty_result) {
-                            (Ok(res), _) | (_, Ok(res)) if res.item_id() == Some(entry.id) => {
-                                continue;
-                            }
-                            _ => {
-                                let err = Error::ImportedDuplicate(
-                                    local_name.to_string(),
-                                    decl_item_name.span,
-                                );
-                                self.errors.push(err);
-                                continue;
-                            }
-                        }
-                    }
-                    // special case:
-                    // if this is an export of an import with an alias,
-                    // we treat it as an aliased export of the original underlying item
-                    (true, Some(entry), _) | (true, _, Some(entry)) => {
-                        if let ItemSource::Imported(Some(ref alias)) = entry.source {
-                            decl_alias = decl_alias.or(Some(alias.clone()));
-                        }
-                    }
-                    _ => (),
-                }
-            }
 
-            let local_name = decl_alias
-                .as_ref()
-                .map(|x| x.name.clone())
-                .unwrap_or(local_name);
-
-            let item_source = if is_export {
-                ItemSource::Exported
-            } else {
-                ItemSource::Imported(decl_item.alias.clone())
-            };
-
-            if let Ok(Res::Item(id, _) | Res::ExportedItem(id, _)) = term_result {
-                if is_export {
-                    if let Some(namespace) = current_namespace {
-                        self.globals
-                            .terms
-                            .get_mut_or_default(namespace)
-                            .insert(local_name.clone(), Res::Item(id, ItemStatus::Available));
-                    }
-                }
-                let scope = self.current_scope_mut();
-                scope.terms.insert(
-                    local_name.clone(),
-                    ScopeItemEntry::new(id, item_source.clone()),
-                );
-            }
-
-            if let Ok(Res::Item(id, _) | Res::ExportedItem(id, _)) = ty_result {
-                if is_export {
-                    if let Some(namespace) = current_namespace {
-                        self.globals
-                            .tys
-                            .get_mut_or_default(namespace)
-                            .insert(local_name.clone(), Res::Item(id, ItemStatus::Available));
-                    }
-                }
-                let scope = self.current_scope_mut();
-                scope.tys.insert(
-                    local_name.clone(),
-                    ScopeItemEntry::new(id, item_source.clone()),
-                );
-            }
-
-            // This is kind of a messy match, it is merged and formatted this way
-            // to appease clippy and rustfmt.
-            let res = match (term_result, ty_result) {
-                // If either a term or a ty exists for this item already,
-                // as either an item or an export, then we should use that res.
-                (
-                    Ok(
-                        res @ (Res::Item(..)
-                        | Res::ExportedItem(..)
-                        | Res::PrimTy(..)
-                        | Res::UnitTy),
-                    ),
-                    _,
-                )
-                | (
-                    _,
-                    Ok(
-                        res @ (Res::Item(..)
-                        | Res::ExportedItem(..)
-                        | Res::PrimTy(..)
-                        | Res::UnitTy),
-                    ),
-                ) => res,
-                // Then, if the item was found as either a term or ty but is _not_ an item or export, this export
-                // refers to an invalid res.
-                (Ok(_), _) | (_, Ok(_)) => {
-                    let err = if is_export {
-                        Error::ExportedNonItem
-                    } else {
-                        Error::ImportedNonItem
+                    let import_item_id = match self.names.get(valid_item.name().id) {
+                        Some(Res::Item(item_id, ..)) => *item_id,
+                        _ => panic!("unexpected resolution for import name"),
                     };
-                    let err = err(path.span);
-                    self.errors.push(err);
-                    continue;
-                }
-                // Lastly, if neither was found, use the error from the term_result to report a not
-                // found error.
-                (Err(err), _) => {
-                    self.errors.push(err);
-                    continue;
+                    match self.resolve_path(NameKind::Importable, valid_item.path) {
+                        Ok(Res::Importable(imported_item_kind, _visibility)) => {
+                            // TODO: check visibility? Not sure how I'm using this yet. Probably not at all.
+                            //
+                            // Successfully resolved. Bind this import's name as term/ty/importable
+                            // or any combination thereof so that it can be resolved from
+                            // expressions, other declarations, imports, etc
+
+                            // If the import item has the same namespace and name as the item
+                            // we just imported, we can skip binding it.
+
+                            let bind_result = if valid_item.is_export {
+                                // If this an export, we bind in the global scope.
+
+                                let current_namespace = current_namespace
+                                    .expect("current namespace should be set for exports");
+
+                                // Declare in the global scope
+                                match imported_item_kind {
+                                    ImportableItemKind::Callable(imported_item_id, status) => {
+                                        bind_imported_callable_name(
+                                            valid_item.name(),
+                                            current_namespace,
+                                            import_item_id,
+                                            imported_item_id,
+                                            status,
+                                            &mut self.names,
+                                            &mut self.globals,
+                                        )
+                                    }
+                                    ImportableItemKind::Ty(imported_item_id, status) => {
+                                        bind_imported_ty_name(
+                                            valid_item.name(),
+                                            current_namespace,
+                                            import_item_id,
+                                            imported_item_id,
+                                            status,
+                                            &mut self.names,
+                                            &mut self.globals,
+                                        )
+                                    }
+                                    ImportableItemKind::Namespace(
+                                        original_namespace_id,
+                                        namespace_item_id,
+                                    ) => {
+                                        // Inserting this name as an alias for namespace_id
+                                        let res = self
+                                            .globals
+                                            .namespaces
+                                            .insert_or_find_namespace_from_root_with_id(
+                                                vec![valid_item.name().name.clone()],
+                                                current_namespace,
+                                                original_namespace_id,
+                                            );
+
+                                        match res {
+                                            Ok(()) => bind_exported_namespace_name(
+                                                valid_item.name(),
+                                                current_namespace,
+                                                import_item_id,
+                                                namespace_item_id,
+                                                original_namespace_id,
+                                                &mut self.names,
+                                                &mut self.globals,
+                                            ),
+                                            Err(_) => Err(Error::ClobberedNamespace {
+                                                namespace_name: valid_item.name().name.to_string(),
+                                                span: valid_item.name().span,
+                                            }),
+                                        }
+                                    }
+                                }
+                            } else {
+                                // If this is an import, we bind in the namespace-local scope.
+                                match imported_item_kind {
+                                    ImportableItemKind::Callable(imported_item_id, status) => self
+                                        .bind_imported_callable_name_in_current_scope(
+                                            valid_item.name(),
+                                            current_namespace,
+                                            import_item_id,
+                                            imported_item_id,
+                                            status,
+                                        ),
+                                    ImportableItemKind::Ty(imported_item_id, status) => self
+                                        .bind_imported_ty_name_in_current_scope(
+                                            valid_item.name(),
+                                            current_namespace,
+                                            import_item_id,
+                                            imported_item_id,
+                                            status,
+                                        ),
+                                    ImportableItemKind::Namespace(namespace_id, _) => {
+                                        // A direct import of a namespace is the same as an open with an alias
+                                        // TODO: add this namespace as an importable into the scope as well?
+
+                                        let current_opens = self
+                                            .current_scope_mut()
+                                            .opens
+                                            .entry(vec![valid_item.name().name.clone()])
+                                            .or_default();
+
+                                        let open = Open {
+                                            namespace: namespace_id,
+                                            span: valid_item.path.full_span(),
+                                        };
+                                        if !current_opens.contains(&open) {
+                                            current_opens.push(open);
+                                        }
+                                        Ok(())
+                                    }
+                                }
+                            };
+
+                            let new_import_was_bound = bind_result.is_ok();
+
+                            // Mark attempted import as resolved, even though binding may have failed
+                            // we won't reattempt failed bindings, but we would reattempt failed resolutions
+                            attempted_imports_to_resolution_results
+                                .insert(valid_item.name().id, Ok(()));
+
+                            if let Err(err) = bind_result {
+                                self.errors.push(err);
+                            }
+
+                            new_import_was_bound
+                        }
+                        Ok(res) => {
+                            unreachable!(
+                                "we should never resolve an importable item to a non-importable res: {res:?}"
+                            );
+                        }
+                        Err(err) => {
+                            attempted_imports_to_resolution_results
+                                .insert(valid_item.name().id, Err(err));
+                            false
+                        }
+                    }
                 }
             };
-            match res {
-                // There's a bit of special casing here -- if this item is an export,
-                // and it originates from another package, we want to track the res as
-                // a separate exported item which points to the original package where
-                // the definition comes from.
-                Res::Item(item_id, _) if item_id.package.is_some() && is_export => {
-                    self.names
-                        .insert(decl_item_name.id, Res::ExportedItem(item_id, decl_alias));
-                }
-                Res::Item(underlying_item_id, _) if decl_alias.is_some() && is_export => {
-                    // insert the export's alias
-                    self.names.insert(
-                        decl_item_name.id,
-                        Res::ExportedItem(underlying_item_id, decl_alias),
-                    );
-                }
-                _ => self.names.insert(decl_item_name.id, res),
-            }
+            something_changed = something_changed || res;
         }
+        something_changed
     }
 
-    /// Very similar to [`bind_import`], but for glob imports.
-    /// Globs can only be attached to namespaces, and
-    /// they import all items from the namespace into the current scope.
-    fn bind_glob_import_or_export(&mut self, item: &ImportOrExportItem, is_export: bool) {
-        let PathKind::Ok(path) = &item.path else {
-            return;
-        };
+    fn resolve_and_bind_local_imports_and_exports<T>(&mut self, stmts: &[T])
+    where
+        T: Deref<Target = ast::Stmt>,
+    {
+        // Now, resolve and bind all imports, do this
+        // iteratively until all valid imports are resolved.
+        let mut attempted_imports: FxHashMap<NodeId, Result<(), Error>> = FxHashMap::default();
+        let mut new_imports_bound;
 
-        if is_export {
-            self.errors.push(Error::GlobExportNotSupported(path.span));
-            return;
+        for i in 1..=100 {
+            new_imports_bound = false;
+
+            let mut import_and_export_items = Vec::new();
+
+            for stmt in stmts {
+                let stmt = &**stmt;
+                if let ast::StmtKind::Item(item) = &*stmt.kind {
+                    if let ItemKind::ImportOrExport(decl) = &*item.kind {
+                        for item in iter_valid_items(decl) {
+                            import_and_export_items.push(item);
+                        }
+                    }
+                }
+            }
+
+            // Handle all opens first
+            for stmt in stmts {
+                let stmt = &**stmt;
+                if let ast::StmtKind::Item(item) = &*stmt.kind {
+                    if let ItemKind::Open(PathKind::Ok(path), alias) = &*item.kind {
+                        self.add_open(path.as_ref(), alias.as_deref(), self.current_namespace());
+                    }
+                }
+            }
+
+            // Glob imports are treated as opens, handle them too
+            for item in &import_and_export_items {
+                if let ImportKind::Wildcard = item.kind {
+                    self.add_open(item.path, None, self.current_namespace());
+                }
+            }
+
+            // now, attempt to resolve all imports, and bind the names
+            // this may not resolve all imports, as import resolution is iterative
+
+            for stmt in stmts {
+                let stmt = &**stmt;
+                if let ast::StmtKind::Item(item) = &*stmt.kind {
+                    if let ItemKind::ImportOrExport(decl) = &*item.kind {
+                        let bound = self.resolve_and_bind_import_or_export(
+                            decl,
+                            None,
+                            None,
+                            &mut attempted_imports,
+                        );
+                        new_imports_bound = new_imports_bound || bound;
+                    }
+                }
+            }
+
+            if !new_imports_bound {
+                // If no new imports were bound, we can stop.
+                break;
+            }
+            // TODO: technically an error, not a panic
+            assert!(
+                i < 100,
+                "could not finish resolving local imports after 100 iterations"
+            );
         }
-
-        if let Some(alias) = &item.alias {
-            self.errors.push(Error::GlobImportAliasNotSupported {
-                span: item.span,
-                namespace_name: path.full_name().to_string(),
-                alias: alias.name.to_string(),
-            });
-            return;
-        }
-
-        let ns = self.globals.find_namespace(path.str_iter());
-
-        let Some(ns) = ns else {
-            self.errors.push(Error::GlobImportNamespaceNotFound(
-                path.name.name.to_string(),
-                path.span,
-            ));
-            return;
-        };
-        if !is_export {
-            self.bind_open(path.as_ref(), None, ns);
+        for (_, result) in attempted_imports.drain() {
+            if let Err(err) = result {
+                self.errors.push(err);
+            }
         }
     }
 
@@ -1192,6 +1272,143 @@ impl Resolver {
             });
     }
 
+    fn bind_imported_callable_name_in_current_scope(
+        &mut self,
+        name: &Ident,
+        namespace_id: Option<NamespaceId>,
+        item_id: ItemId,
+        original_item_id: ItemId,
+        status: ItemStatus,
+    ) -> Result<(), Error> {
+        self.names.insert(name.id, Res::Item(item_id, status));
+
+        if let Some(namespace_id) = namespace_id {
+            // Check for collisions in the global scope - these will be item declarations or exports
+            if let Some(res) = self
+                .globals
+                .importables
+                .get_mut_or_default(namespace_id)
+                .get(&name.name)
+            {
+                if res.item_id() == Some(original_item_id) {
+                    // This is the item we're importing, not a collision,
+                    // but we also don't need to bind the name again.
+                    return Ok(());
+                }
+                return Err(Error::Duplicate(
+                    name.name.to_string(),
+                    self.globals
+                        .namespaces
+                        .find_namespace_by_id(&namespace_id)
+                        .0
+                        .join("."),
+                    name.span,
+                ));
+            }
+        }
+
+        let scope = self.current_scope_mut();
+        // allow shadowing in non-namespace scopes
+        let allow_shadowing = matches!(scope.kind, ScopeKind::Block | ScopeKind::Callable);
+
+        match scope.importables.entry(name.name.clone()) {
+            Entry::Occupied(mut entry) if allow_shadowing => {
+                entry.insert(Res::Importable(
+                    ImportableItemKind::Callable(original_item_id, status),
+                    ImportableVisibility::Unused,
+                ));
+                scope.terms.insert(
+                    name.name.clone(),
+                    ScopeItemEntry::new(original_item_id, ItemSource::Declared),
+                );
+            }
+            Entry::Occupied(_) => {
+                return Err(Error::DuplicateName(name.name.to_string(), name.span));
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(Res::Importable(
+                    ImportableItemKind::Callable(original_item_id, status),
+                    ImportableVisibility::Unused,
+                ));
+                scope.terms.insert(
+                    name.name.clone(),
+                    ScopeItemEntry::new(original_item_id, ItemSource::Declared),
+                );
+            }
+        }
+        Ok(())
+    }
+
+    /// Checks for collisions, which is different from local scope
+    fn bind_imported_ty_name_in_current_scope(
+        &mut self,
+        name: &Ident,
+        namespace_id: Option<NamespaceId>,
+        item_id: ItemId,
+        original_item_id: ItemId,
+        status: ItemStatus,
+    ) -> Result<(), Error> {
+        self.names.insert(name.id, Res::Item(item_id, status));
+
+        if let Some(namespace_id) = namespace_id {
+            // Check for collisions in the global scope - these will be item declarations or exports
+            if let Some(res) = self
+                .globals
+                .importables
+                .get_mut_or_default(namespace_id)
+                .get(&name.name)
+            {
+                if res.item_id() == Some(original_item_id) {
+                    // This is the item we're importing, not a collision,
+                    // but we also don't need to bind the name again.
+                    return Ok(());
+                }
+                return Err(Error::Duplicate(
+                    name.name.to_string(),
+                    self.globals
+                        .namespaces
+                        .find_namespace_by_id(&namespace_id)
+                        .0
+                        .join("."),
+                    name.span,
+                ));
+            }
+        }
+
+        let scope = self.current_scope_mut();
+
+        // allow shadowing in non-namespace scopes
+        let allow_shadowing = matches!(scope.kind, ScopeKind::Block | ScopeKind::Callable);
+
+        match scope.importables.entry(name.name.clone()) {
+            Entry::Occupied(mut entry) if allow_shadowing => {
+                entry.insert(Res::Importable(
+                    ImportableItemKind::Callable(original_item_id, status),
+                    ImportableVisibility::Unused,
+                ));
+            }
+            Entry::Occupied(_) => {
+                return Err(Error::DuplicateName(name.name.to_string(), name.span));
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(Res::Importable(
+                    ImportableItemKind::Callable(original_item_id, status),
+                    ImportableVisibility::Unused,
+                ));
+            }
+        }
+        // eprintln!("inserting {} as ty in scope", name.name);
+        scope.terms.insert(
+            name.name.clone(),
+            ScopeItemEntry::new(original_item_id, ItemSource::Declared),
+        );
+        scope.tys.insert(
+            name.name.clone(),
+            ScopeItemEntry::new(original_item_id, ItemSource::Declared),
+        );
+        Ok(())
+    }
+
     fn push_scope(&mut self, span: Span, kind: ScopeKind) {
         let scope_id = self.locals.push_scope(kind, span);
         self.curr_scope_chain.push(scope_id);
@@ -1213,40 +1430,17 @@ impl Resolver {
         self.locals.get_scope_mut(scope_id)
     }
 
-    fn handle_namespace_import_or_export(
-        &mut self,
-        is_export: bool,
-        item: &ast::ImportOrExportItem,
-        current_namespace: Option<NamespaceId>,
-        err: &Error,
-    ) -> Result<(), ClobberedNamespace> {
-        let PathKind::Ok(path) = &item.path else {
-            return Ok(());
-        };
-
-        let ns = self.globals.find_namespace(path.str_iter());
-
-        let alias = item
-            .alias
-            .as_ref()
-            .map(|x| Box::new(x.clone()))
-            .or(Some(path.name.clone()));
-        if let Some(ns) = ns {
-            if is_export {
-                // for exports, we update the namespace tree accordingly:
-                // update the namespace tree to include the new namespace
-                let alias = alias.unwrap_or(path.name.clone());
-                self.globals
-                    .namespaces
-                    .insert_with_id(current_namespace, ns, &alias.name)?;
-            } else {
-                // for imports, we just bind the namespace as an open
-                self.bind_open(path.as_ref(), alias.as_deref(), ns);
-            }
-        } else {
-            self.errors.push(err.clone());
-        }
-        Ok(())
+    fn current_namespace(&self) -> NamespaceId {
+        self.locals
+            .get_scopes(&self.curr_scope_chain)
+            .find_map(|scope| {
+                if let ScopeKind::Namespace(id) = scope.kind {
+                    Some(id)
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_else(|| self.globals.namespaces.root_id())
     }
 
     pub(crate) fn with_errors(self, errors: Vec<Error>) -> Resolver {
@@ -1259,6 +1453,31 @@ impl Resolver {
             curr_scope_chain: self.curr_scope_chain,
             errors,
         }
+    }
+}
+
+fn filter_dropped_names<'a>(
+    decl_items: impl Iterator<Item = ValidImportOrExportItem<'a>>,
+    current_namespace_name: Option<&'a [Ident]>,
+    dropped_names: &[TrackedName],
+) -> Vec<ValidImportOrExportItem<'a>> {
+    if let Some(current_namespace_name) = current_namespace_name {
+        decl_items
+            // filter out any dropped names
+            // this is so you can still export an item that has been conditionally removed from compilation
+            // without a resolution error in the export statement itself
+            // This is not a perfect solution, re-exporting an aliased name from another namespace that has been
+            // conditionally compiled out will still fail. However, this is the only way to solve this
+            // problem without upleveling the preprocessor into the resolver, so it can do resolution-aware
+            // dropped_names population.
+            .filter(|item| {
+                let item_as_tracked_name =
+                    path_as_tracked_name(item.path, &current_namespace_name.full_name());
+                !dropped_names.contains(&item_as_tracked_name)
+            })
+            .collect::<Vec<_>>()
+    } else {
+        decl_items.collect::<Vec<_>>()
     }
 }
 
@@ -1341,28 +1560,8 @@ impl AstVisitor<'_> for With<'_> {
 
     fn visit_item(&mut self, item: &ast::Item) {
         match &*item.kind {
-            ItemKind::ImportOrExport(decl) if decl.is_import() => {
-                // Only locally scoped imports and exports are handled here.
-                self.resolver.bind_import_or_export(decl, None);
-            }
-            ItemKind::Open(PathKind::Ok(path), alias) => {
-                let scopes = self.resolver.curr_scope_chain.iter().rev();
-                let namespace = scopes
-                    .into_iter()
-                    .find_map(|scope| {
-                        let scope = self.resolver.locals.get_scope(*scope);
-                        if let ScopeKind::Namespace(id) = scope.kind {
-                            Some(id)
-                        } else {
-                            None
-                        }
-                    })
-                    .unwrap_or_else(|| self.resolver.globals.namespaces.root_id());
-                // Only locally scoped opens are handled here.
-                // There is only a namespace parent scope if we aren't executing incremental fragments.
-                self.resolver
-                    .bind_open(path.as_ref(), alias.as_deref(), namespace);
-            }
+            ItemKind::ImportOrExport(decl) if decl.is_import() => {}
+            ItemKind::Open(PathKind::Ok(_), _) => {}
             _ => ast_visit::walk_item(self, item),
         }
     }
@@ -1425,7 +1624,9 @@ impl AstVisitor<'_> for With<'_> {
     }
 
     fn visit_block(&mut self, block: &ast::Block) {
+        // eprintln!("visiting block {}", block.id);
         self.with_scope(block.span, ScopeKind::Block, |visitor| {
+            // First, bind all declarations besides imports
             for stmt in &block.stmts {
                 if let ast::StmtKind::Item(item) = &*stmt.kind {
                     visitor
@@ -1433,6 +1634,10 @@ impl AstVisitor<'_> for With<'_> {
                         .bind_local_item(visitor.assigner, item, None);
                 }
             }
+
+            visitor
+                .resolver
+                .resolve_and_bind_local_imports_and_exports(block.stmts.as_ref());
 
             ast_visit::walk_block(visitor, block);
         });
@@ -1515,6 +1720,22 @@ pub(super) struct GlobalTable {
     scope: GlobalScope,
 }
 
+impl std::fmt::Debug for GlobalTable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // let _ = writeln!(f, "  names:");
+        // for (id, res) in &self.names {
+        //     let _ = writeln!(f, "    {id}: {:?}", res.item_id());
+        // }
+
+        writeln!(f, "  global scope namespace items:")?;
+        for (id, res) in &self.scope.namespace_items {
+            let (name, _) = self.scope.namespaces.find_namespace_by_id(&id);
+            writeln!(f, "    {id}: {}: {:?}", name.join("."), res.item_id())?;
+        }
+        Ok(())
+    }
+}
+
 impl GlobalTable {
     pub(super) fn new() -> Self {
         let builtins: [(Rc<str>, Res); 10] = [
@@ -1545,8 +1766,11 @@ impl GlobalTable {
             scope: GlobalScope {
                 tys,
                 terms: IndexMap::default(),
+                importables: IndexMap::default(),
+                namespace_items: IndexMap::default(),
                 namespaces: scope.namespaces,
                 intrinsics: FxHashSet::default(),
+                self_exported_item_ids: FxHashMap::default(),
             },
         }
     }
@@ -1573,9 +1797,11 @@ impl GlobalTable {
                 }
             }
         }
+
         errors
     }
 
+    #[allow(clippy::too_many_lines)]
     pub(super) fn add_external_package(
         &mut self,
         id: PackageId,
@@ -1583,6 +1809,7 @@ impl GlobalTable {
         store: &crate::compile::PackageStore,
         alias: Option<&str>,
     ) -> Result<(), Vec<Error>> {
+        // eprintln!("add external package");
         // if there is a package-level alias defined, use that for the root namespace.
         let root = match alias {
             Some(alias) => self.scope.insert_or_find_namespace(vec![Rc::from(alias)]),
@@ -1592,38 +1819,10 @@ impl GlobalTable {
         };
 
         let mut errs = Vec::new();
-        // iterate over the tree from the package and recreate it here
-        for names_for_same_namespace in &package.namespaces {
-            let mut names_iter = names_for_same_namespace.into_iter();
-            // grab the ID for this namespace from the "current" package, or
-            // create it if it doesn't exist
-            let base_id = self.scope.insert_or_find_namespace_from_root(
-                names_iter
-                    .next()
-                    .expect("should always be at least one name"),
-                root,
-            );
-
-            for name in names_iter {
-                if let Err(ClobberedNamespace) = self
-                    .scope
-                    .insert_or_find_namespace_from_root_with_id(name.clone(), root, base_id)
-                {
-                    errs.push(Error::ClobberedNamespace {
-                        namespace_name: name.clone().join("."),
-                        span: Span::default(),
-                    });
-                }
-            }
-        }
-
-        if !errs.is_empty() {
-            return Err(errs);
-        }
 
         for global in global::iter_package(Some(id), package).filter(|global| {
             global.visibility == hir::Visibility::Public
-                || matches!(&global.kind, global::Kind::Term(t) if t.intrinsic)
+                || matches!(&global.kind, global::Kind::Callable(t) if t.intrinsic)
         }) {
             // If the namespace is `Main` and we have an alias, we treat it as the root of the package, so there's no
             // namespace prefix between the dependency alias and the defined items.
@@ -1638,43 +1837,131 @@ impl GlobalTable {
 
             let namespace = self
                 .scope
-                .insert_or_find_namespace_from_root(global_namespace, root);
+                .insert_or_find_namespace_from_root(global_namespace.clone(), root);
 
             match (global.kind, global.visibility) {
                 (global::Kind::Ty(ty), hir::Visibility::Public) => {
+                    // eprintln!(
+                    //     "got a ty {} : {} , namespace: {}",
+                    //     ty.id,
+                    //     global.name,
+                    //     global_namespace.join(".")
+                    // );
+                    self.scope
+                        .terms
+                        .get_mut_or_default(namespace)
+                        .insert(global.name.clone(), Res::Item(ty.id, global.status));
                     self.scope
                         .tys
                         .get_mut_or_default(namespace)
-                        .insert(global.name, Res::Item(ty.id, global.status));
+                        .insert(global.name.clone(), Res::Item(ty.id, global.status));
+                    self.scope.importables.get_mut_or_default(namespace).insert(
+                        global.name,
+                        Res::Importable(
+                            ImportableItemKind::Ty(ty.id, global.status),
+                            ImportableVisibility::Unused,
+                        ),
+                    );
                 }
-                (global::Kind::Term(term), visibility) => {
+                (global::Kind::Callable(term), visibility) => {
                     if visibility == hir::Visibility::Public {
                         self.scope
                             .terms
                             .get_mut_or_default(namespace)
                             .insert(global.name.clone(), Res::Item(term.id, global.status));
+
+                        self.scope.importables.get_mut_or_default(namespace).insert(
+                            global.name.clone(),
+                            Res::Importable(
+                                ImportableItemKind::Callable(term.id, global.status),
+                                ImportableVisibility::Unused,
+                            ),
+                        );
                     }
                     if term.intrinsic {
                         self.scope.intrinsics.insert(global.name);
                     }
                 }
-                (global::Kind::Namespace, hir::Visibility::Public) => {
-                    self.scope.insert_or_find_namespace(global.namespace);
+                (global::Kind::Namespace(id), hir::Visibility::Public) => {
+                    let ns_id = self
+                        .scope
+                        .insert_or_find_namespace_from_root(global_namespace.clone(), root);
+
+                    let full_name = self.scope.namespaces.find_namespace_by_id(&ns_id).0;
+
+                    let (name, parent_namespace) = full_name
+                        .split_last()
+                        .expect("namespace should not be empty");
+
+                    // eprintln!("parent_namespace = {}", parent_namespace.join("."));
+
+                    let parent_id = if parent_namespace.is_empty() {
+                        self.scope.namespaces.root_id()
+                    } else {
+                        self.scope
+                            .namespaces
+                            .insert_or_find_namespace(parent_namespace.iter().cloned())
+                    };
+
+                    self.scope
+                        .namespace_items
+                        .insert(ns_id, Res::Item(id, ItemStatus::Available));
+
+                    // eprintln!(
+                    //     "added namespace with full_name {} id = {ns_id} parent_id = {parent_id}",
+                    //     full_name.join(".")
+                    // );
+
+                    self.scope.importables.get_mut_or_default(parent_id).insert(
+                        name.clone(),
+                        Res::Importable(
+                            ImportableItemKind::Namespace(ns_id, Some(id)),
+                            ImportableVisibility::Unused,
+                        ),
+                    );
                 }
                 (global::Kind::Export(item_id), _) => {
+                    // eprintln!("  export item: {} to item id {item_id}", global.name);
                     let Some(item) = find_item(store, item_id, id) else {
-                        return Ok(());
+                        // eprintln!(
+                        //     "could not resolve export item to {item_id} name: {} in {}",
+                        //     global.name,
+                        //     global_namespace.join(".")
+                        // );
+                        continue;
                     };
+                    // eprintln!("    export item: found item {}", item.id);
                     match item.kind {
                         hir::ItemKind::Callable(..) => {
                             self.scope
                                 .terms
                                 .get_mut_or_default(namespace)
-                                .insert(global.name.clone(), Res::ExportedItem(item_id, None));
+                                .insert(global.name.clone(), Res::Item(item_id, global.status));
+                            self.scope.importables.get_mut_or_default(namespace).insert(
+                                global.name,
+                                Res::Importable(
+                                    ImportableItemKind::Callable(item_id, global.status),
+                                    ImportableVisibility::Unused,
+                                ),
+                            );
                         }
-                        hir::ItemKind::Namespace(ns, _items) => {
-                            self.scope
-                                .insert_or_find_namespace(ns.iter().map(|s| s.name.clone()));
+                        hir::ItemKind::Namespace(orig, _) => {
+                            let orig_id = self
+                                .scope
+                                .insert_or_find_namespace_from_root(orig.clone().into(), root);
+
+                            if let Err(ClobberedNamespace) = self.scope.namespaces.insert_with_id(
+                                Some(namespace),
+                                orig_id,
+                                &global.name,
+                            ) {
+                                errs.push(Error::ClobberedNamespace {
+                                    namespace_name: global.name.to_string(),
+                                    span: Span::default(),
+                                });
+                            }
+
+                            // TODO: should this be an importable? Probably not
                         }
                         hir::ItemKind::Ty(..) => {
                             self.scope.tys.get_mut_or_default(namespace).insert(
@@ -1685,6 +1972,13 @@ impl GlobalTable {
                                 global.name.clone(),
                                 Res::Item(item_id, ItemStatus::Available),
                             );
+                            self.scope.importables.get_mut_or_default(namespace).insert(
+                                global.name,
+                                Res::Importable(
+                                    ImportableItemKind::Ty(item_id, global.status),
+                                    ImportableVisibility::Unused,
+                                ),
+                            );
                         }
                         hir::ItemKind::Export(_, _) => {
                             unreachable!("find_item will never return an Export")
@@ -1694,6 +1988,10 @@ impl GlobalTable {
                 (_, hir::Visibility::Internal) => {}
             }
         }
+        if !errs.is_empty() {
+            return Err(errs);
+        }
+        // eprintln!("done adding external package!");
         Ok(())
     }
 }
@@ -1706,12 +2004,13 @@ fn find_item(
     let package_id = item.package.unwrap_or(this_package);
     let package = store.get(package_id)?;
     let item = package.package.items.get(item.item)?;
-    Some(match &item.kind {
+    match &item.kind {
         hir::ItemKind::Callable(_) | hir::ItemKind::Namespace(_, _) | hir::ItemKind::Ty(_, _) => {
-            item.clone()
+            Some(item.clone())
         }
-        hir::ItemKind::Export(_alias, item) => return find_item(store, *item, package_id),
-    })
+        hir::ItemKind::Export(_alias, hir::Res::Item(item)) => find_item(store, *item, package_id),
+        hir::ItemKind::Export(_, _) => None,
+    }
 }
 
 /// Given some namespace `namespace`, add all the globals declared within it to the global scope.
@@ -1722,12 +2021,7 @@ fn bind_global_items(
     assigner: &mut Assigner,
     errors: &mut Vec<Error>,
 ) {
-    names.insert(
-        namespace.id,
-        Res::Item(intrapackage(assigner.next_item()), ItemStatus::Available),
-    );
-
-    let namespace_id = scope.insert_or_find_namespace(namespace.name.rc_str_iter().cloned());
+    let namespace_id = declare_namespace_id(namespace, assigner, names, scope);
 
     for item in &namespace.items {
         match bind_global_item(
@@ -1738,9 +2032,122 @@ fn bind_global_items(
             item,
         ) {
             Ok(()) => {}
-            Err(mut e) => errors.append(&mut e),
+            Err(e) => errors.extend(e),
         }
     }
+}
+
+fn declare_namespace_id(
+    namespace: &ast::Namespace,
+    assigner: &mut Assigner,
+    names: &mut IndexMap<NodeId, Res>,
+    scope: &mut GlobalScope,
+) -> NamespaceId {
+    let mut parent_id = scope.namespaces.root_id();
+    // eprintln!("root id is {parent_id}");
+    for part in namespace.name.rc_str_iter() {
+        // eprintln!("part: {part}");
+        // Bind every part of a dotted namespace declaration as
+        // an importable, so import/export items can reference it.
+        let ns_id = scope
+            .namespaces
+            .insert_or_find_namespace_from_root(vec![part.clone()], parent_id);
+
+        if let Entry::Vacant(vacant_entry) = scope
+            .importables
+            .get_mut_or_default(parent_id)
+            .entry(part.clone())
+        {
+            // eprintln!("binding namespace {part} as importable in {parent_id}");
+            vacant_entry.insert(Res::Importable(
+                ImportableItemKind::Namespace(ns_id, None),
+                ImportableVisibility::Unused,
+            ));
+        }
+
+        parent_id = ns_id;
+    }
+
+    let namespace_name = namespace.name.rc_str_iter().cloned().collect::<Vec<_>>();
+    let node_id = namespace.id;
+    let (name, parent_namespace) = namespace_name
+        .split_last()
+        .expect("namespace should not be empty");
+    // TODO: do we need a fallback for root here?
+    let parent_id = if parent_namespace.is_empty() {
+        scope.namespaces.root_id()
+    } else {
+        scope.insert_or_find_namespace(parent_namespace.to_vec())
+    };
+
+    let namespace_id = scope.insert_or_find_namespace_from_root(vec![name.clone()], parent_id);
+    // If the item id for the namespace already exists, reuse it.
+    // Otherwise, insert the default value and return it
+    // TODO: do we still need this behavior? I don't even know anymore
+    if let Some(res) = scope.namespace_items.get(namespace_id) {
+        names.insert(node_id, res.clone());
+    } else {
+        let item_id = intrapackage(assigner.next_item());
+
+        let res = Res::Item(item_id, ItemStatus::Available);
+        scope.namespace_items.insert(namespace_id, res);
+        bind_namespace_name(
+            name,
+            node_id,
+            parent_id,
+            item_id,
+            namespace_id,
+            names,
+            scope,
+        );
+    }
+    namespace_id
+}
+
+fn bind_namespace_name(
+    name: &Rc<str>,
+    node_id: NodeId,
+    parent_id: NamespaceId,
+    item_id: ItemId,
+    namespace_id: NamespaceId,
+    names: &mut IndexMap<NodeId, Res>,
+    scope: &mut GlobalScope,
+) {
+    let res = Res::Item(item_id, ItemStatus::Available);
+    scope.importables.get_mut_or_default(parent_id).insert(
+        name.clone(),
+        Res::Importable(
+            ImportableItemKind::Namespace(namespace_id, Some(item_id)),
+            ImportableVisibility::Unused,
+        ),
+    );
+    names.insert(node_id, res);
+}
+
+fn bind_exported_namespace_name(
+    name: &Ident,
+    parent_id: NamespaceId,
+    import_item_id: ItemId,
+    original_namespace_item_id: Option<ItemId>,
+    namespace_id: NamespaceId,
+    names: &mut IndexMap<NodeId, Res>,
+    scope: &mut GlobalScope,
+) -> Result<(), Error> {
+    if original_namespace_item_id.is_some_and(|item_id| item_id.package.is_some()) {
+        // This is a namespace from an external package, and reexporting is disallowed
+        // since it has no effect.
+
+        return Err(Error::CrossPackageNamespaceReexport(name.span));
+    }
+    scope.importables.get_mut_or_default(parent_id).insert(
+        name.name.clone(),
+        Res::Importable(
+            ImportableItemKind::Namespace(namespace_id, original_namespace_item_id),
+            ImportableVisibility::Unused,
+        ),
+    );
+    names.insert(name.id, Res::Item(import_item_id, ItemStatus::Available));
+    Ok(())
 }
 
 /// Tries to extract a field name from an expression in cases where it is syntactically ambiguous
@@ -1796,69 +2203,30 @@ fn bind_global_item(
         ast::ItemKind::Callable(decl) => {
             bind_callable(decl, namespace, next_id, item, names, scope)
         }
-        ast::ItemKind::Ty(name, _) => bind_ty(name, namespace, next_id, item, names, scope),
-        ast::ItemKind::Struct(decl) => bind_ty(&decl.name, namespace, next_id, item, names, scope),
+        ast::ItemKind::Ty(name, _) => bind_ty(name, namespace, next_id(), item, names, scope),
+        ast::ItemKind::Struct(decl) => {
+            bind_ty(&decl.name, namespace, next_id(), item, names, scope)
+        }
         ast::ItemKind::ImportOrExport(decl) => {
-            if decl.is_import() {
-                Ok(())
-            } else {
-                for decl_item in &decl.items {
-                    let PathKind::Ok(path) = &decl_item.path else {
-                        continue;
-                    };
-                    let Some(decl_item_name) = decl_item.name() else {
-                        continue;
-                    };
-                    // if the item is a namespace, bind it here as an item
-                    let Some(ns) = scope.namespaces.get_namespace_id(path.str_iter()) else {
-                        continue;
-                    };
-                    if ns == namespace {
-                        // A namespace exporting itself is meaningless, since it is already available as itself.
-                        // No need to bind it to an item here, so we skip it.
-                        continue;
-                    }
-                    let item_id = next_id();
-                    let res = Res::Item(item_id, ItemStatus::Available);
-                    names.insert(decl_item_name.id, res.clone());
-                    match scope
-                        .terms
-                        .get_mut_or_default(namespace)
-                        .entry(Rc::clone(&decl_item_name.name))
-                    {
-                        Entry::Occupied(_) => {
-                            let namespace_name = scope
-                                .namespaces
-                                .find_namespace_by_id(&namespace)
-                                .0
-                                .join(".");
-                            return Err(vec![Error::Duplicate(
-                                decl_item_name.name.to_string(),
-                                namespace_name,
-                                decl_item_name.span,
-                            )]);
-                        }
-                        Entry::Vacant(entry) => {
-                            entry.insert(res);
-                        }
-                    }
-
-                    // and update the namespace tree
-                    if let Err(ClobberedNamespace) =
-                        scope
-                            .namespaces
-                            .insert_with_id(Some(namespace), ns, &decl_item_name.name)
-                    {
-                        return Err(vec![Error::ClobberedNamespace {
-                            namespace_name: decl_item_name.name.to_string(),
-                            span: decl_item_name.span,
-                        }]);
-                    }
-                }
-                Ok(())
-            }
+            assign_item_id(names, next_id, decl);
+            Ok(())
         }
         ast::ItemKind::Err | ast::ItemKind::Open(..) => Ok(()),
+    }
+}
+
+fn assign_item_id(
+    names: &mut IndexMap<NodeId, Res>,
+    mut next_id: impl FnMut() -> ItemId,
+    decl: &ImportOrExportDecl,
+) {
+    for item in iter_valid_items(decl) {
+        if let ImportKind::Wildcard = item.kind {
+            // don't bind any names for glob imports
+            continue;
+        }
+        // Generate a new Item ID we can assign to this import, but don't bind the name yet
+        names.insert(item.name().id, Res::Item(next_id(), ItemStatus::Available));
     }
 }
 
@@ -1870,61 +2238,141 @@ fn bind_callable(
     names: &mut IndexMap<NodeId, Res>,
     scope: &mut GlobalScope,
 ) -> Result<(), Vec<Error>> {
-    let item_id = next_id();
     let attrs = ast_attrs_as_hir_attrs(item.attrs.as_ref());
+    let is_intrinsic = decl_is_intrinsic(decl, &attrs);
     let status = ItemStatus::from_attrs(&attrs);
-    let res = Res::Item(item_id, status);
-    names.insert(decl.name.id, res.clone());
-    let mut errors = Vec::new();
-    match scope
-        .terms
-        .get_mut_or_default(namespace)
-        .entry(Rc::clone(&decl.name.name))
-    {
-        Entry::Occupied(_) => {
-            let namespace_name = scope
-                .namespaces
-                .find_namespace_by_id(&namespace)
-                .0
-                .join(".");
-            errors.push(Error::Duplicate(
-                decl.name.name.to_string(),
-                namespace_name.to_string(),
-                decl.name.span,
-            ));
-        }
-        Entry::Vacant(entry) => {
-            entry.insert(res);
-        }
+    let item_id = next_id();
+
+    let mut errs = vec![];
+    if let Err(err) = bind_callable_name(&decl.name, namespace, item_id, status, names, scope) {
+        errs.push(err);
     }
 
-    if decl_is_intrinsic(decl, &attrs) && !scope.intrinsics.insert(Rc::clone(&decl.name.name)) {
-        errors.push(Error::DuplicateIntrinsic(
+    if is_intrinsic && !scope.intrinsics.insert(Rc::clone(&decl.name.name)) {
+        errs.push(Error::DuplicateIntrinsic(
             decl.name.name.to_string(),
             decl.name.span,
         ));
     }
 
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(errors)
+    if errs.is_empty() { Ok(()) } else { Err(errs) }
+}
+
+fn bind_callable_name(
+    name: &Ident,
+    namespace: NamespaceId,
+    item_id: ItemId,
+    status: ItemStatus,
+    names: &mut IndexMap<NodeId, Res>,
+    scope: &mut GlobalScope,
+) -> Result<(), Error> {
+    let res = Res::Item(item_id, status);
+    names.insert(name.id, res.clone());
+
+    match (
+        scope
+            .terms
+            .get_mut_or_default(namespace)
+            .entry(Rc::clone(&name.name)),
+        scope
+            .importables
+            .get_mut_or_default(namespace)
+            .entry(Rc::clone(&name.name)),
+    ) {
+        (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => {
+            let namespace_name = scope
+                .namespaces
+                .find_namespace_by_id(&namespace)
+                .0
+                .join(".");
+            Err(Error::Duplicate(
+                name.name.to_string(),
+                namespace_name.to_string(),
+                name.span,
+            ))
+        }
+        (Entry::Vacant(term_entry), Entry::Vacant(importable_entry)) => {
+            term_entry.insert(res);
+            importable_entry.insert(Res::Importable(
+                ImportableItemKind::Callable(item_id, status),
+                ImportableVisibility::Unused,
+            ));
+            Ok(())
+        }
+    }
+}
+
+fn bind_imported_callable_name(
+    name: &Ident,
+    namespace: NamespaceId,
+    import_item_id: ItemId,
+    original_item_id: ItemId,
+    status: ItemStatus,
+    names: &mut IndexMap<NodeId, Res>,
+    scope: &mut GlobalScope,
+) -> Result<(), Error> {
+    names.insert(name.id, Res::Item(import_item_id, status));
+
+    match scope
+        .importables
+        .get_mut_or_default(namespace)
+        .entry(Rc::clone(&name.name))
+    {
+        Entry::Occupied(occupied_entry) => {
+            if occupied_entry.get().item_id() == Some(original_item_id) {
+                if let Some(existing_span) = scope
+                    .self_exported_item_ids
+                    .insert(original_item_id, name.span)
+                {
+                    Err(Error::DuplicateExport {
+                        name: name.name.to_string(),
+                        span: name.span,
+                        existing_span,
+                    })
+                } else {
+                    // This is just an `import` or `export` of the item with the same name
+                    // from the same namespace, no need to bind a new name here.
+                    Ok(())
+                }
+            } else {
+                Err(Error::Duplicate(
+                    name.name.to_string(),
+                    scope
+                        .namespaces
+                        .find_namespace_by_id(&namespace)
+                        .0
+                        .join(".")
+                        .to_string(),
+                    name.span,
+                ))
+            }
+        }
+        Entry::Vacant(vacant_entry) => {
+            vacant_entry.insert(Res::Importable(
+                ImportableItemKind::Callable(original_item_id, status),
+                ImportableVisibility::Unused,
+            ));
+            scope
+                .terms
+                .get_mut_or_default(namespace)
+                .insert(Rc::clone(&name.name), Res::Item(original_item_id, status));
+            Ok(())
+        }
     }
 }
 
 fn bind_ty(
     name: &Ident,
     namespace: NamespaceId,
-    next_id: impl FnOnce() -> ItemId,
+    item_id: ItemId,
     item: &ast::Item,
     names: &mut IndexMap<NodeId, Res>,
     scope: &mut GlobalScope,
 ) -> Result<(), Vec<Error>> {
-    let item_id = next_id();
-
     let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
-    let res = Res::Item(item_id, status);
-    names.insert(name.id, res.clone());
+    let res_term = Res::Item(item_id, status);
+    let res_ty = Res::Item(item_id, status);
+    names.insert(name.id, res_ty.clone());
     match (
         scope
             .terms
@@ -1934,8 +2382,12 @@ fn bind_ty(
             .tys
             .get_mut_or_default(namespace)
             .entry(Rc::clone(&name.name)),
+        scope
+            .importables
+            .get_mut_or_default(namespace)
+            .entry(Rc::clone(&name.name)),
     ) {
-        (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => {
+        (Entry::Occupied(_), _, _) | (_, Entry::Occupied(_), _) | (_, _, Entry::Occupied(_)) => {
             let namespace_name = scope
                 .namespaces
                 .find_namespace_by_id(&namespace)
@@ -1947,9 +2399,83 @@ fn bind_ty(
                 name.span,
             )])
         }
-        (Entry::Vacant(term_entry), Entry::Vacant(ty_entry)) => {
-            term_entry.insert(res.clone());
-            ty_entry.insert(res);
+        (Entry::Vacant(term_entry), Entry::Vacant(ty_entry), Entry::Vacant(importable_entry)) => {
+            term_entry.insert(res_term);
+            ty_entry.insert(res_ty);
+            importable_entry.insert(Res::Importable(
+                ImportableItemKind::Ty(item_id, status),
+                ImportableVisibility::Unused,
+            ));
+            Ok(())
+        }
+    }
+}
+
+fn bind_imported_ty_name(
+    name: &Ident,
+    namespace: NamespaceId,
+    import_item_id: ItemId,
+    original_item_id: ItemId,
+    status: ItemStatus,
+    names: &mut IndexMap<NodeId, Res>,
+    scope: &mut GlobalScope,
+) -> Result<(), Error> {
+    names.insert(name.id, Res::Item(import_item_id, status));
+
+    match scope
+        .importables
+        .get_mut_or_default(namespace)
+        .entry(Rc::clone(&name.name))
+    {
+        Entry::Occupied(occupied_entry) => {
+            if occupied_entry.get().item_id() == Some(original_item_id) {
+                // Found the item we're importing, e.g.:
+                //
+                // struct Foo {}
+                // export Foo;
+                //
+                if let Some(existing_span) = scope
+                    .self_exported_item_ids
+                    .insert(original_item_id, name.span)
+                {
+                    Err(Error::DuplicateExport {
+                        name: name.name.to_string(),
+                        span: name.span,
+                        existing_span,
+                    })
+                } else {
+                    // This is not a collision. We also don't need to
+                    // bind this name, since it's already bound to the original
+                    // declaration.
+                    Ok(())
+                }
+            } else {
+                Err(Error::Duplicate(
+                    name.name.to_string(),
+                    scope
+                        .namespaces
+                        .find_namespace_by_id(&namespace)
+                        .0
+                        .join(".")
+                        .to_string(),
+                    name.span,
+                ))
+            }
+        }
+        Entry::Vacant(vacant_entry) => {
+            vacant_entry.insert(Res::Importable(
+                ImportableItemKind::Ty(original_item_id, status),
+                ImportableVisibility::Unused,
+            ));
+
+            scope
+                .terms
+                .get_mut_or_default(namespace)
+                .insert(Rc::clone(&name.name), Res::Item(original_item_id, status));
+            scope
+                .tys
+                .get_mut_or_default(namespace)
+                .insert(Rc::clone(&name.name), Res::Item(original_item_id, status));
             Ok(())
         }
     }
@@ -1991,6 +2517,10 @@ fn resolve<'a>(
     provided_symbol_name: &Ident,
     provided_namespace_name: Option<&[Ident]>,
 ) -> Result<Res, Error> {
+    // eprintln!(
+    //     "resolving name {} with namekind {:?}",
+    //     provided_symbol_name.name, kind
+    // );
     if let Some(value) = check_all_scopes(
         kind,
         globals,
@@ -1998,6 +2528,7 @@ fn resolve<'a>(
         provided_namespace_name,
         scopes,
     ) {
+        // eprintln!("found in a scope");
         return value;
     }
 
@@ -2053,6 +2584,7 @@ fn resolve<'a>(
         // there are no aliases in globals
         &FxHashMap::default(),
     );
+    // eprintln!("  found {} global candidates", global_candidates.len());
 
     // we don't have to throw an error if there are extra candidates here, as we are only looking at the root,
     // and that's only one namespace. individual namespaces cannot have duplicate declarations.
@@ -2092,6 +2624,7 @@ fn check_all_scopes<'a>(
             &mut vars,
             scope,
         ) {
+            // eprintln!("found in scope: {:?}", scope);
             return Some(value);
         }
     }
@@ -2130,6 +2663,7 @@ fn check_scoped_resolutions(
         if let Some(res) =
             resolve_scope_locals(kind, globals, scope, *vars, &provided_symbol_name.name)
         {
+            // eprintln!("found as a scope local");
             // Local declarations shadow everything.
             return Some(Ok(res));
         }
@@ -2146,21 +2680,28 @@ fn check_scoped_resolutions(
         })
         .collect::<FxHashMap<_, _>>();
 
+    let namespaces_to_search = scope
+        .opens
+        .iter()
+        .flat_map(|(_, open)| open)
+        .map(|open @ Open { namespace, .. }| (*namespace, open));
+
+    // eprintln!(
+    //     "aliases: {:?}, namespaces_to_search: {:?}",
+    //     aliases, namespaces_to_search
+    // );
     let explicit_open_candidates = find_symbol_in_namespaces(
         kind,
         globals,
         provided_namespace_name,
         provided_symbol_name,
-        scope
-            .opens
-            .iter()
-            .flat_map(|(_, open)| open)
-            .map(|open @ Open { namespace, .. }| (*namespace, open)),
+        namespaces_to_search,
         &aliases,
     );
 
     match explicit_open_candidates.len() {
         1 => {
+            // eprintln!("found in explicit open");
             return Some(Ok(single(explicit_open_candidates.into_keys())
                 .expect("we asserted on the length, so this is infallible")));
         }
@@ -2168,10 +2709,7 @@ fn check_scoped_resolutions(
             return Some(Err(ambiguous_symbol_error(
                 globals,
                 provided_symbol_name,
-                explicit_open_candidates
-                    .into_iter()
-                    .map(|(a, b)| (a, b.clone()))
-                    .collect(),
+                explicit_open_candidates.into_values().collect(),
             )));
         }
         _ => (),
@@ -2195,9 +2733,8 @@ fn check_scoped_resolutions(
 fn ambiguous_symbol_error(
     globals: &GlobalScope,
     provided_symbol_name: &Ident,
-    candidates: FxHashMap<Res, Open>,
+    mut opens: Vec<&Open>,
 ) -> Error {
-    let mut opens: Vec<_> = candidates.into_values().collect();
     opens.sort_unstable_by_key(|open| open.span);
     let (first_open_ns, _) = globals.namespaces.find_namespace_by_id(&opens[0].namespace);
     let (second_open_ns, _) = globals.namespaces.find_namespace_by_id(&opens[1].namespace);
@@ -2233,6 +2770,8 @@ where
                 .unwrap_or_default(),
         ),
     };
+    // eprintln!("provided namespace name: {provided_namespace_name:?}");
+    // eprintln!("opens: {opens:?}");
 
     let mut candidates = FxHashMap::default();
     if let Some(opens) = opens {
@@ -2258,6 +2797,13 @@ where
     }
 
     for (candidate_namespace_id, open) in namespaces_to_search {
+        // eprintln!("searching in namespace {candidate_namespace_id} with open {open:?}");
+        // let nnn = globals
+        //     .namespaces
+        //     .find_namespace_by_id(&candidate_namespace_id)
+        //     .0
+        //     .join(".");
+        // eprintln!("  searching in namespace {nnn}");
         find_symbol_in_namespace(
             kind,
             globals,
@@ -2291,6 +2837,11 @@ fn find_symbol_in_namespace<O>(
 ) where
     O: Clone + std::fmt::Debug,
 {
+    // eprintln!(
+    //     "  attempting to find under {candidate_namespace_id} ({open:?}) : {}.{}",
+    //     provided_namespace_name.map_or_else(Default::default, |ns| ast::Idents::full_name(&ns)),
+    //     provided_symbol_name.name
+    // );
     // Retrieve the namespace associated with the candidate_namespace_id from the global namespaces
     let (_, candidate_namespace) = globals
         .namespaces
@@ -2302,6 +2853,7 @@ fn find_symbol_in_namespace<O>(
             .borrow()
             .get_namespace_id(name.str_iter())
     });
+    // eprintln!("    provided namespace was found to have id {namespace:?}");
 
     // if a namespace was provided, but not found, then this is not the correct namespace.
     // for example, if the query is `Foo.Bar.Baz`, we know there must exist a `Foo.Bar` somewhere.
@@ -2311,7 +2863,8 @@ fn find_symbol_in_namespace<O>(
     }
 
     // Attempt to get the symbol from the global scope.
-    let res = namespace.and_then(|ns_id| globals.get(kind, ns_id, &provided_symbol_name.name));
+    let namespace = namespace.unwrap_or(globals.namespaces.root_id());
+    let res = globals.get(kind, namespace, &provided_symbol_name.name);
 
     // If a symbol was found, insert it into the candidates map
     if let Some(res) = res {
@@ -2366,14 +2919,16 @@ fn resolve_scope_locals(
                     });
                 }
             }
+            NameKind::Importable => {}
         }
     }
 
-    if let Some(&id) = scope.item(kind, name) {
-        return Some(Res::Item(id, ItemStatus::Available));
+    if let Some(res) = scope.item(kind, name) {
+        return Some(res);
     }
 
     if let ScopeKind::Namespace(namespace) = &scope.kind {
+        // TODO: Is this really needed? Don't we normally already look at globals?
         if let Some(res) = globals.get(kind, *namespace, name) {
             return Some(res.clone());
         }

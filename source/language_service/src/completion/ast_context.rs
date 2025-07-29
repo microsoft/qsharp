@@ -4,8 +4,8 @@
 use qsc::{
     ast::{
         self, Attr, Block, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr, Ident,
-        Idents, Item, ItemKind, Namespace, NodeId, Package, Pat, Path, QubitInit, SpecDecl, Stmt,
-        StructDecl, Ty, TyDef, TyKind,
+        Idents, ImportKind, Item, ItemKind, Namespace, NodeId, Package, Pat, Path, QubitInit,
+        SpecDecl, Stmt, StructDecl, Ty, TyDef, TyKind,
         visit::{self, Visitor},
     },
     parse::completion::PathKind,
@@ -65,13 +65,7 @@ impl<'a> Visitor<'a> for AstContext<'a> {
             ItemKind::ImportOrExport(decl) => {
                 self.set_context(Context::Path(PathKind::Import));
                 for item in &decl.items {
-                    if item.is_glob
-                        && item.span.touches(self.offset)
-                        && item
-                            .alias
-                            .as_ref()
-                            .is_none_or(|a| !a.span.touches(self.offset))
-                    {
+                    if item.kind == ImportKind::Wildcard && item.span.touches(self.offset) {
                         // Special case when the cursor falls *between* the
                         // `Path` and the glob asterisk,
                         // e.g. `foo.bar.|*` . In that case, the visitor

@@ -557,13 +557,13 @@ impl Lookup for Compilation {
             .get(item_id.item)
             .expect("item id should exist");
 
-        // follow chain of exports, if it is an aexport
+        // follow chain of exports, if it is an export
         while let hir::ItemKind::Export(
             _,
-            hir::ItemId {
+            hir::Res::Item(hir::ItemId {
                 package: package_id,
                 item: local_item_id,
-            },
+            }),
         ) = &item.kind
         {
             let package: &hir::Package = if let Some(id) = package_id {

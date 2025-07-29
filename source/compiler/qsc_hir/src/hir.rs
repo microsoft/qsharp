@@ -254,8 +254,6 @@ impl Display for Res {
 pub struct Package {
     /// The items in the package.
     pub items: IndexMap<LocalItemId, Item>,
-    /// The namespace tree defined by this package
-    pub namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
     /// The top-level statements in the package.
     pub stmts: Vec<Stmt>,
     /// The entry expression for an executable package.
@@ -285,6 +283,7 @@ pub type TestCallableName = String;
 
 impl Package {
     /// Returns a collection of the fully qualified names of any callables annotated with `@Test()`
+    #[must_use]
     pub fn get_test_callables(&self) -> Vec<(TestCallableName, Span)> {
         let items_with_test_attribute = self
             .items
@@ -389,7 +388,7 @@ pub enum ItemKind {
     /// A `newtype` declaration.
     Ty(Ident, Udt),
     /// An export of an item.
-    Export(Ident, ItemId),
+    Export(Ident, Res),
 }
 
 impl Display for ItemKind {
@@ -410,7 +409,7 @@ impl Display for ItemKind {
                 }
             }
             ItemKind::Ty(name, udt) => write!(f, "Type ({name}): {udt}"),
-            ItemKind::Export(name, export) => write!(f, "Export ({name}): {export}"),
+            ItemKind::Export(name, item_id) => write!(f, "Export ({name}): {item_id}",),
         }
     }
 }

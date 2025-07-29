@@ -3366,3 +3366,5 @@ fn std_callable_with_type_params() {
         "#]],
     );
 }
+
+// TODO: do we show correct signature help for exported, aliased functions?

@@ -1575,6 +1575,7 @@ name = "samples_test"
 version = "0.0.0"
 dependencies = [
  "expect-test",
+ "miette",
  "qsc",
  "qsc_project",
 ]

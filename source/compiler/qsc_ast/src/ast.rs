@@ -293,8 +293,7 @@ impl Display for ItemKind {
             },
             ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}")?,
             ItemKind::Struct(s) => write!(f, "{s}")?,
-            ItemKind::ImportOrExport(item) if item.is_export => write!(f, "Export ({item})")?,
-            ItemKind::ImportOrExport(item) => write!(f, "Import ({item})")?,
+            ItemKind::ImportOrExport(item) => write!(f, "{item}")?,
         }
         Ok(())
     }
@@ -1889,13 +1888,18 @@ pub struct ImportOrExportDecl {
 
 impl Display for ImportOrExportDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let items_str = self
-            .items
-            .iter()
-            .map(std::string::ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(", ");
-        write!(f, "ImportOrExportDecl {}: [{items_str}]", self.span)
+        let mut indent = set_indentation(indented(f), 0);
+        if self.is_export {
+            write!(indent, "Export")?;
+        } else {
+            write!(indent, "Import")?;
+        }
+        write!(indent, " {}:", self.span)?;
+        indent = set_indentation(indent, 1);
+        for item in self.items() {
+            write!(indent, "\n{item}")?;
+        }
+        Ok(())
     }
 }
 
@@ -1931,29 +1935,27 @@ impl ImportOrExportDecl {
 /// An individual item within an [`ImportOrExportDecl`]. This can be a path or a path with an alias.
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct ImportOrExportItem {
-    /// The span of the import path including the glob and alias, if any.
+    /// The span of the import path including the wildcard and alias, if any.
     pub span: Span,
     /// The path to the item being exported.
     pub path: PathKind,
-    /// An optional alias for the item being exported.
-    pub alias: Option<Ident>,
-    /// Whether this is a glob import/export.
-    pub is_glob: bool,
+    /// The kind of import being performed, direct or wildcard.
+    pub kind: ImportKind,
 }
 
 impl Display for ImportOrExportItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let ImportOrExportItem {
-            span: _,
-            path,
-            alias,
-            is_glob,
-        } = self;
-        let is_glob = if *is_glob { ".*" } else { "" };
-        match alias {
-            Some(alias) => write!(f, "{path}{is_glob} as {alias}",),
-            None => write!(f, "{path}{is_glob}"),
+        write!(f, "{} ", self.span)?;
+        match &self.kind {
+            ImportKind::Wildcard => write!(f, "Wildcard")?,
+            ImportKind::Direct { alias } => {
+                write!(f, "Direct")?;
+                if let Some(alias) = alias {
+                    write!(f, " (alias: {alias})")?;
+                }
+            }
         }
+        write!(f, ": {}", self.path)
     }
 }
 
@@ -1968,16 +1970,31 @@ impl ImportOrExportItem {
     /// Returns `None` if the path has an error.
     #[must_use]
     pub fn name(&self) -> Option<&Ident> {
-        match &self.alias {
-            Some(_) => self.alias.as_ref(),
-            None => {
-                if let PathKind::Ok(path) = &self.path {
-                    Some(&path.name)
-                } else {
-                    None
-                }
-            }
+        match &self.kind {
+            ImportKind::Wildcard => None,
+            ImportKind::Direct { alias } => alias.as_ref().or_else(|| match &self.path {
+                PathKind::Ok(path) => Some(path.name.as_ref()),
+                PathKind::Err(_) => None,
+            }),
         }
+    }
+}
+
+/// The kind of import being performed in an `ImportOrExportItem`.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ImportKind {
+    /// A wildcard import: `import A.*`
+    Wildcard,
+    /// A direct import or export: `import A.B`, `export A`, etc.
+    Direct {
+        /// An optional alias for the item being imported.
+        alias: Option<Ident>,
+    },
+}
+
+impl Default for ImportKind {
+    fn default() -> Self {
+        ImportKind::Direct { alias: None }
     }
 }
 
