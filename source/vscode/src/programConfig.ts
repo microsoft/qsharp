@@ -113,10 +113,6 @@ export async function getProgramForDocument(
       options,
     );
 
-    if (program.profile === undefined) {
-      program.profile = "unrestricted";
-    }
-
     return { success: true, programConfig: program as FullProgramConfig };
   } catch (e: unknown) {
     return {
