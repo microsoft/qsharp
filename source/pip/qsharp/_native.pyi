@@ -340,6 +340,7 @@ class Result(Enum):
 
     Zero: int
     One: int
+    Loss: int
 
 class Pauli(Enum):
     """
