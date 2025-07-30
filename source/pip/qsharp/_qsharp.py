@@ -539,7 +539,7 @@ def qsharp_value_to_python_value(obj):
         class_name = obj.name
         fields = []
         args = []
-        for name, value_ir in obj.fields.items():
+        for name, value_ir in obj.fields:
             val = qsharp_value_to_python_value(value_ir)
             ty = type(val)
             args.append(val)

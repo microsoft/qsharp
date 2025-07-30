@@ -20,6 +20,9 @@ use qsc::{
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
 
+/// Instances of this enum represent a Q# type. This is used
+/// to send the definitions of Q# UDTs defined by the user to Python
+/// and creating equivalent Python dataclasses in `qsharp.code.*`.
 #[pyclass]
 #[derive(Clone)]
 pub(super) enum TypeIR {
@@ -121,14 +124,22 @@ fn is_complex_udt(udt: &qsc::hir::ty::Udt) -> bool {
     false
 }
 
+/// This type is used to send objects from Python to Q#.
+/// It is a `HashMap` to make it simple checking that the
+/// objects have all the required fields to match the UDTs
+/// they represent, without considering the order of the fields.
 pub(super) type UdtFields = FxHashMap<String, PyObject>;
 
+/// This type is used to send instances of UDTs from Q# to Python.
+/// It is a `Vec` and not a `HashMap` to preserve the order of the fields,
+/// since that results in a better user experience when printing the
+/// objects in Python.
 #[pyclass]
 pub(super) struct UdtValue {
     #[pyo3(get)]
-    name: Option<String>,
+    name: String,
     #[pyo3(get)]
-    fields: FxHashMap<String, PyObject>,
+    fields: Vec<(String, PyObject)>,
 }
 
 #[pyclass]
@@ -397,9 +408,8 @@ pub(super) fn typed_value_to_python_obj(
                         typed_value_to_python_obj(ctx, py, value, ty)?,
                     ));
                 }
-                let fields: FxHashMap<_, _> = fields.into_iter().collect();
                 UdtValue {
-                    name: Some(udt.name.to_string()),
+                    name: udt.name.to_string(),
                     fields,
                 }
                 .into_py_any(py)

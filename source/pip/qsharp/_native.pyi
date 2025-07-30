@@ -130,7 +130,8 @@ class Interpreter:
         read_file: Callable[[str], Tuple[str, str]],
         list_directory: Callable[[str], List[Dict[str, str]]],
         resolve_path: Callable[[str, str], str],
-        make_callable: Optional[Callable[[GlobalCallable], None]],
+        fetch_github: Callable[[str, str, str, str], str],
+        make_callable: Optional[Callable[[GlobalCallable, List[str], str], None]],
         make_class: Optional[Callable[[TypeIR, List[str], str], None]],
     ) -> None:
         """
@@ -631,8 +632,27 @@ def estimate_custom(
     ...
 
 class UdtValue:
-    name: Optional[str]
-    fields: Dict[str, Any]
+    """
+    A Q# UDT value. Objects of this class represent UDT values generated
+    in Q# and sent to Python. It is then converted into a Python object
+    in the `qsharp_value_to_python_value` function in `_qsharp.py`.
+    """
+
+    name: str
+    fields: List[Tuple[str, Any]]
+
+class TypeIR:
+    """
+    A Q# type. Objects of this class represent a Q# type. This is used
+    to send the definitions of the Q# UDTs defined by the user to Python
+    and creating equivalent Python dataclasses in `qsharp.code.*`.
+    """
+
+    def kind(self) -> TypeKind: ...
+    def unwrap_primitive(self) -> PrimitiveKind: ...
+    def unwrap_tuple(self) -> List[TypeIR]: ...
+    def unwrap_array(self) -> List[TypeIR]: ...
+    def unwrap_udt(self) -> UdtIR: ...
 
 class TypeKind(Enum):
     """
@@ -663,14 +683,3 @@ class UdtIR:
 
     name: str
     fields: List[Tuple[str, TypeIR]]
-
-class TypeIR:
-    """
-    A Q# type.
-    """
-
-    def kind(self) -> TypeKind: ...
-    def unwrap_primitive(self) -> PrimitiveKind: ...
-    def unwrap_tuple(self) -> List[TypeIR]: ...
-    def unwrap_array(self) -> List[TypeIR]: ...
-    def unwrap_udt(self) -> UdtIR: ...
