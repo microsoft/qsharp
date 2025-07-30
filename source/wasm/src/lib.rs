@@ -48,14 +48,6 @@ thread_local! {
     };
 }
 
-/// Checks for a profile in the provided Q# or QASM source code and returns the profile if found.
-/// Otherwise, returns an empty string.
-#[wasm_bindgen]
-#[must_use]
-pub fn get_source_profile(program: &ProgramConfig) -> String {
-    project_system::get_source_profile(program)
-}
-
 #[wasm_bindgen]
 #[must_use]
 pub fn git_hash() -> String {

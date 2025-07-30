@@ -428,35 +428,6 @@ impl From<PackageInfo> for qsc_project::PackageInfo {
     }
 }
 
-#[allow(clippy::doc_markdown)]
-/// Gets the name of a profile specification in the source code of the program, if present.
-/// This is either a profile pragma in OpenQASM or an `@EntryPoint` attribute in Q#.
-/// An empty string is returned if no profile is found, or if parse errors are encountered.
-/// Otherwise errors are ignored.
-pub(crate) fn get_source_profile(program: &ProgramConfig) -> String {
-    if is_openqasm_program(program) {
-        let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
-        let sources = pkg_graph.root.sources;
-        for (_, contents) in &sources {
-            let (program, errors) = qsc::qasm::parser::parse(contents);
-            if errors.is_empty() {
-                let target_profile = qsc_project::openqasm::get_first_profile_pragma(&program);
-                if let Some(profile) = target_profile {
-                    return profile.to_str().to_lowercase();
-                }
-            }
-        }
-        String::new()
-    } else {
-        let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
-        let mut errors = Vec::new();
-        match qsc::packages::get_entry_profile(&pkg_graph.into(), &mut errors) {
-            Some(profile) => profile.to_str().to_lowercase(),
-            None => String::new(),
-        }
-    }
-}
-
 /// This returns the common parameters that the compiler/interpreter uses
 #[allow(clippy::type_complexity)]
 #[allow(clippy::needless_pass_by_value)]

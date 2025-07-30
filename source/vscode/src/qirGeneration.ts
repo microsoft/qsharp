@@ -3,14 +3,11 @@
 
 import { getCompilerWorker, log, TargetProfile } from "qsharp-lang";
 import * as vscode from "vscode";
-
 import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 import {
   FullProgramConfig,
   getActiveProgram,
   getVisibleProgram,
-  getVisibleQdkDocumentUri,
-  getActiveQdkDocumentUri,
 } from "./programConfig";
 import {
   EventType,
@@ -21,7 +18,6 @@ import {
 } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { qsharpExtensionId } from "./common";
-import { openManifestFile } from "./projectSystem";
 
 const generateQirTimeoutMs = 120000;
 
@@ -35,156 +31,79 @@ export class QirGenerationError extends Error {
 }
 
 export async function getQirForVisibleSource(
-  targetSupportsAdaptive?: boolean, // should be true or false when submitting to Azure, undefined when generating QIR
+  preferredTargetProfile: TargetProfile,
 ): Promise<string> {
-  const program = await getVisibleProgram();
+  const program = await getVisibleProgram({
+    targetProfileFallback: preferredTargetProfile,
+  });
+
   if (!program.success) {
     throw new QirGenerationError(program.errorMsg);
   }
-  const docUri = getVisibleQdkDocumentUri();
+
   return getQirForProgram(
     program.programConfig,
+    preferredTargetProfile,
     getVisibleDocumentType(),
-    targetSupportsAdaptive,
-    docUri,
   );
 }
 
 export async function getQirForActiveWindow(
-  targetSupportsAdaptive?: boolean, // should be true or false when submitting to Azure, undefined when generating QIR
+  preferredTargetProfile: TargetProfile,
 ): Promise<string> {
-  const program = await getActiveProgram({ showModalError: true });
+  const program = await getActiveProgram({
+    showModalError: true,
+    targetProfileFallback: preferredTargetProfile,
+  });
+
   if (!program.success) {
     throw new QirGenerationError(program.errorMsg);
   }
-  const docUri = getActiveQdkDocumentUri();
+
   return getQirForProgram(
     program.programConfig,
+    preferredTargetProfile,
     getActiveDocumentType(),
-    targetSupportsAdaptive,
-    docUri,
   );
 }
 
-const TargetProfileValues: TargetProfile[] = [
-  "base",
-  "adaptive_ri",
-  "adaptive_rif",
-  "unrestricted",
-];
+function checkCompatibility(
+  configuredTargetProfile: TargetProfile,
+  preferredTargetProfile: TargetProfile,
+) {
+  // Trick: since each profile is a superset of
+  // the previous one, we can turn this into a check
+  // using an array
+  const profiles: TargetProfile[] = [
+    "base",
+    "adaptive_ri",
+    "adaptive_rif",
+    "unrestricted",
+  ];
 
-function isValidProfile(value: string): value is TargetProfile {
-  return TargetProfileValues.includes(value as TargetProfile);
+  return (
+    profiles.indexOf(preferredTargetProfile) >=
+    profiles.indexOf(configuredTargetProfile)
+  );
 }
 
 async function getQirForProgram(
   config: FullProgramConfig,
+  preferredTargetProfile: TargetProfile,
   telemetryDocumentType: QsharpDocumentType,
-  targetSupportsAdaptive?: boolean,
-  documentUri?: vscode.Uri,
 ): Promise<string> {
   let result = "";
-  const isLocalQirGeneration = targetSupportsAdaptive === undefined;
-  const hasManifest = config.packageGraphSources.hasManifest;
-  if (!hasManifest) {
-    // ToDo: this is a lot of weird work to do just to get the profile,
-    // and uses a totally different code path from the language service.
-    let profile = "";
-    const worker = getCompilerWorker(compilerWorkerScriptPath);
-    const compilerTimeout = setTimeout(() => {
-      worker.terminate();
-    }, generateQirTimeoutMs);
-    try {
-      profile = await invokeAndReportCommandDiagnostics(
-        () => worker.getSourceProfile(config),
-        { populateProblemsView: true, showModalError: true },
-      );
-      clearTimeout(compilerTimeout);
-    } catch (e: any) {
-      log.error("Codegen error. ", e.toString());
-      if (e.toString() === "terminated") {
-        throw new QirGenerationError(
-          "QIR generation was cancelled or timed out.",
-        );
-      } else {
-        throw new QirGenerationError(
-          `QIR generation failed due to error: "${e.toString()}". Please ensure the code is compatible with a QIR profile ` +
-            "by setting the target QIR profile to 'base' or 'adaptive_ri' and fixing any errors.",
-        );
-      }
-    } finally {
-      worker.terminate();
-    }
 
-    if (isValidProfile(profile)) {
-      config.profile = profile as TargetProfile;
-    }
-  }
-
-  if (config.profile === undefined) {
-    config.profile = isLocalQirGeneration
-      ? "adaptive_rif"
-      : targetSupportsAdaptive
-        ? "adaptive_ri"
-        : "base";
-  }
-
-  const isUnrestricted = config.profile === "unrestricted";
-  const isUnsupportedAdaptiveSubmissionProfile =
-    config.profile === "adaptive_rif";
-  const isTargetProfileBase = config.profile === "base";
-  const isSubmittingAdaptiveToBaseAzureTarget =
-    !isTargetProfileBase && targetSupportsAdaptive === false;
-  const isSubmittingUnsupportedAdaptiveProfile =
-    isUnsupportedAdaptiveSubmissionProfile && !isLocalQirGeneration;
-
-  // We differentiate between submission to Azure and on-demand QIR codegen by checking
-  // whether a boolean value was passed for `supports_adaptive`. On-demand codegen does not
-  // have a target, so support for adaptive is unknown.
-  let error_msg = isLocalQirGeneration
-    ? "Generating QIR "
-    : "Submitting to Azure ";
-  if (isUnrestricted) {
-    error_msg += "is not supported when using the unrestricted profile.";
-  } else if (isSubmittingAdaptiveToBaseAzureTarget) {
-    error_msg +=
-      "using the Adaptive_RI or Adaptive_RIF profiles is not supported for targets that can only accept Base profile QIR.";
-  } else if (isSubmittingUnsupportedAdaptiveProfile) {
-    error_msg +=
-      "using the Adaptive_RIF profile is not supported for targets that can only accept Adaptive_RI profile QIR.";
-  }
-  if (hasManifest) {
-    error_msg += " Please update the QIR target via the qsharp.json.";
-  }
-
-  // Check that the current target is base or adaptive_ri profile, and current doc has no errors.
-  if (
-    isUnrestricted ||
-    isSubmittingAdaptiveToBaseAzureTarget ||
-    isSubmittingUnsupportedAdaptiveProfile
-  ) {
-    await vscode.window.showErrorMessage(
-      // if supports_adaptive is undefined, use the generic codegen message
-      error_msg,
-      { modal: true },
-      { title: "Okay", isCloseAffordance: true },
-    );
-    if (hasManifest) {
-      // Open the manifest file to allow the user to update the profile.
-      const docUri =
-        documentUri ?? vscode.window.activeTextEditor?.document.uri;
-      if (docUri != undefined) {
-        try {
-          await openManifestFile(docUri);
-        } catch {
-          // If the manifest file cannot be opened, just log the error.
-          log.error(
-            "Could not open qsharp.json manifest to update the QIR target profile.",
-          );
-        }
-      }
-    }
-    throw new QirGenerationError(error_msg);
+  const compatible = checkCompatibility(config.profile, preferredTargetProfile);
+  if (!compatible) {
+    // TODO: this error message could be made more helpful by checking `config.packageGraphSources.hasManifest`
+    // and making specific suggestions on how to configure the profile, for example
+    const errorMsg =
+      "The current program is configured to use the target profile " +
+      config.profile +
+      ", but the selected target only supports " +
+      preferredTargetProfile;
+    throw new QirGenerationError(errorMsg);
   }
 
   // Create a temporary worker just to get the QIR, as it may loop/panic during codegen.
@@ -219,7 +138,7 @@ async function getQirForProgram(
 
         const qir = await invokeAndReportCommandDiagnostics(
           () => worker.getQir(config),
-          { populateProblemsView: true, showModalError: true },
+          { populateProblemsView: true },
         );
         progress.report({ increment: 100 });
         return qir;
@@ -233,12 +152,12 @@ async function getQirForProgram(
     );
     clearTimeout(compilerTimeout);
   } catch (e: any) {
-    log.error("Codegen error. ", e.toString());
     if (e.toString() === "terminated") {
       throw new QirGenerationError(
         "QIR generation was cancelled or timed out.",
       );
     } else {
+      // TODO: probably this message should be updated
       throw new QirGenerationError(
         `QIR generation failed due to error: "${e.toString()}". Please ensure the code is compatible with a QIR profile ` +
           "by setting the target QIR profile to 'base' or 'adaptive_ri' and fixing any errors.",
@@ -253,7 +172,7 @@ async function getQirForProgram(
 
 async function getQirForActiveWindowCommand() {
   try {
-    const qir = await getQirForActiveWindow();
+    const qir = await getQirForActiveWindow("adaptive_rif");
     const qirDoc = await vscode.workspace.openTextDocument({
       language: "llvm",
       content: qir,
@@ -262,7 +181,7 @@ async function getQirForActiveWindowCommand() {
   } catch (e: any) {
     log.error("QIR generation failed. ", e);
     if (e.name === "QirGenerationError") {
-      vscode.window.showErrorMessage(e.message);
+      vscode.window.showErrorMessage(e.message, { modal: true });
     }
   }
 }

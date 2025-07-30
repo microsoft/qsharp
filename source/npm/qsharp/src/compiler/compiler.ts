@@ -60,8 +60,6 @@ export interface ICompiler {
     eventHandler: IQscEventTarget,
   ): Promise<void>;
 
-  getSourceProfile(program: ProgramConfig): Promise<string>;
-
   getQir(program: ProgramConfig): Promise<string>;
 
   getEstimates(
@@ -201,13 +199,6 @@ export class Compiler implements ICompiler {
         pauliNoise,
         qubitLoss,
       ),
-    );
-  }
-
-  async getSourceProfile(program: ProgramConfig): Promise<string> {
-    const config = toWasmProgramConfig(program, "unrestricted");
-    return callAndTransformExceptions(async () =>
-      this.wasm.get_source_profile(config),
     );
   }
 
@@ -357,7 +348,6 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
     getHir: "request",
     getRir: "request",
     getQir: "request",
-    getSourceProfile: "request",
     getEstimates: "request",
     getCircuit: "request",
     getDocumentation: "request",
