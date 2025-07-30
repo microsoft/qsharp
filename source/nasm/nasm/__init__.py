@@ -1,3 +1,4 @@
+import random
 from functools import lru_cache
 from qsharp import Result
 from qsharp.noisy_simulator import StateVectorSimulator, Instrument, Operation
@@ -29,7 +30,11 @@ def to_results(shots: list[str]) -> list[list[Result]]:
     """
     result_list = []
     for shot in shots:
-        result = [Result.Zero if bit == "0" else Result.One for bit in shot]
+        result = [
+            Result.Zero if bit == "0" else Result.One if bit == "1" else Result.Loss
+            for bit in shot
+        ]
+
         result_list.append(result)
     return result_list
 
@@ -49,6 +54,10 @@ class Simulator:
         for shot in range(shots):
             seed += 1
             self.simulator = StateVectorSimulator(ops.qubits, seed)
+
+            # Below if for tracking qubit loss per operation
+            rng = random.Random(seed)
+            qubit_loss = [False] * ops.qubits
 
             # Do this here rather than init, so the noise model can be modified between runs.
             (gates, instruments) = self.noise_model.get_noisy_gates_and_instruments()
@@ -75,16 +84,31 @@ class Simulator:
                 if op.name == "initialize" or op.name == "barrier":
                     pass
                 elif op.name == "rz":
-                    angle = op.args[0]
+                    (angle, qubit) = op.args
+                    self.apply_loss(rng, op.name, [qubit], qubit_loss)
+                    if qubit_loss[qubit]:
+                        # If the qubit is lost, we skip applying the operation
+                        continue
                     sim_op = get_rz_operator(
                         self.noise_model, self.noise_model.rev, angle
                     )
-                    self.simulator.apply_operation(sim_op, [op.args[1]])
+                    self.simulator.apply_operation(sim_op, [qubit])
                 elif op.name in self.operations:
+                    self.apply_loss(rng, op.name, op.args, qubit_loss)
+                    if any(qubit_loss[q] for q in op.args):
+                        # If any qubit is lost, we skip applying the operation
+                        # For cz this is also correct, as one or both qubits are in |0> state
+                        continue
                     self.apply_operation(op.name, op.args)
                 elif op.name in self.measurements:
+                    # TODO: Loss probability for measurements
                     # We only support a single qubit and result for now
-                    self.apply_instrument(op.name, [op.args[0]], [op.args[1]])
+                    (qubit, resultReg) = op.args
+                    if qubit_loss[qubit]:
+                        # If the qubit is lost, we skip applying the measurement
+                        self.results[resultReg] = "2"  # Loss enum value
+                    else:
+                        self.apply_instrument(op.name, [qubit], [resultReg])
                 elif op.name == "array_record_output":
                     pass
                 elif op.name == "result_record_output":
@@ -95,6 +119,24 @@ class Simulator:
             result_list = [self.results.get(i) for i in range(ops.results)]
             self.shots.append("".join(result_list))
         return self.shots
+
+    def apply_loss(
+        self, rng: random.Random, op_name: str, qubits: list[int], loss: list[bool]
+    ):
+        probability = (
+            self.noise_model.gates[op_name][2]
+            if op_name in self.noise_model.gates
+            else 0.0
+        )
+        for qubit in qubits:
+            if loss[qubit]:
+                # Already marked as lost
+                continue
+            if rng.random() < probability:
+                loss[qubit] = True
+                # Reset the qubit to the 0 state
+                reset = self.operations.get("reset")
+                self.simulator.apply_operation(reset, [qubit])
 
     def apply_operation(self, op_name: str, qubits: list[int]):
         noisy_gate = self.operations.get(op_name)

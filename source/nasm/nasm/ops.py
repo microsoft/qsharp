@@ -109,7 +109,7 @@ class QirOps:
         results = []
         split_args = [arg.strip() for arg in args.split(",")]
         for arg in split_args:
-            if not arg or arg == "":
+            if not arg:
                 continue
             if arg.startswith("%Qubit* inttoptr (i64 ") or arg.startswith(
                 "%Result* inttoptr (i64 "
