@@ -5,8 +5,7 @@ use crate::{diagnostic::project_errors_into_qsharp_errors, serializable_type};
 use async_trait::async_trait;
 use miette::Report;
 use qsc::{
-    LanguageFeatures, SourceMap, linter::LintOrGroupConfig, packages::BuildableProgram,
-    target::Profile,
+    LanguageFeatures, linter::LintOrGroupConfig, packages::BuildableProgram, target::Profile,
 };
 use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, JSProjectHost, PackageCache};
 use rustc_hash::FxHashMap;
@@ -226,15 +225,6 @@ impl ProjectLoader {
             .await;
         // Will return error if project has errors
         project_config.try_into()
-    }
-
-    // ToDo: this doesn't use the project loader object, can I call it without it?
-    pub fn get_entry_profile(file_name: String, source: String) -> Option<String> {
-        qsc_frontend::compile::get_entry_profile(&SourceMap::new(
-            [(Arc::<str>::from(file_name), Arc::<str>::from(source))],
-            None,
-        ))
-        .map(|(p, _)| p.to_str().to_string().to_lowercase())
     }
 }
 

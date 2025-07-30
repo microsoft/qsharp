@@ -278,6 +278,16 @@ pub fn get_rir(program: ProgramConfig) -> Result<Vec<String>, String> {
     .map_err(interpret_errors_into_qsharp_errors_json)
 }
 
+#[wasm_bindgen]
+#[must_use]
+pub fn get_entry_profile(file_name: String, source: String) -> Option<String> {
+    qsc_frontend::compile::get_entry_profile(&SourceMap::new(
+        [(Arc::<str>::from(file_name), Arc::<str>::from(source))],
+        None,
+    ))
+    .map(|(p, _)| p.to_str().to_string().to_lowercase())
+}
+
 struct CallbackReceiver<F>
 where
     F: FnMut(&str),

@@ -7,6 +7,7 @@ import {
   log,
   qsharpGithubUriScheme,
   ProjectLoader,
+  getEntryProfile,
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { URI, Utils } from "vscode-uri";
@@ -171,6 +172,11 @@ export async function loadProject(
 ): Promise<IProjectConfig> {
   const manifestDocument = await findManifestDocument(documentUri.toString());
 
+  if (!manifestDocument) {
+    // return just the one file if we are in single file mode
+    return await singleFileProject(documentUri);
+  }
+
   if (!projectLoader) {
     projectLoader = await getProjectLoader({
       findManifestDirectory,
@@ -179,11 +185,6 @@ export async function loadProject(
       fetchGithub: fetchGithubRaw,
       resolvePath: async (a, b) => resolvePath(a, b),
     });
-  }
-
-  if (!manifestDocument) {
-    // return just the one file if we are in single file mode
-    return await singleFileProject(documentUri);
   }
 
   const project = await projectLoader!.loadQSharpProject(
@@ -225,11 +226,7 @@ async function singleFileProject(
   documentUri: vscode.Uri,
 ): Promise<IProjectConfig> {
   const file = await vscode.workspace.openTextDocument(documentUri);
-  // ToDo: the `getEntryProfile` doesn't acutally use the project loader object. Can I call it without it?
-  const profile = await projectLoader!.getEntryProfile(
-    file.fileName,
-    file.getText(),
-  );
+  const profile = await getEntryProfile(file.fileName, file.getText());
 
   return {
     projectName: Utils.basename(documentUri),

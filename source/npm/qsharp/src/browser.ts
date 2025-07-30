@@ -186,6 +186,7 @@ export type {
 } from "./language-service/language-service.js";
 export { default as openqasm_samples } from "./openqasm-samples.generated.js";
 export type { ProjectLoader } from "./project.js";
+export { getEntryProfile } from "./project.js";
 export { default as samples } from "./samples.generated.js";
 export type { CircuitGroup as CircuitData } from "./data-structures/circuit.js";
 export * as utils from "./utils.js";
