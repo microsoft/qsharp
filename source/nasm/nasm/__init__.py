@@ -1,4 +1,5 @@
 from functools import lru_cache
+from qsharp import Result
 from qsharp.noisy_simulator import StateVectorSimulator, Instrument, Operation
 from qsharp._qsharp import QirInputData
 from .noise_model import (
@@ -19,6 +20,18 @@ def get_rz_operator(model: NoiseModel, rev: int, theta: float) -> Operation:
     noise_matrices = model.get_noise_matrices_for_gate("rz")
     combined_matrices = model.apply_unitary_to_kraus(op_matrix, noise_matrices)
     return Operation(combined_matrices)
+
+
+def to_results(shots: list[str]) -> list[list[Result]]:
+    """
+    Convert a list of shot results (strings) to a list of lists of Result.
+    Each character in the string corresponds to a Result (0 or 1).
+    """
+    result_list = []
+    for shot in shots:
+        result = [Result.Zero if bit == "0" else Result.One for bit in shot]
+        result_list.append(result)
+    return result_list
 
 
 class Simulator:
@@ -59,7 +72,7 @@ class Simulator:
                 self.outcomes[measurement_name.lower()] = results_str
 
             for op in ops.ops:
-                if op.name == "initialize":
+                if op.name == "initialize" or op.name == "barrier":
                     pass
                 elif op.name == "rz":
                     angle = op.args[0]

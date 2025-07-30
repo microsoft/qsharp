@@ -357,6 +357,171 @@ def amplitude_damping_kraus(gamma):
     return [K0, K1]
 
 
+def bitflip_kraus(p):
+    """
+    Generate Kraus operators for the bit flip noise channel.
+
+    Parameters:
+    p (float): Bit flip probability (0 <= p <= 1)
+
+    Returns:
+    list: Kraus operators [K0, K1] as numpy arrays
+    """
+    if p < 0 or p > 1:
+        raise ValueError("Bit flip probability p must be between 0 and 1.")
+
+    # Define the Kraus operators
+    # K0: no bit flip occurs (with probability sqrt(1-p))
+    K0 = np.sqrt(1 - p) * np.array([[1, 0], [0, 1]], dtype=np.complex128)
+
+    # K1: bit flip occurs (with probability sqrt(p))
+    K1 = np.sqrt(p) * np.array([[0, 1], [1, 0]], dtype=np.complex128)
+
+    return [K0, K1]
+
+
+def amplitude_excitation_kraus(gamma):
+    """
+    Generate Kraus operators for the amplitude excitation channel.
+
+    This is the opposite of amplitude damping - it models spontaneous excitation
+    from |0⟩ to |1⟩ state with probability gamma.
+
+    Parameters:
+    gamma (float): Excitation probability (0 <= gamma <= 1)
+
+    Returns:
+    list: Kraus operators [K0, K1] as numpy arrays
+    """
+    if gamma < 0 or gamma > 1:
+        raise ValueError("Excitation probability gamma must be between 0 and 1.")
+
+    # Define the Kraus operators
+    # K0: no excitation occurs
+    K0 = np.array([[np.sqrt(1 - gamma), 0], [0, 1]], dtype=np.complex128)
+
+    # K1: excitation occurs (|0⟩ → |1⟩)
+    K1 = np.array([[0, 0], [np.sqrt(gamma), 0]], dtype=np.complex128)
+
+    return [K0, K1]
+
+
+def dephasing_kraus(gamma):
+    """
+    Generate Kraus operators for the dephasing (phase damping) channel.
+
+    This noise model causes loss of quantum coherence without changing the
+    population of the computational basis states |0⟩ and |1⟩.
+
+    Parameters:
+    gamma (float): Dephasing probability (0 <= gamma <= 1)
+
+    Returns:
+    list: Kraus operators [K0, K1] as numpy arrays
+    """
+    if gamma < 0 or gamma > 1:
+        raise ValueError("Dephasing probability gamma must be between 0 and 1.")
+
+    # Define the Kraus operators
+    # K0: no dephasing occurs
+    K0 = np.array([[1, 0], [0, np.sqrt(1 - gamma)]], dtype=np.complex128)
+
+    # K1: dephasing occurs (affects off-diagonal terms)
+    K1 = np.array([[0, 0], [0, np.sqrt(gamma)]], dtype=np.complex128)
+
+    return [K0, K1]
+
+
+def dephasing_2q_target_kraus(gamma):
+    """
+    Generate Kraus operators for 2-qubit dephasing that affects only the target (second) qubit.
+
+    This is useful for modeling noise in 2-qubit gates like CZ where the target qubit
+    experiences dephasing while the control qubit remains unaffected.
+
+    Parameters:
+    gamma (float): Dephasing probability for the target qubit (0 <= gamma <= 1)
+
+    Returns:
+    list: Kraus operators [K0, K1] as 4x4 numpy arrays
+    """
+    if gamma < 0 or gamma > 1:
+        raise ValueError("Dephasing probability gamma must be between 0 and 1.")
+
+    # Identity matrix for the control qubit (unaffected)
+    I = np.eye(2, dtype=np.complex128)
+
+    # Single-qubit dephasing operators for the target qubit
+    K0_single = np.array([[1, 0], [0, np.sqrt(1 - gamma)]], dtype=np.complex128)
+    K1_single = np.array([[0, 0], [0, np.sqrt(gamma)]], dtype=np.complex128)
+
+    # Create 2-qubit Kraus operators using tensor product
+    # K0: I ⊗ K0_single (no dephasing on target)
+    K0 = np.kron(I, K0_single)
+
+    # K1: I ⊗ K1_single (dephasing on target)
+    K1 = np.kron(I, K1_single)
+
+    return [K0, K1]
+
+
+def single_to_2q_kraus(
+    single_qubit_kraus: list[ndarray], target_qubit: int = 1
+) -> list[ndarray]:
+    """
+    Convert single-qubit Kraus operators to 2-qubit Kraus operators where only one qubit is affected.
+
+    This is a general helper function that can take any single-qubit noise model and extend it
+    to a 2-qubit system where only the specified qubit experiences the noise.
+
+    Parameters:
+    single_qubit_kraus (list[ndarray]): List of 2x2 Kraus operators for single-qubit noise
+    target_qubit (int): Which qubit to apply noise to (0 for first qubit, 1 for second qubit)
+
+    Returns:
+    list[ndarray]: List of 4x4 Kraus operators for 2-qubit system
+
+    Example:
+    # Apply bit flip noise only to the second qubit
+    bitflip_ops = bitflip_kraus(0.1)
+    two_qubit_bitflip = single_to_2q_kraus(bitflip_ops, target_qubit=1)
+
+    # Apply amplitude damping only to the first qubit
+    damping_ops = amplitude_damping_kraus(0.05)
+    two_qubit_damping = single_to_2q_kraus(damping_ops, target_qubit=0)
+    """
+    if target_qubit not in [0, 1]:
+        raise ValueError("target_qubit must be 0 (first qubit) or 1 (second qubit)")
+
+    if not single_qubit_kraus:
+        raise ValueError("single_qubit_kraus cannot be empty")
+
+    # Verify all operators are 2x2
+    for i, op in enumerate(single_qubit_kraus):
+        if op.shape != (2, 2):
+            raise ValueError(
+                f"Kraus operator {i} has shape {op.shape}, expected (2, 2)"
+            )
+
+    # Identity matrix for the unaffected qubit
+    I = np.eye(2, dtype=np.complex128)
+
+    # Create 2-qubit Kraus operators using tensor product
+    two_qubit_kraus = []
+
+    for kraus_op in single_qubit_kraus:
+        if target_qubit == 0:
+            # Apply noise to first qubit: K ⊗ I
+            two_qubit_op = np.kron(kraus_op, I)
+        else:
+            # Apply noise to second qubit: I ⊗ K
+            two_qubit_op = np.kron(I, kraus_op)
+
+        two_qubit_kraus.append(two_qubit_op)
+
+    return two_qubit_kraus
+
+
 def rz_for_theta(theta: float) -> ndarray:
     # Top left is e^-i*theta/2, bottom right is e^i*theta/2
     return np.array(
