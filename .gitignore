@@ -21,3 +21,5 @@ __pycache__/
 .idea/
 *.so
 samples/scratch/
+
+*.egg-info/
