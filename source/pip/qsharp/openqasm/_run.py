@@ -15,6 +15,7 @@ from .._qsharp import (
     StateDump,
     get_interpreter,
     ipython_helper,
+    python_args_to_interpreter_args,
 )
 from .. import telemetry_events
 from ._ipython import display_or_print
@@ -96,10 +97,7 @@ def run(
 
     callable = None
     if isinstance(source, Callable) and hasattr(source, "__global_callable"):
-        if len(args) == 1:
-            args = args[0]
-        elif len(args) == 0:
-            args = None
+        args = python_args_to_interpreter_args(args)
         callable = source.__global_callable
         source = None
 

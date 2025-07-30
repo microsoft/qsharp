@@ -16,7 +16,9 @@ fn line(interpreter: &mut Interpreter, line: impl AsRef<str>) -> (InterpretResul
     let mut cursor = Cursor::new(Vec::<u8>::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
     (
-        interpreter.eval_fragments(&mut receiver, line.as_ref()),
+        interpreter
+            .eval_fragments(&mut receiver, line.as_ref())
+            .map(|(val, _)| val),
         receiver.dump(),
     )
 }

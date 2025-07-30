@@ -15,7 +15,9 @@ mod given_interpreter {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         (
-            interpreter.eval_fragments(&mut receiver, line),
+            interpreter
+                .eval_fragments(&mut receiver, line)
+                .map(|(val, _)| val),
             receiver.dump(),
         )
     }
@@ -54,7 +56,7 @@ mod given_interpreter {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         let callable = match interpreter.eval_fragments(&mut receiver, callable) {
-            Ok(val) => val,
+            Ok((val, _)) => val,
             Err(e) => return (Err(e), receiver.dump()),
         };
         let result = interpreter.invoke(&mut receiver, callable, args);

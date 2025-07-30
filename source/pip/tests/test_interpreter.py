@@ -9,6 +9,7 @@ from qsharp._native import (
     QSharpError,
     TargetProfile,
 )
+from qsharp._qsharp import qsharp_value_to_python_value
 import pytest
 
 
@@ -136,6 +137,12 @@ def test_value_double() -> None:
     assert value == 3.1
 
 
+def test_value_complex() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    value = e.interpret("new Std.Math.Complex { Real = 2.0, Imag = 3.0 }")
+    assert value == 2 + 3j
+
+
 def test_value_bool() -> None:
     e = Interpreter(TargetProfile.Unrestricted)
     value = e.interpret("true")
@@ -176,6 +183,105 @@ def test_value_array() -> None:
     e = Interpreter(TargetProfile.Unrestricted)
     value = e.interpret("[1, 2, 3]")
     assert value == [1, 2, 3]
+
+
+def test_value_udt() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    value = e.interpret(
+        """
+        struct Data { a: Int, b: Int }
+        new Data { a = 2, b = 3 }
+    """
+    )
+    value = qsharp_value_to_python_value(value)
+    assert value.a == 2 and value.b == 3
+
+
+def test_value_nested_udts() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    value = e.interpret(
+        """
+        struct Data { a: Int, b: MoreData }
+        struct MoreData { c: Int, d: Int }
+        new Data { a = 2, b = new MoreData { c = 3, d = 4 } }
+    """
+    )
+    value = qsharp_value_to_python_value(value)
+    assert value.a == 2 and value.b.c == 3 and value.b.d == 4
+
+
+def test_value_udts_with_complex_field() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    value = e.interpret(
+        """
+        struct Data { a: Std.Math.Complex }
+        (new Data { a = new Std.Math.Complex { Real = 2.0, Imag = 3.0 } })
+    """
+    )
+    value = qsharp_value_to_python_value(value)
+    assert value.a == 2 + 3j
+
+
+def test_value_udts_with_array_field() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    value = e.interpret(
+        """
+        struct Data { a: Int[] }
+        new Data { a = [2, 3, 4] }
+    """
+    )
+    value = qsharp_value_to_python_value(value)
+    assert value.a == [2, 3, 4]
+
+
+def test_value_udts_with_tuple_field() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    value = e.interpret(
+        """
+        struct Data { a: (Int, Int, Int) }
+        new Data { a = (2, 3, 4) }
+    """
+    )
+    value = qsharp_value_to_python_value(value)
+    assert value.a == (2, 3, 4)
+
+
+def test_value_array_of_udts() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    value = e.interpret(
+        """
+        struct Data { a: Int }
+        [new Data { a = 2 }, new Data { a = 3 }]
+    """
+    )
+    value = qsharp_value_to_python_value(value)
+    assert value[0].a == 2 and value[1].a == 3
+
+
+def test_value_array_of_complex() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    value = e.interpret("[new Std.Math.Complex { Real = 2.0, Imag = 3.0 }]")
+    value = qsharp_value_to_python_value(value)
+    assert value[0] == 2 + 3j
+
+
+def test_value_tuple_of_udts() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    value = e.interpret(
+        """
+        struct Data { a: Int }
+        (new Data { a = 2 }, new Data { a = 3 })
+        """
+    )
+    value = qsharp_value_to_python_value(value)
+    assert value[0].a == 2 and value[1].a == 3
+
+
+def test_value_tuple_of_complex() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    value = e.interpret("""(new Std.Math.Complex { Real = 2.0, Imag = 3.0 },)""")
+    value = qsharp_value_to_python_value(value)
+    assert value[0] == 2 + 3j
 
 
 def test_target_error() -> None:
