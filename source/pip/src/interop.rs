@@ -332,7 +332,7 @@ pub(crate) fn compile_qasm_enriching_errors<S: AsRef<str>>(
 
     let unit = compile_to_qsharp_ast_with_config(semantic_parse_result, config);
 
-    let (source_map, errors, package, sig) = unit.into_tuple();
+    let (source_map, errors, package, sig, _) = unit.into_tuple();
     if !errors.is_empty() {
         return Err(QasmError::new_err(format_qasm_errors(errors)));
     }

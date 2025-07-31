@@ -144,6 +144,7 @@ fn compile_project_with_markers_cursor_optional(
             package_type: None,
         },
         packages: FxHashMap::default(),
+        has_manifest: true,
     };
 
     if use_fake_stdlib {

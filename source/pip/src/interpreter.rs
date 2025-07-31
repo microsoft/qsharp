@@ -500,7 +500,7 @@ impl Interpreter {
         );
         let res = qsc::qasm::semantic::parse_sources(&sources);
         let unit = compile_to_qsharp_ast_with_config(res, config);
-        let (sources, errors, package, _) = unit.into_tuple();
+        let (sources, errors, package, _, _) = unit.into_tuple();
 
         if !errors.is_empty() {
             let errors = errors

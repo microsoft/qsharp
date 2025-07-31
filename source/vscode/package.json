@@ -96,23 +96,6 @@
     "configuration": {
       "title": "Q#",
       "properties": {
-        "Q#.qir.targetProfile": {
-          "type": "string",
-          "default": "unrestricted",
-          "enum": [
-            "unrestricted",
-            "base",
-            "adaptive_ri",
-            "adaptive_rif"
-          ],
-          "enumDescriptions": [
-            "The set of all capabilities required to run any Q# program.",
-            "The minimal set of capabilities required to run a quantum program. This option maps to the Base Profile as defined by the QIR specification.",
-            "The Adaptive_RI target profile includes all of the required Adaptive Profile capabilities, as well as the optional integer computation and qubit reset capabilities, as defined by the QIR specification.",
-            "The Adaptive_RIF target profile includes all of the required Adaptive Profile capabilities, as well as the optional integer & floating point computation and qubit reset capabilities, as defined by the QIR specification."
-          ],
-          "markdownDescription": "Setting the target profile allows the Q# extension to generate programs that are compatible with a specific target. The target is the hardware or simulator which will be used to run the Q# program. [Learn more](https://aka.ms/qdk.qir)"
-        },
         "Q#.simulation.pauliNoise": {
           "markdownDescription": "The Pauli noise to apply when running multiple shots via the Histogram command. This is applied for every gate or measurement on all qubits referenced.\n\nProbability values are in the range [0, 1].",
           "type": "object",
@@ -237,10 +220,6 @@
         {
           "command": "qsharp-vscode.showDocumentation",
           "when": "resourceLangId == qsharp"
-        },
-        {
-          "command": "qsharp-vscode.setTargetProfile",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
         {
           "command": "qsharp-vscode.webOpener",
@@ -433,11 +412,6 @@
         "category": "QDK",
         "title": "Download Azure Quantum job results as text",
         "icon": "$(output)"
-      },
-      {
-        "command": "qsharp-vscode.setTargetProfile",
-        "category": "QDK",
-        "title": "Set the Azure Quantum QIR target profile"
       },
       {
         "command": "qsharp-vscode.createNotebook",

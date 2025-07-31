@@ -26,7 +26,7 @@ use qsc_data_structures::{
     index_map::{self, IndexMap},
     language_features::LanguageFeatures,
     span::Span,
-    target::TargetCapabilityFlags,
+    target::{Profile, TargetCapabilityFlags},
 };
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
@@ -528,6 +528,19 @@ pub fn parse_all(
     };
 
     (package, errors)
+}
+
+#[must_use]
+pub fn get_target_profile_from_entry_point(sources: &SourceMap) -> Option<(Profile, Span)> {
+    let (ast_package, parse_errors) = parse_all(sources, LanguageFeatures::default());
+
+    if !parse_errors.is_empty() {
+        return None;
+    }
+
+    let mut check = preprocess::DetectEntryPointProfile::new();
+    check.visit_package(&ast_package);
+    check.profile
 }
 
 pub(crate) struct ResolveResult {

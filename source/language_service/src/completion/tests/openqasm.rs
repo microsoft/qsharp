@@ -20,7 +20,6 @@ fn compile_project_with_markers_cursor_optional(
     (
         Compilation::new_qasm(
             PackageType::Lib,
-            qsc::target::Profile::Unrestricted,
             sources,
             vec![],
             &Arc::from("test project"),

@@ -20,7 +20,10 @@ import {
 } from "./workspaceActions";
 import { QuantumUris } from "./networkRequests";
 import { getQirForActiveWindow } from "../qirGeneration";
-import { supportsAdaptive, targetSupportQir } from "./providerProperties";
+import {
+  getPreferredTargetProfile,
+  targetSupportQir,
+} from "./providerProperties";
 import { startRefreshCycle } from "./treeRefresher";
 import { getTokenForWorkspace } from "./auth";
 import { qsharpExtensionId } from "../common";
@@ -122,14 +125,14 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
 
         const target = treeItem.itemData as Target;
 
-        const supports_adaptive = supportsAdaptive(target.id);
-
         let qir = "";
         try {
-          qir = await getQirForActiveWindow(supports_adaptive);
+          qir = await getQirForActiveWindow(
+            getPreferredTargetProfile(target.id),
+          );
         } catch (e: any) {
           if (e?.name === "QirGenerationError") {
-            vscode.window.showErrorMessage(e.message);
+            vscode.window.showErrorMessage(e.message, { modal: true });
             return;
           }
         }
