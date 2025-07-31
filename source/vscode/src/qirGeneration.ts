@@ -7,7 +7,9 @@ import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 import {
   FullProgramConfig,
   getActiveProgram,
+  getActiveQdkDocumentUri,
   getVisibleProgram,
+  getVisibleQdkDocumentUri,
 } from "./programConfig";
 import {
   EventType,
@@ -18,6 +20,7 @@ import {
 } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { qsharpExtensionId } from "./common";
+import { openManifestFile } from "./projectSystem";
 
 const generateQirTimeoutMs = 120000;
 
@@ -41,10 +44,12 @@ export async function getQirForVisibleSource(
     throw new QirGenerationError(program.errorMsg);
   }
 
+  const docUri = getVisibleQdkDocumentUri();
   return getQirForProgram(
     program.programConfig,
     preferredTargetProfile,
     getVisibleDocumentType(),
+    docUri,
   );
 }
 
@@ -60,10 +65,12 @@ export async function getQirForActiveWindow(
     throw new QirGenerationError(program.errorMsg);
   }
 
+  const docUri = getActiveQdkDocumentUri();
   return getQirForProgram(
     program.programConfig,
     preferredTargetProfile,
     getActiveDocumentType(),
+    docUri,
   );
 }
 
@@ -91,6 +98,7 @@ async function getQirForProgram(
   config: FullProgramConfig,
   preferredTargetProfile: TargetProfile,
   telemetryDocumentType: QsharpDocumentType,
+  documentUri?: vscode.Uri,
 ): Promise<string> {
   let result = "";
 
@@ -103,6 +111,22 @@ async function getQirForProgram(
       config.profile +
       ", but the selected target only supports " +
       preferredTargetProfile;
+
+    if (config.packageGraphSources.hasManifest) {
+      // Open the manifest file to allow the user to update the profile.
+      const docUri =
+        documentUri ?? vscode.window.activeTextEditor?.document.uri;
+      if (docUri != undefined) {
+        try {
+          await openManifestFile(docUri);
+        } catch {
+          // If the manifest file cannot be opened, just log the error.
+          log.error(
+            "Could not open qsharp.json manifest to update the QIR target profile.",
+          );
+        }
+      }
+    }
     throw new QirGenerationError(errorMsg);
   }
 

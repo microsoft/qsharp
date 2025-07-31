@@ -172,6 +172,7 @@ export class Compiler implements ICompiler {
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
     // entry expression or similar), it may throw on run. The caller should expect this promise
     // may reject without all shots running or events firing.
+    log.info(`Running run with profile ${program.profile}`);
     await callAndTransformExceptions(async () =>
       this.wasm.run(
         toWasmProgramConfig(program, "unrestricted"),
@@ -190,6 +191,7 @@ export class Compiler implements ICompiler {
     qubitLoss: number,
     eventHandler: IQscEventTarget,
   ): Promise<void> {
+    log.info(`Running runWithPauliNoise with profile ${program.profile}`);
     await callAndTransformExceptions(async () =>
       this.wasm.runWithNoise(
         toWasmProgramConfig(program, "unrestricted"),
@@ -203,6 +205,7 @@ export class Compiler implements ICompiler {
   }
 
   async getQir(program: ProgramConfig): Promise<string> {
+    log.info(`Running getQir with profile ${program.profile}`);
     return callAndTransformExceptions(async () =>
       this.wasm.get_qir(toWasmProgramConfig(program, "base")),
     );
