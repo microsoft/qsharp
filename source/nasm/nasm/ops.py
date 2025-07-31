@@ -160,15 +160,28 @@ class QirOps:
                     else (op.args[1:] if op.name in ["rz", "rx", "ry", "rzz"] else [])
                 )
             )
-            entry = {
-                "gate": op.name,
-                "targets": [{"qId": q, "type": 0} for q in qubits],
-            }
+            if op.name == "mz":
+                # Control is the qubit to be measured, and target the result register
+                entry = {
+                    "gate": "Measure",
+                    "isMeasurement": True,
+                    "targets": [{"qId": qubits[0], "type": 0}],
+                    "controls": [{"qId": op.args[1], "type": 1}],
+                }
+            elif op.name in ["cz", "cx", "cy"]:
+                entry = {
+                    "gate": op.name[1:],
+                    "targets": [{"qId": qubits[1], "type": 0}],
+                    "controls": [{"qId": qubits[0], "type": 0}],
+                }
+            else:
+                entry = {
+                    "gate": op.name,
+                    "targets": [{"qId": q, "type": 0} for q in qubits],
+                }
             if len(op.args) > 0 and isinstance(op.args[0], float):
                 entry["displayArgs"] = "{:.4f}".format(op.args[0])
-            # if op.name == "mz":
-            #     # entry["gate"] = "Measure"
-            #     entry["isMeasurement"] = True
+
             result["operations"].append(entry)
         for i in range(self.qubits):
             result["qubits"].append({"id": i, "numChildren": 0})
