@@ -110,7 +110,7 @@ fn compile_and_run_qasm_internal(source: &str, debug: bool) -> String {
         Option::<&mut InMemorySourceResolver>::None,
         config,
     );
-    let (source_map, errors, package, sig, _) = unit.into_tuple();
+    let (source_map, errors, package, sig, profile) = unit.into_tuple();
     assert!(errors.is_empty(), "QASM compilation failed: {errors:?}");
 
     let Some(signature) = sig else {
@@ -122,9 +122,10 @@ fn compile_and_run_qasm_internal(source: &str, debug: bool) -> String {
         "Circuit has unbound input parameters\n  help: Parameters: {}",
         signature.input_params()
     );
+    let capabilities = profile.into();
     let package_type = PackageType::Lib;
     let language_features = LanguageFeatures::default();
-    let (stdid, mut store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+    let (stdid, mut store) = qsc::compile::package_store_with_stdlib(capabilities);
     let dependencies = vec![(PackageId::CORE, None), (stdid, None)];
 
     let (mut unit, errors) = qsc::compile::compile_ast(
@@ -133,7 +134,7 @@ fn compile_and_run_qasm_internal(source: &str, debug: bool) -> String {
         package,
         source_map,
         package_type,
-        TargetCapabilityFlags::all(),
+        capabilities,
     );
 
     assert!(
@@ -148,7 +149,7 @@ fn compile_and_run_qasm_internal(source: &str, debug: bool) -> String {
         debug,
         store,
         source_package_id,
-        TargetCapabilityFlags::all(),
+        capabilities,
         language_features,
         &dependencies,
     ) {

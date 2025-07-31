@@ -315,10 +315,7 @@ function registerConfigurationChangeHandlers(
   languageService: ILanguageService,
 ) {
   return vscode.workspace.onDidChangeConfiguration((event) => {
-    if (
-      event.affectsConfiguration("Q#.qir.targetProfile") ||
-      event.affectsConfiguration("Q#.dev.showDevDiagnostics")
-    ) {
+    if (event.affectsConfiguration("Q#.dev.showDevDiagnostics")) {
       updateLanguageServiceConfiguration(languageService);
     }
   });
