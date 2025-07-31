@@ -144,11 +144,6 @@ export async function generateCircuit(
   extensionUri: Uri,
   params: CircuitParams,
 ): Promise<CircuitOrError> {
-  // Make sure target profile is set
-  if (!params.program.profile) {
-    params.program.profile = "unrestricted";
-  }
-
   // Before we start, reveal the panel with the "calculating" spinner
   updateCircuitPanel(
     params.program.profile,

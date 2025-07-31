@@ -106,11 +106,13 @@ async function getQirForProgram(
   if (!compatible) {
     // TODO: this error message could be made more helpful by checking `config.packageGraphSources.hasManifest`
     // and making specific suggestions on how to configure the profile, for example
-    const errorMsg =
+    let errorMsg =
       "The current program is configured to use the target profile " +
-      config.profile +
-      ", but the selected target only supports " +
+      config.profile;
+    errorMsg +=
+      ", which is not compatible with the QIR target profile " +
       preferredTargetProfile;
+    errorMsg += " required by the selected target.";
 
     if (config.packageGraphSources.hasManifest) {
       // Open the manifest file to allow the user to update the profile.
@@ -119,6 +121,9 @@ async function getQirForProgram(
       if (docUri != undefined) {
         try {
           await openManifestFile(docUri);
+          errorMsg +=
+            ". Please update the target profile in the manifest file to " +
+            preferredTargetProfile;
         } catch {
           // If the manifest file cannot be opened, just log the error.
           log.error(
@@ -181,10 +186,8 @@ async function getQirForProgram(
         "QIR generation was cancelled or timed out.",
       );
     } else {
-      // TODO: probably this message should be updated
       throw new QirGenerationError(
-        `QIR generation failed due to error: "${e.toString()}". Please ensure the code is compatible with a QIR profile ` +
-          "by setting the target QIR profile to 'base' or 'adaptive_ri' and fixing any errors.",
+        `QIR generation failed due to error: "${e.toString()}". Please ensure the code is compatible with the selected QIR profile.`,
       );
     }
   } finally {
