@@ -55,6 +55,7 @@ export async function getQirForVisibleSource(
 
 export async function getQirForActiveWindow(
   preferredTargetProfile: TargetProfile,
+  isLocalQirGeneration: boolean = false,
 ): Promise<string> {
   const program = await getActiveProgram({
     showModalError: true,
@@ -71,6 +72,7 @@ export async function getQirForActiveWindow(
     preferredTargetProfile,
     getActiveDocumentType(),
     docUri,
+    isLocalQirGeneration,
   );
 }
 
@@ -99,20 +101,21 @@ async function getQirForProgram(
   preferredTargetProfile: TargetProfile,
   telemetryDocumentType: QsharpDocumentType,
   documentUri?: vscode.Uri,
+  isLocalQirGeneration = false,
 ): Promise<string> {
   let result = "";
 
   const compatible = checkCompatibility(config.profile, preferredTargetProfile);
   if (!compatible) {
-    // TODO: this error message could be made more helpful by checking `config.packageGraphSources.hasManifest`
-    // and making specific suggestions on how to configure the profile, for example
     let errorMsg =
       "The current program is configured to use the target profile " +
-      config.profile;
-    errorMsg +=
+      config.profile +
       ", which is not compatible with the QIR target profile " +
-      preferredTargetProfile;
-    errorMsg += " required by the selected target.";
+      preferredTargetProfile +
+      " required by " +
+      isLocalQirGeneration
+        ? "local QIR generation."
+        : "the selected target.";
 
     if (config.packageGraphSources.hasManifest) {
       // Open the manifest file to allow the user to update the profile.
@@ -122,7 +125,7 @@ async function getQirForProgram(
         try {
           await openManifestFile(docUri);
           errorMsg +=
-            ". Please update the target profile in the manifest file to " +
+            " Please update the target profile in the manifest file to " +
             preferredTargetProfile;
         } catch {
           // If the manifest file cannot be opened, just log the error.
@@ -199,7 +202,7 @@ async function getQirForProgram(
 
 async function getQirForActiveWindowCommand() {
   try {
-    const qir = await getQirForActiveWindow("adaptive_rif");
+    const qir = await getQirForActiveWindow("adaptive_rif", true);
     const qirDoc = await vscode.workspace.openTextDocument({
       language: "llvm",
       content: qir,
