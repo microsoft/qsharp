@@ -7,7 +7,7 @@ import {
   log,
   qsharpGithubUriScheme,
   ProjectLoader,
-  getEntryProfile,
+  getTargetProfileFromEntryPoint,
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { URI, Utils } from "vscode-uri";
@@ -226,7 +226,10 @@ async function singleFileProject(
   documentUri: vscode.Uri,
 ): Promise<IProjectConfig> {
   const file = await vscode.workspace.openTextDocument(documentUri);
-  const profile = await getEntryProfile(file.fileName, file.getText());
+  const profile = await getTargetProfileFromEntryPoint(
+    file.fileName,
+    file.getText(),
+  );
 
   return {
     projectName: Utils.basename(documentUri),

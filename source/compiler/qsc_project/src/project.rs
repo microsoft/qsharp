@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use futures::FutureExt;
 use miette::Diagnostic;
 use qsc_data_structures::{language_features::LanguageFeatures, target::Profile};
-use qsc_frontend::compile::{SourceMap, get_entry_profile};
+use qsc_frontend::compile::{SourceMap, get_target_profile_from_entry_point};
 use qsc_linter::LintOrGroupConfig;
 use rustc_hash::FxHashMap;
 use std::{
@@ -73,7 +73,8 @@ impl Project {
         };
 
         let target_profile =
-            get_entry_profile(&SourceMap::new([(name.clone(), contents)], None)).map(|(p, _)| p);
+            get_target_profile_from_entry_point(&SourceMap::new([(name.clone(), contents)], None))
+                .map(|(p, _)| p);
 
         Self {
             path: name,

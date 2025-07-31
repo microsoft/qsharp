@@ -272,8 +272,8 @@ pub fn get_rir(program: ProgramConfig) -> Result<Vec<String>, String> {
 
 #[wasm_bindgen]
 #[must_use]
-pub fn get_entry_profile(file_name: String, source: String) -> Option<String> {
-    qsc_frontend::compile::get_entry_profile(&SourceMap::new(
+pub fn get_target_profile_from_entry_point(file_name: String, source: String) -> Option<String> {
+    qsc_frontend::compile::get_target_profile_from_entry_point(&SourceMap::new(
         [(Arc::<str>::from(file_name), Arc::<str>::from(source))],
         None,
     ))
