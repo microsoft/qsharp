@@ -1,26 +1,30 @@
+import json
 import re
 
 
 class Op:
     # type will be 'qir' or 'rt'
     # name will be the operation name, such as 'sx', 'rz', 'cx', 'mz', 'result_record_output', etc.
-    # args will be a list of arguments, such as qubit or result ids (int), rangles (float), etc.
+    # args will be a list of arguments, such as qubit or result ids (int), rangles (float), None for i8* null, etc.
     def __init__(self, type: str, name: str, args: list):
         self.type = type
         self.name = name
         self.args = args
 
+    def __repr__(self):
+        return f"{self.name}{self.args}"
+
 
 class QirOps:
     def __init__(self, ir_text: str):
-        self.ir = ir_text
+        self.ir = str(ir_text)
 
         # We expect attribute 0 to have the required attributes, and be formatted something like:
         #    attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="2" }
 
         attribute_0 = re.search(
             r'^\s*attributes #0 = \{.*"qir_profiles"="(.+?)".*"required_num_qubits"="(\d+)".*"required_num_results"="(\d+)".*\}\s*$',
-            ir_text,
+            self.ir,
             re.MULTILINE,
         )
         if not attribute_0:
@@ -41,7 +45,7 @@ class QirOps:
         #   With no branching, end at the 'ret' instruction
         entry_point_body = re.search(
             r"(?:define void @\S+\(\) #0\s+{\n\w+:\n)((.|\n)*)(?:^\s*ret (i64|void))",
-            ir_text,
+            self.ir,
             re.MULTILINE,
         )
         if not entry_point_body:
@@ -136,3 +140,162 @@ class QirOps:
             else:
                 raise ValueError(f"Invalid QIR argument: {arg}")
         return results
+
+    def transpose(self):
+        self.ops = transpose(self.ops)
+
+    def json(self):
+        # Return a circuit representation of the QIR operations
+        result = {"operations": [], "qubits": []}
+        for op in self.ops:
+            if op.type == "rt":
+                continue
+            qubits = (
+                [op.args[0]]
+                if op.name
+                in ["sx", "mz", "x", "y", "z", "h", "s", "s_adj", "t", "t_adj"]
+                else (
+                    op.args[:2]
+                    if op.name in ["cz", "cx"]
+                    else (op.args[1:] if op.name in ["rz", "rx", "ry", "rzz"] else [])
+                )
+            )
+            entry = {
+                "gate": op.name,
+                "targets": [{"qId": q, "type": 0} for q in qubits],
+            }
+            if len(op.args) > 0 and isinstance(op.args[0], float):
+                entry["displayArgs"] = "{:.4f}".format(op.args[0])
+            # if op.name == "mz":
+            #     # entry["gate"] = "Measure"
+            #     entry["isMeasurement"] = True
+            result["operations"].append(entry)
+        for i in range(self.qubits):
+            result["qubits"].append({"id": i, "numChildren": 0})
+
+        # Return the JSON string representation of the circuit
+        return json.dumps(result)
+
+    def __str__(self):
+        return f"QirOps(profile={self.profile}, qubits={self.qubits}, results={self.results}, ops={self.ops})"
+
+
+def transpose(input: list[Op]) -> list[Op]:
+    """
+    Transpose the input operations to match the expected sx, rz, cz, and mz instruction set
+    """
+    pi = 3.141592653589793
+    pi_2 = pi / 2
+    pi_4 = pi / 4
+
+    skip = ["initialize", "barrier"]
+    native = ["sx", "rz", "cz", "mz", "array_record_output", "result_record_output"]
+    mappings = {
+        "x": lambda args: [Op("qir", "sx", args), Op("qir", "sx", args)],
+        "y": lambda args: [
+            Op("qir", "sx", args),
+            Op("qir", "sx", args),
+            Op("qir", "rz", [pi, args[0]]),
+        ],
+        "z": lambda args: [Op("qir", "rz", [pi, args[0]])],
+        "h": lambda args: [
+            Op("qir", "rz", [pi_2, args[0]]),
+            Op("qir", "sx", args),
+            Op("qir", "rz", [pi_2, args[0]]),
+        ],
+        "s": lambda args: [Op("qir", "rz", [pi_2, args[0]])],
+        "s_adj": lambda args: [Op("qir", "rz", [-pi_2, args[0]])],
+        "t": lambda args: [Op("qir", "rz", [pi_4, args[0]])],
+        "t_adj": lambda args: [Op("qir", "rz", [-pi_4, args[0]])],
+        "rx": lambda args: [
+            Op("qir", "h", [args[1]]),
+            Op("qir", "rz", args),
+            Op("qir", "h", [args[1]]),
+        ],
+        "ry": lambda args: [
+            Op("qir", "h", [args[1]]),
+            Op("qir", "s", [args[1]]),
+            Op("qir", "h", [args[1]]),
+            Op("qir", "rz", args),
+            Op("qir", "h", [args[1]]),
+            Op("qir", "s_adj", [args[1]]),
+            Op("qir", "h", [args[1]]),
+        ],
+        "cx": lambda args: [
+            Op("qir", "h", [args[1]]),
+            Op("qir", "cz", args),
+            Op("qir", "h", [args[1]]),
+        ],
+        "rzz": lambda args: [
+            Op("qir", "h", [args[1]]),
+            Op("qir", "cz", args[1:]),
+            Op("qir", "h", [args[1]]),
+            Op("qir", "rz", [args[0], args[1]]),
+            Op("qir", "h", [args[1]]),
+            Op("qir", "cz", args[1:]),
+            Op("qir", "h", [args[1]]),
+        ],
+    }
+    output = []
+    did_mapping = True
+    while did_mapping:  # Continue until no mappings are applied
+        did_mapping = False
+        output = []
+        for op in input:
+            if op.name in native:
+                output.append(op)
+            elif op.name in mappings:
+                did_mapping = True
+                output.extend(mappings[op.name](op.args))
+            elif op.name in skip:
+                continue
+            else:
+                raise ValueError(f"Unsupported operation {op.name} in QIR code")
+        input = output
+
+    return reduce(output)
+
+
+def reduce(input: list[Op]) -> list[Op]:
+    queued_ops = {}
+    output = []
+
+    # NOTE: Could also ignore consequtive cz ops on the same qubits, but seems rare.
+
+    def flush_op(id: int):
+        if id in queued_ops:
+            queued_op = queued_ops[id]
+            # Clamp the angle to [0, 2*pi]
+            queued_op.args[0] = queued_op.args[0] % (2 * 3.141592653589793)
+
+            # Skip if Rz(0) (to within 1e-10)
+            if abs(queued_op.args[0]) >= 1e-10:
+                output.append(queued_op)
+            del queued_ops[id]
+
+    for op in input:
+        if op.name == "rz":
+            # If the operation is a rz, we need to check if we can combine it with a previous rz
+            if op.args[1] in queued_ops:
+                # Accumulate the angle
+                queued_ops[op.args[1]].args[0] += op.args[0]
+            else:
+                # New rz operation, queue it
+                queued_ops[op.args[1]] = op
+        elif op.name in ["sx", "mz"]:
+            flush_op(op.args[0])
+            output.append(op)
+        elif op.name == "cz":
+            flush_op(op.args[0])
+            flush_op(op.args[1])
+            output.append(op)
+        elif op.name in ["array_record_output", "result_record_output"]:
+            output.append(op)
+        else:
+            raise ValueError(f"Unsupported operation {op.name} in QIR code to reduce")
+
+    # Flush any remaining queued operations (shouldn't be any if all measured at the end)
+    for op in queued_ops.values():
+        output.append(op)
+
+    return output

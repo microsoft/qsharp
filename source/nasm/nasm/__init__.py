@@ -9,7 +9,7 @@ from .noise_model import (
     amplitude_damping_kraus,
     rz_for_theta,
 )
-from .ops import QirOps
+from .ops import QirOps, transpose
 
 
 # This function is used to get the RZ operator for a given angle.
@@ -49,6 +49,7 @@ class Simulator:
             code = str(code)
 
         ops = QirOps(code)
+        ops.transpose()
         self.shots = []
 
         for shot in range(shots):
