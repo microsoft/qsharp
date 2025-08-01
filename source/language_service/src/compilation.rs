@@ -7,7 +7,7 @@ use qsc::{
     compile,
     display::Lookup,
     error::WithSource,
-    hir::{self, PackageId},
+    hir::{self, PackageId, Res},
     incremental::Compiler,
     line_column::{Encoding, Position, Range},
     packages::{BuildableProgram, prepare_package_store},
@@ -560,10 +560,10 @@ impl Lookup for Compilation {
         // follow chain of exports, if it is an aexport
         while let hir::ItemKind::Export(
             _,
-            hir::ItemId {
+            Res::Item(hir::ItemId {
                 package: package_id,
                 item: local_item_id,
-            },
+            }),
         ) = &item.kind
         {
             let package: &hir::Package = if let Some(id) = package_id {

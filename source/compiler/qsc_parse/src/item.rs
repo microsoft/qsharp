@@ -32,9 +32,9 @@ use crate::{
 };
 use qsc_ast::ast::{
     Attr, Block, CallableBody, CallableDecl, CallableKind, FieldDef, FunctorExpr, Ident, Idents,
-    ImportOrExportDecl, ImportOrExportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path,
-    PathKind, Spec, SpecBody, SpecDecl, SpecGen, Stmt, StmtKind, StructDecl, TopLevelNode, Ty,
-    TyDef, TyDefKind, TyKind,
+    ImportKind, ImportOrExportDecl, ImportOrExportItem, Item, ItemKind, Namespace, NodeId, Pat,
+    PatKind, Path, PathKind, Spec, SpecBody, SpecDecl, SpecGen, Stmt, StmtKind, StructDecl,
+    TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
 };
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
@@ -659,8 +659,10 @@ pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
 }
 
 /// Parses an import or export statement. Exports start with the `export` keyword, followed by a
-/// list of items.
-/// Imports are the same, but with the `import` keyword.
+/// list of paths and optionally aliases.
+///
+/// Imports are the same, but with the `import` keyword. Wildcards are also supported in
+/// import paths.
 ///
 /// ```qsharp
 /// export
@@ -684,7 +686,15 @@ fn parse_import_or_export(s: &mut ParserContext) -> Result<ImportOrExportDecl> {
         }
     };
     s.advance();
-    let (items, _) = seq(s, parse_import_or_export_item)?;
+    let (items, _) = seq(s, |p| parse_import_or_export_item(p, is_export))?;
+    if items.is_empty() {
+        // No items were parsed, e.g. `import;`
+        return Err(Error::new(ErrorKind::Token(
+            TokenKind::Ident,
+            s.peek().kind,
+            s.peek().span,
+        )));
+    }
     recovering_semi(s);
     Ok(ImportOrExportDecl::new(
         s.span(lo),
@@ -728,9 +738,12 @@ fn path_import(s: &mut ParserContext) -> Result<(PathKind, bool)> {
     }
 }
 
-fn parse_import_or_export_item(s: &mut ParserContext) -> Result<ImportOrExportItem> {
+fn parse_import_or_export_item(
+    s: &mut ParserContext,
+    is_export: bool,
+) -> Result<ImportOrExportItem> {
     let lo = s.peek().span.lo;
-    let (path, is_glob) = path_import(s)?;
+    let (path, is_wildcard) = path_import(s)?;
 
     let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
         Some(*(ident(s)?))
@@ -738,10 +751,27 @@ fn parse_import_or_export_item(s: &mut ParserContext) -> Result<ImportOrExportIt
         None
     };
 
+    if is_wildcard {
+        if let Some(alias) = alias {
+            return Err(Error::new(ErrorKind::WildcardAlias {
+                span: s.span(lo),
+                path: path.to_string(),
+                alias: alias.to_string(),
+            }));
+        }
+
+        if is_export {
+            return Err(Error::new(ErrorKind::ExportWildcard(s.span(lo))));
+        }
+    }
+
     Ok(ImportOrExportItem {
         span: s.span(lo),
         path,
-        alias,
-        is_glob,
+        kind: if is_wildcard {
+            ImportKind::Wildcard
+        } else {
+            ImportKind::Direct { alias }
+        },
     })
 }

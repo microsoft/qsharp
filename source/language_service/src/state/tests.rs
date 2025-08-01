@@ -769,8 +769,6 @@ async fn update_notebook_reports_errors_from_dependencies() {
                 name error
                   [cell1] [Foo]
                 name error
-                  [cell1] [Foo]
-                name error
                   [cell1] [Bar]
                 type error
                   [cell1] [Bar()]

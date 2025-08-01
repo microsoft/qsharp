@@ -15,10 +15,10 @@ use std::vec;
 
 use qsc_ast::ast::{
     self, Attr, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind,
-    FieldAccess, Functor, FunctorExpr, FunctorExprKind, Ident, Idents, ImportOrExportItem, Item,
-    ItemKind, Lit, Mutability, Pat, PatKind, Path, PathKind, Pauli, QubitInit, QubitInitKind,
-    QubitSource, SetOp, SpecBody, SpecDecl, SpecGen, Stmt, StmtKind, StringComponent, TernOp,
-    TopLevelNode, Ty, TyDef, TyDefKind, TyKind, UnOp,
+    FieldAccess, Functor, FunctorExpr, FunctorExprKind, Ident, Idents, ImportKind,
+    ImportOrExportItem, Item, ItemKind, Lit, Mutability, Pat, PatKind, Path, PathKind, Pauli,
+    QubitInit, QubitInitKind, QubitSource, SetOp, SpecBody, SpecDecl, SpecGen, Stmt, StmtKind,
+    StringComponent, TernOp, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, UnOp,
 };
 use qsc_ast::ast::{Namespace, Package};
 use qsc_ast::visit::Visitor;
@@ -162,19 +162,18 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                     ImportOrExportItem {
                         span: _,
                         path,
-                        is_glob,
-                        alias,
+                        kind,
                     },
                 ) in decl.items.iter().enumerate()
                 {
                     let is_last = ix == decl.items.len() - 1;
                     self.visit_path_kind(path);
 
-                    if *is_glob {
+                    if let ImportKind::Wildcard = kind {
                         self.write(".*");
                     }
 
-                    if let Some(alias) = alias {
+                    if let ImportKind::Direct { alias: Some(alias) } = kind {
                         self.write(&format!(" as {}", alias.name));
                     }
 

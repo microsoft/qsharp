@@ -334,7 +334,7 @@ impl Interpreter {
             .expect("package should exist in the package store")
             .package;
         for global in global::iter_package(Some(map_fir_package_to_hir(package_id)), package) {
-            if let global::Kind::Term(term) = global.kind {
+            if let global::Kind::Callable(term) = global.kind {
                 let store_item_id = fir::StoreItemId {
                     package: package_id,
                     item: fir::LocalItemId::from(usize::from(term.id.item)),

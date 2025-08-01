@@ -709,7 +709,7 @@ pub enum ItemKind {
     /// A `newtype` declaration.
     Ty(Ident, Udt),
     /// An export referring to another item
-    Export(Ident, ItemId),
+    Export(Ident, Res),
 }
 
 impl Display for ItemKind {

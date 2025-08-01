@@ -126,10 +126,10 @@ impl<'a> Context<'a> {
                 Some(
                     resolve::Res::Local(_)
                     | resolve::Res::Param { .. }
-                    | resolve::Res::ExportedItem(_, _),
+                    | resolve::Res::Importable(..),
                 ) => unreachable!(
-                    "A path should never resolve \
-                    to a local or a parameter, as there is syntactic differentiation."
+                    " A path in an expression should never resolve to a local, parameter, \
+            or as an importable, as there is syntactic differentiation."
                 ),
             },
             TyKind::Param(TypeParameter {
@@ -626,15 +626,8 @@ impl<'a> Context<'a> {
                         .expect("local should have type")
                         .clone(),
                 ),
-                Some(Res::ExportedItem(item, _)) => {
-                    // get the underlying item this refers to
-                    let item_scheme = self.globals.get(item).expect("item should have scheme");
-                    let (ty, args) = self.inferrer.instantiate(item_scheme, expr.span);
-                    self.table.generics.insert(expr.id, args);
-                    converge(Ty::Arrow(Rc::new(ty)))
-                }
-                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param { .. }) => {
-                    panic!("expression should not resolve to type reference")
+                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param { .. } | Res::Importable(..)) => {
+                    unreachable!("expression should not resolve to type reference or importable")
                 }
             },
         }
