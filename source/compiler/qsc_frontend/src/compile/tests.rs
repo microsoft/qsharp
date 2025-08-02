@@ -347,7 +347,7 @@ fn insert_core_call() {
                 .expect("QIR runtime should be inserted at instantiation of core Table");
             let allocate = self
                 .core
-                .resolve_term(ns, "__quantum__rt__qubit_allocate")
+                .resolve_callable(ns, "__quantum__rt__qubit_allocate")
                 .expect("qubit allocation should be in core");
             let allocate_ty = allocate
                 .scheme
@@ -416,7 +416,7 @@ fn insert_core_call() {
                     body: SpecDecl 3 [18-41]: Impl:
                         Block 4 [39-41] [Type Unit]:
                             Stmt 6 [0-0]: Semi: Expr 7 [0-0] [Type Qubit]: Call:
-                                Expr 8 [0-0] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                Expr 8 [0-0] [Type (Unit => Qubit)]: Var: Item 6 (Package 0)
                                 Expr 9 [0-0] [Type Unit]: Unit
                     adj: <none>
                     ctl: <none>
@@ -916,11 +916,6 @@ fn two_files_error_eof() {
     .assert_eq(&unit.package.to_string());
 }
 
-// this test is ignored for now -- see
-// https://github.com/microsoft/qsharp/pull/1698#discussion_r1664575343 for more information.
-// if we want to use `Unimplemented` more seriously (it is currently not used anywhere),
-// we should consider how it will interact with exports and other features.
-#[ignore = "see above link to discussion"]
 #[test]
 fn unimplemented_call_from_dependency_produces_error() {
     let lib_sources = SourceMap::new(
@@ -930,6 +925,7 @@ fn unimplemented_call_from_dependency_produces_error() {
                 namespace Foo {
                     @Unimplemented()
                     operation Bar() : Unit {}
+                    export Bar;
                 }
             "}
             .into(),
@@ -971,17 +967,17 @@ fn unimplemented_call_from_dependency_produces_error() {
     );
     expect![[r#"
         [
-           Error(
-               Resolve(
-                   Unimplemented(
+            Error(
+                Resolve(
+                    Unimplemented(
                         "Bar",
                         Span {
-                           lo: 69,
-                           hi: 72,
+                            lo: 69,
+                            hi: 72,
                         },
-                   ),
-               ),
-           ),
+                    ),
+                ),
+            ),
         ]
     "#]]
     .assert_debug_eq(&unit.errors);

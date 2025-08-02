@@ -2648,3 +2648,273 @@ fn ignore_item_in_attribute() {
                         ctl-adj: <none>"#]],
     );
 }
+
+#[test]
+fn self_export_makes_callable_public() {
+    // Export item should vanish during lowering, and the original
+    // callable should be marked public
+    check_hir(
+        indoc! {"
+            namespace Test {
+                function Length() : Int { 42 }
+                export Length;
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-72] (Public):
+                    Namespace (Ident 8 [10-14] "Test"): Item 1
+                Item 1 [21-51] (Public):
+                    Parent: 0
+                    Callable 0 [21-51] (function):
+                        name: Ident 1 [30-36] "Length"
+                        input: Pat 2 [36-38] [Type Unit]: Unit
+                        output: Int
+                        functors: empty set
+                        body: SpecDecl 3 [21-51]: Impl:
+                            Block 4 [45-51] [Type Int]:
+                                Stmt 5 [47-49]: Expr: Expr 6 [47-49] [Type Int]: Lit: Int(42)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn self_export_makes_ty_public() {
+    // Export item should vanish during lowering, and the original
+    // UDT should be marked public
+    check_hir(
+        indoc! {"
+            namespace Foo {
+                struct Bar { x: Int }
+                export Bar;
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-59] (Public):
+                    Namespace (Ident 2 [10-13] "Foo"): Item 1
+                Item 1 [20-41] (Public):
+                    Parent: 0
+                    Type (Ident 0 [27-30] "Bar"): UDT [20-41]:
+                        TyDef [20-41]: Tuple:
+                            TyDef [33-39]: Field:
+                                name: x [33-34]
+                                type: Int"#]],
+    );
+}
+
+#[test]
+fn export_in_different_namespace_creates_export_item() {
+    // An export item should be created, and the original callable should
+    // remain internal.
+    check_hir(
+        indoc! {"
+            namespace Foo {
+                function Bar() : Int { 1 }
+            }
+            namespace Test {
+                export Foo.Bar;
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-48] (Public):
+                    Namespace (Ident 7 [10-13] "Foo"): Item 1
+                Item 1 [20-46] (Internal):
+                    Parent: 0
+                    Callable 0 [20-46] (function):
+                        name: Ident 1 [29-32] "Bar"
+                        input: Pat 2 [32-34] [Type Unit]: Unit
+                        output: Int
+                        functors: empty set
+                        body: SpecDecl 3 [20-46]: Impl:
+                            Block 4 [41-46] [Type Int]:
+                                Stmt 5 [43-44]: Expr: Expr 6 [43-44] [Type Int]: Lit: Int(1)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 2 [49-87] (Public):
+                    Namespace (Ident 9 [59-63] "Test"): Item 3
+                Item 3 [70-85] (Public):
+                    Parent: 2
+                    Export (Ident 8 [81-84] "Bar"): Item 1"#]],
+    );
+}
+
+#[test]
+fn wildcard_import_export_in_different_namespace_creates_export_item() {
+    // An export item should be created, and the original callable should
+    // remain internal.
+    check_hir(
+        indoc! {"
+            namespace Foo {
+                function Bar() : Unit {}
+            }
+            namespace Test {
+                import Foo.*;
+                export Bar;
+                function Test() : Unit {
+                    Bar();
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-46] (Public):
+                    Namespace (Ident 5 [10-13] "Foo"): Item 1
+                Item 1 [20-44] (Internal):
+                    Parent: 0
+                    Callable 0 [20-44] (function):
+                        name: Ident 1 [29-32] "Bar"
+                        input: Pat 2 [32-34] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 3 [20-44]: Impl:
+                            Block 4 [42-44]: <empty>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 2 [47-149] (Public):
+                    Namespace (Ident 16 [57-61] "Test"): Item 3, Item 4
+                Item 3 [86-97] (Public):
+                    Parent: 2
+                    Export (Ident 6 [93-96] "Bar"): Item 1
+                Item 4 [102-147] (Internal):
+                    Parent: 2
+                    Callable 7 [102-147] (function):
+                        name: Ident 8 [111-115] "Test"
+                        input: Pat 9 [115-117] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 10 [102-147]: Impl:
+                            Block 11 [125-147] [Type Unit]:
+                                Stmt 12 [135-141]: Semi: Expr 13 [135-140] [Type Unit]: Call:
+                                    Expr 14 [135-138] [Type (Unit -> Unit)]: Var: Item 1
+                                    Expr 15 [138-140] [Type Unit]: Unit
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn aliased_export_creates_export_item() {
+    // An export item should be created, and the original callable should
+    // remain internal.
+    check_hir(
+        indoc! {"
+            namespace Foo {
+                function Bar() : Int { 1 }
+            }
+            namespace Test {
+                export Foo.Bar as Baz;
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-48] (Public):
+                    Namespace (Ident 7 [10-13] "Foo"): Item 1
+                Item 1 [20-46] (Internal):
+                    Parent: 0
+                    Callable 0 [20-46] (function):
+                        name: Ident 1 [29-32] "Bar"
+                        input: Pat 2 [32-34] [Type Unit]: Unit
+                        output: Int
+                        functors: empty set
+                        body: SpecDecl 3 [20-46]: Impl:
+                            Block 4 [41-46] [Type Int]:
+                                Stmt 5 [43-44]: Expr: Expr 6 [43-44] [Type Int]: Lit: Int(1)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 2 [49-94] (Public):
+                    Namespace (Ident 9 [59-63] "Test"): Item 3
+                Item 3 [70-92] (Public):
+                    Parent: 2
+                    Export (Ident 8 [88-91] "Baz"): Item 1"#]],
+    );
+}
+
+#[test]
+fn export_parent_namespace_is_err() {
+    // A namespace that's only ever declared as a parent (e.g.
+    // the `Parent` in `Parent.Foo`) cannot be exported since we don't
+    // assign it an Item ID.
+    let input = indoc! {"
+            namespace Parent.Foo {
+                function Bar() : Unit {}
+                export Bar;
+            }
+
+            namespace Baz {
+                export Parent as ParentAlias;
+            }
+
+            namespace Main {
+                export Baz.ParentAlias;
+                operation Main() : Unit {}
+            }
+        "};
+    check_errors(
+        input,
+        &expect![[r#"
+            [
+                ParentNamespaceExport {
+                    span: Span {
+                        lo: 98,
+                        hi: 104,
+                    },
+                },
+                ParentNamespaceExport {
+                    span: Span {
+                        lo: 152,
+                        hi: 167,
+                    },
+                },
+            ]
+        "#]],
+    );
+    check_hir(
+        input,
+        &expect![[r#"
+            Package:
+                Item 0 [0-69] (Public):
+                    Namespace ([Ident 6 [10-16] "Parent", Ident 7 [17-20] "Foo"]): Item 1
+                Item 1 [27-51] (Public):
+                    Parent: 0
+                    Callable 0 [27-51] (function):
+                        name: Ident 1 [36-39] "Bar"
+                        input: Pat 2 [39-41] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 3 [27-51]: Impl:
+                            Block 4 [49-51]: <empty>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 3 [71-122] (Public):
+                    Namespace (Ident 9 [81-84] "Baz"): Item 4
+                Item 4 [91-120] (Public):
+                    Parent: 3
+                    Export (Ident 8 [108-119] "ParentAlias"): Err
+                Item 5 [124-201] (Public):
+                    Namespace (Ident 16 [134-138] "Main"): Item 6, Item 7
+                Item 6 [145-168] (Public):
+                    Parent: 5
+                    Export (Ident 10 [156-167] "ParentAlias"): Err
+                Item 7 [173-199] (Internal):
+                    Parent: 5
+                    Callable 11 [173-199] (operation):
+                        name: Ident 12 [183-187] "Main"
+                        input: Pat 13 [187-189] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 14 [173-199]: Impl:
+                            Block 15 [197-199]: <empty>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}

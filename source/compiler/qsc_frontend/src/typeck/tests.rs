@@ -124,9 +124,8 @@ fn compile(
     let mut globals = resolve::GlobalTable::new();
     let mut errors = globals.add_local_package(&mut assigner, &package);
     let mut resolver = Resolver::new(globals, Vec::new());
-    resolver.bind_and_resolve_imports_and_exports(&package);
-    resolver.with(&mut assigner).visit_package(&package);
-    let (names, _, mut resolve_errors, _namespaces) = resolver.into_result();
+    resolver.resolve(&mut assigner, &package);
+    let (names, _, _, mut resolve_errors) = resolver.into_result();
     errors.append(&mut resolve_errors);
 
     let mut checker = Checker::new(super::GlobalTable::new());

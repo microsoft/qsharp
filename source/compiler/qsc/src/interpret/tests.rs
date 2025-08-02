@@ -508,7 +508,7 @@ mod given_interpreter {
                 &result,
                 &output,
                 &expect![[r#"
-                    name error: `DumpMachine` could refer to the item in `Other` or `Microsoft.Quantum.Diagnostics`
+                    name error: `DumpMachine` could refer to the item in `Other` or `Std.Diagnostics`
                       ambiguous name [line_3] [DumpMachine]
                       found in this namespace [line_1] [Other]
                       and also in this namespace [line_2] [Std.Diagnostics]

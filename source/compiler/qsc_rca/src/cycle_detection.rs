@@ -8,7 +8,7 @@ use qsc_fir::{
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Item, ItemKind,
         LocalVarId, Mutability, Package, PackageId, PackageLookup, PackageStore, Pat, PatId,
-        PatKind, SpecDecl, Stmt, StmtId, StmtKind,
+        PatKind, Res, SpecDecl, Stmt, StmtId, StmtKind,
     },
     ty::FunctorSetValue,
     visit::{Visitor, walk_expr},
@@ -129,13 +129,13 @@ impl<'a> CycleDetector<'a> {
                 callable_decl,
             ),
             ItemKind::Namespace(_, _) => panic!("calls to namespaces are invalid"),
-            ItemKind::Ty(_, _) => {
-                // Ignore "calls" to types.
-            }
-            ItemKind::Export(_, id) => {
+            ItemKind::Export(_, Res::Item(id)) => {
                 // resolve the item, which may exist in another package
                 let item = self.resolve_item(*id);
                 self.handle_item(item, callee);
+            }
+            ItemKind::Export(_, _) | ItemKind::Ty(_, _) => {
+                // Skip types and unresolved exports.
             }
         }
     }

@@ -3,9 +3,9 @@
 
 use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAccess, FieldAssign, FieldDef,
-    FunctorExpr, FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path,
-    PathKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
-    StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TypeParameter,
+    FunctorExpr, FunctorExprKind, Ident, ImportKind, Item, ItemKind, Namespace, Package, Pat,
+    PatKind, Path, PathKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind,
+    StringComponent, StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TypeParameter,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -122,7 +122,10 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
         ItemKind::ImportOrExport(decl) => {
             for item in &decl.items {
                 vis.visit_path_kind(&item.path);
-                if let Some(ref alias) = item.alias {
+                if let ImportKind::Direct {
+                    alias: Some(ref alias),
+                } = item.kind
+                {
                     vis.visit_ident(alias);
                 }
             }

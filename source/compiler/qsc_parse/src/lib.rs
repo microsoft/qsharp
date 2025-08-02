@@ -146,6 +146,17 @@ enum ErrorKind {
     #[error("expected an item or closing brace, found {0}")]
     #[diagnostic(code("Qsc.Parse.ExpectedItem"))]
     ExpectedItem(TokenKind, #[label] Span),
+    #[error("cannot use an alias with a wildcard import")]
+    #[diagnostic(help("try `import {path} as {alias}` instead"))]
+    #[diagnostic(code("Qsc.Parse.WildcardAlias"))]
+    WildcardAlias {
+        #[label]
+        span: Span,
+        path: String,
+        alias: String,
+    },
+    #[error("wildcards are not supported in export declarations")]
+    ExportWildcard(#[label] Span),
 }
 
 impl ErrorKind {
@@ -166,6 +177,12 @@ impl ErrorKind {
             Self::DotIdentAlias(span) => Self::DotIdentAlias(span + offset),
             Self::InvalidFileName(span, name) => Self::InvalidFileName(span + offset, name),
             Self::ExpectedItem(token, span) => Self::ExpectedItem(token, span + offset),
+            Self::WildcardAlias { span, path, alias } => Self::WildcardAlias {
+                span: span + offset,
+                path,
+                alias,
+            },
+            Self::ExportWildcard(span) => Self::ExportWildcard(span + offset),
         }
     }
 }

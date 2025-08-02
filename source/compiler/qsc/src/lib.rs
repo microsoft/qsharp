@@ -15,7 +15,9 @@ pub use qsc_formatter::formatter;
 pub use qsc_frontend::compile::{CompileUnit, PackageStore, SourceContents, SourceMap, SourceName};
 
 pub mod resolve {
-    pub use qsc_frontend::resolve::{Local, LocalKind, Locals, Res, path_as_field_accessor};
+    pub use qsc_frontend::resolve::{
+        Local, LocalKind, Locals, Res, iter_valid_items, path_as_field_accessor,
+    };
 }
 
 pub mod fir {

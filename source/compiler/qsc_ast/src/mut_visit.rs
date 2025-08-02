@@ -3,9 +3,9 @@
 
 use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAccess, FieldAssign, FieldDef,
-    FunctorExpr, FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path,
-    PathKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
-    StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TypeParameter,
+    FunctorExpr, FunctorExprKind, Ident, ImportKind, Item, ItemKind, Namespace, Package, Pat,
+    PatKind, Path, PathKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind,
+    StringComponent, StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TypeParameter,
 };
 use qsc_data_structures::span::Span;
 
@@ -133,7 +133,7 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
             for item in &mut *export.items {
                 vis.visit_span(&mut item.span);
                 vis.visit_path_kind(&mut item.path);
-                if let Some(ref mut alias) = item.alias {
+                if let ImportKind::Direct { alias: Some(alias) } = &mut item.kind {
                     vis.visit_ident(alias);
                 }
             }

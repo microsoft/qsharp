@@ -12,7 +12,7 @@ use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::target::TargetCapabilityFlags;
 use qsc_frontend::compile::{self, Dependencies, PackageStore, SourceMap, compile};
 use qsc_frontend::resolve;
-use qsc_hir::hir::{CallableKind, Item, ItemKind, Package, PackageId, Visibility};
+use qsc_hir::hir::{CallableKind, Item, ItemKind, Package, PackageId, Res, Visibility};
 use qsc_hir::{hir, ty};
 use rustc_hash::FxHashMap;
 use std::fmt::{Display, Formatter, Result};
@@ -650,7 +650,7 @@ fn resolve_export<'a>(
     if matches!(item.kind, ItemKind::Namespace(_, _)) {
         return None;
     }
-    if let ItemKind::Export(_, id) = item.kind {
+    if let ItemKind::Export(_, Res::Item(id)) = item.kind {
         let (exported_item, exported_package, _) =
             display.compilation.resolve_item(default_package_id, &id);
         return resolve_export(

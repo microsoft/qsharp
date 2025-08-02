@@ -3,14 +3,14 @@
 
 use super::{Compiler, Increment};
 use crate::{
-    compile::{self, CompileUnit, PackageStore, SourceMap},
+    compile::{self, CompileUnit, PackageStore},
     incremental::Error,
 };
 use expect_test::{Expect, expect};
 use indoc::indoc;
 use miette::Diagnostic;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
-use std::{fmt::Write, sync::Arc};
+use std::fmt::Write;
 
 #[allow(clippy::too_many_lines)]
 #[test]
@@ -43,7 +43,7 @@ fn one_callable() {
                             output: Type 7 [35-39]: Path: Path 8 [35-39] (Ident 9 [35-39] "Unit")
                             body: Block: Block 10 [40-42]: <empty>
             names:
-            node_id:1,node_id:5,node_id:8,
+            node_id:2,node_id:5,node_id:8,
             terms:
             node_id:6,node_id:10,
             locals:
@@ -58,6 +58,7 @@ fn one_callable() {
                         opens: {},
                         tys: {},
                         terms: {},
+                        importables: {},
                         vars: {},
                         ty_vars: {},
                     },
@@ -72,7 +73,7 @@ fn one_callable() {
                             ),
                         ),
                         opens: {
-                            []: [
+                            None: [
                                 Open {
                                     namespace: NamespaceId(
                                         5,
@@ -86,6 +87,7 @@ fn one_callable() {
                         },
                         tys: {},
                         terms: {},
+                        importables: {},
                         vars: {},
                         ty_vars: {},
                     },
@@ -98,6 +100,7 @@ fn one_callable() {
                         opens: {},
                         tys: {},
                         terms: {},
+                        importables: {},
                         vars: {},
                         ty_vars: {},
                     },
@@ -110,6 +113,7 @@ fn one_callable() {
                         opens: {},
                         tys: {},
                         terms: {},
+                        importables: {},
                         vars: {},
                         ty_vars: {},
                     },
@@ -177,6 +181,7 @@ fn one_statement() {
                         opens: {},
                         tys: {},
                         terms: {},
+                        importables: {},
                         vars: {
                             "q": (
                                 16,
@@ -468,213 +473,7 @@ fn continue_after_lower_error() {
         ]
     "#]].assert_debug_eq(&errors);
 }
-#[test]
-fn import_foo() {
-    multi_package_test(
-        vec![(
-            "PackageA.qs",
-            indoc! {"
-                operation Foo(x: Int, y: Bool) : Int {
-                    x
-                }
-                export Foo;
-            "},
-        )],
-        vec![(
-            "PackageB.qs",
-            indoc! {"
-                import A.PackageA.Foo;
-            "},
-        )],
-        &[("A", "PackageA")],
-        "",
-    );
-}
 
-#[test]
-fn import_foo_with_alias() {
-    multi_package_test(
-        vec![(
-            "PackageA.qs",
-            indoc! {"
-                operation Foo(x: Int, y: Bool) : Int {
-                    x
-                }
-                export Foo;
-            "},
-        )],
-        vec![(
-            "PackageB.qs",
-            indoc! {"
-                import A.PackageA.Foo as Foo2;
-            "},
-        )],
-        &[("A", "PackageA")],
-        "",
-    );
-}
-
-#[test]
-fn export_foo_with_alias() {
-    multi_package_test(
-        vec![(
-            "PackageA.qs",
-            indoc! {"
-                operation Foo(x: Int, y: Bool) : Int {
-                    x
-                }
-                export Foo;
-            "},
-        )],
-        vec![(
-            "PackageB.qs",
-            indoc! {"
-                import A.PackageA.Foo;
-                export Foo as Bar;
-            "},
-        )],
-        &[("A", "PackageA")],
-        "",
-    );
-}
-
-#[test]
-fn combined_import_export() {
-    multi_package_test(
-        vec![(
-            "PackageA.qs",
-            indoc! {"
-                operation Foo(x: Int, y: Bool) : Int {
-                    x
-                }
-                export Foo;
-            "},
-        )],
-        vec![(
-            "PackageB.qs",
-            indoc! {"
-                import A.PackageA.Foo;
-                import A.PackageA.Foo as Foo2;
-                export Foo, Foo as Bar, Foo2, Foo2 as Bar2;
-            "},
-        )],
-        &[("A", "PackageA")],
-        indoc! {"
-            import B.PackageB.Foo, B.PackageB.Bar, B.PackageB.Foo2, B.PackageB.Bar2;
-            @EntryPoint()
-            function Main() : Unit {
-                Foo(10, true);
-                Foo2(10, true);
-                Bar(10, true);
-                Bar2(10, true);
-            }
-        "},
-    );
-}
-
-#[test]
-fn reexport_operation_from_a_dependency() {
-    multi_package_test(
-        vec![(
-            "PackageA.qs",
-            indoc! {"
-                operation Foo(x: Int, y: Bool) : Int {
-                    x
-                }
-                export Foo;
-            "},
-        )],
-        vec![(
-            "PackageB.qs",
-            indoc! {"
-                import A.PackageA.Foo;
-                export Foo as Bar;
-            "},
-        )],
-        &[("A", "PackageA")],
-        indoc! {"
-            import B.PackageB.Bar;
-            @EntryPoint()
-            function Main() : Unit {
-                Bar(10, true);
-            }
-        "},
-    );
-}
-
-fn multi_package_test(
-    packages: Vec<(&str, &str)>,
-    dependencies: Vec<(&str, &str)>,
-    imports: &[(&str, &str)],
-    user_code: &str,
-) {
-    let mut store = PackageStore::new(compile::core());
-
-    let packages = packages
-        .into_iter()
-        .map(|(name, code)| {
-            let source_map = SourceMap::new([(name.into(), code.into())], None);
-            let compiled_package = compile::compile(
-                &store,
-                &[],
-                source_map,
-                TargetCapabilityFlags::all(),
-                LanguageFeatures::default(),
-            );
-            assert!(
-                compiled_package.errors.is_empty(),
-                "{:#?}",
-                compiled_package.errors
-            );
-            store.insert(compiled_package)
-        })
-        .collect::<Vec<_>>();
-
-    let dependencies = dependencies
-        .into_iter()
-        .map(|(name, code)| {
-            let source_map = SourceMap::new([(name.into(), code.into())], None);
-            let compiled_package = compile::compile(
-                &store,
-                &imports
-                    .iter()
-                    .map(|(alias, _)| (packages[0], Some(Arc::from(*alias))))
-                    .collect::<Vec<_>>(),
-                source_map,
-                TargetCapabilityFlags::all(),
-                LanguageFeatures::default(),
-            );
-            assert!(
-                compiled_package.errors.is_empty(),
-                "{:#?}",
-                compiled_package.errors
-            );
-            store.insert(compiled_package)
-        })
-        .collect::<Vec<_>>();
-
-    let mut compiler = Compiler::new(
-        &store,
-        &dependencies
-            .iter()
-            .map(|&pkg| (pkg, Some(Arc::from("B"))))
-            .collect::<Vec<_>>(),
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-    let mut unit = CompileUnit::default();
-
-    let mut errors = Vec::new();
-
-    compiler
-        .compile_fragments(&mut unit, "UserCode", user_code, |e| -> Result<(), ()> {
-            errors = e;
-            Ok(())
-        })
-        .expect("compile_fragments should succeed");
-
-    expect!["[]"].assert_eq(&format!("{errors:#?}"));
-}
 fn check_unit(expect: &Expect, actual: &Increment) {
     let ast = format!("ast:\n{}", actual.ast.package);
 
