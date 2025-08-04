@@ -207,12 +207,14 @@ impl QasmCompiler {
     /// Gets the profile for compilation from the first profile
     /// pragma if present, otherwise default to `Unrestricted`.
     fn get_profile(&self) -> Profile {
-        match self.pragma_config.pragmas.get(&PragmaKind::QdkQirProfile) {
-            Some(profile_str) => Profile::from_str(profile_str.as_ref()).expect(
+        self.pragma_config
+            .pragmas
+            .get(&PragmaKind::QdkQirProfile)
+            .map_or(Profile::Unrestricted, |profile_str| {
+                Profile::from_str(profile_str.as_ref()).expect(
                 "Invalid profile pragma; only a valid profile should be store in pragma_config.",
-            ),
-            None => Profile::Unrestricted,
-        }
+            )
+            })
     }
 
     /// Build a package with namespace and an operation
