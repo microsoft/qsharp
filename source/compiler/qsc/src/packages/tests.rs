@@ -13,7 +13,7 @@ fn mock_program() -> Project {
     let package_graph_sources = qsc_project::PackageGraphSources {
         root: qsc_project::PackageInfo {
             sources: vec![(
-                Arc::from("test"),
+                Arc::from("test.qs"),
                 Arc::from("@EntryPoint() operation Main() : Unit {}"),
             )],
             language_features: LanguageFeatures::default(),
@@ -326,7 +326,7 @@ fn entry_point_profile_in_project_causes_error() {
             WithSource {
                 sources: [
                     Source {
-                        name: "test",
+                        name: "test.qs",
                         contents: "@EntryPoint(Base) operation Main() : Unit { }",
                         offset: 0,
                     },
