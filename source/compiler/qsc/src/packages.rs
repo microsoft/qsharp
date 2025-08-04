@@ -76,37 +76,34 @@ fn convert_circuit_sources(
     processed_sources
 }
 
+/// Given a `PackageGraphSources`, checks if the entry profile is set in the source code.
+/// If it is, returns the profile; otherwise, returns `None`.
+/// This will also report an error if the entry profile is set in a project file.
 #[must_use]
 pub fn get_target_profile_from_entry_point(
     package_graph_sources: &PackageGraphSources,
-    dependency_errors: &mut Vec<WithSource<ErrorKind>>,
+    errors: &mut Vec<WithSource<ErrorKind>>,
 ) -> Option<Profile> {
-    // Convert circuit files in user code to generated Q# before entry profile check
-    let mut sources = package_graph_sources.root.sources.clone();
-    sources = convert_circuit_sources(sources, dependency_errors);
+    let sources = package_graph_sources.root.sources.clone();
 
-    let converted_source_map = SourceMap::new(sources.clone(), None);
+    let filtered_sources: Vec<_> = sources
+        .into_iter()
+        .filter(|(name, _)| {
+            std::path::Path::new(name.as_ref())
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("qs"))
+        })
+        .collect();
 
     // Check if the entry profile is set in the source code.
     let target_profile =
-        qsc_frontend::compile::get_target_profile_from_entry_point(&converted_source_map);
+        qsc_frontend::compile::get_target_profile_from_entry_point(&filtered_sources);
 
-    if let Some((profile, mut span)) = target_profile {
+    if let Some((profile, span)) = target_profile {
         // If the entry profile is set, we need to ensure that the user code is compiled with it.
         if package_graph_sources.has_manifest {
-            // Need to convert the span to the original source map
-            let original_source_map =
-                SourceMap::new(package_graph_sources.root.sources.clone(), None);
-            let converted_source = converted_source_map.find_by_offset(span.hi);
-            let original_source =
-                converted_source.and_then(|s| original_source_map.find_by_name(&s.name));
-            if let (Some(converted), Some(original)) = (converted_source, original_source) {
-                // Adjust the span to account for the offset of the original source
-                span = span - converted.offset + original.offset;
-            }
-
-            dependency_errors.push(Error::from_map(
-                &SourceMap::new(package_graph_sources.root.sources.clone(), None),
+            errors.push(Error::from_map(
+                &SourceMap::new(filtered_sources, None),
                 ErrorKind::EntryPointProfileInProject(span),
             ));
             None

@@ -301,3 +301,44 @@ fn dependency_error() {
         "]]
     .assert_debug_eq(&errors);
 }
+
+#[allow(clippy::too_many_lines)]
+#[test]
+fn entry_point_profile_in_project_causes_error() {
+    let program = mock_program();
+    // Inject a syntax error into one of the dependencies
+    let ProjectType::QSharp(mut package_graph_sources) = program.project_type else {
+        panic!("project should be a Q# project");
+    };
+    package_graph_sources
+        .root
+        .sources
+        .iter_mut()
+        .next()
+        .expect("expected at least one source in the mock program")
+        .1 = "@EntryPoint(Base) operation Main() : Unit { }".into();
+
+    let buildable_program =
+        super::prepare_package_store(TargetCapabilityFlags::default(), package_graph_sources);
+
+    expect![[r#"
+        [
+            WithSource {
+                sources: [
+                    Source {
+                        name: "test",
+                        contents: "@EntryPoint(Base) operation Main() : Unit { }",
+                        offset: 0,
+                    },
+                ],
+                error: EntryPointProfileInProject(
+                    Span {
+                        lo: 12,
+                        hi: 16,
+                    },
+                ),
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&buildable_program.dependency_errors);
+}

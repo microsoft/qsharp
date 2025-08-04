@@ -531,8 +531,13 @@ pub fn parse_all(
 }
 
 #[must_use]
-pub fn get_target_profile_from_entry_point(sources: &SourceMap) -> Option<(Profile, Span)> {
-    let (ast_package, parse_errors) = parse_all(sources, LanguageFeatures::default());
+pub fn get_target_profile_from_entry_point(
+    sources: &[(Arc<str>, Arc<str>)],
+) -> Option<(Profile, Span)> {
+    let (ast_package, parse_errors) = parse_all(
+        &SourceMap::new(sources.iter().cloned(), None),
+        LanguageFeatures::default(),
+    );
 
     if !parse_errors.is_empty() {
         return None;
