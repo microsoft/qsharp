@@ -31,8 +31,8 @@ impl DebugService {
     #[allow(clippy::needless_pass_by_value)] // needed for wasm_bindgen
     pub fn load_program(&mut self, program: ProgramConfig, entry: Option<String>) -> String {
         if is_openqasm_program(&program) {
-            let (sources, profile) = into_openqasm_arg(program);
-            match get_debugger_from_openqasm(&sources, profile) {
+            let (sources, capabilities) = into_openqasm_arg(program);
+            match get_debugger_from_openqasm(&sources, capabilities) {
                 Ok((entry_expr, mut interpreter)) => {
                     if let Err(e) = interpreter.set_entry_expr(&entry_expr) {
                         return render_errors(e);

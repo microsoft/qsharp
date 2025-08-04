@@ -34,7 +34,7 @@ pub(super) fn completions(
     // parser expects an expression.
     let ast_context = AstContext::init(source_offset, &compilation.user_unit().ast.package);
     if let Some(name) = ast_context.get_name_of_attr_for_attr_arg() {
-        if name == "EntryPoint" {
+        if name.as_ref() == "EntryPoint" {
             return CompletionList {
                 items: vec![
                     CompletionItem::new("Unrestricted".to_string(), CompletionItemKind::Keyword),

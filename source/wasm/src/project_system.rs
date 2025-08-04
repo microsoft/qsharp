@@ -5,7 +5,7 @@ use crate::{diagnostic::project_errors_into_qsharp_errors, serializable_type};
 use async_trait::async_trait;
 use miette::Report;
 use qsc::{
-    LanguageFeatures, linter::LintOrGroupConfig, packages::BuildableProgram, target::Profile,
+    LanguageFeatures, TargetCapabilityFlags, linter::LintOrGroupConfig, packages::BuildableProgram,
 };
 use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, JSProjectHost, PackageCache};
 use rustc_hash::FxHashMap;
@@ -480,7 +480,9 @@ pub(crate) fn into_qsc_args(
 
 #[allow(clippy::needless_pass_by_value)]
 #[allow(clippy::type_complexity)]
-pub(crate) fn into_openqasm_arg(program: ProgramConfig) -> (Vec<(Arc<str>, Arc<str>)>, Profile) {
+pub(crate) fn into_openqasm_arg(
+    program: ProgramConfig,
+) -> (Vec<(Arc<str>, Arc<str>)>, TargetCapabilityFlags) {
     let profile = qsc::target::Profile::from_str(&program.profile())
         .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()));
 
@@ -488,7 +490,7 @@ pub(crate) fn into_openqasm_arg(program: ProgramConfig) -> (Vec<(Arc<str>, Arc<s
     let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
     let sources = pkg_graph.root.sources;
 
-    (sources, profile)
+    (sources, profile.into())
 }
 
 pub(crate) fn is_openqasm_program(program: &ProgramConfig) -> bool {

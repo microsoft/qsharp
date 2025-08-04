@@ -31,7 +31,7 @@ enum Context<'a> {
         record: &'a Expr,
     },
     /// The cursor is on an attribute.
-    AttrArg(String),
+    AttrArg(Rc<str>),
 }
 
 impl<'a> AstContext<'a> {
@@ -117,7 +117,7 @@ impl<'a> Visitor<'a> for AstContext<'a> {
 
     fn visit_attr(&mut self, attr: &'a Attr) {
         if attr.arg.span.contains(self.offset) {
-            self.set_context(Context::AttrArg(attr.name.name.clone().to_string()));
+            self.set_context(Context::AttrArg(attr.name.name.clone()));
         }
     }
 }
@@ -159,7 +159,7 @@ impl AstContext<'_> {
 
     /// Returns the name of the attribute, if the cursor is on an attribute argument.
     /// If the cursor is not on an attribute argument, returns `None`.
-    pub fn get_name_of_attr_for_attr_arg(&self) -> Option<String> {
+    pub fn get_name_of_attr_for_attr_arg(&self) -> Option<Rc<str>> {
         if let Some(Context::AttrArg(name)) = &self.context {
             Some(name.clone())
         } else {
