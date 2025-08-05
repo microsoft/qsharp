@@ -523,6 +523,33 @@ def test_run_with_invalid_shots_produces_error() -> None:
         assert False
 
 
+def test_run_with_complex_udt(capsys) -> None:
+    qsharp.init()
+    val = qsharp.run(
+        """
+        {
+            new Std.Math.Complex { Real = 2., Imag = 3. }
+        }
+        """,
+        2,
+    )[0]
+    assert val.real == 2 and val.imag == 3
+
+
+def test_run_with_udt(capsys) -> None:
+    qsharp.init()
+    val = qsharp.run(
+        """
+        {
+            struct Data { a : Int, b : Int }
+            new Data { a = 2, b = 3 }
+        }
+        """,
+        2,
+    )[0]
+    assert val.a == 2 and val.b == 3
+
+
 def test_callables_exposed_into_env() -> None:
     qsharp.init()
     qsharp.eval("function Four() : Int { 4 }")

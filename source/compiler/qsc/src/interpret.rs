@@ -131,6 +131,8 @@ pub struct Interpreter {
     lowerer: qsc_lowerer::Lowerer,
     /// The execution graph for the last expression evaluated.
     expr_graph: Option<ExecGraph>,
+    /// The type of the last expression evaluated.
+    expr_ty: Option<Ty>,
     /// The ID of the current package.
     /// This ID is valid both for the FIR store and the `PackageStore`.
     package: PackageId,
@@ -255,6 +257,7 @@ impl Interpreter {
             fir_store,
             lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
             expr_graph: None,
+            expr_ty: None,
             env: Env::default(),
             sim: sim_circuit_backend(),
             quantum_seed: None,
@@ -318,6 +321,7 @@ impl Interpreter {
             fir_store,
             lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
             expr_graph: None,
+            expr_ty: None,
             env: Env::default(),
             sim: sim_circuit_backend(),
             quantum_seed: None,
@@ -555,22 +559,12 @@ impl Interpreter {
             .compiler
             .compile_fragments_fail_fast(&label, fragments)
             .map_err(into_errors)?;
+
         // Clear the entry expression, as we are evaluating fragments and a fragment with a `@EntryPoint` attribute
         // should not change what gets executed.
-
         increment.clear_entry();
 
-        let ty = if let Some(stmt) = increment.hir.stmts.last() {
-            match &stmt.kind {
-                qsc_hir::hir::StmtKind::Expr(expr) => expr.ty.clone(),
-                qsc_hir::hir::StmtKind::Item(..)
-                | qsc_hir::hir::StmtKind::Local(..)
-                | qsc_hir::hir::StmtKind::Qubit(..)
-                | qsc_hir::hir::StmtKind::Semi(..) => Ty::UNIT,
-            }
-        } else {
-            Ty::UNIT
-        };
+        let ty = get_increment_ty(&increment);
 
         self.eval_increment(receiver, increment)
             .map(|val| (val, ty))
@@ -605,6 +599,7 @@ impl Interpreter {
     ) -> InterpretResult {
         let (graph, _) = self.lower(&increment)?;
         self.expr_graph = Some(graph.clone());
+        self.expr_ty = Some(get_increment_ty(&increment));
 
         // Updating the compiler state with the new AST/HIR nodes
         // is not necessary for the interpreter to function, as all
@@ -681,7 +676,7 @@ impl Interpreter {
         expr: Option<&str>,
         noise: Option<PauliNoise>,
         qubit_loss: Option<f64>,
-    ) -> InterpretResult {
+    ) -> TypedInterpretResult {
         let mut sim = match noise {
             Some(noise) => SparseSim::new_with_noise(&noise),
             None => SparseSim::new(),
@@ -711,7 +706,7 @@ impl Interpreter {
 
         // Compile the expression. This operation will set the expression as
         // the entry-point in the FIR store.
-        let (graph, compute_properties) = self.compile_entry_expr(expr)?;
+        let (graph, compute_properties, _) = self.compile_entry_expr(expr)?;
 
         let Some(compute_properties) = compute_properties else {
             // This can only happen if capability analysis was not run. This would be a bug
@@ -829,10 +824,10 @@ impl Interpreter {
                     let mut sink = std::io::sink();
                     let mut out = GenericReceiver::new(&mut sink);
 
-                    self.invoke_with_sim(&mut sim, &mut out, callable, args)?
+                    self.invoke_with_sim(&mut sim, &mut out, callable, args)?;
                 }
                 None => self.run_with_sim_no_output(entry_expr, &mut sim)?,
-            };
+            }
 
             sim.chained.finish()
         } else {
@@ -845,10 +840,10 @@ impl Interpreter {
                     let mut sink = std::io::sink();
                     let mut out = GenericReceiver::new(&mut sink);
 
-                    self.invoke_with_sim(&mut sim, &mut out, callable, args)?
+                    self.invoke_with_sim(&mut sim, &mut out, callable, args)?;
                 }
                 None => self.run_with_sim_no_output(entry_expr, &mut sim)?,
-            };
+            }
 
             sim.finish()
         };
@@ -858,8 +853,9 @@ impl Interpreter {
 
     /// Sets the entry expression for the interpreter.
     pub fn set_entry_expr(&mut self, entry_expr: &str) -> std::result::Result<(), Vec<Error>> {
-        let (graph, _) = self.compile_entry_expr(entry_expr)?;
+        let (graph, _, ty) = self.compile_entry_expr(entry_expr)?;
         self.expr_graph = Some(graph);
+        self.expr_ty = Some(ty);
         Ok(())
     }
 
@@ -870,13 +866,16 @@ impl Interpreter {
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
         expr: Option<&str>,
-    ) -> InterpretResult {
-        let graph = if let Some(expr) = expr {
-            let (graph, _) = self.compile_entry_expr(expr)?;
+    ) -> TypedInterpretResult {
+        let (graph, ty) = if let Some(expr) = expr {
+            let (graph, _, ty) = self.compile_entry_expr(expr)?;
             self.expr_graph = Some(graph.clone());
-            graph
+            self.expr_ty = Some(ty.clone());
+            (graph, ty)
         } else {
-            self.expr_graph.clone().ok_or(vec![Error::NoEntryPoint])?
+            let graph = self.expr_graph.clone().ok_or(vec![Error::NoEntryPoint])?;
+            let ty = self.expr_ty.clone().ok_or(vec![Error::NoEntryPoint])?;
+            (graph, ty)
         };
 
         if self.quantum_seed.is_some() {
@@ -893,24 +892,25 @@ impl Interpreter {
             sim,
             receiver,
         )
+        .map(|val| (val, ty))
     }
 
     fn run_with_sim_no_output(
         &mut self,
         entry_expr: Option<String>,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-    ) -> InterpretResult {
+    ) -> std::result::Result<(), Vec<Error>> {
         let mut sink = std::io::sink();
         let mut out = GenericReceiver::new(&mut sink);
 
         let (package_id, graph) = if let Some(entry_expr) = entry_expr {
             // entry expression is provided
-            (self.package, self.compile_entry_expr(&entry_expr)?.0)
+            let (graph, _, _) = self.compile_entry_expr(&entry_expr)?;
+            (self.package, graph)
         } else {
             // no entry expression, use the entrypoint in the package
             (self.source_package, self.get_entry_exec_graph()?)
         };
-        self.expr_graph = Some(graph.clone());
 
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
@@ -925,7 +925,9 @@ impl Interpreter {
             &mut Env::default(),
             sim,
             &mut out,
-        )
+        )?;
+
+        Ok(())
     }
 
     /// Invokes the given callable with the given arguments on the given simulator with a new instance of the environment
@@ -960,11 +962,20 @@ impl Interpreter {
     fn compile_entry_expr(
         &mut self,
         expr: &str,
-    ) -> std::result::Result<(ExecGraph, Option<PackageStoreComputeProperties>), Vec<Error>> {
+    ) -> std::result::Result<(ExecGraph, Option<PackageStoreComputeProperties>, Ty), Vec<Error>>
+    {
         let increment = self
             .compiler
             .compile_entry_expr(expr)
             .map_err(into_errors)?;
+
+        let ty = increment
+            .hir
+            .entry
+            .as_ref()
+            .expect("we just called compile_entry_expr, so there should be an entry")
+            .ty
+            .clone();
 
         // `lower` will update the entry expression in the FIR store,
         // and it will always return an empty list of statements.
@@ -984,7 +995,7 @@ impl Interpreter {
         // here to keep the package stores consistent.
         self.compiler.update(increment);
 
-        Ok((graph, compute_properties))
+        Ok((graph, compute_properties, ty))
     }
 
     fn lower(
@@ -1425,4 +1436,18 @@ pub fn into_errors(errors: Vec<crate::compile::Error>) -> Vec<Error> {
         .into_iter()
         .map(|error| Error::Compile(error.into_with_source()))
         .collect::<Vec<_>>()
+}
+
+fn get_increment_ty(increment: &Increment) -> Ty {
+    if let Some(stmt) = increment.hir.stmts.last() {
+        match &stmt.kind {
+            qsc_hir::hir::StmtKind::Expr(expr) => expr.ty.clone(),
+            qsc_hir::hir::StmtKind::Item(..)
+            | qsc_hir::hir::StmtKind::Local(..)
+            | qsc_hir::hir::StmtKind::Qubit(..)
+            | qsc_hir::hir::StmtKind::Semi(..) => Ty::UNIT,
+        }
+    } else {
+        Ty::UNIT
+    }
 }

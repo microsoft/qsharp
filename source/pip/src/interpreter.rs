@@ -632,7 +632,6 @@ impl Interpreter {
             },
         };
 
-        let mut result_ty = None;
         let result = match callable {
             Some(callable) => {
                 let (input_ty, output_ty) = self
@@ -640,14 +639,10 @@ impl Interpreter {
                     .global_callable_ty(&callable.0)
                     .ok_or(QSharpError::new_err("callable not found"))?;
                 let args = args_to_values(&self.interpreter, py, args, &input_ty, &output_ty)?;
-                result_ty = Some(output_ty);
-                self.interpreter.invoke_with_noise(
-                    &mut receiver,
-                    callable.0,
-                    args,
-                    noise,
-                    qubit_loss,
-                )
+
+                self.interpreter
+                    .invoke_with_noise(&mut receiver, callable.0, args, noise, qubit_loss)
+                    .map(|val| (val, output_ty))
             }
             _ => self
                 .interpreter
@@ -655,13 +650,7 @@ impl Interpreter {
         };
 
         match result {
-            Ok(value) => {
-                if let Some(ty) = result_ty {
-                    typed_value_to_python_obj(&self.interpreter, py, &value, &ty)
-                } else {
-                    Ok(ValueWrapper(value).into_pyobject(py)?.unbind())
-                }
-            }
+            Ok((value, ty)) => typed_value_to_python_obj(&self.interpreter, py, &value, &ty),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
