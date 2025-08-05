@@ -108,14 +108,12 @@ async function getQirForProgram(
   const compatible = checkCompatibility(config.profile, preferredTargetProfile);
   if (!compatible) {
     let errorMsg =
-      "The current program is configured to use the target profile " +
+      'The current program is configured to use the target profile "' +
       config.profile +
-      ", which is not compatible with the QIR target profile " +
+      '", which is not compatible with the QIR target profile "' +
       preferredTargetProfile +
-      " required by " +
-      isLocalQirGeneration
-        ? "local QIR generation."
-        : "the selected target.";
+      '" required by ' +
+      (isLocalQirGeneration ? "local QIR generation." : "the selected target.");
 
     if (config.packageGraphSources.hasManifest) {
       // Open the manifest file to allow the user to update the profile.
@@ -189,9 +187,7 @@ async function getQirForProgram(
         "QIR generation was cancelled or timed out.",
       );
     } else {
-      throw new QirGenerationError(
-        `QIR generation failed due to error: "${e.toString()}". Please ensure the code is compatible with the selected QIR profile.`,
-      );
+      throw new QirGenerationError(`QIR generation failed. ${e.toString()}.`);
     }
   } finally {
     worker.terminate();
