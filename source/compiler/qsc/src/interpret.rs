@@ -412,9 +412,7 @@ impl Interpreter {
             .expect("package should exist in the package store")
             .package;
         for global in global::iter_package(Some(map_fir_package_to_hir(package_id)), package) {
-            if let global::Kind::Ty(ty) = global.kind
-                && self.udt_ty(&ty.id).is_some()
-            {
+            if let global::Kind::Ty(ty) = global.kind {
                 exported_items.push((global.namespace, global.name, ty.id));
             }
         }
@@ -436,7 +434,7 @@ impl Interpreter {
     /// Get the type of a UDT given its `item_id`.
     /// # Panics
     /// Panics if the item is not a UDT.
-    pub fn udt_ty(&self, item_id: &crate::hir::ItemId) -> Option<&ty::Udt> {
+    pub fn udt_ty(&self, item_id: &crate::hir::ItemId) -> &ty::Udt {
         let crate::hir::ItemId {
             package: package_id_opt,
             item: local_item_id,
@@ -454,10 +452,14 @@ impl Interpreter {
             .get(*package_id)
             .expect("package should exist in the package store");
 
-        let item = unit.package.items.get(*local_item_id)?;
+        let item = unit
+            .package
+            .items
+            .get(*local_item_id)
+            .expect("item should be in this package");
 
         match &item.kind {
-            qsc_hir::hir::ItemKind::Ty(_, udt) => Some(udt),
+            qsc_hir::hir::ItemKind::Ty(_, udt) => udt,
             _ => panic!("item is not a UDT"),
         }
     }
