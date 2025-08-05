@@ -249,11 +249,7 @@ pub(super) fn convert_value_ir_with_ty(
             let qsc::hir::Res::Item(item_id) = res else {
                 panic!("Udt should be an item");
             };
-            let Some(udt) = ctx.udt_ty(item_id) else {
-                unreachable!(
-                    "we verified that the udt is defined in `first_unsupported_interop_ty`"
-                );
-            };
+            let udt = ctx.udt_ty(item_id);
 
             // Handle `Complex` special case.
             if let Ok(v) = obj.extract::<num_complex::Complex64>(py) {
@@ -312,11 +308,7 @@ pub(super) fn type_ir_from_qsharp_ty(ctx: &interpret::Interpreter, ty: &Ty) -> P
             let qsc::hir::Res::Item(item_id) = res else {
                 panic!("Udt should be an item");
             };
-            let Some(udt) = ctx.udt_ty(item_id) else {
-                unreachable!(
-                    "we verified that the udt is defined in `first_unsupported_interop_ty`"
-                );
-            };
+            let udt = ctx.udt_ty(item_id);
 
             // Handle `Complex` special case.
             if is_complex_udt(udt) {
@@ -391,9 +383,7 @@ pub(super) fn typed_value_to_python_obj(
                 let qsc::hir::Res::Item(item_id) = res else {
                     panic!("Udt should be an item");
                 };
-                let Some(udt) = ctx.udt_ty(item_id) else {
-                    unreachable!("output type should be defined");
-                };
+                let udt = ctx.udt_ty(item_id);
                 if is_complex_udt(udt) {
                     let re = values[0].clone().unwrap_double();
                     let im = values[1].clone().unwrap_double();

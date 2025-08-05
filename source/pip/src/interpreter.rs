@@ -871,9 +871,7 @@ where
             let qsc::hir::Res::Item(item_id) = res else {
                 panic!("Udt should be an item");
             };
-            let Some(udt) = ctx.udt_ty(item_id) else {
-                return Some(ty);
-            };
+            let udt = ctx.udt_ty(item_id);
 
             let Ok(fields) = collect_udt_fields(udt) else {
                 return Some(ty);
