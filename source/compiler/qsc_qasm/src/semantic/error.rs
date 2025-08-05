@@ -116,19 +116,21 @@ pub enum SemanticErrorKind {
     #[error("for statements must have a body or statement")]
     #[diagnostic(code("Qasm.Lowerer.ForStatementsMustHaveABodyOrStatement"))]
     ForStatementsMustHaveABodyOrStatement(#[label] Span),
-    #[error("Function called like gate: {0}")]
+    #[error("function called like gate: {0}")]
     #[diagnostic(help("function parameters must be in parentheses"))]
     #[diagnostic(code("Qasm.Lowerer.FuncCalledLikeGate"))]
     FuncCalledLikeGate(String, #[label] Span),
-    #[error("Function call missing parameters: {0}")]
-    #[diagnostic(help("function parameters must be in parentheses"))]
+    #[error("function call missing parameters: {0}")]
+    #[diagnostic(help(
+        "a function call must use parentheses, with any parameters inside those parentheses."
+    ))]
     #[diagnostic(code("Qasm.Lowerer.FuncMissingParams"))]
     FuncMissingParams(String, #[label] Span),
-    #[error("Gate called like function: {0}")]
+    #[error("gate called like function: {0}")]
     #[diagnostic(help("ensure that qubit arguments are provided to the gate call"))]
     #[diagnostic(code("Qasm.Lowerer.GateCalledLikeFunc"))]
     GateCalledLikeFunc(String, #[label] Span),
-    #[error("Gate call missing parameters: {0}")]
+    #[error("gate call missing parameters: {0}")]
     #[diagnostic(help(
         "ensure that any classical and quantum arguments are provided to the gate call"
     ))]

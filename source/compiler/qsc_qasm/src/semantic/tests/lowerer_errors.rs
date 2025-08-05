@@ -359,7 +359,7 @@ fn check_lowerer_error_spans_are_correct() {
 
             Qasm.Lowerer.GateCalledLikeFunc
 
-              x Gate called like function: gate(0, 1)
+              x gate called like function: gate(0, 1)
                  ,-[Test.qasm:155:1]
              154 | // CannotCallNonFunction
              155 | x(2);
@@ -682,7 +682,7 @@ fn check_lowerer_error_spans_are_correct() {
 
             Qasm.Lowerer.FuncCalledLikeGate
 
-              x Function called like gate: def (qubit) -> void
+              x function called like gate: def (qubit) -> void
                  ,-[Test.qasm:254:5]
              253 | // FuncCalledLikeGate
              254 | def func_called_like_gate(qubit q) {}
@@ -693,7 +693,7 @@ fn check_lowerer_error_spans_are_correct() {
 
             Qasm.Lowerer.GateCallMissingParams
 
-              x Gate call missing parameters: gate(0, 1)
+              x gate call missing parameters: gate(0, 1)
                  ,-[Test.qasm:258:1]
              257 | // GateCallMissingParams
              258 | h;
@@ -705,13 +705,14 @@ fn check_lowerer_error_spans_are_correct() {
 
             Qasm.Lowerer.FuncMissingParams
 
-              x Function call missing parameters: def (qubit) -> void
+              x function call missing parameters: def (qubit) -> void
                  ,-[Test.qasm:262:1]
              261 | // FuncMissingParams
              262 | func_called_like_gate;
                  : ^^^^^^^^^^^^^^^^^^^^^
                  `----
-              help: function parameters must be in parentheses
+              help: a function call must use parentheses, with any parameters inside
+                    those parentheses.
         "#]],
     );
 }
