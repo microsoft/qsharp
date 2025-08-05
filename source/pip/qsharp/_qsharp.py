@@ -26,8 +26,6 @@ from typing import (
     TypedDict,
     Union,
     List,
-    Self,
-    overload,
 )
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
@@ -35,7 +33,7 @@ import os
 import sys
 import types
 from time import monotonic
-from dataclasses import make_dataclass, field
+from dataclasses import make_dataclass
 
 
 def lower_python_obj(obj: object, visited: set[object] | None = None) -> Any:
