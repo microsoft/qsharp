@@ -75,6 +75,20 @@ const QASM2_VERSION: semantic::Version = semantic::Version {
     span: Span { lo: 0, hi: 0 },
 };
 
+const QASM3_STDGATES_INC: &str = "stdgates.inc";
+const QASM2_STDGATES_INC: &str = "qelib1.inc";
+
+const QASM3_STDGATES: &[&str] = &[
+    "p", "x", "y", "z", "h", "ch", "s", "sdg", "t", "tdg", "sx", "rx", "ry", "rz", "crx", "cry",
+    "crz", "cx", "cy", "cz", "cp", "swap", "cswap", "ccx", "cu", "CX", "phase", "cphase", "id",
+    "u1", "u2", "u3",
+];
+
+const QASM2_STDGATES: &[&str] = &[
+    "u3", "u2", "u1", "cx", "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "rx", "ry", "rz",
+    "cz", "cy", "ch", "ccx", "crz", "cu1", "cu3",
+];
+
 pub(crate) struct Lowerer {
     /// The root QASM source to compile.
     pub source: QasmSource,
@@ -202,7 +216,7 @@ impl Lowerer {
 
                     // special case for stdgates.inc
                     // it won't be in the includes list
-                    if include.filename.to_lowercase() == "stdgates.inc" {
+                    if include.filename.to_lowercase() == QASM3_STDGATES_INC {
                         if self.version == Some(QASM2_VERSION) {
                             self.push_semantic_error(
                                 SemanticErrorKind::IncludeNotInLanguageVersion(
@@ -214,7 +228,7 @@ impl Lowerer {
                         }
                         self.define_stdgates(include.span);
                         continue;
-                    } else if include.filename.to_lowercase() == "qelib1.inc" {
+                    } else if include.filename.to_lowercase() == QASM2_STDGATES_INC {
                         if self.version != Some(QASM2_VERSION) {
                             self.push_semantic_error(
                                 SemanticErrorKind::IncludeNotInLanguageVersion(
@@ -1556,13 +1570,37 @@ impl Lowerer {
 
     fn lower_expr_stmt(&mut self, stmt: &syntax::ExprStmt) -> semantic::StmtKind {
         let expr = self.lower_expr(&stmt.expr);
-        if matches!(&*expr.kind, semantic::ExprKind::Err) {
-            semantic::StmtKind::Err
-        } else {
-            semantic::StmtKind::ExprStmt(semantic::ExprStmt {
+        match &*expr.kind {
+            semantic::ExprKind::Err => semantic::StmtKind::Err,
+            semantic::ExprKind::Ident(id) => {
+                let symbol = &self.symbols[*id];
+                match &symbol.ty {
+                    Type::Gate(..) => {
+                        // gate call is missing qubits but the parser doesn't know that
+                        self.push_semantic_error(SemanticErrorKind::GateCallMissingParams(
+                            symbol.ty.to_string(),
+                            expr.span,
+                        ));
+                        semantic::StmtKind::Err
+                    }
+                    Type::Function(..) => {
+                        // function call is missing args but the parser doesn't know that
+                        self.push_semantic_error(SemanticErrorKind::FuncMissingParams(
+                            symbol.ty.to_string(),
+                            expr.span,
+                        ));
+                        semantic::StmtKind::Err
+                    }
+                    _ => semantic::StmtKind::ExprStmt(semantic::ExprStmt {
+                        span: stmt.span,
+                        expr,
+                    }),
+                }
+            }
+            _ => semantic::StmtKind::ExprStmt(semantic::ExprStmt {
                 span: stmt.span,
                 expr,
-            })
+            }),
         }
     }
 
@@ -1834,22 +1872,34 @@ impl Lowerer {
         let name_span = expr.name.span;
         let (symbol_id, symbol) = self.try_get_existing_or_insert_err_symbol(name, name_span);
 
-        let (params_ty, return_ty) = if let Type::Function(params_ty, return_ty) = &symbol.ty {
-            let arity = params_ty.len();
+        let (params_ty, return_ty) = match &symbol.ty {
+            Type::Function(params_ty, return_ty) => {
+                let arity = params_ty.len();
 
-            // 3. Check that function classical arity matches the number of classical args.
-            if arity != expr.args.len() {
-                self.push_semantic_error(SemanticErrorKind::InvalidNumberOfClassicalArgs(
-                    arity,
-                    expr.args.len(),
+                // 3. Check that function classical arity matches the number of classical args.
+                if arity != expr.args.len() {
+                    self.push_semantic_error(SemanticErrorKind::InvalidNumberOfClassicalArgs(
+                        arity,
+                        expr.args.len(),
+                        expr.span,
+                    ));
+                }
+
+                (params_ty.clone(), (**return_ty).clone())
+            }
+            Type::Gate(..) => {
+                // The parser thinks that the gate call is a function call due to mising qubits.
+                // We provide a better error message for gates that are called like functions.
+                self.push_semantic_error(SemanticErrorKind::GateCalledLikeFunc(
+                    symbol.ty.to_string(),
                     expr.span,
                 ));
+                return err_expr!(Type::Err, expr.span);
             }
-
-            (params_ty.clone(), (**return_ty).clone())
-        } else {
-            self.push_semantic_error(SemanticErrorKind::CannotCallNonFunction(expr.span));
-            (Arc::default(), crate::semantic::types::Type::Err)
+            _ => {
+                self.push_semantic_error(SemanticErrorKind::CannotCallNonFunction(expr.span));
+                return err_expr!(Type::Err, expr.span);
+            }
         };
 
         // 4. Lower the args.
@@ -1941,15 +1991,37 @@ impl Lowerer {
         // 3. Check that the gate_name actually refers to a gate in the symbol table
         //    and get its symbol_id & symbol. Make sure to use the name that could've
         //    been overriden by the Q# name and the span of the original name.
+        if self.symbols.get_symbol_by_name(&name).is_none() {
+            if let Some(include) = self.get_include_file_defining_standard_gate(&name) {
+                // The symbol is not defined, but the name is a standard gate name
+                // and it is being used like a gate call. Tell the user that that they likely
+                // need the appropriate include.
+                self.push_semantic_error(SemanticErrorKind::StdGateCalledButNotIncluded(
+                    include.to_string(),
+                    stmt.span,
+                ));
+                return vec![semantic::StmtKind::Err];
+            }
+        }
         let (symbol_id, symbol) = self.try_get_existing_or_insert_err_symbol(name, stmt.name.span);
 
-        let (classical_arity, quantum_arity) =
-            if let Type::Gate(classical_arity, quantum_arity) = &symbol.ty {
-                (*classical_arity, *quantum_arity)
-            } else {
+        let (classical_arity, quantum_arity) = match &symbol.ty {
+            Type::Gate(classical_arity, quantum_arity) => (*classical_arity, *quantum_arity),
+            Type::Function(_, _) => {
+                // Symbol table says this is a function, but the parser thinks it is a gate call
+                // likely due to missing parentheses. Provide a better error message for functions that are called like gates
+                self.push_semantic_error(SemanticErrorKind::FuncCalledLikeGate(
+                    symbol.ty.to_string(),
+                    symbol.span,
+                ));
+                return vec![semantic::StmtKind::Err];
+            }
+            _ => {
+                // catch all remaining cases where the symbol is not a gate.
                 self.push_semantic_error(SemanticErrorKind::CannotCallNonGate(symbol.span));
-                (0, 0)
-            };
+                return vec![semantic::StmtKind::Err];
+            }
+        };
 
         // 4. Check that gate_call classical arity matches the number of classical args.
         if classical_arity as usize != args.len() {
@@ -4379,6 +4451,17 @@ impl Lowerer {
     fn create_err(&self, kind: crate::ErrorKind) -> WithSource<crate::Error> {
         let error = crate::Error(kind);
         WithSource::from_map(&self.source_map, error)
+    }
+
+    pub fn get_include_file_defining_standard_gate(&self, name: &str) -> Option<&'static str> {
+        if self.version == Some(QASM2_VERSION) {
+            if QASM2_STDGATES.contains(&name) {
+                return Some(QASM2_STDGATES_INC);
+            }
+        } else if QASM3_STDGATES.contains(&name) {
+            return Some(QASM3_STDGATES_INC);
+        }
+        None
     }
 }
 

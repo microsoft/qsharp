@@ -40,78 +40,78 @@ fn check_lowerer_error_spans_are_correct() {
              17 | }
                 `----
 
+            Qasm.Lowerer.StdGateCalledButNotIncluded
+
+              x A standard gate was called but not included
+                ,-[Test.qasm:24:1]
+             23 | // StdGateCalledButNotIncluded
+             24 | x q;
+                : ^^^^
+             25 | 
+                `----
+              help: Did you mean to include the standard gate library 'stdgates.inc'?
+
             Qasm.Lowerer.RedefinedSymbol
 
               x redefined symbol: x
-                ,-[Test.qasm:25:5]
-             24 | include "stdgates.inc";
-             25 | int x = 2;
+                ,-[Test.qasm:28:5]
+             27 | include "stdgates.inc";
+             28 | int x = 2;
                 :     ^
-             26 | 
+             29 | 
                 `----
 
             Qasm.Lowerer.RedefinedSymbol
 
               x redefined symbol: rxx
-                ,-[Test.qasm:29:5]
-             28 | rxx(2.0) q, q;
-             29 | int rxx = 3;
+                ,-[Test.qasm:32:5]
+             31 | rxx(2.0) q, q;
+             32 | int rxx = 3;
                 :     ^^^
-             30 | 
+             33 | 
                 `----
 
             Qasm.Lowerer.UndefinedSymbol
 
               x undefined symbol: undefined_symbol
-                ,-[Test.qasm:32:1]
-             31 | // UndefinedSymbol
-             32 | undefined_symbol;
+                ,-[Test.qasm:35:1]
+             34 | // UndefinedSymbol
+             35 | undefined_symbol;
                 : ^^^^^^^^^^^^^^^^
-             33 | 
+             36 | 
                 `----
 
             Qasm.Lowerer.InconsistentTypesInAlias
 
-              x inconsistent types in alias expression: Expr [842-859]:
+              x inconsistent types in alias expression: Expr [879-896]:
               |     ty: array[int, 2]
-              |     kind: SymbolId(45), Expr [863-880]:
+              |     kind: SymbolId(45), Expr [900-917]:
               |     ty: array[angle, 2]
               |     kind: SymbolId(46)
-                ,-[Test.qasm:37:1]
-             36 | array[angle, 2] alias_component_2 = {1.0, 2.0};
-             37 | let alias = alias_component_1 ++ alias_component_2;
+                ,-[Test.qasm:40:1]
+             39 | array[angle, 2] alias_component_2 = {1.0, 2.0};
+             40 | let alias = alias_component_1 ++ alias_component_2;
                 : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-             38 | 
+             41 | 
                 `----
 
             Qasm.Lowerer.CannotUpdateConstVariable
 
               x cannot update const variable const_variable
-                ,-[Test.qasm:41:1]
-             40 | const int const_variable = 1;
-             41 | const_variable = 2;
+                ,-[Test.qasm:44:1]
+             43 | const int const_variable = 1;
+             44 | const_variable = 2;
                 : ^^^^^^^^^^^^^^
-             42 | 
+             45 | 
                 `----
               help: mutable variables must be declared without the keyword `const`
 
             Qasm.Lowerer.CannotUpdateConstVariable
 
               x cannot update const variable const_bitarray
-                ,-[Test.qasm:45:1]
-             44 | const bit[2] const_bitarray = "11";
-             45 | const_bitarray[1] = 0;
-                : ^^^^^^^^^^^^^^
-             46 | 
-                `----
-              help: mutable variables must be declared without the keyword `const`
-
-            Qasm.Lowerer.CannotUpdateConstVariable
-
-              x cannot update const variable const_variable
                 ,-[Test.qasm:48:1]
-             47 | // CannotUpdateConstVariable in simple assign_op
-             48 | const_variable += 2;
+             47 | const bit[2] const_bitarray = "11";
+             48 | const_bitarray[1] = 0;
                 : ^^^^^^^^^^^^^^
              49 | 
                 `----
@@ -119,543 +119,600 @@ fn check_lowerer_error_spans_are_correct() {
 
             Qasm.Lowerer.CannotUpdateConstVariable
 
-              x cannot update const variable const_bitarray
+              x cannot update const variable const_variable
                 ,-[Test.qasm:51:1]
-             50 | // CannotUpdateConstVariable in indexed assign_op
-             51 | const_bitarray[1] += 7;
+             50 | // CannotUpdateConstVariable in simple assign_op
+             51 | const_variable += 2;
                 : ^^^^^^^^^^^^^^
              52 | 
+                `----
+              help: mutable variables must be declared without the keyword `const`
+
+            Qasm.Lowerer.CannotUpdateConstVariable
+
+              x cannot update const variable const_bitarray
+                ,-[Test.qasm:54:1]
+             53 | // CannotUpdateConstVariable in indexed assign_op
+             54 | const_bitarray[1] += 7;
+                : ^^^^^^^^^^^^^^
+             55 | 
                 `----
               help: mutable variables must be declared without the keyword `const`
 
             Qasm.Lowerer.UndefinedSymbol
 
               x undefined symbol: non_const_global_variable
-                ,-[Test.qasm:56:13]
-             55 | def try_capture_non_const_global_variable() {
-             56 |     int a = non_const_global_variable;
+                ,-[Test.qasm:59:13]
+             58 | def try_capture_non_const_global_variable() {
+             59 |     int a = non_const_global_variable;
                 :             ^^^^^^^^^^^^^^^^^^^^^^^^^
-             57 | }
+             60 | }
                 `----
 
             Qasm.Lowerer.ArrayDeclarationTypeError
 
               x expected an array of size 2 but found one of size 3
-                ,-[Test.qasm:60:51]
-             59 | // ArrayDeclarationTypeError
-             60 | array[int, 2] array_initialized_with_wrong_size = {1, 2, 3};
+                ,-[Test.qasm:63:51]
+             62 | // ArrayDeclarationTypeError
+             63 | array[int, 2] array_initialized_with_wrong_size = {1, 2, 3};
                 :                                                   ^^^^^^^^^
-             61 | 
+             64 | 
                 `----
 
             Qasm.Lowerer.ArrayDeclarationTypeError
 
               x expected an array of size 2 but found Int(2)
-                ,-[Test.qasm:63:54]
-             62 | // ArrayDeclarationTypeError
-             63 | array[int, 2] array_initialized_with_wrong_literal = 2;
+                ,-[Test.qasm:66:54]
+             65 | // ArrayDeclarationTypeError
+             66 | array[int, 2] array_initialized_with_wrong_literal = 2;
                 :                                                      ^
-             64 | 
+             67 | 
                 `----
 
             Qasm.Lowerer.CannotCastLiteral
 
               x cannot cast literal expression of type const int to type array[int, 2]
-                ,-[Test.qasm:63:1]
-             62 | // ArrayDeclarationTypeError
-             63 | array[int, 2] array_initialized_with_wrong_literal = 2;
+                ,-[Test.qasm:66:1]
+             65 | // ArrayDeclarationTypeError
+             66 | array[int, 2] array_initialized_with_wrong_literal = 2;
                 : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-             64 | 
+             67 | 
                 `----
 
             Qasm.Lowerer.NotSupported
 
               x string literals are not supported
-                ,-[Test.qasm:66:1]
-             65 | // NotSupported string literals
-             66 | "string_literal";
+                ,-[Test.qasm:69:1]
+             68 | // NotSupported string literals
+             69 | "string_literal";
                 : ^^^^^^^^^^^^^^^^
-             67 | 
+             70 | 
                 `----
 
             Qasm.Lowerer.TypeDoesNotSupportedUnaryNegation
 
               x unary negation is not allowed for instances of bool
-                ,-[Test.qasm:71:2]
-             70 | bool binary_negation_not_supported = true;
-             71 | ~binary_negation_not_supported;
+                ,-[Test.qasm:74:2]
+             73 | bool binary_negation_not_supported = true;
+             74 | ~binary_negation_not_supported;
                 :  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-             72 | 
-                `----
-
-            Qasm.Lowerer.NotSupported
-
-              x arrays with more than 7 dimensions are not supported
-                ,-[Test.qasm:74:1]
-             73 | // NotSupported arrays with more than 7 dimensions
-             74 | array[int, 1, 2, 3, 1, 2, 3, 1, 2] array_with_more_than_7_dims;
-                : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
              75 | 
                 `----
 
             Qasm.Lowerer.NotSupported
 
-              x stretch default values are not supported
+              x arrays with more than 7 dimensions are not supported
                 ,-[Test.qasm:77:1]
-             76 | // NotSupported stretch default values
-             77 | stretch stretch_val;
-                : ^^^^^^^^^^^^^^^^^^^^
+             76 | // NotSupported arrays with more than 7 dimensions
+             77 | array[int, 1, 2, 3, 1, 2, 3, 1, 2] array_with_more_than_7_dims;
+                : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
              78 | 
+                `----
+
+            Qasm.Lowerer.NotSupported
+
+              x stretch default values are not supported
+                ,-[Test.qasm:80:1]
+             79 | // NotSupported stretch default values
+             80 | stretch stretch_val;
+                : ^^^^^^^^^^^^^^^^^^^^
+             81 | 
                 `----
 
             Qasm.Lowerer.ClassicalStmtInBox
 
               x invalid classical statement in box
-                ,-[Test.qasm:81:5]
-             80 |     // ClassicalStmtInBox
-             81 |     2;
+                ,-[Test.qasm:84:5]
+             83 |     // ClassicalStmtInBox
+             84 |     2;
                 :     ^^
-             82 | }
+             85 | }
                 `----
 
             Qasm.Lowerer.InvalidScope
 
               x break can only appear in loop scopes
-                ,-[Test.qasm:85:1]
-             84 | // InvalidScope break outside loop
-             85 | break;
-                : ^^^^^^
-             86 | 
-                `----
-
-            Qasm.Lowerer.InvalidScope
-
-              x continue can only appear in loop scopes
                 ,-[Test.qasm:88:1]
-             87 | // InvalidScope continue outside loop
-             88 | continue;
-                : ^^^^^^^^^
+             87 | // InvalidScope break outside loop
+             88 | break;
+                : ^^^^^^
              89 | 
                 `----
 
             Qasm.Lowerer.InvalidScope
 
-              x return statements can only appear in subroutine scopes
+              x continue can only appear in loop scopes
                 ,-[Test.qasm:91:1]
-             90 | // InvalidScope return outside def
-             91 | return;
-                : ^^^^^^^
+             90 | // InvalidScope continue outside loop
+             91 | continue;
+                : ^^^^^^^^^
              92 | 
+                `----
+
+            Qasm.Lowerer.InvalidScope
+
+              x return statements can only appear in subroutine scopes
+                ,-[Test.qasm:94:1]
+             93 | // InvalidScope return outside def
+             94 | return;
+                : ^^^^^^^
+             95 | 
                 `----
 
             Qasm.Lowerer.MissingTargetExpressionInReturnStmt
 
               x return statements on a non-void subroutine should have a target expression
-                ,-[Test.qasm:95:5]
-             94 | def missing_target_in_return() -> int {
-             95 |     return;
+                ,-[Test.qasm:98:5]
+             97 | def missing_target_in_return() -> int {
+             98 |     return;
                 :     ^^^^^^^
-             96 | }
+             99 | }
                 `----
 
             Qasm.Lowerer.ReturningExpressionFromVoidSubroutine
 
               x cannot return an expression from a void subroutine
-                 ,-[Test.qasm:100:12]
-              99 | def returning_from_void_subroutine() {
-             100 |     return 2;
+                 ,-[Test.qasm:103:12]
+             102 | def returning_from_void_subroutine() {
+             103 |     return 2;
                  :            ^
-             101 | }
+             104 | }
                  `----
 
             Qasm.Lowerer.ExprMustBeConst
 
               x const decl init expr must be a const expression
-                 ,-[Test.qasm:111:23]
-             110 | int non_const_val = 2;
-             111 | const int const_val = non_const_val;
+                 ,-[Test.qasm:114:23]
+             113 | int non_const_val = 2;
+             114 | const int const_val = non_const_val;
                  :                       ^^^^^^^^^^^^^
-             112 | 
+             115 | 
                  `----
 
               x array declarations are only allowed in global scope
-                 ,-[Test.qasm:115:5]
-             114 | {
-             115 |     array[int, 1, 2] arr;
+                 ,-[Test.qasm:118:5]
+             117 | {
+             118 |     array[int, 1, 2] arr;
                  :     ^^^^^^^^^^^^^^^^^^^^^
-             116 | }
+             119 | }
                  `----
 
             Qasm.Lowerer.DefDeclarationInNonGlobalScope
 
               x def declarations must be done in global scope
-                 ,-[Test.qasm:120:5]
-             119 | {
-             120 |     def f() {}
+                 ,-[Test.qasm:123:5]
+             122 | {
+             123 |     def f() {}
                  :     ^^^^^^^^^^
-             121 | }
+             124 | }
                  `----
 
             Qasm.Lowerer.GateDeclarationInNonGlobalScope
 
               x gate declarations must be done in global scope
-                 ,-[Test.qasm:125:5]
-             124 | {
-             125 |     gate g q {}
+                 ,-[Test.qasm:128:5]
+             127 | {
+             128 |     gate g q {}
                  :     ^^^^^^^^^^^
-             126 | }
+             129 | }
                  `----
 
             Qasm.Lowerer.QubitDeclarationInNonGlobalScope
 
               x qubit declarations must be done in global scope
-                 ,-[Test.qasm:130:5]
-             129 | {
-             130 |     qubit non_global_qubit;
+                 ,-[Test.qasm:133:5]
+             132 | {
+             133 |     qubit non_global_qubit;
                  :     ^^^^^^^^^^^^^^^^^^^^^^^
-             131 | }
+             134 | }
                  `----
 
             Qasm.Lowerer.NonVoidDefShouldAlwaysReturn
 
               x non-void def should always return
-                 ,-[Test.qasm:134:37]
-             133 | // NonVoidDefShouldAlwaysReturn
-             134 | def non_void_def_should_return() -> int {
+                 ,-[Test.qasm:137:37]
+             136 | // NonVoidDefShouldAlwaysReturn
+             137 | def non_void_def_should_return() -> int {
                  :                                     ^^^
-             135 | 
+             138 | 
                  `----
 
             Qasm.Lowerer.DefDeclarationInNonGlobalScope
 
               x extern declarations must be done in global scope
-                 ,-[Test.qasm:144:5]
-             143 | {
-             144 |     extern f(int);
+                 ,-[Test.qasm:147:5]
+             146 | {
+             147 |     extern f(int);
                  :     ^^^^^^^^^^^^^^
-             145 | }
+             148 | }
                  `----
 
             Qasm.Lowerer.InvalidNumberOfClassicalArgs
 
               x gate expects 2 classical arguments, but 1 were provided
-                 ,-[Test.qasm:149:1]
-             148 | def invalid_arity_call(int a, int b) {}
-             149 | invalid_arity_call(2);
-                 : ^^^^^^^^^^^^^^^^^^^^^
-             150 | 
-                 `----
-
-            Qasm.Lowerer.CannotCallNonFunction
-
-              x cannot call an expression that is not a function
                  ,-[Test.qasm:152:1]
-             151 | // CannotCallNonFunction
-             152 | x(2);
-                 : ^^^^
+             151 | def invalid_arity_call(int a, int b) {}
+             152 | invalid_arity_call(2);
+                 : ^^^^^^^^^^^^^^^^^^^^^
              153 | 
                  `----
+
+            Qasm.Lowerer.GateCalledLikeFunc
+
+              x gate called like function: gate(0, 1)
+                 ,-[Test.qasm:155:1]
+             154 | // CannotCallNonFunction
+             155 | x(2);
+                 : ^^^^
+             156 | 
+                 `----
+              help: ensure that qubit arguments are provided to the gate call
 
             Qasm.Lowerer.InvalidNumberOfClassicalArgs
 
               x gate expects 1 classical arguments, but 2 were provided
-                 ,-[Test.qasm:155:1]
-             154 | // InvalidNumberOfClassicalArgs in gate call
-             155 | rx(2.0, 3.0) q;
+                 ,-[Test.qasm:158:1]
+             157 | // InvalidNumberOfClassicalArgs in gate call
+             158 | rx(2.0, 3.0) q;
                  : ^^^^^^^^^^^^^^^
-             156 | 
+             159 | 
                  `----
 
             Qasm.Lowerer.InvalidNumberOfQubitArgs
 
               x gate expects 1 qubit arguments, but 2 were provided
-                 ,-[Test.qasm:158:1]
-             157 | // InvalidNumberOfQubitArgs
-             158 | rx(2.0) q, q;
+                 ,-[Test.qasm:161:1]
+             160 | // InvalidNumberOfQubitArgs
+             161 | rx(2.0) q, q;
                  : ^^^^^^^^^^^^^
-             159 | 
+             162 | 
                  `----
 
             Qasm.Lowerer.BroadcastCallQuantumArgsDisagreeInSize
 
               x first quantum register is of type qubit[1] but found an argument of type
               | qubit[2]
-                 ,-[Test.qasm:161:18]
-             160 | // BroadcastCallQuantumArgsDisagreeInSize
-             161 | ryy(2.0) qreg_1, qreg_2;
+                 ,-[Test.qasm:164:18]
+             163 | // BroadcastCallQuantumArgsDisagreeInSize
+             164 | ryy(2.0) qreg_1, qreg_2;
                  :                  ^^^^^^
-             162 | 
+             165 | 
                  `----
 
             Qasm.Lowerer.ExprMustFitInU32
 
               x ctrl modifier argument must fit in a u32
-                 ,-[Test.qasm:169:6]
-             168 | // ExprMustFitInU32
-             169 | ctrl(5000000000) @ x q;
+                 ,-[Test.qasm:172:6]
+             171 | // ExprMustFitInU32
+             172 | ctrl(5000000000) @ x q;
                  :      ^^^^^^^^^^
-             170 | 
+             173 | 
                  `----
 
             Qasm.Lowerer.CannotCastLiteral
 
               x cannot cast literal expression of type const float to type const uint
-                 ,-[Test.qasm:176:12]
-             175 | // ArraySizeMustBeNonNegativeConstExpr
-             176 | array[int, 2.0] non_int_array_size;
+                 ,-[Test.qasm:179:12]
+             178 | // ArraySizeMustBeNonNegativeConstExpr
+             179 | array[int, 2.0] non_int_array_size;
                  :            ^^^
-             177 | 
+             180 | 
                  `----
 
             Qasm.Lowerer.ExprMustBeNonNegativeInt
 
               x array size must be a non-negative integer
-                 ,-[Test.qasm:179:12]
-             178 | // ArraySizeMustBeNonNegativeConstExpr
-             179 | array[int, -2] negative_array_size;
+                 ,-[Test.qasm:182:12]
+             181 | // ArraySizeMustBeNonNegativeConstExpr
+             182 | array[int, -2] negative_array_size;
                  :            ^^
-             180 | 
+             183 | 
                  `----
 
             Qasm.Lowerer.DesignatorTooLarge
 
               x designator is too large
-                 ,-[Test.qasm:182:12]
-             181 | // DesignatorTooLarge
-             182 | array[int, 5000000000] arr_size_too_large;
+                 ,-[Test.qasm:185:12]
+             184 | // DesignatorTooLarge
+             185 | array[int, 5000000000] arr_size_too_large;
                  :            ^^^^^^^^^^
-             183 | 
+             186 | 
                  `----
 
             Qasm.Lowerer.CannotCastLiteral
 
               x cannot cast literal expression of type const float to type const uint
-                 ,-[Test.qasm:185:5]
-             184 | // TypeWidthMustBePositiveIntConstExpr
-             185 | int[2.0] non_int_width;
-                 :     ^^^
-             186 | 
-                 `----
-
-            Qasm.Lowerer.ExprMustBePositiveInt
-
-              x type width must be a positive integer
                  ,-[Test.qasm:188:5]
              187 | // TypeWidthMustBePositiveIntConstExpr
-             188 | int[0] zero_width;
-                 :     ^
-             189 | int[-2] negative_width;
+             188 | int[2.0] non_int_width;
+                 :     ^^^
+             189 | 
                  `----
 
             Qasm.Lowerer.ExprMustBePositiveInt
 
               x type width must be a positive integer
-                 ,-[Test.qasm:189:5]
-             188 | int[0] zero_width;
-             189 | int[-2] negative_width;
+                 ,-[Test.qasm:191:5]
+             190 | // TypeWidthMustBePositiveIntConstExpr
+             191 | int[0] zero_width;
+                 :     ^
+             192 | int[-2] negative_width;
+                 `----
+
+            Qasm.Lowerer.ExprMustBePositiveInt
+
+              x type width must be a positive integer
+                 ,-[Test.qasm:192:5]
+             191 | int[0] zero_width;
+             192 | int[-2] negative_width;
                  :     ^^
-             190 | 
+             193 | 
                  `----
 
             Qasm.Lowerer.DesignatorTooLarge
 
               x designator is too large
-                 ,-[Test.qasm:192:5]
-             191 | // DesignatorTooLarge
-             192 | int[5000000000] width_too_large;
+                 ,-[Test.qasm:195:5]
+             194 | // DesignatorTooLarge
+             195 | int[5000000000] width_too_large;
                  :     ^^^^^^^^^^
-             193 | 
+             196 | 
                  `----
 
             Qasm.Lowerer.TypeMaxWidthExceeded
 
               x float max width is 64 but 65 was provided
-                 ,-[Test.qasm:195:1]
-             194 | // TypeMaxWidthExceeded
-             195 | float[65] float_width_too_large;
+                 ,-[Test.qasm:198:1]
+             197 | // TypeMaxWidthExceeded
+             198 | float[65] float_width_too_large;
                  : ^^^^^^^^^
-             196 | angle[65] angle_width_too_large;
+             199 | angle[65] angle_width_too_large;
                  `----
 
             Qasm.Lowerer.TypeMaxWidthExceeded
 
               x angle max width is 64 but 65 was provided
-                 ,-[Test.qasm:196:1]
-             195 | float[65] float_width_too_large;
-             196 | angle[65] angle_width_too_large;
+                 ,-[Test.qasm:199:1]
+             198 | float[65] float_width_too_large;
+             199 | angle[65] angle_width_too_large;
                  : ^^^^^^^^^
-             197 | 
+             200 | 
                  `----
 
             Qasm.Lowerer.CannotCastLiteral
 
               x cannot cast literal expression of type const float to type int
-                 ,-[Test.qasm:199:1]
-             198 | // Invalid literal cast in cast_expr_with_target_type_or_default(...)
-             199 | int invalid_lit_cast = 2.0;
+                 ,-[Test.qasm:202:1]
+             201 | // Invalid literal cast in cast_expr_with_target_type_or_default(...)
+             202 | int invalid_lit_cast = 2.0;
                  : ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-             200 | 
+             203 | 
                  `----
 
             Qasm.Lowerer.QuantumTypesInBinaryExpression
 
               x quantum typed values cannot be used in binary expressions
-                 ,-[Test.qasm:208:5]
-             207 | // QuantumTypesInBinaryExpression
-             208 | 1 + q;
+                 ,-[Test.qasm:211:5]
+             210 | // QuantumTypesInBinaryExpression
+             211 | 1 + q;
                  :     ^
-             209 | q + 1;
+             212 | q + 1;
                  `----
 
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type qubit to type const float
-                 ,-[Test.qasm:208:5]
-             207 | // QuantumTypesInBinaryExpression
-             208 | 1 + q;
+                 ,-[Test.qasm:211:5]
+             210 | // QuantumTypesInBinaryExpression
+             211 | 1 + q;
                  :     ^
-             209 | q + 1;
+             212 | q + 1;
                  `----
 
             Qasm.Lowerer.QuantumTypesInBinaryExpression
 
               x quantum typed values cannot be used in binary expressions
-                 ,-[Test.qasm:209:1]
-             208 | 1 + q;
-             209 | q + 1;
+                 ,-[Test.qasm:212:1]
+             211 | 1 + q;
+             212 | q + 1;
                  : ^
-             210 | 
+             213 | 
                  `----
 
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type qubit to type const float
-                 ,-[Test.qasm:209:1]
-             208 | 1 + q;
-             209 | q + 1;
+                 ,-[Test.qasm:212:1]
+             211 | 1 + q;
+             212 | q + 1;
                  : ^
-             210 | 
+             213 | 
                  `----
 
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type angle to type float
-                 ,-[Test.qasm:213:1]
-             212 | angle uncastable_to_int = 2.0;
-             213 | uncastable_to_int + 3;
+                 ,-[Test.qasm:216:1]
+             215 | angle uncastable_to_int = 2.0;
+             216 | uncastable_to_int + 3;
                  : ^^^^^^^^^^^^^^^^^
-             214 | 3 + uncastable_to_int;
+             217 | 3 + uncastable_to_int;
                  `----
 
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type angle to type const float
-                 ,-[Test.qasm:214:5]
-             213 | uncastable_to_int + 3;
-             214 | 3 + uncastable_to_int;
+                 ,-[Test.qasm:217:5]
+             216 | uncastable_to_int + 3;
+             217 | 3 + uncastable_to_int;
                  :     ^^^^^^^^^^^^^^^^^
-             215 | 
+             218 | 
                  `----
 
             Qasm.Lowerer.OperatorNotAllowedForComplexValues
 
               x the operator OrB is not allowed for complex values
-                 ,-[Test.qasm:217:1]
-             216 | // OperatorNotAllowedForComplexValues
-             217 | (2 + 1im) | 3im;
+                 ,-[Test.qasm:220:1]
+             219 | // OperatorNotAllowedForComplexValues
+             220 | (2 + 1im) | 3im;
                  : ^^^^^^^^^^^^^^^
-             218 | 
+             221 | 
                  `----
 
             Qasm.Lowerer.IndexSetOnlyAllowedInAliasStmt
 
               x index sets are only allowed in alias statements
-                 ,-[Test.qasm:220:8]
-             219 | // IndexSetOnlyAllowedInAliasStmt
-             220 | qreg_2[{0, 1}];
+                 ,-[Test.qasm:223:8]
+             222 | // IndexSetOnlyAllowedInAliasStmt
+             223 | qreg_2[{0, 1}];
                  :        ^^^^^^
-             221 | 
+             224 | 
                  `----
 
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type const angle to type const int
-                 ,-[Test.qasm:224:13]
-             223 | array[int, 5] range_error;
-             224 | range_error[const_uncastable_to_int:2.2];
+                 ,-[Test.qasm:227:13]
+             226 | array[int, 5] range_error;
+             227 | range_error[const_uncastable_to_int:2.2];
                  :             ^^^^^^^^^^^^^^^^^^^^^^^
-             225 | 
+             228 | 
                  `----
 
             Qasm.Lowerer.ZeroStepInRange
 
               x range step cannot be zero
-                 ,-[Test.qasm:227:13]
-             226 | // ZeroStepInRange
-             227 | range_error[1:0:3];
+                 ,-[Test.qasm:230:13]
+             229 | // ZeroStepInRange
+             230 | range_error[1:0:3];
                  :             ^^^^^
-             228 | 
+             231 | 
                  `----
 
             Qasm.Lowerer.ZeroSizeArrayAccess
 
               x zero size array access is not allowed
-                 ,-[Test.qasm:231:1]
-             230 | array[int, 2, 0, 3] zero_size_array;
-             231 | zero_size_array[1];
+                 ,-[Test.qasm:234:1]
+             233 | array[int, 2, 0, 3] zero_size_array;
+             234 | zero_size_array[1];
                  : ^^^^^^^^^^^^^^^^^^
-             232 | 
+             235 | 
                  `----
               help: array size must be a positive integer const expression
 
             Qasm.Lowerer.CannotIndexType
 
               x cannot index variables of type bit
-                 ,-[Test.qasm:235:15]
-             234 | bit non_indexable;
-             235 | non_indexable[1];
+                 ,-[Test.qasm:238:15]
+             237 | bit non_indexable;
+             238 | non_indexable[1];
                  :               ^
-             236 | 
+             239 | 
                  `----
 
             Qasm.Lowerer.CannotIndexType
 
               x cannot index variables of type qubit
-                 ,-[Test.qasm:238:11]
-             237 | // TooManyIndices
-             238 | qreg_1[1, 2];
+                 ,-[Test.qasm:241:11]
+             240 | // TooManyIndices
+             241 | qreg_1[1, 2];
                  :           ^
-             239 | 
+             242 | 
                  `----
 
             Qasm.Lowerer.UndefinedSymbol
 
               x undefined symbol: missing_symbol
-                 ,-[Test.qasm:241:1]
-             240 | // Missing symbol in lower_indexed_ident_expr(...)
-             241 | missing_symbol[2];
+                 ,-[Test.qasm:244:1]
+             243 | // Missing symbol in lower_indexed_ident_expr(...)
+             244 | missing_symbol[2];
                  : ^^^^^^^^^^^^^^
-             242 | 
+             245 | 
                  `----
 
             Qasm.Lowerer.CannotIndexType
 
               x cannot index variables of type unknown
-                 ,-[Test.qasm:241:16]
-             240 | // Missing symbol in lower_indexed_ident_expr(...)
-             241 | missing_symbol[2];
+                 ,-[Test.qasm:244:16]
+             243 | // Missing symbol in lower_indexed_ident_expr(...)
+             244 | missing_symbol[2];
                  :                ^
-             242 | 
+             245 | 
                  `----
 
             Qasm.Lowerer.EmptyIndexOperator
 
               x index operator must contain at least one index
-                 ,-[Test.qasm:245:13]
-             244 | bit[4] empty_index;
-             245 | empty_index[];
+                 ,-[Test.qasm:248:13]
+             247 | bit[4] empty_index;
+             248 | empty_index[];
                  :             ^
+             249 | 
                  `----
+
+            Qasm.Lowerer.CannotCallNonFunction
+
+              x cannot call an expression that is not a function
+                 ,-[Test.qasm:251:1]
+             250 | // CannotCallNonFunction
+             251 | empty_index();
+                 : ^^^^^^^^^^^^^
+             252 | 
+                 `----
+
+            Qasm.Lowerer.FuncCalledLikeGate
+
+              x function called like gate: def (qubit) -> void
+                 ,-[Test.qasm:254:5]
+             253 | // FuncCalledLikeGate
+             254 | def func_called_like_gate(qubit q) {}
+                 :     ^^^^^^^^^^^^^^^^^^^^^
+             255 | func_called_like_gate q;
+                 `----
+              help: function parameters must be in parentheses
+
+            Qasm.Lowerer.GateCallMissingParams
+
+              x gate call missing parameters: gate(0, 1)
+                 ,-[Test.qasm:258:1]
+             257 | // GateCallMissingParams
+             258 | h;
+                 : ^
+             259 | 
+                 `----
+              help: ensure that any classical and quantum arguments are provided to the
+                    gate call
+
+            Qasm.Lowerer.FuncMissingParams
+
+              x function call missing parameters: def (qubit) -> void
+                 ,-[Test.qasm:262:1]
+             261 | // FuncMissingParams
+             262 | func_called_like_gate;
+                 : ^^^^^^^^^^^^^^^^^^^^^
+                 `----
+              help: a function call must use parentheses, with any parameters inside
+                    those parentheses.
         "#]],
     );
 }
