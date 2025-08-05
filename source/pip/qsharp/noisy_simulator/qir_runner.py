@@ -1,15 +1,18 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 import random
 from functools import lru_cache
-from qsharp import Result
-from qsharp.noisy_simulator import StateVectorSimulator, Instrument, Operation
-from qsharp._qsharp import QirInputData
+
+from .._native import Result
+from .._qsharp import QirInputData
+from ._noisy_simulator import StateVectorSimulator, Instrument, Operation
 from .noise_model import (
     NoiseModel,
     create_default_noise_model,
-    amplitude_damping_kraus,
     rz_for_theta,
 )
-from .ops import QirOps, transpose
+from .ops import QirOps
 
 
 # This function is used to get the RZ operator for a given angle.

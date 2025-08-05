@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 import json
 import re
 
@@ -191,6 +194,44 @@ class QirOps:
 
     def __str__(self):
         return f"QirOps(profile={self.profile}, qubits={self.qubits}, results={self.results}, ops={self.ops})"
+
+    def to_qiskit_circuit(self):
+        from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
+        qr = QuantumRegister(self.qubits, "q")
+        cr = ClassicalRegister(self.results, "c")
+
+        circuit = QuantumCircuit(qr, cr)
+        for op in self.ops:
+            if op.name == "sx":
+                circuit.sx(op.args[0])
+                # TEMP
+                if op.args[0] == 3:
+                    circuit.measure(3, 3)
+                    with circuit.if_test((cr, 3)):
+                        circuit.x(3)
+                # TEMP
+            elif op.name == "rz":
+                angle = op.args[0]
+                qubit = op.args[1]
+                circuit.rz(angle, qubit)
+            elif op.name == "cz":
+                circuit.cz(op.args[0], op.args[1])
+            elif op.name == "mz":
+                circuit.measure(op.args[0], op.args[1])
+            elif (
+                op.name == "array_record_output"
+                or op.name == "result_record_output"
+                or op.name == "initialize"
+                or op.name == "barrier"
+            ):
+                # These operations are not directly translatable to Qiskit
+                continue
+            else:
+                raise ValueError(
+                    f"Unsupported operation {op.name} in QIR code for Qiskit"
+                )
+        return circuit
 
 
 def transpose(input: list[Op]) -> list[Op]:
