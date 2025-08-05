@@ -119,7 +119,9 @@ fn is_complex_udt(udt: &qsc::hir::ty::Udt) -> bool {
         };
         return matches!(real.ty, Ty::Prim(Prim::Double))
             && matches!(imag.ty, Ty::Prim(Prim::Double))
-            && &*udt.name == "Complex";
+            && &*udt.name == "Complex"
+            && real.name.as_ref().is_some_and(|name| &**name == "Real")
+            && imag.name.as_ref().is_some_and(|name| &**name == "Imag");
     }
     false
 }
