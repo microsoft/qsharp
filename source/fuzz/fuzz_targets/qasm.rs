@@ -42,7 +42,7 @@ fn compile(data: &[u8]) {
                 Some(&mut resolver),
                 config,
             );
-            let (sources, _, package, _) = unit.into_tuple();
+            let (sources, _, package, _, profile) = unit.into_tuple();
 
             let dependencies = vec![(PackageId::CORE, None), (*stdid, None)];
 
@@ -52,7 +52,7 @@ fn compile(data: &[u8]) {
                 package,
                 sources,
                 PackageType::Lib,
-                Profile::Unrestricted.into(),
+                profile.into(),
             );
         });
     }

@@ -12,7 +12,6 @@ import {
   VSDiagnostic,
   log,
   ProgramConfig,
-  TargetProfile,
   LanguageServiceDiagnosticEvent,
 } from "qsharp-lang";
 import { Exercise, getExerciseSources } from "qsharp-lang/katas-md";
@@ -68,13 +67,6 @@ function VSDiagsToMarkers(errors: VSDiagnostic[]): monaco.editor.IMarkerData[] {
   });
 }
 
-// get the language service profile from the URL
-// default to unrestricted if not specified
-export function getProfile(): TargetProfile {
-  return (new URLSearchParams(window.location.search).get("profile") ??
-    "unrestricted") as TargetProfile;
-}
-
 export function Editor(props: {
   code: string;
   compiler: ICompilerWorker;
@@ -87,7 +79,6 @@ export function Editor(props: {
   shotError?: VSDiagnostic;
   showExpr: boolean;
   showShots: boolean;
-  profile: TargetProfile;
   setAst: (ast: string) => void;
   setHir: (hir: string) => void;
   setRir: (rir: string[]) => void;
@@ -103,7 +94,6 @@ export function Editor(props: {
   const irRef = useRef(async () => {
     return;
   });
-  const [profile, setProfile] = useState(props.profile);
   const [shotCount, setShotCount] = useState(props.defaultShots);
   const [runExpr, setRunExpr] = useState("");
   const [errors, setErrors] = useState<
@@ -138,26 +128,13 @@ export function Editor(props: {
     const config = {
       sources: [["code", code]] as [string, string][],
       languageFeatures: [],
-      profile: profile,
     };
 
     if (props.activeTab === "ast-tab") {
-      props.setAst(
-        await props.compiler.getAst(
-          code,
-          config.languageFeatures,
-          config.profile,
-        ),
-      );
+      props.setAst(await props.compiler.getAst(code, config.languageFeatures));
     }
     if (props.activeTab === "hir-tab") {
-      props.setHir(
-        await props.compiler.getHir(
-          code,
-          config.languageFeatures,
-          config.profile,
-        ),
-      );
+      props.setHir(await props.compiler.getHir(code, config.languageFeatures));
     }
     const codeGenTimeout = 1000; // ms
     if (props.activeTab === "qir-tab" || props.activeTab === "rir-tab") {
@@ -205,7 +182,6 @@ export function Editor(props: {
     const config = {
       sources: [["code", code]],
       languageFeatures: [],
-      profile: profile,
     } as ProgramConfig;
 
     try {
@@ -306,7 +282,6 @@ export function Editor(props: {
 
   useEffect(() => {
     props.languageService.updateConfiguration({
-      targetProfile: profile,
       packageType: props.kataSection ? "lib" : "exe",
       lints: props.kataSection
         ? []
@@ -350,15 +325,6 @@ export function Editor(props: {
     irRef.current();
   }, [props.activeTab]);
 
-  useEffect(() => {
-    // Whenever the selected profile changes, update the language service configuration
-    // and run the tabs again.
-    props.languageService.updateConfiguration({
-      targetProfile: profile,
-    });
-    irRef.current();
-  }, [profile]);
-
   // On reset, reload the initial code
   function onReset() {
     const theEditor = editor.current;
@@ -376,10 +342,9 @@ export function Editor(props: {
     try {
       const encodedCode = await codeToCompressedBase64(code);
       const escapedCode = encodeURIComponent(encodedCode);
-      // Update or add the current URL parameters 'code' and 'profile'
+      // Update or add the current URL parameter 'code'
       const newURL = new URL(window.location.href);
       newURL.searchParams.set("code", escapedCode);
-      newURL.searchParams.set("profile", profile);
 
       // Copy link to clipboard and update url without reloading the page
       navigator.clipboard.writeText(newURL.toString());
@@ -407,11 +372,6 @@ export function Editor(props: {
   function runExprChanged(e: Event) {
     const target = e.target as HTMLInputElement;
     setRunExpr(target.value);
-  }
-
-  function profileChanged(e: Event) {
-    const target = e.target as HTMLInputElement;
-    setProfile(target.value as TargetProfile);
   }
 
   return (
@@ -460,17 +420,6 @@ export function Editor(props: {
       </div>
       <div class="code-editor" ref={editorDiv}></div>
       <div class="button-row">
-        {props.kataSection ? null : (
-          <>
-            <span>Profile</span>
-            <select value={profile} onChange={profileChanged}>
-              <option value="unrestricted">Unrestricted</option>
-              <option value="adaptive_rif">Adaptive RIF</option>
-              <option value="adaptive_ri">Adaptive RI</option>
-              <option value="base">Base</option>
-            </select>
-          </>
-        )}
         {props.showExpr ? (
           <>
             <span>Start</span>

@@ -8,12 +8,14 @@ use crate::{
 use async_trait::async_trait;
 use futures::FutureExt;
 use miette::Diagnostic;
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::Profile};
+use qsc_frontend::compile::get_target_profile_from_entry_point;
 use qsc_linter::LintOrGroupConfig;
 use rustc_hash::FxHashMap;
 use std::{
     cell::RefCell,
     path::{Path, PathBuf},
+    str::FromStr,
     sync::Arc,
 };
 use thiserror::Error;
@@ -46,6 +48,9 @@ pub struct Project {
     pub errors: Vec<Error>,
     /// The type of project. This is used to determine how to load the project.
     pub project_type: ProjectType,
+    /// QIR target profile for this project from user source (from manifest or entry point attribute)
+    /// Is `None` if the project does not specify a profile.
+    pub target_profile: Option<Profile>,
 }
 
 impl Project {
@@ -58,20 +63,32 @@ impl Project {
             .map_or_else(|| name.clone(), |f| f.to_string_lossy().into());
         let source = PackageGraphSources {
             root: PackageInfo {
-                sources: vec![(name.clone(), contents)],
+                sources: vec![(name.clone(), contents.clone())],
                 language_features: LanguageFeatures::default(),
                 dependencies: FxHashMap::default(),
                 package_type: None,
             },
             packages: FxHashMap::default(),
+            has_manifest: false,
         };
+
+        let target_profile =
+            get_target_profile_from_entry_point(&[(name.clone(), contents)]).map(|(p, _)| p);
+
         Self {
             path: name,
             name: display_name,
             lints: Vec::default(),
             errors: Vec::default(),
             project_type: ProjectType::QSharp(source),
+            target_profile,
         }
+    }
+
+    #[must_use]
+    /// Returns true if the project is a Q# project with a manifest.
+    pub fn has_manifest(&self) -> bool {
+        matches!(self.project_type, ProjectType::QSharp(ref sources) if sources.has_manifest)
     }
 }
 
@@ -387,7 +404,15 @@ pub trait FileSystemAsync {
             errors,
             name,
             path: manifest_path,
-            project_type: ProjectType::QSharp(PackageGraphSources { root, packages }),
+            project_type: ProjectType::QSharp(PackageGraphSources {
+                root,
+                packages,
+                has_manifest: true,
+            }),
+            target_profile: manifest
+                .target_profile
+                .as_deref()
+                .and_then(|s| Profile::from_str(s).ok()),
         })
     }
 
@@ -715,6 +740,7 @@ pub struct PackageInfo {
 pub struct PackageGraphSources {
     pub root: PackageInfo,
     pub packages: FxHashMap<PackageKey, PackageInfo>,
+    pub has_manifest: bool,
 }
 
 #[derive(Debug)]
@@ -815,6 +841,7 @@ impl PackageGraphSources {
                 package_type,
             },
             packages: FxHashMap::default(),
+            has_manifest: false,
         }
     }
 }
