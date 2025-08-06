@@ -606,6 +606,7 @@ impl QasmCompiler {
                 span: stmt.rhs.span,
                 ty: Type::BitArray(width, false),
                 expr: stmt.lhs.clone(),
+                kind: semast::CastKind::Implicit,
             })),
             const_value: None,
             ty: Type::BitArray(width, false),

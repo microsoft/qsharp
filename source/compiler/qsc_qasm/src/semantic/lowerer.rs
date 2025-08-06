@@ -886,11 +886,10 @@ impl Lowerer {
         let ty = self.get_semantic_type_from_tydef(&cast.ty, expr.ty.is_const());
         let mut cast = self.cast_expr_to_type_with_span(&ty, &expr, cast_span);
 
-        // This is an explicit cast, so we know its span. If casting
-        // succeded, override the default span with the cast span.
         cast.span = cast_span;
+        // If lowering the cast succeeded, mark it as explicit.
         if let semantic::ExprKind::Cast(cast_ref) = cast.kind.as_mut() {
-            cast_ref.span = cast_span;
+            cast_ref.kind = semantic::CastKind::Explicit;
         }
 
         cast
@@ -3425,10 +3424,17 @@ impl Lowerer {
         expr: &semantic::Expr,
         span: Span,
     ) -> semantic::Expr {
-        let Some(cast_expr) = Self::try_cast_expr_to_type(ty, expr) else {
+        let Some(mut cast_expr) = Self::try_cast_expr_to_type(ty, expr) else {
             self.push_invalid_cast_error(ty, &expr.ty, span);
             return expr.clone();
         };
+        // the cast infra doesn't care about the span, so we need to set it
+        // here before returning the cast expression
+        // We only do this when we generate a cast expression
+        if let semantic::ExprKind::Cast(cast_ref) = cast_expr.kind.as_mut() {
+            cast_ref.span = span;
+        }
+
         cast_expr
     }
 
@@ -4488,6 +4494,9 @@ impl Lowerer {
     }
 }
 
+/// Wraps the given expression in a cast expression with the specified type.
+/// We mark the cast as implicit as it is almost always the case. In the case of
+/// explicit casts, we update the field accordingly afterwards.
 fn wrap_expr_in_cast_expr(ty: Type, rhs: semantic::Expr) -> semantic::Expr {
     semantic::Expr::new(
         rhs.span,
@@ -4495,6 +4504,7 @@ fn wrap_expr_in_cast_expr(ty: Type, rhs: semantic::Expr) -> semantic::Expr {
             span: Span::default(),
             expr: rhs,
             ty: ty.clone(),
+            kind: semantic::CastKind::Implicit,
         }),
         ty,
     )

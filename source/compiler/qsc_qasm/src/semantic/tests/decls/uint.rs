@@ -328,7 +328,7 @@ fn assigning_uint_to_negative_lit() {
                 init_expr: Expr [20-22]:
                     ty: const uint[10]
                     const_value: Int(-42)
-                    kind: Cast [0-0]:
+                    kind: Cast [20-22]:
                         ty: const uint[10]
                         expr: Expr [20-22]:
                             ty: const int
@@ -337,6 +337,7 @@ fn assigning_uint_to_negative_lit() {
                                 expr: Expr [20-22]:
                                     ty: const int
                                     kind: Lit: Int(42)
+                        kind: Implicit
             [8] Symbol [15-16]:
                 name: x
                 type: const uint[10]
@@ -356,7 +357,7 @@ fn implicit_bitness_uint_const_negative_decl() {
                 init_expr: Expr [16-18]:
                     ty: const uint
                     const_value: Int(-42)
-                    kind: Cast [0-0]:
+                    kind: Cast [16-18]:
                         ty: const uint
                         expr: Expr [16-18]:
                             ty: const int
@@ -365,6 +366,7 @@ fn implicit_bitness_uint_const_negative_decl() {
                                 expr: Expr [16-18]:
                                     ty: const int
                                     kind: Lit: Int(42)
+                        kind: Implicit
             [8] Symbol [11-12]:
                 name: x
                 type: const uint
@@ -384,7 +386,7 @@ fn explicit_bitness_uint_const_negative_decl() {
                 init_expr: Expr [20-22]:
                     ty: const uint[32]
                     const_value: Int(-42)
-                    kind: Cast [0-0]:
+                    kind: Cast [20-22]:
                         ty: const uint[32]
                         expr: Expr [20-22]:
                             ty: const int
@@ -393,6 +395,7 @@ fn explicit_bitness_uint_const_negative_decl() {
                                 expr: Expr [20-22]:
                                     ty: const int
                                     kind: Lit: Int(42)
+                        kind: Implicit
             [8] Symbol [15-16]:
                 name: x
                 type: const uint[32]

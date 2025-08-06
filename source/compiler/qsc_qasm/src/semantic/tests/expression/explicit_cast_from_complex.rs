@@ -1236,6 +1236,7 @@ fn complex_to_sized_complex() {
                         expr: Expr [47-48]:
                             ty: complex[float]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1263,6 +1264,7 @@ fn sized_complex_to_complex() {
                         expr: Expr [47-48]:
                             ty: complex[float[32]]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1336,6 +1338,7 @@ fn sized_complex_to_sized_complex_expanding() {
                         expr: Expr [58-59]:
                             ty: complex[float[32]]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }

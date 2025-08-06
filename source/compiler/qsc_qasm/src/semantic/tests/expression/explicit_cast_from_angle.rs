@@ -41,6 +41,7 @@ fn angle_to_bool() {
                         expr: Expr [31-32]:
                             ty: angle
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -68,6 +69,7 @@ fn sized_angle_to_bool() {
                         expr: Expr [35-36]:
                             ty: angle[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -958,6 +960,7 @@ fn angle_to_sized_angle() {
                         expr: Expr [36-37]:
                             ty: angle
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -985,6 +988,7 @@ fn sized_angle_to_angle() {
                         expr: Expr [36-37]:
                             ty: angle[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1035,6 +1039,7 @@ fn sized_angle_to_sized_angle_truncating() {
                         expr: Expr [40-41]:
                             ty: angle[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1062,6 +1067,7 @@ fn sized_angle_to_sized_angle_expanding() {
                         expr: Expr [40-41]:
                             ty: angle[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1343,6 +1349,7 @@ fn angle_to_bit() {
                         expr: Expr [30-31]:
                             ty: angle
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1411,6 +1418,7 @@ fn sized_angle_to_bit() {
                         expr: Expr [34-35]:
                             ty: angle[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1438,6 +1446,7 @@ fn sized_angle_to_bitarray() {
                         expr: Expr [38-39]:
                             ty: angle[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }

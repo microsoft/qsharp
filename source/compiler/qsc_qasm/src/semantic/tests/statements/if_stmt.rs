@@ -162,11 +162,12 @@ fn condition_cast() {
             IfStmt [0-12]:
                 condition: Expr [4-5]:
                     ty: const bool
-                    kind: Cast [0-0]:
+                    kind: Cast [4-5]:
                         ty: const bool
                         expr: Expr [4-5]:
                             ty: const int
                             kind: Lit: Int(1)
+                        kind: Implicit
                 if_body: Stmt [7-12]:
                     annotations: <empty>
                     kind: Block [7-12]:
