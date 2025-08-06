@@ -7,8 +7,8 @@ use crate::{
     hir::PackageId,
 };
 use qsc_circuit::circuit_to_qsharp::circuits_to_qsharp;
-use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::SourceMap;
+use qsc_data_structures::{language_features::LanguageFeatures, target::Profile};
+use qsc_frontend::{compile::SourceMap, error::WithSource};
 use qsc_passes::PackageType;
 use qsc_project::PackageGraphSources;
 use rustc_hash::FxHashMap;
@@ -24,6 +24,7 @@ pub struct BuildableProgram {
     pub user_code: qsc_project::PackageInfo,
     pub user_code_dependencies: Vec<(PackageId, Option<Arc<str>>)>,
     pub dependency_errors: Vec<compile::Error>,
+    pub capabilities: TargetCapabilityFlags,
 }
 
 impl BuildableProgram {
@@ -75,19 +76,67 @@ fn convert_circuit_sources(
     processed_sources
 }
 
+/// Given a `PackageGraphSources`, checks if the entry profile is set in the source code.
+/// If it is, returns the profile; otherwise, returns `None`.
+/// This will also report an error if the entry profile is set in a project file.
+#[must_use]
+pub fn get_target_profile_from_entry_point(
+    package_graph_sources: &PackageGraphSources,
+    errors: &mut Vec<WithSource<ErrorKind>>,
+) -> Option<Profile> {
+    let sources = package_graph_sources.root.sources.clone();
+
+    let filtered_sources: Vec<_> = sources
+        .into_iter()
+        .filter(|(name, _)| {
+            std::path::Path::new(name.as_ref())
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("qs"))
+        })
+        .collect();
+
+    // Check if the entry profile is set in the source code.
+    let target_profile =
+        qsc_frontend::compile::get_target_profile_from_entry_point(&filtered_sources);
+
+    if let Some((profile, span)) = target_profile {
+        // If the entry profile is set, we need to ensure that the user code is compiled with it.
+        if package_graph_sources.has_manifest {
+            errors.push(Error::from_map(
+                &SourceMap::new(filtered_sources, None),
+                ErrorKind::EntryPointProfileInProject(span),
+            ));
+            None
+        } else {
+            Some(profile)
+        }
+    } else {
+        None
+    }
+}
+
 /// Given a program config, prepare the package store by compiling all dependencies in the correct order and inserting them.
 #[must_use]
 pub fn prepare_package_store(
-    capabilities: TargetCapabilityFlags,
+    mut capabilities: TargetCapabilityFlags,
     package_graph_sources: PackageGraphSources,
 ) -> BuildableProgram {
+    let mut dependency_errors = Vec::new();
+
+    let target_profile =
+        get_target_profile_from_entry_point(&package_graph_sources, &mut dependency_errors);
+
+    // If the entry profile is set, we need to ensure that the user code is compiled with it.
+    if let Some(profile) = target_profile {
+        capabilities = profile.into();
+    }
+
     let (std_id, mut package_store) = package_store_with_stdlib(capabilities);
 
     let mut canonical_package_identifier_to_package_id_mapping = FxHashMap::default();
 
     let (ordered_packages, user_code) = package_graph_sources.compilation_order();
 
-    let mut dependency_errors = Vec::new();
     let ordered_packages = if let Ok(o) = ordered_packages {
         o
     } else {
@@ -163,5 +212,6 @@ pub fn prepare_package_store(
         dependency_errors,
         user_code,
         user_code_dependencies,
+        capabilities,
     }
 }

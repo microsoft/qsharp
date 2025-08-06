@@ -9,7 +9,7 @@ use katas::check_solution;
 use language_service::IOperationInfo;
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use project_system::{ProgramConfig, into_openqasm_args, into_qsc_args, is_openqasm_program};
+use project_system::{ProgramConfig, into_openqasm_arg, into_qsc_args, is_openqasm_program};
 use qsc::{
     LanguageFeatures, PackageStore, PackageType, PauliNoise, SourceContents, SourceMap, SourceName,
     SparseSim, TargetCapabilityFlags,
@@ -26,7 +26,7 @@ use qsc::{
 use resource_estimator::{self as re, estimate_entry};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{fmt::Write, str::FromStr, sync::Arc};
+use std::{fmt::Write, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 mod debug_service;
@@ -58,7 +58,7 @@ pub fn git_hash() -> String {
 #[wasm_bindgen]
 pub fn get_qir(program: ProgramConfig) -> Result<String, String> {
     if is_openqasm_program(&program) {
-        let (sources, capabilities) = into_openqasm_args(program);
+        let (sources, capabilities) = into_openqasm_arg(program);
         get_qir_from_openqasm(&sources, capabilities)
     } else {
         let (source_map, capabilities, language_features, store, deps) =
@@ -98,7 +98,7 @@ pub(crate) fn get_qir_from_openqasm(
 #[wasm_bindgen]
 pub fn get_estimates(program: ProgramConfig, expr: &str, params: &str) -> Result<String, String> {
     if is_openqasm_program(&program) {
-        let (sources, capabilities) = into_openqasm_args(program);
+        let (sources, capabilities) = into_openqasm_arg(program);
         get_estimates_from_openqasm(&sources, capabilities, params)
     } else {
         let (source_map, capabilities, language_features, store, deps) =
@@ -148,7 +148,7 @@ pub fn get_circuit(
     operation: Option<IOperationInfo>,
 ) -> Result<JsValue, String> {
     if is_openqasm_program(&program) {
-        let (sources, capabilities) = into_openqasm_args(program);
+        let (sources, capabilities) = into_openqasm_arg(program);
         let (_, mut interpreter) = get_interpreter_from_openqasm(&sources, capabilities)?;
         let circuit = interpreter
             .circuit(CircuitEntryPoint::EntryPoint, simulate)
@@ -218,15 +218,10 @@ pub fn get_library_source_content(name: &str) -> Option<String> {
 }
 
 #[wasm_bindgen]
-pub fn get_ast(
-    code: &str,
-    language_features: Vec<String>,
-    profile: &str,
-) -> Result<String, String> {
+pub fn get_ast(code: &str, language_features: Vec<String>) -> Result<String, String> {
     let language_features = LanguageFeatures::from_iter(language_features);
     let sources = SourceMap::new([("code".into(), code.into())], None);
-    let profile =
-        Profile::from_str(profile).map_err(|()| format!("Invalid target profile {profile}"))?;
+    let profile = Profile::Unrestricted;
     let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
             store,
@@ -242,15 +237,10 @@ pub fn get_ast(
 }
 
 #[wasm_bindgen]
-pub fn get_hir(
-    code: &str,
-    language_features: Vec<String>,
-    profile: &str,
-) -> Result<String, String> {
+pub fn get_hir(code: &str, language_features: Vec<String>) -> Result<String, String> {
     let language_features = LanguageFeatures::from_iter(language_features);
     let sources = SourceMap::new([("code".into(), code.into())], None);
-    let profile =
-        Profile::from_str(profile).map_err(|()| format!("Invalid target profile {profile}"))?;
+    let profile = Profile::Unrestricted;
     let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
             store,
@@ -278,6 +268,16 @@ pub fn get_rir(program: ProgramConfig) -> Result<Vec<String>, String> {
         &deps[..],
     )
     .map_err(interpret_errors_into_qsharp_errors_json)
+}
+
+#[wasm_bindgen]
+#[must_use]
+pub fn get_target_profile_from_entry_point(file_name: String, source: String) -> Option<String> {
+    qsc_frontend::compile::get_target_profile_from_entry_point(&[(
+        Arc::<str>::from(file_name),
+        Arc::<str>::from(source),
+    )])
+    .map(|(p, _)| p.to_str().to_string().to_lowercase())
 }
 
 struct CallbackReceiver<F>
@@ -508,7 +508,7 @@ pub fn runWithNoise(
     let qubitLoss = qubitLoss.as_f64().unwrap_or(0.0);
 
     if is_openqasm_program(&program) {
-        let (sources, capabilities) = into_openqasm_args(program);
+        let (sources, capabilities) = into_openqasm_arg(program);
         let source_name = sources
             .iter()
             .map(|x| x.0.clone())
@@ -701,7 +701,6 @@ fn get_configured_interpreter_from_openqasm(
             file.clone(),
             Some(&mut resolver),
             PackageType::Exe,
-            capabilities,
         );
 
     if !errors.is_empty() {

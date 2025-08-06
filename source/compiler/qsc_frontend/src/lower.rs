@@ -14,7 +14,11 @@ use crate::{
 };
 use miette::Diagnostic;
 use qsc_ast::ast::{self, FieldAccess, Ident, Idents, PathKind};
-use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
+use qsc_data_structures::{
+    index_map::IndexMap,
+    span::Span,
+    target::{Profile, TargetCapabilityFlags},
+};
 use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId, Res, Visibility},
@@ -340,10 +344,19 @@ impl With<'_> {
         match hir::Attr::from_str(attr.name.name.as_ref()) {
             Ok(hir::Attr::EntryPoint) => match &*attr.arg.kind {
                 ast::ExprKind::Tuple(args) if args.is_empty() => Some(hir::Attr::EntryPoint),
+                // @EntryPoint(Profile)
+                ast::ExprKind::Paren(inner)
+                    if matches!(inner.kind.as_ref(), ast::ExprKind::Path(PathKind::Ok(path))
+                if Profile::from_str(path.name.name.as_ref()).is_ok()) =>
+                {
+                    Some(hir::Attr::EntryPoint)
+                }
+                // Any other form is not valid so generates an error.
                 _ => {
-                    self.lowerer
-                        .errors
-                        .push(Error::InvalidAttrArgs("()".to_string(), attr.arg.span));
+                    self.lowerer.errors.push(Error::InvalidAttrArgs(
+                        "empty or profile name".to_string(),
+                        attr.arg.span,
+                    ));
                     None
                 }
             },
@@ -419,6 +432,7 @@ impl With<'_> {
                             .push(Error::InvalidAttrArgs("()".to_string(), attr.arg.span));
                     }
                 }
+                // lower the attribute even if it has invalid args
                 Some(hir::Attr::Test)
             }
             Err(()) => {

@@ -5,9 +5,10 @@
 mod integration_tests;
 
 use super::{FileSystemAsync, Project};
-use qsc_qasm::parser::ast::{Program, StmtKind};
+use qsc_data_structures::target::Profile;
+use qsc_qasm::parser::ast::{PathKind, Program, StmtKind};
 use rustc_hash::FxHashSet;
-use std::{path::Path, sync::Arc};
+use std::{path::Path, str::FromStr as _, sync::Arc};
 
 pub async fn load_project<T, P: AsRef<Path>>(
     project_host: &T,
@@ -21,11 +22,13 @@ where
     let mut loaded_files = FxHashSet::default();
     let mut pending_includes = vec![];
     let mut errors = vec![];
+    let mut target_profile = None;
 
     let path = Arc::from(path.as_ref().to_string_lossy().as_ref());
     match source {
         Some(source) => {
             let (program, _errors) = qsc_qasm::parser::parse(source.as_ref());
+            target_profile = get_first_profile_pragma(&program);
             let includes = get_includes(&program, &path);
             pending_includes.extend(includes);
             loaded_files.insert(path.clone());
@@ -36,6 +39,7 @@ where
                 Ok((file, source)) => {
                     // load the root file
                     let (program, _errors) = qsc_qasm::parser::parse(source.as_ref());
+                    target_profile = get_first_profile_pragma(&program);
                     let includes = get_includes(&program, &file);
                     pending_includes.extend(includes);
                     loaded_files.insert(file.clone());
@@ -54,6 +58,7 @@ where
                         lints: Vec::default(),
                         errors,
                         project_type: super::ProjectType::OpenQASM(vec![]),
+                        target_profile,
                     };
                 }
             }
@@ -101,6 +106,7 @@ where
         lints: Vec::default(),
         errors,
         project_type: super::ProjectType::OpenQASM(sources),
+        target_profile,
     }
 }
 
@@ -135,4 +141,22 @@ fn get_file_name_from_uri(uri: &Arc<str>) -> Arc<str> {
     path.file_name()
         .and_then(|name| name.to_str().map(|s| s.to_string().into()))
         .map_or_else(|| uri.clone(), |f| f)
+}
+
+pub fn get_first_profile_pragma(program: &Program) -> Option<Profile> {
+    for stmt in &program.statements {
+        if let StmtKind::Pragma(pragma) = &*stmt.kind {
+            let name_str = pragma
+                .identifier
+                .as_ref()
+                .map_or_else(String::new, PathKind::as_string);
+
+            if name_str.to_lowercase() == "qdk.qir.profile" {
+                if let Some(ref value) = pragma.value {
+                    return Profile::from_str(value.as_ref()).ok();
+                }
+            }
+        }
+    }
+    None
 }

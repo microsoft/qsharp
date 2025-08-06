@@ -990,8 +990,11 @@ impl AstVisitor<'_> for With<'_> {
         });
     }
     fn visit_attr(&mut self, attr: &ast::Attr) {
-        // The Config attribute arguments do not go through name resolution.
-        if hir::Attr::from_str(attr.name.name.as_ref()) != Ok(hir::Attr::Config) {
+        // The Config and EntryPoint attributes' arguments do not go through name resolution.
+        if !matches!(
+            hir::Attr::from_str(attr.name.name.as_ref()),
+            Ok(hir::Attr::Config | hir::Attr::EntryPoint)
+        ) {
             walk_attr(self, attr);
         }
     }
