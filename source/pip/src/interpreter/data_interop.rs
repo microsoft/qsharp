@@ -157,6 +157,9 @@ pub(super) enum PrimitiveValue {
     Pauli(Pauli),
 }
 
+/// UDT fields are stored recursively, this function flattens that structure
+/// and returns a vector with all the fields. Errors if any of the fields
+/// is anonymous.
 pub(super) fn collect_udt_fields<'ctx, 'udt_def>(
     udt: &'udt_def qsc::hir::ty::Udt,
 ) -> PyResult<Vec<(Rc<str>, &'ctx Ty)>>
@@ -279,7 +282,7 @@ pub(super) fn convert_value_ir_with_ty(
     }
 }
 
-pub(super) fn type_ir_from_qsharp_ty(ctx: &interpret::Interpreter, ty: &Ty) -> PyResult<TypeIR> {
+pub(super) fn type_ir_from_qsharp_ty(ctx: &interpret::Interpreter, ty: &Ty) -> Option<TypeIR> {
     match ty {
         Ty::Prim(prim) => {
             let prim = match prim {
@@ -291,20 +294,18 @@ pub(super) fn type_ir_from_qsharp_ty(ctx: &interpret::Interpreter, ty: &Ty) -> P
                 Prim::Result => PrimitiveKind::Result,
 
                 Prim::Qubit | Prim::Range | Prim::RangeTo | Prim::RangeFrom | Prim::RangeFull => {
-                    return Err(PyTypeError::new_err(format!(
-                        "unsupported interop type: `{ty}`"
-                    )));
+                    return None;
                 }
             };
-            Ok(TypeIR::Primitive(prim))
+            Some(TypeIR::Primitive(prim))
         }
-        Ty::Array(ty) => Ok(TypeIR::Array(vec![type_ir_from_qsharp_ty(ctx, ty)?])),
+        Ty::Array(ty) => Some(TypeIR::Array(vec![type_ir_from_qsharp_ty(ctx, ty)?])),
         Ty::Tuple(items) => {
             let mut tuple = Vec::new();
             for item in items {
                 tuple.push(type_ir_from_qsharp_ty(ctx, item)?);
             }
-            Ok(TypeIR::Tuple(tuple))
+            Some(TypeIR::Tuple(tuple))
         }
         Ty::Udt(name, res) => {
             let qsc::hir::Res::Item(item_id) = res else {
@@ -314,24 +315,22 @@ pub(super) fn type_ir_from_qsharp_ty(ctx: &interpret::Interpreter, ty: &Ty) -> P
 
             // Handle `Complex` special case.
             if is_complex_udt(udt) {
-                return Ok(TypeIR::Primitive(PrimitiveKind::Complex));
+                return Some(TypeIR::Primitive(PrimitiveKind::Complex));
             }
 
-            let udt_fields = collect_udt_fields(udt)?;
+            let udt_fields = collect_udt_fields(udt).ok()?;
             let mut fields = Vec::new();
 
             for (name, ty) in udt_fields {
                 fields.push((name.to_string(), type_ir_from_qsharp_ty(ctx, ty)?));
             }
 
-            Ok(TypeIR::Udt(UdtIR {
+            Some(TypeIR::Udt(UdtIR {
                 name: name.to_string(),
                 fields,
             }))
         }
-        Ty::Param { .. } | Ty::Infer(..) | Ty::Arrow(..) | Ty::Err => Err(PyTypeError::new_err(
-            format!("unsupported interop type: `{ty}`"),
-        )),
+        Ty::Param { .. } | Ty::Infer(..) | Ty::Arrow(..) | Ty::Err => None,
     }
 }
 

@@ -721,6 +721,49 @@ def test_callables_with_unsupported_return_types_raise_errors_on_call() -> None:
         qsharp.code.Unsupported()
 
 
+def test_callable_with_unsupported_udt_type_raises_error_on_call() -> None:
+    qsharp.init()
+    qsharp.eval(
+        """
+        newtype Data = (Int, Double);
+        function Unsupported(a : Data) : Unit { }
+        """
+    )
+    with pytest.raises(
+        qsharp.QSharpError, match='unsupported input type: `UDT<"Data":'
+    ):
+        qsharp.code.Unsupported()
+
+
+def test_callable_with_unsupported_udt_return_type_raises_error_on_call() -> None:
+    qsharp.init()
+    qsharp.eval(
+        """
+        newtype Data = (Int, Double);
+        function Unsupported() : Data { fail "won\'t be called" }
+        """
+    )
+    with pytest.raises(
+        qsharp.QSharpError, match='unsupported output type: `UDT<"Data":'
+    ):
+        qsharp.code.Unsupported()
+
+
+def test_returning_unsupported_udt_from_eval_raises_error_on_call() -> None:
+    qsharp.init()
+    with pytest.raises(
+        TypeError, match="structs with anonymous fields are not supported: Data"
+    ):
+        qsharp.eval(
+            """
+            {
+                newtype Data = (Int, Double);
+                Data(2, 3.0)
+            }
+            """
+        )
+
+
 def test_struct_call_constructor_exposed_into_env() -> None:
     qsharp.init()
     qsharp.eval("struct CustomUDT { a : Int }")

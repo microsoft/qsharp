@@ -1305,8 +1305,14 @@ fn create_py_class(
     name: &str,
     ty: &Ty,
 ) -> PyResult<()> {
+    let Some(type_ir) = type_ir_from_qsharp_ty(ctx, ty) else {
+        // If the UDT can't be expressed in Python, we don't want to raise
+        // an error, instead we just don't define that type in `qsharp.code.*`.
+        return Ok(());
+    };
+
     let args = (
-        Py::new(py, type_ir_from_qsharp_ty(ctx, ty)?).expect("should be able to create callable"), // callable id
+        Py::new(py, type_ir).expect("should be able to create callable"), // callable id
         PyList::new(py, namespace.iter().map(ToString::to_string))?, // namespace as string array
         PyString::new(py, name),                                     // name of callable
     );
