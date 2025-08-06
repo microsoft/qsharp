@@ -179,8 +179,8 @@ impl PackageIter<'_> {
                     .expect("namespace name should not be empty");
                 // Parent namespace can be empty
                 Some(Global {
-                    namespace: parent.iter().map(|i| i.name.clone()).collect(),
-                    name: name.name.clone(),
+                    namespace: parent.iter().map(|i| Rc::clone(&i.name)).collect(),
+                    name: Rc::clone(&name.name),
                     visibility: Visibility::Public,
                     status,
                     kind: Kind::Namespace(item_id),
@@ -191,7 +191,7 @@ impl PackageIter<'_> {
                 Some(ItemKind::Namespace(namespace, _)),
             ) => Some(Global {
                 namespace: namespace.into(),
-                name: name.name.clone(),
+                name: Rc::clone(&name.name),
                 visibility,
                 status,
                 // Export items can refer to different packages, so be sure

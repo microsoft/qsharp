@@ -90,7 +90,9 @@ impl GlobalTable {
                 // and recursively resolve it (it could be another export, i.e. a chain of exports.
                 self.handle_item(resolved_export, package_id, store);
             }
-            hir::ItemKind::Export(..) => {}
+            hir::ItemKind::Export(..) => {
+                // An export that failed to resolve, skip it.
+            }
         }
     }
 }

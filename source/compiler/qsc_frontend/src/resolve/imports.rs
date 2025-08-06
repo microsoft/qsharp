@@ -11,6 +11,8 @@ use qsc_data_structures::{namespaces::NamespaceId, span::Span};
 use rustc_hash::FxHashMap;
 use std::{collections::hash_map::Entry, rc::Rc};
 
+const MAX_ITERATIONS: usize = 100;
+
 /// Resolves all imports and exports declared in namespace scopes in the package.
 /// Exports are then made available in the global scope, whereas imports are made
 /// available in the namespace scope they are declared in.
@@ -285,7 +287,7 @@ fn bind_export(
         .entry(Rc::clone(&name.name))
     {
         Entry::Vacant(entry) => {
-            entry.insert(Res::Importable(imported_item.clone()));
+            entry.insert(Res::Importable(*imported_item));
         }
         Entry::Occupied(existing) => {
             if let Importable::Callable(imported_item_id, _) | Importable::Ty(imported_item_id, _) =
@@ -388,11 +390,11 @@ fn bind_import(
         current_namespace,
     ) {
         (Entry::Vacant(entry), _) => {
-            entry.insert(Res::Importable(imported_item.clone()));
+            entry.insert(Res::Importable(*imported_item));
         }
         (Entry::Occupied(mut entry), None) => {
             // allow shadowing in non-namespace (block) scopes
-            entry.insert(Res::Importable(imported_item.clone()));
+            entry.insert(Res::Importable(*imported_item));
         }
         (Entry::Occupied(_), Some(namespace_id)) => {
             // collision within the namespace scope
@@ -460,14 +462,13 @@ where
 {
     let mut errors = Vec::new();
     let mut attempted_items = FxHashMap::default();
-
-    for i in 1..=100 {
+    for i in 1..=MAX_ITERATIONS {
         if !resolver_fn(&mut attempted_items) {
             // If no new imports were made available in this pass, we can stop.
             break;
         }
 
-        if i >= 100 {
+        if i >= MAX_ITERATIONS {
             errors.push(Error::ImportResolutionLimitExceeded(i));
             return errors;
         }

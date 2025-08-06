@@ -3,9 +3,10 @@
 
 use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAccess, FieldAssign, FieldDef,
-    FunctorExpr, FunctorExprKind, Ident, ImportKind, Item, ItemKind, Namespace, Package, Pat,
-    PatKind, Path, PathKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind,
-    StringComponent, StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TypeParameter,
+    FunctorExpr, FunctorExprKind, Ident, ImportKind, ImportOrExportItem, Item, ItemKind, Namespace,
+    Package, Pat, PatKind, Path, PathKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt,
+    StmtKind, StringComponent, StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
+    TypeParameter,
 };
 use qsc_data_structures::span::Span;
 
@@ -36,6 +37,10 @@ pub trait MutVisitor: Sized {
 
     fn visit_struct_decl(&mut self, decl: &mut StructDecl) {
         walk_struct_decl(self, decl);
+    }
+
+    fn visit_import_or_export(&mut self, item: &mut ImportOrExportItem) {
+        walk_import_or_export(self, item);
     }
 
     fn visit_field_def(&mut self, def: &mut FieldDef) {
@@ -128,15 +133,11 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
             vis.visit_ty_def(def);
         }
         ItemKind::Struct(decl) => vis.visit_struct_decl(decl),
-        ItemKind::ImportOrExport(export) => {
-            vis.visit_span(&mut export.span);
-            for item in &mut *export.items {
-                vis.visit_span(&mut item.span);
-                vis.visit_path_kind(&mut item.path);
-                if let ImportKind::Direct { alias: Some(alias) } = &mut item.kind {
-                    vis.visit_ident(alias);
-                }
-            }
+        ItemKind::ImportOrExport(decl) => {
+            vis.visit_span(&mut decl.span);
+            decl.items
+                .iter_mut()
+                .for_each(|item| vis.visit_import_or_export(item));
         }
     }
 }
@@ -191,6 +192,14 @@ pub fn walk_struct_decl(vis: &mut impl MutVisitor, decl: &mut StructDecl) {
     vis.visit_span(&mut decl.span);
     vis.visit_ident(&mut decl.name);
     decl.fields.iter_mut().for_each(|f| vis.visit_field_def(f));
+}
+
+pub fn walk_import_or_export(vis: &mut impl MutVisitor, item: &mut ImportOrExportItem) {
+    vis.visit_span(&mut item.span);
+    vis.visit_path_kind(&mut item.path);
+    if let ImportKind::Direct { alias: Some(alias) } = &mut item.kind {
+        vis.visit_ident(alias);
+    }
 }
 
 pub fn walk_field_def(vis: &mut impl MutVisitor, def: &mut FieldDef) {

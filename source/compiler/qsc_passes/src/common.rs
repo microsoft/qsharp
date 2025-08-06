@@ -96,11 +96,11 @@ pub(crate) fn create_gen_core_ref(
     generics: Vec<GenericArg>,
     span: Span,
 ) -> Expr {
-    let term = core
+    let callable = core
         .resolve_callable(namespace, name)
-        .expect("term should resolve");
+        .expect("callable should resolve");
 
-    let ty = term
+    let ty = callable
         .scheme
         .instantiate(&generics)
         .expect("generic arguments should match type scheme");
@@ -109,6 +109,6 @@ pub(crate) fn create_gen_core_ref(
         id: NodeId::default(),
         span,
         ty: Ty::Arrow(Rc::new(ty)),
-        kind: ExprKind::Var(Res::Item(term.id), generics),
+        kind: ExprKind::Var(Res::Item(callable.id), generics),
     }
 }

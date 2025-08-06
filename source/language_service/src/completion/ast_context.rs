@@ -65,7 +65,7 @@ impl<'a> Visitor<'a> for AstContext<'a> {
             ItemKind::ImportOrExport(decl) => {
                 self.set_context(Context::Path(PathKind::Import));
                 for item in &decl.items {
-                    if ImportKind::Wildcard == item.kind && item.span.touches(self.offset) {
+                    if ImportKind::Wildcard == item.kind && item.span.contains(self.offset) {
                         // Special case when the cursor falls *between* the
                         // `Path` and the glob asterisk,
                         // e.g. `foo.bar.|*` . In that case, the visitor

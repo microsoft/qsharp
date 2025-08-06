@@ -143,7 +143,7 @@ impl Res {
 }
 
 /// Kind of importable item - callable, UDT or namespace.
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Copy)]
 pub enum Importable {
     Callable(ItemId, ItemStatus),
     Ty(ItemId, ItemStatus),
@@ -1273,7 +1273,7 @@ impl GlobalTable {
                         .insert_or_find_namespace(vec![global.name.clone()], Some(namespace));
 
                     self.scope.importables.get_mut_or_default(namespace).insert(
-                        global.name.clone(),
+                        global.name,
                         Res::Importable(Importable::Namespace(this_namespace, Some(item_id))),
                     );
                 }
@@ -1302,7 +1302,7 @@ impl GlobalTable {
                                 .insert_alias_for_namespace(orig_id, &global.name, namespace);
 
                             self.scope.importables.get_mut_or_default(namespace).insert(
-                                global.name.clone(),
+                                global.name,
                                 Res::Importable(Importable::Namespace(orig_id, Some(item_id))),
                             );
                         }

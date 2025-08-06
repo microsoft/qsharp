@@ -4972,7 +4972,6 @@ fn export_namespace() {
 
 #[test]
 fn export_namespace_contains_children() {
-    // TODO: this is unlowerable, is there a test case for it?
     check(
         indoc! {"
             namespace Foo.Bar {
