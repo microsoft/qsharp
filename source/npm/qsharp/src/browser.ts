@@ -157,6 +157,10 @@ export function getLanguageServiceWorker(
   return createProxy(worker, wasmModule, languageServiceProtocol);
 }
 
+/// Extracts the target profile from a Q# source file's entry point.
+/// Scans the provided source code for an EntryPoint argument specifying
+/// a profile and returns the corresponding TargetProfile value, if found.
+/// Returns undefined if no profile is specified or if the profile is not recognized.
 export async function getTargetProfileFromEntryPoint(
   fileName: string,
   source: string,
