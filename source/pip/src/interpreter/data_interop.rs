@@ -418,6 +418,10 @@ pub(super) fn typed_value_to_python_obj(
 
             PyList::new(py, array)?.into_py_any(py)
         }
-        _ => format!("<{}> {}", value.type_name(), value).into_py_any(py),
+        Value::Closure(..)
+        | Value::Global(..)
+        | Value::Qubit(..)
+        | Value::Range(..)
+        | Value::Var(..) => format!("<{}> {}", value.type_name(), value).into_py_any(py),
     }
 }

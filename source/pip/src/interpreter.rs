@@ -885,7 +885,7 @@ where
 
             None
         }
-        _ => Some(ty),
+        Ty::Arrow(..) | Ty::Infer(..) | Ty::Param { .. } | Ty::Err => Some(ty),
     }
 }
 
@@ -1143,7 +1143,13 @@ impl<'py> IntoPyObject<'py> for ValueWrapper {
             Value::Array(val) => {
                 PyList::new(py, val.iter().map(|v| ValueWrapper(v.clone())))?.into_bound_py_any(py)
             }
-            _ => format!("<{}> {}", Value::type_name(&self.0), &self.0).into_bound_py_any(py),
+            Value::Closure(..)
+            | Value::Global(..)
+            | Value::Qubit(..)
+            | Value::Range(..)
+            | Value::Var(..) => {
+                format!("<{}> {}", Value::type_name(&self.0), &self.0).into_bound_py_any(py)
+            }
         }
     }
 }
