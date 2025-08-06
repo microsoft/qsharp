@@ -204,7 +204,7 @@ export class Compiler implements ICompiler {
 
   async getQir(program: ProgramConfig): Promise<string> {
     return callAndTransformExceptions(async () =>
-      this.wasm.get_qir(toWasmProgramConfig(program, "base")),
+      this.wasm.get_qir(toWasmProgramConfig(program, "adaptive_rif")),
     );
   }
 

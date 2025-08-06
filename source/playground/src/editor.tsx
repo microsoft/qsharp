@@ -13,6 +13,7 @@ import {
   log,
   ProgramConfig,
   LanguageServiceDiagnosticEvent,
+  getTargetProfileFromEntryPoint,
 } from "qsharp-lang";
 import { Exercise, getExerciseSources } from "qsharp-lang/katas-md";
 import { codeToCompressedBase64, lsRangeToMonacoRange } from "./utils.js";
@@ -128,6 +129,7 @@ export function Editor(props: {
     const config = {
       sources: [["code", code]] as [string, string][],
       languageFeatures: [],
+      profile: await getTargetProfileFromEntryPoint("main.qs", code),
     };
 
     if (props.activeTab === "ast-tab") {
@@ -182,6 +184,7 @@ export function Editor(props: {
     const config = {
       sources: [["code", code]],
       languageFeatures: [],
+      profile: await getTargetProfileFromEntryPoint("main.qs", code),
     } as ProgramConfig;
 
     try {

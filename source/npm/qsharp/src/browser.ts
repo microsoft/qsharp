@@ -22,6 +22,7 @@ import {
   QSharpDebugService,
   debugServiceProtocol,
 } from "./debug-service/debug-service.js";
+import { callAndTransformExceptions } from "./diagnostics.js";
 import {
   ILanguageService,
   ILanguageServiceWorker,
@@ -156,6 +157,19 @@ export function getLanguageServiceWorker(
   return createProxy(worker, wasmModule, languageServiceProtocol);
 }
 
+export async function getTargetProfileFromEntryPoint(
+  fileName: string,
+  source: string,
+): Promise<wasm.TargetProfile | undefined> {
+  await instantiateWasm();
+  return callAndTransformExceptions(
+    async () =>
+      wasm.get_target_profile_from_entry_point(fileName, source) as
+        | wasm.TargetProfile
+        | undefined,
+  );
+}
+
 export { StepResultId } from "../lib/web/qsc_wasm.js";
 export type {
   IBreakpointSpan,
@@ -186,7 +200,6 @@ export type {
 } from "./language-service/language-service.js";
 export { default as openqasm_samples } from "./openqasm-samples.generated.js";
 export type { ProjectLoader } from "./project.js";
-export { getTargetProfileFromEntryPoint } from "./project.js";
 export { default as samples } from "./samples.generated.js";
 export type { CircuitGroup as CircuitData } from "./data-structures/circuit.js";
 export * as utils from "./utils.js";
