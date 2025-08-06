@@ -46,11 +46,11 @@ def add_wasm_tools_to_path():
 
     if bindgen_path not in os.environ["PATH"]:
         print(f"Adding {bindgen_path} to PATH")
-        os.environ["PATH"] += (os.pathsep + bindgen_path)
+        os.environ["PATH"] += os.pathsep + bindgen_path
 
     if wasmopt_path not in os.environ["PATH"]:
         print(f"Adding {wasmopt_path} to PATH")
-        os.environ["PATH"] += (os.pathsep + wasmopt_path)
+        os.environ["PATH"] += os.pathsep + wasmopt_path
 
 
 def check_prereqs(install=False, skip_wasm=False):
@@ -150,6 +150,7 @@ def check_prereqs(install=False, skip_wasm=False):
             print("Please install the missing targets by running:")
             print("rustup target add aarch64-apple-darwin")
             print("rustup target add x86_64-apple-darwin")
+            exit(1)
 
     if not skip_wasm:
         wasm_checks(install, installed_rust_targets)
@@ -166,7 +167,9 @@ def wasm_checks(install, installed_rust_targets):
         if install == True:
             print("wasm-bindgen not found. Attempting to install...")
             install_wasm_bindgen()
-            wasm_bindgen_version = subprocess.check_output(["wasm-bindgen", "--version"])
+            wasm_bindgen_version = subprocess.check_output(
+                ["wasm-bindgen", "--version"]
+            )
         else:
             print(
                 "wasm-bindgen not found. Install via 'python ./prereqs.py --install' or see https://github.com/rustwasm/wasm-bindgen"
