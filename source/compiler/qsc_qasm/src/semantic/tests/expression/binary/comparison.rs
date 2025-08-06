@@ -50,18 +50,20 @@ fn bitarray_var_comparisons_can_be_translated() {
                         op: Gt
                         lhs: Expr [66-67]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [66-67]:
                                 ty: int
                                 expr: Expr [66-67]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [70-71]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [70-71]:
                                 ty: int
                                 expr: Expr [70-71]:
                                     ty: bit[1]
                                     kind: SymbolId(9)
+                                kind: Implicit
             ClassicalDeclarationStmt [81-97]:
                 symbol_id: 11
                 ty_span: [81-85]
@@ -71,18 +73,20 @@ fn bitarray_var_comparisons_can_be_translated() {
                         op: Gte
                         lhs: Expr [90-91]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [90-91]:
                                 ty: int
                                 expr: Expr [90-91]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [95-96]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [95-96]:
                                 ty: int
                                 expr: Expr [95-96]:
                                     ty: bit[1]
                                     kind: SymbolId(9)
+                                kind: Implicit
             ClassicalDeclarationStmt [106-121]:
                 symbol_id: 12
                 ty_span: [106-110]
@@ -92,18 +96,20 @@ fn bitarray_var_comparisons_can_be_translated() {
                         op: Lt
                         lhs: Expr [115-116]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [115-116]:
                                 ty: int
                                 expr: Expr [115-116]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [119-120]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [119-120]:
                                 ty: int
                                 expr: Expr [119-120]:
                                     ty: bit[1]
                                     kind: SymbolId(9)
+                                kind: Implicit
             ClassicalDeclarationStmt [130-146]:
                 symbol_id: 13
                 ty_span: [130-134]
@@ -113,18 +119,20 @@ fn bitarray_var_comparisons_can_be_translated() {
                         op: Lte
                         lhs: Expr [139-140]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [139-140]:
                                 ty: int
                                 expr: Expr [139-140]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [144-145]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [144-145]:
                                 ty: int
                                 expr: Expr [144-145]:
                                     ty: bit[1]
                                     kind: SymbolId(9)
+                                kind: Implicit
             ClassicalDeclarationStmt [155-171]:
                 symbol_id: 14
                 ty_span: [155-159]
@@ -134,18 +142,20 @@ fn bitarray_var_comparisons_can_be_translated() {
                         op: Eq
                         lhs: Expr [164-165]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [164-165]:
                                 ty: int
                                 expr: Expr [164-165]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [169-170]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [169-170]:
                                 ty: int
                                 expr: Expr [169-170]:
                                     ty: bit[1]
                                     kind: SymbolId(9)
+                                kind: Implicit
             ClassicalDeclarationStmt [180-196]:
                 symbol_id: 15
                 ty_span: [180-184]
@@ -155,18 +165,20 @@ fn bitarray_var_comparisons_can_be_translated() {
                         op: Neq
                         lhs: Expr [189-190]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [189-190]:
                                 ty: int
                                 expr: Expr [189-190]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [194-195]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [194-195]:
                                 ty: int
                                 expr: Expr [194-195]:
                                     ty: bit[1]
                                     kind: SymbolId(9)
+                                kind: Implicit
         "#]],
     );
 }
@@ -211,11 +223,12 @@ fn bitarray_var_comparison_to_int_can_be_translated() {
                         op: Gt
                         lhs: Expr [63-64]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [63-64]:
                                 ty: int
                                 expr: Expr [63-64]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [67-68]:
                             ty: int
                             kind: SymbolId(9)
@@ -228,11 +241,12 @@ fn bitarray_var_comparison_to_int_can_be_translated() {
                         op: Gte
                         lhs: Expr [87-88]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [87-88]:
                                 ty: int
                                 expr: Expr [87-88]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [92-93]:
                             ty: int
                             kind: SymbolId(9)
@@ -245,11 +259,12 @@ fn bitarray_var_comparison_to_int_can_be_translated() {
                         op: Lt
                         lhs: Expr [112-113]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [112-113]:
                                 ty: int
                                 expr: Expr [112-113]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [116-117]:
                             ty: int
                             kind: SymbolId(9)
@@ -262,11 +277,12 @@ fn bitarray_var_comparison_to_int_can_be_translated() {
                         op: Lte
                         lhs: Expr [136-137]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [136-137]:
                                 ty: int
                                 expr: Expr [136-137]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [141-142]:
                             ty: int
                             kind: SymbolId(9)
@@ -279,11 +295,12 @@ fn bitarray_var_comparison_to_int_can_be_translated() {
                         op: Eq
                         lhs: Expr [161-162]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [161-162]:
                                 ty: int
                                 expr: Expr [161-162]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [166-167]:
                             ty: int
                             kind: SymbolId(9)
@@ -296,11 +313,12 @@ fn bitarray_var_comparison_to_int_can_be_translated() {
                         op: Neq
                         lhs: Expr [186-187]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [186-187]:
                                 ty: int
                                 expr: Expr [186-187]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [191-192]:
                             ty: int
                             kind: SymbolId(9)
@@ -316,11 +334,12 @@ fn bitarray_var_comparison_to_int_can_be_translated() {
                             kind: SymbolId(9)
                         rhs: Expr [215-216]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [215-216]:
                                 ty: int
                                 expr: Expr [215-216]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
             ClassicalDeclarationStmt [226-242]:
                 symbol_id: 17
                 ty_span: [226-230]
@@ -333,11 +352,12 @@ fn bitarray_var_comparison_to_int_can_be_translated() {
                             kind: SymbolId(9)
                         rhs: Expr [240-241]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [240-241]:
                                 ty: int
                                 expr: Expr [240-241]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
             ClassicalDeclarationStmt [251-266]:
                 symbol_id: 18
                 ty_span: [251-255]
@@ -350,11 +370,12 @@ fn bitarray_var_comparison_to_int_can_be_translated() {
                             kind: SymbolId(9)
                         rhs: Expr [264-265]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [264-265]:
                                 ty: int
                                 expr: Expr [264-265]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
             ClassicalDeclarationStmt [275-291]:
                 symbol_id: 19
                 ty_span: [275-279]
@@ -367,11 +388,12 @@ fn bitarray_var_comparison_to_int_can_be_translated() {
                             kind: SymbolId(9)
                         rhs: Expr [289-290]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [289-290]:
                                 ty: int
                                 expr: Expr [289-290]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
             ClassicalDeclarationStmt [300-316]:
                 symbol_id: 20
                 ty_span: [300-304]
@@ -384,11 +406,12 @@ fn bitarray_var_comparison_to_int_can_be_translated() {
                             kind: SymbolId(9)
                         rhs: Expr [314-315]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [314-315]:
                                 ty: int
                                 expr: Expr [314-315]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
             ClassicalDeclarationStmt [325-341]:
                 symbol_id: 21
                 ty_span: [325-329]
@@ -401,11 +424,12 @@ fn bitarray_var_comparison_to_int_can_be_translated() {
                             kind: SymbolId(9)
                         rhs: Expr [339-340]:
                             ty: int
-                            kind: Cast [0-0]:
+                            kind: Cast [339-340]:
                                 ty: int
                                 expr: Expr [339-340]:
                                     ty: bit[1]
                                     kind: SymbolId(8)
+                                kind: Implicit
         "#]],
     );
 }

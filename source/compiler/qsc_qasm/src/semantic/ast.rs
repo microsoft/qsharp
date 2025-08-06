@@ -1246,18 +1246,35 @@ impl Display for BuiltinFunctionCall {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CastKind {
+    Explicit,
+    Implicit,
+}
+
+impl Display for CastKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            CastKind::Explicit => write!(f, "Explicit"),
+            CastKind::Implicit => write!(f, "Implicit"),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Cast {
     pub span: Span,
     pub ty: crate::semantic::types::Type,
     pub expr: Expr,
+    pub kind: CastKind,
 }
 
 impl Display for Cast {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "Cast", self.span)?;
         writeln_field(f, "ty", &self.ty)?;
-        write_field(f, "expr", &self.expr)
+        writeln_field(f, "expr", &self.expr)?;
+        write_field(f, "kind", &self.kind)
     }
 }
 

@@ -41,6 +41,7 @@ fn bit_to_bool() {
                         expr: Expr [29-30]:
                             ty: bit
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -68,6 +69,7 @@ fn bitarray_to_bool() {
                         expr: Expr [33-34]:
                             ty: bit[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -185,6 +187,7 @@ fn bit_to_int() {
                         expr: Expr [28-29]:
                             ty: bit
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -212,6 +215,7 @@ fn bit_to_sized_int() {
                         expr: Expr [32-33]:
                             ty: bit
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -281,6 +285,7 @@ fn bitarray_to_sized_int() {
                         expr: Expr [36-37]:
                             ty: bit[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -394,6 +399,7 @@ fn bit_to_uint() {
                         expr: Expr [29-30]:
                             ty: bit
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -421,6 +427,7 @@ fn bit_to_sized_uint() {
                         expr: Expr [33-34]:
                             ty: bit
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -490,6 +497,7 @@ fn bitarray_to_sized_uint() {
                         expr: Expr [37-38]:
                             ty: bit[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -603,6 +611,7 @@ fn bit_to_float() {
                         expr: Expr [30-31]:
                             ty: bit
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -630,6 +639,7 @@ fn bit_to_sized_float() {
                         expr: Expr [34-35]:
                             ty: bit
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -948,6 +958,7 @@ fn bitarray_to_sized_angle() {
                         expr: Expr [38-39]:
                             ty: bit[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1334,6 +1345,7 @@ fn bit_to_bitarray() {
                         expr: Expr [32-33]:
                             ty: bit
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1361,6 +1373,7 @@ fn bitarray_to_bit() {
                         expr: Expr [32-33]:
                             ty: bit[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }

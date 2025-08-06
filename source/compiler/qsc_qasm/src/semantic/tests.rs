@@ -221,11 +221,12 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                                         kind: SymbolId(41)
                                     rhs: Expr [225-226]:
                                         ty: bool
-                                        kind: Cast [0-0]:
+                                        kind: Cast [225-226]:
                                             ty: bool
                                             expr: Expr [225-226]:
                                                 ty: bit
                                                 kind: SymbolId(40)
+                                            kind: Implicit
                     Stmt [140-154]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [140-154]:
@@ -248,11 +249,12 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                                         kind: SymbolId(42)
                                     rhs: Expr [173-178]:
                                         ty: float
-                                        kind: Cast [0-0]:
+                                        kind: Cast [173-178]:
                                             ty: float
                                             expr: Expr [173-178]:
                                                 ty: const bool
                                                 kind: Lit: Bool(false)
+                                            kind: Implicit
                     Stmt [74-84]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [74-84]:

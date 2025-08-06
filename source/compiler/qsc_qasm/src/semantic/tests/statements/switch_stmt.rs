@@ -110,21 +110,23 @@ fn target_cast() {
             SwitchStmt [0-31]:
                 target: Expr [8-12]:
                     ty: const int
-                    kind: Cast [0-0]:
+                    kind: Cast [8-12]:
                         ty: const int
                         expr: Expr [8-12]:
                             ty: const bool
                             kind: Lit: Bool(true)
+                        kind: Implicit
                 cases:
                     SwitchCase [16-29]:
                         labels:
                             Expr [21-26]:
                                 ty: const int
-                                kind: Cast [0-0]:
+                                kind: Cast [21-26]:
                                     ty: const int
                                     expr: Expr [21-26]:
                                         ty: const bool
                                         kind: Lit: Bool(false)
+                                    kind: Implicit
                         block: Block [27-29]: <empty>
                 default_case: <none>
         "#]],

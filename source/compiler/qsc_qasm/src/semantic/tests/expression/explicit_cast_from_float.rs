@@ -41,6 +41,7 @@ fn float_to_bool() {
                         expr: Expr [31-32]:
                             ty: float
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -68,6 +69,7 @@ fn sized_float_to_bool() {
                         expr: Expr [35-36]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -185,6 +187,7 @@ fn float_to_int() {
                         expr: Expr [30-31]:
                             ty: float
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -212,6 +215,7 @@ fn float_to_sized_int() {
                         expr: Expr [34-35]:
                             ty: float
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -239,6 +243,7 @@ fn sized_float_to_int() {
                         expr: Expr [34-35]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -266,6 +271,7 @@ fn sized_float_to_sized_int() {
                         expr: Expr [38-39]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -293,6 +299,7 @@ fn sized_float_to_sized_int_truncating() {
                         expr: Expr [38-39]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -320,6 +327,7 @@ fn sized_float_to_sized_int_expanding() {
                         expr: Expr [38-39]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -351,6 +359,7 @@ fn float_to_uint() {
                         expr: Expr [31-32]:
                             ty: float
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -378,6 +387,7 @@ fn float_to_sized_uint() {
                         expr: Expr [35-36]:
                             ty: float
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -405,6 +415,7 @@ fn sized_float_to_uint() {
                         expr: Expr [35-36]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -432,6 +443,7 @@ fn sized_float_to_sized_uint() {
                         expr: Expr [39-40]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -459,6 +471,7 @@ fn sized_float_to_sized_uint_truncating() {
                         expr: Expr [39-40]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -486,6 +499,7 @@ fn sized_float_to_sized_uint_expanding() {
                         expr: Expr [39-40]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -540,6 +554,7 @@ fn float_to_sized_float() {
                         expr: Expr [36-37]:
                             ty: float
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -567,6 +582,7 @@ fn sized_float_to_float() {
                         expr: Expr [36-37]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -617,6 +633,7 @@ fn sized_float_to_sized_float_truncating() {
                         expr: Expr [40-41]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -644,6 +661,7 @@ fn sized_float_to_sized_float_expanding() {
                         expr: Expr [40-41]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -675,6 +693,7 @@ fn float_to_angle() {
                         expr: Expr [32-33]:
                             ty: float
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -702,6 +721,7 @@ fn float_to_sized_angle() {
                         expr: Expr [36-37]:
                             ty: float
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -729,6 +749,7 @@ fn sized_float_to_angle() {
                         expr: Expr [36-37]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -756,6 +777,7 @@ fn sized_float_to_sized_angle() {
                         expr: Expr [40-41]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -783,6 +805,7 @@ fn sized_float_to_sized_angle_truncating() {
                         expr: Expr [40-41]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -810,6 +833,7 @@ fn sized_float_to_sized_angle_expanding() {
                         expr: Expr [40-41]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -841,6 +865,7 @@ fn float_to_complex() {
                         expr: Expr [34-35]:
                             ty: float
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -868,6 +893,7 @@ fn float_to_sized_complex() {
                         expr: Expr [45-46]:
                             ty: float
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -895,6 +921,7 @@ fn sized_float_to_complex() {
                         expr: Expr [38-39]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -922,6 +949,7 @@ fn sized_float_to_sized_complex() {
                         expr: Expr [49-50]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -949,6 +977,7 @@ fn sized_float_to_sized_complex_truncating() {
                         expr: Expr [49-50]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -976,6 +1005,7 @@ fn sized_float_to_sized_complex_expanding() {
                         expr: Expr [49-50]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1007,6 +1037,7 @@ fn float_to_bit() {
                         expr: Expr [30-31]:
                             ty: float
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1075,6 +1106,7 @@ fn sized_float_to_bit() {
                         expr: Expr [34-35]:
                             ty: float[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }

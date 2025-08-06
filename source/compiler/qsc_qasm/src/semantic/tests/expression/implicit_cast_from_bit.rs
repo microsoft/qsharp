@@ -119,11 +119,12 @@ fn to_bool_implicitly() {
                 ty_span: [30-34]
                 init_expr: Expr [39-40]:
                     ty: bool
-                    kind: Cast [0-0]:
+                    kind: Cast [39-40]:
                         ty: bool
                         expr: Expr [39-40]:
                             ty: bit
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [35-36]:
                 name: y
                 type: bool
@@ -159,11 +160,12 @@ fn to_implicit_int_implicitly() {
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: int
-                    kind: Cast [0-0]:
+                    kind: Cast [36-37]:
                         ty: int
                         expr: Expr [36-37]:
                             ty: bit
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [32-33]:
                 name: y
                 type: int
@@ -199,11 +201,12 @@ fn to_explicit_int_implicitly() {
                 ty_span: [28-35]
                 init_expr: Expr [40-41]:
                     ty: int[32]
-                    kind: Cast [0-0]:
+                    kind: Cast [40-41]:
                         ty: int[32]
                         expr: Expr [40-41]:
                             ty: bit
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [36-37]:
                 name: y
                 type: int[32]
@@ -239,11 +242,12 @@ fn to_implicit_uint_implicitly() {
                 ty_span: [28-32]
                 init_expr: Expr [37-38]:
                     ty: uint
-                    kind: Cast [0-0]:
+                    kind: Cast [37-38]:
                         ty: uint
                         expr: Expr [37-38]:
                             ty: bit
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [33-34]:
                 name: y
                 type: uint
@@ -279,11 +283,12 @@ fn to_explicit_uint_implicitly() {
                 ty_span: [28-36]
                 init_expr: Expr [41-42]:
                     ty: uint[32]
-                    kind: Cast [0-0]:
+                    kind: Cast [41-42]:
                         ty: uint[32]
                         expr: Expr [41-42]:
                             ty: bit
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [37-38]:
                 name: y
                 type: uint[32]
@@ -319,11 +324,12 @@ fn to_explicit_bigint_implicitly() {
                 ty_span: [28-35]
                 init_expr: Expr [40-41]:
                     ty: int[65]
-                    kind: Cast [0-0]:
+                    kind: Cast [40-41]:
                         ty: int[65]
                         expr: Expr [40-41]:
                             ty: bit
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [36-37]:
                 name: y
                 type: int[65]
@@ -359,11 +365,12 @@ fn to_implicit_float_implicitly() {
                 ty_span: [28-33]
                 init_expr: Expr [38-39]:
                     ty: float
-                    kind: Cast [0-0]:
+                    kind: Cast [38-39]:
                         ty: float
                         expr: Expr [38-39]:
                             ty: bit
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [34-35]:
                 name: y
                 type: float

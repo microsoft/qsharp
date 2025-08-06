@@ -153,11 +153,12 @@ fn const_int_idents_widthless_lhs_can_be_multiplied_by_explicit_width_int() {
                         op: Mul
                         lhs: Expr [63-64]:
                             ty: const int
-                            kind: Cast [0-0]:
+                            kind: Cast [63-64]:
                                 ty: const int
                                 expr: Expr [63-64]:
                                     ty: const int[32]
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [67-68]:
                             ty: const int
                             kind: SymbolId(9)

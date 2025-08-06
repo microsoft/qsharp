@@ -40,30 +40,31 @@ fn sin_angle() {
     check_stmt_kinds(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-28]:
-            symbol_id: 8
-            ty_span: [15-20]
-            init_expr: Expr [25-27]:
-                ty: const angle
-                const_value: Angle(3.141592653589793)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-28]:
+                symbol_id: 8
+                ty_span: [15-20]
+                init_expr: Expr [25-27]:
                     ty: const angle
-                    expr: Expr [25-27]:
-                        ty: const float
-                        kind: SymbolId(2)
-        ExprStmt [37-44]:
-            expr: Expr [37-43]:
-                ty: const float
-                const_value: Float(1.2246467991473532e-16)
-                kind: BuiltinFunctionCall [37-43]:
-                    fn_name_span: [37-40]
-                    name: sin
-                    function_ty: def (const angle) -> const float
-                    args:
-                        Expr [41-42]:
-                            ty: const angle
-                            const_value: Angle(3.141592653589793)
-                            kind: SymbolId(8)
-    "#]],
+                    const_value: Angle(3.141592653589793)
+                    kind: Cast [25-27]:
+                        ty: const angle
+                        expr: Expr [25-27]:
+                            ty: const float
+                            kind: SymbolId(2)
+                        kind: Implicit
+            ExprStmt [37-44]:
+                expr: Expr [37-43]:
+                    ty: const float
+                    const_value: Float(1.2246467991473532e-16)
+                    kind: BuiltinFunctionCall [37-43]:
+                        fn_name_span: [37-40]
+                        name: sin
+                        function_ty: def (const angle) -> const float
+                        args:
+                            Expr [41-42]:
+                                ty: const angle
+                                const_value: Angle(3.141592653589793)
+                                kind: SymbolId(8)
+        "#]],
     );
 }

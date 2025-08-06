@@ -332,7 +332,7 @@ fn implicit_bitness_simple_double_neg_real() {
                         op: Add
                         lhs: Expr [20-23]:
                             ty: const complex[float]
-                            kind: Cast [0-0]:
+                            kind: Cast [20-23]:
                                 ty: const complex[float]
                                 expr: Expr [20-23]:
                                     ty: const float
@@ -341,6 +341,7 @@ fn implicit_bitness_simple_double_neg_real() {
                                         expr: Expr [20-23]:
                                             ty: const float
                                             kind: Lit: Float(1.1)
+                                kind: Implicit
                         rhs: Expr [26-31]:
                             ty: const complex[float]
                             kind: Lit: Complex(0.0, 2.2)
@@ -367,7 +368,7 @@ fn const_implicit_bitness_simple_double_neg_real() {
                         op: Add
                         lhs: Expr [26-29]:
                             ty: const complex[float]
-                            kind: Cast [0-0]:
+                            kind: Cast [26-29]:
                                 ty: const complex[float]
                                 expr: Expr [26-29]:
                                     ty: const float
@@ -376,6 +377,7 @@ fn const_implicit_bitness_simple_double_neg_real() {
                                         expr: Expr [26-29]:
                                             ty: const float
                                             kind: Lit: Float(1.1)
+                                kind: Implicit
                         rhs: Expr [32-37]:
                             ty: const complex[float]
                             kind: Lit: Complex(0.0, 2.2)

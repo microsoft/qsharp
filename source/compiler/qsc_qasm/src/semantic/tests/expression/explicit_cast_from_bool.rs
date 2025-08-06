@@ -113,6 +113,7 @@ fn bool_to_int() {
                         expr: Expr [29-30]:
                             ty: bool
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -140,6 +141,7 @@ fn bool_to_sized_int() {
                         expr: Expr [33-34]:
                             ty: bool
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -171,6 +173,7 @@ fn bool_to_uint() {
                         expr: Expr [30-31]:
                             ty: bool
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -198,6 +201,7 @@ fn bool_to_sized_uint() {
                         expr: Expr [34-35]:
                             ty: bool
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -229,6 +233,7 @@ fn bool_to_float() {
                         expr: Expr [31-32]:
                             ty: bool
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -256,6 +261,7 @@ fn bool_to_sized_float() {
                         expr: Expr [35-36]:
                             ty: bool
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -459,6 +465,7 @@ fn bool_to_bit() {
                         expr: Expr [29-30]:
                             ty: bool
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -486,6 +493,7 @@ fn bool_to_bitarray() {
                         expr: Expr [33-34]:
                             ty: bool
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }

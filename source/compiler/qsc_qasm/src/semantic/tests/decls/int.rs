@@ -374,7 +374,7 @@ fn implicit_bitness_int_negative_float_decl_is_runtime_conversion() {
                 ty_span: [0-3]
                 init_expr: Expr [9-12]:
                     ty: int
-                    kind: Cast [0-0]:
+                    kind: Cast [9-12]:
                         ty: int
                         expr: Expr [9-12]:
                             ty: const float
@@ -383,6 +383,7 @@ fn implicit_bitness_int_negative_float_decl_is_runtime_conversion() {
                                 expr: Expr [9-12]:
                                     ty: const float
                                     kind: Lit: Float(42.0)
+                        kind: Implicit
             [8] Symbol [4-5]:
                 name: x
                 type: int

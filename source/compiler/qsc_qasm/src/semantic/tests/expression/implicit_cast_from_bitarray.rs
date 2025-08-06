@@ -31,11 +31,12 @@ fn to_int_decl_implicitly() {
                 ty_span: [29-32]
                 init_expr: Expr [37-40]:
                     ty: int
-                    kind: Cast [0-0]:
+                    kind: Cast [37-40]:
                         ty: int
                         expr: Expr [37-40]:
                             ty: bit[5]
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [33-34]:
                 name: b
                 type: int
@@ -74,11 +75,12 @@ fn to_int_assignment_implicitly() {
                     kind: SymbolId(9)
                 rhs: Expr [48-51]:
                     ty: int
-                    kind: Cast [0-0]:
+                    kind: Cast [48-51]:
                         ty: int
                         expr: Expr [48-51]:
                             ty: bit[5]
                             kind: SymbolId(8)
+                        kind: Implicit
         "#]],
     );
 }
@@ -112,11 +114,12 @@ fn to_int_with_equal_width_in_assignment_implicitly() {
                     kind: SymbolId(9)
                 rhs: Expr [51-54]:
                     ty: int[5]
-                    kind: Cast [0-0]:
+                    kind: Cast [51-54]:
                         ty: int[5]
                         expr: Expr [51-54]:
                             ty: bit[5]
                             kind: SymbolId(8)
+                        kind: Implicit
         "#]],
     );
 }
@@ -147,11 +150,12 @@ fn to_int_with_equal_width_in_decl_implicitly() {
                 ty_span: [29-35]
                 init_expr: Expr [40-43]:
                     ty: int[5]
-                    kind: Cast [0-0]:
+                    kind: Cast [40-43]:
                         ty: int[5]
                         expr: Expr [40-43]:
                             ty: bit[5]
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [36-37]:
                 name: a
                 type: int[5]

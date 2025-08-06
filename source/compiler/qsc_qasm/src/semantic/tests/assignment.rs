@@ -32,52 +32,58 @@ fn too_many_indices_in_indexed_assignment() {
                                             kind: Lit:     array:
                                                     Expr [45-48]:
                                                         ty: float[32]
-                                                        kind: Cast [0-0]:
+                                                        kind: Cast [45-48]:
                                                             ty: float[32]
                                                             expr: Expr [45-48]:
                                                                 ty: const float
                                                                 kind: Lit: Float(1.1)
+                                                            kind: Implicit
                                                     Expr [50-53]:
                                                         ty: float[32]
-                                                        kind: Cast [0-0]:
+                                                        kind: Cast [50-53]:
                                                             ty: float[32]
                                                             expr: Expr [50-53]:
                                                                 ty: const float
                                                                 kind: Lit: Float(1.2)
+                                                            kind: Implicit
                                         Expr [56-66]:
                                             ty: array[float[32], 2]
                                             kind: Lit:     array:
                                                     Expr [57-60]:
                                                         ty: float[32]
-                                                        kind: Cast [0-0]:
+                                                        kind: Cast [57-60]:
                                                             ty: float[32]
                                                             expr: Expr [57-60]:
                                                                 ty: const float
                                                                 kind: Lit: Float(2.1)
+                                                            kind: Implicit
                                                     Expr [62-65]:
                                                         ty: float[32]
-                                                        kind: Cast [0-0]:
+                                                        kind: Cast [62-65]:
                                                             ty: float[32]
                                                             expr: Expr [62-65]:
                                                                 ty: const float
                                                                 kind: Lit: Float(2.2)
+                                                            kind: Implicit
                                         Expr [68-78]:
                                             ty: array[float[32], 2]
                                             kind: Lit:     array:
                                                     Expr [69-72]:
                                                         ty: float[32]
-                                                        kind: Cast [0-0]:
+                                                        kind: Cast [69-72]:
                                                             ty: float[32]
                                                             expr: Expr [69-72]:
                                                                 ty: const float
                                                                 kind: Lit: Float(3.1)
+                                                            kind: Implicit
                                                     Expr [74-77]:
                                                         ty: float[32]
-                                                        kind: Cast [0-0]:
+                                                        kind: Cast [74-77]:
                                                             ty: float[32]
                                                             expr: Expr [74-77]:
                                                                 ty: const float
                                                                 kind: Lit: Float(3.2)
+                                                            kind: Implicit
                     Stmt [89-113]:
                         annotations: <empty>
                         kind: AssignStmt [89-113]:

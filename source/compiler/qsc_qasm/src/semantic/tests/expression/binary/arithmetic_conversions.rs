@@ -111,11 +111,12 @@ fn int_idents_with_different_width_can_be_multiplied() {
                         op: Mul
                         lhs: Expr [55-56]:
                             ty: int[64]
-                            kind: Cast [0-0]:
+                            kind: Cast [55-56]:
                                 ty: int[64]
                                 expr: Expr [55-56]:
                                     ty: int[32]
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [59-60]:
                             ty: int[64]
                             kind: SymbolId(9)
@@ -155,11 +156,12 @@ fn multiplying_int_idents_with_different_width_result_in_higher_width_result() {
                         op: Mul
                         lhs: Expr [67-68]:
                             ty: int[64]
-                            kind: Cast [0-0]:
+                            kind: Cast [67-68]:
                                 ty: int[64]
                                 expr: Expr [67-68]:
                                     ty: int[32]
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [71-72]:
                             ty: int[64]
                             kind: SymbolId(9)
@@ -195,7 +197,7 @@ fn multiplying_int_idents_with_different_width_result_in_no_width_result() {
                 ty_span: [55-58]
                 init_expr: Expr [63-68]:
                     ty: int
-                    kind: Cast [0-0]:
+                    kind: Cast [63-68]:
                         ty: int
                         expr: Expr [63-68]:
                             ty: int[64]
@@ -203,14 +205,16 @@ fn multiplying_int_idents_with_different_width_result_in_no_width_result() {
                                 op: Mul
                                 lhs: Expr [63-64]:
                                     ty: int[64]
-                                    kind: Cast [0-0]:
+                                    kind: Cast [63-64]:
                                         ty: int[64]
                                         expr: Expr [63-64]:
                                             ty: int[32]
                                             kind: SymbolId(8)
+                                        kind: Implicit
                                 rhs: Expr [67-68]:
                                     ty: int[64]
                                     kind: SymbolId(9)
+                        kind: Implicit
         "#]],
     );
 }
@@ -243,7 +247,7 @@ fn multiplying_int_idents_with_width_greater_than_64_result_in_bigint_result() {
                 ty_span: [55-62]
                 init_expr: Expr [67-72]:
                     ty: int[67]
-                    kind: Cast [0-0]:
+                    kind: Cast [67-72]:
                         ty: int[67]
                         expr: Expr [67-72]:
                             ty: int[64]
@@ -251,14 +255,16 @@ fn multiplying_int_idents_with_width_greater_than_64_result_in_bigint_result() {
                                 op: Mul
                                 lhs: Expr [67-68]:
                                     ty: int[64]
-                                    kind: Cast [0-0]:
+                                    kind: Cast [67-68]:
                                         ty: int[64]
                                         expr: Expr [67-68]:
                                             ty: int[32]
                                             kind: SymbolId(8)
+                                        kind: Implicit
                                 rhs: Expr [71-72]:
                                     ty: int[64]
                                     kind: SymbolId(9)
+                        kind: Implicit
         "#]],
     );
 }
@@ -298,11 +304,12 @@ fn left_shift_casts_rhs_to_uint() {
                             kind: SymbolId(8)
                         rhs: Expr [60-61]:
                             ty: uint
-                            kind: Cast [0-0]:
+                            kind: Cast [60-61]:
                                 ty: uint
                                 expr: Expr [60-61]:
                                     ty: int
                                     kind: SymbolId(9)
+                                kind: Implicit
         "#]],
     );
 }
@@ -361,7 +368,7 @@ fn bin_op_with_const_lhs_and_non_const_rhs_sized() {
                 ty_span: [32-39]
                 init_expr: Expr [44-49]:
                     ty: int[32]
-                    kind: Cast [0-0]:
+                    kind: Cast [44-49]:
                         ty: int[32]
                         expr: Expr [44-49]:
                             ty: int
@@ -372,11 +379,13 @@ fn bin_op_with_const_lhs_and_non_const_rhs_sized() {
                                     kind: Lit: Int(2)
                                 rhs: Expr [48-49]:
                                     ty: int
-                                    kind: Cast [0-0]:
+                                    kind: Cast [48-49]:
                                         ty: int
                                         expr: Expr [48-49]:
                                             ty: int[32]
                                             kind: SymbolId(8)
+                                        kind: Implicit
+                        kind: Implicit
         "#]],
     );
 }
