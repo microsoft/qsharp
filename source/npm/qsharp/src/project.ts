@@ -29,15 +29,3 @@ export class ProjectLoader {
     );
   }
 }
-
-export async function getTargetProfileFromEntryPoint(
-  fileName: string,
-  source: string,
-): Promise<wasm.TargetProfile | undefined> {
-  return callAndTransformExceptions(
-    async () =>
-      wasm.get_target_profile_from_entry_point(fileName, source) as
-        | wasm.TargetProfile
-        | undefined,
-  );
-}
