@@ -543,6 +543,23 @@ def test_callables_with_unsupported_types_raise_errors_on_call() -> None:
         code.Unsupported()
 
 
+def test_callable_with_complex_input() -> None:
+    init()
+    import_openqasm(
+        "def ComplexInput(complex a) { }", program_type=ProgramType.Fragments
+    )
+    code.ComplexInput(2 + 3j)
+
+
+def test_callable_with_complex_output() -> None:
+    init()
+    import_openqasm(
+        "def ComplexOutput() -> complex { return 2 + 3im; }",
+        program_type=ProgramType.Fragments,
+    )
+    assert code.ComplexOutput() == 2 + 3j
+
+
 def test_circuit_from_program() -> None:
     init()
 
