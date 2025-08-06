@@ -129,7 +129,9 @@ export function Editor(props: {
     const config = {
       sources: [["code", code]] as [string, string][],
       languageFeatures: [],
-      profile: await getTargetProfileFromEntryPoint("main.qs", code),
+      profile:
+        (await getTargetProfileFromEntryPoint("main.qs", code)) ||
+        "adaptive_rif", // Default to adaptive_rif for qir and rir generation
     };
 
     if (props.activeTab === "ast-tab") {

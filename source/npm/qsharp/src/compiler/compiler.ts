@@ -156,7 +156,7 @@ export class Compiler implements ICompiler {
   }
 
   async getRir(program: ProgramConfig): Promise<string[]> {
-    const config = toWasmProgramConfig(program, "adaptive_rif");
+    const config = toWasmProgramConfig(program, "adaptive_ri");
     return callAndTransformExceptions(async () => this.wasm.get_rir(config));
   }
 
@@ -201,7 +201,7 @@ export class Compiler implements ICompiler {
 
   async getQir(program: ProgramConfig): Promise<string> {
     return callAndTransformExceptions(async () =>
-      this.wasm.get_qir(toWasmProgramConfig(program, "adaptive_rif")),
+      this.wasm.get_qir(toWasmProgramConfig(program, "base")),
     );
   }
 
