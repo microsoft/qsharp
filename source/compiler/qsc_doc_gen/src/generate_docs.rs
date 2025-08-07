@@ -4,8 +4,10 @@
 #[cfg(test)]
 mod tests;
 
-use crate::display::{CodeDisplay, Lookup};
-use crate::display::{increase_header_level, parse_doc_for_summary};
+use crate::display::{
+    CodeDisplay, Lookup, increase_header_level, parse_doc_for_all_params, parse_doc_for_output,
+    parse_doc_for_summary,
+};
 use crate::table_of_contents::table_of_contents;
 use qsc_ast::ast;
 use qsc_data_structures::language_features::LanguageFeatures;
@@ -15,6 +17,7 @@ use qsc_frontend::resolve;
 use qsc_hir::hir::{CallableKind, Item, ItemKind, Package, PackageId, Visibility};
 use qsc_hir::{hir, ty};
 use rustc_hash::FxHashMap;
+use serde_json::json;
 use std::fmt::{Display, Formatter, Result};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -708,4 +711,84 @@ fn get_metadata(
         summary,
         signature,
     })
+}
+
+/// Generates minimal markdown summaries for the standard library and additional sources.
+/// Each summary includes the name, kind, signature, summary, and parameter descriptions.
+pub fn generate_summaries(
+    additional_sources: Option<(PackageStore, &Dependencies, SourceMap)>,
+    capabilities: Option<TargetCapabilityFlags>,
+    language_features: Option<LanguageFeatures>,
+) -> Vec<String> {
+    let capabilities = Some(capabilities.unwrap_or(TargetCapabilityFlags::all()));
+    let compilation = Compilation::new(additional_sources, capabilities, language_features);
+    let display = &CodeDisplay {
+        compilation: &compilation,
+    };
+    let mut summaries = Vec::new();
+
+    for (package_id, unit) in &compilation.package_store {
+        let is_current_package = compilation.current_package_id == Some(package_id);
+        let package_kind;
+        if package_id == PackageId::CORE {
+            package_kind = PackageKind::Core;
+        } else if package_id == 1.into() {
+            package_kind = PackageKind::StandardLibrary;
+        } else if is_current_package {
+            package_kind = PackageKind::UserCode;
+        } else if let Some(alias) = compilation.dependencies.get(&package_id) {
+            package_kind = PackageKind::AliasedPackage(alias.to_string());
+        } else {
+            continue;
+        }
+
+        let package = &unit.package;
+        for (_, item) in &package.items {
+            if let Some((ns, metadata)) = generate_summary_metadata_for_item(
+                package_id,
+                package,
+                package_kind.clone(),
+                is_current_package,
+                item,
+                display,
+            ) {
+                let params = parse_doc_for_all_params(&item.doc)
+                    .into_iter()
+                    .map(|(name, description)| json!({"name": name, "description": description}))
+                    .collect::<Vec<_>>();
+                let output = parse_doc_for_output(&item.doc);
+                let obj = json!({
+                    "name": metadata.name.as_ref(),
+                    "kind": format!("{}", metadata.kind),
+                    "signature": metadata.signature,
+                    "summary": metadata.summary,
+                    "parameters": params,
+                    "output": output,
+                });
+                summaries.push(obj.to_string());
+            }
+        }
+    }
+    summaries
+}
+
+fn generate_summary_metadata_for_item(
+    default_package_id: PackageId,
+    package: &Package,
+    package_kind: PackageKind,
+    include_internals: bool,
+    item: &Item,
+    display: &CodeDisplay,
+) -> Option<(Rc<str>, Metadata)> {
+    let (true_package, true_item) = resolve_export(
+        default_package_id,
+        package,
+        include_internals,
+        item,
+        display,
+    )?;
+
+    let ns = get_namespace(true_package, true_item)?;
+    let metadata = get_metadata(package_kind, ns.clone(), true_item, display)?;
+    Some((ns, metadata))
 }

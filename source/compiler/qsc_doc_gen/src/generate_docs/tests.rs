@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::generate_docs;
+use crate::generate_docs::{generate_docs, generate_summaries};
 use expect_test::expect;
 
 #[test]
@@ -206,4 +206,37 @@ fn top_index_file_generation() {
         | [`Std.TableLookup`](xref:Qdk.Std.TableLookup-toc)               | Items for performing quantum table lookups.                          |
     "#]]
     .assert_eq(full_contents.as_str());
+}
+
+#[test]
+fn generates_standard_item_summary() {
+    let summaries = generate_summaries(None, None, None);
+    // Find a summary for a known item, e.g., Length
+    let summary = summaries
+        .iter()
+        .find(|s| s.contains("Length") && s.contains("function"))
+        .expect("Could not find summary for Length");
+
+    // Pretty-print the JSON for readability in the test
+    let pretty = serde_json::to_string_pretty(
+        &serde_json::from_str::<serde_json::Value>(summary)
+            .expect("summary is expected to be valid JSON"),
+    )
+    .expect("summary is expected to be valid JSON");
+
+    expect![[r#"
+        {
+          "kind": "function",
+          "name": "Length",
+          "output": "The total number of elements in the input array `a`.",
+          "parameters": [
+            {
+              "description": "Input array.",
+              "name": "a"
+            }
+          ],
+          "signature": "function Length<'T>(a : 'T[]) : Int",
+          "summary": "Returns the number of elements in the input array `a`."
+        }"#]]
+    .assert_eq(&pretty);
 }
