@@ -330,6 +330,7 @@ pub fn invoke(
             globals,
             Span::default(),
             Span::default(),
+            None,
             receiver,
         )
         .map_err(|e| (e, state.get_stack_frames()))?;
@@ -903,7 +904,7 @@ impl State {
         self.val_register.take().unwrap_or_else(Value::unit)
     }
 
-    #[allow(clippy::similar_names)]
+    #[allow(clippy::similar_names, clippy::too_many_lines)]
     fn eval_expr(
         &mut self,
         env: &mut Env,
@@ -961,7 +962,15 @@ impl State {
             ExprKind::Call(callee_expr, args_expr) => {
                 let callable_span = globals.get_expr((self.package, *callee_expr).into()).span;
                 let args_span = globals.get_expr((self.package, *args_expr).into()).span;
-                self.eval_call(env, sim, globals, callable_span, args_span, out)?;
+                self.eval_call(
+                    env,
+                    sim,
+                    globals,
+                    callable_span,
+                    args_span,
+                    Some(&expr.ty),
+                    out,
+                )?;
             }
             ExprKind::Closure(args, callable) => {
                 let closure = resolve_closure(env, self.package, expr.span, args, *callable)?;
@@ -989,7 +998,7 @@ impl State {
                 self.eval_range(start.is_some(), step.is_some(), end.is_some());
             }
             ExprKind::Return(..) => panic!("return expr should be handled by control flow"),
-            ExprKind::Struct(_, copy, fields) => self.eval_struct(*copy, fields),
+            ExprKind::Struct(_, copy, fields) => self.eval_struct(*copy, fields, expr.ty.clone()),
             ExprKind::String(components) => self.collect_string(components),
             ExprKind::UpdateIndex(_, mid, _) => {
                 let mid_span = globals.get_expr((self.package, *mid).into()).span;
@@ -1143,6 +1152,7 @@ impl State {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn eval_call(
         &mut self,
         env: &mut Env,
@@ -1150,6 +1160,7 @@ impl State {
         globals: &impl PackageStoreLookup,
         callable_span: Span,
         arg_span: Span,
+        ty: Option<&Ty>,
         out: &mut impl Receiver,
     ) -> Result<(), Error> {
         let arg = self.take_val_register();
@@ -1164,7 +1175,11 @@ impl State {
         let callee = match globals.get_global(callee_id) {
             Some(Global::Callable(callable)) => callable,
             Some(Global::Udt) => {
-                self.set_val_register(arg);
+                let ty = ty.expect("UDT constructor should pass a type").clone();
+                self.set_val_register(match arg {
+                    Value::Tuple(items, _) => Value::Tuple(items, Some(ty)),
+                    _ => arg,
+                });
                 return Ok(());
             }
             None => return Err(Error::UnboundName(self.to_global_span(callable_span))),
@@ -1363,7 +1378,7 @@ impl State {
         self.set_val_register(Value::Range(val::Range { start, step, end }.into()));
     }
 
-    fn eval_struct(&mut self, copy: Option<ExprId>, fields: &[FieldAssign]) {
+    fn eval_struct(&mut self, copy: Option<ExprId>, fields: &[FieldAssign], ty: Ty) {
         // Extract a flat list of field indexes.
         let field_indexes = fields
             .iter()
@@ -1399,7 +1414,7 @@ impl State {
             strct[*i] = val;
         }
 
-        self.set_val_register(Value::Tuple(strct.into()));
+        self.set_val_register(Value::Tuple(strct.into(), Some(ty)));
     }
 
     fn eval_update_index(&mut self, span: Span) -> Result<(), Error> {
@@ -1473,7 +1488,7 @@ impl State {
 
     fn eval_tup(&mut self, len: usize) {
         let tup = self.pop_vals(len);
-        self.set_val_register(Value::Tuple(tup.into()));
+        self.set_val_register(Value::Tuple(tup.into(), None));
     }
 
     fn eval_unop(&mut self, op: UnOp) {
@@ -1581,7 +1596,7 @@ impl State {
                 }
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
-            (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
+            (ExprKind::Tuple(var_tup), Value::Tuple(tup, _)) => {
                 for (expr, val) in var_tup.iter().zip(tup.iter()) {
                     self.update_binding(env, globals, *expr, val.clone())?;
                 }
@@ -1776,7 +1791,10 @@ pub fn are_ctls_unique(ctls: &[Value], tup: &Value) -> bool {
 
 fn merge_fixed_args(fixed_args: Option<Rc<[Value]>>, arg: Value) -> Value {
     if let Some(fixed_args) = fixed_args {
-        Value::Tuple(fixed_args.iter().cloned().chain(iter::once(arg)).collect())
+        Value::Tuple(
+            fixed_args.iter().cloned().chain(iter::once(arg)).collect(),
+            None,
+        )
     } else {
         arg
     }
@@ -2217,7 +2235,7 @@ fn eval_binop_xorb(lhs_val: Value, rhs_val: Value) -> Value {
 
 fn follow_field_path(mut value: Value, path: &[usize]) -> Option<Value> {
     for &index in path {
-        let Value::Tuple(items) = value else {
+        let Value::Tuple(items, _) = value else {
             return None;
         };
         value = items[index].clone();
@@ -2228,7 +2246,7 @@ fn follow_field_path(mut value: Value, path: &[usize]) -> Option<Value> {
 fn update_field_path(record: &Value, path: &[usize], replace: &Value) -> Option<Value> {
     match (record, path) {
         (_, []) => Some(replace.clone()),
-        (Value::Tuple(items), &[next_index, ..]) if next_index < items.len() => {
+        (Value::Tuple(items, ty), &[next_index, ..]) if next_index < items.len() => {
             let update = |(index, item)| {
                 if index == next_index {
                     update_field_path(item, &path[1..], replace)
@@ -2238,7 +2256,7 @@ fn update_field_path(record: &Value, path: &[usize], replace: &Value) -> Option<
             };
 
             let items: Option<_> = items.iter().enumerate().map(update).collect();
-            Some(Value::Tuple(items?))
+            Some(Value::Tuple(items?, ty.clone()))
         }
         _ => None,
     }
