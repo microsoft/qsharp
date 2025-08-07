@@ -2084,19 +2084,6 @@ fn path_segment_before_glob() {
 }
 
 #[test]
-fn path_segment_before_glob_with_alias() {
-    check_single_file(
-        "namespace Test { import FakeStdLib.↘* as Alias }",
-        &["StructFn"],
-        &expect![[r#"
-            found, sorted:
-              "StructFn" (Interface)
-                detail: "struct StructFn { inner : (Int -> Int) }"
-        "#]],
-    );
-}
-
-#[test]
 fn field_in_initializer() {
     check_single_file(
         "namespace Test {

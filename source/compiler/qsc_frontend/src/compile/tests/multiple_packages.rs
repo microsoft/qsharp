@@ -13,21 +13,35 @@ use qsc_hir::hir::PackageId;
 /// Runs a test where each successive package relies solely on the package before it
 /// useful for testing chains of reexports
 fn multiple_package_check(packages: Vec<(&str, &str)>) {
-    multiple_package_check_inner(packages, None);
+    multiple_package_check_inner(packages, None, true);
+}
+
+/// Runs a test where each successive package relies solely on the package before it
+/// but without dependency aliases, same as how the Std library is consumed.
+fn multiple_package_check_no_alias(packages: Vec<(&str, &str)>) {
+    multiple_package_check_inner(packages, None, false);
 }
 
 fn multiple_package_check_expect_err(packages: Vec<(&str, &str)>, expect: &Expect) {
-    multiple_package_check_inner(packages, Some(expect));
+    multiple_package_check_inner(packages, Some(expect), true);
 }
 
-fn multiple_package_check_inner(packages: Vec<(&str, &str)>, expect: Option<&Expect>) {
+fn multiple_package_check_inner(
+    packages: Vec<(&str, &str)>,
+    expect: Option<&Expect>,
+    use_alias: bool,
+) {
     let mut store = PackageStore::new(core());
     let mut prev_id_and_name: Option<(PackageId, &str)> = None;
     let num_packages = packages.len();
     for (ix, (package_name, package_source)) in packages.into_iter().enumerate() {
         let is_last = ix == num_packages - 1;
         let deps = if let Some((prev_id, prev_name)) = prev_id_and_name {
-            vec![(prev_id, Some(Arc::from(prev_name)))]
+            if use_alias {
+                vec![(prev_id, Some(Arc::from(prev_name)))]
+            } else {
+                vec![(prev_id, None)]
+            }
         } else {
             vec![]
         };
@@ -107,6 +121,30 @@ fn multiple_package_multiple_source_check(
 
         prev_id_and_name = Some((store.insert(unit), package_name));
     }
+}
+
+#[test]
+fn export_callable() {
+    multiple_package_check(vec![
+        (
+            "B",
+            r#"
+            namespace NamespaceB {
+                function Foo() : Unit {}
+                export Foo;
+            }
+            "#,
+        ),
+        (
+            "A",
+            r#"
+            @EntryPoint()
+            operation Main() : Unit {
+                B.NamespaceB.Foo();
+            }
+            "#,
+        ),
+    ]);
 }
 
 #[test]
@@ -642,4 +680,367 @@ fn old_syntax_udt_reexported() {
         ],
         Some(&expect!["[]"]),
     );
+}
+
+#[test]
+fn namespace_export_alias() {
+    multiple_package_check(vec![
+        (
+            "B",
+            r#"
+            namespace NamespaceB {
+                function Foo() : Unit {}
+                export Foo;
+            }
+            namespace Bar {
+                export NamespaceB as NamespaceBAlias;
+            }
+            "#,
+        ),
+        (
+            "A",
+            r#"
+            @EntryPoint()
+            operation Main() : Unit {
+                B.Bar.NamespaceBAlias.Foo();
+            }
+            "#,
+        ),
+    ]);
+}
+
+#[test]
+fn namespace_reexport_alias_in_main() {
+    multiple_package_check(vec![
+        (
+            "B",
+            r#"
+            namespace NamespaceB {
+                function Foo() : Unit {}
+                export Foo;
+            }
+            namespace Main {
+                export NamespaceB as NamespaceBAlias;
+            }
+            "#,
+        ),
+        (
+            "A",
+            r#"
+            @EntryPoint()
+            operation Main() : Unit {
+                B.NamespaceBAlias.Foo();
+            }
+            "#,
+        ),
+    ]);
+}
+
+#[test]
+fn namespace_cross_package_reexport_disallowed() {
+    // Cross-package namespace reexports are not currently allowed,
+    // since the individual items in the namespace are not
+    // visible to any consumers, making the namespace reexport
+    // effectively useless.
+    multiple_package_check_expect_err(
+        vec![
+            (
+                "B",
+                "
+                function Foo() : Unit {}
+                export Foo;
+                ",
+            ),
+            (
+                "A",
+                "
+                export B.B as NamespaceBAlias;
+                ",
+            ),
+        ],
+        &expect![[r#"
+            [
+                Error(
+                    Lower(
+                        CrossPackageNamespaceReexport(
+                            Span {
+                                lo: 24,
+                                hi: 27,
+                            },
+                        ),
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn namespace_export_from_dependency() {
+    multiple_package_check_expect_err(
+        vec![
+            (
+                "B",
+                "
+                namespace B1 {
+                    function Foo() : Unit {}
+                    export Foo;
+                }
+                namespace B2 {
+                    export B1 as B3;
+                }
+                ",
+            ),
+            (
+                "A",
+                "
+                operation A1() : Unit {
+                    B.B2.B3.Foo();
+                }
+                operation A2() : Unit {
+                    import B.B2.B3;
+                    B3.Foo();
+                }
+                operation A3() : Unit {
+                    import B.B2.B3.*;
+                    Foo();
+                }
+                ",
+            ),
+        ],
+        &expect!["[]"],
+    );
+}
+
+#[test]
+fn namespace_export_in_expr() {
+    multiple_package_check_expect_err(
+        vec![
+            (
+                "B",
+                r#"
+            namespace Foo {
+                function Bar() : Unit {}
+                export Bar;
+            }
+            namespace Main {
+                export Foo;
+            }
+            "#,
+            ),
+            (
+                "A",
+                r#"
+            @EntryPoint()
+            operation Main() : Unit {
+                B.Foo;
+            }
+            "#,
+            ),
+        ],
+        &expect![[r#"
+            [
+                Error(
+                    Resolve(
+                        NotFound(
+                            "B.Foo",
+                            Span {
+                                lo: 81,
+                                hi: 86,
+                            },
+                        ),
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn merged_namespace_export() {
+    multiple_package_check(vec![
+        (
+            "B",
+            r#"
+            namespace Foo {
+                function Bar() : Unit {}
+                export Bar;
+            }
+            namespace Foo {
+                function Baz() : Unit {}
+                export Baz;
+            }
+            namespace Main {
+                export Foo as FooAlias;
+            }
+            "#,
+        ),
+        (
+            "A",
+            r#"
+            @EntryPoint()
+            operation Main() : Unit {
+                B.FooAlias.Bar();
+                B.FooAlias.Baz();
+            }
+            "#,
+        ),
+    ]);
+}
+
+#[test]
+fn use_udt() {
+    multiple_package_check(vec![
+        (
+            "B",
+            r#"
+            namespace Foo {
+                struct Bar { x: Int }
+                export Bar;
+            }
+            "#,
+        ),
+        (
+            "A",
+            r#"
+            import B.Foo.Bar;
+            operation Main() : Unit {
+                let b = new Bar { x = 42 };
+                let b: Bar = Bar(42,);
+            }
+            "#,
+        ),
+    ]);
+}
+
+#[test]
+fn wildcard_import_then_export() {
+    multiple_package_check(vec![
+        (
+            "PackageA",
+            "
+                namespace Foo {
+                    operation Bar() : Unit {}
+                }
+
+                namespace Main {
+                    import Foo.*;
+                    export Bar;
+                    export Bar as Baz;
+                }
+            ",
+        ),
+        (
+            "PackageB",
+            "
+                @EntryPoint()
+                operation Main() : Unit {
+                    PackageA.Bar();
+                    PackageA.Baz();
+                }
+            ",
+        ),
+    ]);
+}
+
+#[test]
+fn reexport_operation_no_dep_alias() {
+    multiple_package_check_no_alias(vec![
+        (
+            "PackageA",
+            "
+                namespace Foo {
+                    operation Bar() : Unit {}
+                }
+
+                namespace Qux {
+                    export Foo.Bar;
+                    export Foo.Bar as Baz;
+                }
+            ",
+        ),
+        (
+            "PackageB",
+            "
+                function Main() : Unit {
+                    Qux.Bar();
+                    Qux.Baz();
+                }
+            ",
+        ),
+    ]);
+}
+
+#[test]
+fn import_then_reexport_operation_no_dep_alias() {
+    multiple_package_check_no_alias(vec![
+        (
+            "PackageA",
+            "
+                namespace Foo {
+                    operation Bar() : Unit {}
+                }
+
+                namespace Qux {
+                    import Foo.*;
+                    export Bar;
+                    export Bar as Baz;
+                }
+            ",
+        ),
+        (
+            "PackageB",
+            "
+                function Main() : Unit {
+                    Qux.Bar();
+                    Qux.Baz();
+                }
+            ",
+        ),
+    ]);
+}
+
+#[test]
+fn merge_with_namespace_from_dependency() {
+    // Since we allow namespace declarations to be merged with
+    // existing known namespaces, even from other packages, the
+    // below will cause all namespace declarations to be merged
+    // into a single one, causing all functions to be available
+    // through both of the declared namespace paths.
+    multiple_package_check(vec![
+        (
+            "PackageA",
+            "
+                namespace Foo {
+                    operation Bar() : Unit {}
+                    export Bar;
+                }
+
+                namespace Bar {
+                    export Foo as FooAlias;
+                }
+            ",
+        ),
+        (
+            "PackageB",
+            "
+                namespace PackageA.Foo {
+                    operation Baz(): Unit {}
+                }
+
+                namespace PackageA.Bar.FooAlias {
+                    operation Qux() : Unit {}
+                }
+
+                namespace Main {
+                    function Main() : Unit {
+                        PackageA.Foo.Bar();
+                        PackageA.Foo.Baz();
+                        PackageA.Foo.Qux();
+                        PackageA.Bar.FooAlias.Bar();
+                        PackageA.Bar.FooAlias.Baz();
+                        PackageA.Bar.FooAlias.Qux();
+                    }
+                }
+            ",
+        ),
+    ]);
 }

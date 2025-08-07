@@ -3,7 +3,7 @@
 
 use crate::{
     hir::{
-        self, Item, ItemId, ItemKind, ItemStatus, Package, PackageId, SpecBody, SpecGen, Visibility,
+        Item, ItemId, ItemKind, ItemStatus, Package, PackageId, Res, SpecBody, SpecGen, Visibility,
     },
     ty::Scheme,
 };
@@ -24,18 +24,18 @@ pub struct Global {
 }
 
 pub enum Kind {
-    Namespace,
+    Namespace(ItemId),
     Ty(Ty),
-    Term(Term),
+    Callable(Callable),
     Export(ItemId),
 }
 
 impl std::fmt::Debug for Kind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Kind::Namespace => write!(f, "Namespace"),
+            Kind::Namespace(id) => write!(f, "Namespace({id})"),
             Kind::Ty(ty) => write!(f, "Ty({})", ty.id),
-            Kind::Term(term) => write!(f, "Term({})", term.id),
+            Kind::Callable(term) => write!(f, "Callable({})", term.id),
             Kind::Export(id) => write!(f, "Export({id:?})"),
         }
     }
@@ -45,7 +45,7 @@ pub struct Ty {
     pub id: ItemId,
 }
 
-pub struct Term {
+pub struct Callable {
     pub id: ItemId,
     pub scheme: Scheme,
     pub intrinsic: bool,
@@ -55,7 +55,7 @@ pub struct Term {
 #[derive(Default)]
 pub struct Table {
     tys: FxHashMap<NamespaceId, FxHashMap<Rc<str>, Ty>>,
-    terms: FxHashMap<NamespaceId, FxHashMap<Rc<str>, Term>>,
+    callables: FxHashMap<NamespaceId, FxHashMap<Rc<str>, Callable>>,
     namespaces: NamespaceTreeRoot,
 }
 
@@ -66,8 +66,10 @@ impl Table {
     }
 
     #[must_use]
-    pub fn resolve_term(&self, namespace: NamespaceId, name: &str) -> Option<&Term> {
-        self.terms.get(&namespace).and_then(|terms| terms.get(name))
+    pub fn resolve_callable(&self, namespace: NamespaceId, name: &str) -> Option<&Callable> {
+        self.callables
+            .get(&namespace)
+            .and_then(|terms| terms.get(name))
     }
 
     pub fn find_namespace<'a>(
@@ -82,7 +84,7 @@ impl Table {
 impl FromIterator<Global> for Table {
     fn from_iter<T: IntoIterator<Item = Global>>(iter: T) -> Self {
         let mut tys: FxHashMap<_, FxHashMap<_, _>> = FxHashMap::default();
-        let mut terms: FxHashMap<_, FxHashMap<_, _>> = FxHashMap::default();
+        let mut callables: FxHashMap<_, FxHashMap<_, _>> = FxHashMap::default();
         let mut namespaces = NamespaceTreeRoot::default();
         for global in iter {
             let namespace = namespaces.insert_or_find_namespace(global.namespace.into_iter());
@@ -90,19 +92,19 @@ impl FromIterator<Global> for Table {
                 Kind::Ty(ty) => {
                     tys.entry(namespace).or_default().insert(global.name, ty);
                 }
-                Kind::Term(term) => {
-                    terms
+                Kind::Callable(term) => {
+                    callables
                         .entry(namespace)
                         .or_default()
                         .insert(global.name, term);
                 }
-                Kind::Namespace | Kind::Export(_) => {}
+                Kind::Namespace(_) | Kind::Export(_) => {}
             }
         }
 
         Self {
             tys,
-            terms,
+            callables,
             namespaces,
         }
     }
@@ -125,95 +127,80 @@ impl PackageIter<'_> {
                 .expect("parent should exist")
                 .kind
         });
-        let (id, visibility, alias) = match &item.kind {
-            ItemKind::Export(name, item_id) => (
-                ItemId {
-                    package: item_id.package.or(self.id),
-                    item: item_id.item,
-                },
-                hir::Visibility::Public,
-                Some(name),
-            ),
-            _ => (
-                ItemId {
-                    package: self.id,
-                    item: item.id,
-                },
-                item.visibility,
-                None,
-            ),
+
+        let item_id = ItemId {
+            package: self.id,
+            item: item.id,
         };
         let status = ItemStatus::from_attrs(item.attrs.as_ref());
+        let visibility = item.visibility;
 
         match (&item.kind, &parent) {
             (ItemKind::Callable(decl), Some(ItemKind::Namespace(namespace, _))) => Some(Global {
                 namespace: namespace.into(),
-                name: alias.map_or_else(|| Rc::clone(&decl.name.name), |alias| alias.name.clone()),
+                name: Rc::clone(&decl.name.name),
                 visibility,
                 status,
-                kind: Kind::Term(Term {
-                    id,
+                kind: Kind::Callable(Callable {
+                    id: item_id,
                     scheme: decl.scheme(),
                     intrinsic: decl.body.body == SpecBody::Gen(SpecGen::Intrinsic),
                 }),
             }),
             (ItemKind::Callable(decl), None) => Some(Global {
                 namespace: Vec::new(),
-                name: alias.map_or_else(|| Rc::clone(&decl.name.name), |alias| alias.name.clone()),
+                name: Rc::clone(&decl.name.name),
                 visibility,
                 status,
-                kind: Kind::Term(Term {
-                    id,
+                kind: Kind::Callable(Callable {
+                    id: item_id,
                     scheme: decl.scheme(),
                     intrinsic: decl.body.body == SpecBody::Gen(SpecGen::Intrinsic),
                 }),
             }),
-            (ItemKind::Ty(name, def), Some(ItemKind::Namespace(namespace, _))) => {
-                self.next = Some(Global {
-                    namespace: namespace.into(),
-                    name: alias.map_or_else(|| Rc::clone(&name.name), |alias| alias.name.clone()),
-                    visibility,
-                    status,
-                    kind: Kind::Term(Term {
-                        id,
-                        scheme: def.cons_scheme(id),
-                        intrinsic: false,
-                    }),
-                });
-
+            (ItemKind::Ty(name, _def), Some(ItemKind::Namespace(namespace, _))) => Some(Global {
+                namespace: namespace.into(),
+                name: Rc::clone(&name.name),
+                visibility,
+                status,
+                kind: Kind::Ty(Ty { id: item_id }),
+            }),
+            (ItemKind::Ty(name, _def), None) => Some(Global {
+                namespace: Vec::new(),
+                name: Rc::clone(&name.name),
+                visibility,
+                status,
+                kind: Kind::Ty(Ty { id: item_id }),
+            }),
+            (ItemKind::Namespace(full_name, _), None) => {
+                let (name, parent) = full_name
+                    .0
+                    .split_last()
+                    .expect("namespace name should not be empty");
+                // Parent namespace can be empty
                 Some(Global {
-                    namespace: namespace.into(),
+                    namespace: parent.iter().map(|i| Rc::clone(&i.name)).collect(),
                     name: Rc::clone(&name.name),
-                    visibility,
+                    visibility: Visibility::Public,
                     status,
-                    kind: Kind::Ty(Ty { id }),
+                    kind: Kind::Namespace(item_id),
                 })
             }
-            (ItemKind::Namespace(ident, _), None) => Some(Global {
-                namespace: ident.into(),
-                name: "".into(),
-                visibility: Visibility::Public,
-                status,
-                kind: Kind::Namespace,
-            }),
             (
-                ItemKind::Export(name, ItemId { package, .. }),
+                ItemKind::Export(name, Res::Item(item_id)),
                 Some(ItemKind::Namespace(namespace, _)),
-            ) => {
-                if package.is_none() && alias.is_none() {
-                    // if there is no package, then this was declared in this package
-                    // and this is a noop -- it will be marked as public on export
-                    None
-                } else {
-                    Some(Global {
-                        namespace: namespace.into(),
-                        name: name.name.clone(),
-                        visibility,
-                        status,
-                        kind: Kind::Export(id),
-                    })
-                }
-            }
+            ) => Some(Global {
+                namespace: namespace.into(),
+                name: Rc::clone(&name.name),
+                visibility,
+                status,
+                // Export items can refer to different packages, so be sure
+                // to use the provided package id
+                kind: Kind::Export(ItemId {
+                    package: item_id.package.or(self.id),
+                    item: item_id.item,
+                }),
+            }),
             _ => None,
         }
     }
