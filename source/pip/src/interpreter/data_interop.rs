@@ -4,6 +4,8 @@
 //! This module contains the types and functions used to build the
 //! data-interop layer between Python and Q#.
 
+use crate::interpreter::QasmError;
+
 use super::{Pauli, Result};
 use num_bigint::BigInt;
 use pyo3::{
@@ -106,26 +108,6 @@ pub(super) struct UdtIR {
     fields: Vec<(String, TypeIR)>,
 }
 
-fn is_complex_udt(udt: &qsc::hir::ty::Udt) -> bool {
-    if let qsc::hir::ty::UdtDefKind::Tuple(fields) = &udt.definition.kind {
-        if fields.len() != 2 {
-            return false;
-        }
-        let qsc::hir::ty::UdtDefKind::Field(real) = &fields[0].kind else {
-            return false;
-        };
-        let qsc::hir::ty::UdtDefKind::Field(imag) = &fields[1].kind else {
-            return false;
-        };
-        return matches!(real.ty, Ty::Prim(Prim::Double))
-            && matches!(imag.ty, Ty::Prim(Prim::Double))
-            && &*udt.name == "Complex"
-            && real.name.as_ref().is_some_and(|name| &**name == "Real")
-            && imag.name.as_ref().is_some_and(|name| &**name == "Imag");
-    }
-    false
-}
-
 /// This type is used to send objects from Python to Q#.
 /// It is a `HashMap` to make it simple checking that the
 /// objects have all the required fields to match the UDTs
@@ -201,7 +183,7 @@ where
 
 /// Given a type, convert a Python object into a Q# value of that type. This will recur through tuples and arrays,
 /// and will return an error if the type is not supported or the object cannot be converted.
-pub(super) fn convert_value_ir_with_ty(
+pub(super) fn pyobj_to_value(
     ctx: &interpret::Interpreter,
     py: Python,
     obj: &PyObject,
@@ -231,13 +213,13 @@ pub(super) fn convert_value_ir_with_ty(
                 )));
             }
             if objs.len() == 1 {
-                convert_value_ir_with_ty(ctx, py, &objs[0], &tup[0])
+                pyobj_to_value(ctx, py, &objs[0], &tup[0])
             } else {
                 let mut tuple = Vec::new();
                 for (obj, ty) in objs.iter().zip(tup) {
-                    tuple.push(convert_value_ir_with_ty(ctx, py, obj, ty)?);
+                    tuple.push(pyobj_to_value(ctx, py, obj, ty)?);
                 }
-                Ok(Value::Tuple(tuple.into()))
+                Ok(Value::Tuple(tuple.into(), None))
             }
         }
         Ty::Array(ty) => {
@@ -246,7 +228,7 @@ pub(super) fn convert_value_ir_with_ty(
             let ty = &**ty;
             let mut array = Vec::new();
             for obj in &objs {
-                array.push(convert_value_ir_with_ty(ctx, py, obj, ty)?);
+                array.push(pyobj_to_value(ctx, py, obj, ty)?);
             }
             Ok(Value::Array(array.into()))
         }
@@ -254,29 +236,43 @@ pub(super) fn convert_value_ir_with_ty(
             let qsc::hir::Res::Item(item_id) = res else {
                 panic!("Udt should be an item");
             };
-            let udt = ctx.udt_ty(item_id);
+            let (udt, kind) = ctx.udt_ty_from_item_id(item_id);
 
-            // Handle `Complex` special case.
-            if let Ok(v) = obj.extract::<num_complex::Complex64>(py) {
-                if is_complex_udt(udt) {
-                    let tuple = Value::Tuple(Rc::new([Value::Double(v.re), Value::Double(v.im)]));
-                    return Ok(tuple);
+            match kind {
+                interpret::UdtKind::Angle => {
+                    let angle = obj.extract::<f64>(py)?;
+                    let angle = qsc::qasm::stdlib::angle::Angle::from_f64_maybe_sized(angle, None);
+                    let value = i64::try_from(angle.value)
+                        .expect("angles built with `None` size have at most 53 bits");
+                    let size = i64::from(angle.size);
+                    Ok(Value::Tuple(
+                        Rc::new([Value::Int(value), Value::Int(size)]),
+                        None,
+                    ))
+                }
+                interpret::UdtKind::Complex => {
+                    let val = obj.extract::<num_complex::Complex64>(py)?;
+                    Ok(Value::Tuple(
+                        Rc::new([Value::Double(val.re), Value::Double(val.im)]),
+                        None,
+                    ))
+                }
+                interpret::UdtKind::Udt => {
+                    let udt_fields = obj.extract::<UdtFields>(py)?;
+
+                    let mut tuple = Vec::new();
+                    for (name, ty) in collect_udt_fields(udt)? {
+                        let Some(value) = udt_fields.get(&*name) else {
+                            return Err(PyTypeError::new_err(format!(
+                                "missing field {} in {}",
+                                name, udt.name,
+                            )));
+                        };
+                        tuple.push(pyobj_to_value(ctx, py, value, ty)?);
+                    }
+                    Ok(Value::Tuple(tuple.into(), None))
                 }
             }
-
-            let udt_fields = obj.extract::<UdtFields>(py)?;
-
-            let mut tuple = Vec::new();
-            for (name, ty) in collect_udt_fields(udt)? {
-                let Some(value) = udt_fields.get(&*name) else {
-                    return Err(PyTypeError::new_err(format!(
-                        "missing field {} in {}",
-                        name, udt.name,
-                    )));
-                };
-                tuple.push(convert_value_ir_with_ty(ctx, py, value, ty)?);
-            }
-            Ok(Value::Tuple(tuple.into()))
         }
         _ => unimplemented!("input type: {ty}"),
     }
@@ -311,34 +307,34 @@ pub(super) fn type_ir_from_qsharp_ty(ctx: &interpret::Interpreter, ty: &Ty) -> O
             let qsc::hir::Res::Item(item_id) = res else {
                 panic!("Udt should be an item");
             };
-            let udt = ctx.udt_ty(item_id);
+            let (udt, kind) = ctx.udt_ty_from_item_id(item_id);
 
-            // Handle `Complex` special case.
-            if is_complex_udt(udt) {
-                return Some(TypeIR::Primitive(PrimitiveKind::Complex));
+            match kind {
+                interpret::UdtKind::Angle => Some(TypeIR::Primitive(PrimitiveKind::Double)),
+                interpret::UdtKind::Complex => Some(TypeIR::Primitive(PrimitiveKind::Complex)),
+                interpret::UdtKind::Udt => {
+                    let udt_fields = collect_udt_fields(udt).ok()?;
+                    let mut fields = Vec::new();
+
+                    for (name, ty) in udt_fields {
+                        fields.push((name.to_string(), type_ir_from_qsharp_ty(ctx, ty)?));
+                    }
+
+                    Some(TypeIR::Udt(UdtIR {
+                        name: name.to_string(),
+                        fields,
+                    }))
+                }
             }
-
-            let udt_fields = collect_udt_fields(udt).ok()?;
-            let mut fields = Vec::new();
-
-            for (name, ty) in udt_fields {
-                fields.push((name.to_string(), type_ir_from_qsharp_ty(ctx, ty)?));
-            }
-
-            Some(TypeIR::Udt(UdtIR {
-                name: name.to_string(),
-                fields,
-            }))
         }
         Ty::Param { .. } | Ty::Infer(..) | Ty::Arrow(..) | Ty::Err => None,
     }
 }
 
-pub(super) fn typed_value_to_python_obj(
+pub(crate) fn value_to_pyobj(
     ctx: &interpret::Interpreter,
     py: Python,
     value: &Value,
-    ty: &Ty,
 ) -> PyResult<PyObject> {
     match value {
         Value::Int(val) => val.into_py_any(py),
@@ -366,56 +362,59 @@ pub(super) fn typed_value_to_python_obj(
             };
             val.into_py_any(py)
         }
-        Value::Tuple(values) => match ty {
-            Ty::Tuple(items) => {
-                let mut tuple = Vec::new();
-                for (val, ty) in values.iter().zip(items) {
-                    tuple.push(typed_value_to_python_obj(ctx, py, val, ty)?);
-                }
-
-                // Special case Value::UNIT maps to None.
-                if tuple.is_empty() {
-                    Ok(py.None())
-                } else {
-                    PyTuple::new(py, tuple)?.into_py_any(py)
-                }
+        Value::Tuple(values, None) => {
+            let mut tuple = Vec::new();
+            for val in values.iter() {
+                tuple.push(value_to_pyobj(ctx, py, val)?);
             }
-            Ty::Udt(_, res) => {
-                let qsc::hir::Res::Item(item_id) = res else {
-                    panic!("Udt should be an item");
-                };
-                let udt = ctx.udt_ty(item_id);
-                if is_complex_udt(udt) {
+
+            // Special case Value::UNIT maps to None.
+            if tuple.is_empty() {
+                Ok(py.None())
+            } else {
+                PyTuple::new(py, tuple)?.into_py_any(py)
+            }
+        }
+        Value::Tuple(values, Some(store_item_id)) => {
+            let (udt, kind) = ctx.udt_ty_from_store_item_id(**store_item_id);
+
+            match kind {
+                interpret::UdtKind::Angle => {
+                    let value = values[0].clone().unwrap_int();
+                    let size = values[1].clone().unwrap_int();
+                    let value = u64::try_from(value).expect("value should fit in u64");
+                    let size = u32::try_from(size).expect("size should fit in u32");
+                    let angle = qsc::qasm::stdlib::angle::Angle::new(value, size);
+                    let angle: f64 = angle
+                        .try_into()
+                        .map_err(|_| QasmError::new_err("cannot cast angle to 64-bit float"))?;
+                    angle.into_py_any(py)
+                }
+                interpret::UdtKind::Complex => {
                     let re = values[0].clone().unwrap_double();
                     let im = values[1].clone().unwrap_double();
                     let val = num_complex::Complex { re, im };
-                    return val.into_py_any(py);
+                    val.into_py_any(py)
                 }
-                let ty_fields = collect_udt_fields(udt)?;
-                let mut fields = Vec::new();
-                for (value, (name, ty)) in values.iter().zip(ty_fields) {
-                    fields.push((
-                        name.to_string(),
-                        typed_value_to_python_obj(ctx, py, value, ty)?,
-                    ));
+                interpret::UdtKind::Udt => {
+                    let ty_fields = collect_udt_fields(udt)?;
+                    let mut fields = Vec::new();
+                    for (value, (name, _)) in values.iter().zip(ty_fields) {
+                        fields.push((name.to_string(), value_to_pyobj(ctx, py, value)?));
+                    }
+                    UdtValue {
+                        name: udt.name.to_string(),
+                        fields,
+                    }
+                    .into_py_any(py)
                 }
-                UdtValue {
-                    name: udt.name.to_string(),
-                    fields,
-                }
-                .into_py_any(py)
             }
-            _ => unreachable!(),
-        },
+        }
         Value::Array(values) => {
-            let Ty::Array(ty) = ty else {
-                unreachable!();
-            };
-            let mut array = Vec::new();
+            let mut array = Vec::with_capacity(values.len());
             for val in values.iter() {
-                array.push(typed_value_to_python_obj(ctx, py, val, ty)?);
+                array.push(value_to_pyobj(ctx, py, val)?);
             }
-
             PyList::new(py, array)?.into_py_any(py)
         }
         Value::Closure(..)

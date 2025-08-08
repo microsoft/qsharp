@@ -610,7 +610,7 @@ fn check_qft_le_sample_1() {
     test_expression_with_lib(
         "Test.TestQFT(1)",
         QFT_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -619,7 +619,7 @@ fn check_qft_le_sample_2() {
     test_expression_with_lib(
         "Test.TestQFT(2)",
         QFT_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 #[test]
@@ -627,7 +627,7 @@ fn check_qft_le_sample_3() {
     test_expression_with_lib(
         "Test.TestQFT(3)",
         QFT_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 #[test]
@@ -635,7 +635,7 @@ fn check_qft_le_sample_4() {
     test_expression_with_lib(
         "Test.TestQFT(4)",
         QFT_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -646,7 +646,7 @@ fn check_qpe_z() {
     test_expression_with_lib(
         "Test.TestQPE_Z()",
         QPE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -655,7 +655,7 @@ fn check_qpe_s() {
     test_expression_with_lib(
         "Test.TestQPE_S()",
         QPE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -664,7 +664,7 @@ fn check_qpe_t() {
     test_expression_with_lib(
         "Test.TestQPE_T()",
         QPE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -673,7 +673,7 @@ fn check_qpe_p() {
     test_expression_with_lib(
         "Test.TestQPE_P()",
         QPE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 

@@ -523,7 +523,7 @@ def test_run_with_invalid_shots_produces_error() -> None:
         assert False
 
 
-def test_run_with_complex_udt(capsys) -> None:
+def test_run_with_complex_udt() -> None:
     qsharp.init()
     val = qsharp.run(
         """
@@ -533,10 +533,10 @@ def test_run_with_complex_udt(capsys) -> None:
         """,
         2,
     )[0]
-    assert val.real == 2 and val.imag == 3
+    assert val == 2 + 3j
 
 
-def test_run_with_udt(capsys) -> None:
+def test_run_with_udt() -> None:
     qsharp.init()
     val = qsharp.run(
         """

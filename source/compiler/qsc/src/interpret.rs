@@ -11,7 +11,7 @@ mod package_tests;
 #[cfg(test)]
 mod tests;
 
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 pub use qsc_eval::{
     StepAction, StepResult,
@@ -23,12 +23,9 @@ pub use qsc_eval::{
     val::Result,
     val::Value,
 };
-use qsc_hir::{
-    global,
-    ty::{self, Ty},
-};
+use qsc_hir::{global, ty};
 use qsc_linter::{HirLint, Lint, LintKind, LintLevel};
-use qsc_lowerer::{map_fir_package_to_hir, map_hir_package_to_fir};
+use qsc_lowerer::{map_fir_local_item_to_hir, map_fir_package_to_hir, map_hir_package_to_fir};
 use qsc_partial_eval::ProgramEntry;
 use qsc_rca::PackageStoreComputeProperties;
 
@@ -131,8 +128,12 @@ pub struct Interpreter {
     lowerer: qsc_lowerer::Lowerer,
     /// The execution graph for the last expression evaluated.
     expr_graph: Option<ExecGraph>,
-    /// The type of the last expression evaluated.
-    expr_ty: Option<Ty>,
+    /// Checking if an `ItemId` corresponds to the `Std.OpenQASM.Angle.Angle` UDT
+    /// is an expensive operation. So, we cache the id to avoid incurring that cost.
+    angle_ty_cache: RefCell<Option<crate::hir::ItemId>>,
+    /// Checking if an `ItemId` corresponds to the `Std.Math.Complex` UDT
+    /// is an expensive operation. So, we cache the id to avoid incurring that cost.
+    complex_ty_cache: RefCell<Option<crate::hir::ItemId>>,
     /// The ID of the current package.
     /// This ID is valid both for the FIR store and the `PackageStore`.
     package: PackageId,
@@ -153,7 +154,18 @@ pub struct Interpreter {
 }
 
 pub type InterpretResult = std::result::Result<Value, Vec<Error>>;
-pub type TypedInterpretResult = std::result::Result<(Value, qsc_hir::ty::Ty), Vec<Error>>;
+
+/// Indicates whether an UDT is an `OpenQASM` `Angle` or a `Complex` number.
+/// This information is needed in the Python interop layer to give special
+/// treatment to the instances of these UDTs.
+pub enum UdtKind {
+    /// `Std.OpenQASM.Angle.Angle`
+    Angle,
+    /// `Std.Math.Complex`
+    Complex,
+    /// A normal UDT, see the other variants for the special cases.
+    Udt,
+}
 
 impl Interpreter {
     /// Creates a new incremental compiler, compiling the passed in sources.
@@ -257,7 +269,8 @@ impl Interpreter {
             fir_store,
             lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
             expr_graph: None,
-            expr_ty: None,
+            angle_ty_cache: None.into(),
+            complex_ty_cache: None.into(),
             env: Env::default(),
             sim: sim_circuit_backend(),
             quantum_seed: None,
@@ -321,7 +334,8 @@ impl Interpreter {
             fir_store,
             lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
             expr_graph: None,
-            expr_ty: None,
+            angle_ty_cache: None.into(),
+            complex_ty_cache: None.into(),
             env: Env::default(),
             sim: sim_circuit_backend(),
             quantum_seed: None,
@@ -431,10 +445,20 @@ impl Interpreter {
         self.package_types(self.package)
     }
 
+    pub fn udt_ty_from_store_item_id(
+        &self,
+        store_item_id: crate::fir::StoreItemId,
+    ) -> (&ty::Udt, UdtKind) {
+        self.udt_ty_from_item_id(&crate::hir::ItemId {
+            package: Some(map_fir_package_to_hir(store_item_id.package)),
+            item: map_fir_local_item_to_hir(store_item_id.item),
+        })
+    }
+
     /// Get the type of a UDT given its `item_id`.
     /// # Panics
     /// Panics if the item is not a UDT.
-    pub fn udt_ty(&self, item_id: &crate::hir::ItemId) -> &ty::Udt {
+    pub fn udt_ty_from_item_id(&self, item_id: &crate::hir::ItemId) -> (&ty::Udt, UdtKind) {
         let crate::hir::ItemId {
             package: package_id_opt,
             item: local_item_id,
@@ -458,10 +482,44 @@ impl Interpreter {
             .get(*local_item_id)
             .expect("item should be in this package");
 
-        match &item.kind {
-            qsc_hir::hir::ItemKind::Ty(_, udt) => udt,
-            _ => panic!("item is not a UDT"),
-        }
+        let parent = item.parent.map(|parent| {
+            &unit
+                .package
+                .items
+                .get(parent)
+                .expect("parent should exist")
+                .kind
+        });
+
+        let qsc_hir::hir::ItemKind::Ty(_, udt) = &item.kind else {
+            panic!("item is not a UDT")
+        };
+
+        let kind = if let Some(id) = &*self.angle_ty_cache.borrow()
+            && id == item_id
+        {
+            UdtKind::Angle
+        } else if let Some(id) = &*self.complex_ty_cache.borrow()
+            && id == item_id
+        {
+            UdtKind::Complex
+        } else if let Some(qsc_hir::hir::ItemKind::Namespace(namespace, _)) = parent {
+            let namespace: Vec<_> = namespace.into();
+            let namespace: Vec<&str> = namespace.iter().map(|ident| &**ident).collect();
+            if matches!(&namespace[..], &["Std", "OpenQASM", "Angle"]) && &*udt.name == "Angle" {
+                *self.angle_ty_cache.borrow_mut() = Some(*item_id);
+                UdtKind::Angle
+            } else if matches!(&namespace[..], &["Std", "Math"]) && &*udt.name == "Complex" {
+                *self.complex_ty_cache.borrow_mut() = Some(*item_id);
+                UdtKind::Complex
+            } else {
+                UdtKind::Udt
+            }
+        } else {
+            UdtKind::Udt
+        };
+
+        (udt, kind)
     }
 
     pub fn set_quantum_seed(&mut self, seed: Option<u64>) {
@@ -554,7 +612,7 @@ impl Interpreter {
         &mut self,
         receiver: &mut impl Receiver,
         fragments: &str,
-    ) -> TypedInterpretResult {
+    ) -> InterpretResult {
         let label = self.next_line_label();
 
         let mut increment = self
@@ -566,10 +624,7 @@ impl Interpreter {
         // should not change what gets executed.
         increment.clear_entry();
 
-        let ty = get_increment_ty(&increment);
-
         self.eval_increment(receiver, increment)
-            .map(|val| (val, ty))
     }
 
     /// It is assumed that if there were any parse errors on the fragments, the caller would have
@@ -601,7 +656,6 @@ impl Interpreter {
     ) -> InterpretResult {
         let (graph, _) = self.lower(&increment)?;
         self.expr_graph = Some(graph.clone());
-        self.expr_ty = Some(get_increment_ty(&increment));
 
         // Updating the compiler state with the new AST/HIR nodes
         // is not necessary for the interpreter to function, as all
@@ -678,7 +732,7 @@ impl Interpreter {
         expr: Option<&str>,
         noise: Option<PauliNoise>,
         qubit_loss: Option<f64>,
-    ) -> TypedInterpretResult {
+    ) -> InterpretResult {
         let mut sim = match noise {
             Some(noise) => SparseSim::new_with_noise(&noise),
             None => SparseSim::new(),
@@ -708,7 +762,7 @@ impl Interpreter {
 
         // Compile the expression. This operation will set the expression as
         // the entry-point in the FIR store.
-        let (graph, compute_properties, _) = self.compile_entry_expr(expr)?;
+        let (graph, compute_properties) = self.compile_entry_expr(expr)?;
 
         let Some(compute_properties) = compute_properties else {
             // This can only happen if capability analysis was not run. This would be a bug
@@ -855,9 +909,8 @@ impl Interpreter {
 
     /// Sets the entry expression for the interpreter.
     pub fn set_entry_expr(&mut self, entry_expr: &str) -> std::result::Result<(), Vec<Error>> {
-        let (graph, _, ty) = self.compile_entry_expr(entry_expr)?;
+        let (graph, _) = self.compile_entry_expr(entry_expr)?;
         self.expr_graph = Some(graph);
-        self.expr_ty = Some(ty);
         Ok(())
     }
 
@@ -868,16 +921,13 @@ impl Interpreter {
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
         expr: Option<&str>,
-    ) -> TypedInterpretResult {
-        let (graph, ty) = if let Some(expr) = expr {
-            let (graph, _, ty) = self.compile_entry_expr(expr)?;
+    ) -> InterpretResult {
+        let graph = if let Some(expr) = expr {
+            let (graph, _) = self.compile_entry_expr(expr)?;
             self.expr_graph = Some(graph.clone());
-            self.expr_ty = Some(ty.clone());
-            (graph, ty)
+            graph
         } else {
-            let graph = self.expr_graph.clone().ok_or(vec![Error::NoEntryPoint])?;
-            let ty = self.expr_ty.clone().ok_or(vec![Error::NoEntryPoint])?;
-            (graph, ty)
+            self.expr_graph.clone().ok_or(vec![Error::NoEntryPoint])?
         };
 
         if self.quantum_seed.is_some() {
@@ -894,7 +944,6 @@ impl Interpreter {
             sim,
             receiver,
         )
-        .map(|val| (val, ty))
     }
 
     fn run_with_sim_no_output(
@@ -907,7 +956,7 @@ impl Interpreter {
 
         let (package_id, graph) = if let Some(entry_expr) = entry_expr {
             // entry expression is provided
-            let (graph, _, _) = self.compile_entry_expr(&entry_expr)?;
+            let (graph, _) = self.compile_entry_expr(&entry_expr)?;
             (self.package, graph)
         } else {
             // no entry expression, use the entrypoint in the package
@@ -964,20 +1013,11 @@ impl Interpreter {
     fn compile_entry_expr(
         &mut self,
         expr: &str,
-    ) -> std::result::Result<(ExecGraph, Option<PackageStoreComputeProperties>, Ty), Vec<Error>>
-    {
+    ) -> std::result::Result<(ExecGraph, Option<PackageStoreComputeProperties>), Vec<Error>> {
         let increment = self
             .compiler
             .compile_entry_expr(expr)
             .map_err(into_errors)?;
-
-        let ty = increment
-            .hir
-            .entry
-            .as_ref()
-            .expect("we just called compile_entry_expr, so there should be an entry")
-            .ty
-            .clone();
 
         // `lower` will update the entry expression in the FIR store,
         // and it will always return an empty list of statements.
@@ -997,7 +1037,7 @@ impl Interpreter {
         // here to keep the package stores consistent.
         self.compiler.update(increment);
 
-        Ok((graph, compute_properties, ty))
+        Ok((graph, compute_properties))
     }
 
     fn lower(
@@ -1070,8 +1110,8 @@ impl Interpreter {
         let mut sink = std::io::sink();
         let mut out = GenericReceiver::new(&mut sink);
         let (store_item_id, functor_app) = match self.eval_fragments(&mut out, operation_expr)? {
-            (Value::Closure(b), _) => (b.id, b.functor),
-            (Value::Global(item_id, functor_app), _) => (item_id, functor_app),
+            Value::Closure(b) => (b.id, b.functor),
+            Value::Global(item_id, functor_app) => (item_id, functor_app),
             _ => return Err(vec![Error::NotAnOperation]),
         };
         let package = map_fir_package_to_hir(store_item_id.package);
@@ -1438,18 +1478,4 @@ pub fn into_errors(errors: Vec<crate::compile::Error>) -> Vec<Error> {
         .into_iter()
         .map(|error| Error::Compile(error.into_with_source()))
         .collect::<Vec<_>>()
-}
-
-fn get_increment_ty(increment: &Increment) -> Ty {
-    if let Some(stmt) = increment.hir.stmts.last() {
-        match &stmt.kind {
-            qsc_hir::hir::StmtKind::Expr(expr) => expr.ty.clone(),
-            qsc_hir::hir::StmtKind::Item(..)
-            | qsc_hir::hir::StmtKind::Local(..)
-            | qsc_hir::hir::StmtKind::Qubit(..)
-            | qsc_hir::hir::StmtKind::Semi(..) => Ty::UNIT,
-        }
-    } else {
-        Ty::UNIT
-    }
 }

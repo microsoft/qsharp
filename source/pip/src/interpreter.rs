@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-mod data_interop;
+pub(crate) mod data_interop;
 
 use crate::{
     displayable_output::{DisplayableMatrix, DisplayableOutput, DisplayableState},
@@ -14,7 +14,7 @@ use crate::{
     },
     interpreter::data_interop::{
         PrimitiveKind, TypeIR, TypeKind, UdtFields, UdtIR, UdtValue, collect_udt_fields,
-        convert_value_ir_with_ty, type_ir_from_qsharp_ty, typed_value_to_python_obj,
+        pyobj_to_value, type_ir_from_qsharp_ty, value_to_pyobj,
     },
     noisy_simulator::register_noisy_simulator_submodule,
 };
@@ -448,7 +448,7 @@ impl Interpreter {
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
         match self.interpreter.eval_fragments(&mut receiver, input) {
-            Ok((value, ty)) => {
+            Ok(value) => {
                 if let Some(make_callable) = &self.make_callable {
                     // Get any global callables from the evaluated input and add them to the environment. This will grab
                     // every callable that was defined in the input and by previous calls that added to the open package.
@@ -470,7 +470,7 @@ impl Interpreter {
                         create_py_class(&self.interpreter, py, make_class, &namespace, &name, &ty)?;
                     }
                 }
-                typed_value_to_python_obj(&self.interpreter, py, &value, &ty)
+                value_to_pyobj(&self.interpreter, py, &value)
             }
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -576,7 +576,7 @@ impl Interpreter {
                         create_py_callable(py, make_callable, &namespace, &name, val)?;
                     }
                 }
-                Ok(ValueWrapper(value).into_pyobject(py)?.unbind())
+                value_to_pyobj(&self.interpreter, py, &value)
             }
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -640,9 +640,13 @@ impl Interpreter {
                     .ok_or(QSharpError::new_err("callable not found"))?;
                 let args = args_to_values(&self.interpreter, py, args, &input_ty, &output_ty)?;
 
-                self.interpreter
-                    .invoke_with_noise(&mut receiver, callable.0, args, noise, qubit_loss)
-                    .map(|val| (val, output_ty))
+                self.interpreter.invoke_with_noise(
+                    &mut receiver,
+                    callable.0,
+                    args,
+                    noise,
+                    qubit_loss,
+                )
             }
             _ => self
                 .interpreter
@@ -650,7 +654,7 @@ impl Interpreter {
         };
 
         match result {
-            Ok((value, ty)) => typed_value_to_python_obj(&self.interpreter, py, &value, &ty),
+            Ok(value) => value_to_pyobj(&self.interpreter, py, &value),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
@@ -672,7 +676,7 @@ impl Interpreter {
         let args = args_to_values(&self.interpreter, py, args, &input_ty, &output_ty)?;
 
         match self.interpreter.invoke(&mut receiver, callable.0, args) {
-            Ok(value) => typed_value_to_python_obj(&self.interpreter, py, &value, &output_ty),
+            Ok(value) => value_to_pyobj(&self.interpreter, py, &value),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
@@ -837,7 +841,7 @@ fn args_to_values(
             )));
         };
         // This conversion will produce errors if the types don't match or can't be converted.
-        Ok(convert_value_ir_with_ty(ctx, py, &args, input_ty)?)
+        Ok(pyobj_to_value(ctx, py, &args, input_ty)?)
     }
 }
 
@@ -871,7 +875,7 @@ where
             let qsc::hir::Res::Item(item_id) = res else {
                 panic!("Udt should be an item");
             };
-            let udt = ctx.udt_ty(item_id);
+            let (udt, _) = ctx.udt_ty_from_item_id(item_id);
 
             let Ok(fields) = collect_udt_fields(udt) else {
                 return Some(ty);
@@ -1097,59 +1101,6 @@ impl From<Pauli> for fir::Pauli {
             Pauli::X => fir::Pauli::X,
             Pauli::Y => fir::Pauli::Y,
             Pauli::Z => fir::Pauli::Z,
-        }
-    }
-}
-
-// Mapping of Q# value types to Python value types.
-pub(crate) struct ValueWrapper(pub(crate) Value);
-
-impl<'py> IntoPyObject<'py> for ValueWrapper {
-    type Target = PyAny;
-
-    type Output = Bound<'py, Self::Target>;
-
-    type Error = pyo3::PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> std::result::Result<Self::Output, Self::Error> {
-        match self.0 {
-            Value::Int(val) => val.into_bound_py_any(py),
-            Value::BigInt(val) => val.into_bound_py_any(py),
-            Value::Double(val) => val.into_bound_py_any(py),
-            Value::Bool(val) => val.into_bound_py_any(py),
-            Value::String(val) => val.into_bound_py_any(py),
-            Value::Result(val) => match val {
-                qsc::interpret::Result::Id(_) => panic!("unexpected Result::Id in ValueWrapper"),
-                qsc::interpret::Result::Val(true) => Result::One,
-                qsc::interpret::Result::Val(false) => Result::Zero,
-                qsc::interpret::Result::Loss => Result::Loss,
-            }
-            .into_bound_py_any(py),
-            Value::Pauli(val) => match val {
-                fir::Pauli::I => Pauli::I.into_bound_py_any(py),
-                fir::Pauli::X => Pauli::X.into_bound_py_any(py),
-                fir::Pauli::Y => Pauli::Y.into_bound_py_any(py),
-                fir::Pauli::Z => Pauli::Z.into_bound_py_any(py),
-            },
-            Value::Tuple(val) => {
-                if val.is_empty() {
-                    // Special case Value::UNIT maps to None.
-                    Ok(py.None().into_bound(py))
-                } else {
-                    PyTuple::new(py, val.iter().map(|v| ValueWrapper(v.clone())))?
-                        .into_bound_py_any(py)
-                }
-            }
-            Value::Array(val) => {
-                PyList::new(py, val.iter().map(|v| ValueWrapper(v.clone())))?.into_bound_py_any(py)
-            }
-            Value::Closure(..)
-            | Value::Global(..)
-            | Value::Qubit(..)
-            | Value::Range(..)
-            | Value::Var(..) => {
-                format!("<{}> {}", Value::type_name(&self.0), &self.0).into_bound_py_any(py)
-            }
         }
     }
 }

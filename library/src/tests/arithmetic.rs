@@ -77,7 +77,7 @@ fn check_inc_by_le_exhaustive_bitwidth_1() {
         "Test.TestIncByLE(\"Check IncByLE\",
             Microsoft.Quantum.Unstable.Arithmetic.IncByLE, 1)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -87,7 +87,7 @@ fn check_inc_by_le_exhaustive_bitwidth_2() {
         "Test.TestIncByLE(\"Check IncByLE\",
             Microsoft.Quantum.Unstable.Arithmetic.IncByLE, 2)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -97,7 +97,7 @@ fn check_inc_by_le_exhaustive_bitwidth_3() {
         "Test.TestIncByLE(\"Check IncByLE\",
             Microsoft.Quantum.Unstable.Arithmetic.IncByLE, 3)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -132,7 +132,7 @@ fn check_ripple_carry_ttk_inc_by_le_exhaustive_bitwidth_1() {
         "Test.TestIncByLE(\"Check RippleCarryTTKIncByLE\",
            Microsoft.Quantum.Unstable.Arithmetic.RippleCarryTTKIncByLE, 1)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -142,7 +142,7 @@ fn check_ripple_carry_ttk_inc_by_le_exhaustive_bitwidth_2() {
         "Test.TestIncByLE(\"Check RippleCarryTTKIncByLE\",
             Microsoft.Quantum.Unstable.Arithmetic.RippleCarryTTKIncByLE, 2)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -152,7 +152,7 @@ fn check_ripple_carry_ttk_inc_by_le_exhaustive_bitwidth_3() {
         "Test.TestIncByLE(\"Check RippleCarryTTKIncByLE\",
             Microsoft.Quantum.Unstable.Arithmetic.RippleCarryTTKIncByLE, 3)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -162,7 +162,7 @@ fn check_ripple_carry_ttk_inc_by_le_exhaustive_bitwidth_4() {
         "Test.TestIncByLE(\"Check RippleCarryTTKIncByLE\",
             Microsoft.Quantum.Unstable.Arithmetic.RippleCarryTTKIncByLE, 4)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -197,7 +197,7 @@ fn check_ripple_carry_cg_inc_by_le_exhaustive_bitwidth_1() {
         "Test.TestIncByLE(\"Check RippleCarryCGIncByLE\",
             Microsoft.Quantum.Unstable.Arithmetic.RippleCarryCGIncByLE, 1)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -207,7 +207,7 @@ fn check_ripple_carry_cg_inc_by_le_exhaustive_bitwidth_2() {
         "Test.TestIncByLE(\"Check RippleCarryCGIncByLE\",
             Microsoft.Quantum.Unstable.Arithmetic.RippleCarryCGIncByLE, 2)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -217,7 +217,7 @@ fn check_ripple_carry_cg_inc_by_le_exhaustive_bitwidth_3() {
         "Test.TestIncByLE(\"Check RippleCarryCGIncByLE\",
             Microsoft.Quantum.Unstable.Arithmetic.RippleCarryCGIncByLE, 3)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -227,7 +227,7 @@ fn check_ripple_carry_cg_inc_by_le_exhaustive_bitwidth_4() {
         "Test.TestIncByLE(\"Check RippleCarryCGIncByLE\",
             Microsoft.Quantum.Unstable.Arithmetic.RippleCarryCGIncByLE, 4)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -237,7 +237,7 @@ fn check_ripple_carry_inc_by_le_ctl_exhaustive_bitwidth_1() {
         "Test.TestIncByLECtl(\"Check RippleCarryCGIncByLE(Ctl)\",
             Microsoft.Quantum.Unstable.Arithmetic.RippleCarryCGIncByLE, 1)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -247,7 +247,7 @@ fn check_ripple_carry_inc_by_le_ctl_exhaustive_bitwidth_2() {
         "Test.TestIncByLECtl(\"Check RippleCarryCGIncByLE(Ctl)\",
             Microsoft.Quantum.Unstable.Arithmetic.RippleCarryCGIncByLE, 2)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -257,7 +257,7 @@ fn check_ripple_carry_inc_by_le_ctl_exhaustive_bitwidth_3() {
         "Test.TestIncByLECtl(\"Check RippleCarryCGIncByLE(Ctl)\",
             Microsoft.Quantum.Unstable.Arithmetic.RippleCarryCGIncByLE, 3)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -267,7 +267,7 @@ fn check_ripple_carry_inc_by_le_ctl_exhaustive_bitwidth_4() {
         "Test.TestIncByLECtl(\"Check RippleCarryCGIncByLE(Ctl)\",
             Microsoft.Quantum.Unstable.Arithmetic.RippleCarryCGIncByLE, 4)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -303,7 +303,7 @@ fn check_fourier_td_inc_by_le_exhaustive_bitwidth_1() {
         "Test.TestIncByLE(\"Check FourierTDIncByLE\",
             Microsoft.Quantum.Unstable.Arithmetic.FourierTDIncByLE, 1)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -313,7 +313,7 @@ fn check_fourier_td_inc_by_le_exhaustive_bitwidth_2() {
         "Test.TestIncByLE(\"Check FourierTDIncByLE\",
             Microsoft.Quantum.Unstable.Arithmetic.FourierTDIncByLE, 2)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -323,7 +323,7 @@ fn check_fourier_td_inc_by_le_exhaustive_bitwidth_3() {
         "Test.TestIncByLE(\"Check FourierTDIncByLE\",
             Microsoft.Quantum.Unstable.Arithmetic.FourierTDIncByLE, 3)",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -339,7 +339,7 @@ fn check_inc_by_le_using_add_le_exhaustive_bitwidth_1() {
             IncByLEUsingAddLE(LookAheadDKRSAddLE,RippleCarryCGAddLE,_,_),
             1, 1)}",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -351,7 +351,7 @@ fn check_inc_by_le_using_add_le_exhaustive_bitwidth_2() {
                 IncByLEUsingAddLE(LookAheadDKRSAddLE,RippleCarryCGAddLE,_,_),
                 2, 2)}",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -363,7 +363,7 @@ fn check_inc_by_le_using_add_le_exhaustive_bitwidth_3() {
                 IncByLEUsingAddLE(LookAheadDKRSAddLE,RippleCarryCGAddLE,_,_),
                 3, 3)}",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -375,7 +375,7 @@ fn check_inc_by_le_using_add_le_exhaustive_bitwidth_4() {
                 IncByLEUsingAddLE(LookAheadDKRSAddLE,RippleCarryCGAddLE,_,_),
                 4, 4)}",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -387,7 +387,7 @@ fn check_inc_by_le_using_add_le_ctl_exhaustive_bitwidth_1() {
                 IncByLEUsingAddLE(LookAheadDKRSAddLE,RippleCarryCGAddLE,_,_),
                 1, 1)}",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -399,7 +399,7 @@ fn check_inc_by_le_using_add_le_ctl_exhaustive_bitwidth_2() {
                 IncByLEUsingAddLE(LookAheadDKRSAddLE,RippleCarryCGAddLE,_,_),
                 2, 2)}",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -411,7 +411,7 @@ fn check_inc_by_le_using_add_le_ctl_exhaustive_bitwidth_3() {
                 IncByLEUsingAddLE(LookAheadDKRSAddLE,RippleCarryCGAddLE,_,_),
                 3, 3)}",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -423,7 +423,7 @@ fn check_inc_by_le_using_add_le_ctl_exhaustive_bitwidth_4() {
                 IncByLEUsingAddLE(LookAheadDKRSAddLE,RippleCarryCGAddLE,_,_),
                 4, 4)}",
         INC_BY_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -500,6 +500,7 @@ fn check_inc_by_i_general() {
                 Value::Int(279 + 7_895),
             ]
             .into(),
+            None,
         ),
     );
 }
@@ -536,7 +537,10 @@ fn check_ripple_carry_cg_inc_by_i_general() {
                 return (i0, i1, i2);
             }"
         },
-        &Value::Tuple(vec![Value::Int(300), Value::Int(172), Value::Int(186)].into()),
+        &Value::Tuple(
+            vec![Value::Int(300), Value::Int(172), Value::Int(186)].into(),
+            None,
+        ),
     );
 }
 
@@ -591,6 +595,7 @@ fn check_inc_by_l_general() {
                 Value::Int(279 + 7_895),
             ]
             .into(),
+            None,
         ),
     );
 }
@@ -627,7 +632,10 @@ fn check_ripple_carry_cg_inc_by_l_general() {
                 return (i0, i1, i2);
             }"
         },
-        &Value::Tuple(vec![Value::Int(300), Value::Int(172), Value::Int(186)].into()),
+        &Value::Tuple(
+            vec![Value::Int(300), Value::Int(172), Value::Int(186)].into(),
+            None,
+        ),
     );
 }
 
@@ -643,7 +651,7 @@ fn check_add_le_exhaustive_bitwidth_1() {
         "Test.TestAddLE(\"Check AddLE\",
             Microsoft.Quantum.Unstable.Arithmetic.AddLE, 1)",
         ADD_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -653,7 +661,7 @@ fn check_add_le_exhaustive_bitwidth_2() {
         "Test.TestAddLE(\"Check AddLE\",
             Microsoft.Quantum.Unstable.Arithmetic.AddLE, 2)",
         ADD_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -663,7 +671,7 @@ fn check_add_le_exhaustive_bitwidth_3() {
         "Test.TestAddLE(\"Check AddLE\",
             Microsoft.Quantum.Unstable.Arithmetic.AddLE, 3)",
         ADD_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -673,7 +681,7 @@ fn check_add_le_exhaustive_bitwidth_4() {
         "Test.TestAddLE(\"Check AddLE\",
             Microsoft.Quantum.Unstable.Arithmetic.AddLE, 4)",
         ADD_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -712,7 +720,7 @@ fn check_ripple_carry_cg_add_le_exhaustive_bitwidth_1() {
         "Test.TestAddLE(\"Check RippleCarryCGAddLE\",
             Microsoft.Quantum.Unstable.Arithmetic.RippleCarryCGAddLE, 1)",
         ADD_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -722,7 +730,7 @@ fn check_ripple_carry_cg_add_le_exhaustive_bitwidth_2() {
         "Test.TestAddLE(\"Check RippleCarryCGAddLE\",
             Microsoft.Quantum.Unstable.Arithmetic.RippleCarryCGAddLE, 2)",
         ADD_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -732,7 +740,7 @@ fn check_ripple_carry_cg_add_le_exhaustive_bitwidth_3() {
         "Test.TestAddLE(\"Check RippleCarryCGAddLE\",
             Microsoft.Quantum.Unstable.Arithmetic.RippleCarryCGAddLE, 3)",
         ADD_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -742,7 +750,7 @@ fn check_ripple_carry_cg_add_le_exhaustive_bitwidth_4() {
         "Test.TestAddLE(\"Check RippleCarryCGAddLE\",
             Microsoft.Quantum.Unstable.Arithmetic.RippleCarryCGAddLE, 4)",
         ADD_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -779,7 +787,7 @@ fn check_lookahead_dkrs_add_le_exhaustive_bitwidth_1() {
         "Test.TestAddLE(\"Check LookAheadDKRSAddLE\",
             Microsoft.Quantum.Unstable.Arithmetic.LookAheadDKRSAddLE, 1)",
         ADD_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -789,7 +797,7 @@ fn check_lookahead_dkrs_add_le_exhaustive_bitwidth_2() {
         "Test.TestAddLE(\"Check LookAheadDKRSAddLE\",
             Microsoft.Quantum.Unstable.Arithmetic.LookAheadDKRSAddLE, 2)",
         ADD_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -799,7 +807,7 @@ fn check_lookahead_dkrs_add_le_exhaustive_bitwidth_3() {
         "Test.TestAddLE(\"Check LookAheadDKRSAddLE\",
             Microsoft.Quantum.Unstable.Arithmetic.LookAheadDKRSAddLE, 3)",
         ADD_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -809,7 +817,7 @@ fn check_lookahead_dkrs_add_le_exhaustive_bitwidth_4() {
         "Test.TestAddLE(\"Check LookAheadDKRSAddLE\",
             Microsoft.Quantum.Unstable.Arithmetic.LookAheadDKRSAddLE, 4)",
         ADD_LE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -845,7 +853,7 @@ fn check_apply_if_less_l_exhaustive() {
             Microsoft.Quantum.Unstable.Arithmetic.ApplyIfLessL(X,_,_,_),
             (a, b) -> {a < b} )",
         COMPARE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -856,7 +864,7 @@ fn check_apply_if_less_or_equal_l_exhaustive() {
             Microsoft.Quantum.Unstable.Arithmetic.ApplyIfLessOrEqualL(X,_,_,_),
             (a, b) -> {a <= b} )",
         COMPARE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -867,7 +875,7 @@ fn check_apply_if_equal_l_exhaustive() {
             Microsoft.Quantum.Unstable.Arithmetic.ApplyIfEqualL(X,_,_,_),
             (a, b) -> {a == b} )",
         COMPARE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -878,7 +886,7 @@ fn check_apply_if_greater_or_equal_l_exhaustive() {
             Microsoft.Quantum.Unstable.Arithmetic.ApplyIfGreaterOrEqualL(X,_,_,_),
             (a, b) -> {a >= b} )",
         COMPARE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -889,7 +897,7 @@ fn check_apply_if_greater_l_exhaustive() {
             Microsoft.Quantum.Unstable.Arithmetic.ApplyIfGreaterL(X,_,_,_),
             (a, b) -> {a > b} )",
         COMPARE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -900,7 +908,7 @@ fn check_apply_if_less_le_exhaustive() {
             Microsoft.Quantum.Unstable.Arithmetic.ApplyIfLessLE(X,_,_,_),
             (a, b) -> {a < b} )",
         COMPARE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -911,7 +919,7 @@ fn check_apply_if_less_or_equal_le_exhaustive() {
             Microsoft.Quantum.Unstable.Arithmetic.ApplyIfLessOrEqualLE(X,_,_,_),
             (a, b) -> {a <= b} )",
         COMPARE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -922,7 +930,7 @@ fn check_apply_if_equal_le_exhaustive() {
             Microsoft.Quantum.Unstable.Arithmetic.ApplyIfEqualLE(X,_,_,_),
             (a, b) -> {a == b} )",
         COMPARE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -933,7 +941,7 @@ fn check_apply_if_greater_or_equal_le_exhaustive() {
             Microsoft.Quantum.Unstable.Arithmetic.ApplyIfGreaterOrEqualLE(X,_,_,_),
             (a, b) -> {a >= b} )",
         COMPARE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -944,7 +952,7 @@ fn check_apply_if_greater_le_exhaustive() {
             Microsoft.Quantum.Unstable.Arithmetic.ApplyIfGreaterLE(X,_,_,_),
             (a, b) -> {a > b} )",
         COMPARE_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 
@@ -968,6 +976,6 @@ fn check_apply_if_less_l_non_x_action() {
             ResetAll(output2);
             (result1, result2)
         }",
-        &Value::Tuple(vec![Value::Int(758), Value::Int(753)].into()),
+        &Value::Tuple(vec![Value::Int(758), Value::Int(753)].into(), None),
     );
 }

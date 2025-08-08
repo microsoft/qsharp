@@ -145,7 +145,7 @@ fn check_start_stop_counting_operation_called_3_times() {
             op1(); op1(); op2();
             (StopCountingOperation(op1), StopCountingOperation(op2))
         }",
-        &Value::Tuple([Value::Int(3), Value::Int(1)].into()),
+        &Value::Tuple([Value::Int(3), Value::Int(1)].into(), None),
     );
 }
 
@@ -162,7 +162,7 @@ fn check_start_stop_counting_operation_called_0_times() {
             StartCountingOperation(op2);
             (StopCountingOperation(op1), StopCountingOperation(op2))
         }",
-        &Value::Tuple([Value::Int(0), Value::Int(0)].into()),
+        &Value::Tuple([Value::Int(0), Value::Int(0)].into(), None),
     );
 }
 
@@ -181,7 +181,7 @@ fn check_lambda_counted_separately_from_operation() {
             lambda();
             (StopCountingOperation(op1), StopCountingOperation(lambda))
         }",
-        &Value::Tuple([Value::Int(2), Value::Int(1)].into()),
+        &Value::Tuple([Value::Int(2), Value::Int(1)].into(), None),
     );
 }
 
@@ -222,7 +222,7 @@ fn check_counting_operation_differentiates_between_body_adj_ctl() {
             Controlled Adjoint op1([], ()); Controlled Adjoint op1([], ());
             (StopCountingOperation(op1), StopCountingOperation(Adjoint op1), StopCountingOperation(Controlled op1), StopCountingOperation(Adjoint Controlled op1))
         }",
-        &Value::Tuple([Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4)].into()),
+        &Value::Tuple([Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4)].into(), None),
     );
 }
 
@@ -240,7 +240,7 @@ fn check_start_stop_counting_function_called_3_times() {
             f1(); f1(); f2();
             (StopCountingFunction(f1), StopCountingFunction(f2))
         }",
-        &Value::Tuple([Value::Int(3), Value::Int(1)].into()),
+        &Value::Tuple([Value::Int(3), Value::Int(1)].into(), None),
     );
 }
 
@@ -257,7 +257,7 @@ fn check_start_stop_counting_function_called_0_times() {
             StartCountingFunction(f2);
             (StopCountingFunction(f1), StopCountingFunction(f2))
         }",
-        &Value::Tuple([Value::Int(0), Value::Int(0)].into()),
+        &Value::Tuple([Value::Int(0), Value::Int(0)].into(), None),
     );
 }
 
@@ -478,7 +478,10 @@ fn check_dump_operation_for_r1_of_pi_with_two_controls() {
 fn check_bit_flip_noise_values() {
     test_expression(
         "Std.Diagnostics.BitFlipNoise(0.3)",
-        &Value::Tuple([Value::Double(0.3), Value::Double(0.0), Value::Double(0.0)].into()),
+        &Value::Tuple(
+            [Value::Double(0.3), Value::Double(0.0), Value::Double(0.0)].into(),
+            None,
+        ),
     );
 }
 
@@ -486,7 +489,10 @@ fn check_bit_flip_noise_values() {
 fn check_phase_flip_noise_values() {
     test_expression(
         "Std.Diagnostics.PhaseFlipNoise(0.3)",
-        &Value::Tuple([Value::Double(0.0), Value::Double(0.0), Value::Double(0.3)].into()),
+        &Value::Tuple(
+            [Value::Double(0.0), Value::Double(0.0), Value::Double(0.3)].into(),
+            None,
+        ),
     );
 }
 
@@ -494,7 +500,10 @@ fn check_phase_flip_noise_values() {
 fn check_depolarizing_noise_values() {
     test_expression(
         "Std.Diagnostics.DepolarizingNoise(0.3)",
-        &Value::Tuple([Value::Double(0.1), Value::Double(0.1), Value::Double(0.1)].into()),
+        &Value::Tuple(
+            [Value::Double(0.1), Value::Double(0.1), Value::Double(0.1)].into(),
+            None,
+        ),
     );
 }
 
@@ -502,6 +511,9 @@ fn check_depolarizing_noise_values() {
 fn check_no_noise_values() {
     test_expression(
         "Std.Diagnostics.NoNoise()",
-        &Value::Tuple([Value::Double(0.0), Value::Double(0.0), Value::Double(0.0)].into()),
+        &Value::Tuple(
+            [Value::Double(0.0), Value::Double(0.0), Value::Double(0.0)].into(),
+            None,
+        ),
     );
 }

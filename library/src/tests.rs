@@ -82,7 +82,7 @@ pub fn test_expression_with_lib_and_profile_and_sim(
         .expect("test should run successfully");
 
     match (&expected, result) {
-        (&Value::Tuple(tup1), Value::Tuple(tup2)) if tup1.len() == tup2.len() => {
+        (&Value::Tuple(tup1, _), Value::Tuple(tup2, _)) if tup1.len() == tup2.len() => {
             // If both values are tuples of the same length, we crack them open and compare elements
             for (value1, value2) in tup1.iter().zip(tup2.iter()) {
                 if let (Value::Double(double1), Value::Double(double2)) = (value1, value2) {
@@ -260,6 +260,6 @@ fn stdlib_reexport_single_case() {
         r#" {
     import Std.Arrays.Count;
     }"#,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }

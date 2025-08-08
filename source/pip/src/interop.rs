@@ -24,9 +24,10 @@ use qsc::{
 };
 
 use crate::fs::file_system;
+use crate::interpreter::data_interop::value_to_pyobj;
 use crate::interpreter::{
     OptionalCallbackReceiver, OutputSemantics, ProgramType, QSharpError, QasmError, TargetProfile,
-    ValueWrapper, format_error, format_errors,
+    format_error, format_errors,
 };
 
 use resource_estimator as re;
@@ -129,7 +130,13 @@ pub(crate) fn run_qasm_program(
     let loss = qubit_loss.unwrap_or(0.0);
     let result = run_ast(&mut interpreter, &mut receiver, shots, seed, noise, loss);
     match result {
-        Ok(result) => Ok(PyList::new(py, result.iter().map(|v| ValueWrapper(v.clone())))?.into()),
+        Ok(result) => {
+            let list: Result<Vec<_>, _> = result
+                .iter()
+                .map(|v| value_to_pyobj(&interpreter, py, v))
+                .collect();
+            Ok(PyList::new(py, list?)?.into())
+        }
         Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
     }
 }
@@ -153,7 +160,7 @@ pub(crate) fn run_ast(
         // If seed is provided, we want to use a different seed for each shot
         // so that the results are different for each shot, but still deterministic
         sim.set_seed(seed.map(|s| s + i as u64));
-        let result = interpreter.run_with_sim(&mut sim, receiver, None)?.0;
+        let result = interpreter.run_with_sim(&mut sim, receiver, None)?;
         results.push(result);
     }
 
