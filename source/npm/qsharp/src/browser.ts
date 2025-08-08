@@ -22,6 +22,7 @@ import {
   QSharpDebugService,
   debugServiceProtocol,
 } from "./debug-service/debug-service.js";
+import { callAndTransformExceptions } from "./diagnostics.js";
 import {
   ILanguageService,
   ILanguageServiceWorker,
@@ -154,6 +155,23 @@ export function getLanguageServiceWorker(
 ): ILanguageServiceWorker {
   if (!wasmModule) throw "Wasm module must be loaded first";
   return createProxy(worker, wasmModule, languageServiceProtocol);
+}
+
+/// Extracts the target profile from a Q# source file's entry point.
+/// Scans the provided source code for an EntryPoint argument specifying
+/// a profile and returns the corresponding TargetProfile value, if found.
+/// Returns undefined if no profile is specified or if the profile is not recognized.
+export async function getTargetProfileFromEntryPoint(
+  fileName: string,
+  source: string,
+): Promise<wasm.TargetProfile | undefined> {
+  await instantiateWasm();
+  return callAndTransformExceptions(
+    async () =>
+      wasm.get_target_profile_from_entry_point(fileName, source) as
+        | wasm.TargetProfile
+        | undefined,
+  );
 }
 
 export { StepResultId } from "../lib/web/qsc_wasm.js";

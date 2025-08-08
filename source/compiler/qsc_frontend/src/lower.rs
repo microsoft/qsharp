@@ -6,7 +6,7 @@ mod tests;
 
 use crate::{
     closure::{self, Lambda, PartialApp},
-    resolve::{self, Names},
+    resolve::{self, Names, iter_valid_items},
     typeck::{
         self,
         convert::{self, synthesize_functor_params},
@@ -14,14 +14,24 @@ use crate::{
 };
 use miette::Diagnostic;
 use qsc_ast::ast::{self, FieldAccess, Ident, Idents, PathKind};
-use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
+use qsc_data_structures::{
+    index_map::IndexMap,
+    span::Span,
+    target::{Profile, TargetCapabilityFlags},
+};
 use qsc_hir::{
     assigner::Assigner,
-    hir::{self, LocalItemId, Visibility},
+    hir::{self, LocalItemId, Res, Visibility},
     mut_visit::MutVisitor,
     ty::{Arrow, FunctorSetValue, GenericArg, ParamId, Ty, TypeParameter},
 };
-use std::{clone::Clone, rc::Rc, str::FromStr, vec};
+use std::{
+    clone::Clone,
+    iter::{once, repeat},
+    rc::Rc,
+    str::FromStr,
+    vec,
+};
 use thiserror::Error;
 
 use self::convert::TyConversionError;
@@ -88,6 +98,19 @@ pub(super) enum Error {
         #[label]
         span: Span,
     },
+    #[error("namespace cannot be exported since it is a parent namespace")]
+    #[diagnostic(code("Qsc.LowerAst.ParentNamespaceExport"))]
+    #[diagnostic(help(
+        "to make this namespace exportable, consider explicitly declaring it in source: `namespace Foo {{ ... }}`"
+    ))]
+    ParentNamespaceExport {
+        #[label]
+        span: Span,
+    },
+    #[error("reexporting a namespace from another package is not supported")]
+    #[diagnostic(help("consider reexporting items individually"))]
+    #[diagnostic(code("Qsc.LowerAst.CrossPackageNamespaceReexport"))]
+    CrossPackageNamespaceReexport(#[label] Span),
 }
 
 impl From<TyConversionError> for Error {
@@ -162,69 +185,52 @@ pub(super) struct With<'a> {
 }
 
 impl With<'_> {
-    pub(super) fn lower_package(
-        &mut self,
-        package: &ast::Package,
-        namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
-    ) -> hir::Package {
+    pub(super) fn lower_package(&mut self, package: &ast::Package) -> hir::Package {
         let mut stmts = Vec::new();
         for node in &package.nodes {
             match node {
                 ast::TopLevelNode::Namespace(namespace) => self.lower_namespace(namespace),
                 ast::TopLevelNode::Stmt(stmt) => {
-                    if let Some(stmt) = self.lower_stmt(stmt) {
-                        stmts.push(stmt);
-                    }
+                    stmts.extend(self.lower_stmt(stmt));
                 }
             }
         }
 
         let entry = package.entry.as_ref().map(|e| self.lower_expr(e));
-        let items = self.lowerer.items.drain(..).map(|i| (i.id, i)).collect();
+
+        let mut items = self
+            .lowerer
+            .items
+            .drain(..)
+            .map(|i| (i.id, i))
+            .collect::<IndexMap<_, _>>();
+
+        collapse_self_exports(&mut items);
+
         hir::Package {
             items,
-            namespaces,
             stmts,
             entry,
         }
     }
 
     pub(super) fn lower_namespace(&mut self, namespace: &ast::Namespace) {
-        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. }, _)) =
-            self.names.get(namespace.id)
-        else {
+        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. }, _)) = self.names.get(
+            namespace
+                .name
+                .last()
+                .expect("namespace name should contain at least one ident")
+                .id,
+        ) else {
             panic!("namespace should have item ID");
         };
 
         self.lowerer.parent = Some(id);
 
-        // Exports are `Res` items, which contain `hir::ItemId`s.
-        // The second element in the tuple is the optional alias
-        let exports: Vec<(_, Option<ast::Ident>)> = namespace
-            .exports()
-            .filter_map(|item| {
-                let PathKind::Ok(path) = &item.path else {
-                    return None;
-                };
-                self.names.get(path.id).map(|x| (x, item.alias.clone()))
-            })
-            .collect::<Vec<_>>();
-
-        let exported_hir_ids = exports
-            .iter()
-            .filter_map(|(res, alias)| match res {
-                resolve::Res::ExportedItem(id, hir_alias) => {
-                    Some((*id, hir_alias.as_ref().or(alias.as_ref())))
-                }
-                resolve::Res::Item(id, _) => Some((*id, alias.as_ref())),
-                _ => None,
-            })
-            .collect::<Vec<_>>();
-
         let items = namespace
             .items
             .iter()
-            .filter_map(|i| self.lower_item(i, &exported_hir_ids[..]))
+            .flat_map(|i| self.lower_item(i))
             .collect::<Vec<_>>();
 
         let name = self.lower_idents(&namespace.name);
@@ -242,13 +248,7 @@ impl With<'_> {
         self.lowerer.parent = None;
     }
 
-    #[allow(clippy::too_many_lines)]
-    fn lower_item(
-        &mut self,
-        item: &ast::Item,
-        // the optional ident is the export alias, if any
-        exported_ids: &[(hir::ItemId, Option<&ast::Ident>)],
-    ) -> Option<LocalItemId> {
+    fn lower_item(&mut self, item: &ast::Item) -> Vec<LocalItemId> {
         let attrs: Vec<_> = item
             .attrs
             .iter()
@@ -256,130 +256,107 @@ impl With<'_> {
             .collect();
 
         let resolve_id = |id| match self.names.get(id) {
-            Some(&resolve::Res::ExportedItem(item, ref hir_alias)) => {
-                Some((item, hir_alias.clone()))
-            }
-            Some(&resolve::Res::Item(item, _)) => Some((item, None)),
-            _otherwise => None,
+            Some(&resolve::Res::Item(item, _)) => item,
+            _ => panic!("item should have item ID"),
         };
 
-        let (id, kind) =
-            match &*item.kind {
-                ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
-
-                ast::ItemKind::ImportOrExport(item) => {
-                    if item.is_import() {
-                        return None;
-                    }
-                    for item in &item.items {
-                        let Some(item_name) = item.name() else {
-                            continue;
-                        };
-                        let Some((id, alias)) = resolve_id(item_name.id) else {
-                            continue;
-                        };
-                        let is_reexport = id.package.is_some() || alias.is_some();
-                        // if the package is Some, then this is a re-export and we
-                        // need to preserve the reference to the original `ItemId`
-                        if is_reexport {
-                            let mut name = self.lower_ident(item_name);
-                            name.id = self.assigner.next_node();
-                            let kind = hir::ItemKind::Export(name, id);
-                            self.lowerer.items.push(hir::Item {
-                                id: self.assigner.next_item(),
-                                span: item.span,
-                                parent: self.lowerer.parent,
-                                doc: "".into(),
-                                // attrs on exports not supported
-                                attrs: Vec::new(),
-                                visibility: Visibility::Public,
-                                kind,
-                            });
-                        }
-                    }
-                    return None;
+        let mut items = Vec::new();
+        match &*item.kind {
+            ast::ItemKind::Err | ast::ItemKind::Open(..) => {}
+            ast::ItemKind::ImportOrExport(decl) if decl.is_import() => {}
+            ast::ItemKind::ImportOrExport(decl) => {
+                // Only exports are handled here, imports vanish in the HIR
+                for item in iter_valid_items(decl) {
+                    let id = resolve_id(item.name().id);
+                    let res = self.path_to_res(item.path);
+                    let name = self.lower_ident(item.name());
+                    items.push((id, hir::ItemKind::Export(name, res), Visibility::Public));
                 }
-                ast::ItemKind::Callable(callable) => {
-                    let (id, _) = resolve_id(callable.name.id)?;
-                    let grandparent = self.lowerer.parent;
-                    self.lowerer.parent = Some(id.item);
-                    let (callable, errs) = self.lower_callable_decl(callable, &attrs);
-                    self.lowerer.errors.extend(errs.into_iter().map(|err| {
+            }
+            ast::ItemKind::Callable(callable) => {
+                let id = resolve_id(callable.name.id);
+                let grandparent = self.lowerer.parent;
+                self.lowerer.parent = Some(id.item);
+                let (callable, errs) = self.lower_callable_decl(callable, &attrs);
+                self.lowerer.errors.extend(
+                    errs.into_iter().map(|err| {
                         Into::<Error>::into(Into::<convert::TyConversionError>::into(err))
-                    }));
-                    self.lowerer.parent = grandparent;
-                    (id, hir::ItemKind::Callable(callable.into()))
-                }
-                ast::ItemKind::Ty(name, _) => {
-                    let (id, _) = resolve_id(name.id)?;
-                    let udt = self
-                        .tys
-                        .udts
-                        .get(&id)
-                        .expect("type item should have lowered UDT");
+                    }),
+                );
+                self.lowerer.parent = grandparent;
+                items.push((
+                    id,
+                    hir::ItemKind::Callable(callable.into()),
+                    Visibility::Internal,
+                ));
+            }
+            ast::ItemKind::Ty(name, _) => {
+                let id = resolve_id(name.id);
+                let udt = self
+                    .tys
+                    .udts
+                    .get(&id)
+                    .expect("type item should have lowered UDT");
 
-                    (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
-                }
-                ast::ItemKind::Struct(decl) => {
-                    let (id, _) = resolve_id(decl.name.id)?;
-                    let strct = self
-                        .tys
-                        .udts
-                        .get(&id)
-                        .expect("type item should have lowered struct");
+                items.push((
+                    id,
+                    hir::ItemKind::Ty(self.lower_ident(name), udt.clone()),
+                    Visibility::Internal,
+                ));
+            }
+            ast::ItemKind::Struct(decl) => {
+                let id = resolve_id(decl.name.id);
+                let strct = self
+                    .tys
+                    .udts
+                    .get(&id)
+                    .expect("type item should have lowered struct");
 
-                    (
-                        id,
-                        hir::ItemKind::Ty(self.lower_ident(&decl.name), strct.clone()),
-                    )
-                }
-            };
+                items.push((
+                    id,
+                    hir::ItemKind::Ty(self.lower_ident(&decl.name), strct.clone()),
+                    Visibility::Internal,
+                ));
+            }
+        }
 
-        let export_info = exported_ids.iter().find(|(hir_id, _)| hir_id == &id);
-        let visibility = match export_info {
-            Some((id, Some(alias))) => {
-                // this is the special case where this item _is_ exported,
-                // but it is exported with an alias.
-                // We want to hide the original item, making it private, but make
-                // the alias itself public.
-                let mut alias = self.lower_ident(alias);
-                alias.id = self.assigner.next_node();
-                self.lowerer.items.push(hir::Item {
-                    id: self.assigner.next_item(),
-                    span: alias.span,
+        let ids = items.iter().map(|(id, _, _)| id.item).collect::<Vec<_>>();
+
+        self.lowerer.items.extend(
+            items
+                .into_iter()
+                .zip(once(attrs).chain(repeat(Vec::new()))) // only apply the attrs to the first item
+                .map(|((id, kind, visibility), attrs)| hir::Item {
+                    id: id.item,
+                    span: item.span,
                     parent: self.lowerer.parent,
                     doc: Rc::clone(&item.doc),
-                    attrs: attrs.clone(),
-                    visibility: Visibility::Public,
-                    kind: hir::ItemKind::Export(alias, *id),
-                });
-                Visibility::Internal
-            }
-            Some((_, None)) => Visibility::Public,
-            None => Visibility::Internal,
-        };
+                    attrs,
+                    visibility,
+                    kind,
+                }),
+        );
 
-        self.lowerer.items.push(hir::Item {
-            id: id.item,
-            span: item.span,
-            parent: self.lowerer.parent,
-            doc: Rc::clone(&item.doc),
-            attrs,
-            visibility,
-            kind,
-        });
-
-        Some(id.item)
+        ids
     }
 
     fn lower_attr(&mut self, attr: &ast::Attr) -> Option<hir::Attr> {
         match hir::Attr::from_str(attr.name.name.as_ref()) {
             Ok(hir::Attr::EntryPoint) => match &*attr.arg.kind {
                 ast::ExprKind::Tuple(args) if args.is_empty() => Some(hir::Attr::EntryPoint),
+                // @EntryPoint(Profile)
+                ast::ExprKind::Paren(inner)
+                    if matches!(inner.kind.as_ref(), ast::ExprKind::Path(PathKind::Ok(path))
+                if Profile::from_str(path.name.name.as_ref()).is_ok()) =>
+                {
+                    Some(hir::Attr::EntryPoint)
+                }
+                // Any other form is not valid so generates an error.
                 _ => {
-                    self.lowerer
-                        .errors
-                        .push(Error::InvalidAttrArgs("()".to_string(), attr.arg.span));
+                    self.lowerer.errors.push(Error::InvalidAttrArgs(
+                        "empty or profile name".to_string(),
+                        attr.arg.span,
+                    ));
                     None
                 }
             },
@@ -455,6 +432,7 @@ impl With<'_> {
                             .push(Error::InvalidAttrArgs("()".to_string(), attr.arg.span));
                     }
                 }
+                // lower the attribute even if it has invalid args
                 Some(hir::Attr::Test)
             }
             Err(()) => {
@@ -658,23 +636,26 @@ impl With<'_> {
             stmts: block
                 .stmts
                 .iter()
-                .filter_map(|s| self.lower_stmt(s))
+                .flat_map(|s| self.lower_stmt(s))
                 .collect(),
         }
     }
 
-    pub(super) fn lower_stmt(&mut self, stmt: &ast::Stmt) -> Option<hir::Stmt> {
+    pub(super) fn lower_stmt(&mut self, stmt: &ast::Stmt) -> Vec<hir::Stmt> {
         let id = self.lower_id(stmt.id);
-        let kind = match &*stmt.kind {
-            ast::StmtKind::Empty | ast::StmtKind::Err => return None,
-            ast::StmtKind::Expr(expr) => hir::StmtKind::Expr(self.lower_expr(expr)),
-            ast::StmtKind::Item(item) => hir::StmtKind::Item(self.lower_item(item, &[])?),
-            ast::StmtKind::Local(mutability, lhs, rhs) => hir::StmtKind::Local(
+        let mut stmts = Vec::new();
+        match &*stmt.kind {
+            ast::StmtKind::Empty | ast::StmtKind::Err => {}
+            ast::StmtKind::Expr(expr) => stmts.push(hir::StmtKind::Expr(self.lower_expr(expr))),
+            ast::StmtKind::Item(item) => {
+                stmts.extend(self.lower_item(item).into_iter().map(hir::StmtKind::Item));
+            }
+            ast::StmtKind::Local(mutability, lhs, rhs) => stmts.push(hir::StmtKind::Local(
                 lower_mutability(*mutability),
                 self.lower_pat(lhs),
                 self.lower_expr(rhs),
-            ),
-            ast::StmtKind::Qubit(source, lhs, rhs, block) => hir::StmtKind::Qubit(
+            )),
+            ast::StmtKind::Qubit(source, lhs, rhs, block) => stmts.push(hir::StmtKind::Qubit(
                 match source {
                     ast::QubitSource::Fresh => hir::QubitSource::Fresh,
                     ast::QubitSource::Dirty => hir::QubitSource::Dirty,
@@ -682,15 +663,18 @@ impl With<'_> {
                 self.lower_pat(lhs),
                 self.lower_qubit_init(rhs),
                 block.as_ref().map(|b| self.lower_block(b)),
-            ),
-            ast::StmtKind::Semi(expr) => hir::StmtKind::Semi(self.lower_expr(expr)),
-        };
+            )),
+            ast::StmtKind::Semi(expr) => stmts.push(hir::StmtKind::Semi(self.lower_expr(expr))),
+        }
 
-        Some(hir::Stmt {
-            id,
-            span: stmt.span,
-            kind,
-        })
+        stmts
+            .into_iter()
+            .map(|kind| hir::Stmt {
+                id,
+                span: stmt.span,
+                kind,
+            })
+            .collect()
     }
 
     #[allow(clippy::too_many_lines)]
@@ -816,7 +800,7 @@ impl With<'_> {
             ),
             ast::ExprKind::Return(expr) => hir::ExprKind::Return(Box::new(self.lower_expr(expr))),
             ast::ExprKind::Struct(PathKind::Ok(path), copy, fields) => hir::ExprKind::Struct(
-                self.node_id_to_res(path.id),
+                self.path_to_res(path),
                 copy.as_ref().map(|c| Box::new(self.lower_expr(c))),
                 fields
                     .iter()
@@ -1027,13 +1011,32 @@ impl With<'_> {
         }
     }
 
-    fn node_id_to_res(&mut self, id: ast::NodeId) -> hir::Res {
-        match self.names.get(id) {
+    fn path_to_res(&mut self, path: &ast::Path) -> hir::Res {
+        match self.names.get(path.id) {
             Some(&resolve::Res::Item(item, _)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
-            // Exported items are just pass-throughs to the items they reference, and should be
-            // treated as Res to that original item.
-            Some(&resolve::Res::ExportedItem(item_id, _)) => hir::Res::Item(item_id),
+            Some(&resolve::Res::Importable(
+                resolve::Importable::Callable(item_id, _) | resolve::Importable::Ty(item_id, _),
+                ..,
+            )) => hir::Res::Item(item_id),
+            Some(&resolve::Res::Importable(resolve::Importable::Namespace(_, Some(item_id)))) => {
+                if item_id.package.is_some() {
+                    // This is a namespace from an external package, and reexporting is
+                    // disallowed since it has no meaningful effect.
+                    self.lowerer
+                        .errors
+                        .push(Error::CrossPackageNamespaceReexport(path.span));
+                    hir::Res::Err
+                } else {
+                    hir::Res::Item(item_id)
+                }
+            }
+            Some(&resolve::Res::Importable(resolve::Importable::Namespace(_, None))) => {
+                self.lowerer
+                    .errors
+                    .push(Error::ParentNamespaceExport { span: path.span });
+                hir::Res::Err
+            }
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param { .. })
             | None => hir::Res::Err,
         }
@@ -1045,7 +1048,7 @@ impl With<'_> {
                 let res = hir::Res::Local(self.lower_id(first_id));
                 self.path_parts_to_fields(hir::ExprKind::Var(res, Vec::new()), &parts, path.span.lo)
             }
-            None => hir::ExprKind::Var(self.node_id_to_res(path.id), generic_args),
+            None => hir::ExprKind::Var(self.path_to_res(path), generic_args),
         }
     }
 
@@ -1098,6 +1101,65 @@ impl With<'_> {
 
     fn lower_idents(&mut self, name: &impl Idents) -> hir::Idents {
         name.iter().map(|i| self.lower_ident(i)).collect()
+    }
+}
+
+/// Removes all self-export items, and makes the corresponding item declarations public.
+///
+/// Self-exports are exports that refer to items in the same namespace
+/// with the same name. e.g.:
+///
+/// ```qsharp
+/// namespace A {
+///     operation B() {} : Unit {}
+///     export B;
+/// }
+/// ```
+///
+/// These exports essentially serve to make the original item public, and don't need
+/// to be lowered as items of their own. In fact, lowering them would result in two
+/// items with the same name in the same namespace.
+fn collapse_self_exports(items: &mut IndexMap<LocalItemId, hir::Item>) {
+    let mut to_export = Vec::new();
+    for (id, item) in &*items {
+        if let hir::ItemKind::Export(name, Res::Item(original_item_id)) = &item.kind {
+            if original_item_id.package.is_none() {
+                let original_item_id = original_item_id.item;
+                let original_item = items
+                    .get(original_item_id)
+                    .expect("expected to resolve item id");
+                if let Some(parent_id) = item.parent {
+                    let same_namespace = original_item.parent == item.parent;
+                    let same_name = same_namespace
+                        && match &original_item.kind {
+                            hir::ItemKind::Callable(callable_decl) => {
+                                callable_decl.name.name == name.name
+                            }
+                            hir::ItemKind::Ty(ident, _) => ident.name == name.name,
+                            _ => false,
+                        };
+                    if same_name {
+                        to_export.push((parent_id, id, original_item_id));
+                    }
+                }
+            }
+        }
+    }
+
+    for (parent_id, export_item_id, original_item_id) in to_export {
+        // remove the export item
+        items.remove(export_item_id);
+        // remove the export item from its parent
+        if let Some(parent_item) = items.get_mut(parent_id) {
+            if let hir::ItemKind::Namespace(_, local_item_ids) = &mut parent_item.kind {
+                local_item_ids.retain(|&id| id != export_item_id);
+            }
+        }
+        // make the original item public
+        items
+            .get_mut(original_item_id)
+            .expect("expected to resolve item id")
+            .visibility = Visibility::Public;
     }
 }
 

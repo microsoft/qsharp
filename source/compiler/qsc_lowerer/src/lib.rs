@@ -236,11 +236,10 @@ impl Lowerer {
 
                 fir::ItemKind::Ty(name, udt)
             }
-            hir::ItemKind::Export(name, item) => {
+            hir::ItemKind::Export(name, res) => {
                 let name = self.lower_ident(name);
-                let item = lower_item_id(item);
-
-                fir::ItemKind::Export(name, item)
+                let res = self.lower_res(res);
+                fir::ItemKind::Export(name, res)
             }
         };
         let attrs = lower_attrs(&item.attrs);

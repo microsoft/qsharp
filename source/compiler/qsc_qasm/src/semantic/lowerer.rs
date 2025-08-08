@@ -75,6 +75,20 @@ const QASM2_VERSION: semantic::Version = semantic::Version {
     span: Span { lo: 0, hi: 0 },
 };
 
+const QASM3_STDGATES_INC: &str = "stdgates.inc";
+const QASM2_STDGATES_INC: &str = "qelib1.inc";
+
+const QASM3_STDGATES: &[&str] = &[
+    "p", "x", "y", "z", "h", "ch", "s", "sdg", "t", "tdg", "sx", "rx", "ry", "rz", "crx", "cry",
+    "crz", "cx", "cy", "cz", "cp", "swap", "cswap", "ccx", "cu", "CX", "phase", "cphase", "id",
+    "u1", "u2", "u3",
+];
+
+const QASM2_STDGATES: &[&str] = &[
+    "u3", "u2", "u1", "cx", "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "rx", "ry", "rz",
+    "cz", "cy", "ch", "ccx", "crz", "cu1", "cu3",
+];
+
 pub(crate) struct Lowerer {
     /// The root QASM source to compile.
     pub source: QasmSource,
@@ -202,7 +216,7 @@ impl Lowerer {
 
                     // special case for stdgates.inc
                     // it won't be in the includes list
-                    if include.filename.to_lowercase() == "stdgates.inc" {
+                    if include.filename.to_lowercase() == QASM3_STDGATES_INC {
                         if self.version == Some(QASM2_VERSION) {
                             self.push_semantic_error(
                                 SemanticErrorKind::IncludeNotInLanguageVersion(
@@ -214,7 +228,7 @@ impl Lowerer {
                         }
                         self.define_stdgates(include.span);
                         continue;
-                    } else if include.filename.to_lowercase() == "qelib1.inc" {
+                    } else if include.filename.to_lowercase() == QASM2_STDGATES_INC {
                         if self.version != Some(QASM2_VERSION) {
                             self.push_semantic_error(
                                 SemanticErrorKind::IncludeNotInLanguageVersion(
@@ -632,6 +646,13 @@ impl Lowerer {
             return semantic::StmtKind::Err;
         }
 
+        if lhs.ty.is_readonly_array_ref() {
+            let kind =
+                SemanticErrorKind::CannotUpdateReadonlyArrayRef(ident.name.to_string(), ident.span);
+            self.push_semantic_error(kind);
+            return semantic::StmtKind::Err;
+        }
+
         semantic::StmtKind::Assign(semantic::AssignStmt { span, lhs, rhs })
     }
 
@@ -720,6 +741,7 @@ impl Lowerer {
         }
     }
 
+    /// We lower a binary-assign statement like `a += 2;` as `a = a + 2;`.
     fn lower_simple_assign_op_stmt(
         &mut self,
         ident: &syntax::Ident,
@@ -728,6 +750,8 @@ impl Lowerer {
         span: Span,
     ) -> semantic::StmtKind {
         let lhs = self.lower_ident_expr(ident);
+
+        // Check that lhs can be updated.
         let ty = lhs.ty.clone();
         if ty.is_const() {
             let kind =
@@ -736,18 +760,22 @@ impl Lowerer {
             return semantic::StmtKind::Err;
         }
 
-        let rhs = match rhs {
-            syntax::ValueExpr::Expr(expr) => {
-                let expr = self.lower_expr(expr);
-                self.cast_expr_with_target_type_or_default(Some(expr), &ty, span)
-            }
-            syntax::ValueExpr::Measurement(measure_expr) => {
-                let expr = self.lower_measure_expr(measure_expr);
-                self.cast_expr_to_type(&ty, &expr)
-            }
-        };
+        if lhs.ty.is_readonly_array_ref() {
+            let kind =
+                SemanticErrorKind::CannotUpdateReadonlyArrayRef(ident.name.to_string(), ident.span);
+            self.push_semantic_error(kind);
+            return semantic::StmtKind::Err;
+        }
 
+        // Construct the rhs binary expression.
+        let rhs = match rhs {
+            syntax::ValueExpr::Expr(expr) => self.lower_expr(expr),
+            syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
+        };
         let binary_expr = self.lower_binary_op_expr(op, lhs.clone(), rhs, span);
+
+        // Cast the binary expression to the type of the lhs.
+        let binary_expr = self.cast_expr_with_target_type_or_default(Some(binary_expr), &ty, span);
 
         semantic::StmtKind::Assign(semantic::AssignStmt {
             span,
@@ -767,6 +795,7 @@ impl Lowerer {
 
         let (lhs, classical_indices) = self.lower_indexed_ident_expr(indexed_ident);
 
+        // Check that lhs can be updated.
         if lhs.ty.is_const() {
             let kind = SemanticErrorKind::CannotUpdateConstVariable(
                 indexed_ident.ident.name.to_string(),
@@ -793,19 +822,17 @@ impl Lowerer {
             );
         }
 
-        let indexed_ty = &lhs.ty;
+        // Construct the rhs binary expression.
         let rhs = match rhs {
-            syntax::ValueExpr::Expr(expr) => {
-                let expr = self.lower_expr(expr);
-                self.cast_expr_with_target_type_or_default(Some(expr), indexed_ty, span)
-            }
-            syntax::ValueExpr::Measurement(measure_expr) => {
-                let expr = self.lower_measure_expr(measure_expr);
-                self.cast_expr_to_type(indexed_ty, &expr)
-            }
+            syntax::ValueExpr::Expr(expr) => self.lower_expr(expr),
+            syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
         };
-
         let binary_expr = self.lower_binary_op_expr(op, lhs.clone(), rhs, span);
+
+        // Cast the binary expression to the type of the lhs.
+        let indexed_ty = &lhs.ty;
+        let binary_expr =
+            self.cast_expr_with_target_type_or_default(Some(binary_expr), indexed_ty, span);
 
         semantic::StmtKind::Assign(semantic::AssignStmt {
             span,
@@ -1543,13 +1570,37 @@ impl Lowerer {
 
     fn lower_expr_stmt(&mut self, stmt: &syntax::ExprStmt) -> semantic::StmtKind {
         let expr = self.lower_expr(&stmt.expr);
-        if matches!(&*expr.kind, semantic::ExprKind::Err) {
-            semantic::StmtKind::Err
-        } else {
-            semantic::StmtKind::ExprStmt(semantic::ExprStmt {
+        match &*expr.kind {
+            semantic::ExprKind::Err => semantic::StmtKind::Err,
+            semantic::ExprKind::Ident(id) => {
+                let symbol = &self.symbols[*id];
+                match &symbol.ty {
+                    Type::Gate(..) => {
+                        // gate call is missing qubits but the parser doesn't know that
+                        self.push_semantic_error(SemanticErrorKind::GateCallMissingParams(
+                            symbol.ty.to_string(),
+                            expr.span,
+                        ));
+                        semantic::StmtKind::Err
+                    }
+                    Type::Function(..) => {
+                        // function call is missing args but the parser doesn't know that
+                        self.push_semantic_error(SemanticErrorKind::FuncMissingParams(
+                            symbol.ty.to_string(),
+                            expr.span,
+                        ));
+                        semantic::StmtKind::Err
+                    }
+                    _ => semantic::StmtKind::ExprStmt(semantic::ExprStmt {
+                        span: stmt.span,
+                        expr,
+                    }),
+                }
+            }
+            _ => semantic::StmtKind::ExprStmt(semantic::ExprStmt {
                 span: stmt.span,
                 expr,
-            })
+            }),
         }
     }
 
@@ -1786,12 +1837,12 @@ impl Lowerer {
             // If the first argument is a dynamic reference. We can only compute the length
             // of the requested dimension at runtime, and the ouput is of type `uint`.
             Type::DynArrayRef(ref_ty) => {
-                let array_dims = ref_ty.num_dims;
+                let array_dims = ref_ty.dims;
                 let kind = semantic::ExprKind::SizeofCall(semantic::SizeofCallExpr {
                     span: expr.span,
                     fn_name_span: expr.name.span,
                     array: first_arg,
-                    array_dims,
+                    array_dims: array_dims.into(),
                     dim: second_arg,
                 });
 
@@ -1821,22 +1872,34 @@ impl Lowerer {
         let name_span = expr.name.span;
         let (symbol_id, symbol) = self.try_get_existing_or_insert_err_symbol(name, name_span);
 
-        let (params_ty, return_ty) = if let Type::Function(params_ty, return_ty) = &symbol.ty {
-            let arity = params_ty.len();
+        let (params_ty, return_ty) = match &symbol.ty {
+            Type::Function(params_ty, return_ty) => {
+                let arity = params_ty.len();
 
-            // 3. Check that function classical arity matches the number of classical args.
-            if arity != expr.args.len() {
-                self.push_semantic_error(SemanticErrorKind::InvalidNumberOfClassicalArgs(
-                    arity,
-                    expr.args.len(),
+                // 3. Check that function classical arity matches the number of classical args.
+                if arity != expr.args.len() {
+                    self.push_semantic_error(SemanticErrorKind::InvalidNumberOfClassicalArgs(
+                        arity,
+                        expr.args.len(),
+                        expr.span,
+                    ));
+                }
+
+                (params_ty.clone(), (**return_ty).clone())
+            }
+            Type::Gate(..) => {
+                // The parser thinks that the gate call is a function call due to mising qubits.
+                // We provide a better error message for gates that are called like functions.
+                self.push_semantic_error(SemanticErrorKind::GateCalledLikeFunc(
+                    symbol.ty.to_string(),
                     expr.span,
                 ));
+                return err_expr!(Type::Err, expr.span);
             }
-
-            (params_ty.clone(), (**return_ty).clone())
-        } else {
-            self.push_semantic_error(SemanticErrorKind::CannotCallNonFunction(expr.span));
-            (Arc::default(), crate::semantic::types::Type::Err)
+            _ => {
+                self.push_semantic_error(SemanticErrorKind::CannotCallNonFunction(expr.span));
+                return err_expr!(Type::Err, expr.span);
+            }
         };
 
         // 4. Lower the args.
@@ -1928,15 +1991,37 @@ impl Lowerer {
         // 3. Check that the gate_name actually refers to a gate in the symbol table
         //    and get its symbol_id & symbol. Make sure to use the name that could've
         //    been overriden by the Q# name and the span of the original name.
+        if self.symbols.get_symbol_by_name(&name).is_none() {
+            if let Some(include) = self.get_include_file_defining_standard_gate(&name) {
+                // The symbol is not defined, but the name is a standard gate name
+                // and it is being used like a gate call. Tell the user that that they likely
+                // need the appropriate include.
+                self.push_semantic_error(SemanticErrorKind::StdGateCalledButNotIncluded(
+                    include.to_string(),
+                    stmt.span,
+                ));
+                return vec![semantic::StmtKind::Err];
+            }
+        }
         let (symbol_id, symbol) = self.try_get_existing_or_insert_err_symbol(name, stmt.name.span);
 
-        let (classical_arity, quantum_arity) =
-            if let Type::Gate(classical_arity, quantum_arity) = &symbol.ty {
-                (*classical_arity, *quantum_arity)
-            } else {
+        let (classical_arity, quantum_arity) = match &symbol.ty {
+            Type::Gate(classical_arity, quantum_arity) => (*classical_arity, *quantum_arity),
+            Type::Function(_, _) => {
+                // Symbol table says this is a function, but the parser thinks it is a gate call
+                // likely due to missing parentheses. Provide a better error message for functions that are called like gates
+                self.push_semantic_error(SemanticErrorKind::FuncCalledLikeGate(
+                    symbol.ty.to_string(),
+                    symbol.span,
+                ));
+                return vec![semantic::StmtKind::Err];
+            }
+            _ => {
+                // catch all remaining cases where the symbol is not a gate.
                 self.push_semantic_error(SemanticErrorKind::CannotCallNonGate(symbol.span));
-                (0, 0)
-            };
+                return vec![semantic::StmtKind::Err];
+            }
+        };
 
         // 4. Check that gate_call classical arity matches the number of classical args.
         if classical_arity as usize != args.len() {
@@ -2931,7 +3016,7 @@ impl Lowerer {
                     return Type::Err;
                 }
 
-                Type::make_dyn_array_ref_ty(num_dims, &base_ty, is_mutable)
+                Type::make_dyn_array_ref_ty(num_dims.into(), &base_ty, is_mutable)
             }
         }
     }
@@ -4093,6 +4178,15 @@ impl Lowerer {
 
         let collection = self.lower_ident_expr(&indexed_ident.ident);
 
+        if collection.ty.is_readonly_array_ref() {
+            let kind = SemanticErrorKind::CannotUpdateReadonlyArrayRef(
+                indexed_ident.ident.name.to_string(),
+                indexed_ident.ident.span,
+            );
+            self.push_semantic_error(kind);
+            return (err_expr!(Type::Err, indexed_ident.span), Default::default());
+        }
+
         // We flatten the multiple square brackets, converting
         // a[1, 2][5, 7][2, 4:8]
         //   to
@@ -4357,6 +4451,17 @@ impl Lowerer {
     fn create_err(&self, kind: crate::ErrorKind) -> WithSource<crate::Error> {
         let error = crate::Error(kind);
         WithSource::from_map(&self.source_map, error)
+    }
+
+    pub fn get_include_file_defining_standard_gate(&self, name: &str) -> Option<&'static str> {
+        if self.version == Some(QASM2_VERSION) {
+            if QASM2_STDGATES.contains(&name) {
+                return Some(QASM2_STDGATES_INC);
+            }
+        } else if QASM3_STDGATES.contains(&name) {
+            return Some(QASM3_STDGATES_INC);
+        }
+        None
     }
 }
 

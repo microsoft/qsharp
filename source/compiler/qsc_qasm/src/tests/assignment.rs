@@ -174,3 +174,43 @@ fn index_into_array_and_then_into_int() {
         "#]],
     );
 }
+
+#[test]
+fn angle_shl_assign() {
+    let source = "
+        angle[8] a;
+        a <<= 1;
+    ";
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = new Std.OpenQASM.Angle.Angle {
+                Value = 0,
+                Size = 53
+            };
+            set a = Std.OpenQASM.Angle.__AngleShl__(a, 1);
+        "#]],
+    );
+}
+
+#[test]
+fn angle_shr_assign() {
+    let source = "
+        angle[8] a;
+        a >>= 1;
+    ";
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = new Std.OpenQASM.Angle.Angle {
+                Value = 0,
+                Size = 53
+            };
+            set a = Std.OpenQASM.Angle.AngleShr(a, 1);
+        "#]],
+    );
+}

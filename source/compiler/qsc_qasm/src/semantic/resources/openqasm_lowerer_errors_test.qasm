@@ -20,6 +20,9 @@ qubit[2] qreg_2;
 // lowerer, so that we can contruct the error with the right span.
 include "missing_file";
 
+// StdGateCalledButNotIncluded
+x q;
+
 // RedefinedSymbol in define_stdgates(...)
 include "stdgates.inc";
 int x = 2;
@@ -243,3 +246,17 @@ missing_symbol[2];
 // EmptyIndexOperator
 bit[4] empty_index;
 empty_index[];
+
+// CannotCallNonFunction
+empty_index();
+
+// FuncCalledLikeGate
+def func_called_like_gate(qubit q) {}
+func_called_like_gate q;
+
+// GateCallMissingParams
+h;
+
+
+// FuncMissingParams
+func_called_like_gate;

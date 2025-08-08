@@ -661,7 +661,11 @@ def run(
     if shots < 1:
         raise ValueError("The number of shots must be greater than 0.")
 
-    telemetry_events.on_run(shots)
+    telemetry_events.on_run(
+        shots,
+        noise=(noise is not None and noise != (0.0, 0.0, 0.0)),
+        qubit_loss=(qubit_loss is not None and qubit_loss > 0.0),
+    )
     start_time = monotonic()
 
     results: List[ShotResult] = []

@@ -96,7 +96,7 @@ fn stack_traces_can_cross_eval_session_and_file_boundaries() {
                 Call stack:
                     at Adjoint Test.C in 1.qs:10:12
                     at Adjoint Test.B in 1.qs:3:12
-                    at Adjoint Test2.A in 2.qs:9:0
+                    at Adjoint Test2.A in 2.qs:4:12
                     at Z in line_0:0:34
             "#]]
             .assert_eq(stack_trace);
@@ -165,9 +165,9 @@ fn stack_traces_can_cross_file_and_entry_boundaries() {
             expect![[r#"
                 Error: division by zero
                 Call stack:
-                    at Adjoint Test.C in 1.qs:11:8
-                    at Adjoint Test.B in 1.qs:5:0
-                    at Adjoint Test2.A in 2.qs:9:0
+                    at Adjoint Test.C in 1.qs:10:12
+                    at Adjoint Test.B in 1.qs:3:12
+                    at Adjoint Test2.A in 2.qs:4:12
             "#]]
             .assert_eq(stack_trace);
         }

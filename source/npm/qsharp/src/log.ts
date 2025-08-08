@@ -18,8 +18,8 @@ declare global {
   // 5 = trace
   // Note this also aligns with the Rust log crate macros/levels
   // See https://docs.rs/log/latest/log/
-  var qscLog: typeof log; // eslint-disable-line no-var
-  var qscGitHash: string; // eslint-disable-line no-var
+  var qscLog: typeof log;
+  var qscGitHash: string;
 }
 
 export type LogLevel = "off" | "error" | "warn" | "info" | "debug" | "trace";

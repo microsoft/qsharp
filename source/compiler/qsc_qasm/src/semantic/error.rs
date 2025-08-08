@@ -64,6 +64,10 @@ pub enum SemanticErrorKind {
     #[diagnostic(help("mutable variables must be declared without the keyword `const`"))]
     #[diagnostic(code("Qasm.Lowerer.CannotUpdateConstVariable"))]
     CannotUpdateConstVariable(String, #[label] Span),
+    #[error("cannot update readonly array reference {0}")]
+    #[diagnostic(help("mutable array references must be declared with the keyword `mutable`"))]
+    #[diagnostic(code("Qasm.Lowerer.CannotUpdateReadonlyArrayRef"))]
+    CannotUpdateReadonlyArrayRef(String, #[label] Span),
     #[error("cannot cast expression of type {0} to type {1} as it would cause truncation")]
     #[diagnostic(code("Qasm.Lowerer.CastWouldCauseTruncation"))]
     CastWouldCauseTruncation(String, String, #[label] Span),
@@ -112,6 +116,26 @@ pub enum SemanticErrorKind {
     #[error("for statements must have a body or statement")]
     #[diagnostic(code("Qasm.Lowerer.ForStatementsMustHaveABodyOrStatement"))]
     ForStatementsMustHaveABodyOrStatement(#[label] Span),
+    #[error("function called like gate: {0}")]
+    #[diagnostic(help("function parameters must be in parentheses"))]
+    #[diagnostic(code("Qasm.Lowerer.FuncCalledLikeGate"))]
+    FuncCalledLikeGate(String, #[label] Span),
+    #[error("function call missing parameters: {0}")]
+    #[diagnostic(help(
+        "a function call must use parentheses, with any parameters inside those parentheses."
+    ))]
+    #[diagnostic(code("Qasm.Lowerer.FuncMissingParams"))]
+    FuncMissingParams(String, #[label] Span),
+    #[error("gate called like function: {0}")]
+    #[diagnostic(help("ensure that qubit arguments are provided to the gate call"))]
+    #[diagnostic(code("Qasm.Lowerer.GateCalledLikeFunc"))]
+    GateCalledLikeFunc(String, #[label] Span),
+    #[error("gate call missing parameters: {0}")]
+    #[diagnostic(help(
+        "ensure that any classical and quantum arguments are provided to the gate call"
+    ))]
+    #[diagnostic(code("Qasm.Lowerer.GateCallMissingParams"))]
+    GateCallMissingParams(String, #[label] Span),
     #[error("gate declarations must be done in global scope")]
     #[diagnostic(code("Qasm.Lowerer.GateDeclarationInNonGlobalScope"))]
     GateDeclarationInNonGlobalScope(#[label] Span),
@@ -221,6 +245,10 @@ pub enum SemanticErrorKind {
     #[error("return statements are only allowed within subroutines")]
     #[diagnostic(code("Qasm.Lowerer.ReturnNotInSubroutine"))]
     ReturnNotInSubroutine(#[label] Span),
+    #[error("A standard gate was called but not included")]
+    #[diagnostic(help("Did you mean to include the standard gate library '{0}'?"))]
+    #[diagnostic(code("Qasm.Lowerer.StdGateCalledButNotIncluded"))]
+    StdGateCalledButNotIncluded(String, #[label] Span),
     #[error("switch statement must have at least one non-default case")]
     #[diagnostic(code("Qasm.Lowerer.SwitchStatementMustHaveAtLeastOneCase"))]
     SwitchStatementMustHaveAtLeastOneCase(#[label] Span),

@@ -1,11 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use expect_test::expect;
+mod dyn_array_ref;
+mod static_array_ref;
 
 use super::check;
+use expect_test::expect;
 
-#[allow(clippy::too_many_lines)]
 #[test]
 fn too_many_indices_in_indexed_assignment() {
     check(

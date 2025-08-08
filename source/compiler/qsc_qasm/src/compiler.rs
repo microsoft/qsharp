@@ -8,7 +8,7 @@ use std::{rc::Rc, str::FromStr, sync::Arc};
 
 use error::CompilerErrorKind;
 use num_bigint::BigInt;
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{span::Span, target::Profile};
 use qsc_frontend::{compile::SourceMap, error::WithSource};
 use rustc_hash::FxHashMap;
 
@@ -114,6 +114,7 @@ pub fn compile_to_qsharp_ast_with_config(
 pub enum PragmaKind {
     QdkBoxOpen,
     QdkBoxClose,
+    QdkQirProfile,
 }
 
 impl FromStr for PragmaKind {
@@ -123,6 +124,7 @@ impl FromStr for PragmaKind {
         match s.to_lowercase().as_str() {
             "qdk.box.open" => Ok(PragmaKind::QdkBoxOpen),
             "qdk.box.close" => Ok(PragmaKind::QdkBoxClose),
+            "qdk.qir.profile" => Ok(PragmaKind::QdkQirProfile),
             _ => Err(()),
         }
     }
@@ -184,6 +186,7 @@ impl QasmCompiler {
         for pragma in &program.pragmas {
             self.compile_pragma_stmt(pragma);
         }
+
         self.compile_stmts(&program.statements);
         let (package, signature) = match program_ty {
             ProgramType::File => self.build_file(),
@@ -191,7 +194,27 @@ impl QasmCompiler {
             ProgramType::Fragments => (self.build_fragments(), None),
         };
 
-        QasmCompileUnit::new(self.source_map, self.errors, package, signature)
+        let target_profile = self.get_profile();
+        QasmCompileUnit::new(
+            self.source_map,
+            self.errors,
+            package,
+            signature,
+            target_profile,
+        )
+    }
+
+    /// Gets the profile for compilation from the first profile
+    /// pragma if present, otherwise default to `Unrestricted`.
+    fn get_profile(&self) -> Profile {
+        self.pragma_config
+            .pragmas
+            .get(&PragmaKind::QdkQirProfile)
+            .map_or(Profile::Unrestricted, |profile_str| {
+                Profile::from_str(profile_str.as_ref()).expect(
+                "Invalid profile pragma; only a valid profile should be store in pragma_config.",
+            )
+            })
     }
 
     /// Build a package with namespace and an operation
@@ -1113,6 +1136,30 @@ impl QasmCompiler {
             }
             (PragmaKind::QdkBoxOpen | PragmaKind::QdkBoxClose, None) => {
                 self.push_compiler_error(CompilerErrorKind::MissingBoxPragmaTarget(stmt.span));
+            }
+            (PragmaKind::QdkQirProfile, Some(profile)) => {
+                // For this pragma, we only keep the first instance.
+                if Profile::from_str(profile).is_ok() {
+                    if !self
+                        .pragma_config
+                        .pragmas
+                        .contains_key(&PragmaKind::QdkQirProfile)
+                    {
+                        self.pragma_config
+                            .insert(PragmaKind::QdkQirProfile, profile.clone());
+                    }
+                    return;
+                }
+                self.push_compiler_error(CompilerErrorKind::InvalidProfilePragmaTarget(
+                    profile.to_string(),
+                    stmt.value_span.unwrap_or(stmt.span),
+                ));
+            }
+            (PragmaKind::QdkQirProfile, None) => {
+                self.push_compiler_error(CompilerErrorKind::InvalidProfilePragmaTarget(
+                    String::new(),
+                    stmt.span,
+                ));
             }
         }
     }
@@ -2238,7 +2285,7 @@ impl QasmCompiler {
                 Self::make_qsharp_array_ty(&array_ref.base_ty, dims)
             }
             Type::DynArrayRef(array_ref) if !array_ref.is_mutable => {
-                let dims = (array_ref.num_dims).into();
+                let dims = (array_ref.dims).into();
                 Self::make_qsharp_array_ty(&array_ref.base_ty, dims)
             }
             Type::StaticArrayRef(array_ref) if array_ref.is_mutable => {

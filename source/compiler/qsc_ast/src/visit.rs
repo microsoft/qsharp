@@ -3,9 +3,10 @@
 
 use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAccess, FieldAssign, FieldDef,
-    FunctorExpr, FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path,
-    PathKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
-    StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TypeParameter,
+    FunctorExpr, FunctorExprKind, Ident, ImportKind, ImportOrExportItem, Item, ItemKind, Namespace,
+    Package, Pat, PatKind, Path, PathKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt,
+    StmtKind, StringComponent, StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
+    TypeParameter,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -35,6 +36,10 @@ pub trait Visitor<'a>: Sized {
 
     fn visit_struct_decl(&mut self, decl: &'a StructDecl) {
         walk_struct_decl(self, decl);
+    }
+
+    fn visit_import_or_export(&mut self, item: &'a ImportOrExportItem) {
+        walk_import_or_export(self, item);
     }
 
     fn visit_field_def(&mut self, def: &'a FieldDef) {
@@ -120,16 +125,12 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
         }
         ItemKind::Struct(decl) => vis.visit_struct_decl(decl),
         ItemKind::ImportOrExport(decl) => {
-            for item in &decl.items {
-                vis.visit_path_kind(&item.path);
-                if let Some(ref alias) = item.alias {
-                    vis.visit_ident(alias);
-                }
-            }
+            decl.items
+                .iter()
+                .for_each(|item| vis.visit_import_or_export(item));
         }
     }
 }
-
 pub fn walk_attr<'a>(vis: &mut impl Visitor<'a>, attr: &'a Attr) {
     vis.visit_ident(&attr.name);
     vis.visit_expr(&attr.arg);
@@ -172,6 +173,16 @@ pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl
 pub fn walk_struct_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a StructDecl) {
     vis.visit_ident(&decl.name);
     decl.fields.iter().for_each(|f| vis.visit_field_def(f));
+}
+
+pub fn walk_import_or_export<'a>(vis: &mut impl Visitor<'a>, item: &'a ImportOrExportItem) {
+    vis.visit_path_kind(&item.path);
+    if let ImportKind::Direct {
+        alias: Some(ref alias),
+    } = item.kind
+    {
+        vis.visit_ident(alias);
+    }
 }
 
 pub fn walk_field_def<'a>(vis: &mut impl Visitor<'a>, def: &'a FieldDef) {
