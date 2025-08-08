@@ -17,7 +17,7 @@ use qsc_frontend::resolve;
 use qsc_hir::hir::{CallableKind, Item, ItemKind, Package, PackageId, Visibility};
 use qsc_hir::{hir, ty};
 use rustc_hash::FxHashMap;
-use serde_json::json;
+use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter, Result};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -719,13 +719,13 @@ pub fn generate_summaries(
     additional_sources: Option<(PackageStore, &Dependencies, SourceMap)>,
     capabilities: Option<TargetCapabilityFlags>,
     language_features: Option<LanguageFeatures>,
-) -> Vec<String> {
+) -> BTreeMap<String, Vec<serde_json::Value>> {
     let capabilities = Some(capabilities.unwrap_or(TargetCapabilityFlags::all()));
     let compilation = Compilation::new(additional_sources, capabilities, language_features);
     let display = &CodeDisplay {
         compilation: &compilation,
     };
-    let mut summaries = Vec::new();
+    let mut ns_map: BTreeMap<String, Vec<serde_json::Value>> = BTreeMap::new();
 
     for (package_id, unit) in &compilation.package_store {
         let is_current_package = compilation.current_package_id == Some(package_id);
@@ -744,7 +744,7 @@ pub fn generate_summaries(
 
         let package = &unit.package;
         for (_, item) in &package.items {
-            if let Some((ns, metadata)) = generate_summary_metadata_for_item(
+            if let Some(metadata) = generate_summary_metadata_for_item(
                 package_id,
                 package,
                 package_kind.clone(),
@@ -754,22 +754,26 @@ pub fn generate_summaries(
             ) {
                 let params = parse_doc_for_all_params(&item.doc)
                     .into_iter()
-                    .map(|(name, description)| json!({"name": name, "description": description}))
+                    .map(|(name, description)| serde_json::json!({"name": name, "description": description}))
                     .collect::<Vec<_>>();
                 let output = parse_doc_for_output(&item.doc);
-                let obj = json!({
+                let obj = serde_json::json!({
                     "name": metadata.name.as_ref(),
+                    "namespace": metadata.namespace.as_ref(),
                     "kind": format!("{}", metadata.kind),
                     "signature": metadata.signature,
                     "summary": metadata.summary,
                     "parameters": params,
                     "output": output,
                 });
-                summaries.push(obj.to_string());
+                ns_map
+                    .entry(metadata.namespace.to_string())
+                    .or_default()
+                    .push(obj);
             }
         }
     }
-    summaries
+    ns_map
 }
 
 fn generate_summary_metadata_for_item(
@@ -779,7 +783,7 @@ fn generate_summary_metadata_for_item(
     include_internals: bool,
     item: &Item,
     display: &CodeDisplay,
-) -> Option<(Rc<str>, Metadata)> {
+) -> Option<Metadata> {
     let (true_package, true_item) = resolve_export(
         default_package_id,
         package,
@@ -789,6 +793,5 @@ fn generate_summary_metadata_for_item(
     )?;
 
     let ns = get_namespace(true_package, true_item)?;
-    let metadata = get_metadata(package_kind, ns.clone(), true_item, display)?;
-    Some((ns, metadata))
+    get_metadata(package_kind, ns.clone(), true_item, display)
 }

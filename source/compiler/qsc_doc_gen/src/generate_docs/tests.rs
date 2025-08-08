@@ -211,23 +211,23 @@ fn top_index_file_generation() {
 #[test]
 fn generates_standard_item_summary() {
     let summaries = generate_summaries(None, None, None);
-    // Find a summary for a known item, e.g., Length
+    // Find a summary for a known item, e.g., Std.Core.Length
     let summary = summaries
+        .get("Std.Core")
+        .expect("Could not find Std.Core namespace")
         .iter()
-        .find(|s| s.contains("Length") && s.contains("function"))
+        .find(|item| item["name"] == "Length" && item["kind"] == "function")
         .expect("Could not find summary for Length");
 
     // Pretty-print the JSON for readability in the test
-    let pretty = serde_json::to_string_pretty(
-        &serde_json::from_str::<serde_json::Value>(summary)
-            .expect("summary is expected to be valid JSON"),
-    )
-    .expect("summary is expected to be valid JSON");
+    let pretty =
+        serde_json::to_string_pretty(summary).expect("summary is expected to be valid JSON");
 
     expect![[r#"
         {
           "kind": "function",
           "name": "Length",
+          "namespace": "Std.Core",
           "output": "The total number of elements in the input array `a`.",
           "parameters": [
             {
