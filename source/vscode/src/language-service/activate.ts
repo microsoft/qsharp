@@ -119,10 +119,24 @@ export async function activateLanguageService(
     ),
   );
 
+  subscriptions.push(
+    vscode.languages.registerDefinitionProvider(
+      openqasmLanguageId,
+      createDefinitionProvider(languageService),
+    ),
+  );
+
   // find references
   subscriptions.push(
     vscode.languages.registerReferenceProvider(
       qsharpLanguageId,
+      createReferenceProvider(languageService),
+    ),
+  );
+
+  subscriptions.push(
+    vscode.languages.registerReferenceProvider(
+      openqasmLanguageId,
       createReferenceProvider(languageService),
     ),
   );
@@ -141,6 +155,13 @@ export async function activateLanguageService(
   subscriptions.push(
     vscode.languages.registerRenameProvider(
       qsharpLanguageId,
+      createRenameProvider(languageService),
+    ),
+  );
+
+  subscriptions.push(
+    vscode.languages.registerRenameProvider(
+      openqasmLanguageId,
       createRenameProvider(languageService),
     ),
   );

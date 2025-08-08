@@ -925,8 +925,8 @@ impl Lowerer {
             && is_symbol_declaration_outside_gate_or_function_scope;
 
         let kind = if need_to_capture_symbol && symbol.ty.is_const() {
-            if let Some(val) = symbol.get_const_value() {
-                semantic::ExprKind::Lit(val)
+            if symbol.get_const_value().is_some() {
+                semantic::ExprKind::CapturedIdent(symbol_id)
             } else {
                 // If the const evaluation fails, we return Err but don't push
                 // any additional error. The error was already pushed in the
@@ -3991,16 +3991,10 @@ impl Lowerer {
             // const_eval will push any needed errors
             let lowered_expr = lowered_expr.with_const_value(self);
 
-            let lit = lowered_expr.get_const_value()?;
+            // fail the lowering if we couldn't evaluate the const value
+            let _ = lowered_expr.get_const_value()?;
 
-            Some(
-                semantic::Expr::new(
-                    lowered_expr.span,
-                    semantic::ExprKind::Lit(lit.clone()),
-                    Type::Int(None, true),
-                )
-                .with_const_value(self),
-            )
+            Some(lowered_expr)
         };
 
         let start = range.start.as_ref().map(&mut lower_and_const_eval);

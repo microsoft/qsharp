@@ -59,6 +59,7 @@ where
                     }),
                     None,
                 )),
+                span: name_span,
                 ..Default::default()
             }),
             Box::new(rhs),
@@ -102,6 +103,7 @@ where
                     span: designator_span,
                     kind: Box::new(ExprKind::Lit(Box::new(Lit::Int(i64::from(size))))),
                 }))),
+                span: stmt_span,
                 ..Default::default()
             }),
         )),
@@ -121,6 +123,7 @@ where
                     }),
                     None,
                 )),
+                span: name_span,
                 ..Default::default()
             }),
             Box::new(call_expr),
@@ -149,6 +152,7 @@ where
         QubitSource::Fresh,
         Box::new(Pat {
             kind: Box::new(PatKind::Bind(Box::new(ident), None)),
+            span: name_span,
             ..Default::default()
         }),
         Box::new(qubit),
@@ -191,6 +195,7 @@ where
         QubitSource::Fresh,
         Box::new(Pat {
             kind: Box::new(PatKind::Bind(Box::new(ident), None)),
+            span: name_span,
             ..Default::default()
         }),
         Box::new(qubit),
@@ -1033,13 +1038,14 @@ where
 
     let result_ty_ident = Ident {
         name: ty.to_string().into(),
+        span: ty_span,
         ..Default::default()
     };
     let result_ty_path = ast::PathKind::Ok(Box::new(ast::Path {
         name: Box::new(result_ty_ident),
         segments: None,
         id: NodeId::default(),
-        span: Span::default(),
+        span: ty_span,
     }));
     let result_ty_kind = ast::TyKind::Path(result_ty_path);
 
@@ -1276,8 +1282,8 @@ pub(crate) fn build_unary_op_expr(op: ast::UnOp, expr: ast::Expr, prefix_span: S
     }
 }
 
-pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
-    match output_ty {
+pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type, span: Span) -> Ty {
+    let mut ty = match output_ty {
         crate::types::Type::Angle(_) => build_angle_ty_ident(),
         crate::types::Type::Result(_) => build_path_ident_ty("Result"),
         crate::types::Type::Qubit => build_path_ident_ty("Qubit"),
@@ -1310,7 +1316,7 @@ pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
             } else {
                 let t = tys
                     .iter()
-                    .map(map_qsharp_type_to_ast_ty)
+                    .map(|ty| map_qsharp_type_to_ast_ty(ty, Span::default()))
                     .collect::<Vec<_>>();
 
                 let kind = TyKind::Tuple(t.into_boxed_slice());
@@ -1321,7 +1327,9 @@ pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
             }
         }
         crate::types::Type::Err => Ty::default(),
-    }
+    };
+    ty.span = span;
+    ty
 }
 
 fn wrap_array_ty_by_dims(dims: impl Into<u32>, mut ty: Ty) -> Ty {
@@ -1350,6 +1358,7 @@ pub(crate) fn build_for_stmt(
     loop_var_name: &str,
     loop_var_span: Span,
     loop_var_qsharp_ty: &crate::types::Type,
+    loop_var_ty_span: Span,
     iter: Expr,
     body: Block,
     stmt_span: Span,
@@ -1364,8 +1373,15 @@ pub(crate) fn build_for_stmt(
                             span: loop_var_span,
                             ..Default::default()
                         }),
-                        Some(Box::new(map_qsharp_type_to_ast_ty(loop_var_qsharp_ty))),
+                        Some(Box::new(map_qsharp_type_to_ast_ty(
+                            loop_var_qsharp_ty,
+                            loop_var_ty_span,
+                        ))),
                     )),
+                    span: Span {
+                        lo: loop_var_ty_span.lo,
+                        hi: loop_var_span.hi,
+                    },
                     ..Default::default()
                 }),
                 Box::new(iter),

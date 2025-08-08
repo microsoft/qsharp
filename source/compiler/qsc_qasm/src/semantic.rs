@@ -18,8 +18,10 @@ pub mod error;
 mod lowerer;
 pub use error::Error;
 pub use error::SemanticErrorKind;
+pub mod passes;
 pub mod symbols;
 pub mod types;
+pub mod visit;
 
 #[cfg(test)]
 pub(crate) mod tests;

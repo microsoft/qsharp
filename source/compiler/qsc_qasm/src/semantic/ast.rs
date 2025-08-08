@@ -1082,6 +1082,7 @@ pub enum ExprKind {
     /// An expression with invalid syntax that can't be parsed.
     #[default]
     Err,
+    CapturedIdent(SymbolId),
     Ident(SymbolId),
     UnaryOp(UnaryOpExpr),
     BinaryOp(BinaryOpExpr),
@@ -1099,6 +1100,7 @@ impl Display for ExprKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             ExprKind::Err => write!(f, "Err"),
+            ExprKind::CapturedIdent(id) => write!(f, "CapturedSymbolId({id})"),
             ExprKind::Ident(id) => write!(f, "SymbolId({id})"),
             ExprKind::UnaryOp(expr) => write!(f, "{expr}"),
             ExprKind::BinaryOp(expr) => write!(f, "{expr}"),

@@ -140,6 +140,29 @@ fn for_loops_can_iterate_bit_register() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
+fn for_loops_can_iterate_const_bit_register() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        int sum = 0;
+        bit[5] reg = "10101";
+        for bit b in reg {
+            sum += b;
+        }
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        mutable sum = 0;
+        mutable reg = [One, Zero, One, Zero, One];
+        for b : Result in reg {
+            set sum = sum + Std.OpenQASM.Convert.ResultAsInt(b);
+        }
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
 fn loop_variables_should_be_scoped_to_for_loop() {
     let source = r#"
         int sum = 0;
