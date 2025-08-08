@@ -38,17 +38,9 @@ type Wasm = typeof import("../../lib/web/qsc_wasm.js");
 export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
 
-  getAst(
-    code: string,
-    languageFeatures: string[],
-    profile: TargetProfile,
-  ): Promise<string>;
+  getAst(code: string, languageFeatures: string[]): Promise<string>;
 
-  getHir(
-    code: string,
-    languageFeatures: string[],
-    profile: TargetProfile,
-  ): Promise<string>;
+  getHir(code: string, languageFeatures: string[]): Promise<string>;
 
   getRir(program: ProgramConfig): Promise<string[]>;
 
@@ -155,27 +147,16 @@ export class Compiler implements ICompiler {
     return diags;
   }
 
-  async getAst(
-    code: string,
-    languageFeatures: string[],
-    profile: TargetProfile,
-  ): Promise<string> {
-    return this.wasm.get_ast(code, languageFeatures, profile);
+  async getAst(code: string, languageFeatures: string[]): Promise<string> {
+    return this.wasm.get_ast(code, languageFeatures);
   }
 
-  async getHir(
-    code: string,
-    languageFeatures: string[],
-    profile: TargetProfile,
-  ): Promise<string> {
-    return this.wasm.get_hir(code, languageFeatures, profile);
+  async getHir(code: string, languageFeatures: string[]): Promise<string> {
+    return this.wasm.get_hir(code, languageFeatures);
   }
 
   async getRir(program: ProgramConfig): Promise<string[]> {
-    const config = toWasmProgramConfig(
-      program,
-      program.profile || "adaptive_ri",
-    );
+    const config = toWasmProgramConfig(program, "adaptive_ri");
     return callAndTransformExceptions(async () => this.wasm.get_rir(config));
   }
 
@@ -303,6 +284,7 @@ export function toWasmProgramConfig(
         dependencies: {},
       },
       packages: {},
+      hasManifest: false, // "sources" is only used in scenarios where there is no manifest
     };
   } else {
     // A full package graph is passed in.

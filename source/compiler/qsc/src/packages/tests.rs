@@ -13,7 +13,7 @@ fn mock_program() -> Project {
     let package_graph_sources = qsc_project::PackageGraphSources {
         root: qsc_project::PackageInfo {
             sources: vec![(
-                Arc::from("test"),
+                Arc::from("test.qs"),
                 Arc::from("@EntryPoint() operation Main() : Unit {}"),
             )],
             language_features: LanguageFeatures::default(),
@@ -35,13 +35,16 @@ fn mock_program() -> Project {
                 package_type: Some(qsc_project::PackageType::Lib),
             },
         )]),
+        has_manifest: true,
     };
+
     Project {
         lints: vec![],
         errors: vec![],
         path: "project/qsharp.json".into(),
         name: "project".into(),
         project_type: qsc_project::ProjectType::QSharp(package_graph_sources),
+        target_profile: Some(qsc_data_structures::target::Profile::Unrestricted),
     }
 }
 
@@ -297,4 +300,45 @@ fn dependency_error() {
             []
         "]]
     .assert_debug_eq(&errors);
+}
+
+#[allow(clippy::too_many_lines)]
+#[test]
+fn entry_point_profile_in_project_causes_error() {
+    let program = mock_program();
+    // Inject a syntax error into one of the dependencies
+    let ProjectType::QSharp(mut package_graph_sources) = program.project_type else {
+        panic!("project should be a Q# project");
+    };
+    package_graph_sources
+        .root
+        .sources
+        .iter_mut()
+        .next()
+        .expect("expected at least one source in the mock program")
+        .1 = "@EntryPoint(Base) operation Main() : Unit { }".into();
+
+    let buildable_program =
+        super::prepare_package_store(TargetCapabilityFlags::default(), package_graph_sources);
+
+    expect![[r#"
+        [
+            WithSource {
+                sources: [
+                    Source {
+                        name: "test.qs",
+                        contents: "@EntryPoint(Base) operation Main() : Unit { }",
+                        offset: 0,
+                    },
+                ],
+                error: EntryPointProfileInProject(
+                    Span {
+                        lo: 12,
+                        hi: 16,
+                    },
+                ),
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&buildable_program.dependency_errors);
 }

@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-export Init.PrepareFxP as PrepareFxP, Types.FixedPoint as FixedPoint;
+export Init.PrepareFxP, Types.FixedPoint;
 
 @Config(Unrestricted)
-export Reciprocal.ComputeReciprocalFxP as ComputeReciprocalFxP;
+export Reciprocal.ComputeReciprocalFxP;
 
 @Config(FloatingPointComputations)
-export Measurement.MeasureFxP as MeasureFxP;
+export Measurement.MeasureFxP;

@@ -108,5 +108,5 @@ fn get_position(frame: Frame, store: &PackageStore) -> Position {
         .find_by_name(&filename)
         .expect("source should exist");
     let contents = &source.contents;
-    Position::from_utf8_byte_offset(Encoding::Utf8, contents, frame.span.lo)
+    Position::from_utf8_byte_offset(Encoding::Utf8, contents, frame.span.lo - source.offset)
 }

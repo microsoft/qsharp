@@ -17,7 +17,7 @@ use crate::{
     Compilation,
     compilation::CompilationKind,
     completion::{AstContext, Fields, Globals},
-    protocol::{CompletionItemKind, CompletionList},
+    protocol::{CompletionItem, CompletionItemKind, CompletionList},
 };
 
 use super::{Completion, Locals, TextEditRange, collect_path_segments, into_completion_list};
@@ -33,7 +33,17 @@ pub(super) fn completions(
     // Special case: no completions in attribute arguments, even when the
     // parser expects an expression.
     let ast_context = AstContext::init(source_offset, &compilation.user_unit().ast.package);
-    if ast_context.is_in_attr_arg() {
+    if let Some(name) = ast_context.get_name_of_attr_for_attr_arg() {
+        if name.as_ref() == "EntryPoint" {
+            return CompletionList {
+                items: vec![
+                    CompletionItem::new("Unrestricted".to_string(), CompletionItemKind::Keyword),
+                    CompletionItem::new("Base".to_string(), CompletionItemKind::Keyword),
+                    CompletionItem::new("Adaptive_RI".to_string(), CompletionItemKind::Keyword),
+                    CompletionItem::new("Adaptive_RIF".to_string(), CompletionItemKind::Keyword),
+                ],
+            };
+        }
         // No completions in attribute expressions, they're misleading.
         return CompletionList::default();
     }

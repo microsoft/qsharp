@@ -4,7 +4,7 @@
 use crate::line_column::{Location, Range};
 use crate::project_system::{ProgramConfig, into_qsc_args};
 use crate::{
-    CallbackReceiver, get_debugger_from_openqasm, into_openqasm_args, is_openqasm_program,
+    CallbackReceiver, get_debugger_from_openqasm, into_openqasm_arg, is_openqasm_program,
     serializable_type,
 };
 use qsc::fir::StmtId;
@@ -31,7 +31,7 @@ impl DebugService {
     #[allow(clippy::needless_pass_by_value)] // needed for wasm_bindgen
     pub fn load_program(&mut self, program: ProgramConfig, entry: Option<String>) -> String {
         if is_openqasm_program(&program) {
-            let (sources, capabilities) = into_openqasm_args(program);
+            let (sources, capabilities) = into_openqasm_arg(program);
             match get_debugger_from_openqasm(&sources, capabilities) {
                 Ok((entry_expr, mut interpreter)) => {
                     if let Err(e) = interpreter.set_entry_expr(&entry_expr) {
