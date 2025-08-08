@@ -240,7 +240,7 @@ export class QSharpTools {
    * parameter descriptions, and output description.
    */
   async qsharpGetLibraryDescriptions(): Promise<any> {
-    const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
+    const compilerRunTimeoutMs = 1000 * 5; // 5 seconds
     const compilerTimeout = setTimeout(() => {
       worker.terminate();
     }, compilerRunTimeoutMs);
