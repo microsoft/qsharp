@@ -928,3 +928,87 @@ fn notebook_local_reference() {
         ("cell2", "let z = ◉↘x◉ + 2;"),
     ]);
 }
+
+#[test]
+fn on_item_declaration_finds_exports_and_imports() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            operation ◉Fo↘o◉() : Unit {
+            }
+            export ◉Foo◉ as ◉Bar◉;
+        }
+        namespace Other {
+            import Test.◉Bar◉;
+            import Test.◉Bar◉ as ◉Baz◉;
+            operation X() : Unit {
+                ◉Bar◉();
+                ◉Baz◉();
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn on_export_path_finds_declaration_and_usages() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            operation ◉Foo◉() : Unit {
+            }
+            export ◉F↘oo◉ as ◉Bar◉;
+        }
+        namespace Other {
+            import Test.◉Bar◉;
+            import Test.◉Bar◉ as ◉Baz◉;
+            operation X() : Unit {
+                ◉Bar◉();
+                ◉Baz◉();
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn on_export_alias_finds_declaration_and_usages() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            operation ◉Foo◉() : Unit {
+            }
+            export ◉Foo◉ as ◉Ba↘r◉;
+        }
+        namespace Other {
+            import Test.◉Bar◉;
+            import Test.◉Bar◉ as ◉Baz◉;
+            operation X() : Unit {
+                ◉Bar◉();
+                ◉Baz◉();
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn on_export_alias_usage_finds_declaration_and_usages() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            operation ◉Foo◉() : Unit {
+            }
+            export ◉Foo◉ as ◉Bar◉;
+        }
+        namespace Other {
+            import Test.◉Bar◉;
+            import Test.◉Bar◉ as ◉Ba↘z◉;
+            operation X() : Unit {
+                ◉Bar◉();
+                ◉Baz◉();
+            }
+        }
+    "#,
+    );
+}

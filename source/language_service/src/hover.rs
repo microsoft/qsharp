@@ -86,6 +86,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_callable_ref(
         &mut self,
         path: &'a ast::Path,
+        _: Option<&'a ast::Ident>,
         item_id: &hir::ItemId,
         decl: &'a hir::CallableDecl,
     ) {
@@ -185,6 +186,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_new_type_ref(
         &mut self,
         path: &'a ast::Path,
+        _: Option<&'a ast::Ident>,
         item_id: &hir::ItemId,
         _: &'a hir::Ident,
         udt: &'a hir::ty::Udt,
