@@ -379,13 +379,13 @@ impl Interpreter {
     }
 
     /// Get the global callables defined in the user source passed into initialization of the interpreter as `Value` instances.
-    pub fn user_globals(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, Value)> {
+    pub fn source_globals(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, Value)> {
         self.package_globals(self.source_package)
     }
 
     /// Get the global callables defined in the open package being interpreted as `Value` instances, which will include any items
     /// defined by calls to `eval_fragments` and the like.
-    pub fn source_globals(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, Value)> {
+    pub fn user_globals(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, Value)> {
         self.package_globals(self.package)
     }
 
@@ -440,13 +440,14 @@ impl Interpreter {
         exported_items
     }
 
-    pub fn user_types(&self) -> Vec<TaggedItem> {
+    /// Get the global UDTs defined in the user source passed into initialization of the interpreter.
+    pub fn source_types(&self) -> Vec<TaggedItem> {
         self.package_types(self.source_package)
     }
 
-    /// Get the global types defined in the open package being interpreted, which will include any items
+    /// Get the global UDTs defined in the open package being interpreted, which will include any items
     /// defined by calls to `eval_fragments` and the like.
-    pub fn source_types(&self) -> Vec<TaggedItem> {
+    pub fn user_types(&self) -> Vec<TaggedItem> {
         self.package_types(self.package)
     }
 

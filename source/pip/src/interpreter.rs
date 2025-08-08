@@ -408,14 +408,14 @@ impl Interpreter {
             Ok(interpreter) => {
                 if let Some(make_callable) = &make_callable {
                     // Add any global callables from the user source as Python functions to the environment.
-                    let exported_items = interpreter.user_globals();
+                    let exported_items = interpreter.source_globals();
                     for (namespace, name, val) in exported_items {
                         create_py_callable(py, make_callable, &namespace, &name, val)?;
                     }
                 }
                 if let Some(make_class) = &make_class {
                     // Add any global structs from the user source as Python classes to the environment.
-                    let exported_items = interpreter.user_types();
+                    let exported_items = interpreter.source_types();
                     for TaggedItem {
                         item_id,
                         name,
@@ -459,7 +459,7 @@ impl Interpreter {
                     // every callable that was defined in the input and by previous calls that added to the open package.
                     // This is safe because either the callable will be replaced with itself or a new callable with the
                     // same name will shadow the previous one, which is the expected behavior.
-                    let new_items = self.interpreter.source_globals();
+                    let new_items = self.interpreter.user_globals();
                     for (namespace, name, val) in new_items {
                         create_py_callable(py, make_callable, &namespace, &name, val)?;
                     }
@@ -469,7 +469,7 @@ impl Interpreter {
                     // every UDT that was defined in the input and by previous calls that added to the open package.
                     // This is safe because either the UDT will be replaced with itself or a new UDT with the
                     // same name will shadow the previous one, which is the expected behavior.
-                    let new_items = self.interpreter.source_types();
+                    let new_items = self.interpreter.user_types();
                     for TaggedItem {
                         item_id,
                         name,
@@ -581,7 +581,7 @@ impl Interpreter {
                     // every callable that was defined in the input and by previous calls that added to the open package.
                     // This is safe because either the callable will be replaced with itself or a new callable with the
                     // same name will shadow the previous one, which is the expected behavior.
-                    let new_items = self.interpreter.source_globals();
+                    let new_items = self.interpreter.user_globals();
                     for (namespace, name, val) in new_items {
                         create_py_callable(py, make_callable, &namespace, &name, val)?;
                     }
