@@ -387,7 +387,7 @@ pub(crate) fn value_to_pyobj(
                     let angle = qsc::qasm::stdlib::angle::Angle::new(value, size);
                     let angle: f64 = angle
                         .try_into()
-                        .map_err(|_| QasmError::new_err("cannot cast angle to 64-bit float"))?;
+                        .map_err(|_| QasmError::new_err("failed to cast angle to 64-bit float"))?;
                     angle.into_py_any(py)
                 }
                 interpret::UdtKind::Complex => {
