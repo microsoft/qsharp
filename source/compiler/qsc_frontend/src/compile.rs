@@ -398,7 +398,6 @@ pub fn compile_ast(
         names,
         locals,
         errors: name_errors,
-        namespaces,
     } = resolve_all(
         store,
         dependencies,
@@ -410,7 +409,7 @@ pub fn compile_ast(
     let mut lowerer = Lowerer::new();
     let package = lowerer
         .with(&mut hir_assigner, &names, &tys)
-        .lower_package(&ast_package, namespaces);
+        .lower_package(&ast_package);
     HirValidator::default().visit_package(&package);
     let lower_errors = lowerer.drain_errors();
 
@@ -551,7 +550,6 @@ pub fn get_target_profile_from_entry_point(
 pub(crate) struct ResolveResult {
     pub names: Names,
     pub locals: Locals,
-    pub namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
     pub errors: Vec<resolve::Error>,
 }
 
@@ -565,10 +563,7 @@ fn resolve_all(
     let mut globals = resolve::GlobalTable::new();
     let mut errors = Vec::new();
     if let Some(unit) = store.get(PackageId::CORE) {
-        if let Err(errs) = globals.add_external_package(PackageId::CORE, &unit.package, store, None)
-        {
-            errors.extend(errs);
-        }
+        globals.add_external_package(PackageId::CORE, &unit.package, store, None);
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
@@ -576,29 +571,23 @@ fn resolve_all(
         let unit = store
             .get(*id)
             .expect("dependency should be in package store before compilation");
-        if let Err(errs) = globals.add_external_package(*id, &unit.package, store, alias.as_deref())
-        {
-            errors.extend(errs);
-        }
+        globals.add_external_package(*id, &unit.package, store, alias.as_deref());
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
-    // bind all symbols in `add_local_package`
+    // bind all declarations in the package, but don't resolve imports/exports yet
     errors.extend(globals.add_local_package(assigner, package));
     let mut resolver = Resolver::new(globals, dropped_names);
 
-    // bind all exported symbols in a follow-on step
-    resolver.bind_and_resolve_imports_and_exports(package);
+    // resolve all symbols, binding imports/export names as they're resolved
+    resolver.resolve(assigner, package);
+    let (names, _, locals, mut resolver_errors) = resolver.into_result();
 
-    // resolve all symbols
-    resolver.with(assigner).visit_package(package);
-    let (names, locals, mut resolver_errors, namespaces) = resolver.into_result();
     errors.append(&mut resolver_errors);
 
     ResolveResult {
         names,
         locals,
-        namespaces,
         errors,
     }
 }

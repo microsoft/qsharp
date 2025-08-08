@@ -1812,7 +1812,8 @@ fn parse_export_basic() {
                         output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
                         body: Block: Block _id_ [54-56]: <empty>
                 Item _id_ [72-83]:
-                    Export (ImportOrExportDecl [72-83]: [Path _id_ [79-82] (Ident _id_ [79-82] "Bar")])"#]],
+                    Export [72-83]:
+                        [79-82] Direct: Path _id_ [79-82] (Ident _id_ [79-82] "Bar")"#]],
     );
 }
 
@@ -1833,18 +1834,22 @@ fn parse_export_list() {
                         output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
                         body: Block: Block _id_ [54-56]: <empty>
                 Item _id_ [72-151]:
-                    Export (ImportOrExportDecl [72-151]: [Path _id_ [79-82] (Ident _id_ [79-82] "Bar"), Path _id_ [84-92]:
-                        Ident _id_ [84-87] "Baz"
-                        Ident _id_ [88-92] "Quux", Path _id_ [94-118]:
-                        Ident _id_ [94-98] "Math"
-                        Ident _id_ [99-106] "Quantum"
-                        Ident _id_ [107-111] "Some"
-                        Ident _id_ [112-118] "Nested", Path _id_ [120-150]:
-                        Ident _id_ [120-124] "Math"
-                        Ident _id_ [125-132] "Quantum"
-                        Ident _id_ [133-137] "Some"
-                        Ident _id_ [138-143] "Other"
-                        Ident _id_ [144-150] "Nested"])"#]],
+                    Export [72-151]:
+                        [79-82] Direct: Path _id_ [79-82] (Ident _id_ [79-82] "Bar")
+                        [84-92] Direct: Path _id_ [84-92]:
+                            Ident _id_ [84-87] "Baz"
+                            Ident _id_ [88-92] "Quux"
+                        [94-118] Direct: Path _id_ [94-118]:
+                            Ident _id_ [94-98] "Math"
+                            Ident _id_ [99-106] "Quantum"
+                            Ident _id_ [107-111] "Some"
+                            Ident _id_ [112-118] "Nested"
+                        [120-150] Direct: Path _id_ [120-150]:
+                            Ident _id_ [120-124] "Math"
+                            Ident _id_ [125-132] "Quantum"
+                            Ident _id_ [133-137] "Some"
+                            Ident _id_ [138-143] "Other"
+                            Ident _id_ [144-150] "Nested""#]],
     );
 }
 
@@ -1853,7 +1858,9 @@ fn parse_single_import() {
     check(
         parse_import_or_export,
         "import Foo;",
-        &expect![[r#"ImportOrExportDecl [0-11]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo")]"#]],
+        &expect![[r#"
+            Import [0-11]:
+                [7-10] Direct: Path _id_ [7-10] (Ident _id_ [7-10] "Foo")"#]],
     );
 }
 
@@ -1863,11 +1870,13 @@ fn parse_multiple_imports() {
         parse_import_or_export,
         "import Foo.Bar, Foo.Baz;",
         &expect![[r#"
-            ImportOrExportDecl [0-24]: [Path _id_ [7-14]:
-                Ident _id_ [7-10] "Foo"
-                Ident _id_ [11-14] "Bar", Path _id_ [16-23]:
-                Ident _id_ [16-19] "Foo"
-                Ident _id_ [20-23] "Baz"]"#]],
+            Import [0-24]:
+                [7-14] Direct: Path _id_ [7-14]:
+                    Ident _id_ [7-10] "Foo"
+                    Ident _id_ [11-14] "Bar"
+                [16-23] Direct: Path _id_ [16-23]:
+                    Ident _id_ [16-19] "Foo"
+                    Ident _id_ [20-23] "Baz""#]],
     );
 }
 
@@ -1876,9 +1885,9 @@ fn parse_import_with_alias() {
     check(
         parse_import_or_export,
         "import Foo as Bar;",
-        &expect![[
-            r#"ImportOrExportDecl [0-18]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as Ident _id_ [14-17] "Bar"]"#
-        ]],
+        &expect![[r#"
+            Import [0-18]:
+                [7-17] Direct (alias: Ident _id_ [14-17] "Bar"): Path _id_ [7-10] (Ident _id_ [7-10] "Foo")"#]],
     );
 }
 
@@ -1888,11 +1897,13 @@ fn multi_import_with_alias() {
         parse_import_or_export,
         "import Foo.Bar as Baz, Foo.Quux;",
         &expect![[r#"
-            ImportOrExportDecl [0-32]: [Path _id_ [7-14]:
-                Ident _id_ [7-10] "Foo"
-                Ident _id_ [11-14] "Bar" as Ident _id_ [18-21] "Baz", Path _id_ [23-31]:
-                Ident _id_ [23-26] "Foo"
-                Ident _id_ [27-31] "Quux"]"#]],
+            Import [0-32]:
+                [7-21] Direct (alias: Ident _id_ [18-21] "Baz"): Path _id_ [7-14]:
+                    Ident _id_ [7-10] "Foo"
+                    Ident _id_ [11-14] "Bar"
+                [23-31] Direct: Path _id_ [23-31]:
+                    Ident _id_ [23-26] "Foo"
+                    Ident _id_ [27-31] "Quux""#]],
     );
 }
 
@@ -1901,7 +1912,18 @@ fn empty_import_statement() {
     check(
         parse_import_or_export,
         "import;",
-        &expect!["ImportOrExportDecl [0-7]: []"],
+        &expect![[r#"
+            Error(
+                Token(
+                    Ident,
+                    Semi,
+                    Span {
+                        lo: 6,
+                        hi: 7,
+                    },
+                ),
+            )
+        "#]],
     );
 }
 
@@ -1922,7 +1944,20 @@ fn parse_export_empty() {
                         output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
                         body: Block: Block _id_ [54-56]: <empty>
                 Item _id_ [72-79]:
-                    Export (ImportOrExportDecl [72-79]: [])"#]],
+                    Err
+
+            [
+                Error(
+                    Token(
+                        Ident,
+                        Semi,
+                        Span {
+                            lo: 78,
+                            hi: 79,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 
@@ -1931,7 +1966,9 @@ fn parse_glob_import() {
     check(
         parse_import_or_export,
         "import Foo.*;",
-        &expect![[r#"ImportOrExportDecl [0-13]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo").*]"#]],
+        &expect![[r#"
+            Import [0-13]:
+                [7-12] Wildcard: Path _id_ [7-10] (Ident _id_ [7-10] "Foo")"#]],
     );
 }
 
@@ -1941,11 +1978,13 @@ fn parse_glob_import_in_list() {
         parse_import_or_export,
         "import Foo.Bar, Foo.Baz.*;",
         &expect![[r#"
-            ImportOrExportDecl [0-26]: [Path _id_ [7-14]:
-                Ident _id_ [7-10] "Foo"
-                Ident _id_ [11-14] "Bar", Path _id_ [16-23]:
-                Ident _id_ [16-19] "Foo"
-                Ident _id_ [20-23] "Baz".*]"#]],
+            Import [0-26]:
+                [7-14] Direct: Path _id_ [7-14]:
+                    Ident _id_ [7-10] "Foo"
+                    Ident _id_ [11-14] "Bar"
+                [16-25] Wildcard: Path _id_ [16-23]:
+                    Ident _id_ [16-19] "Foo"
+                    Ident _id_ [20-23] "Baz""#]],
     );
 }
 
@@ -1955,11 +1994,14 @@ fn parse_glob_import_of_parent_in_list() {
         parse_import_or_export,
         "import Foo.Bar, Foo.Baz, Foo.*;",
         &expect![[r#"
-            ImportOrExportDecl [0-31]: [Path _id_ [7-14]:
-                Ident _id_ [7-10] "Foo"
-                Ident _id_ [11-14] "Bar", Path _id_ [16-23]:
-                Ident _id_ [16-19] "Foo"
-                Ident _id_ [20-23] "Baz", Path _id_ [25-28] (Ident _id_ [25-28] "Foo").*]"#]],
+            Import [0-31]:
+                [7-14] Direct: Path _id_ [7-14]:
+                    Ident _id_ [7-10] "Foo"
+                    Ident _id_ [11-14] "Bar"
+                [16-23] Direct: Path _id_ [16-23]:
+                    Ident _id_ [16-19] "Foo"
+                    Ident _id_ [20-23] "Baz"
+                [25-30] Wildcard: Path _id_ [25-28] (Ident _id_ [25-28] "Foo")"#]],
     );
 }
 
@@ -1968,9 +2010,18 @@ fn parse_glob_import_with_alias() {
     check(
         parse_import_or_export,
         "import Foo.* as Foo;",
-        &expect![[
-            r#"ImportOrExportDecl [0-20]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo").* as Ident _id_ [16-19] "Foo"]"#
-        ]],
+        &expect![[r#"
+            Error(
+                WildcardAlias {
+                    span: Span {
+                        lo: 7,
+                        hi: 19,
+                    },
+                    path: "Path _id_ [7-10] (Ident _id_ [7-10] \"Foo\")",
+                    alias: "Ident _id_ [16-19] \"Foo\"",
+                },
+            )
+        "#]],
     );
 }
 
@@ -1980,11 +2031,17 @@ fn parse_aliased_glob_import_in_list() {
         parse_import_or_export,
         "import Foo.Bar, Foo.Baz.* as Quux;",
         &expect![[r#"
-            ImportOrExportDecl [0-34]: [Path _id_ [7-14]:
-                Ident _id_ [7-10] "Foo"
-                Ident _id_ [11-14] "Bar", Path _id_ [16-23]:
-                Ident _id_ [16-19] "Foo"
-                Ident _id_ [20-23] "Baz".* as Ident _id_ [29-33] "Quux"]"#]],
+            Error(
+                WildcardAlias {
+                    span: Span {
+                        lo: 16,
+                        hi: 33,
+                    },
+                    path: "Path _id_ [16-23]:\n    Ident _id_ [16-19] \"Foo\"\n    Ident _id_ [20-23] \"Baz\"",
+                    alias: "Ident _id_ [29-33] \"Quux\"",
+                },
+            )
+        "#]],
     );
 }
 
@@ -1994,7 +2051,8 @@ fn invalid_glob_syntax_extra_asterisk() {
         parse_import_or_export,
         "import Foo.**;",
         &expect![[r#"
-            ImportOrExportDecl [0-12]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo").*]
+            Import [0-12]:
+                [7-12] Wildcard: Path _id_ [7-10] (Ident _id_ [7-10] "Foo")
 
             [
                 Error(
@@ -2019,9 +2077,10 @@ fn invalid_glob_syntax_missing_dot() {
         parse_import_or_export,
         "import Foo.Bar**;",
         &expect![[r#"
-            ImportOrExportDecl [0-14]: [Path _id_ [7-14]:
-                Ident _id_ [7-10] "Foo"
-                Ident _id_ [11-14] "Bar"]
+            Import [0-14]:
+                [7-14] Direct: Path _id_ [7-14]:
+                    Ident _id_ [7-10] "Foo"
+                    Ident _id_ [11-14] "Bar"
 
             [
                 Error(
@@ -2046,9 +2105,10 @@ fn invalid_glob_syntax_multiple_asterisks_in_path() {
         parse_import_or_export,
         "import Foo.Bar.*.*;",
         &expect![[r#"
-            ImportOrExportDecl [0-16]: [Path _id_ [7-14]:
-                Ident _id_ [7-10] "Foo"
-                Ident _id_ [11-14] "Bar".*]
+            Import [0-16]:
+                [7-16] Wildcard: Path _id_ [7-14]:
+                    Ident _id_ [7-10] "Foo"
+                    Ident _id_ [11-14] "Bar"
 
             [
                 Error(
@@ -2071,7 +2131,8 @@ fn invalid_glob_syntax_with_following_ident() {
         parse_import_or_export,
         "import Foo.*.Bar;",
         &expect![[r#"
-            ImportOrExportDecl [0-12]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo").*]
+            Import [0-12]:
+                [7-12] Wildcard: Path _id_ [7-10] (Ident _id_ [7-10] "Foo")
 
             [
                 Error(
@@ -2094,8 +2155,9 @@ fn invalid_glob_syntax_follows_keyword() {
         parse_import_or_export,
         "import Foo.in*;",
         &expect![[r#"
-            ImportOrExportDecl [0-13]: [Err IncompletePath [7-13]:
-                Ident _id_ [7-10] "Foo"]
+            Import [0-13]:
+                [7-13] Direct: Err IncompletePath [7-13]:
+                    Ident _id_ [7-10] "Foo"
 
             [
                 Error(
@@ -2132,22 +2194,37 @@ fn disallow_top_level_recursive_glob() {
         parse_import_or_export,
         "import *;",
         &expect![[r#"
-            ImportOrExportDecl [0-6]: []
-
-            [
-                Error(
-                    Token(
-                        Semi,
-                        ClosedBinOp(
-                            Star,
-                        ),
-                        Span {
-                            lo: 7,
-                            hi: 8,
-                        },
+            Error(
+                Token(
+                    Ident,
+                    ClosedBinOp(
+                        Star,
                     ),
+                    Span {
+                        lo: 7,
+                        hi: 8,
+                    },
                 ),
-            ]"#]],
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn disallow_wildcard_export() {
+    check(
+        parse_import_or_export,
+        "export Foo.*;",
+        &expect![[r#"
+            Error(
+                ExportWildcard(
+                    Span {
+                        lo: 7,
+                        hi: 12,
+                    },
+                ),
+            )
+        "#]],
     );
 }
 
