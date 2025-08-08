@@ -33,7 +33,7 @@ use qsc::{
     fir::{self},
     hir::ty::{Prim, Ty},
     interpret::{
-        self, CircuitEntryPoint, PauliNoise, Value,
+        self, CircuitEntryPoint, PauliNoise, TaggedItem, Value,
         output::{Error, Receiver},
     },
     packages::BuildableProgram,
@@ -416,8 +416,13 @@ impl Interpreter {
                 if let Some(make_class) = &make_class {
                     // Add any global structs from the user source as Python classes to the environment.
                     let exported_items = interpreter.user_types();
-                    for (namespace, name, udt) in exported_items {
-                        let ty = Ty::Udt(name.clone(), qsc::hir::Res::Item(udt));
+                    for TaggedItem {
+                        item_id,
+                        name,
+                        namespace,
+                    } in exported_items
+                    {
+                        let ty = Ty::Udt(name.clone(), qsc::hir::Res::Item(item_id));
                         create_py_class(&interpreter, py, make_class, &namespace, &name, &ty)?;
                     }
                 }
@@ -465,8 +470,13 @@ impl Interpreter {
                     // This is safe because either the UDT will be replaced with itself or a new UDT with the
                     // same name will shadow the previous one, which is the expected behavior.
                     let new_items = self.interpreter.source_types();
-                    for (namespace, name, udt) in new_items {
-                        let ty = Ty::Udt(name.clone(), qsc::hir::Res::Item(udt));
+                    for TaggedItem {
+                        item_id,
+                        name,
+                        namespace,
+                    } in new_items
+                    {
+                        let ty = Ty::Udt(name.clone(), qsc::hir::Res::Item(item_id));
                         create_py_class(&self.interpreter, py, make_class, &namespace, &name, &ty)?;
                     }
                 }

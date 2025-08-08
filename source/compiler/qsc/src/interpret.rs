@@ -167,6 +167,13 @@ pub enum UdtKind {
     Udt,
 }
 
+/// An item tagged with its name and the namespace it was defined in.
+pub struct TaggedItem {
+    pub item_id: qsc_hir::hir::ItemId,
+    pub name: Rc<str>,
+    pub namespace: Vec<Rc<str>>,
+}
+
 impl Interpreter {
     /// Creates a new incremental compiler, compiling the passed in sources.
     /// # Errors
@@ -413,11 +420,7 @@ impl Interpreter {
 
     /// Given a package ID, returns all the types in the package.
     /// Note this does not currently include re-exports.
-    #[allow(clippy::type_complexity)]
-    fn package_types(
-        &self,
-        package_id: PackageId,
-    ) -> Vec<(Vec<Rc<str>>, Rc<str>, qsc_hir::hir::ItemId)> {
+    fn package_types(&self, package_id: PackageId) -> Vec<TaggedItem> {
         let mut exported_items = Vec::new();
         let package = &self
             .compiler
@@ -427,21 +430,23 @@ impl Interpreter {
             .package;
         for global in global::iter_package(Some(map_fir_package_to_hir(package_id)), package) {
             if let global::Kind::Ty(ty) = global.kind {
-                exported_items.push((global.namespace, global.name, ty.id));
+                exported_items.push(TaggedItem {
+                    item_id: ty.id,
+                    name: global.name,
+                    namespace: global.namespace,
+                });
             }
         }
         exported_items
     }
 
-    #[allow(clippy::type_complexity)]
-    pub fn user_types(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, qsc_hir::hir::ItemId)> {
+    pub fn user_types(&self) -> Vec<TaggedItem> {
         self.package_types(self.source_package)
     }
 
     /// Get the global types defined in the open package being interpreted, which will include any items
     /// defined by calls to `eval_fragments` and the like.
-    #[allow(clippy::type_complexity)]
-    pub fn source_types(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, qsc_hir::hir::ItemId)> {
+    pub fn source_types(&self) -> Vec<TaggedItem> {
         self.package_types(self.package)
     }
 
