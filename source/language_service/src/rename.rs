@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::compilation::Compilation;
+use crate::compilation::{Compilation, CompilationKind};
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::qsc_utils::into_range;
 use crate::references::ReferenceFinder;
@@ -20,6 +20,9 @@ pub(crate) fn prepare_rename(
     position: Position,
     position_encoding: Encoding,
 ) -> Option<(Range, String)> {
+    if let CompilationKind::OpenQASM { sources, .. } = &compilation.kind {
+        return crate::openqasm::prepare_rename(sources, source_name, position, position_encoding);
+    }
     let offset =
         compilation.source_position_to_package_offset(source_name, position, position_encoding);
     let user_ast_package = &compilation.user_unit().ast.package;
@@ -41,6 +44,9 @@ pub(crate) fn get_rename(
     position: Position,
     position_encoding: Encoding,
 ) -> Vec<Location> {
+    if let CompilationKind::OpenQASM { sources, .. } = &compilation.kind {
+        return crate::openqasm::get_rename(sources, source_name, position, position_encoding);
+    }
     let offset =
         compilation.source_position_to_package_offset(source_name, position, position_encoding);
     let user_ast_package = &compilation.user_unit().ast.package;

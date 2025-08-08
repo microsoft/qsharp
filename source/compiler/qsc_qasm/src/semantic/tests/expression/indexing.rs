@@ -69,7 +69,11 @@ fn array_slice_with_negative_start_has_correct_size() {
                             start: Expr [35-36]:
                                 ty: const int
                                 const_value: Int(-7)
-                                kind: Lit: Int(-7)
+                                kind: UnaryOpExpr [35-36]:
+                                    op: Neg
+                                    expr: Expr [35-36]:
+                                        ty: const int
+                                        kind: Lit: Int(7)
                             step: <none>
                             end: Expr [37-38]:
                                 ty: const int
@@ -111,7 +115,11 @@ fn array_slice_with_negative_end_has_correct_size() {
                             end: Expr [37-38]:
                                 ty: const int
                                 const_value: Int(-2)
-                                kind: Lit: Int(-2)
+                                kind: UnaryOpExpr [37-38]:
+                                    op: Neg
+                                    expr: Expr [37-38]:
+                                        ty: const int
+                                        kind: Lit: Int(2)
         "#]],
     );
 }
@@ -227,7 +235,11 @@ fn array_slice_with_negative_step_has_correct_size() {
                             step: Expr [37-38]:
                                 ty: const int
                                 const_value: Int(-3)
-                                kind: Lit: Int(-3)
+                                kind: UnaryOpExpr [37-38]:
+                                    op: Neg
+                                    expr: Expr [37-38]:
+                                        ty: const int
+                                        kind: Lit: Int(3)
                             end: Expr [39-40]:
                                 ty: const int
                                 const_value: Int(0)

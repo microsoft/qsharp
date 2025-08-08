@@ -9,6 +9,7 @@ pub mod definition;
 pub mod format;
 pub mod hover;
 mod name_locator;
+mod openqasm;
 pub mod protocol;
 mod qsc_utils;
 pub mod references;
