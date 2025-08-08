@@ -118,7 +118,6 @@ pub struct PackageIter<'a> {
 }
 
 impl PackageIter<'_> {
-    #[allow(clippy::too_many_lines)]
     fn global_item(&mut self, item: &Item) -> Option<Global> {
         let parent = item.parent.map(|parent| {
             &self
