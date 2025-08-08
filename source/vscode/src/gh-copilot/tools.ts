@@ -94,6 +94,10 @@ const toolDefinitions: {
     name: "qsharp-run-resource-estimator",
     tool: async (input) => await qsharpTools!.runResourceEstimator(input),
   },
+  {
+    name: "qsharp-get-library-descriptions",
+    tool: async () => await qsharpTools!.qsharpGetLibraryDescriptions(),
+  },
 ];
 
 export function registerLanguageModelTools(context: vscode.ExtensionContext) {
