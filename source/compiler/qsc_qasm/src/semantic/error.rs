@@ -166,7 +166,7 @@ pub enum SemanticErrorKind {
     #[error("index sets are only allowed in alias statements")]
     #[diagnostic(code("Qasm.Lowerer.IndexSetOnlyAllowedInAliasStmt"))]
     IndexSetOnlyAllowedInAliasStmt(#[label] Span),
-    #[error("assigning {0} values to {1} must be in a range that be converted to {1}")]
+    #[error("assigning {0} values to {1} must be in a range that can be converted to {1}")]
     #[diagnostic(code("Qasm.Lowerer.InvalidCastValueRange"))]
     InvalidCastValueRange(String, String, #[label] Span),
     #[error("gate operands other than qubits or qubit arrays are not supported")]
