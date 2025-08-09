@@ -23,7 +23,7 @@ mod keyword;
 mod lex;
 pub mod parser;
 pub mod semantic;
-mod stdlib;
+pub mod stdlib;
 mod types;
 
 #[cfg(test)]

@@ -40,6 +40,10 @@ pub mod compiler {
     pub use qsc_qasm::compiler::*;
 }
 
+pub mod stdlib {
+    pub use qsc_qasm::stdlib::*;
+}
+
 use crate::compile::package_store_with_stdlib;
 
 pub struct CompileRawQasmResult(

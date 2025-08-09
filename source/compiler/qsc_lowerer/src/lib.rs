@@ -22,6 +22,16 @@ pub fn map_fir_package_to_hir(package: fir::PackageId) -> hir::PackageId {
     hir::PackageId::from(Into::<usize>::into(package))
 }
 
+#[must_use]
+pub fn map_hir_local_item_to_fir(local_item: hir::LocalItemId) -> fir::LocalItemId {
+    fir::LocalItemId::from(Into::<usize>::into(local_item))
+}
+
+#[must_use]
+pub fn map_fir_local_item_to_hir(local_item: fir::LocalItemId) -> hir::LocalItemId {
+    hir::LocalItemId::from(Into::<usize>::into(local_item))
+}
+
 #[derive(Debug, Default)]
 struct FirIncrement {
     blocks: Vec<BlockId>,

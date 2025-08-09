@@ -16,7 +16,7 @@ fn check_plus_state_preparation() {
     let out = test_expression_with_lib(
         "Test.TestPlusState()",
         STATE_PREPARATION_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 
     expect![[r#"
@@ -32,7 +32,7 @@ fn check_minus_state_preparation() {
     let out = test_expression_with_lib(
         "Test.TestMinusState()",
         STATE_PREPARATION_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 
     expect![[r#"
@@ -48,7 +48,7 @@ fn check_bell_state_preparation() {
     let out = test_expression_with_lib(
         "Test.TestBellState()",
         STATE_PREPARATION_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 
     expect![[r#"
@@ -64,7 +64,7 @@ fn check_cat_state_preparation() {
     let out = test_expression_with_lib(
         "Test.TestCat3State()",
         STATE_PREPARATION_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 
     expect![[r#"
@@ -80,7 +80,7 @@ fn check_complex_preparation() {
     let out = test_expression_with_lib(
         "Test.TestPrepareComplex()",
         STATE_PREPARATION_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 
     expect![[r#"
@@ -98,7 +98,7 @@ fn check_preparation_completion() {
     let out = test_expression_with_lib(
         "Test.TestPreparationCompletion()",
         STATE_PREPARATION_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 
     expect![[r#"
@@ -195,7 +195,7 @@ fn check_preparation_endianness() {
     let out = test_expression_with_lib(
         "Test.TestEndianness()",
         STATE_PREPARATION_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 
     expect![[r#"
@@ -245,7 +245,7 @@ fn check_preparation_doc_sample() {
         Microsoft.Quantum.Unstable.StatePreparation.PreparePureStateD(amplitudes, qubits);
         Microsoft.Quantum.Diagnostics.DumpMachine();
         ResetAll(qubits); }",
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 
     expect![[r#"
@@ -261,7 +261,7 @@ fn check_uniform_superposition_preparation() {
     let out = test_expression_with_lib(
         "Test.TestPrepareUniformSuperposition(5)",
         STATE_PREPARATION_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 
     expect![[r#"
@@ -280,7 +280,7 @@ fn check_uniform_superposition_preparation_exhaustive() {
     let _ = test_expression_with_lib(
         "Test.TestPrepareUniformSuperpositionExhaustive()",
         STATE_PREPARATION_TEST_LIB,
-        &Value::Tuple(vec![].into()),
+        &Value::Tuple(vec![].into(), None),
     );
 }
 

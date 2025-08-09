@@ -279,7 +279,7 @@ impl Builder {
     /// can be treated as the targets for custom gates.
     /// The classical arguments get formatted into a comma-separated list.
     fn split_qubit_args(&mut self, arg: Value) -> (Vec<WireId>, String) {
-        let arg = if let Value::Tuple(vals) = arg {
+        let arg = if let Value::Tuple(vals, _) = arg {
             vals
         } else {
             // Single arguments are not passed as tuples, wrap in an array
@@ -297,7 +297,7 @@ impl Builder {
             Value::Array(vals) => {
                 self.push_list::<'[', ']'>(vals, qubits, classical_args);
             }
-            Value::Tuple(vals) => {
+            Value::Tuple(vals, _) => {
                 self.push_list::<'(', ')'>(vals, qubits, classical_args);
             }
             Value::Qubit(q) => {

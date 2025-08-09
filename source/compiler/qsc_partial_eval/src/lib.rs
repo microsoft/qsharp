@@ -2010,7 +2010,7 @@ impl<'a> PartialEvaluator<'a> {
             }
             values.push(control_flow.into_value());
         }
-        Ok(EvalControlFlow::Continue(Value::Tuple(values.into())))
+        Ok(EvalControlFlow::Continue(Value::Tuple(values.into(), None)))
     }
 
     fn eval_expr_unary(
@@ -2700,7 +2700,7 @@ impl<'a> PartialEvaluator<'a> {
                 input_type.push(qsc_rir::rir::Ty::Qubit);
                 operands.push(self.map_eval_value_to_rir_operand(&Value::Qubit(qubit)));
             }
-            Value::Tuple(values) => {
+            Value::Tuple(values, _) => {
                 for value in &*values {
                     let Value::Qubit(qubit) = value else {
                         panic!(
@@ -2762,7 +2762,7 @@ impl<'a> PartialEvaluator<'a> {
         match results_values.len() {
             0 => panic!("unexpected unitary measurement"),
             1 => results_values[0].clone(),
-            2.. => Value::Tuple(results_values.into()),
+            2.. => Value::Tuple(results_values.into(), None),
         }
     }
 
@@ -2837,7 +2837,7 @@ impl<'a> PartialEvaluator<'a> {
         let value = if let Some(fixed_args) = fixed_args {
             let mut fixed_args = fixed_args.to_vec();
             fixed_args.push(value);
-            Value::Tuple(fixed_args.into())
+            Value::Tuple(fixed_args.into(), None)
         } else {
             value
         };
@@ -2978,7 +2978,7 @@ impl<'a> PartialEvaluator<'a> {
                 self.update_hybrid_local(lhs_expr, *local_var_id, value.clone())?;
                 self.update_classical_local(*local_var_id, value);
             }
-            (ExprKind::Tuple(exprs), Value::Tuple(values)) => {
+            (ExprKind::Tuple(exprs), Value::Tuple(values, _)) => {
                 for (expr_id, value) in exprs.iter().zip(values.iter()) {
                     self.update_bindings(*expr_id, value.clone())?;
                 }
@@ -3100,7 +3100,7 @@ impl<'a> PartialEvaluator<'a> {
             Value::Result(val::Result::Val(_)) => return Err(()),
 
             Value::Array(vals) => self.record_array(ty, &mut instrs, &vals)?,
-            Value::Tuple(vals) => self.record_tuple(ty, &mut instrs, &vals)?,
+            Value::Tuple(vals, _) => self.record_tuple(ty, &mut instrs, &vals)?,
             Value::Result(res) => self.record_result(&mut instrs, res),
             Value::Var(var) => self.record_variable(ty, &mut instrs, var),
             Value::Bool(val) => self.record_bool(&mut instrs, val),

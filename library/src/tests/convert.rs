@@ -291,7 +291,7 @@ fn test_complex_as_complex_polar() {
             Microsoft.Quantum.Convert.ComplexAsComplexPolar(a)
         }"
         },
-        &Value::Tuple(vec![Value::Double(2.0), Value::Double(1.0)].into()),
+        &Value::Tuple(vec![Value::Double(2.0), Value::Double(1.0)].into(), None),
     );
 }
 
@@ -305,6 +305,6 @@ fn test_complex_polar_as_complex() {
             Microsoft.Quantum.Convert.ComplexPolarAsComplex(a)
         }"
         },
-        &Value::Tuple(vec![Value::Double(2.0), Value::Double(1.0)].into()),
+        &Value::Tuple(vec![Value::Double(2.0), Value::Double(1.0)].into(), None),
     );
 }
