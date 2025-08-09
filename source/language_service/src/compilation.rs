@@ -21,14 +21,9 @@ use qsc::{
 };
 use qsc_linter::{LintLevel, LintOrGroupConfig};
 use qsc_project::{PackageGraphSources, Project, ProjectType};
-use rustc_hash::FxHashMap;
+use std::mem::take;
 use std::sync::Arc;
-use std::{iter::once, mem::take};
 
-/// The alias that a project gives a dependency in its qsharp.json.
-/// In other words, this is the name that a given project uses to reference
-/// a given package.
-pub type PackageAlias = std::sync::Arc<str>;
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.
 #[derive(Debug)]
@@ -41,7 +36,6 @@ pub(crate) struct Compilation {
     pub project_errors: Vec<project::Error>,
     pub compile_errors: Vec<compile::Error>,
     pub kind: CompilationKind,
-    pub dependencies: FxHashMap<PackageId, Option<PackageAlias>>,
     pub test_cases: Vec<(String, Span)>,
 }
 
@@ -127,7 +121,6 @@ impl Compilation {
             },
             compile_errors,
             project_errors,
-            dependencies: user_code_dependencies.into_iter().collect(),
             test_cases,
         }
     }
@@ -218,7 +211,6 @@ impl Compilation {
             compiler.update(increment);
         }
 
-        let source_package_id = compiler.source_package_id();
         let (package_store, package_id) = compiler.into_package_store();
         let unit = package_store
             .get(package_id)
@@ -234,11 +226,6 @@ impl Compilation {
 
         run_linter_passes(&mut errors, &package_store, unit, lints_config);
 
-        let dependencies = dependencies
-            .into_iter()
-            .chain(once((source_package_id, None)))
-            .collect();
-
         let test_cases = unit.package.get_test_callables();
 
         Self {
@@ -248,7 +235,6 @@ impl Compilation {
             project_errors: project.as_ref().map_or_else(Vec::new, |p| p.errors.clone()),
             kind: CompilationKind::Notebook { project },
             test_cases,
-            dependencies,
         }
     }
 
@@ -268,7 +254,7 @@ impl Compilation {
         let res = qsc::qasm::semantic::parse_sources(&sources);
         let unit = compile_to_qsharp_ast_with_config(res, config);
         let target_profile = unit.profile();
-        let CompileRawQasmResult(store, source_package_id, dependencies, _sig, mut compile_errors) =
+        let CompileRawQasmResult(store, source_package_id, _, _sig, mut compile_errors) =
             qsc::qasm::compile_openqasm(unit, package_type);
 
         let compile_unit = store
@@ -292,7 +278,6 @@ impl Compilation {
             },
             compile_errors,
             project_errors,
-            dependencies: dependencies.into_iter().collect(),
             test_cases: vec![],
         }
     }

@@ -141,14 +141,7 @@ fn collect_path_segments(
             }
         }
         PathKind::Ty | PathKind::Struct => globals.type_names_in(&qualifier),
-        PathKind::Import => [
-            globals.expr_names_in(&qualifier),
-            globals.type_names_in(&qualifier),
-            globals.namespaces_in(&qualifier),
-        ]
-        .into_iter()
-        .flatten()
-        .collect(),
+        PathKind::Import => globals.importable_names_in(&qualifier),
     }
 }
 
