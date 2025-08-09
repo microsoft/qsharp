@@ -54,8 +54,8 @@ pub(crate) fn format_call_stack(
             trace,
             " in {}:{}:{}",
             name.unwrap_or("<expression>".to_string()),
-            pos.line,
-            pos.column,
+            pos.line + 1,
+            pos.column + 1,
         )
         .expect("writing to string should succeed");
 
