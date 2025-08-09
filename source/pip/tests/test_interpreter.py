@@ -9,8 +9,55 @@ from qsharp._native import (
     QSharpError,
     TargetProfile,
 )
-from qsharp._qsharp import qsharp_value_to_python_value
+from qsharp._qsharp import qsharp_value_to_python_value, python_args_to_interpreter_args
+from qsharp import code
 import pytest
+
+# Test helpers
+
+
+def check_interpret(source: str, expect: str):
+    e = Interpreter(TargetProfile.Unrestricted)
+    value = qsharp_value_to_python_value(e.interpret(source))
+    assert str(value) == expect
+
+
+def check_invoke(source: str, callable: str, expect: str):
+    e = None
+    f = None
+
+    def _make_callable(callable, namespace, callable_name):
+        nonlocal f
+        f = callable
+
+    e = Interpreter(TargetProfile.Unrestricted, make_callable=_make_callable)
+    e.interpret(source)
+    e.interpret(callable)
+    value = qsharp_value_to_python_value(e.invoke(f))
+    assert str(value) == expect
+
+
+def check_run(source: str, expect: str):
+    e = Interpreter(TargetProfile.Unrestricted)
+    value = qsharp_value_to_python_value(e.run(source))
+    assert str(value) == expect
+
+
+def check_circuit(source: str, expect):
+    e = Interpreter(TargetProfile.Unrestricted)
+    value = e.circuit(source)
+    assert str(value) == expect
+
+
+def check_qir(source: str, expect):
+    e = Interpreter(TargetProfile.Base)
+    value = e.qir(source)
+    assert str(value) == expect
+
+
+def check_estimate(source: str):
+    e = Interpreter(TargetProfile.Base)
+    value = e.estimate("", source)
 
 
 # Tests for the native Q# interpreter class
@@ -186,102 +233,166 @@ def test_value_array() -> None:
 
 
 def test_value_udt() -> None:
-    e = Interpreter(TargetProfile.Unrestricted)
-    value = e.interpret(
-        """
+    source = """
         struct Data { a: Int, b: Int }
         new Data { a = 2, b = 3 }
     """
-    )
-    value = qsharp_value_to_python_value(value)
-    assert value.a == 2 and value.b == 3
+    expr = "{" + source + "}"
+    callable = "function makeData() : Data { new Data { a = 2, b = 3 } }"
+    output = "Data(a=2, b=3)"
+
+    check_interpret(source, output)
+    check_run(expr, output)
+    check_invoke(source, callable, output)
+    check_circuit(expr, "")
+    check_estimate(expr)
+    # This test triggers an existing panic in Partial Evaluation
+    # check_qir(expr, "")
 
 
 def test_value_nested_udts() -> None:
-    e = Interpreter(TargetProfile.Unrestricted)
-    value = e.interpret(
-        """
+    source = """
         struct Data { a: Int, b: MoreData }
         struct MoreData { c: Int, d: Int }
         new Data { a = 2, b = new MoreData { c = 3, d = 4 } }
     """
-    )
-    value = qsharp_value_to_python_value(value)
-    assert value.a == 2 and value.b.c == 3 and value.b.d == 4
+    expr = "{" + source + "}"
+    callable = "function makeData() : Data { new Data { a = 2, b = new MoreData { c = 3, d = 4 } } }"
+    output = "Data(a=2, b=MoreData(c=3, d=4))"
+
+    check_interpret(source, output)
+    check_run(expr, output)
+    check_invoke(source, callable, output)
+    check_circuit(expr, "")
+    check_estimate(expr)
+    # This test triggers an existing panic in Partial Evaluation
+    # check_qir(expr, "")
 
 
 def test_value_udts_with_complex_field() -> None:
-    e = Interpreter(TargetProfile.Unrestricted)
-    value = e.interpret(
-        """
+    source = """
         struct Data { a: Std.Math.Complex }
-        (new Data { a = new Std.Math.Complex { Real = 2.0, Imag = 3.0 } })
+        new Data { a = new Std.Math.Complex { Real = 2.0, Imag = 3.0 } }
     """
-    )
-    value = qsharp_value_to_python_value(value)
-    assert value.a == 2 + 3j
+    expr = "{" + source + "}"
+    callable = "function makeData() : Data { new Data { a = new Std.Math.Complex { Real = 2.0, Imag = 3.0 } } }"
+    output = "Data(a=(2+3j))"
+
+    check_interpret(source, output)
+    check_run(expr, output)
+    check_invoke(source, callable, output)
+    check_circuit(expr, "")
+    check_estimate(expr)
+    # This test triggers an existing panic in Partial Evaluation
+    # check_qir(expr, "")
 
 
 def test_value_udts_with_array_field() -> None:
-    e = Interpreter(TargetProfile.Unrestricted)
-    value = e.interpret(
-        """
+    source = """
         struct Data { a: Int[] }
         new Data { a = [2, 3, 4] }
     """
-    )
-    value = qsharp_value_to_python_value(value)
-    assert value.a == [2, 3, 4]
+    expr = "{" + source + "}"
+    callable = "function makeData() : Data { new Data { a = [2, 3, 4] } }"
+    output = "Data(a=[2, 3, 4])"
+
+    check_interpret(source, output)
+    check_run(expr, output)
+    check_invoke(source, callable, output)
+    check_circuit(expr, "")
+    check_estimate(expr)
+    # This test triggers an existing panic in Partial Evaluation
+    # check_qir(expr, "")
 
 
 def test_value_udts_with_tuple_field() -> None:
-    e = Interpreter(TargetProfile.Unrestricted)
-    value = e.interpret(
-        """
+    source = """
         struct Data { a: (Int, Int, Int) }
         new Data { a = (2, 3, 4) }
     """
-    )
-    value = qsharp_value_to_python_value(value)
-    assert value.a == (2, 3, 4)
+    expr = "{" + source + "}"
+    callable = "function makeData() : Data { new Data { a = (2, 3, 4) } }"
+    output = "Data(a=(2, 3, 4))"
+
+    check_interpret(source, output)
+    check_run(expr, output)
+    check_invoke(source, callable, output)
+    check_circuit(expr, "")
+    check_estimate(expr)
+    # This test triggers an existing panic in Partial Evaluation
+    # check_qir(expr, "")
 
 
 def test_value_array_of_udts() -> None:
-    e = Interpreter(TargetProfile.Unrestricted)
-    value = e.interpret(
-        """
+    source = """
         struct Data { a: Int }
         [new Data { a = 2 }, new Data { a = 3 }]
     """
+    expr = "{" + source + "}"
+    callable = (
+        "function makeData() : Data[] { [new Data { a = 2 }, new Data { a = 3 }] }"
     )
-    value = qsharp_value_to_python_value(value)
-    assert value[0].a == 2 and value[1].a == 3
+    output = "[Data(a=2), Data(a=3)]"
+
+    check_interpret(source, output)
+    check_run(expr, output)
+    check_invoke(source, callable, output)
+    check_circuit(expr, "")
+    check_estimate(expr)
+    # This test triggers an existing panic in Partial Evaluation
+    # check_qir(expr, "")
 
 
 def test_value_array_of_complex() -> None:
-    e = Interpreter(TargetProfile.Unrestricted)
-    value = e.interpret("[new Std.Math.Complex { Real = 2.0, Imag = 3.0 }]")
-    value = qsharp_value_to_python_value(value)
-    assert value[0] == 2 + 3j
+    source = """
+        [new Std.Math.Complex { Real = 2.0, Imag = 3.0 }]
+    """
+    expr = "{" + source + "}"
+    callable = "function makeData() : Std.Math.Complex[] { [new Std.Math.Complex { Real = 2.0, Imag = 3.0 }] }"
+    output = "[(2+3j)]"
+
+    check_interpret(source, output)
+    check_run(expr, output)
+    check_invoke(source, callable, output)
+    check_circuit(expr, "")
+    check_estimate(expr)
+    # This test triggers an existing panic in Partial Evaluation
+    # check_qir(expr, "")
 
 
 def test_value_tuple_of_udts() -> None:
-    e = Interpreter(TargetProfile.Unrestricted)
-    value = e.interpret(
-        """
+    source = """
         struct Data { a: Int }
         (new Data { a = 2 }, new Data { a = 3 })
-        """
-    )
-    value = qsharp_value_to_python_value(value)
-    assert value[0].a == 2 and value[1].a == 3
+    """
+    expr = "{" + source + "}"
+    callable = "function makeData() : (Data, Data) { (new Data { a = 2 }, new Data { a = 3 }) }"
+    output = "(Data(a=2), Data(a=3))"
+
+    check_interpret(source, output)
+    check_run(expr, output)
+    check_invoke(source, callable, output)
+    check_circuit(expr, "")
+    check_estimate(expr)
+    # This test triggers an existing panic in Partial Evaluation
+    # check_qir(expr, "")
 
 
 def test_value_tuple_of_complex() -> None:
-    e = Interpreter(TargetProfile.Unrestricted)
-    value = e.interpret("""(new Std.Math.Complex { Real = 2.0, Imag = 3.0 },)""")
-    value = qsharp_value_to_python_value(value)
-    assert value[0] == 2 + 3j
+    source = """
+        (new Std.Math.Complex { Real = 2.0, Imag = 3.0 },)
+    """
+    expr = "{" + source + "}"
+    callable = "function makeData() : (Std.Math.Complex,) { (new Std.Math.Complex { Real = 2.0, Imag = 3.0 },) }"
+    output = "((2+3j),)"
+
+    check_interpret(source, output)
+    check_run(expr, output)
+    check_invoke(source, callable, output)
+    check_circuit(expr, "")
+    check_estimate(expr)
+    # This test triggers an existing panic in Partial Evaluation
+    # check_qir(expr, "")
 
 
 def test_target_error() -> None:
