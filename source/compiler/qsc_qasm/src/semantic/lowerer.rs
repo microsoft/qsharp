@@ -914,16 +914,15 @@ impl Lowerer {
         //              the current gate/function scope.
 
         // This is true if we are inside any gate or function scope.
-        let is_symbol_inside_gate_or_function_scope =
-            self.symbols.is_scope_rooted_in_gate_or_subroutine();
+        let inside_gate_or_function_scope = self.symbols.is_scope_rooted_in_gate_or_subroutine();
 
         // This is true if the symbol is outside the most inner gate or function scope.
         let is_symbol_declaration_outside_gate_or_function_scope = self
             .symbols
             .is_symbol_outside_most_inner_gate_or_function_scope(symbol_id);
 
-        let need_to_capture_symbol = is_symbol_inside_gate_or_function_scope
-            && is_symbol_declaration_outside_gate_or_function_scope;
+        let need_to_capture_symbol =
+            inside_gate_or_function_scope && is_symbol_declaration_outside_gate_or_function_scope;
 
         let kind = if need_to_capture_symbol && symbol.ty.is_const() {
             if let Some(val) = symbol.get_const_value() {

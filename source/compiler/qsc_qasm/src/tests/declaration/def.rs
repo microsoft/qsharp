@@ -545,9 +545,9 @@ fn capturing_non_const_external_variable_fails() {
     };
 
     expect![[r#"
-        [Qasm.Lowerer.UndefinedSymbol
+        [Qasm.Lowerer.ExprMustBeConst
 
-          x undefined symbol: a
+          x a captured variable must be a const expression
            ,-[Test.qasm:4:20]
          3 |         def f() -> int {
          4 |             return a;

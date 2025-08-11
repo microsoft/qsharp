@@ -139,9 +139,9 @@ fn check_lowerer_error_spans_are_correct() {
                 `----
               help: mutable variables must be declared without the keyword `const`
 
-            Qasm.Lowerer.UndefinedSymbol
+            Qasm.Lowerer.ExprMustBeConst
 
-              x undefined symbol: non_const_global_variable
+              x a captured variable must be a const expression
                 ,-[Test.qasm:59:13]
              58 | def try_capture_non_const_global_variable() {
              59 |     int a = non_const_global_variable;

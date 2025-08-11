@@ -356,6 +356,7 @@ impl Type {
             | Type::Float(_, is_const)
             | Type::Int(_, is_const)
             | Type::UInt(_, is_const) => *is_const,
+            Type::Function(..) | Type::Gate(..) | Type::Void => true,
             _ => false,
         }
     }
