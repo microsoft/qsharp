@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { VSDiagnostic } from "qsharp-lang";
+import { log, VSDiagnostic } from "qsharp-lang";
 import vscode from "vscode";
 import { CircuitOrError, showCircuitCommand } from "../circuit";
 import { loadCompilerWorker, toVsCodeDiagnostic } from "../common";
@@ -245,11 +245,15 @@ export class QSharpTools {
       worker.terminate();
     }, compilerRunTimeoutMs);
     const worker = loadCompilerWorker(this.extensionUri!);
-    const summariesJson = await worker.getLibrarySummaries();
+    const summaries = await worker.getLibrarySummaries();
     clearTimeout(compilerTimeout);
     worker.terminate();
 
-    return summariesJson;
+    const summariesObj = deepMapToObject(summaries);
+    const temp = JSON.stringify(summariesObj, null, 2);
+    log.info(`Summaries: ${temp}`);
+
+    return summariesObj;
   }
 
   private async getProgram(filePath: string) {
@@ -338,5 +342,19 @@ export class QSharpTools {
     }
     clearTimeout(compilerTimeout);
     worker.terminate();
+  }
+}
+
+function deepMapToObject(value: any): any {
+  if (value instanceof Map) {
+    const obj: any = {};
+    for (const [key, val] of value.entries()) {
+      obj[key] = deepMapToObject(val);
+    }
+    return obj;
+  } else if (Array.isArray(value)) {
+    return value.map(deepMapToObject);
+  } else {
+    return value;
   }
 }
