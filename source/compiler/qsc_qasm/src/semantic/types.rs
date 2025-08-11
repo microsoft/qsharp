@@ -356,9 +356,13 @@ impl Type {
             | Type::Float(_, is_const)
             | Type::Int(_, is_const)
             | Type::UInt(_, is_const) => *is_const,
-            Type::Function(..) | Type::Gate(..) | Type::Void => true,
             _ => false,
         }
+    }
+
+    #[must_use]
+    pub fn is_callable(&self) -> bool {
+        matches!(self, Self::Function(..) | Self::Gate(..))
     }
 
     #[must_use]

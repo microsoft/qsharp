@@ -923,8 +923,9 @@ impl Lowerer {
 
         let need_to_capture_symbol =
             inside_gate_or_function_scope && is_symbol_declaration_outside_gate_or_function_scope;
+        let can_capture_symbol = symbol.ty.is_const() || symbol.ty.is_callable();
 
-        let kind = if need_to_capture_symbol && symbol.ty.is_const() {
+        let kind = if need_to_capture_symbol && can_capture_symbol {
             if let Some(val) = symbol.get_const_value() {
                 semantic::ExprKind::Lit(val)
             } else {
@@ -933,7 +934,7 @@ impl Lowerer {
                 // const_eval function.
                 semantic::ExprKind::Ident(symbol_id)
             }
-        } else if need_to_capture_symbol && !symbol.ty.is_err() && !symbol.ty.is_const() {
+        } else if need_to_capture_symbol && !symbol.ty.is_err() && !can_capture_symbol {
             self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
                 "a captured variable".into(),
                 ident.span,
