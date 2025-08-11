@@ -159,3 +159,9 @@ fn fuzz_2397() {
     let source = "creg a[551615";
     compile_qasm_best_effort(source);
 }
+
+#[test]
+fn fuzz_2620() {
+    let source = "sqrt(888888888888888888);";
+    compile_qasm_best_effort(source);
+}
