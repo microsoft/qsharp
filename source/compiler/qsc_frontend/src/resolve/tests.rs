@@ -3336,6 +3336,29 @@ fn get_locals_block_scope_boundary_begin() {
 }
 
 #[test]
+fn get_locals_namespace_imports() {
+    check_locals(
+        indoc! {"
+            namespace Bar {}
+            namespace Foo {
+                import Bar;
+                import Bar as Baz;
+                import Bar.*;
+                function A() : Int {
+                    ↘
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace 4
+            namespace 3
+            Bar (namespace 3)
+            Baz (namespace 3)
+        "#]],
+    );
+}
+
+#[test]
 fn use_after_scope() {
     check(
         indoc! {"

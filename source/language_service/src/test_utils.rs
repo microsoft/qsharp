@@ -260,15 +260,13 @@ where
 {
     let (std_id, package_store) = compile_fake_stdlib();
 
-    let mut dependencies = vec![(std_id, None)];
-
     let mut compiler = Compiler::new(
         SourceMap::default(),
         PackageType::Lib,
         Profile::Unrestricted.into(),
         LanguageFeatures::default(),
         package_store,
-        &dependencies,
+        &[(std_id, None)],
     )
     .expect("expected incremental compiler creation to succeed");
 
@@ -284,10 +282,7 @@ where
         compiler.update(increment);
     }
 
-    let source_package_id = compiler.source_package_id();
     let (package_store, package_id) = compiler.into_package_store();
-
-    dependencies.push((source_package_id, None));
 
     Compilation {
         package_store,
