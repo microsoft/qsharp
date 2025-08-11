@@ -1967,7 +1967,7 @@ fn op_array_forget_functors_with_lambdas() {
         ",
         &expect![[r#"
             Package:
-                Item 0 [0-328] (Public):
+                Item 0 [13-328] (Public):
                     Namespace (Ident 52 [23-24] "A"): Item 1, Item 2, Item 3, Item 4
                 Item 1 [43-75] (Internal):
                     Parent: 0
