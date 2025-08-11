@@ -337,20 +337,24 @@ impl<'a> Globals<'a> {
         // Makes the same item available as `A.B`, `A.C`, `D.B`, `B` and `X`
         // when in `namespace E`.
 
+        // We want to keep distinct names to the same item (`B`, `C`) but
+        // not distinct paths to the same item (`A.B`, `D.B`).
+
         // Sort by availability so that direct imports and in-scope names
         // are preferred when de-duping.
 
         // When tied, prefer the smaller namespace ID, assuming that that's the "original" namespace,
         // but really that's just a heuristic when we don't have much else to go on.
-        candidates.sort_by(|a, b| match a.item_id.cmp(&b.item_id) {
-            Ordering::Equal => match a.availability.cmp(&b.availability) {
-                Ordering::Equal => a.namespace_id.cmp(&b.namespace_id),
-                other => other,
-            },
-            other => other,
+        candidates.sort_by_key(|i| {
+            (
+                i.item_id,
+                i.name.clone(),
+                i.availability.clone(),
+                i.namespace_id,
+            )
         });
 
-        candidates.dedup_by_key(|i| i.item_id);
+        candidates.dedup_by_key(|i| (i.item_id, i.name.clone()));
 
         // Drop any items that were direct local imports, since the locals completion module
         // would have already included them in the ultimate completion list

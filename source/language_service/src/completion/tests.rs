@@ -2433,12 +2433,14 @@ fn aliased_export_from_dependency_in_scope() {
             export Baz;
         }
         namespace Main {
-            export Bar.Baz as BazAlias;
+            export Bar.Baz, Bar.Baz as BazAlias;
         }
         ",
-        &["BazAlias"],
+        &["BazAlias", "Baz"],
         &expect![[r#"
             found, sorted:
+              "Baz" (Function)
+                detail: "operation Baz() : Unit"
               "BazAlias" (Function)
                 detail: "operation Baz() : Unit"
         "#]],
