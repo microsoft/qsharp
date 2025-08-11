@@ -14,4 +14,5 @@ mod modified_gate_call;
 mod pragma;
 mod reset;
 mod switch;
+mod version;
 mod while_loop;
