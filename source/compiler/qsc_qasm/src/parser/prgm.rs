@@ -42,15 +42,9 @@ pub(super) fn parse(s: &mut ParserContext) -> Program {
 fn parse_version(s: &mut ParserContext<'_>) -> Result<Version> {
     s.expect(WordKinds::OpenQASM);
     token(s, TokenKind::Keyword(crate::keyword::Keyword::OpenQASM))?;
-    let next = s.peek();
-    if let Ok(version) = expr::version(s) {
-        recovering_semi(s);
-        Ok(version)
-    } else {
-        Err(crate::parser::error::Error::new(
-            crate::parser::error::ErrorKind::Lit("version", next.span),
-        ))
-    }
+    let version = expr::version(s)?;
+    recovering_semi(s);
+    Ok(version)
 }
 
 pub(super) fn parse_top_level_nodes(s: &mut ParserContext) -> Result<Vec<Stmt>> {
