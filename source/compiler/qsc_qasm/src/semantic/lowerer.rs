@@ -3094,6 +3094,13 @@ impl Lowerer {
         }
     }
 
+    /// Tries to coerce a literal expr to the given type.
+    ///
+    /// Returns `None` if the cast isn't allowed.
+    ///
+    /// Returns `Err` if the cast is allowed but there was a value error.
+    /// E.g.: this can happen when casting from int[64] to float[64] if
+    /// the integer value doesn't fit in 53 bits (the size of `f64::MANTISSA`).
     #[allow(clippy::too_many_lines)]
     pub(crate) fn try_coerce_literal_expr_to_type(
         ty: &Type,

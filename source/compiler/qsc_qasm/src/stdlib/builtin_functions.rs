@@ -100,7 +100,10 @@ fn dispatch(
                     return None;
                 }
             }
-            Err(None) => (),
+            Err(None) => {
+                // This case means that the cast isn't allowed. So, we do nothing and
+                // keep trying the other signatures in the function table.
+            }
         }
     }
 
