@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { TargetProfile } from "qsharp-lang";
+
 const excludeTargets: string[] = [
   "ionq.qpu",
   "rigetti.qpu.aspen-m-2",
@@ -26,6 +28,10 @@ export function shouldExcludeProvider(provider: string) {
   return excludeProviders.includes(provider);
 }
 
-export function supportsAdaptive(target: string) {
-  return !target.startsWith("ionq") && !target.startsWith("rigetti");
+export function getPreferredTargetProfile(target: string): TargetProfile {
+  if (!target.startsWith("ionq") && !target.startsWith("rigetti")) {
+    return "adaptive_ri";
+  } else {
+    return "base";
+  }
 }

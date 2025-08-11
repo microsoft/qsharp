@@ -7,9 +7,9 @@ use num_bigint::BigInt;
 
 use qsc_ast::ast::{
     self, Attr, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, FieldAssign,
-    FunctorExpr, FunctorExprKind, Ident, ImportOrExportDecl, ImportOrExportItem, Item, ItemKind,
-    Lit, Mutability, NodeId, Pat, PatKind, Path, PathKind, QubitInit, QubitInitKind, QubitSource,
-    Stmt, StmtKind, TopLevelNode, Ty, TyKind,
+    FunctorExpr, FunctorExprKind, Ident, ImportKind, ImportOrExportDecl, ImportOrExportItem, Item,
+    ItemKind, Lit, Mutability, NodeId, Pat, PatKind, Path, PathKind, QubitInit, QubitInitKind,
+    QubitSource, Stmt, StmtKind, TopLevelNode, Ty, TyKind,
 };
 use qsc_data_structures::span::Span;
 
@@ -999,8 +999,7 @@ pub(crate) fn build_qasm_import_decl_intrinsic() -> Item {
     let items = vec![ImportOrExportItem {
         span: Span::default(),
         path: PathKind::Ok(Box::new(path_kind)),
-        alias: None,
-        is_glob: true,
+        kind: ImportKind::Wildcard,
     }];
     let decl = ImportOrExportDecl::new(Span::default(), items.into_boxed_slice(), false);
     Item {

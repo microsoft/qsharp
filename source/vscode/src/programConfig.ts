@@ -6,10 +6,10 @@ import {
   IQSharpError,
   ProgramConfig,
   QdkDiagnostics,
+  TargetProfile,
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { isOpenQasmDocument, isQdkDocument } from "./common";
-import { getTarget } from "./config";
 import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 import { loadOpenQasmProject, loadProject } from "./projectSystem";
 
@@ -52,6 +52,7 @@ export type FullProgramConfigOrError =
 export async function getActiveProgram(
   options: {
     showModalError: boolean;
+    targetProfileFallback?: TargetProfile;
   } = { showModalError: false },
 ): Promise<FullProgramConfigOrError> {
   const doc = getActiveQdkDocument();
@@ -77,7 +78,12 @@ export function getActiveQdkDocument(): vscode.TextDocument | undefined {
     : undefined;
 }
 
-export async function getVisibleProgram(): Promise<FullProgramConfigOrError> {
+export async function getVisibleProgram(
+  options: {
+    showModalError?: boolean;
+    targetProfileFallback?: TargetProfile;
+  } = { showModalError: false },
+): Promise<FullProgramConfigOrError> {
   const doc = getVisibleQdkDocument();
   if (!doc) {
     return {
@@ -86,7 +92,7 @@ export async function getVisibleProgram(): Promise<FullProgramConfigOrError> {
         "There are no visible windows that contain a document supported by the QDK",
     };
   }
-  return await getProgramForDocument(doc, { showModalError: false });
+  return await getProgramForDocument(doc, options);
 }
 
 export function getVisibleQdkDocumentUri(): vscode.Uri | undefined {
@@ -102,12 +108,10 @@ export function getVisibleQdkDocument(): vscode.TextDocument | undefined {
 export async function getProgramForDocument(
   doc: vscode.TextDocument,
   options: {
-    showModalError: boolean;
-  } = { showModalError: false },
+    showModalError?: boolean;
+    targetProfileFallback?: TargetProfile;
+  } = {},
 ): Promise<FullProgramConfigOrError> {
-  // Target profile comes from settings
-  const profile = getTarget();
-
   // Project configs come from the document
   try {
     const program = await invokeAndReportCommandDiagnostics(
@@ -117,7 +121,16 @@ export async function getProgramForDocument(
       options,
     );
 
-    return { success: true, programConfig: { profile, ...program } };
+    // Fill in a default for the target profile if one didn't come from the user source
+    const profile: TargetProfile =
+      program.profile || options.targetProfileFallback || "unrestricted";
+
+    const programConfig = {
+      ...program,
+      profile,
+    };
+
+    return { success: true, programConfig };
   } catch (e: unknown) {
     return {
       success: false,

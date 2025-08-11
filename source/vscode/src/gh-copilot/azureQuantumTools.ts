@@ -5,7 +5,7 @@ import { log } from "qsharp-lang";
 import * as vscode from "vscode";
 import { getTokenForWorkspace } from "../azure/auth.js";
 import { QuantumUris } from "../azure/networkRequests.js";
-import { supportsAdaptive } from "../azure/providerProperties.js";
+import { getPreferredTargetProfile } from "../azure/providerProperties.js";
 import { startRefreshCycle } from "../azure/treeRefresher.js";
 import {
   Job,
@@ -404,7 +404,7 @@ export async function submitToTarget(
 
     let qir = "";
     try {
-      qir = await getQirForVisibleSource(supportsAdaptive(target.id));
+      qir = await getQirForVisibleSource(getPreferredTargetProfile(target.id));
     } catch (e: any) {
       if (e?.name === "QirGenerationError") {
         throw new CopilotToolError(e.message);

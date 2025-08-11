@@ -365,20 +365,39 @@ suite("OpenQASM Debugger Tests", function suite() {
     // Step over to prepare the tracker to detect a new variable.
     await vscode.commands.executeCommand("workbench.action.debug.stepOver");
 
+    // Wait until paused. A new variable should be in the locals.
+    await waitUntilPausedAndAssertVariables([
+      { name: "b", type: undefined, value: "3", variablesReference: 0 },
+      { name: "c", type: undefined, value: "4", variablesReference: 0 },
+    ]);
+
     // Request scopes for the frame with frameId 1 (g's frame).
     await vscode.debug.activeDebugSession?.customRequest("scopes", {
       frameId: 1,
     });
+    const scopes = (await waitUntilResponse(
+      "scopes",
+    )) as DebugProtocol.ScopesResponse;
 
-    // Request variables of selected frame.
-    // The variables reference value, 1003, comes from looking at the response
-    // of the "scopes" request above with `logDebugAdapterActivity = true`.
+    // Request variables for the Locals scope.
+    const variablesReference = scopes.body.scopes.find(
+      (scope) => scope.name === "Locals",
+    )?.variablesReference;
+
+    assert.isNotNull(
+      variablesReference,
+      "Expected to find a variables reference for the Locals scope",
+    );
+
     await vscode.debug.activeDebugSession?.customRequest("variables", {
-      variablesReference: 1003,
+      variablesReference,
     });
 
-    // Verify that the local variables correspond to the Main frame.
-    await waitUntilPausedAndAssertVariables([
+    const variables = (await waitUntilResponse(
+      "variables",
+    )) as DebugProtocol.VariablesResponse;
+
+    assert.deepEqual(variables.body.variables, [
       {
         name: "a",
         type: undefined,
@@ -389,14 +408,15 @@ suite("OpenQASM Debugger Tests", function suite() {
   });
 
   /**
-   * Wait until the debugger has entered the paused state.
+   * Wait until the debugger has entered the paused state and then asserts
+   * that the stack traces matches the `expectedStackTrace`.
    *
-   * @param expectedStackTrace assert that the stack trace matches this value
+   * @param expectedStackTrace assert that the stack trace matches this value.
    */
   function waitUntilPausedAndAssertStackTrace(
     expectedStackTrace: DebugProtocol.StackFrame[],
   ) {
-    return tracker!.waitUntilPausedAndAssertStackTrace(expectedStackTrace);
+    return tracker!.waitUntilPaused({ expectedStackTrace });
   }
 
   /**
@@ -408,7 +428,17 @@ suite("OpenQASM Debugger Tests", function suite() {
   function waitUntilPausedAndAssertVariables(
     expectedVariables: DebugProtocol.Variable[],
   ) {
-    return tracker!.waitUntilPausedAndAssertVariables(expectedVariables);
+    return tracker!.waitUntilPaused({ expectedVariables });
+  }
+
+  /**
+   * Wait until the debugger has returned a response for a
+   * specific command.
+   */
+  function waitUntilResponse(
+    command: string,
+  ): Promise<DebugProtocol.Response | undefined> {
+    return tracker!.waitUntilResponse(command);
   }
 });
 

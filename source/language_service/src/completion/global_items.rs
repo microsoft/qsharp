@@ -9,11 +9,12 @@ use crate::{
 use qsc::{
     PRELUDE,
     ast::{
-        Idents as _, Package as AstPackage, PathKind,
+        Idents as _, ImportKind, Package as AstPackage, PathKind,
         visit::{Visitor, walk_block, walk_callable_decl, walk_item, walk_namespace},
     },
     display::CodeDisplay,
     hir::{CallableDecl, Idents, ItemKind, Package, PackageId, Visibility, ty::Udt},
+    resolve::iter_valid_items,
 };
 use std::{iter::once, rc::Rc};
 
@@ -805,15 +806,17 @@ impl ImportItem {
             return vec![];
         }
         let mut buf = Vec::with_capacity(decl.items.len());
-        for item in &decl.items {
-            let PathKind::Ok(path) = &item.path else {
-                continue;
+        for item in iter_valid_items(decl) {
+            let alias = if let ImportKind::Direct { alias } = &item.kind {
+                alias.as_ref().map(|x| x.name.clone())
+            } else {
+                None
             };
-            let alias = item.alias.as_ref().map(|x| x.name.clone());
-            let is_glob = item.is_glob;
+
+            let is_glob = matches!(item.kind, ImportKind::Wildcard);
 
             buf.push(ImportItem {
-                path: path.rc_str_iter().cloned().collect(),
+                path: item.path.rc_str_iter().cloned().collect(),
                 alias,
                 is_glob,
             });

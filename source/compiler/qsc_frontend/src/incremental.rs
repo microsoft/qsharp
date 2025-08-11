@@ -70,31 +70,23 @@ impl Compiler {
         let mut typeck_globals = typeck::GlobalTable::new();
         let mut dropped_names = Vec::new();
         if let Some(unit) = store.get(PackageId::CORE) {
-            resolve_globals
-                .add_external_package(PackageId::CORE, &unit.package, store, None)
-                .expect("CORE is added before all other packages and can not clobber anything");
+            resolve_globals.add_external_package(PackageId::CORE, &unit.package, store, None);
             typeck_globals.add_external_package(PackageId::CORE, &unit.package, store);
             dropped_names.extend(unit.dropped_names.iter().cloned());
         }
 
-        let mut errors: Vec<resolve::Error> = Vec::new();
         for (id, alias) in dependencies {
             let unit = store
                 .get(*id)
                 .expect("dependency should be added to package store before compilation");
-            if let Err(mut errs) =
-                resolve_globals.add_external_package(*id, &unit.package, store, alias.as_deref())
-            {
-                errors.append(&mut errs);
-            }
+            resolve_globals.add_external_package(*id, &unit.package, store, alias.as_deref());
             typeck_globals.add_external_package(*id, &unit.package, store);
             dropped_names.extend(unit.dropped_names.iter().cloned());
         }
 
         Self {
             ast_assigner: AstAssigner::new(),
-            resolver: Resolver::with_persistent_local_scope(resolve_globals, dropped_names)
-                .with_errors(errors),
+            resolver: Resolver::with_persistent_local_scope(resolve_globals, dropped_names),
             checker: Checker::new(typeck_globals),
             lowerer: Lowerer::new(),
             capabilities,
@@ -271,19 +263,12 @@ impl Compiler {
         self.resolver
             .extend_dropped_names(cond_compile.into_names());
         self.resolver.bind_fragments(ast, &mut unit.assigner);
-        self.resolver.bind_and_resolve_imports_and_exports(ast);
-        self.resolver.with(&mut unit.assigner).visit_package(ast);
+        self.resolver.resolve(&mut unit.assigner, ast);
 
         self.checker.check_package(self.resolver.names(), ast);
         self.checker.solve(self.resolver.names());
 
-        let package = self.lower(
-            &mut unit.assigner,
-            &*ast,
-            // not an ideal clone, but it is once per fragment, and the namespace tree is
-            // relatively lightweight
-            self.resolver.namespaces().clone(),
-        );
+        let package = self.lower(&mut unit.assigner, &*ast);
 
         let errors = self
             .resolver
@@ -390,15 +375,10 @@ impl Compiler {
         (package, with_source(errors, sources, offset))
     }
 
-    fn lower(
-        &mut self,
-        hir_assigner: &mut HirAssigner,
-        package: &ast::Package,
-        namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
-    ) -> hir::Package {
+    fn lower(&mut self, hir_assigner: &mut HirAssigner, package: &ast::Package) -> hir::Package {
         self.lowerer
             .with(hir_assigner, self.resolver.names(), self.checker.table())
-            .lower_package(package, namespaces)
+            .lower_package(package)
     }
 }
 
