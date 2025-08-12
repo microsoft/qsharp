@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from enum import Enum
-from typing import Any, Callable, Optional, Dict, List, Tuple, Self
+from typing import Any, Callable, Optional, Dict, List, Tuple
 
 # pylint: disable=unused-argument
 # E302 is fighting with the formatter for number of blank lines

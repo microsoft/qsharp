@@ -265,11 +265,11 @@ def init(
     # Loop through the environment module and remove any dynamically added attributes that represent
     # Q# callables or structs. This is necessary to avoid conflicts with the new interpreter instance.
     keys_to_remove = []
-    for key in code.__dict__:
+    for key, val in code.__dict__.items():
         if (
-            hasattr(code.__dict__[key], "__global_callable")
-            or hasattr(code.__dict__[key], "__qsharp_class")
-            or isinstance(code.__dict__[key], types.ModuleType)
+            hasattr(val, "__global_callable")
+            or hasattr(val, "__qsharp_class")
+            or isinstance(val, types.ModuleType)
         ):
             keys_to_remove.append(key)
     for key in keys_to_remove:
