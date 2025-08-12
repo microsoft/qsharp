@@ -165,6 +165,34 @@ fn local_ref() {
 }
 
 #[test]
+fn local_ref_cursor_touches_start() {
+    check(
+        r#"
+        def Foo(int x, int y, int z) {
+            int temp = x;
+            Foo(temp, y, temp);
+        }
+        int ◉temp◉ = x;
+        Foo(◉↘temp◉, y, ◉temp◉);
+    "#,
+    );
+}
+
+#[test]
+fn local_ref_cursor_touches_end() {
+    check(
+        r#"
+        def Foo(int x, int y, int z) {
+            int temp = x;
+            Foo(temp, y, temp);
+        }
+        int ◉temp◉ = x;
+        Foo(◉temp↘◉, y, ◉temp◉);
+    "#,
+    );
+}
+
+#[test]
 fn input_def() {
     check(
         r#"
