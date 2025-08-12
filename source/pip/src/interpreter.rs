@@ -1064,7 +1064,10 @@ pub(crate) enum Result {
 
 impl From<Result> for qsc::interpret::Result {
     fn from(value: Result) -> Self {
-        qsc::interpret::Result::Val(value == Result::One)
+        match value {
+            Result::Loss => qsc::interpret::Result::Loss,
+            Result::One | Result::Zero => qsc::interpret::Result::Val(value == Result::One)
+        }
     }
 }
 
