@@ -231,7 +231,7 @@ impl<'a> SymbolFinder<'a> {
 impl Visitor for SymbolFinder<'_> {
     fn visit_alias_decl_stmt(&mut self, stmt: &AliasDeclStmt) {
         let symbol = &self.symbol_table[stmt.symbol_id];
-        if symbol.span.touches(self.offset) {
+        if symbol.span.contains(self.offset) {
             self.symbol_id = Some(stmt.symbol_id);
             return;
         }
@@ -240,7 +240,7 @@ impl Visitor for SymbolFinder<'_> {
 
     fn visit_classical_decl_stmt(&mut self, stmt: &ClassicalDeclarationStmt) {
         let symbol = &self.symbol_table[stmt.symbol_id];
-        if symbol.span.touches(self.offset) {
+        if symbol.span.contains(self.offset) {
             self.symbol_id = Some(stmt.symbol_id);
             return;
         }
@@ -249,13 +249,13 @@ impl Visitor for SymbolFinder<'_> {
 
     fn visit_def_stmt(&mut self, stmt: &DefStmt) {
         let symbol = &self.symbol_table[stmt.symbol_id];
-        if symbol.span.touches(self.offset) {
+        if symbol.span.contains(self.offset) {
             self.symbol_id = Some(stmt.symbol_id);
             return;
         }
         stmt.params.iter().for_each(|id| {
             let symbol = &self.symbol_table[*id];
-            if symbol.span.touches(self.offset) {
+            if symbol.span.contains(self.offset) {
                 self.symbol_id = Some(*id);
             }
         });
@@ -266,7 +266,7 @@ impl Visitor for SymbolFinder<'_> {
 
     fn visit_extern_decl(&mut self, stmt: &ExternDecl) {
         let symbol = &self.symbol_table[stmt.symbol_id];
-        if symbol.span.touches(self.offset) {
+        if symbol.span.contains(self.offset) {
             self.symbol_id = Some(stmt.symbol_id);
             return;
         }
@@ -275,7 +275,7 @@ impl Visitor for SymbolFinder<'_> {
 
     fn visit_for_stmt(&mut self, stmt: &ForStmt) {
         let symbol = &self.symbol_table[stmt.loop_variable];
-        if symbol.span.touches(self.offset) {
+        if symbol.span.contains(self.offset) {
             self.symbol_id = Some(stmt.loop_variable);
             return;
         }
@@ -283,8 +283,7 @@ impl Visitor for SymbolFinder<'_> {
     }
 
     fn visit_gate_call_stmt(&mut self, stmt: &GateCall) {
-        let symbol = &self.symbol_table[stmt.symbol_id];
-        if symbol.span.touches(self.offset) {
+        if stmt.gate_name_span.contains(self.offset) {
             self.symbol_id = Some(stmt.symbol_id);
             return;
         }
@@ -293,7 +292,7 @@ impl Visitor for SymbolFinder<'_> {
 
     fn visit_input_declaration(&mut self, stmt: &InputDeclaration) {
         let symbol = &self.symbol_table[stmt.symbol_id];
-        if symbol.span.touches(self.offset) {
+        if symbol.span.contains(self.offset) {
             self.symbol_id = Some(stmt.symbol_id);
             return;
         }
@@ -302,7 +301,7 @@ impl Visitor for SymbolFinder<'_> {
 
     fn visit_output_declaration(&mut self, stmt: &OutputDeclaration) {
         let symbol = &self.symbol_table[stmt.symbol_id];
-        if symbol.span.touches(self.offset) {
+        if symbol.span.contains(self.offset) {
             self.symbol_id = Some(stmt.symbol_id);
             return;
         }
@@ -311,7 +310,7 @@ impl Visitor for SymbolFinder<'_> {
 
     fn visit_quantum_gate_definition(&mut self, stmt: &QuantumGateDefinition) {
         let symbol = &self.symbol_table[stmt.symbol_id];
-        if symbol.span.touches(self.offset) {
+        if symbol.span.contains(self.offset) {
             self.symbol_id = Some(stmt.symbol_id);
             return;
         }
@@ -319,13 +318,13 @@ impl Visitor for SymbolFinder<'_> {
         // so we use the symbol table to find the symbol and its span.
         stmt.params.iter().for_each(|id| {
             let symbol = &self.symbol_table[*id];
-            if symbol.span.touches(self.offset) {
+            if symbol.span.contains(self.offset) {
                 self.symbol_id = Some(*id);
             }
         });
         stmt.qubits.iter().for_each(|id| {
             let symbol = &self.symbol_table[*id];
-            if symbol.span.touches(self.offset) {
+            if symbol.span.contains(self.offset) {
                 self.symbol_id = Some(*id);
             }
         });
@@ -334,7 +333,7 @@ impl Visitor for SymbolFinder<'_> {
 
     fn visit_qubit_decl(&mut self, stmt: &QubitDeclaration) {
         let symbol = &self.symbol_table[stmt.symbol_id];
-        if symbol.span.touches(self.offset) {
+        if symbol.span.contains(self.offset) {
             self.symbol_id = Some(stmt.symbol_id);
             return;
         }
@@ -344,7 +343,7 @@ impl Visitor for SymbolFinder<'_> {
 
     fn visit_qubit_array_decl(&mut self, stmt: &QubitArrayDeclaration) {
         let symbol = &self.symbol_table[stmt.symbol_id];
-        if symbol.span.touches(self.offset) {
+        if symbol.span.contains(self.offset) {
             self.symbol_id = Some(stmt.symbol_id);
             return;
         }
@@ -354,7 +353,7 @@ impl Visitor for SymbolFinder<'_> {
 
     fn visit_expr(&mut self, expr: &Expr) {
         if let ExprKind::Ident(id) = expr.kind.as_ref() {
-            if expr.span.touches(self.offset) {
+            if expr.span.contains(self.offset) {
                 self.symbol_id = Some(*id);
                 return;
             }

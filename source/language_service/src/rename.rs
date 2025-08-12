@@ -4,6 +4,9 @@
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod openqasm_tests;
+
 use crate::compilation::{Compilation, CompilationKind};
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::qsc_utils::into_range;

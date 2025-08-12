@@ -3,12 +3,13 @@
 
 use std::sync::Arc;
 
+use crate::openqasm::get_reference_locations;
 use crate::qsc_utils::into_range;
 use log::trace;
 
+use qsc::Span;
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::location::Location;
-use qsc::qasm::semantic::passes::ReferenceFinder;
 
 pub fn prepare_rename(
     sources: &[(Arc<str>, Arc<str>)],
@@ -20,6 +21,12 @@ pub fn prepare_rename(
         super::find_symbol_in_sources(sources, source_name, position, position_encoding);
     let id = id?;
     let symbol = &res.symbols[id];
+
+    // If the symbol is a built-in symbol, we can't rename it, return None
+    if symbol.span == Span::default() {
+        return None;
+    }
+
     let range = into_range(position_encoding, symbol.span, &res.source_map);
     let name = symbol.name.to_string();
     trace!("prepare_rename: found symbol {name} at {range:?}");
@@ -38,22 +45,18 @@ pub fn get_rename(
     let Some(id) = id else {
         return vec![];
     };
-    let reference_spans = ReferenceFinder::get_references(&res.program, id, &res.symbols);
-    reference_spans
-        .into_iter()
-        .map(|span| {
-            let source = res
-                .source_map
-                .find_by_offset(span.lo)
-                .expect("source should exist for offset");
-            Location {
-                source: source.name.clone(),
-                range: Range::from_span(
-                    position_encoding,
-                    &source.contents,
-                    &(span - source.offset),
-                ),
-            }
-        })
-        .collect::<Vec<_>>()
+
+    // If the symbol is a built-in symbol, we can't rename it
+    let symbol = &res.symbols[id];
+    if symbol.span == Span::default() {
+        return vec![];
+    }
+
+    get_reference_locations(
+        position_encoding,
+        &res.program,
+        &res.source_map,
+        &res.symbols,
+        id,
+    )
 }

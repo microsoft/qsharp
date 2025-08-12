@@ -540,8 +540,7 @@ pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
     expr.const_value.iter().for_each(|v| vis.visit_literal(v));
     vis.visit_ty(&expr.ty);
     match expr.kind.as_ref() {
-        ExprKind::CapturedIdent(id) => vis.visit_symbol_id(*id),
-        ExprKind::Ident(id) => vis.visit_symbol_id(*id),
+        ExprKind::CapturedIdent(id) | ExprKind::Ident(id) => vis.visit_symbol_id(*id),
         ExprKind::UnaryOp(expr) => vis.visit_unary_op_expr(expr),
         ExprKind::BinaryOp(expr) => vis.visit_binary_op_expr(expr),
         ExprKind::Lit(lit) => vis.visit_literal(lit),

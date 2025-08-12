@@ -11,7 +11,13 @@ use log::trace;
 use qsc::SourceMap;
 use qsc::line_column::Encoding;
 use qsc::line_column::Position;
+use qsc::line_column::Range;
+use qsc::location::Location;
+use qsc::qasm::semantic::ast::Program;
+use qsc::qasm::semantic::passes::ReferenceFinder;
 use qsc::qasm::semantic::passes::SymbolFinder;
+use qsc::qasm::semantic::symbols::SymbolId;
+use qsc::qasm::semantic::symbols::SymbolTable;
 pub use references::get_references;
 pub use rename::get_rename;
 pub use rename::prepare_rename;
@@ -66,4 +72,38 @@ fn source_position_to_package_offset(
     }
 
     source.offset + offset
+}
+
+fn map_spans_to_source_locations(
+    position_encoding: Encoding,
+    source_map: &SourceMap,
+    spans: Vec<qsc::Span>,
+) -> Vec<Location> {
+    spans
+        .into_iter()
+        .map(|span| {
+            let source = source_map
+                .find_by_offset(span.lo)
+                .expect("source should exist for offset");
+            Location {
+                source: source.name.clone(),
+                range: Range::from_span(
+                    position_encoding,
+                    &source.contents,
+                    &(span - source.offset),
+                ),
+            }
+        })
+        .collect::<Vec<_>>()
+}
+
+fn get_reference_locations(
+    position_encoding: Encoding,
+    program: &Program,
+    source_map: &SourceMap,
+    symbols: &SymbolTable,
+    id: SymbolId,
+) -> Vec<Location> {
+    let reference_spans = ReferenceFinder::get_references(program, id, symbols);
+    map_spans_to_source_locations(position_encoding, source_map, reference_spans)
 }

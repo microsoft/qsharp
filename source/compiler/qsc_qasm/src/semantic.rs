@@ -12,7 +12,7 @@ use qsc_frontend::error::WithSource;
 
 use std::sync::Arc;
 
-pub(crate) mod ast;
+pub mod ast;
 pub(crate) mod const_eval;
 pub mod error;
 mod lowerer;

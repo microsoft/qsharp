@@ -3,9 +3,10 @@
 
 use std::sync::Arc;
 
-use qsc::line_column::{Encoding, Position, Range};
+use qsc::line_column::{Encoding, Position};
 use qsc::location::Location;
-use qsc::qasm::semantic::passes::ReferenceFinder;
+
+use crate::openqasm::get_reference_locations;
 
 pub fn get_references(
     sources: &[(Arc<str>, Arc<str>)],
@@ -20,22 +21,11 @@ pub fn get_references(
         return vec![];
     };
 
-    let reference_spans = ReferenceFinder::get_references(&res.program, id, &res.symbols);
-    reference_spans
-        .into_iter()
-        .map(|span| {
-            let source = res
-                .source_map
-                .find_by_offset(span.lo)
-                .expect("source should exist for offset");
-            Location {
-                source: source.name.clone(),
-                range: Range::from_span(
-                    position_encoding,
-                    &source.contents,
-                    &(span - source.offset),
-                ),
-            }
-        })
-        .collect::<Vec<_>>()
+    get_reference_locations(
+        position_encoding,
+        &res.program,
+        &res.source_map,
+        &res.symbols,
+        id,
+    )
 }

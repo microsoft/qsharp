@@ -4,8 +4,11 @@
 use std::sync::Arc;
 
 use log::trace;
-use qsc::line_column::{Encoding, Position, Range};
+use qsc::Span;
+use qsc::line_column::{Encoding, Position};
 use qsc::location::Location;
+
+use crate::openqasm::map_spans_to_source_locations;
 
 pub fn get_definition(
     sources: &[(Arc<str>, Arc<str>)],
@@ -22,17 +25,10 @@ pub fn get_definition(
         symbol.name, symbol.span
     );
 
-    let source = res
-        .source_map
-        .find_by_name(source_name)
-        .expect("source should exist for offset");
-    let location = Location {
-        source: source.name.clone(),
-        range: Range::from_span(
-            position_encoding,
-            &source.contents,
-            &(symbol.span - source.offset),
-        ),
-    };
-    Some(location)
+    // If the symbol is a built-in symbol, we can't go to def
+    if symbol.span == Span::default() {
+        return None;
+    }
+
+    map_spans_to_source_locations(position_encoding, &res.source_map, vec![symbol.span]).pop()
 }
