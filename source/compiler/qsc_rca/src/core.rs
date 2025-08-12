@@ -504,6 +504,7 @@ impl<'a> Analyzer<'a> {
             if quantum_properties
                 .runtime_features
                 .contains(RuntimeFeatureFlags::CyclicOperationSpec)
+                && Some(&callee.item) != self.get_current_context().get_current_item_id()
             {
                 quantum_properties
                     .runtime_features
@@ -563,6 +564,41 @@ impl<'a> Analyzer<'a> {
                 .push(callee_expr_id);
             return CallComputeKind::Regular(compute_kind);
         };
+
+        if Some(&callee.item) == self.get_current_context().get_current_item_id() {
+            assert_eq!(
+                expr_type,
+                &Ty::UNIT,
+                "output type for allowed recursive call should be Unit"
+            );
+
+            if Some(callee.functor_app.functor_set_value())
+                == self.get_current_context().get_current_functor_set()
+            {
+                // This is a recursive call to the current item specialization, which we allow with some deferred
+                // capabilities checks at runtime. We treat the call as an unresolved callee, like above,
+                // such that partial evaluation will perform extra validation on the capabilities at runtime.
+                // This covers the corner case where a recursive call is made with a dynamic argument whose
+                // type is allowed to be dynamic but whose usage in later recursion could require additional
+                // capabilities.
+                self.get_current_application_instance_mut()
+                    .unresolved_callee_exprs
+                    .push(callee_expr_id);
+                return CallComputeKind::Regular(ComputeKind::Quantum(QuantumProperties {
+                    runtime_features: RuntimeFeatureFlags::CallToUnresolvedCallee,
+                    value_kind: ValueKind::Element(RuntimeKind::Static),
+                }));
+            }
+
+            // This is a call into a different specialization of the same item. Check the context
+            // to see if this specialization is already present, in which case this is a cycle.
+            if self.in_cyclic_context() {
+                return CallComputeKind::Regular(ComputeKind::Quantum(QuantumProperties {
+                    runtime_features: RuntimeFeatureFlags::CyclicOperationSpec,
+                    value_kind: ValueKind::Element(RuntimeKind::Static),
+                }));
+            }
+        }
 
         // We could resolve the callee. Determine the compute kind of the call depending on the callee kind.
         let Some(global_callee) = self.package_store.get_global(callee.item) else {
@@ -1693,6 +1729,35 @@ impl<'a> Analyzer<'a> {
             );
         }
     }
+
+    /// Checks if the analyzer is currently in a cyclic context by
+    /// examining the active contexts stack. Returns true if the current
+    /// item specialization appears in the stack.
+    fn in_cyclic_context(&self) -> bool {
+        let (current_context, rest_context) = self
+            .active_contexts
+            .split_first()
+            .expect("should have at least one context");
+        for context in rest_context {
+            match (context, current_context) {
+                (AnalysisContext::Item(item), AnalysisContext::Item(current_item))
+                    if item.id == current_item.id
+                        && item
+                            .current_spec_context
+                            .as_ref()
+                            .map(|s| s.functor_set_value)
+                            == current_item
+                                .current_spec_context
+                                .as_ref()
+                                .map(|s| s.functor_set_value) =>
+                {
+                    return true;
+                }
+                _ => {}
+            }
+        }
+        false
+    }
 }
 
 fn update_features_for_type(
@@ -2072,6 +2137,22 @@ impl AnalysisContext {
             Self::TopLevel(top_level_context) => {
                 top_level_context.get_current_application_instance_mut()
             }
+        }
+    }
+
+    pub fn get_current_item_id(&self) -> Option<&StoreItemId> {
+        match self {
+            Self::Item(item_context) => Some(&item_context.id),
+            Self::TopLevel(_) => None,
+        }
+    }
+
+    pub fn get_current_functor_set(&self) -> Option<FunctorSetValue> {
+        match self {
+            Self::Item(item_context) => {
+                Some(item_context.get_current_spec_context().functor_set_value)
+            }
+            Self::TopLevel(_) => None,
         }
     }
 }

@@ -86,10 +86,17 @@ impl<'a> Analyzer<'a> {
                     &callable.output,
                 )
             }
-            CallableKind::Operation => create_operation_specialization_application_generator_set(
-                &input_params,
-                &callable.output,
-            ),
+            CallableKind::Operation if callable.output != Ty::UNIT => {
+                create_operation_specialization_application_generator_set(
+                    &input_params,
+                    &callable.output,
+                )
+            }
+            CallableKind::Operation => {
+                // This is an operation with return type `Unit`, so any recursive calls into it will be
+                // handled by normal analysis later. Leave the compute properties unpopulated.
+                return;
+            }
         };
 
         // Find the specialization.
