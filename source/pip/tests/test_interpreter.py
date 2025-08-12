@@ -9,8 +9,7 @@ from qsharp._native import (
     QSharpError,
     TargetProfile,
 )
-from qsharp._qsharp import qsharp_value_to_python_value, python_args_to_interpreter_args
-from qsharp import code
+from qsharp._qsharp import qsharp_value_to_python_value
 import pytest
 
 # Test helpers
@@ -37,27 +36,28 @@ def check_invoke(source: str, callable: str, expect: str):
     assert str(value) == expect
 
 
-def check_run(source: str, expect: str):
+def check_run(entry_expr: str, expect: str):
     e = Interpreter(TargetProfile.Unrestricted)
-    value = qsharp_value_to_python_value(e.run(source))
+    value = qsharp_value_to_python_value(e.run(entry_expr))
     assert str(value) == expect
 
 
-def check_circuit(source: str, expect):
+def check_circuit(entry_expr: str, expect):
     e = Interpreter(TargetProfile.Unrestricted)
-    value = e.circuit(source)
+    value = e.circuit(entry_expr)
     assert str(value) == expect
 
 
-def check_qir(source: str, expect):
+def check_qir(source: str, entry_expr, expect):
     e = Interpreter(TargetProfile.Base)
-    value = e.qir(source)
+    e.interpret(source)
+    value = e.qir(entry_expr)
     assert str(value) == expect
 
 
 def check_estimate(source: str):
     e = Interpreter(TargetProfile.Base)
-    value = e.estimate("", source)
+    e.estimate("", source)
 
 
 # Tests for the native Q# interpreter class
@@ -233,166 +233,148 @@ def test_value_array() -> None:
 
 
 def test_value_udt() -> None:
-    source = """
-        struct Data { a: Int, b: Int }
-        new Data { a = 2, b = 3 }
-    """
-    expr = "{" + source + "}"
-    callable = "function makeData() : Data { new Data { a = 2, b = 3 } }"
+    udt_def = "struct Data { a: Int, b: Int }"
+    new_udt = "new Data { a = 2, b = 3 }"
+    callable = f"function makeData() : Data {{ {new_udt} }}"
+    entry_expr = f"{{ {udt_def} {new_udt} }}"
     output = "Data(a=2, b=3)"
 
-    check_interpret(source, output)
-    check_run(expr, output)
-    check_invoke(source, callable, output)
-    check_circuit(expr, "")
-    check_estimate(expr)
-    # This test triggers an existing panic in Partial Evaluation
-    # check_qir(expr, "")
+    check_interpret(entry_expr, output)
+    check_run(entry_expr, output)
+    check_invoke(udt_def, callable, output)
+    check_circuit(entry_expr, "")
+    check_estimate(entry_expr)
+    with pytest.raises(QSharpError, match="Qsc.CapabilitiesCk.UseOfAdvancedOutput"):
+        check_qir(udt_def + callable, "makeData()", "")
 
 
 def test_value_nested_udts() -> None:
-    source = """
+    udt_def = """
         struct Data { a: Int, b: MoreData }
         struct MoreData { c: Int, d: Int }
-        new Data { a = 2, b = new MoreData { c = 3, d = 4 } }
     """
-    expr = "{" + source + "}"
-    callable = "function makeData() : Data { new Data { a = 2, b = new MoreData { c = 3, d = 4 } } }"
+    new_udt = "new Data { a = 2, b = new MoreData { c = 3, d = 4 } }"
+    callable = f"function makeData() : Data {{ {new_udt} }}"
+    entry_expr = f"{{ {udt_def} {new_udt} }}"
     output = "Data(a=2, b=MoreData(c=3, d=4))"
 
-    check_interpret(source, output)
-    check_run(expr, output)
-    check_invoke(source, callable, output)
-    check_circuit(expr, "")
-    check_estimate(expr)
-    # This test triggers an existing panic in Partial Evaluation
-    # check_qir(expr, "")
+    check_interpret(entry_expr, output)
+    check_run(entry_expr, output)
+    check_invoke(udt_def, callable, output)
+    check_circuit(entry_expr, "")
+    check_estimate(entry_expr)
+    with pytest.raises(QSharpError, match="Qsc.CapabilitiesCk.UseOfAdvancedOutput"):
+        check_qir(udt_def + callable, "makeData()", "")
 
 
 def test_value_udts_with_complex_field() -> None:
-    source = """
-        struct Data { a: Std.Math.Complex }
-        new Data { a = new Std.Math.Complex { Real = 2.0, Imag = 3.0 } }
-    """
-    expr = "{" + source + "}"
-    callable = "function makeData() : Data { new Data { a = new Std.Math.Complex { Real = 2.0, Imag = 3.0 } } }"
+    udt_def = "struct Data { a: Std.Math.Complex }"
+    new_udt = "new Data { a = new Std.Math.Complex { Real = 2.0, Imag = 3.0 } }"
+    callable = f"function makeData() : Data {{ {new_udt} }}"
+    entry_expr = f"{{ {udt_def} {new_udt} }}"
     output = "Data(a=(2+3j))"
 
-    check_interpret(source, output)
-    check_run(expr, output)
-    check_invoke(source, callable, output)
-    check_circuit(expr, "")
-    check_estimate(expr)
-    # This test triggers an existing panic in Partial Evaluation
-    # check_qir(expr, "")
+    check_interpret(entry_expr, output)
+    check_run(entry_expr, output)
+    check_invoke(udt_def, callable, output)
+    check_circuit(entry_expr, "")
+    check_estimate(entry_expr)
+    with pytest.raises(QSharpError, match="Qsc.CapabilitiesCk.UseOfAdvancedOutput"):
+        check_qir(udt_def + callable, "makeData()", "")
 
 
 def test_value_udts_with_array_field() -> None:
-    source = """
-        struct Data { a: Int[] }
-        new Data { a = [2, 3, 4] }
-    """
-    expr = "{" + source + "}"
-    callable = "function makeData() : Data { new Data { a = [2, 3, 4] } }"
+    udt_def = "struct Data { a: Int[] }"
+    new_udt = "new Data { a = [2, 3, 4] }"
+    callable = f"function makeData() : Data {{ {new_udt} }}"
+    entry_expr = f"{{ {udt_def} {new_udt} }}"
     output = "Data(a=[2, 3, 4])"
 
-    check_interpret(source, output)
-    check_run(expr, output)
-    check_invoke(source, callable, output)
-    check_circuit(expr, "")
-    check_estimate(expr)
-    # This test triggers an existing panic in Partial Evaluation
-    # check_qir(expr, "")
+    check_interpret(entry_expr, output)
+    check_run(entry_expr, output)
+    check_invoke(udt_def, callable, output)
+    check_circuit(entry_expr, "")
+    check_estimate(entry_expr)
+    with pytest.raises(QSharpError, match="Qsc.CapabilitiesCk.UseOfAdvancedOutput"):
+        check_qir(udt_def + callable, "makeData()", "")
 
 
 def test_value_udts_with_tuple_field() -> None:
-    source = """
-        struct Data { a: (Int, Int, Int) }
-        new Data { a = (2, 3, 4) }
-    """
-    expr = "{" + source + "}"
-    callable = "function makeData() : Data { new Data { a = (2, 3, 4) } }"
+    udt_def = "struct Data { a: (Int, Int, Int) }"
+    new_udt = "new Data { a = (2, 3, 4) }"
+    callable = f"function makeData() : Data {{ {new_udt} }}"
+    entry_expr = f"{{ {udt_def} {new_udt} }}"
     output = "Data(a=(2, 3, 4))"
 
-    check_interpret(source, output)
-    check_run(expr, output)
-    check_invoke(source, callable, output)
-    check_circuit(expr, "")
-    check_estimate(expr)
-    # This test triggers an existing panic in Partial Evaluation
-    # check_qir(expr, "")
+    check_interpret(entry_expr, output)
+    check_run(entry_expr, output)
+    check_invoke(udt_def, callable, output)
+    check_circuit(entry_expr, "")
+    check_estimate(entry_expr)
+    with pytest.raises(QSharpError, match="Qsc.CapabilitiesCk.UseOfAdvancedOutput"):
+        check_qir(udt_def + callable, "makeData()", "")
 
 
 def test_value_array_of_udts() -> None:
-    source = """
-        struct Data { a: Int }
-        [new Data { a = 2 }, new Data { a = 3 }]
-    """
-    expr = "{" + source + "}"
-    callable = (
-        "function makeData() : Data[] { [new Data { a = 2 }, new Data { a = 3 }] }"
-    )
+    udt_def = "struct Data { a: Int }"
+    new_udt = "[new Data { a = 2 }, new Data { a = 3 }]"
+    callable = f"function makeData() : Data[] {{ {new_udt} }}"
+    entry_expr = f"{{ {udt_def} {new_udt} }}"
     output = "[Data(a=2), Data(a=3)]"
 
-    check_interpret(source, output)
-    check_run(expr, output)
-    check_invoke(source, callable, output)
-    check_circuit(expr, "")
-    check_estimate(expr)
-    # This test triggers an existing panic in Partial Evaluation
-    # check_qir(expr, "")
+    check_interpret(entry_expr, output)
+    check_run(entry_expr, output)
+    check_invoke(udt_def, callable, output)
+    check_circuit(entry_expr, "")
+    check_estimate(entry_expr)
+    with pytest.raises(QSharpError, match="Qsc.CapabilitiesCk.UseOfAdvancedOutput"):
+        check_qir(udt_def + callable, "makeData()", "")
 
 
 def test_value_array_of_complex() -> None:
-    source = """
-        [new Std.Math.Complex { Real = 2.0, Imag = 3.0 }]
-    """
-    expr = "{" + source + "}"
-    callable = "function makeData() : Std.Math.Complex[] { [new Std.Math.Complex { Real = 2.0, Imag = 3.0 }] }"
+    new_udt = "[new Std.Math.Complex { Real = 2.0, Imag = 3.0 }]"
+    callable = f"function makeData() : Std.Math.Complex[] {{ {new_udt} }}"
+    entry_expr = f"{{ {new_udt} }}"
     output = "[(2+3j)]"
 
-    check_interpret(source, output)
-    check_run(expr, output)
-    check_invoke(source, callable, output)
-    check_circuit(expr, "")
-    check_estimate(expr)
-    # This test triggers an existing panic in Partial Evaluation
-    # check_qir(expr, "")
+    check_interpret(entry_expr, output)
+    check_run(entry_expr, output)
+    check_invoke("", callable, output)
+    check_circuit(entry_expr, "")
+    check_estimate(entry_expr)
+    with pytest.raises(QSharpError, match="Qsc.CapabilitiesCk.UseOfAdvancedOutput"):
+        check_qir(callable, "makeData()", "")
 
 
 def test_value_tuple_of_udts() -> None:
-    source = """
-        struct Data { a: Int }
-        (new Data { a = 2 }, new Data { a = 3 })
-    """
-    expr = "{" + source + "}"
-    callable = "function makeData() : (Data, Data) { (new Data { a = 2 }, new Data { a = 3 }) }"
+    udt_def = "struct Data { a: Int }"
+    new_udt = "(new Data { a = 2 }, new Data { a = 3 })"
+    callable = f"function makeData() : (Data, Data) {{ {new_udt} }}"
+    entry_expr = f"{{ {udt_def} {new_udt} }}"
     output = "(Data(a=2), Data(a=3))"
 
-    check_interpret(source, output)
-    check_run(expr, output)
-    check_invoke(source, callable, output)
-    check_circuit(expr, "")
-    check_estimate(expr)
-    # This test triggers an existing panic in Partial Evaluation
-    # check_qir(expr, "")
+    check_interpret(entry_expr, output)
+    check_run(entry_expr, output)
+    check_invoke(udt_def, callable, output)
+    check_circuit(entry_expr, "")
+    check_estimate(entry_expr)
+    with pytest.raises(QSharpError, match="Qsc.CapabilitiesCk.UseOfAdvancedOutput"):
+        check_qir(udt_def + callable, "makeData()", "")
 
 
 def test_value_tuple_of_complex() -> None:
-    source = """
-        (new Std.Math.Complex { Real = 2.0, Imag = 3.0 },)
-    """
-    expr = "{" + source + "}"
-    callable = "function makeData() : (Std.Math.Complex,) { (new Std.Math.Complex { Real = 2.0, Imag = 3.0 },) }"
+    new_udt = "(new Std.Math.Complex { Real = 2.0, Imag = 3.0 },)"
+    callable = f"function makeData() : (Std.Math.Complex,) {{ {new_udt} }}"
+    entry_expr = f"{{ {new_udt} }}"
     output = "((2+3j),)"
 
-    check_interpret(source, output)
-    check_run(expr, output)
-    check_invoke(source, callable, output)
-    check_circuit(expr, "")
-    check_estimate(expr)
-    # This test triggers an existing panic in Partial Evaluation
-    # check_qir(expr, "")
+    check_interpret(entry_expr, output)
+    check_run(entry_expr, output)
+    check_invoke("", callable, output)
+    check_circuit(entry_expr, "")
+    check_estimate(entry_expr)
+    with pytest.raises(QSharpError, match="Qsc.CapabilitiesCk.UseOfAdvancedOutput"):
+        check_qir(callable, "makeData()", "")
 
 
 def test_target_error() -> None:
