@@ -114,14 +114,7 @@ export async function activateLanguageService(
   // go to def
   subscriptions.push(
     vscode.languages.registerDefinitionProvider(
-      qsharpLanguageId,
-      createDefinitionProvider(languageService),
-    ),
-  );
-
-  subscriptions.push(
-    vscode.languages.registerDefinitionProvider(
-      openqasmLanguageId,
+      [qsharpLanguageId, openqasmLanguageId],
       createDefinitionProvider(languageService),
     ),
   );
@@ -129,14 +122,7 @@ export async function activateLanguageService(
   // find references
   subscriptions.push(
     vscode.languages.registerReferenceProvider(
-      qsharpLanguageId,
-      createReferenceProvider(languageService),
-    ),
-  );
-
-  subscriptions.push(
-    vscode.languages.registerReferenceProvider(
-      openqasmLanguageId,
+      [qsharpLanguageId, openqasmLanguageId],
       createReferenceProvider(languageService),
     ),
   );
@@ -154,14 +140,7 @@ export async function activateLanguageService(
   // rename symbol
   subscriptions.push(
     vscode.languages.registerRenameProvider(
-      qsharpLanguageId,
-      createRenameProvider(languageService),
-    ),
-  );
-
-  subscriptions.push(
-    vscode.languages.registerRenameProvider(
-      openqasmLanguageId,
+      [qsharpLanguageId, openqasmLanguageId],
       createRenameProvider(languageService),
     ),
   );
@@ -169,7 +148,7 @@ export async function activateLanguageService(
   // code lens
   subscriptions.push(
     vscode.languages.registerCodeLensProvider(
-      qsharpLanguageId,
+      [qsharpLanguageId, openqasmLanguageId],
       createQdkCodeLensProvider(languageService),
     ),
   );
@@ -178,14 +157,6 @@ export async function activateLanguageService(
     vscode.languages.registerCodeActionsProvider(
       qsharpLanguageId,
       createCodeActionsProvider(languageService),
-    ),
-  );
-
-  // code lens for openqasm
-  subscriptions.push(
-    vscode.languages.registerCodeLensProvider(
-      openqasmLanguageId,
-      createQdkCodeLensProvider(languageService),
     ),
   );
 
