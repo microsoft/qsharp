@@ -559,6 +559,7 @@ def test_callable_with_complex_output() -> None:
     )
     assert code.ComplexOutput() == 2 + 3j
 
+
 def test_callable_with_complex_input_output() -> None:
     init()
     import_openqasm(

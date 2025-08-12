@@ -11,7 +11,7 @@ use num_bigint::BigInt;
 use pyo3::{
     IntoPyObjectExt,
     conversion::FromPyObjectBound,
-    exceptions::{PyOverflowError, PyTypeError},
+    exceptions::PyTypeError,
     prelude::*,
     types::{PyList, PyTuple},
 };
