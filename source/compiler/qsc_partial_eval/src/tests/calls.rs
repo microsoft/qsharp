@@ -1383,6 +1383,46 @@ fn call_to_recursive_callable_succeeds() {
 }
 
 #[test]
+fn call_to_two_call_cycle_does_something() {
+    let program = get_rir_program_with_capabilities(
+        indoc! {"
+        namespace Test {
+            operation Main() : Result {
+                use q = Qubit();
+                Recursive(3, q);
+                MResetZ(q)
+            }
+            operation Recursive(n : Int, q : Qubit) : Unit {
+                if n > 0 {
+                    H(q);
+                    Recursive1(n - 1, q)
+                }
+            }
+            operation Recursive1(n : Int, q : Qubit) : Unit {
+                if n > 0 {
+                    H(q);
+                    Recursive(n - 1, q)
+                }
+            }
+        }"},
+        TargetCapabilityFlags::empty(),
+    );
+
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(0), )
+                Call id(2), args( Qubit(0), Result(0), )
+                Call id(3), args( Result(0), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
 fn call_to_recursive_callable_with_unsupported_capabilities_fails() {
     let error = get_partial_evaluation_error_with_capabilities(
         indoc! {"
