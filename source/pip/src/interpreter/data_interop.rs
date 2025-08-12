@@ -10,7 +10,8 @@ use super::{Pauli, Result};
 use num_bigint::BigInt;
 use pyo3::{
     IntoPyObjectExt,
-    exceptions::PyTypeError,
+    conversion::FromPyObjectBound,
+    exceptions::{PyOverflowError, PyTypeError},
     prelude::*,
     types::{PyList, PyTuple},
 };
@@ -181,6 +182,37 @@ where
     }
 }
 
+/// Gets the type name of a Python object.
+fn obj_type(py: Python, obj: &PyObject) -> PyResult<String> {
+    Ok(obj.bind(py).get_type().name()?.to_string())
+}
+
+/// A wrapper around the `obj.extract::<T>` functionality that allows to return
+/// user friendly errors when casting fails, similar to the Q# ones.
+fn extract_obj<'py, 'obj, T>(py: Python<'py>, obj: &'obj PyObject, ty: &Ty) -> PyResult<T>
+where
+    T: FromPyObjectBound<'obj, 'py>,
+    'py: 'obj,
+{
+    match obj.extract::<T>(py) {
+        Ok(val) => Ok(val),
+        Err(err) => {
+            if err.is_instance_of::<PyTypeError>(py) {
+                // If we have a type error, we return a friendly user error.
+                Err(PyTypeError::new_err(format!(
+                    "expected {}, found {}",
+                    ty.display(),
+                    obj_type(py, obj)?
+                )))
+            } else {
+                // If we have other kind of errors (e.g.: an overflow error when
+                // converting from a python int to a rust i64) we leave it as is.
+                Err(err)
+            }
+        }
+    }
+}
+
 /// Given a type, convert a Python object into a Q# value of that type. This will recur through tuples and arrays,
 /// and will return an error if the type is not supported or the object cannot be converted.
 pub(super) fn pyobj_to_value(
@@ -191,23 +223,23 @@ pub(super) fn pyobj_to_value(
 ) -> PyResult<Value> {
     match ty {
         Ty::Prim(prim_ty) => match prim_ty {
-            Prim::Bool => Ok(Value::Bool(obj.extract::<bool>(py)?)),
-            Prim::Int => Ok(Value::Int(obj.extract::<i64>(py)?)),
-            Prim::BigInt => Ok(Value::BigInt(obj.extract::<BigInt>(py)?)),
-            Prim::Double => Ok(Value::Double(obj.extract::<f64>(py)?)),
-            Prim::String => Ok(Value::String(obj.extract::<String>(py)?.into())),
-            Prim::Result => Ok(Value::Result(obj.extract::<Result>(py)?.into())),
-            Prim::Pauli => Ok(Value::Pauli(obj.extract::<Pauli>(py)?.into())),
+            Prim::Bool => Ok(Value::Bool(extract_obj::<bool>(py, obj, ty)?)),
+            Prim::Int => Ok(Value::Int(extract_obj::<i64>(py, obj, ty)?)),
+            Prim::BigInt => Ok(Value::BigInt(extract_obj::<BigInt>(py, obj, ty)?)),
+            Prim::Double => Ok(Value::Double(extract_obj::<f64>(py, obj, ty)?)),
+            Prim::String => Ok(Value::String(extract_obj::<String>(py, obj, ty)?.into())),
+            Prim::Result => Ok(Value::Result(extract_obj::<Result>(py, obj, ty)?.into())),
+            Prim::Pauli => Ok(Value::Pauli(extract_obj::<Pauli>(py, obj, ty)?.into())),
             Prim::Qubit | Prim::Range | Prim::RangeTo | Prim::RangeFrom | Prim::RangeFull => {
                 unimplemented!("primitive input type: {prim_ty:?}")
             }
         },
         Ty::Tuple(tup) => {
-            let objs = obj.extract::<Vec<PyObject>>(py)?;
+            let objs = extract_obj::<Vec<PyObject>>(py, obj, ty)?;
 
             if tup.len() != objs.len() {
                 return Err(PyTypeError::new_err(format!(
-                    "mismatched tuple arity: expected {}, got {}",
+                    "mismatched tuple arity: expected {}, found {}",
                     tup.len(),
                     objs.len()
                 )));
@@ -223,8 +255,7 @@ pub(super) fn pyobj_to_value(
             }
         }
         Ty::Array(ty) => {
-            let objs = obj.extract::<Vec<PyObject>>(py)?;
-
+            let objs = extract_obj::<Vec<PyObject>>(py, obj, ty)?;
             let ty = &**ty;
             let mut array = Vec::new();
             for obj in &objs {
@@ -240,7 +271,7 @@ pub(super) fn pyobj_to_value(
 
             match kind {
                 interpret::UdtKind::Angle => {
-                    let angle = obj.extract::<f64>(py)?;
+                    let angle = extract_obj::<f64>(py, obj, ty)?;
                     let angle = qsc::qasm::stdlib::angle::Angle::from_f64_maybe_sized(angle, None);
                     let value = i64::try_from(angle.value)
                         .expect("angles built with `None` size have at most 53 bits");
@@ -251,14 +282,14 @@ pub(super) fn pyobj_to_value(
                     ))
                 }
                 interpret::UdtKind::Complex => {
-                    let val = obj.extract::<num_complex::Complex64>(py)?;
+                    let val = extract_obj::<num_complex::Complex64>(py, obj, ty)?;
                     Ok(Value::Tuple(
                         Rc::new([Value::Double(val.re), Value::Double(val.im)]),
                         None,
                     ))
                 }
                 interpret::UdtKind::Udt => {
-                    let udt_fields = obj.extract::<UdtFields>(py)?;
+                    let udt_fields = extract_obj::<UdtFields>(py, obj, ty)?;
 
                     let mut tuple = Vec::new();
                     for (name, ty) in collect_udt_fields(udt)? {
