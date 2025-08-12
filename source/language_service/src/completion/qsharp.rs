@@ -290,9 +290,7 @@ fn collect_paths(
             global_names.extend(globals.type_names(text_edit_range));
         }
         PathKind::Import => {
-            global_names.extend(globals.expr_names_in_scope_only());
-            global_names.extend(globals.type_names_in_scope_only());
-            global_names.push(globals.namespaces());
+            global_names.extend(globals.importable_names());
         }
         PathKind::Struct => {
             global_names.extend(globals.type_names(text_edit_range));

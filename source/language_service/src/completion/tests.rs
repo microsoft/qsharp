@@ -1724,7 +1724,7 @@ fn package_alias_members() {
         namespace Other { export OtherFunc; function OtherFunc() : Unit {} }
         namespace Other.Sub { export OtherFunc; function OtherFunc() : Unit {} }
         ",
-        &["Main", "Other", "MainFunc", "Other.Sub", "Sub"],
+        &["Main", "Other", "MainFunc", "Other.Sub", "Sub", "Std"],
         &expect![[r#"
             found, sorted:
               "MainFunc" (Function)
@@ -1735,6 +1735,7 @@ fn package_alias_members() {
               "Main"
               "Other.Sub"
               "Sub"
+              "Std"
         "#]],
     );
 }
@@ -2377,5 +2378,172 @@ fn in_trailing_comment() {
         "namespace Test {
             import Foo; // Hello there ↘
         }",
+    );
+}
+
+#[test]
+fn export_from_dependency_in_scope() {
+    check_with_dependency(
+        r"
+        namespace Test {
+            open MyDep;
+            operation Foo() : Unit {
+                ↘
+            }
+        }
+        ",
+        "MyDep",
+        "
+        namespace Bar {
+            operation Baz() : Unit {}
+            export Baz;
+        }
+        namespace Main {
+            operation Qux() : Unit {}
+            export Qux, Bar.Baz;
+        }
+        ",
+        &["Qux", "Baz", "Bar"],
+        &expect![[r#"
+            found, sorted:
+              "Baz" (Function)
+                detail: "operation Baz() : Unit"
+              "Qux" (Function)
+                detail: "operation Qux() : Unit"
+              "Bar" (Module)
+        "#]],
+    );
+}
+
+#[test]
+fn aliased_export_from_dependency_in_scope() {
+    check_with_dependency(
+        r"
+        namespace Test {
+            open MyDep;
+            operation Foo() : Unit {
+                ↘
+            }
+        }
+        ",
+        "MyDep",
+        "
+        namespace Bar {
+            operation Baz() : Unit {}
+            export Baz;
+        }
+        namespace Main {
+            export Bar.Baz, Bar.Baz as BazAlias;
+        }
+        ",
+        &["BazAlias", "Baz"],
+        &expect![[r#"
+            found, sorted:
+              "Baz" (Function)
+                detail: "operation Baz() : Unit"
+              "BazAlias" (Function)
+                detail: "operation Baz() : Unit"
+        "#]],
+    );
+}
+
+#[test]
+fn namespace_export_from_dependency_qualified() {
+    check_with_dependency(
+        r"
+        namespace Test {
+            open MyDep.Baz.↘
+        }",
+        "MyDep",
+        "namespace Foo.Bar {
+            operation Qux() : Unit {}
+            export Qux
+         }
+         namespace Baz {
+            export Foo.Bar;
+         }",
+        &["Bar"],
+        &expect![[r#"
+            found, sorted:
+              "Bar" (Module)
+        "#]],
+    );
+}
+
+#[test]
+fn export_from_dependency_qualified() {
+    check_with_dependency(
+        r"
+            namespace Test {
+                operation Test() : Unit {
+                    MyDep.↘
+                }
+            }",
+        "MyDep",
+        "namespace Foo {
+                operation Baz() : Unit {}
+                export Baz;
+             }
+             namespace Main {
+                operation Qux() : Unit {}
+                export Qux, Foo.Baz;
+             }",
+        &["Qux", "Baz"],
+        &expect![[r#"
+            found, sorted:
+              "Baz" (Function)
+                detail: "operation Baz() : Unit"
+              "Qux" (Function)
+                detail: "operation Qux() : Unit"
+        "#]],
+    );
+}
+
+#[test]
+fn reexport_namespace_from_dependency_members() {
+    check_with_dependency(
+        r"
+        namespace Test {
+            operation Main() : Unit {
+                MyDep.Baz.Bar.↘
+            }
+        }",
+        "MyDep",
+        "namespace Foo.Bar {
+            operation Zud() : Unit {}
+            export Zud
+         }
+         namespace Baz {
+            operation Qux() : Unit {}
+            export Qux, Foo.Bar;
+         }",
+        &["Zud"],
+        &expect![[r#"
+            found, sorted:
+              "Zud" (Function)
+                detail: "operation Zud() : Unit"
+        "#]],
+    );
+}
+
+#[test]
+fn import_in_local_scope() {
+    check_single_file(
+        r"
+        namespace Foo {
+            operation Bar() : Unit {}
+        }
+        namespace A {
+            operation Main() : Unit {
+                import Foo.Bar;
+                ↘
+            }
+        }",
+        &["Bar"],
+        &expect![[r#"
+            found, sorted:
+              "Bar" (Function)
+                detail: "operation Bar() : Unit"
+        "#]],
     );
 }

@@ -190,6 +190,7 @@ impl Compiler {
                 package: ast,
                 names: self.resolver.names().clone(),
                 locals: self.resolver.locals().clone(),
+                globals: self.resolver.globals().clone(),
                 tys: self.checker.table().clone(),
             },
             hir,
@@ -229,6 +230,7 @@ impl Compiler {
                 package: ast,
                 names: self.resolver.names().clone(),
                 locals: self.resolver.locals().clone(),
+                globals: self.resolver.globals().clone(),
                 tys: self.checker.table().clone(),
             },
             hir,
@@ -245,6 +247,7 @@ impl Compiler {
         unit.ast.names = new.ast.names;
         unit.ast.tys = new.ast.tys;
         unit.ast.locals = new.ast.locals;
+        unit.ast.globals = new.ast.globals;
 
         // Update the HIR
         extend_hir(&mut unit.package, new.hir);
