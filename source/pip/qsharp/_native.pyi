@@ -130,7 +130,9 @@ class Interpreter:
         read_file: Callable[[str], Tuple[str, str]],
         list_directory: Callable[[str], List[Dict[str, str]]],
         resolve_path: Callable[[str, str], str],
-        make_callable: Optional[Callable[[GlobalCallable], None]],
+        fetch_github: Callable[[str, str, str, str], str],
+        make_callable: Optional[Callable[[GlobalCallable, List[str], str], None]],
+        make_class: Optional[Callable[[TypeIR, List[str], str], None]],
     ) -> None:
         """
         Initializes the Q# interpreter.
@@ -303,7 +305,7 @@ class Interpreter:
         list_directory: Callable[[str], List[Dict[str, str]]],
         resolve_path: Callable[[str, str], str],
         fetch_github: Callable[[str, str, str, str], str],
-        **kwargs
+        **kwargs,
     ) -> Any:
         """
         Imports OpenQASM source code into the active Q# interpreter.
@@ -338,6 +340,7 @@ class Result(Enum):
 
     Zero: int
     One: int
+    Loss: int
 
 class Pauli(Enum):
     """
@@ -419,7 +422,7 @@ def circuit_qasm_program(
     list_directory: Callable[[str], List[Dict[str, str]]],
     resolve_path: Callable[[str, str], str],
     fetch_github: Callable[[str, str, str, str], str],
-    **kwargs
+    **kwargs,
 ) -> Circuit:
     """
     Synthesizes a circuit for an OpenQASM program.
@@ -455,7 +458,7 @@ def compile_qasm_program_to_qir(
     list_directory: Callable[[str], List[Dict[str, str]]],
     resolve_path: Callable[[str, str], str],
     fetch_github: Callable[[str, str, str, str], str],
-    **kwargs
+    **kwargs,
 ) -> str:
     """
     Compiles the OpenQASM source code into a program that can be submitted to a
@@ -493,7 +496,7 @@ def compile_qasm_to_qsharp(
     list_directory: Callable[[str], List[Dict[str, str]]],
     resolve_path: Callable[[str, str], str],
     fetch_github: Callable[[str, str, str, str], str],
-    **kwargs
+    **kwargs,
 ) -> str:
     """
     Converts a OpenQASM program to Q#.
@@ -525,7 +528,7 @@ def resource_estimate_qasm_program(
     list_directory: Callable[[str], List[Dict[str, str]]],
     resolve_path: Callable[[str, str], str],
     fetch_github: Callable[[str, str, str, str], str],
-    **kwargs
+    **kwargs,
 ) -> str:
     """
     Estimates the resource requirements for executing OpenQASM source code.
@@ -559,7 +562,7 @@ def run_qasm_program(
     list_directory: Callable[[str], List[Dict[str, str]]],
     resolve_path: Callable[[str, str], str],
     fetch_github: Callable[[str, str, str, str], str],
-    **kwargs
+    **kwargs,
 ) -> Any:
     """
     Runs the given OpenQASM program for the given number of shots.
@@ -607,7 +610,7 @@ def estimate_custom(
     logical_depth_factor: Optional[float] = None,
     max_physical_qubits: Optional[int] = None,
     max_duration: Optional[int] = None,
-    error_budget_pruning: bool = False
+    error_budget_pruning: bool = False,
 ) -> Dict:
     """
     Estimates quantum resources for a given algorithm, qubit, and code.
@@ -628,3 +631,56 @@ def estimate_custom(
         Dict: A dictionary with resource estimation results.
     """
     ...
+
+class UdtValue:
+    """
+    A Q# UDT value. Objects of this class represent UDT values generated
+    in Q# and sent to Python. It is then converted into a Python object
+    in the `qsharp_value_to_python_value` function in `_qsharp.py`.
+    """
+
+    name: str
+    fields: List[Tuple[str, Any]]
+
+class TypeIR:
+    """
+    A Q# type. Objects of this class represent a Q# type. This is used
+    to send the definitions of the Q# UDTs defined by the user to Python
+    and creating equivalent Python dataclasses in `qsharp.code.*`.
+    """
+
+    def kind(self) -> TypeKind: ...
+    def unwrap_primitive(self) -> PrimitiveKind: ...
+    def unwrap_tuple(self) -> List[TypeIR]: ...
+    def unwrap_array(self) -> List[TypeIR]: ...
+    def unwrap_udt(self) -> UdtIR: ...
+
+class TypeKind(Enum):
+    """
+    A Q# type kind.
+    """
+
+    Primitive: int
+    Tuple: int
+    Array: int
+    Udt: int
+
+class PrimitiveKind(Enum):
+    """
+    A Q# primtive.
+    """
+
+    Bool: int
+    Int: int
+    Double: int
+    String: int
+    Pauli: int
+    Result: int
+
+class UdtIR:
+    """
+    A Q# Udt.
+    """
+
+    name: str
+    fields: List[Tuple[str, TypeIR]]
