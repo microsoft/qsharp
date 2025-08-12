@@ -559,6 +559,14 @@ def test_callable_with_complex_output() -> None:
     )
     assert code.ComplexOutput() == 2 + 3j
 
+def test_callable_with_complex_input_output() -> None:
+    init()
+    import_openqasm(
+        "def ComplexOutput(complex a) -> complex { return 2 * a; }",
+        program_type=ProgramType.Fragments,
+    )
+    assert code.ComplexOutput(2 + 3j) == 4 + 6j
+
 
 def test_callable_with_angle_input() -> None:
     init()
