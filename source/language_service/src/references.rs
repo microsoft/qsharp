@@ -10,7 +10,7 @@ use crate::compilation::Compilation;
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::qsc_utils::into_location;
 use qsc::ast::PathKind;
-use qsc::ast::visit::{Visitor, walk_callable_decl, walk_expr, walk_item, walk_ty};
+use qsc::ast::visit::{Visitor, walk_callable_decl, walk_expr, walk_import_or_export, walk_ty};
 use qsc::display::Lookup;
 use qsc::hir::ty::Ty;
 use qsc::hir::{PackageId, Res};
@@ -363,28 +363,22 @@ impl Visitor<'_> for FindItemRefs<'_> {
         }
     }
 
-    fn visit_item(&mut self, item: &'_ ast::Item) {
-        // TODO: replace with specific visitor
-        if let ast::ItemKind::ImportOrExport(decl) = &*item.kind {
-            for item in &decl.items {
-                if let ast::ImportKind::Direct { alias: Some(alias) } = &item.kind {
-                    if let PathKind::Ok(path) = &item.path {
-                        let res = self.compilation.get_res(path.id);
-                        if let Some(res) = res {
-                            if let Some(item_id) = res.item_id() {
-                                if self.eq(&item_id)
-                                    && (self.name_filter.is_none()
-                                        || Some(&alias.name) == self.name_filter)
-                                {
-                                    self.locations.push(alias.span);
-                                }
-                            }
+    fn visit_import_or_export(&mut self, item: &'_ ast::ImportOrExportItem) {
+        if let ast::ImportKind::Direct { alias: Some(alias) } = &item.kind {
+            if let PathKind::Ok(path) = &item.path {
+                let res = self.compilation.get_res(path.id);
+                if let Some(res) = res {
+                    if let Some(item_id) = res.item_id() {
+                        if self.eq(&item_id)
+                            && (self.name_filter.is_none() || Some(&alias.name) == self.name_filter)
+                        {
+                            self.locations.push(alias.span);
                         }
                     }
                 }
             }
         }
-        walk_item(self, item);
+        walk_import_or_export(self, item);
     }
 }
 

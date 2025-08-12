@@ -6,7 +6,8 @@ use std::rc::Rc;
 
 use crate::compilation::Compilation;
 use qsc::ast::visit::{
-    Visitor, walk_attr, walk_expr, walk_item, walk_namespace, walk_pat, walk_ty, walk_ty_def,
+    Visitor, walk_attr, walk_expr, walk_import_or_export, walk_namespace, walk_pat, walk_ty,
+    walk_ty_def,
 };
 use qsc::ast::{FieldAccess, Idents, ImportKind, PathKind};
 use qsc::display::Lookup;
@@ -280,8 +281,8 @@ impl<'package, T: Handler<'package>> Visitor<'package> for Locator<'_, 'package,
                                 }
                             }
                         }
+                        walk_import_or_export(self, item);
                     }
-                    walk_item(self, item);
                 }
                 _ => {}
             }
