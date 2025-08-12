@@ -955,3 +955,60 @@ fn check_rca_for_operation_body_recursion_preserves_inherent_capabilities() {
                 ctl-adj: <none>"#]],
     );
 }
+
+#[test]
+fn check_rca_for_two_operation_cycle() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        operation Main() : Unit {
+            use q = Qubit();
+            Foo(q);
+        }
+
+        operation Foo(q : Qubit) : Unit {
+            Bar(q);
+        }
+        operation Bar(q : Qubit) : Unit {
+            Foo(q);
+        }"#,
+    );
+
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        compilation_context.get_compute_properties(),
+        "Foo",
+        &expect![[r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsGeneratorSet:
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(CallToCyclicOperation)
+                        value_kind: Element(Static)
+                    dynamic_param_applications:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CallToCyclicOperation)
+                            value_kind: Element(Static)
+                adj: <none>
+                ctl: <none>
+                ctl-adj: <none>"#]],
+    );
+
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        compilation_context.get_compute_properties(),
+        "Bar",
+        &expect![[r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsGeneratorSet:
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(CallToCyclicOperation)
+                        value_kind: Element(Static)
+                    dynamic_param_applications:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CallToCyclicOperation)
+                            value_kind: Element(Static)
+                adj: <none>
+                ctl: <none>
+                ctl-adj: <none>"#]],
+    );
+}

@@ -589,15 +589,15 @@ impl<'a> Analyzer<'a> {
                     value_kind: ValueKind::Element(RuntimeKind::Static),
                 }));
             }
+        }
 
-            // This is a call into a different specialization of the same item. Check the context
-            // to see if this specialization is already present, in which case this is a cycle.
-            if self.in_cyclic_context() {
-                return CallComputeKind::Regular(ComputeKind::Quantum(QuantumProperties {
-                    runtime_features: RuntimeFeatureFlags::CyclicOperationSpec,
-                    value_kind: ValueKind::Element(RuntimeKind::Static),
-                }));
-            }
+        // This is a call into a different specialization of the same item or a different item. Check the context
+        // to see if the current specialization is already present, in which case this is a cycle.
+        if self.in_cyclic_context() {
+            return CallComputeKind::Regular(ComputeKind::Quantum(QuantumProperties {
+                runtime_features: RuntimeFeatureFlags::CyclicOperationSpec,
+                value_kind: ValueKind::Element(RuntimeKind::Static),
+            }));
         }
 
         // We could resolve the callee. Determine the compute kind of the call depending on the callee kind.
@@ -1736,9 +1736,9 @@ impl<'a> Analyzer<'a> {
     fn in_cyclic_context(&self) -> bool {
         let (current_context, rest_context) = self
             .active_contexts
-            .split_first()
+            .split_last()
             .expect("should have at least one context");
-        for context in rest_context {
+        for context in rest_context.iter().rev() {
             match (context, current_context) {
                 (AnalysisContext::Item(item), AnalysisContext::Item(current_item))
                     if item.id == current_item.id
