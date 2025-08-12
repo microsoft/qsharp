@@ -497,6 +497,7 @@ impl Display for Expr {
 }
 
 impl Expr {
+    #[must_use]
     pub fn new(span: Span, kind: ExprKind, ty: super::types::Type) -> Self {
         Self {
             span,
@@ -506,6 +507,7 @@ impl Expr {
         }
     }
 
+    #[must_use]
     pub fn int(val: i64, span: Span) -> Self {
         let val = LiteralKind::Int(val);
         Expr {
@@ -516,6 +518,7 @@ impl Expr {
         }
     }
 
+    #[must_use]
     pub fn uint(val: i64, span: Span) -> Self {
         let val = LiteralKind::Int(val);
         Expr {
@@ -526,6 +529,7 @@ impl Expr {
         }
     }
 
+    #[must_use]
     pub fn float(val: f64, span: Span) -> Self {
         let val = LiteralKind::Float(val);
         Expr {
@@ -536,6 +540,7 @@ impl Expr {
         }
     }
 
+    #[must_use]
     pub fn builtin_funcall(
         name: &str,
         span: Span,
@@ -564,6 +569,7 @@ impl Expr {
         }
     }
 
+    #[must_use]
     pub fn bin_op(op: BinOp, lhs: Self, rhs: Self) -> Self {
         let ty = lhs.ty.clone();
         let span = Span {
@@ -1171,6 +1177,7 @@ pub struct BinaryOpExpr {
 }
 
 impl BinaryOpExpr {
+    #[must_use]
     pub fn span(&self) -> Span {
         Span {
             lo: self.lhs.span.lo,
@@ -1439,6 +1446,7 @@ pub enum Index {
 }
 
 impl Index {
+    #[must_use]
     pub fn span(&self) -> Span {
         match self {
             Index::Expr(expr) => expr.span,
