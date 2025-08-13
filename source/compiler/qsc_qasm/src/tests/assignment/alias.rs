@@ -107,7 +107,7 @@ fn first_qubit_from_aliased_qreg() -> miette::Result<(), Vec<Report>> {
         let one = QIR.Runtime.AllocateQubitArray(2);
         let two = QIR.Runtime.AllocateQubitArray(10);
         let concatenated = one + two;
-        mutable first = concatenated[0];
+        let first = concatenated[0];
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -129,7 +129,7 @@ fn last_qubit_from_aliased_qreg() -> miette::Result<(), Vec<Report>> {
         let one = QIR.Runtime.AllocateQubitArray(2);
         let two = QIR.Runtime.AllocateQubitArray(10);
         let concatenated = one + two;
-        mutable last = concatenated[-1];
+        let last = concatenated[-1];
     "#]]
     .assert_eq(&qsharp);
     Ok(())
