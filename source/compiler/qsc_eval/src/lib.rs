@@ -615,6 +615,10 @@ impl State {
         }
     }
 
+    fn current_frame_id(&self) -> usize {
+        self.call_stack.len()
+    }
+
     fn push_frame(&mut self, exec_graph: ExecGraph, id: StoreItemId, functor: FunctorApp) {
         self.call_stack.push_frame(Frame {
             span: self.current_span,
@@ -639,10 +643,7 @@ impl State {
     }
 
     fn push_scope(&mut self, env: &mut Env) {
-        // `push_frame`, which increments the length of `self.call_stack` by 1,
-        // is called before `self.push_scope`.
-        // Since the first `frame_id` should be 0, we substract 1 here.
-        env.push_scope(self.call_stack.len() - 1);
+        env.push_scope(self.current_frame_id());
     }
 
     fn take_val_register(&mut self) -> Value {
@@ -719,7 +720,7 @@ impl State {
         breakpoints: &[StmtId],
         step: StepAction,
     ) -> Result<StepResult, (Error, Vec<Frame>)> {
-        let current_frame = self.call_stack.len();
+        let current_frame = self.current_frame_id();
         while !self.exec_graph_stack.is_empty() {
             let exec_graph = self
                 .exec_graph_stack
@@ -866,9 +867,9 @@ impl State {
                 // no breakpoint, but we may stop here
                 if step == StepAction::In {
                     StepResult::StepIn
-                } else if step == StepAction::Next && current_frame >= self.call_stack.len() {
+                } else if step == StepAction::Next && current_frame >= self.current_frame_id() {
                     StepResult::Next
-                } else if step == StepAction::Out && current_frame > self.call_stack.len() {
+                } else if step == StepAction::Out && current_frame > self.current_frame_id() {
                     StepResult::StepOut
                 } else {
                     return None;
@@ -884,7 +885,7 @@ impl State {
         step: StepAction,
         current_frame: usize,
     ) -> Option<(StepResult, Span)> {
-        if step == StepAction::Next && current_frame >= self.call_stack.len() {
+        if step == StepAction::Next && current_frame >= self.current_frame_id() {
             let block = globals.get_block((self.package, block).into());
             let span = Span {
                 lo: block.span.hi - 1,
