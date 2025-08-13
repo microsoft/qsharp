@@ -3,7 +3,7 @@
 
 use expect_test::expect;
 
-use crate::semantic::tests::{check_last_stmt, check_stmt_kind, check_stmt_kinds};
+use crate::semantic::tests::check_last_stmt;
 
 #[test]
 fn can_alias_qubit_registers() {

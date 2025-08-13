@@ -91,9 +91,9 @@ fn check_lowerer_error_spans_are_correct() {
              41 | 
                 `----
 
-            Qasm.Lowerer.InvalidTypesInAlias
+            Qasm.Lowerer.InvalidTypeInAlias
 
-              x invalid types in alias expression: int
+              x invalid type in alias expression: int
                 ,-[Test.qasm:45:36]
              44 | int alias_component_4;
              45 | let alias_2 = alias_component_3 ++ alias_component_4;
