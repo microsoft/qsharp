@@ -74,6 +74,176 @@ fn code_with_errors_returns_errors() {
     .assert_debug_eq(&get_qir(sources, language_features, capabilities, store, &[(std_id, None)]));
 }
 
+#[test]
+fn code_returning_struct_from_entry_point_generates_errors() {
+    let source = "namespace Test {
+            @EntryPoint()
+            operation Main() : Std.Math.Complex {
+                new Std.Math.Complex { Real = 0.0, Imag = 0.0 }
+            }
+        }";
+    let sources = SourceMap::new([("test.qs".into(), source.into())], None);
+    let language_features = LanguageFeatures::default();
+    let capabilities = TargetCapabilityFlags::empty();
+    let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
+
+    expect![[r#"
+        Err(
+            [
+                Pass(
+                    WithSource {
+                        sources: [
+                            Source {
+                                name: "test.qs",
+                                contents: "namespace Test {\n            @EntryPoint()\n            operation Main() : Std.Math.Complex {\n                new Std.Math.Complex { Real = 0.0, Imag = 0.0 }\n            }\n        }",
+                                offset: 0,
+                            },
+                        ],
+                        error: CapabilitiesCk(
+                            UseOfAdvancedOutput(
+                                Span {
+                                    lo: 65,
+                                    hi: 69,
+                                },
+                            ),
+                        ),
+                    },
+                ),
+            ],
+        )
+    "#]]
+    .assert_debug_eq(&get_qir(sources, language_features, capabilities, store, &[(std_id, None)]));
+}
+
+#[test]
+fn code_returning_struct_from_entry_expr_generates_errors() {
+    let source = "";
+    let entry = "new Std.Math.Complex { Real = 0.0, Imag = 0.0 }";
+    let sources = SourceMap::new([("test.qs".into(), source.into())], Some(entry.into()));
+    let language_features = LanguageFeatures::default();
+    let capabilities = TargetCapabilityFlags::empty();
+    let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
+
+    expect![[r#"
+        Err(
+            [
+                Pass(
+                    WithSource {
+                        sources: [
+                            Source {
+                                name: "<entry>",
+                                contents: "new Std.Math.Complex { Real = 0.0, Imag = 0.0 }",
+                                offset: 0,
+                            },
+                        ],
+                        error: CapabilitiesCk(
+                            UseOfAdvancedOutput(
+                                Span {
+                                    lo: 0,
+                                    hi: 47,
+                                },
+                            ),
+                        ),
+                    },
+                ),
+            ],
+        )
+    "#]]
+    .assert_debug_eq(&get_qir(
+        sources,
+        language_features,
+        capabilities,
+        store,
+        &[(std_id, None)],
+    ));
+}
+
+#[test]
+fn code_returning_struct_from_block_entry_expr_generates_errors() {
+    let source = "";
+    let entry = "{ new Std.Math.Complex { Real = 0.0, Imag = 0.0 } }";
+    let sources = SourceMap::new([("test.qs".into(), source.into())], Some(entry.into()));
+    let language_features = LanguageFeatures::default();
+    let capabilities = TargetCapabilityFlags::empty();
+    let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
+
+    expect![[r#"
+        Err(
+            [
+                Pass(
+                    WithSource {
+                        sources: [
+                            Source {
+                                name: "<entry>",
+                                contents: "{ new Std.Math.Complex { Real = 0.0, Imag = 0.0 } }",
+                                offset: 0,
+                            },
+                        ],
+                        error: CapabilitiesCk(
+                            UseOfAdvancedOutput(
+                                Span {
+                                    lo: 0,
+                                    hi: 51,
+                                },
+                            ),
+                        ),
+                    },
+                ),
+            ],
+        )
+    "#]]
+    .assert_debug_eq(&get_qir(
+        sources,
+        language_features,
+        capabilities,
+        store,
+        &[(std_id, None)],
+    ));
+}
+
+#[test]
+fn code_returning_struct_from_if_entry_expr_generates_errors() {
+    let source = "";
+    let entry = "if (true) { new Std.Math.Complex { Real = 0.0, Imag = 0.0 } } else { fail \"shouldn't get here\" }";
+    let sources = SourceMap::new([("test.qs".into(), source.into())], Some(entry.into()));
+    let language_features = LanguageFeatures::default();
+    let capabilities = TargetCapabilityFlags::empty();
+    let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
+
+    expect![[r#"
+        Err(
+            [
+                Pass(
+                    WithSource {
+                        sources: [
+                            Source {
+                                name: "<entry>",
+                                contents: "if (true) { new Std.Math.Complex { Real = 0.0, Imag = 0.0 } } else { fail \"shouldn't get here\" }",
+                                offset: 0,
+                            },
+                        ],
+                        error: CapabilitiesCk(
+                            UseOfAdvancedOutput(
+                                Span {
+                                    lo: 0,
+                                    hi: 96,
+                                },
+                            ),
+                        ),
+                    },
+                ),
+            ],
+        )
+    "#]]
+    .assert_debug_eq(&get_qir(
+        sources,
+        language_features,
+        capabilities,
+        store,
+        &[(std_id, None)],
+    ));
+}
+
 mod base_profile {
     use expect_test::expect;
     use qsc_data_structures::target::TargetCapabilityFlags;

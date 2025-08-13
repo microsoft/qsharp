@@ -219,6 +219,12 @@ impl<'a> Checker<'a> {
             self.check_output_recording(expr);
         } else {
             self.visit_expr(expr_id);
+            if matches!(
+                expr.kind,
+                ExprKind::Block(_) | ExprKind::If(_, _, _) | ExprKind::While(_, _)
+            ) {
+                self.check_output_recording(expr);
+            }
         }
     }
 
