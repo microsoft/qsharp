@@ -319,7 +319,6 @@ pub(super) fn type_ir_from_qsharp_ty(ctx: &interpret::Interpreter, ty: &Ty) -> O
                 Prim::String => PrimitiveKind::String,
                 Prim::Pauli => PrimitiveKind::Pauli,
                 Prim::Result => PrimitiveKind::Result,
-
                 Prim::Qubit | Prim::Range | Prim::RangeTo | Prim::RangeFrom | Prim::RangeFull => {
                     return None;
                 }

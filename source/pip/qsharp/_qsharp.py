@@ -550,33 +550,38 @@ def make_class_rec(qsharp_type: TypeIR) -> type:
     fields = {}
     for field in qsharp_type.unwrap_udt().fields:
         ty = None
-        match field[1].kind():
-            case TypeKind.Primitive:
-                match field[1].unwrap_primitive():
-                    case PrimitiveKind.Bool:
-                        ty = bool
-                    case PrimitiveKind.Int:
-                        ty = int
-                    case PrimitiveKind.Double:
-                        ty = float
-                    case PrimitiveKind.Double:
-                        ty = complex
-                    case PrimitiveKind.String:
-                        ty = str
-                    case PrimitiveKind.Pauli:
-                        ty = Pauli
-                    case PrimitiveKind.Result:
-                        ty = Result
-            case TypeKind.Tuple:
-                # Special case Value::UNIT maps to None.
-                if not field[1].unwrap_tuple():
-                    ty = type(None)
-                else:
-                    ty = tuple
-            case TypeKind.Array:
-                ty = list
-            case TypeKind.Udt:
-                ty = make_class_rec(field[1])
+        kind = field[1].kind()
+
+        if kind == TypeKind.Primitive:
+            prim_kind = field[1].unwrap_primitive()
+            if prim_kind == PrimitiveKind.Bool:
+                ty = bool
+            elif prim_kind == PrimitiveKind.Int:
+                ty = int
+            elif prim_kind == PrimitiveKind.Double:
+                ty = float
+            elif prim_kind == PrimitiveKind.Complex:
+                ty = complex
+            elif prim_kind == PrimitiveKind.String:
+                ty = str
+            elif prim_kind == PrimitiveKind.Pauli:
+                ty = Pauli
+            elif prim_kind == PrimitiveKind.Result:
+                ty = Result
+            else:
+                raise QSharpError(f"unknown primtive {prim_kind}")
+        elif kind == TypeKind.Tuple:
+            # Special case Value::UNIT maps to None.
+            if not field[1].unwrap_tuple():
+                ty = type(None)
+            else:
+                ty = tuple
+        elif kind == TypeKind.Array:
+            ty = list
+        elif kind == TypeKind.Udt:
+            ty = make_class_rec(field[1])
+        else:
+            raise QSharpError(f"unknown type {kind}")
         fields[field[0]] = ty
 
     return make_dataclass(

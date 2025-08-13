@@ -673,6 +673,7 @@ class PrimitiveKind(Enum):
     Bool: int
     Int: int
     Double: int
+    Complex: int
     String: int
     Pauli: int
     Result: int
