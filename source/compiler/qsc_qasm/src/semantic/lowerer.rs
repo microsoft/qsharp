@@ -585,13 +585,13 @@ impl Lowerer {
     /// another name as long as the alias is in scope.
     /// The lhs type is always a register whose size is calculated based on the rhs expr.
     /// except where the rhs is a single (qu)bit.
-    /// ```
+    /// ```openqasm
     /// qubit[5] q;
     /// let myreg = q[1:4];
     /// ```
     /// Here `myreg[0]` refers to the qubit `q[1]` and so on. The type of `myreg` is
     /// `qubit[3]`. Aliases can also use array concatenation of registers.
-    /// ```
+    /// ```openqasm
     /// qubit[2] one;
     /// qubit[10] two;
     /// // Aliased register of twelve qubits
