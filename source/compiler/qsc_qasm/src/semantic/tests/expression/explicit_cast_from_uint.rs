@@ -41,6 +41,7 @@ fn uint_to_bool() {
                         expr: Expr [30-31]:
                             ty: uint
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -68,6 +69,7 @@ fn sized_uint_to_bool() {
                         expr: Expr [34-35]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -185,6 +187,7 @@ fn uint_to_int() {
                         expr: Expr [29-30]:
                             ty: uint
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -212,6 +215,7 @@ fn uint_to_sized_int() {
                         expr: Expr [33-34]:
                             ty: uint
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -239,6 +243,7 @@ fn sized_uint_to_int() {
                         expr: Expr [33-34]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -266,6 +271,7 @@ fn sized_uint_to_sized_int() {
                         expr: Expr [37-38]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -293,6 +299,7 @@ fn sized_uint_to_sized_int_truncating() {
                         expr: Expr [37-38]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -320,6 +327,7 @@ fn sized_uint_to_sized_int_expanding() {
                         expr: Expr [37-38]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -374,6 +382,7 @@ fn uint_to_sized_uint() {
                         expr: Expr [34-35]:
                             ty: uint
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -401,6 +410,7 @@ fn sized_uint_to_uint() {
                         expr: Expr [34-35]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -451,6 +461,7 @@ fn sized_uint_to_sized_uint_truncating() {
                         expr: Expr [38-39]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -478,6 +489,7 @@ fn sized_uint_to_sized_uint_expanding() {
                         expr: Expr [38-39]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -509,6 +521,7 @@ fn uint_to_float() {
                         expr: Expr [31-32]:
                             ty: uint
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -536,6 +549,7 @@ fn uint_to_sized_float() {
                         expr: Expr [35-36]:
                             ty: uint
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -563,6 +577,7 @@ fn sized_uint_to_float() {
                         expr: Expr [35-36]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -590,6 +605,7 @@ fn sized_uint_to_sized_float() {
                         expr: Expr [39-40]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -617,6 +633,7 @@ fn sized_uint_to_sized_float_truncating() {
                         expr: Expr [39-40]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -644,6 +661,7 @@ fn sized_uint_to_sized_float_expanding() {
                         expr: Expr [39-40]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -925,6 +943,7 @@ fn uint_to_complex() {
                         expr: Expr [33-34]:
                             ty: uint
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -952,6 +971,7 @@ fn uint_to_sized_complex() {
                         expr: Expr [44-45]:
                             ty: uint
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -979,6 +999,7 @@ fn sized_uint_to_complex() {
                         expr: Expr [37-38]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1006,6 +1027,7 @@ fn sized_uint_to_sized_complex() {
                         expr: Expr [48-49]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1033,6 +1055,7 @@ fn sized_uint_to_sized_complex_truncating() {
                         expr: Expr [48-49]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1060,6 +1083,7 @@ fn sized_uint_to_sized_complex_expanding() {
                         expr: Expr [48-49]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1091,6 +1115,7 @@ fn uint_to_bit() {
                         expr: Expr [29-30]:
                             ty: uint
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1159,6 +1184,7 @@ fn sized_uint_to_bit() {
                         expr: Expr [33-34]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }
@@ -1186,6 +1212,7 @@ fn sized_uint_to_bitarray() {
                         expr: Expr [37-38]:
                             ty: uint[32]
                             kind: SymbolId(8)
+                        kind: Explicit
         "#]],
     );
 }

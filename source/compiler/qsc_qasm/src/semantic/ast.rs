@@ -497,6 +497,7 @@ impl Display for Expr {
 }
 
 impl Expr {
+    #[must_use]
     pub fn new(span: Span, kind: ExprKind, ty: super::types::Type) -> Self {
         Self {
             span,
@@ -506,6 +507,7 @@ impl Expr {
         }
     }
 
+    #[must_use]
     pub fn int(val: i64, span: Span) -> Self {
         let val = LiteralKind::Int(val);
         Expr {
@@ -516,6 +518,7 @@ impl Expr {
         }
     }
 
+    #[must_use]
     pub fn uint(val: i64, span: Span) -> Self {
         let val = LiteralKind::Int(val);
         Expr {
@@ -526,6 +529,7 @@ impl Expr {
         }
     }
 
+    #[must_use]
     pub fn float(val: f64, span: Span) -> Self {
         let val = LiteralKind::Float(val);
         Expr {
@@ -536,6 +540,7 @@ impl Expr {
         }
     }
 
+    #[must_use]
     pub fn builtin_funcall(
         name: &str,
         span: Span,
@@ -564,6 +569,7 @@ impl Expr {
         }
     }
 
+    #[must_use]
     pub fn bin_op(op: BinOp, lhs: Self, rhs: Self) -> Self {
         let ty = lhs.ty.clone();
         let span = Span {
@@ -1082,6 +1088,7 @@ pub enum ExprKind {
     /// An expression with invalid syntax that can't be parsed.
     #[default]
     Err,
+    CapturedIdent(SymbolId),
     Ident(SymbolId),
     UnaryOp(UnaryOpExpr),
     BinaryOp(BinaryOpExpr),
@@ -1099,6 +1106,7 @@ impl Display for ExprKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             ExprKind::Err => write!(f, "Err"),
+            ExprKind::CapturedIdent(id) => write!(f, "CapturedSymbolId({id})"),
             ExprKind::Ident(id) => write!(f, "SymbolId({id})"),
             ExprKind::UnaryOp(expr) => write!(f, "{expr}"),
             ExprKind::BinaryOp(expr) => write!(f, "{expr}"),
@@ -1169,6 +1177,7 @@ pub struct BinaryOpExpr {
 }
 
 impl BinaryOpExpr {
+    #[must_use]
     pub fn span(&self) -> Span {
         Span {
             lo: self.lhs.span.lo,
@@ -1246,18 +1255,35 @@ impl Display for BuiltinFunctionCall {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CastKind {
+    Explicit,
+    Implicit,
+}
+
+impl Display for CastKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            CastKind::Explicit => write!(f, "Explicit"),
+            CastKind::Implicit => write!(f, "Implicit"),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Cast {
     pub span: Span,
     pub ty: crate::semantic::types::Type,
     pub expr: Expr,
+    pub kind: CastKind,
 }
 
 impl Display for Cast {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "Cast", self.span)?;
         writeln_field(f, "ty", &self.ty)?;
-        write_field(f, "expr", &self.expr)
+        writeln_field(f, "expr", &self.expr)?;
+        write_field(f, "kind", &self.kind)
     }
 }
 
@@ -1420,6 +1446,7 @@ pub enum Index {
 }
 
 impl Index {
+    #[must_use]
     pub fn span(&self) -> Span {
         match self {
             Index::Expr(expr) => expr.span,

@@ -367,7 +367,7 @@ fn const_lit_decl_signed_float_lit_cast_neg() {
                 init_expr: Expr [17-19]:
                     ty: const angle
                     const_value: Angle(5.5663706143591725)
-                    kind: Cast [0-0]:
+                    kind: Cast [17-19]:
                         ty: const angle
                         expr: Expr [17-19]:
                             ty: const float
@@ -376,6 +376,7 @@ fn const_lit_decl_signed_float_lit_cast_neg() {
                                 expr: Expr [17-19]:
                                     ty: const float
                                     kind: Lit: Float(7.0)
+                        kind: Implicit
             [8] Symbol [12-13]:
                 name: x
                 type: const angle

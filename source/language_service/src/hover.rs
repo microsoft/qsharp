@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::compilation::Compilation;
+use crate::compilation::{Compilation, source_position_to_package_offset};
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Hover;
 use crate::qsc_utils::into_range;
@@ -23,9 +23,10 @@ pub(crate) fn get_hover(
     position: Position,
     position_encoding: Encoding,
 ) -> Option<Hover> {
+    let unit = &compilation.user_unit();
     let offset =
-        compilation.source_position_to_package_offset(source_name, position, position_encoding);
-    let user_ast_package = &compilation.user_unit().ast.package;
+        source_position_to_package_offset(&unit.sources, source_name, position, position_encoding);
+    let user_ast_package = &unit.ast.package;
 
     let mut hover_visitor = HoverGenerator {
         position_encoding,

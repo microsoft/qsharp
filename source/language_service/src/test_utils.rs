@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+pub(super) mod openqasm;
+
 use std::sync::Arc;
 
 use crate::compilation::{Compilation, CompilationKind};

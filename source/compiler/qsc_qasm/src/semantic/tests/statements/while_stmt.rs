@@ -78,11 +78,12 @@ fn condition_cast() {
             WhileLoop [0-15]:
                 condition: Expr [7-8]:
                     ty: const bool
-                    kind: Cast [0-0]:
+                    kind: Cast [7-8]:
                         ty: const bool
                         expr: Expr [7-8]:
                             ty: const int
                             kind: Lit: Int(1)
+                        kind: Implicit
                 body: Stmt [10-15]:
                     annotations: <empty>
                     kind: Block [10-15]:

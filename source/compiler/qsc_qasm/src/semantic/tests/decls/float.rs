@@ -391,7 +391,7 @@ fn const_lit_decl_signed_int_lit_cast_neg() {
                 init_expr: Expr [17-18]:
                     ty: const float
                     const_value: Float(-7.0)
-                    kind: Cast [0-0]:
+                    kind: Cast [17-18]:
                         ty: const float
                         expr: Expr [17-18]:
                             ty: const int
@@ -400,6 +400,7 @@ fn const_lit_decl_signed_int_lit_cast_neg() {
                                 expr: Expr [17-18]:
                                     ty: const int
                                     kind: Lit: Int(7)
+                        kind: Implicit
             [8] Symbol [12-13]:
                 name: x
                 type: const float
@@ -471,7 +472,7 @@ fn init_float_with_int_value_equal_min_safely_representable_values() {
                 ty_span: [0-5]
                 init_expr: Expr [11-27]:
                     ty: float
-                    kind: Cast [0-0]:
+                    kind: Cast [11-27]:
                         ty: float
                         expr: Expr [11-27]:
                             ty: const int
@@ -480,6 +481,7 @@ fn init_float_with_int_value_equal_min_safely_representable_values() {
                                 expr: Expr [11-27]:
                                     ty: const int
                                     kind: Lit: Int(9007199254740992)
+                        kind: Implicit
             [8] Symbol [6-7]:
                 name: a
                 type: float
