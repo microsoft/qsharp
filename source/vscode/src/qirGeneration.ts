@@ -1,8 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { getCompilerWorker, log, TargetProfile } from "qsharp-lang";
+import {
+  getCompilerWorker,
+  log,
+  QdkDiagnostics,
+  TargetProfile,
+} from "qsharp-lang";
 import * as vscode from "vscode";
+import { qsharpExtensionId } from "./common";
 import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 import {
   FullProgramConfig,
@@ -11,6 +17,7 @@ import {
   getVisibleProgram,
   getVisibleQdkDocumentUri,
 } from "./programConfig";
+import { openManifestFile } from "./projectSystem";
 import {
   EventType,
   getActiveDocumentType,
@@ -19,8 +26,6 @@ import {
   sendTelemetryEvent,
 } from "./telemetry";
 import { getRandomGuid } from "./utils";
-import { qsharpExtensionId } from "./common";
-import { openManifestFile } from "./projectSystem";
 
 const generateQirTimeoutMs = 120000;
 
@@ -142,6 +147,7 @@ async function getQirForProgram(
   const compilerTimeout = setTimeout(() => {
     worker.terminate();
   }, generateQirTimeoutMs);
+  let cancelled = false;
   try {
     const associationId = getRandomGuid();
     const start = performance.now();
@@ -163,6 +169,7 @@ async function getQirForProgram(
       },
       async (progress, token) => {
         token.onCancellationRequested(() => {
+          cancelled = true;
           worker.terminate();
         });
 
@@ -182,13 +189,33 @@ async function getQirForProgram(
     );
     clearTimeout(compilerTimeout);
   } catch (e: any) {
-    if (e.toString() === "terminated") {
+    if (e instanceof WebAssembly.RuntimeError) {
       throw new QirGenerationError(
-        "QIR generation was cancelled or timed out.",
+        "Fatal error while compiling to QIR. This may be due to stack overflow or running out of memory " +
+          " during evaluation. Please check your source code for potential infinite recursion or excessive memory usage.",
       );
-    } else {
-      throw new QirGenerationError(`QIR generation failed. ${e.toString()}.`);
     }
+    if (e.toString() === "terminated") {
+      if (cancelled) {
+        throw new QirGenerationError(
+          "Compiling to QIR was cancelled. If the operation is taking an unusually long time, " +
+            "please check your source code for potential infinite loops or excessively long-running operations.",
+        );
+      }
+      throw new QirGenerationError(
+        "Compiling to QIR timed out. Please check your source code for potential infinite loops or excessively long-running operations.",
+      );
+    }
+    if (e instanceof QdkDiagnostics) {
+      throw new QirGenerationError(
+        `Compiling to QIR failed with the following error(s):\n${e.message}`,
+      );
+    }
+
+    // Unexpected error
+    throw new QirGenerationError(
+      `Compiling to QIR failed.\n${e instanceof Error ? e.stack : e}`,
+    );
   } finally {
     worker.terminate();
   }

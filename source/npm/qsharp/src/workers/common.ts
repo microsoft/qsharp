@@ -532,10 +532,14 @@ export function initService<
  * Serializing our own custom errors allows us to send them between threads.
  */
 function serializeIfError(err: unknown) {
-  // Currently `QdkDiagnostics` is the only custom error type,
-  // but this could be extended to handle others.
   if (err instanceof QdkDiagnostics) {
     err = { name: err.name, data: err.diagnostics };
+  } else if (err instanceof WebAssembly.RuntimeError) {
+    err = {
+      name: "WebAssembly.RuntimeError",
+      message: err.message,
+      stack: err.stack,
+    };
   }
   return err;
 }
@@ -549,17 +553,20 @@ function serializeIfError(err: unknown) {
  * Serializing our own custom errors allows us to send them between threads.
  */
 function deserializeIfError(err: unknown) {
-  // Currently `QdkDiagnostics` is the only custom error type,
-  // but this could be extended to handle others.
-  if (
-    err !== null &&
-    typeof err === "object" &&
-    "name" in err &&
-    err.name === "QdkDiagnostics" &&
-    "data" in err
-  ) {
-    // If it is, deserialize it
-    err = new QdkDiagnostics(err.data as IQSharpError[]);
+  if (err !== null && typeof err === "object" && "name" in err) {
+    if (err.name === "QdkDiagnostics" && "data" in err) {
+      err = new QdkDiagnostics(err.data as IQSharpError[]);
+    } else if (
+      err.name === "WebAssembly.RuntimeError" &&
+      "message" in err &&
+      (typeof err.message === "string" || typeof err.message === "undefined") &&
+      "stack" in err &&
+      (typeof err.stack === "string" || typeof err.stack === "undefined")
+    ) {
+      const newErr = new WebAssembly.RuntimeError(err.message);
+      newErr.stack = err.stack;
+      err = newErr;
+    }
   }
   return err;
 }
