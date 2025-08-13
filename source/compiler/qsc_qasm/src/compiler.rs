@@ -563,13 +563,21 @@ impl QasmCompiler {
         }
     }
 
+    /// Alias statements are compiled into the Q# ast as array concatenation for qubits
+    /// and an compilation error for bit arrays.
+    ///
+    /// All of the heavy lifting is done in the lowerer, which transforms the
+    /// semantic AST into a form that can be easily compiled into Q#.
+    ///
+    /// So here we compile each array expression and build up a binary op addition
+    /// if there is more than one expression to concatenate.
     fn compile_alias_decl_stmt(&mut self, stmt: &semast::AliasDeclStmt) -> Option<qsast::Stmt> {
         let symbol = self.symbols[stmt.symbol_id].clone();
         if matches!(symbol.ty, Type::BitArray(..)) {
             self.push_unimplemented_error_message("bit register alias statements", stmt.span);
             return None;
         }
-        let rhs = stmt
+        let exprs = stmt
             .exprs
             .iter()
             .map(|expr| self.compile_expr(expr))
@@ -580,7 +588,7 @@ impl QasmCompiler {
             "alias decl must have at least one expression"
         );
 
-        let mut expr_iter = rhs.into_iter();
+        let mut expr_iter = exprs.into_iter();
         let mut expr = expr_iter
             .next()
             .expect("alias decl must have at least one expression");
@@ -594,7 +602,10 @@ impl QasmCompiler {
         }
 
         let ty = self.map_semantic_type_to_qsharp_type(&symbol.ty, symbol.ty_span);
-        let is_const = matches!(ty, crate::types::Type::QubitArray(..)) || symbol.ty.is_const();
+        let is_const = matches!(
+            ty,
+            crate::types::Type::Qubit | crate::types::Type::QubitArray(..)
+        ) || symbol.ty.is_const();
 
         let decl = build_classical_decl(
             &symbol.name,
