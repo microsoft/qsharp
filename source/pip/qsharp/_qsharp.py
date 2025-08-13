@@ -560,6 +560,8 @@ def make_class_rec(qsharp_type: TypeIR) -> type:
                 ty = int
             elif prim_kind == PrimitiveKind.Double:
                 ty = float
+            elif prim_kind == PrimitiveKind.Complex:
+                ty = complex
             elif prim_kind == PrimitiveKind.String:
                 ty = str
             elif prim_kind == PrimitiveKind.Pauli:
