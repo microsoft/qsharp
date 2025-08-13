@@ -203,7 +203,8 @@ async function getQirForProgram(
         );
       }
       throw new QirGenerationError(
-        "Compiling to QIR timed out. Please check your source code for potential infinite loops or excessively long-running operations.",
+        `Compiling to QIR timed out after ${generateQirTimeoutMs / 1000} seconds. ` +
+          "Please check your source code for potential infinite loops or excessively long-running operations.",
       );
     }
     if (e instanceof QdkDiagnostics) {
