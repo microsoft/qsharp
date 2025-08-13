@@ -756,21 +756,19 @@ fn check_rca_for_operation_body_recursion() {
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
         "Foo",
-        &expect![
-            r#"
+        &expect![[r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(CyclicOperationSpec)
+                        runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(CyclicOperationSpec)
+                            runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
                             value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
-                ctl-adj: <none>"#
-        ],
+                ctl-adj: <none>"#]],
     );
 }
 
@@ -792,28 +790,26 @@ fn check_rca_for_operation_body_adj_recursion() {
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
         "Foo",
-        &expect![
-            r#"
+        &expect![[r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(CyclicOperationSpec)
+                        runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(CyclicOperationSpec)
+                            runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
                             value_kind: Element(Static)
                 adj: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(CyclicOperationSpec)
+                        runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(CyclicOperationSpec)
+                            runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
                             value_kind: Element(Static)
                 ctl: <none>
-                ctl-adj: <none>"#
-        ],
+                ctl-adj: <none>"#]],
     );
 }
 
@@ -835,28 +831,26 @@ fn check_rca_for_operation_body_ctl_recursion() {
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
         "Foo",
-        &expect![
-            r#"
+        &expect![[r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(CyclicOperationSpec)
+                        runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(CyclicOperationSpec)
+                            runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
                             value_kind: Element(Static)
                 adj: <none>
                 ctl: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(CyclicOperationSpec)
+                        runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(CyclicOperationSpec)
+                            runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
                             value_kind: Element(Static)
-                ctl-adj: <none>"#
-        ],
+                ctl-adj: <none>"#]],
     );
 }
 
@@ -878,27 +872,143 @@ fn check_rca_for_operation_multi_controlled_functor_recursion() {
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
         "Foo",
-        &expect![
-            r#"
+        &expect![[r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(CyclicOperationSpec)
+                        runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(CyclicOperationSpec)
+                            runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
                             value_kind: Element(Static)
                 adj: <none>
                 ctl: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(CyclicOperationSpec)
+                        runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(CyclicOperationSpec)
+                            runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
                             value_kind: Element(Static)
-                ctl-adj: <none>"#
-        ],
+                ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_operation_body_recursion_non_unit_return() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        operation Foo(q : Qubit) : Int {
+            Foo(q)
+        }"#,
+    );
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        compilation_context.get_compute_properties(),
+        "Foo",
+        &expect![[r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsGeneratorSet:
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(CyclicOperationSpec)
+                        value_kind: Element(Dynamic)
+                    dynamic_param_applications:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CyclicOperationSpec)
+                            value_kind: Element(Dynamic)
+                adj: <none>
+                ctl: <none>
+                ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_operation_body_recursion_preserves_inherent_capabilities() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        operation Foo(q : Qubit) : Unit {
+            Foo(q);
+            if M(q) == One {
+                X(q);
+            }
+        }"#,
+    );
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        compilation_context.get_compute_properties(),
+        "Foo",
+        &expect![[r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsGeneratorSet:
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | CallToUnresolvedCallee)
+                        value_kind: Element(Static)
+                    dynamic_param_applications:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | CallToUnresolvedCallee)
+                            value_kind: Element(Static)
+                adj: <none>
+                ctl: <none>
+                ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_two_operation_cycle() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        operation Main() : Unit {
+            use q = Qubit();
+            Foo(q);
+        }
+
+        operation Foo(q : Qubit) : Unit {
+            Bar(q);
+        }
+        operation Bar(q : Qubit) : Unit {
+            Foo(q);
+        }"#,
+    );
+
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        compilation_context.get_compute_properties(),
+        "Foo",
+        &expect![[r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsGeneratorSet:
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
+                        value_kind: Element(Static)
+                    dynamic_param_applications:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
+                            value_kind: Element(Static)
+                adj: <none>
+                ctl: <none>
+                ctl-adj: <none>"#]],
+    );
+
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        compilation_context.get_compute_properties(),
+        "Bar",
+        &expect![[r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsGeneratorSet:
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
+                        value_kind: Element(Static)
+                    dynamic_param_applications:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CallToUnresolvedCallee)
+                            value_kind: Element(Static)
+                adj: <none>
+                ctl: <none>
+                ctl-adj: <none>"#]],
     );
 }
