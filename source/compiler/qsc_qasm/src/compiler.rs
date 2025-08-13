@@ -1457,12 +1457,10 @@ impl QasmCompiler {
         // when closing over a constant value we will have a const value
         // associated with the symbol, but due to scoping rule differences
         // we have to "copy" the value into the usage.
-        if let Some(value) = symbol.get_const_value() {
-            self.compile_literal_expr(&value, span)
-        } else {
-            // todo: err?
-            build_path_ident_expr(&symbol.name, span, span)
-        }
+        let Some(value) = symbol.get_const_value() else {
+            unreachable!("captured ident exprs should always have a const value");
+        };
+        self.compile_literal_expr(&value, span)
     }
 
     fn compile_ident_expr(&mut self, symbol_id: SymbolId, span: Span) -> qsast::Expr {
