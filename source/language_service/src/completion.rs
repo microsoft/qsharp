@@ -12,7 +12,7 @@ mod tests;
 mod text_edits;
 
 use crate::{
-    compilation::{Compilation, CompilationKind},
+    compilation::{Compilation, CompilationKind, source_position_to_package_offset},
     protocol::{CompletionItem, CompletionItemKind, CompletionList, TextEdit},
 };
 use ast_context::AstContext;
@@ -36,17 +36,18 @@ pub(crate) fn get_completions(
     position: Position,
     position_encoding: Encoding,
 ) -> CompletionList {
+    let unit = &compilation.user_unit();
     let package_offset =
-        compilation.source_position_to_package_offset(source_name, position, position_encoding);
-    let source = compilation
-        .user_unit()
+        source_position_to_package_offset(&unit.sources, source_name, position, position_encoding);
+
+    let source = unit
         .sources
         .find_by_offset(package_offset)
         .expect("source should exist");
     let source_offset: u32 = package_offset - source.offset;
 
     // The parser uses the relative source name to figure out the implicit namespace.
-    let source_name_relative = compilation.user_unit().sources.relative_name(&source.name);
+    let source_name_relative = unit.sources.relative_name(&source.name);
 
     if log_enabled!(Trace) {
         let last_char = if source_offset > 0 {

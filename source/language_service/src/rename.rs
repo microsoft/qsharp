@@ -7,7 +7,7 @@ mod tests;
 #[cfg(test)]
 mod openqasm_tests;
 
-use crate::compilation::{Compilation, CompilationKind};
+use crate::compilation::{Compilation, CompilationKind, source_position_to_package_offset};
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::qsc_utils::into_range;
 use crate::references::ReferenceFinder;
@@ -26,9 +26,10 @@ pub(crate) fn prepare_rename(
     if let CompilationKind::OpenQASM { sources, .. } = &compilation.kind {
         return crate::openqasm::prepare_rename(sources, source_name, position, position_encoding);
     }
+    let unit = &compilation.user_unit();
     let offset =
-        compilation.source_position_to_package_offset(source_name, position, position_encoding);
-    let user_ast_package = &compilation.user_unit().ast.package;
+        source_position_to_package_offset(&unit.sources, source_name, position, position_encoding);
+    let user_ast_package = &unit.ast.package;
 
     let mut prepare_rename = Rename::new(position_encoding, compilation, true);
     let mut locator = Locator::new(&mut prepare_rename, offset, compilation);
@@ -50,9 +51,10 @@ pub(crate) fn get_rename(
     if let CompilationKind::OpenQASM { sources, .. } = &compilation.kind {
         return crate::openqasm::get_rename(sources, source_name, position, position_encoding);
     }
+    let unit = &compilation.user_unit();
     let offset =
-        compilation.source_position_to_package_offset(source_name, position, position_encoding);
-    let user_ast_package = &compilation.user_unit().ast.package;
+        source_position_to_package_offset(&unit.sources, source_name, position, position_encoding);
+    let user_ast_package = &unit.ast.package;
 
     let mut rename = Rename::new(position_encoding, compilation, false);
     let mut locator = Locator::new(&mut rename, offset, compilation);

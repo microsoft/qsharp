@@ -299,51 +299,21 @@ impl Compilation {
             .expect("expected to find user package")
     }
 
-    /// Maps a source position from the user package
-    /// to a package (`SourceMap`) offset.
-    pub(crate) fn source_position_to_package_offset(
-        &self,
-        source_name: &str,
-        source_position: Position,
-        position_encoding: Encoding,
-    ) -> u32 {
-        let unit = self.user_unit();
-
-        let source = unit
-            .sources
-            .find_by_name(source_name)
-            .expect("source should exist in the user source map");
-
-        let mut offset =
-            source_position.to_utf8_byte_offset(position_encoding, source.contents.as_ref());
-
-        let len = u32::try_from(source.contents.len()).expect("source length should fit into u32");
-        if offset > len {
-            // This can happen if the document contents are out of sync with the client's view.
-            // we don't want to accidentally return an offset into the next file -
-            // remap to the end of the current file.
-            trace!(
-                "offset {offset} out of bounds for {}, using end offset instead",
-                source.name
-            );
-            offset = len;
-        }
-
-        source.offset + offset
-    }
-
     pub(crate) fn source_range_to_package_span(
         &self,
         source_name: &str,
         source_range: Range,
         position_encoding: Encoding,
     ) -> Span {
-        let lo = self.source_position_to_package_offset(
+        let sources = &self.user_unit().sources;
+        let lo = source_position_to_package_offset(
+            sources,
             source_name,
             source_range.start,
             position_encoding,
         );
-        let hi = self.source_position_to_package_offset(
+        let hi = source_position_to_package_offset(
+            sources,
             source_name,
             source_range.end,
             position_encoding,
@@ -572,4 +542,34 @@ impl Lookup for Compilation {
             },
         )
     }
+}
+
+/// Maps a source position from the user package
+/// to a package (`SourceMap`) offset.
+pub(super) fn source_position_to_package_offset(
+    sources: &SourceMap,
+    source_name: &str,
+    source_position: Position,
+    position_encoding: Encoding,
+) -> u32 {
+    let source = sources
+        .find_by_name(source_name)
+        .expect("source should exist in the user source map");
+
+    let mut offset =
+        source_position.to_utf8_byte_offset(position_encoding, source.contents.as_ref());
+
+    let len = u32::try_from(source.contents.len()).expect("source length should fit into u32");
+    if offset > len {
+        // This can happen if the document contents are out of sync with the client's view.
+        // we don't want to accidentally return an offset into the next file -
+        // remap to the end of the current file.
+        trace!(
+            "offset {offset} out of bounds for {}, using end offset instead",
+            source.name
+        );
+        offset = len;
+    }
+
+    source.offset + offset
 }

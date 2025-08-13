@@ -6,7 +6,7 @@ mod tests;
 
 use std::rc::Rc;
 
-use crate::compilation::{Compilation, CompilationKind};
+use crate::compilation::{Compilation, CompilationKind, source_position_to_package_offset};
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::qsc_utils::into_location;
 use qsc::ast::PathKind;
@@ -28,9 +28,10 @@ pub(crate) fn get_references(
     if let CompilationKind::OpenQASM { sources, .. } = &compilation.kind {
         return crate::openqasm::get_references(sources, source_name, position, position_encoding);
     }
+    let unit = &compilation.user_unit();
     let offset =
-        compilation.source_position_to_package_offset(source_name, position, position_encoding);
-    let user_ast_package = &compilation.user_unit().ast.package;
+        source_position_to_package_offset(&unit.sources, source_name, position, position_encoding);
+    let user_ast_package = &unit.ast.package;
 
     let mut name_handler = NameHandler {
         reference_finder: ReferenceFinder::new(position_encoding, compilation, include_declaration),

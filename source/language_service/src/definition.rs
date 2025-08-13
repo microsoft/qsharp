@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::compilation::{Compilation, CompilationKind};
+use crate::compilation::{Compilation, CompilationKind, source_position_to_package_offset};
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::qsc_utils::into_location;
 use qsc::ast::visit::Visitor;
@@ -22,9 +22,10 @@ pub(crate) fn get_definition(
     if let CompilationKind::OpenQASM { sources, .. } = &compilation.kind {
         return crate::openqasm::get_definition(sources, source_name, position, position_encoding);
     }
+    let unit = &compilation.user_unit();
     let offset =
-        compilation.source_position_to_package_offset(source_name, position, position_encoding);
-    let user_ast_package = &compilation.user_unit().ast.package;
+        source_position_to_package_offset(&unit.sources, source_name, position, position_encoding);
+    let user_ast_package = &unit.ast.package;
 
     let mut definition_finder = DefinitionFinder {
         position_encoding,
