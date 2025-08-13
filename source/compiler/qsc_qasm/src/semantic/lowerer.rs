@@ -581,43 +581,137 @@ impl Lowerer {
         let _ = self.symbols.try_insert_or_get_existing(err_symbol);
     }
 
+    /// The let keyword allows declared quantum bits and registers to be referred to by
+    /// another name as long as the alias is in scope.
+    /// The lhs type is always a register whose size is calculated based on the rhs expr.
+    /// except where the rhs is a single (qu)bit.
+    /// ```
+    /// qubit[5] q;
+    /// let myreg = q[1:4];
+    /// ```
+    /// Here `myreg[0]` refers to the qubit `q[1]` and so on. The type of `myreg` is
+    /// `qubit[3]`. Aliases can also use array concatenation of registers.
+    /// ```
+    /// qubit[2] one;
+    /// qubit[10] two;
+    /// // Aliased register of twelve qubits
+    /// let concatenated = one ++ two;
+    /// // First qubit in aliased qubit array
+    /// let first = concatenated[0];
+    /// // Qubits zero, three and five
+    /// let qubit_selection = two[{0, 3, 5}];
+    /// ```
     fn lower_alias(&mut self, alias: &syntax::AliasDeclStmt) -> semantic::StmtKind {
         let name = get_identifier_name(&alias.ident);
-        // alias statements do their types backwards, you read the right side
-        // and assign it to the left side.
-        // the types of the rhs should be in the symbol table.
+
         let rhs = alias
             .exprs
             .iter()
             .map(|expr| self.lower_expr(expr))
             .collect::<Vec<_>>();
-        let first = rhs.first().expect("missing rhs");
+
+        assert!(!rhs.is_empty(), "alias must have at least one expression");
+
+        let ty = self.get_alias_ty_from_exprs(&rhs);
 
         let symbol = Symbol::new(
             &name,
             alias.ident.span(),
-            first.ty.clone(),
+            ty,
             alias.ident.span(),
             IOKind::Default,
         );
 
         let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
-        if rhs.iter().any(|expr| expr.ty != first.ty) {
-            let tys = rhs
-                .iter()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join(", ");
-            let kind = SemanticErrorKind::InconsistentTypesInAlias(tys, alias.span);
-            self.push_semantic_error(kind);
-        }
-
         semantic::StmtKind::Alias(semantic::AliasDeclStmt {
             span: alias.span,
             symbol_id,
             exprs: syntax::list_from_iter(rhs),
         })
+    }
+
+    fn get_alias_ty_from_exprs(&mut self, rhs: &Vec<Expr>) -> Type {
+        fn get_expr_ty_names_as_str(exprs: &[Expr]) -> String {
+            exprs
+                .iter()
+                .map(|expr| &expr.ty)
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        }
+
+        let first_expr = rhs.first().expect("missing rhs");
+        let first_ty = first_expr.ty.clone();
+
+        // validate that the types are of the correct subset
+        if rhs.len() == 1 {
+            if !matches!(
+                first_ty,
+                Type::Qubit | Type::QubitArray(_) | Type::BitArray(..)
+            ) {
+                let tys = get_expr_ty_names_as_str(rhs);
+                let kind = SemanticErrorKind::InvalidTypeInAlias(tys, first_expr.span);
+                self.push_semantic_error(kind);
+                return Type::Err;
+            }
+            return first_ty;
+        }
+
+        // qubit is no longer an allowed type as you can't concatenate it with other types
+        let mut has_invalid_types = false;
+        for expr in rhs {
+            if !matches!(expr.ty, Type::QubitArray(_) | Type::BitArray(..)) {
+                let tys = expr.ty.to_string();
+                let kind = SemanticErrorKind::InvalidTypeInAlias(tys, expr.span);
+                self.push_semantic_error(kind);
+                has_invalid_types = true;
+            }
+        }
+        if has_invalid_types {
+            return Type::Err;
+        }
+
+        // We know the types are valid at this point
+        // but they may be mixed together which isn't allowed.
+        let all_tys = rhs.iter().map(|expr| &expr.ty).collect::<Vec<_>>();
+        let all_same = all_tys.iter().all(|ty| matches!(ty, Type::QubitArray(_)))
+            || all_tys.iter().all(|ty| matches!(ty, Type::BitArray(..)));
+        if !all_same {
+            let lo = first_expr.span.lo;
+            let hi = rhs.last().expect("missing last rhs").span.hi;
+            let span = Span { lo, hi };
+            let tys = get_expr_ty_names_as_str(rhs);
+            let kind = SemanticErrorKind::InconsistentTypesInAlias(tys, span);
+            self.push_semantic_error(kind);
+            return Type::Err;
+        }
+
+        let mut width = 0;
+        let mut binding_is_const = true;
+        for expr in rhs {
+            match expr.ty {
+                Type::QubitArray(size) => {
+                    width += size;
+                }
+                Type::BitArray(size, is_const) => {
+                    // in the case we are dealing with a bit array, we need to track constness
+                    // relaxing is as we go.
+                    binding_is_const &= is_const;
+                    width += size;
+                }
+                _ => {
+                    unreachable!("rhs expressions must be qubit arrays");
+                }
+            }
+        }
+        if matches!(first_ty, Type::BitArray(..)) {
+            // if the first expression is a bit array, we need to use the bit array type
+            Type::BitArray(width, binding_is_const)
+        } else {
+            // otherwise we use the qubit array type
+            Type::QubitArray(width)
+        }
     }
 
     fn lower_assign_stmt(&mut self, stmt: &syntax::AssignStmt) -> semantic::StmtKind {

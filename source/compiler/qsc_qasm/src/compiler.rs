@@ -564,8 +564,48 @@ impl QasmCompiler {
     }
 
     fn compile_alias_decl_stmt(&mut self, stmt: &semast::AliasDeclStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("alias statements", stmt.span);
-        None
+        let symbol = self.symbols[stmt.symbol_id].clone();
+        if matches!(symbol.ty, Type::BitArray(..)) {
+            self.push_unimplemented_error_message("bit register alias statements", stmt.span);
+            return None;
+        }
+        let rhs = stmt
+            .exprs
+            .iter()
+            .map(|expr| self.compile_expr(expr))
+            .collect::<Vec<_>>();
+
+        let expr = if rhs.len() == 1 {
+            rhs.into_iter()
+                .next()
+                .unwrap_or_else(|| err_expr(stmt.span))
+        } else {
+            let mut expr_iter = rhs.into_iter();
+            let mut lhs = expr_iter.next().expect("");
+
+            for rhs in expr_iter {
+                let span = Span {
+                    lo: lhs.span.lo,
+                    hi: rhs.span.hi,
+                };
+                lhs = build_binary_expr(false, qsast::BinOp::Add, lhs, rhs, span);
+            }
+            lhs
+        };
+
+        let ty = self.map_semantic_type_to_qsharp_type(&symbol.ty, symbol.ty_span);
+        let is_const = matches!(ty, crate::types::Type::QubitArray(..)) || symbol.ty.is_const();
+        let decl = build_classical_decl(
+            &symbol.name,
+            is_const,
+            symbol.ty_span,
+            stmt.span,
+            symbol.span,
+            &ty,
+            expr,
+        );
+
+        Some(decl)
     }
 
     fn compile_assign_stmt(&mut self, stmt: &semast::AssignStmt) -> Option<qsast::Stmt> {

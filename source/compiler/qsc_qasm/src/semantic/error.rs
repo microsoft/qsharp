@@ -187,6 +187,10 @@ pub enum SemanticErrorKind {
     #[error("{0} can only appear in {1} scopes")]
     #[diagnostic(code("Qasm.Lowerer.InvalidScope"))]
     InvalidScope(String, String, #[label] Span),
+    #[error("invalid type in alias expression: {0}")]
+    #[diagnostic(code("Qasm.Lowerer.InvalidTypeInAlias"))]
+    #[diagnostic(help("aliases can only be applied to quantum bits and registers"))]
+    InvalidTypeInAlias(String, #[label] Span),
     #[error("measure statements must have a name")]
     #[diagnostic(code("Qasm.Lowerer.MeasureExpressionsMustHaveName"))]
     MeasureExpressionsMustHaveName(#[label] Span),

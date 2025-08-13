@@ -35,9 +35,14 @@ int rxx = 3;
 undefined_symbol;
 
 // InconsistentTypesInAlias
-array[int, 2] alias_component_1 = {1, 2};
-array[angle, 2] alias_component_2 = {1.0, 2.0};
-let alias = alias_component_1 ++ alias_component_2;
+qubit[2] alias_component_1;
+bit[5] alias_component_2;
+let alias_1 = alias_component_1 ++ alias_component_2;
+
+// InvalidTypesInAlias
+bit[2] alias_component_3;
+int alias_component_4;
+let alias_2 = alias_component_3 ++ alias_component_4;
 
 // CannotUpdateConstVariable in simple assign
 const int const_variable = 1;
