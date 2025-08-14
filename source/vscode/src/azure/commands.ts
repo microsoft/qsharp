@@ -45,19 +45,6 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
   // Add any previously saved workspaces
   const savedWorkspaces = await context.secrets.get(workspacesSecret);
   if (savedWorkspaces) {
-    if (context.globalState.get<boolean>("showAzureCreditsWarning", true)) {
-      // Temporary reminder message that Azure Quantum Credits will be deprecated.
-      const choice = vscode.window.showInformationMessage(
-        `Azure Quantum Credits will no longer be available after June 1st, 2025.`,
-        `Don't show again`,
-      );
-      choice.then((c) => {
-        if (c === `Don't show again`) {
-          context.globalState.update("showAzureCreditsWarning", false);
-        }
-      });
-    }
-
     log.debug("Loading workspaces: ", savedWorkspaces);
     const workspaces: WorkspaceConnection[] = JSON.parse(savedWorkspaces);
     for (const workspace of workspaces) {
