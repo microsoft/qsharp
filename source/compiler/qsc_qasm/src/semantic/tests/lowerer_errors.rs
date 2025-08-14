@@ -148,7 +148,7 @@ fn check_lowerer_error_spans_are_correct() {
 
             Qasm.Lowerer.ExprMustBeConst
 
-              x undefined symbol: non_const_global_variable
+              x a captured variable must be a const expression
                 ,-[Test.qasm:64:13]
              63 | def try_capture_non_const_global_variable() {
              64 |     int a = non_const_global_variable;
