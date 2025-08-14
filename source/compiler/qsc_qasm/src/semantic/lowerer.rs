@@ -551,25 +551,22 @@ impl Lowerer {
             .try_get_existing_or_insert_err_symbol(name.as_ref(), span);
 
         match result {
-            SymbolResult::Ok(..) => (),
+            SymbolResult::Ok(symbol_id, symbol) => (symbol_id, symbol),
 
             // The symbol was not found.
-            SymbolResult::NotFound(..) => {
-                if result.is_err() {
-                    self.push_missing_symbol_error(name, span);
-                }
+            SymbolResult::NotFound(symbol_id, symbol) => {
+                self.push_missing_symbol_error(name, span);
+                (symbol_id, symbol)
             }
-
             // The symbol was found, but it isn't visible, because it isn't const.
-            SymbolResult::NotVisible(..) => {
+            SymbolResult::NotVisible(symbol_id, symbol) => {
                 self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
                     "a captured variable".into(),
                     span,
                 ));
+                (symbol_id, symbol)
             }
         }
-
-        result.unwrap()
     }
 
     /// This helper method is meant to be used when failing to lower a declaration statement
