@@ -15,7 +15,7 @@ pub use qsc_frontend::compile::{CompileUnit, PackageStore, SourceContents, Sourc
 
 pub mod resolve {
     pub use qsc_frontend::resolve::{
-        Local, LocalKind, Locals, Res, iter_valid_items, path_as_field_accessor,
+        GlobalScope, Local, Locals, NameKind, Res, iter_valid_items, path_as_field_accessor,
     };
 }
 

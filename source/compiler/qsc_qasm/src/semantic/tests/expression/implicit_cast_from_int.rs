@@ -31,11 +31,12 @@ fn to_bit_implicitly() {
                 ty_span: [29-32]
                 init_expr: Expr [37-38]:
                     ty: bit
-                    kind: Cast [0-0]:
+                    kind: Cast [37-38]:
                         ty: bit
                         expr: Expr [37-38]:
                             ty: int
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [33-34]:
                 name: y
                 type: bit
@@ -71,11 +72,12 @@ fn to_bool_implicitly() {
                 ty_span: [29-33]
                 init_expr: Expr [38-39]:
                     ty: bool
-                    kind: Cast [0-0]:
+                    kind: Cast [38-39]:
                         ty: bool
                         expr: Expr [38-39]:
                             ty: int
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [34-35]:
                 name: y
                 type: bool
@@ -147,11 +149,12 @@ fn to_explicit_int_implicitly() {
                 ty_span: [29-36]
                 init_expr: Expr [41-42]:
                     ty: int[32]
-                    kind: Cast [0-0]:
+                    kind: Cast [41-42]:
                         ty: int[32]
                         expr: Expr [41-42]:
                             ty: int
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [37-38]:
                 name: y
                 type: int[32]
@@ -187,11 +190,12 @@ fn to_implicit_uint_implicitly() {
                 ty_span: [29-33]
                 init_expr: Expr [38-39]:
                     ty: uint
-                    kind: Cast [0-0]:
+                    kind: Cast [38-39]:
                         ty: uint
                         expr: Expr [38-39]:
                             ty: int
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [34-35]:
                 name: y
                 type: uint
@@ -227,11 +231,12 @@ fn to_explicit_uint_implicitly() {
                 ty_span: [29-37]
                 init_expr: Expr [42-43]:
                     ty: uint[32]
-                    kind: Cast [0-0]:
+                    kind: Cast [42-43]:
                         ty: uint[32]
                         expr: Expr [42-43]:
                             ty: int
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [38-39]:
                 name: y
                 type: uint[32]
@@ -267,11 +272,12 @@ fn to_explicit_bigint_implicitly() {
                 ty_span: [29-36]
                 init_expr: Expr [41-42]:
                     ty: int[65]
-                    kind: Cast [0-0]:
+                    kind: Cast [41-42]:
                         ty: int[65]
                         expr: Expr [41-42]:
                             ty: int
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [37-38]:
                 name: y
                 type: int[65]
@@ -307,11 +313,12 @@ fn to_implicit_float_implicitly() {
                 ty_span: [29-34]
                 init_expr: Expr [39-40]:
                     ty: float
-                    kind: Cast [0-0]:
+                    kind: Cast [39-40]:
                         ty: float
                         expr: Expr [39-40]:
                             ty: int
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [35-36]:
                 name: y
                 type: float
@@ -347,11 +354,12 @@ fn to_explicit_float_implicitly() {
                 ty_span: [29-38]
                 init_expr: Expr [43-44]:
                     ty: float[32]
-                    kind: Cast [0-0]:
+                    kind: Cast [43-44]:
                         ty: float[32]
                         expr: Expr [43-44]:
                             ty: int
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [39-40]:
                 name: y
                 type: float[32]
@@ -387,11 +395,12 @@ fn to_implicit_complex_implicitly() {
                 ty_span: [29-43]
                 init_expr: Expr [48-49]:
                     ty: complex[float]
-                    kind: Cast [0-0]:
+                    kind: Cast [48-49]:
                         ty: complex[float]
                         expr: Expr [48-49]:
                             ty: int
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [44-45]:
                 name: y
                 type: complex[float]
@@ -427,11 +436,12 @@ fn to_explicit_complex_implicitly() {
                 ty_span: [29-47]
                 init_expr: Expr [52-53]:
                     ty: complex[float[32]]
-                    kind: Cast [0-0]:
+                    kind: Cast [52-53]:
                         ty: complex[float[32]]
                         expr: Expr [52-53]:
                             ty: int
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [48-49]:
                 name: y
                 type: complex[float[32]]

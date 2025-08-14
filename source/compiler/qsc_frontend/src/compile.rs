@@ -9,7 +9,7 @@ pub mod preprocess;
 use crate::{
     error::WithSource,
     lower::{self, Lowerer},
-    resolve::{self, Locals, Names, Resolver},
+    resolve::{self, GlobalScope, Locals, Names, Resolver},
     typeck::{self, Checker, Table},
 };
 
@@ -62,6 +62,7 @@ pub struct AstPackage {
     pub tys: Table,
     pub names: Names,
     pub locals: Locals,
+    pub globals: GlobalScope,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -397,6 +398,7 @@ pub fn compile_ast(
     let ResolveResult {
         names,
         locals,
+        globals,
         errors: name_errors,
     } = resolve_all(
         store,
@@ -429,6 +431,7 @@ pub fn compile_ast(
             tys,
             names,
             locals,
+            globals,
         },
         assigner: hir_assigner,
         sources,
@@ -550,6 +553,7 @@ pub fn get_target_profile_from_entry_point(
 pub(crate) struct ResolveResult {
     pub names: Names,
     pub locals: Locals,
+    pub globals: GlobalScope,
     pub errors: Vec<resolve::Error>,
 }
 
@@ -581,13 +585,14 @@ fn resolve_all(
 
     // resolve all symbols, binding imports/export names as they're resolved
     resolver.resolve(assigner, package);
-    let (names, _, locals, mut resolver_errors) = resolver.into_result();
+    let (names, globals, locals, mut resolver_errors) = resolver.into_result();
 
     errors.append(&mut resolver_errors);
 
     ResolveResult {
         names,
         locals,
+        globals,
         errors,
     }
 }

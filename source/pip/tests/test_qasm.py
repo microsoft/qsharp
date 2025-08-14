@@ -543,22 +543,45 @@ def test_callables_with_unsupported_types_raise_errors_on_call() -> None:
         code.Unsupported()
 
 
-def test_callables_with_unsupported_udt_types_raise_errors_on_call() -> None:
+def test_callable_with_complex_input() -> None:
     init()
     import_openqasm(
-        "def Unsupported(complex a)  { }", program_type=ProgramType.Fragments
+        "def ComplexInput(complex a) { }", program_type=ProgramType.Fragments
     )
-    with pytest.raises(QSharpError, match='unsupported input type: `UDT<"Complex":'):
-        code.Unsupported()
+    code.ComplexInput(2 + 3j)
 
 
-def test_callable_with_unsupported_udt_return_types_raise_errors_on_call() -> None:
+def test_callable_with_complex_output() -> None:
     init()
     import_openqasm(
-        "def Unsupported() -> complex { end; }", program_type=ProgramType.Fragments
+        "def ComplexOutput() -> complex { return 2 + 3im; }",
+        program_type=ProgramType.Fragments,
     )
-    with pytest.raises(QSharpError, match='unsupported output type: `UDT<"Complex":'):
-        code.Unsupported()
+    assert code.ComplexOutput() == 2 + 3j
+
+
+def test_callable_with_complex_input_output() -> None:
+    init()
+    import_openqasm(
+        "def ComplexOutput(complex a) -> complex { return 2 * a; }",
+        program_type=ProgramType.Fragments,
+    )
+    assert code.ComplexOutput(2 + 3j) == 4 + 6j
+
+
+def test_callable_with_angle_input() -> None:
+    init()
+    import_openqasm("def AngleInput(angle a) { }", program_type=ProgramType.Fragments)
+    code.AngleInput(3.14)
+
+
+def test_callable_with_angle_output() -> None:
+    init()
+    import_openqasm(
+        "def AngleOutput() -> angle { return pi; }",
+        program_type=ProgramType.Fragments,
+    )
+    assert code.AngleOutput() == pi
 
 
 def test_circuit_from_program() -> None:

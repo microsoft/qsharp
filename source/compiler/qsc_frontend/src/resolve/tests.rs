@@ -4,7 +4,7 @@
 use super::{Error, Locals, Names, Res};
 use crate::{
     compile,
-    resolve::{Importable, LocalKind, Resolver, imports::iter_valid_items},
+    resolve::{Importable, Local, Resolver, imports::iter_valid_items},
 };
 use expect_test::{Expect, expect};
 use indoc::indoc;
@@ -3029,16 +3029,17 @@ fn check_locals(input: &str, expect: &Expect) {
 
     let locals = locals.get_all_at_offset(cursor_offset);
     let actual = locals.iter().fold(String::new(), |mut output, l| {
-        let _ = writeln!(
-            output,
-            "{} ({})",
-            l.name,
-            match l.kind {
-                LocalKind::Item(item_id) => item_id.to_string(),
-                LocalKind::TyParam(param_id) => format!("ty_param {param_id}"),
-                LocalKind::Var(node_id) => format!("var {node_id}"),
+        let _ = match l {
+            Local::Item(item_id, name) => writeln!(output, "{name} ({item_id})"),
+            Local::TyParam(param_id, name) => writeln!(output, "{name} (ty_param {param_id})"),
+            Local::Var(node_id, name) => writeln!(output, "{name} (var {node_id})"),
+            Local::NamespaceImport(namespace_id, Some(alias)) => {
+                writeln!(output, "{alias} (namespace {})", usize::from(namespace_id))
             }
-        );
+            Local::NamespaceImport(namespace_id, None) => {
+                writeln!(output, "namespace {}", usize::from(namespace_id))
+            }
+        };
         output
     });
 
@@ -3059,6 +3060,7 @@ fn get_locals_vars() {
         "},
         &expect![[r#"
             x (var 13)
+            namespace 3
         "#]],
     );
 }
@@ -3077,6 +3079,7 @@ fn get_locals_vars_shadowing_same_scope() {
         "#},
         &expect![[r#"
             x (var 17)
+            namespace 3
         "#]],
     );
 }
@@ -3098,6 +3101,7 @@ fn get_locals_vars_parent_scope() {
         &expect![[r#"
             y (var 20)
             x (var 13)
+            namespace 3
         "#]],
     );
 }
@@ -3114,6 +3118,7 @@ fn get_locals_params() {
         "#},
         &expect![[r#"
             x (var 8)
+            namespace 3
         "#]],
     );
 }
@@ -3133,6 +3138,7 @@ fn get_locals_spec_params() {
         &expect![[r#"
             cs (var 23)
             q (var 8)
+            namespace 3
         "#]],
     );
 }
@@ -3150,6 +3156,7 @@ fn get_locals_before_binding() {
         "},
         &expect![[r#"
             y (var 13)
+            namespace 3
         "#]],
     );
 }
@@ -3168,6 +3175,7 @@ fn get_locals_lambda_params() {
         &expect![[r#"
             x (var 20)
             y (var 13)
+            namespace 3
         "#]],
     );
 }
@@ -3186,6 +3194,7 @@ fn get_locals_for_loop() {
         "},
         &expect![[r#"
             x (var 14)
+            namespace 3
         "#]],
     );
 }
@@ -3201,7 +3210,9 @@ fn get_locals_for_loop_before_binding() {
                 }
             }
         "},
-        &expect![""],
+        &expect![[r#"
+            namespace 3
+        "#]],
     );
 }
 
@@ -3220,6 +3231,7 @@ fn get_locals_items() {
         &expect![[r#"
             Bar (Item 3)
             B (Item 2)
+            namespace 3
         "#]],
     );
 }
@@ -3241,6 +3253,7 @@ fn get_locals_local_item_hide_parent_scope_variables() {
         &expect![[r#"
             y (var 26)
             B (Item 2)
+            namespace 3
         "#]],
     );
 }
@@ -3261,6 +3274,7 @@ fn get_locals_shadow_parent_scope() {
         "#},
         &expect![[r#"
             x (var 20)
+            namespace 3
         "#]],
     );
 }
@@ -3280,6 +3294,7 @@ fn get_locals_type_params() {
         &expect![[r#"
             t (var 9)
             'T (ty_param 0)
+            namespace 3
         "#]],
     );
 }
@@ -3296,7 +3311,9 @@ fn get_locals_block_scope_boundary() {
                 }
             }
         "},
-        &expect![""],
+        &expect![[r#"
+            namespace 3
+        "#]],
     );
 }
 
@@ -3312,7 +3329,55 @@ fn get_locals_block_scope_boundary_begin() {
                 }
             }
         "},
-        &expect![""],
+        &expect![[r#"
+            namespace 3
+        "#]],
+    );
+}
+
+#[test]
+fn get_locals_item_imports() {
+    check_locals(
+        indoc! {"
+            namespace Bar {
+                function A() : Unit {}
+            }
+            namespace Foo {
+                import Bar.A;
+                import Bar.A as B;
+                function C() : Int {
+                    ↘
+                }
+            }
+        "},
+        &expect![[r#"
+            A (Item 1)
+            B (Item 1)
+            namespace 4
+        "#]],
+    );
+}
+
+#[test]
+fn get_locals_namespace_imports() {
+    check_locals(
+        indoc! {"
+            namespace Bar {}
+            namespace Foo {
+                import Bar;
+                import Bar as Baz;
+                import Bar.*;
+                function A() : Int {
+                    ↘
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace 4
+            namespace 3
+            Bar (namespace 3)
+            Baz (namespace 3)
+        "#]],
     );
 }
 

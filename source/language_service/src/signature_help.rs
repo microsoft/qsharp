@@ -6,7 +6,7 @@ mod tests;
 
 use crate::{
     Encoding,
-    compilation::Compilation,
+    compilation::{Compilation, source_position_to_package_offset},
     protocol::{ParameterInformation, SignatureHelp, SignatureInformation},
 };
 use qsc::{
@@ -28,8 +28,12 @@ pub(crate) fn get_signature_help(
     position: Position,
     position_encoding: Encoding,
 ) -> Option<SignatureHelp> {
-    let offset =
-        compilation.source_position_to_package_offset(source_name, position, position_encoding);
+    let offset = source_position_to_package_offset(
+        &compilation.user_unit().sources,
+        source_name,
+        position,
+        position_encoding,
+    );
     let user_ast_package = &compilation.user_unit().ast.package;
 
     let mut finder = SignatureHelpFinder {

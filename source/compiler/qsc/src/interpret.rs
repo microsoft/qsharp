@@ -11,7 +11,7 @@ mod package_tests;
 #[cfg(test)]
 mod tests;
 
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 pub use qsc_eval::{
     StepAction, StepResult,
@@ -25,7 +25,7 @@ pub use qsc_eval::{
 };
 use qsc_hir::{global, ty};
 use qsc_linter::{HirLint, Lint, LintKind, LintLevel};
-use qsc_lowerer::{map_fir_package_to_hir, map_hir_package_to_fir};
+use qsc_lowerer::{map_fir_local_item_to_hir, map_fir_package_to_hir, map_hir_package_to_fir};
 use qsc_partial_eval::ProgramEntry;
 use qsc_rca::PackageStoreComputeProperties;
 
@@ -128,6 +128,12 @@ pub struct Interpreter {
     lowerer: qsc_lowerer::Lowerer,
     /// The execution graph for the last expression evaluated.
     expr_graph: Option<ExecGraph>,
+    /// Checking if an `ItemId` corresponds to the `Std.OpenQASM.Angle.Angle` UDT
+    /// is an expensive operation. So, we cache the id to avoid incurring that cost.
+    angle_ty_cache: RefCell<Option<crate::hir::ItemId>>,
+    /// Checking if an `ItemId` corresponds to the `Std.Math.Complex` UDT
+    /// is an expensive operation. So, we cache the id to avoid incurring that cost.
+    complex_ty_cache: RefCell<Option<crate::hir::ItemId>>,
     /// The ID of the current package.
     /// This ID is valid both for the FIR store and the `PackageStore`.
     package: PackageId,
@@ -148,6 +154,25 @@ pub struct Interpreter {
 }
 
 pub type InterpretResult = std::result::Result<Value, Vec<Error>>;
+
+/// Indicates whether an UDT is an `OpenQASM` `Angle` or a `Complex` number.
+/// This information is needed in the Python interop layer to give special
+/// treatment to the instances of these UDTs.
+pub enum UdtKind {
+    /// `Std.OpenQASM.Angle.Angle`
+    Angle,
+    /// `Std.Math.Complex`
+    Complex,
+    /// A normal UDT, see the other variants for the special cases.
+    Udt,
+}
+
+/// An item tagged with its name and the namespace it was defined in.
+pub struct TaggedItem {
+    pub item_id: qsc_hir::hir::ItemId,
+    pub name: Rc<str>,
+    pub namespace: Vec<Rc<str>>,
+}
 
 impl Interpreter {
     /// Creates a new incremental compiler, compiling the passed in sources.
@@ -251,6 +276,8 @@ impl Interpreter {
             fir_store,
             lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
             expr_graph: None,
+            angle_ty_cache: None.into(),
+            complex_ty_cache: None.into(),
             env: Env::default(),
             sim: sim_circuit_backend(),
             quantum_seed: None,
@@ -314,6 +341,8 @@ impl Interpreter {
             fir_store,
             lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
             expr_graph: None,
+            angle_ty_cache: None.into(),
+            complex_ty_cache: None.into(),
             env: Env::default(),
             sim: sim_circuit_backend(),
             quantum_seed: None,
@@ -350,20 +379,20 @@ impl Interpreter {
     }
 
     /// Get the global callables defined in the user source passed into initialization of the interpreter as `Value` instances.
-    pub fn user_globals(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, Value)> {
+    pub fn source_globals(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, Value)> {
         self.package_globals(self.source_package)
     }
 
     /// Get the global callables defined in the open package being interpreted as `Value` instances, which will include any items
     /// defined by calls to `eval_fragments` and the like.
-    pub fn source_globals(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, Value)> {
+    pub fn user_globals(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, Value)> {
         self.package_globals(self.package)
     }
 
     /// Get the input and output types of a given value representing a global item.
     /// # Panics
     /// Panics if the item is not callable or a type that can be invoked as a callable.
-    pub fn global_tys(&self, item_id: &Value) -> Option<(ty::Ty, ty::Ty)> {
+    pub fn global_callable_ty(&self, item_id: &Value) -> Option<(ty::Ty, ty::Ty)> {
         let Value::Global(item_id, _) = item_id else {
             panic!("value is not a global callable");
         };
@@ -387,6 +416,116 @@ impl Interpreter {
             }
             _ => panic!("item is not callable"),
         }
+    }
+
+    /// Given a package ID, returns all the types in the package.
+    /// Note this does not currently include re-exports.
+    fn package_types(&self, package_id: PackageId) -> Vec<TaggedItem> {
+        let mut exported_items = Vec::new();
+        let package = &self
+            .compiler
+            .package_store()
+            .get(map_fir_package_to_hir(package_id))
+            .expect("package should exist in the package store")
+            .package;
+        for global in global::iter_package(Some(map_fir_package_to_hir(package_id)), package) {
+            if let global::Kind::Ty(ty) = global.kind {
+                exported_items.push(TaggedItem {
+                    item_id: ty.id,
+                    name: global.name,
+                    namespace: global.namespace,
+                });
+            }
+        }
+        exported_items
+    }
+
+    /// Get the global UDTs defined in the user source passed into initialization of the interpreter.
+    pub fn source_types(&self) -> Vec<TaggedItem> {
+        self.package_types(self.source_package)
+    }
+
+    /// Get the global UDTs defined in the open package being interpreted, which will include any items
+    /// defined by calls to `eval_fragments` and the like.
+    pub fn user_types(&self) -> Vec<TaggedItem> {
+        self.package_types(self.package)
+    }
+
+    pub fn udt_ty_from_store_item_id(
+        &self,
+        store_item_id: crate::fir::StoreItemId,
+    ) -> (&ty::Udt, UdtKind) {
+        self.udt_ty_from_item_id(&crate::hir::ItemId {
+            package: Some(map_fir_package_to_hir(store_item_id.package)),
+            item: map_fir_local_item_to_hir(store_item_id.item),
+        })
+    }
+
+    /// Get the type of a UDT given its `item_id`.
+    /// # Panics
+    /// Panics if the item is not a UDT.
+    pub fn udt_ty_from_item_id(&self, item_id: &crate::hir::ItemId) -> (&ty::Udt, UdtKind) {
+        let crate::hir::ItemId {
+            package: package_id_opt,
+            item: local_item_id,
+        } = item_id;
+
+        let package_id = if let Some(package_id) = package_id_opt {
+            package_id
+        } else {
+            &self.compiler.package_id()
+        };
+
+        let unit = self
+            .compiler
+            .package_store()
+            .get(*package_id)
+            .expect("package should exist in the package store");
+
+        let item = unit
+            .package
+            .items
+            .get(*local_item_id)
+            .expect("item should be in this package");
+
+        let parent = item.parent.map(|parent| {
+            &unit
+                .package
+                .items
+                .get(parent)
+                .expect("parent should exist")
+                .kind
+        });
+
+        let qsc_hir::hir::ItemKind::Ty(_, udt) = &item.kind else {
+            panic!("item is not a UDT")
+        };
+
+        let kind = if let Some(id) = &*self.angle_ty_cache.borrow()
+            && id == item_id
+        {
+            UdtKind::Angle
+        } else if let Some(id) = &*self.complex_ty_cache.borrow()
+            && id == item_id
+        {
+            UdtKind::Complex
+        } else if let Some(qsc_hir::hir::ItemKind::Namespace(namespace, _)) = parent {
+            let namespace: Vec<_> = namespace.into();
+            let namespace: Vec<&str> = namespace.iter().map(|ident| &**ident).collect();
+            if matches!(&namespace[..], &["Std", "OpenQASM", "Angle"]) && &*udt.name == "Angle" {
+                *self.angle_ty_cache.borrow_mut() = Some(*item_id);
+                UdtKind::Angle
+            } else if matches!(&namespace[..], &["Std", "Math"]) && &*udt.name == "Complex" {
+                *self.complex_ty_cache.borrow_mut() = Some(*item_id);
+                UdtKind::Complex
+            } else {
+                UdtKind::Udt
+            }
+        } else {
+            UdtKind::Udt
+        };
+
+        (udt, kind)
     }
 
     pub fn set_quantum_seed(&mut self, seed: Option<u64>) {
@@ -486,6 +625,7 @@ impl Interpreter {
             .compiler
             .compile_fragments_fail_fast(&label, fragments)
             .map_err(into_errors)?;
+
         // Clear the entry expression, as we are evaluating fragments and a fragment with a `@EntryPoint` attribute
         // should not change what gets executed.
         increment.clear_entry();
@@ -746,10 +886,10 @@ impl Interpreter {
                     let mut sink = std::io::sink();
                     let mut out = GenericReceiver::new(&mut sink);
 
-                    self.invoke_with_sim(&mut sim, &mut out, callable, args)?
+                    self.invoke_with_sim(&mut sim, &mut out, callable, args)?;
                 }
                 None => self.run_with_sim_no_output(entry_expr, &mut sim)?,
-            };
+            }
 
             sim.chained.finish()
         } else {
@@ -762,10 +902,10 @@ impl Interpreter {
                     let mut sink = std::io::sink();
                     let mut out = GenericReceiver::new(&mut sink);
 
-                    self.invoke_with_sim(&mut sim, &mut out, callable, args)?
+                    self.invoke_with_sim(&mut sim, &mut out, callable, args)?;
                 }
                 None => self.run_with_sim_no_output(entry_expr, &mut sim)?,
-            };
+            }
 
             sim.finish()
         };
@@ -816,18 +956,18 @@ impl Interpreter {
         &mut self,
         entry_expr: Option<String>,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-    ) -> InterpretResult {
+    ) -> std::result::Result<(), Vec<Error>> {
         let mut sink = std::io::sink();
         let mut out = GenericReceiver::new(&mut sink);
 
         let (package_id, graph) = if let Some(entry_expr) = entry_expr {
             // entry expression is provided
-            (self.package, self.compile_entry_expr(&entry_expr)?.0)
+            let (graph, _) = self.compile_entry_expr(&entry_expr)?;
+            (self.package, graph)
         } else {
             // no entry expression, use the entrypoint in the package
             (self.source_package, self.get_entry_exec_graph()?)
         };
-        self.expr_graph = Some(graph.clone());
 
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
@@ -842,7 +982,9 @@ impl Interpreter {
             &mut Env::default(),
             sim,
             &mut out,
-        )
+        )?;
+
+        Ok(())
     }
 
     /// Invokes the given callable with the given arguments on the given simulator with a new instance of the environment

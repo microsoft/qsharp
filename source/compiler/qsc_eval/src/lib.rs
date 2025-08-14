@@ -615,6 +615,10 @@ impl State {
         }
     }
 
+    fn current_frame_id(&self) -> usize {
+        self.call_stack.len()
+    }
+
     fn push_frame(&mut self, exec_graph: ExecGraph, id: StoreItemId, functor: FunctorApp) {
         self.call_stack.push_frame(Frame {
             span: self.current_span,
@@ -639,10 +643,7 @@ impl State {
     }
 
     fn push_scope(&mut self, env: &mut Env) {
-        // `push_frame`, which increments the length of `self.call_stack` by 1,
-        // is called before `self.push_scope`.
-        // Since the first `frame_id` should be 0, we substract 1 here.
-        env.push_scope(self.call_stack.len() - 1);
+        env.push_scope(self.current_frame_id());
     }
 
     fn take_val_register(&mut self) -> Value {
@@ -719,7 +720,7 @@ impl State {
         breakpoints: &[StmtId],
         step: StepAction,
     ) -> Result<StepResult, (Error, Vec<Frame>)> {
-        let current_frame = self.call_stack.len();
+        let current_frame = self.current_frame_id();
         while !self.exec_graph_stack.is_empty() {
             let exec_graph = self
                 .exec_graph_stack
@@ -866,9 +867,9 @@ impl State {
                 // no breakpoint, but we may stop here
                 if step == StepAction::In {
                     StepResult::StepIn
-                } else if step == StepAction::Next && current_frame >= self.call_stack.len() {
+                } else if step == StepAction::Next && current_frame >= self.current_frame_id() {
                     StepResult::Next
-                } else if step == StepAction::Out && current_frame > self.call_stack.len() {
+                } else if step == StepAction::Out && current_frame > self.current_frame_id() {
                     StepResult::StepOut
                 } else {
                     return None;
@@ -884,7 +885,7 @@ impl State {
         step: StepAction,
         current_frame: usize,
     ) -> Option<(StepResult, Span)> {
-        if step == StepAction::Next && current_frame >= self.call_stack.len() {
+        if step == StepAction::Next && current_frame >= self.current_frame_id() {
             let block = globals.get_block((self.package, block).into());
             let span = Span {
                 lo: block.span.hi - 1,
@@ -989,7 +990,7 @@ impl State {
                 self.eval_range(start.is_some(), step.is_some(), end.is_some());
             }
             ExprKind::Return(..) => panic!("return expr should be handled by control flow"),
-            ExprKind::Struct(_, copy, fields) => self.eval_struct(*copy, fields),
+            ExprKind::Struct(res, copy, fields) => self.eval_struct(res, *copy, fields),
             ExprKind::String(components) => self.collect_string(components),
             ExprKind::UpdateIndex(_, mid, _) => {
                 let mid_span = globals.get_expr((self.package, *mid).into()).span;
@@ -1164,6 +1165,10 @@ impl State {
         let callee = match globals.get_global(callee_id) {
             Some(Global::Callable(callable)) => callable,
             Some(Global::Udt) => {
+                let arg = match arg {
+                    Value::Tuple(items, _) => Value::Tuple(items, Some(callee_id.into())),
+                    _ => arg,
+                };
                 self.set_val_register(arg);
                 return Ok(());
             }
@@ -1363,7 +1368,7 @@ impl State {
         self.set_val_register(Value::Range(val::Range { start, step, end }.into()));
     }
 
-    fn eval_struct(&mut self, copy: Option<ExprId>, fields: &[FieldAssign]) {
+    fn eval_struct(&mut self, res: &Res, copy: Option<ExprId>, fields: &[FieldAssign]) {
         // Extract a flat list of field indexes.
         let field_indexes = fields
             .iter()
@@ -1399,7 +1404,16 @@ impl State {
             strct[*i] = val;
         }
 
-        self.set_val_register(Value::Tuple(strct.into()));
+        let store_item_id = if let Res::Item(item_id) = res {
+            StoreItemId {
+                package: item_id.package.unwrap_or(self.package),
+                item: item_id.item,
+            }
+        } else {
+            panic!("UDT should be an item");
+        };
+
+        self.set_val_register(Value::Tuple(strct.into(), Some(Rc::new(store_item_id))));
     }
 
     fn eval_update_index(&mut self, span: Span) -> Result<(), Error> {
@@ -1473,7 +1487,7 @@ impl State {
 
     fn eval_tup(&mut self, len: usize) {
         let tup = self.pop_vals(len);
-        self.set_val_register(Value::Tuple(tup.into()));
+        self.set_val_register(Value::Tuple(tup.into(), None));
     }
 
     fn eval_unop(&mut self, op: UnOp) {
@@ -1581,7 +1595,7 @@ impl State {
                 }
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
-            (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
+            (ExprKind::Tuple(var_tup), Value::Tuple(tup, _)) => {
                 for (expr, val) in var_tup.iter().zip(tup.iter()) {
                     self.update_binding(env, globals, *expr, val.clone())?;
                 }
@@ -1776,7 +1790,10 @@ pub fn are_ctls_unique(ctls: &[Value], tup: &Value) -> bool {
 
 fn merge_fixed_args(fixed_args: Option<Rc<[Value]>>, arg: Value) -> Value {
     if let Some(fixed_args) = fixed_args {
-        Value::Tuple(fixed_args.iter().cloned().chain(iter::once(arg)).collect())
+        Value::Tuple(
+            fixed_args.iter().cloned().chain(iter::once(arg)).collect(),
+            None,
+        )
     } else {
         arg
     }
@@ -2217,7 +2234,7 @@ fn eval_binop_xorb(lhs_val: Value, rhs_val: Value) -> Value {
 
 fn follow_field_path(mut value: Value, path: &[usize]) -> Option<Value> {
     for &index in path {
-        let Value::Tuple(items) = value else {
+        let Value::Tuple(items, _) = value else {
             return None;
         };
         value = items[index].clone();
@@ -2228,7 +2245,7 @@ fn follow_field_path(mut value: Value, path: &[usize]) -> Option<Value> {
 fn update_field_path(record: &Value, path: &[usize], replace: &Value) -> Option<Value> {
     match (record, path) {
         (_, []) => Some(replace.clone()),
-        (Value::Tuple(items), &[next_index, ..]) if next_index < items.len() => {
+        (Value::Tuple(items, store_item_id), &[next_index, ..]) if next_index < items.len() => {
             let update = |(index, item)| {
                 if index == next_index {
                     update_field_path(item, &path[1..], replace)
@@ -2238,7 +2255,7 @@ fn update_field_path(record: &Value, path: &[usize], replace: &Value) -> Option<
             };
 
             let items: Option<_> = items.iter().enumerate().map(update).collect();
-            Some(Value::Tuple(items?))
+            Some(Value::Tuple(items?, store_item_id.clone()))
         }
         _ => None,
     }

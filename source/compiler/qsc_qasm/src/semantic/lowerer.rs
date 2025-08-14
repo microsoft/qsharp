@@ -881,11 +881,10 @@ impl Lowerer {
         let ty = self.get_semantic_type_from_tydef(&cast.ty, expr.ty.is_const());
         let mut cast = self.cast_expr_to_type_with_span(&ty, &expr, cast_span);
 
-        // This is an explicit cast, so we know its span. If casting
-        // succeded, override the default span with the cast span.
         cast.span = cast_span;
+        // If lowering the cast succeeded, mark it as explicit.
         if let semantic::ExprKind::Cast(cast_ref) = cast.kind.as_mut() {
-            cast_ref.span = cast_span;
+            cast_ref.kind = semantic::CastKind::Explicit;
         }
 
         cast
@@ -921,9 +920,9 @@ impl Lowerer {
             && is_symbol_declaration_outside_gate_or_function_scope;
         let can_capture_symbol = symbol.ty.is_const() || symbol.ty.is_callable();
 
-        let kind = if need_to_capture_symbol && can_capture_symbol {
-            if let Some(val) = symbol.get_const_value() {
-                semantic::ExprKind::Lit(val)
+        let kind = if need_to_capture_symbol && symbol.ty.is_const() {
+            if symbol.get_const_value().is_some() {
+                semantic::ExprKind::CapturedIdent(symbol_id)
             } else {
                 // If the const evaluation fails, we return Err but don't push
                 // any additional error. The error was already pushed in the
@@ -3156,32 +3155,41 @@ impl Lowerer {
         expr: &semantic::Expr,
         kind: &semantic::LiteralKind,
     ) -> semantic::Expr {
-        let Some(expr) = self.try_coerce_literal_expr_to_type(ty, expr, kind) else {
-            self.push_invalid_literal_cast_error(ty, &expr.ty, expr.span);
-            return expr.clone();
-        };
-        expr
+        match Self::try_coerce_literal_expr_to_type(ty, expr, kind) {
+            Ok(expr) => expr,
+            Err(Some(err)) => {
+                self.push_semantic_error(err);
+                expr.clone()
+            }
+            Err(None) => expr.clone(),
+        }
     }
 
+    /// Tries to coerce a literal expr to the given type.
+    ///
+    /// Returns `None` if the cast isn't allowed.
+    ///
+    /// Returns `Err` if the cast is allowed but there was a value error.
+    /// E.g.: this can happen when casting from int[64] to float[64] if
+    /// the integer value doesn't fit in 53 bits (the size of `f64::MANTISSA`).
     #[allow(clippy::too_many_lines)]
-    fn try_coerce_literal_expr_to_type(
-        &mut self,
+    pub(crate) fn try_coerce_literal_expr_to_type(
         ty: &Type,
         rhs: &semantic::Expr,
         kind: &semantic::LiteralKind,
-    ) -> Option<semantic::Expr> {
+    ) -> Result<semantic::Expr, Option<SemanticErrorKind>> {
         assert!(matches!(*rhs.kind, semantic::ExprKind::Lit(..)));
         assert!(rhs.ty.is_const(), "literals must have const types");
 
         if *ty == rhs.ty {
             // Base case, we shouldn't have gotten here
             // but if we did, we can just return the rhs
-            return Some(rhs.clone());
+            return Ok(rhs.clone());
         }
 
         if types_equal_except_const(ty, &rhs.ty) {
             // lhs isn't const, but rhs is, this is allowed
-            return Some(rhs.clone());
+            return Ok(rhs.clone());
         }
         assert!(can_cast_literal(ty, &rhs.ty) || can_cast_literal_with_value_knowledge(ty, kind));
         let lhs_ty = ty.clone();
@@ -3192,21 +3200,21 @@ impl Lowerer {
             match kind {
                 semantic::LiteralKind::Int(value) => {
                     // can_cast_literal_with_value_knowledge guarantees that value is 0 or 1
-                    return Some(semantic::Expr::new(
+                    return Ok(semantic::Expr::new(
                         span,
                         semantic::ExprKind::Lit(semantic::LiteralKind::Bit(*value != 0)),
                         lhs_ty.as_const(),
                     ));
                 }
                 semantic::LiteralKind::Bool(value) => {
-                    return Some(semantic::Expr::new(
+                    return Ok(semantic::Expr::new(
                         span,
                         semantic::ExprKind::Lit(semantic::LiteralKind::Bit(*value)),
                         lhs_ty.as_const(),
                     ));
                 }
                 &semantic::LiteralKind::Angle(value) => {
-                    return Some(semantic::Expr::new(
+                    return Ok(semantic::Expr::new(
                         span,
                         semantic::ExprKind::Lit(semantic::LiteralKind::Bit(value.value != 0)),
                         lhs_ty.as_const(),
@@ -3229,16 +3237,16 @@ impl Lowerer {
         if is_int_to_bit_array {
             if let semantic::LiteralKind::Int(value) = kind {
                 if *value < 0 || *value >= (1 << size) {
-                    return None;
+                    return Err(Self::invalid_literal_cast_error(ty, &rhs.ty, rhs.span));
                 }
 
                 let u_size = size as usize;
                 let bitstring = format!("{value:0u_size$b}");
                 let Ok(value) = BigInt::from_str_radix(&bitstring, 2) else {
-                    return None;
+                    return Err(Self::invalid_literal_cast_error(ty, &rhs.ty, rhs.span));
                 };
 
-                return Some(semantic::Expr::new(
+                return Ok(semantic::Expr::new(
                     span,
                     semantic::ExprKind::Lit(semantic::LiteralKind::Bitstring(value, size)),
                     lhs_ty.as_const(),
@@ -3248,7 +3256,7 @@ impl Lowerer {
         if matches!(lhs_ty, Type::UInt(..)) {
             if let semantic::LiteralKind::Int(value) = kind {
                 // this should have been validated by can_cast_literal_with_value_knowledge
-                return Some(semantic::Expr::new(
+                return Ok(semantic::Expr::new(
                     span,
                     semantic::ExprKind::Lit(semantic::LiteralKind::Int(*value)),
                     lhs_ty.as_const(),
@@ -3259,24 +3267,23 @@ impl Lowerer {
             (Type::Float(..), Type::Int(..) | Type::UInt(..)) => {
                 if let semantic::LiteralKind::Int(value) = kind {
                     if let Some(value) = safe_i64_to_f64(*value) {
-                        return Some(semantic::Expr::new(
+                        return Ok(semantic::Expr::new(
                             span,
                             semantic::ExprKind::Lit(semantic::LiteralKind::Float(value)),
                             lhs_ty.as_const(),
                         ));
                     }
-                    self.push_semantic_error(SemanticErrorKind::InvalidCastValueRange(
+                    return Err(Some(SemanticErrorKind::InvalidCastValueRange(
                         rhs_ty.to_string(),
                         lhs_ty.to_string(),
                         span,
-                    ));
-                    return None;
+                    )));
                 }
                 None
             }
             (Type::Angle(width, _), Type::Float(..)) => {
                 if let semantic::LiteralKind::Float(value) = kind {
-                    return Some(semantic::Expr::new(
+                    return Ok(semantic::Expr::new(
                         span,
                         semantic::ExprKind::Lit(semantic::LiteralKind::Angle(
                             Angle::from_f64_maybe_sized(*value, *width),
@@ -3290,7 +3297,7 @@ impl Lowerer {
                 // compatibility case for existing code
                 if let semantic::LiteralKind::Int(value) = kind {
                     if *value == 0 {
-                        return Some(semantic::Expr::new(
+                        return Ok(semantic::Expr::new(
                             span,
                             semantic::ExprKind::Lit(semantic::LiteralKind::Angle(
                                 Angle::from_u64_maybe_sized(0, *width),
@@ -3303,7 +3310,7 @@ impl Lowerer {
             }
             (Type::Float(..), Type::Float(..)) => {
                 if let semantic::LiteralKind::Float(value) = kind {
-                    return Some(semantic::Expr::new(
+                    return Ok(semantic::Expr::new(
                         span,
                         semantic::ExprKind::Lit(semantic::LiteralKind::Float(*value)),
                         lhs_ty.as_const(),
@@ -3313,7 +3320,7 @@ impl Lowerer {
             }
             (Type::Complex(..), Type::Complex(..)) => {
                 if let semantic::LiteralKind::Complex(value) = kind {
-                    return Some(semantic::Expr::new(
+                    return Ok(semantic::Expr::new(
                         span,
                         semantic::ExprKind::Lit(semantic::LiteralKind::Complex(*value)),
                         lhs_ty.as_const(),
@@ -3323,7 +3330,7 @@ impl Lowerer {
             }
             (Type::Complex(..), Type::Float(..)) => {
                 if let semantic::LiteralKind::Float(value) = kind {
-                    return Some(semantic::Expr::new(
+                    return Ok(semantic::Expr::new(
                         span,
                         semantic::ExprKind::Lit(Complex::real(*value).into()),
                         lhs_ty.as_const(),
@@ -3336,19 +3343,17 @@ impl Lowerer {
                 // convert the int to a double, then create the complex
                 if let semantic::LiteralKind::Int(value) = kind {
                     if let Some(value) = safe_i64_to_f64(*value) {
-                        return Some(semantic::Expr::new(
+                        return Ok(semantic::Expr::new(
                             span,
                             semantic::ExprKind::Lit(Complex::real(value).into()),
                             lhs_ty.as_const(),
                         ));
                     }
-                    let kind = SemanticErrorKind::InvalidCastValueRange(
+                    return Err(Some(SemanticErrorKind::InvalidCastValueRange(
                         "int".to_string(),
                         "float".to_string(),
                         span,
-                    );
-                    self.push_semantic_error(kind);
-                    return None;
+                    )));
                 }
                 None
             }
@@ -3356,7 +3361,7 @@ impl Lowerer {
                 // we've already checked that the value is 0 or 1
                 if let semantic::LiteralKind::Int(value) = kind {
                     if *value == 0 || *value == 1 {
-                        return Some(semantic::Expr::new(
+                        return Ok(semantic::Expr::new(
                             span,
                             semantic::ExprKind::Lit(semantic::LiteralKind::Int(*value)),
                             lhs_ty.as_const(),
@@ -3371,7 +3376,7 @@ impl Lowerer {
                 // we've already checked that this conversion can happen from a signed to unsigned int
                 match kind {
                     semantic::LiteralKind::Int(value) => {
-                        return Some(semantic::Expr::new(
+                        return Ok(semantic::Expr::new(
                             span,
                             semantic::ExprKind::Lit(semantic::LiteralKind::Int(*value)),
                             lhs_ty.as_const(),
@@ -3382,15 +3387,14 @@ impl Lowerer {
                             let mut cap = BigInt::from_i64(1).expect("1 is a valid i64");
                             BigInt::shl_assign(&mut cap, width);
                             if *value >= cap {
-                                self.push_semantic_error(SemanticErrorKind::InvalidCastValueRange(
+                                return Err(Some(SemanticErrorKind::InvalidCastValueRange(
                                     value.to_string(),
                                     format!("int[{width}]"),
                                     span,
-                                ));
-                                return None;
+                                )));
                             }
                         }
-                        return Some(semantic::Expr::new(
+                        return Ok(semantic::Expr::new(
                             span,
                             semantic::ExprKind::Lit(semantic::LiteralKind::BigInt(value.clone())),
                             lhs_ty.as_const(),
@@ -3406,7 +3410,7 @@ impl Lowerer {
             // but we didn't cast it, so this is a bug
             panic!("literal type cast failed lhs: {:?}, rhs: {:?}", ty, rhs.ty);
         } else {
-            result
+            result.ok_or(Self::invalid_literal_cast_error(ty, &rhs.ty, rhs.span))
         }
     }
 
@@ -3420,10 +3424,17 @@ impl Lowerer {
         expr: &semantic::Expr,
         span: Span,
     ) -> semantic::Expr {
-        let Some(cast_expr) = Self::try_cast_expr_to_type(ty, expr) else {
+        let Some(mut cast_expr) = Self::try_cast_expr_to_type(ty, expr) else {
             self.push_invalid_cast_error(ty, &expr.ty, span);
             return expr.clone();
         };
+        // the cast infra doesn't care about the span, so we need to set it
+        // here before returning the cast expression
+        // We only do this when we generate a cast expression
+        if let semantic::ExprKind::Cast(cast_ref) = cast_expr.kind.as_mut() {
+            cast_ref.span = span;
+        }
+
         cast_expr
     }
 
@@ -3980,16 +3991,10 @@ impl Lowerer {
             // const_eval will push any needed errors
             let lowered_expr = lowered_expr.with_const_value(self);
 
-            let lit = lowered_expr.get_const_value()?;
+            // fail the lowering if we couldn't evaluate the const value
+            let _ = lowered_expr.get_const_value()?;
 
-            Some(
-                semantic::Expr::new(
-                    lowered_expr.span,
-                    semantic::ExprKind::Lit(lit.clone()),
-                    Type::Int(None, true),
-                )
-                .with_const_value(self),
-            )
+            Some(lowered_expr)
         };
 
         let start = range.start.as_ref().map(&mut lower_and_const_eval);
@@ -4389,16 +4394,34 @@ impl Lowerer {
         self.push_semantic_error(kind);
     }
 
-    fn push_invalid_literal_cast_error(&mut self, target_ty: &Type, expr_ty: &Type, span: Span) {
+    pub(crate) fn invalid_literal_cast_error(
+        target_ty: &Type,
+        expr_ty: &Type,
+        span: Span,
+    ) -> Option<SemanticErrorKind> {
         if target_ty.is_err() || expr_ty.is_err() {
             // if either type is an error, we don't need to push an error
-            return;
+            return None;
         }
 
         let rhs_ty_name = expr_ty.to_string();
         let lhs_ty_name = target_ty.to_string();
-        let kind = SemanticErrorKind::CannotCastLiteral(rhs_ty_name, lhs_ty_name, span);
-        self.push_semantic_error(kind);
+        Some(SemanticErrorKind::CannotCastLiteral(
+            rhs_ty_name,
+            lhs_ty_name,
+            span,
+        ))
+    }
+
+    pub(crate) fn push_invalid_literal_cast_error(
+        &mut self,
+        target_ty: &Type,
+        expr_ty: &Type,
+        span: Span,
+    ) {
+        if let Some(kind) = Self::invalid_literal_cast_error(target_ty, expr_ty, span) {
+            self.push_semantic_error(kind);
+        }
     }
 
     /// Pushes a missing symbol error with the given name
@@ -4465,6 +4488,9 @@ impl Lowerer {
     }
 }
 
+/// Wraps the given expression in a cast expression with the specified type.
+/// We mark the cast as implicit as it is almost always the case. In the case of
+/// explicit casts, we update the field accordingly afterwards.
 fn wrap_expr_in_cast_expr(ty: Type, rhs: semantic::Expr) -> semantic::Expr {
     semantic::Expr::new(
         rhs.span,
@@ -4472,6 +4498,7 @@ fn wrap_expr_in_cast_expr(ty: Type, rhs: semantic::Expr) -> semantic::Expr {
             span: Span::default(),
             expr: rhs,
             ty: ty.clone(),
+            kind: semantic::CastKind::Implicit,
         }),
         ty,
     )

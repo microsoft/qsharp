@@ -123,23 +123,14 @@ fn custom_gates_can_be_called_bypassing_stdgates() -> miette::Result<(), Vec<Rep
             U(Std.OpenQASM.Angle.DoubleAsAngle(3.141592653589793 / 2., 53), new Std.OpenQASM.Angle.Angle {
                 Value = 0,
                 Size = 53
-            }, new Std.OpenQASM.Angle.Angle {
-                Value = 4503599627370496,
-                Size = 53
-            }, a);
+            }, Std.OpenQASM.Angle.DoubleAsAngle(3.141592653589793, 53), a);
             gphase(Std.OpenQASM.Angle.DoubleAsAngle(-3.141592653589793 / 4., 53));
         }
         operation x(a : Qubit) : Unit is Adj + Ctl {
-            U(new Std.OpenQASM.Angle.Angle {
-                Value = 4503599627370496,
-                Size = 53
-            }, new Std.OpenQASM.Angle.Angle {
+            U(Std.OpenQASM.Angle.DoubleAsAngle(3.141592653589793, 53), new Std.OpenQASM.Angle.Angle {
                 Value = 0,
                 Size = 53
-            }, new Std.OpenQASM.Angle.Angle {
-                Value = 4503599627370496,
-                Size = 53
-            }, a);
+            }, Std.OpenQASM.Angle.DoubleAsAngle(3.141592653589793, 53), a);
             gphase(Std.OpenQASM.Angle.DoubleAsAngle(-3.141592653589793 / 2., 53));
         }
         operation cx(a : Qubit, b : Qubit) : Unit is Adj + Ctl {
@@ -1028,22 +1019,13 @@ fn qasm2_custom_gates_can_be_called_bypassing_stdgates() -> miette::Result<(), V
             u2(new Std.OpenQASM.Angle.Angle {
                 Value = 0,
                 Size = 53
-            }, new Std.OpenQASM.Angle.Angle {
-                Value = 4503599627370496,
-                Size = 53
-            }, a);
+            }, Std.OpenQASM.Angle.DoubleAsAngle(3.141592653589793, 53), a);
         }
         operation x(a : Qubit) : Unit is Adj + Ctl {
-            u3(new Std.OpenQASM.Angle.Angle {
-                Value = 4503599627370496,
-                Size = 53
-            }, new Std.OpenQASM.Angle.Angle {
+            u3(Std.OpenQASM.Angle.DoubleAsAngle(3.141592653589793, 53), new Std.OpenQASM.Angle.Angle {
                 Value = 0,
                 Size = 53
-            }, new Std.OpenQASM.Angle.Angle {
-                Value = 4503599627370496,
-                Size = 53
-            }, a);
+            }, Std.OpenQASM.Angle.DoubleAsAngle(3.141592653589793, 53), a);
         }
         operation rz(phi : Std.OpenQASM.Angle.Angle, a : Qubit) : Unit is Adj + Ctl {
             u1(phi, a);

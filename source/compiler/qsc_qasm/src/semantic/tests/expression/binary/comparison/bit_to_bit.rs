@@ -47,18 +47,20 @@ fn logical_and() {
                         op: AndL
                         lhs: Expr [56-57]:
                             ty: bool
-                            kind: Cast [0-0]:
+                            kind: Cast [56-57]:
                                 ty: bool
                                 expr: Expr [56-57]:
                                     ty: bit
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [61-62]:
                             ty: bool
-                            kind: Cast [0-0]:
+                            kind: Cast [61-62]:
                                 ty: bool
                                 expr: Expr [61-62]:
                                     ty: bit
                                     kind: SymbolId(9)
+                                kind: Implicit
             [10] Symbol [52-53]:
                 name: a
                 type: bool
@@ -110,18 +112,20 @@ fn logical_or() {
                         op: OrL
                         lhs: Expr [56-57]:
                             ty: bool
-                            kind: Cast [0-0]:
+                            kind: Cast [56-57]:
                                 ty: bool
                                 expr: Expr [56-57]:
                                     ty: bit
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [61-62]:
                             ty: bool
-                            kind: Cast [0-0]:
+                            kind: Cast [61-62]:
                                 ty: bool
                                 expr: Expr [61-62]:
                                     ty: bit
                                     kind: SymbolId(9)
+                                kind: Implicit
             [10] Symbol [52-53]:
                 name: a
                 type: bool
@@ -177,22 +181,24 @@ fn unop_not_logical_and_unop_not() {
                                 op: NotL
                                 expr: Expr [57-58]:
                                     ty: bool
-                                    kind: Cast [0-0]:
+                                    kind: Cast [57-58]:
                                         ty: bool
                                         expr: Expr [57-58]:
                                             ty: bit
                                             kind: SymbolId(8)
+                                        kind: Implicit
                         rhs: Expr [63-64]:
                             ty: bool
                             kind: UnaryOpExpr [63-64]:
                                 op: NotL
                                 expr: Expr [63-64]:
                                     ty: bool
-                                    kind: Cast [0-0]:
+                                    kind: Cast [63-64]:
                                         ty: bool
                                         expr: Expr [63-64]:
                                             ty: bit
                                             kind: SymbolId(9)
+                                        kind: Implicit
             [10] Symbol [52-53]:
                 name: a
                 type: bool
@@ -248,22 +254,24 @@ fn unop_not_logical_or_unop_not() {
                                 op: NotL
                                 expr: Expr [57-58]:
                                     ty: bool
-                                    kind: Cast [0-0]:
+                                    kind: Cast [57-58]:
                                         ty: bool
                                         expr: Expr [57-58]:
                                             ty: bit
                                             kind: SymbolId(8)
+                                        kind: Implicit
                         rhs: Expr [63-64]:
                             ty: bool
                             kind: UnaryOpExpr [63-64]:
                                 op: NotL
                                 expr: Expr [63-64]:
                                     ty: bool
-                                    kind: Cast [0-0]:
+                                    kind: Cast [63-64]:
                                         ty: bool
                                         expr: Expr [63-64]:
                                             ty: bit
                                             kind: SymbolId(9)
+                                        kind: Implicit
             [10] Symbol [52-53]:
                 name: a
                 type: bool
@@ -319,18 +327,20 @@ fn unop_not_logical_and() {
                                 op: NotL
                                 expr: Expr [57-58]:
                                     ty: bool
-                                    kind: Cast [0-0]:
+                                    kind: Cast [57-58]:
                                         ty: bool
                                         expr: Expr [57-58]:
                                             ty: bit
                                             kind: SymbolId(8)
+                                        kind: Implicit
                         rhs: Expr [62-63]:
                             ty: bool
-                            kind: Cast [0-0]:
+                            kind: Cast [62-63]:
                                 ty: bool
                                 expr: Expr [62-63]:
                                     ty: bit
                                     kind: SymbolId(9)
+                                kind: Implicit
             [10] Symbol [52-53]:
                 name: a
                 type: bool
@@ -386,18 +396,20 @@ fn unop_not_logical_or() {
                                 op: NotL
                                 expr: Expr [57-58]:
                                     ty: bool
-                                    kind: Cast [0-0]:
+                                    kind: Cast [57-58]:
                                         ty: bool
                                         expr: Expr [57-58]:
                                             ty: bit
                                             kind: SymbolId(8)
+                                        kind: Implicit
                         rhs: Expr [62-63]:
                             ty: bool
-                            kind: Cast [0-0]:
+                            kind: Cast [62-63]:
                                 ty: bool
                                 expr: Expr [62-63]:
                                     ty: bit
                                     kind: SymbolId(9)
+                                kind: Implicit
             [10] Symbol [52-53]:
                 name: a
                 type: bool
@@ -449,22 +461,24 @@ fn logical_and_unop_not() {
                         op: AndL
                         lhs: Expr [56-57]:
                             ty: bool
-                            kind: Cast [0-0]:
+                            kind: Cast [56-57]:
                                 ty: bool
                                 expr: Expr [56-57]:
                                     ty: bit
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [62-63]:
                             ty: bool
                             kind: UnaryOpExpr [62-63]:
                                 op: NotL
                                 expr: Expr [62-63]:
                                     ty: bool
-                                    kind: Cast [0-0]:
+                                    kind: Cast [62-63]:
                                         ty: bool
                                         expr: Expr [62-63]:
                                             ty: bit
                                             kind: SymbolId(9)
+                                        kind: Implicit
             [10] Symbol [52-53]:
                 name: a
                 type: bool
@@ -516,22 +530,24 @@ fn logical_or_unop_not() {
                         op: OrL
                         lhs: Expr [56-57]:
                             ty: bool
-                            kind: Cast [0-0]:
+                            kind: Cast [56-57]:
                                 ty: bool
                                 expr: Expr [56-57]:
                                     ty: bit
                                     kind: SymbolId(8)
+                                kind: Implicit
                         rhs: Expr [62-63]:
                             ty: bool
                             kind: UnaryOpExpr [62-63]:
                                 op: NotL
                                 expr: Expr [62-63]:
                                     ty: bool
-                                    kind: Cast [0-0]:
+                                    kind: Cast [62-63]:
                                         ty: bool
                                         expr: Expr [62-63]:
                                             ty: bit
                                             kind: SymbolId(9)
+                                        kind: Implicit
             [10] Symbol [52-53]:
                 name: a
                 type: bool

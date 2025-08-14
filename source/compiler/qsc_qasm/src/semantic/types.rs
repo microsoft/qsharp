@@ -6,7 +6,7 @@ mod tests;
 
 use qsc_data_structures::span::Span;
 
-use super::ast::{BinOp, Expr, ExprKind, Index, LiteralKind, Range};
+use super::ast::{BinOp, Expr, Index, LiteralKind, Range};
 use crate::parser::ast as syntax;
 use crate::semantic::{Lowerer, SemanticErrorKind};
 use core::fmt;
@@ -624,8 +624,12 @@ pub(crate) fn compute_slice_components(
     // guaranteed to be of literals of type `int` by this point.
     let unwrap_lit_or_default = |expr: Option<&Expr>, default: i64| {
         if let Some(expr) = expr {
-            if let ExprKind::Lit(LiteralKind::Int(val)) = &*expr.kind {
-                *val
+            // slices must be const int exprs. If we failed to const eval the range,
+            // the lowering of the range would have failed. Since we are here,
+            // we know lowering succeeded and the const value is available.
+            // If this is ever false, we have a compiler bug.
+            if let Some(LiteralKind::Int(val)) = expr.get_const_value() {
+                val
             } else {
                 unreachable!("range components are guaranteed to be int literals")
             }

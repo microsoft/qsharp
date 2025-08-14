@@ -218,11 +218,12 @@ fn box_can_contain_gphase() {
                             args:
                                 Expr [40-42]:
                                     ty: angle
-                                    kind: Cast [0-0]:
+                                    kind: Cast [40-42]:
                                         ty: angle
                                         expr: Expr [40-42]:
                                             ty: const float
                                             kind: SymbolId(2)
+                                        kind: Implicit
                             qubits: <empty>
                             duration: <none>
                             classical_arity: 1

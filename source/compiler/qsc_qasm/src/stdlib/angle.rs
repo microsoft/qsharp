@@ -24,10 +24,12 @@ pub struct Angle {
 }
 
 impl Angle {
+    #[must_use]
     pub fn new(value: u64, size: u32) -> Self {
         Angle { value, size }
     }
 
+    #[must_use]
     pub fn from_u64_maybe_sized(value: u64, size: Option<u32>) -> Angle {
         Angle {
             value,
@@ -35,6 +37,7 @@ impl Angle {
         }
     }
 
+    #[must_use]
     pub fn from_f64_maybe_sized(val: f64, size: Option<u32>) -> Angle {
         Self::from_f64_sized(val, size.unwrap_or(f64::MANTISSA_DIGITS))
     }
@@ -42,6 +45,7 @@ impl Angle {
     /// Takes an `f64` representing angle and:
     ///  1. Wraps it around so that it is in the range [0, TAU).
     ///  2. Encodes it as a binary number between 0 and (1 << size) - 1.
+    #[must_use]
     pub fn from_f64_sized(mut val: f64, size: u32) -> Angle {
         // First, we need to convert the angle to the `[0, TAU)` range.
         val %= TAU;
@@ -88,12 +92,14 @@ impl Angle {
         format!("{:0width$b}", self.value, width = self.size as usize)
     }
 
+    #[must_use]
     pub fn cast_to_maybe_sized(self, new_size: Option<u32>) -> Angle {
         match new_size {
             Some(size) => self.cast(size, false),
             None => self,
         }
     }
+
     fn cast(&self, new_size: u32, truncate: bool) -> Self {
         match new_size.cmp(&self.size) {
             std::cmp::Ordering::Less => {

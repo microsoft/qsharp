@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+pub(super) mod openqasm;
+
 use std::sync::Arc;
 
 use crate::compilation::{Compilation, CompilationKind};
@@ -236,7 +238,6 @@ fn compile_project_with_markers_cursor_optional(
             },
             compile_errors: errors,
             project_errors: Vec::new(),
-            dependencies: dependencies.into_iter().collect(),
             test_cases,
         },
         cursor_location,
@@ -259,19 +260,15 @@ pub(crate) fn compile_notebook_with_fake_stdlib<'a, I>(cells: I) -> Compilation
 where
     I: Iterator<Item = (&'a str, &'a str)>,
 {
-    let std_source_map = SourceMap::new(
-        [(FAKE_STDLIB_NAME.into(), FAKE_STDLIB_CONTENTS.into())],
-        None,
-    );
+    let (std_id, package_store) = compile_fake_stdlib();
 
-    let store = qsc::PackageStore::new(qsc::compile::core());
     let mut compiler = Compiler::new(
-        std_source_map,
+        SourceMap::default(),
         PackageType::Lib,
         Profile::Unrestricted.into(),
         LanguageFeatures::default(),
-        store,
-        &[],
+        package_store,
+        &[(std_id, None)],
     )
     .expect("expected incremental compiler creation to succeed");
 
@@ -287,7 +284,6 @@ where
         compiler.update(increment);
     }
 
-    let source_package_id = compiler.source_package_id();
     let (package_store, package_id) = compiler.into_package_store();
 
     Compilation {
@@ -296,7 +292,6 @@ where
         compile_errors: errors,
         kind: CompilationKind::Notebook { project: None },
         project_errors: Vec::new(),
-        dependencies: [(source_package_id, None)].into_iter().collect(),
         test_cases: Default::default(),
     }
 }
