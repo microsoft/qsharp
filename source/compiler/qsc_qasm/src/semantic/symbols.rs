@@ -205,10 +205,12 @@ pub enum SymbolResult {
 }
 
 impl SymbolResult {
+    #[must_use]
     pub fn is_err(&self) -> bool {
         matches!(self, Self::NotFound(..) | Self::NotVisible(..))
     }
 
+    #[must_use]
     pub fn unwrap(self) -> (SymbolId, Rc<Symbol>) {
         match self {
             SymbolResult::Ok(symbol_id, symbol)
@@ -496,7 +498,6 @@ impl SymbolTable {
     /// Gets the symbol with the given name. This should only be used if you don't
     /// have the symbold ID. This function will search the scopes in reverse order
     /// and return the first symbol with the given name following the scoping rules.
-    #[must_use]
     pub fn get_symbol_by_name<S>(
         &self,
         name: S,

@@ -88,7 +88,7 @@ fn test_real_file_with_includes() {
     // verify some stdgates.inc symbols are included
     for gate in &["h", "x", "y", "z"] {
         assert!(
-            result.symbols.get_symbol_by_name(gate).is_some(),
+            result.symbols.get_symbol_by_name(gate).is_ok(),
             "Should find gate {gate} in symbols"
         );
     }
@@ -172,7 +172,7 @@ fn test_relative_path_file_includes() {
     // verify that the includes were loaded correctly
     for gate in &["gate_a", "gate_b"] {
         assert!(
-            result.symbols.get_symbol_by_name(gate).is_some(),
+            result.symbols.get_symbol_by_name(gate).is_ok(),
             "Should find gate {gate} in symbols"
         );
     }
