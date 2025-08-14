@@ -1105,7 +1105,7 @@ impl QasmCompiler {
 
         match (pragma, stmt.value.as_ref()) {
             (PragmaKind::QdkBoxOpen, Some(value)) => {
-                if let Some(symbol) = self.symbols.get_symbol_by_name(value) {
+                if let Ok(symbol) = self.symbols.get_symbol_by_name(value) {
                     if let crate::semantic::types::Type::Function(args, return_ty) = &symbol.1.ty {
                         if is_parameterless_and_returns_void(args, return_ty) {
                             self.pragma_config
@@ -1120,7 +1120,7 @@ impl QasmCompiler {
                 ));
             }
             (PragmaKind::QdkBoxClose, Some(value)) => {
-                if let Some(symbol) = self.symbols.get_symbol_by_name(value) {
+                if let Ok(symbol) = self.symbols.get_symbol_by_name(value) {
                     if let crate::semantic::types::Type::Function(args, return_ty) = &symbol.1.ty {
                         if is_parameterless_and_returns_void(args, return_ty) {
                             self.pragma_config

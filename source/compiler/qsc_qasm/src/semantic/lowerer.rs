@@ -35,6 +35,7 @@ use crate::parser::QasmSource;
 use crate::parser::ast::List;
 use crate::parser::ast::list_from_iter;
 use crate::semantic::ast::Expr;
+use crate::semantic::symbols::SymbolResult;
 use crate::semantic::types::base_types_equal;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
@@ -464,7 +465,7 @@ impl Lowerer {
         ];
         // only define the gate if it is not already defined
         // and it is in the list of Qiskit standard gates
-        if self.symbols.get_symbol_by_name(&name).is_none()
+        if self.symbols.get_symbol_by_name(&name).is_err()
             && QISKIT_STDGATES.contains(&name.as_ref())
         {
             self.define_qiskit_standard_gate(name, span);
@@ -537,25 +538,19 @@ impl Lowerer {
         }
     }
 
-    fn try_get_existing_or_insert_err_symbol<S>(
-        &mut self,
-        name: S,
-        span: Span,
-    ) -> (super::symbols::SymbolId, std::rc::Rc<Symbol>)
+    fn try_get_existing_or_insert_err_symbol<S>(&mut self, name: S, span: Span) -> SymbolResult
     where
         S: AsRef<str>,
     {
-        let (symbol_id, symbol) = match self
+        let result = self
             .symbols
-            .try_get_existing_or_insert_err_symbol(name.as_ref(), span)
-        {
-            Ok((symbol_id, symbol)) => (symbol_id, symbol),
-            Err((symbol_id, symbol)) => {
-                self.push_missing_symbol_error(name, span);
-                (symbol_id, symbol)
-            }
-        };
-        (symbol_id, symbol)
+            .try_get_existing_or_insert_err_symbol(name.as_ref(), span);
+
+        if result.is_err() {
+            self.push_missing_symbol_error(name, span);
+        }
+
+        result
     }
 
     /// This helper method is meant to be used when failing to lower a declaration statement
@@ -899,7 +894,7 @@ impl Lowerer {
     fn lower_ident_expr(&mut self, ident: &syntax::Ident) -> semantic::Expr {
         let name = ident.name.clone();
 
-        let (symbol_id, symbol) = self.try_get_existing_or_insert_err_symbol(&name, ident.span);
+        let result = self.try_get_existing_or_insert_err_symbol(&name, ident.span);
 
         // Design Note: The end goal of this const evaluation is to be able to compile qasm
         //              annotations as Q# attributes like `@SimulatableIntrinsic()`.
@@ -914,15 +909,16 @@ impl Lowerer {
         //              the current gate/function scope.
 
         // This is true if we are inside any gate or function scope.
-        let inside_gate_or_function_scope = self.symbols.is_scope_rooted_in_gate_or_subroutine();
+        let is_symbol_inside_gate_or_function_scope =
+            self.symbols.is_scope_rooted_in_gate_or_subroutine();
 
         // This is true if the symbol is outside the most inner gate or function scope.
         let is_symbol_declaration_outside_gate_or_function_scope = self
             .symbols
             .is_symbol_outside_most_inner_gate_or_function_scope(symbol_id);
 
-        let need_to_capture_symbol =
-            inside_gate_or_function_scope && is_symbol_declaration_outside_gate_or_function_scope;
+        let need_to_capture_symbol = is_symbol_inside_gate_or_function_scope
+            && is_symbol_declaration_outside_gate_or_function_scope;
         let can_capture_symbol = symbol.ty.is_const() || symbol.ty.is_callable();
 
         let kind = if need_to_capture_symbol && can_capture_symbol {
@@ -1870,7 +1866,9 @@ impl Lowerer {
         //    in the symbol table and get its symbol_id & symbol.
         let name = expr.name.name.clone();
         let name_span = expr.name.span;
-        let (symbol_id, symbol) = self.try_get_existing_or_insert_err_symbol(name, name_span);
+        let (symbol_id, symbol) = self
+            .try_get_existing_or_insert_err_symbol(name, name_span)
+            .unwrap();
 
         let (params_ty, return_ty) = match &symbol.ty {
             Type::Function(params_ty, return_ty) => {
@@ -1991,7 +1989,7 @@ impl Lowerer {
         // 3. Check that the gate_name actually refers to a gate in the symbol table
         //    and get its symbol_id & symbol. Make sure to use the name that could've
         //    been overriden by the Q# name and the span of the original name.
-        if self.symbols.get_symbol_by_name(&name).is_none() {
+        if self.symbols.get_symbol_by_name(&name).is_err() {
             if let Some(include) = self.get_include_file_defining_standard_gate(&name) {
                 // The symbol is not defined, but the name is a standard gate name
                 // and it is being used like a gate call. Tell the user that that they likely
@@ -2003,7 +2001,9 @@ impl Lowerer {
                 return vec![semantic::StmtKind::Err];
             }
         }
-        let (symbol_id, symbol) = self.try_get_existing_or_insert_err_symbol(name, stmt.name.span);
+        let (symbol_id, symbol) = self
+            .try_get_existing_or_insert_err_symbol(name, stmt.name.span)
+            .unwrap();
 
         let (classical_arity, quantum_arity) = match &symbol.ty {
             Type::Gate(classical_arity, quantum_arity) => (*classical_arity, *quantum_arity),

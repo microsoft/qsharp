@@ -192,6 +192,32 @@ pub enum SymbolError {
     AlreadyExists,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum SymbolLookupError {
+    NotFound,
+    NotVisible,
+}
+
+pub enum SymbolResult {
+    Ok(SymbolId, Rc<Symbol>),
+    NotFound(SymbolId, Rc<Symbol>),
+    NotVisible(SymbolId, Rc<Symbol>),
+}
+
+impl SymbolResult {
+    pub fn is_err(&self) -> bool {
+        matches!(self, Self::NotFound(..) | Self::NotVisible(..))
+    }
+
+    pub fn unwrap(self) -> (SymbolId, Rc<Symbol>) {
+        match self {
+            SymbolResult::Ok(symbol_id, symbol)
+            | SymbolResult::NotFound(symbol_id, symbol)
+            | SymbolResult::NotVisible(symbol_id, symbol) => (symbol_id, symbol),
+        }
+    }
+}
+
 /// Symbols have a an I/O kind that determines if they are input or output, or unspecified.
 /// The default I/O kind means no explicit kind was part of the decl.
 /// There is a specific statement for io decls which sets the I/O kind appropriately.
@@ -439,13 +465,19 @@ impl SymbolTable {
         &mut self,
         name: &str,
         span: Span,
-    ) -> Result<(SymbolId, Rc<Symbol>), (SymbolId, Rc<Symbol>)> {
-        // if we have the symbol, return it, otherswise create it with err values
-        if let Some((id, symbol)) = self.get_symbol_by_name(name) {
-            return Ok((id, symbol.clone()));
+    ) -> SymbolResult {
+        // if we have the symbol, return it, otherwise create it with err values
+        match self.get_symbol_by_name(name) {
+            Ok((id, symbol)) => SymbolResult::Ok(id, symbol),
+            Err(SymbolLookupError::NotFound) => {
+                let (id, symbol) = self.insert_err_symbol(name, span);
+                SymbolResult::NotFound(id, symbol)
+            }
+            Err(SymbolLookupError::NotVisible) => {
+                let (id, symbol) = self.insert_err_symbol(name, span);
+                SymbolResult::NotVisible(id, symbol)
+            }
         }
-        // if we don't have the symbol, create it with err values
-        Err(self.insert_err_symbol(name, span))
     }
 
     pub fn try_insert_or_get_existing(&mut self, symbol: Symbol) -> Result<SymbolId, SymbolId> {
@@ -465,7 +497,10 @@ impl SymbolTable {
     /// have the symbold ID. This function will search the scopes in reverse order
     /// and return the first symbol with the given name following the scoping rules.
     #[must_use]
-    pub fn get_symbol_by_name<S>(&self, name: S) -> Option<(SymbolId, Rc<Symbol>)>
+    pub fn get_symbol_by_name<S>(
+        &self,
+        name: S,
+    ) -> Result<(SymbolId, Rc<Symbol>), SymbolLookupError>
     where
         S: AsRef<str>,
     {
@@ -495,23 +530,33 @@ impl SymbolTable {
             .next()
         {
             if let Some((id, symbol)) = scope.get_symbol_by_name(name.as_ref()) {
-                return Some((id, symbol));
+                return Ok((id, symbol));
             }
         }
 
         if let Some(scope) = last_false {
             if let Some((id, symbol)) = scope.get_symbol_by_name(name.as_ref()) {
-                return Some((id, symbol));
+                if symbol.ty.is_const()
+                    || matches!(symbol.ty, Type::Gate(..) | Type::Void | Type::Function(..))
+                    || self.is_scope_rooted_in_global()
+                {
+                    return Ok((id, symbol));
+                }
+                return Err(SymbolLookupError::NotVisible);
             }
         }
         // we should be at the global, function, or gate scope now
         for scope in scopes {
             if let Some((id, symbol)) = scope.get_symbol_by_name(name.as_ref()) {
-                return Some((id, symbol));
+                if symbol.ty.is_const()
+                    || matches!(symbol.ty, Type::Gate(..) | Type::Void | Type::Function(..))
+                {
+                    return Ok((id, symbol));
+                }
             }
         }
 
-        None
+        Err(SymbolLookupError::NotFound)
     }
 
     #[must_use]
