@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::tests::{compile_fragments, fail_on_compilation_errors};
+use crate::tests::{compile_fragments, compile_qasm_to_qsharp, fail_on_compilation_errors};
+use expect_test::expect;
 use miette::Report;
 
 #[test]
@@ -67,5 +68,107 @@ fn quantum_old_style_decls() -> miette::Result<(), Vec<Report>> {
 
     let unit = compile_fragments(source)?;
     fail_on_compilation_errors(&unit);
+    Ok(())
+}
+
+#[test]
+fn can_alias_qubit_registers() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        qubit[2] one;
+        qubit[10] two;
+        // Aliased register of twelve qubits
+        let concatenated = one ++ two;
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        let one = QIR.Runtime.AllocateQubitArray(2);
+        let two = QIR.Runtime.AllocateQubitArray(10);
+        let concatenated = one + two;
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn first_qubit_from_aliased_qreg() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        qubit[2] one;
+        qubit[10] two;
+        let concatenated = one ++ two;
+        // First qubit in aliased qubit array
+        let first = concatenated[0];
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        let one = QIR.Runtime.AllocateQubitArray(2);
+        let two = QIR.Runtime.AllocateQubitArray(10);
+        let concatenated = one + two;
+        let first = concatenated[0];
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn last_qubit_from_aliased_qreg() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        qubit[2] one;
+        qubit[10] two;
+        let concatenated = one ++ two;
+        // Last qubit in aliased qubit array
+        let last = concatenated[-1];
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        let one = QIR.Runtime.AllocateQubitArray(2);
+        let two = QIR.Runtime.AllocateQubitArray(10);
+        let concatenated = one + two;
+        let last = concatenated[-1];
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+#[ignore = "index sets not yet implemented"]
+fn alias_idividual_qubits_from_qreg() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        qubit[10] two;
+        // Qubits zero, three and five
+        let qubit_selection = two[{0, 3, 5}];
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn alias_range_of_qubits_from_qreg() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        qubit[2] one;
+        qubit[10] two;
+        let concatenated = one ++ two;
+        let every_second = concatenated[0:2:11];
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        let one = QIR.Runtime.AllocateQubitArray(2);
+        let two = QIR.Runtime.AllocateQubitArray(10);
+        let concatenated = one + two;
+        let every_second = concatenated[0..2..11];
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }

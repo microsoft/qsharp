@@ -563,9 +563,61 @@ impl QasmCompiler {
         }
     }
 
+    /// Alias statements are compiled into the Q# ast as array concatenation for qubits
+    /// and an compilation error for bit arrays.
+    ///
+    /// All of the heavy lifting is done in the lowerer, which transforms the
+    /// semantic AST into a form that can be easily compiled into Q#.
+    ///
+    /// So here we compile each array expression and build up a binary op addition
+    /// if there is more than one expression to concatenate.
     fn compile_alias_decl_stmt(&mut self, stmt: &semast::AliasDeclStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("alias statements", stmt.span);
-        None
+        let symbol = self.symbols[stmt.symbol_id].clone();
+        if matches!(symbol.ty, Type::BitArray(..)) {
+            self.push_unimplemented_error_message("bit register alias statements", stmt.span);
+            return None;
+        }
+        let exprs = stmt
+            .exprs
+            .iter()
+            .map(|expr| self.compile_expr(expr))
+            .collect::<Vec<_>>();
+
+        assert!(
+            !stmt.exprs.is_empty(),
+            "alias decl must have at least one expression"
+        );
+
+        let mut expr_iter = exprs.into_iter();
+        let mut expr = expr_iter
+            .next()
+            .expect("alias decl must have at least one expression");
+
+        for rhs in expr_iter {
+            let span = Span {
+                lo: expr.span.lo,
+                hi: rhs.span.hi,
+            };
+            expr = build_binary_expr(false, qsast::BinOp::Add, expr, rhs, span);
+        }
+
+        let ty = self.map_semantic_type_to_qsharp_type(&symbol.ty, symbol.ty_span);
+        let is_const = matches!(
+            ty,
+            crate::types::Type::Qubit | crate::types::Type::QubitArray(..)
+        ) || symbol.ty.is_const();
+
+        let decl = build_classical_decl(
+            &symbol.name,
+            is_const,
+            symbol.ty_span,
+            stmt.span,
+            symbol.span,
+            &ty,
+            expr,
+        );
+
+        Some(decl)
     }
 
     fn compile_assign_stmt(&mut self, stmt: &semast::AssignStmt) -> Option<qsast::Stmt> {
