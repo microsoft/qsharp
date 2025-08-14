@@ -56,7 +56,7 @@ def check_qir(source: str, entry_expr, expect):
 
 
 def check_estimate(source: str):
-    e = Interpreter(TargetProfile.Base)
+    e = Interpreter(TargetProfile.Unrestricted)
     e.estimate("", source)
 
 
