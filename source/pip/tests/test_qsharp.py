@@ -648,6 +648,8 @@ def test_callable_with_array_exposed_into_env_fails_incorrect_types() -> None:
     assert qsharp.code.Identity([4, 5, 6]) == [4, 5, 6]
     assert qsharp.code.Identity([]) == []
     assert qsharp.code.Identity((4, 5, 6)) == [4, 5, 6]
+    # This assert tests Iterables, numpy arrays fall under this category.
+    assert qsharp.code.Identity((elt for elt in range(4, 7))) == [4, 5, 6]
     with pytest.raises(TypeError):
         qsharp.code.Identity(4)
     with pytest.raises(TypeError):
