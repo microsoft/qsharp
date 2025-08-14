@@ -50,6 +50,7 @@ fn op_string(kind: TokenKind) -> Option<String> {
         | TokenKind::DocComment
         | TokenKind::Eof
         | TokenKind::Float
+        | TokenKind::Imaginary
         | TokenKind::Ident
         | TokenKind::Int(_)
         | TokenKind::Keyword(_)
