@@ -204,22 +204,6 @@ pub enum SymbolResult {
     NotVisible(SymbolId, Rc<Symbol>),
 }
 
-impl SymbolResult {
-    #[must_use]
-    pub fn is_err(&self) -> bool {
-        matches!(self, Self::NotFound(..) | Self::NotVisible(..))
-    }
-
-    #[must_use]
-    pub fn unwrap(self) -> (SymbolId, Rc<Symbol>) {
-        match self {
-            SymbolResult::Ok(symbol_id, symbol)
-            | SymbolResult::NotFound(symbol_id, symbol)
-            | SymbolResult::NotVisible(symbol_id, symbol) => (symbol_id, symbol),
-        }
-    }
-}
-
 /// Symbols have a an I/O kind that determines if they are input or output, or unspecified.
 /// The default I/O kind means no explicit kind was part of the decl.
 /// There is a specific statement for io decls which sets the I/O kind appropriately.
