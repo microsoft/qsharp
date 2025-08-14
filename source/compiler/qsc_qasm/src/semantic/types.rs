@@ -361,11 +361,6 @@ impl Type {
     }
 
     #[must_use]
-    pub fn is_callable(&self) -> bool {
-        matches!(self, Self::Function(..) | Self::Gate(..))
-    }
-
-    #[must_use]
     pub fn is_readonly_array_ref(&self) -> bool {
         match self {
             Type::StaticArrayRef(array_ref) => !array_ref.is_mutable,
