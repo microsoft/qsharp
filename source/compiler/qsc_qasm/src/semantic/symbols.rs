@@ -187,9 +187,21 @@ impl Default for Symbol {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SymbolError {
+pub enum SymbolInsertError {
     /// The symbol already exists in the symbol table, at the current scope.
     AlreadyExists,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum SymbolLookupError {
+    NotFound,
+    NotVisible,
+}
+
+pub enum SymbolResult {
+    Ok(SymbolId, Rc<Symbol>),
+    NotFound(SymbolId, Rc<Symbol>),
+    NotVisible(SymbolId, Rc<Symbol>),
 }
 
 /// Symbols have a an I/O kind that determines if they are input or output, or unspecified.
@@ -246,9 +258,13 @@ impl Scope {
     ///
     /// This function will return an error if a symbol of the same name has already
     /// been declared in this scope.
-    pub fn insert_symbol(&mut self, id: SymbolId, symbol: Rc<Symbol>) -> Result<(), SymbolError> {
+    pub fn insert_symbol(
+        &mut self,
+        id: SymbolId,
+        symbol: Rc<Symbol>,
+    ) -> Result<(), SymbolInsertError> {
         if self.name_to_id.contains_key(&symbol.name) {
-            return Err(SymbolError::AlreadyExists);
+            return Err(SymbolInsertError::AlreadyExists);
         }
         self.name_to_id.insert(symbol.name.clone(), id);
         self.id_to_symbol.insert(id, symbol);
@@ -407,7 +423,7 @@ impl SymbolTable {
         self.scopes.pop();
     }
 
-    pub fn insert_symbol(&mut self, symbol: Symbol) -> Result<SymbolId, SymbolError> {
+    pub fn insert_symbol(&mut self, symbol: Symbol) -> Result<SymbolId, SymbolInsertError> {
         let symbol = Rc::new(symbol);
         let id = self.current_id;
         match self
@@ -421,7 +437,7 @@ impl SymbolTable {
                 self.symbols.insert(id, symbol);
                 Ok(id)
             }
-            Err(SymbolError::AlreadyExists) => Err(SymbolError::AlreadyExists),
+            Err(SymbolInsertError::AlreadyExists) => Err(SymbolInsertError::AlreadyExists),
         }
     }
 
@@ -439,13 +455,19 @@ impl SymbolTable {
         &mut self,
         name: &str,
         span: Span,
-    ) -> Result<(SymbolId, Rc<Symbol>), (SymbolId, Rc<Symbol>)> {
-        // if we have the symbol, return it, otherswise create it with err values
-        if let Some((id, symbol)) = self.get_symbol_by_name(name) {
-            return Ok((id, symbol.clone()));
+    ) -> SymbolResult {
+        // if we have the symbol, return it, otherwise create it with err values
+        match self.get_symbol_by_name(name) {
+            Ok((id, symbol)) => SymbolResult::Ok(id, symbol),
+            Err(SymbolLookupError::NotFound) => {
+                let (id, symbol) = self.insert_err_symbol(name, span);
+                SymbolResult::NotFound(id, symbol)
+            }
+            Err(SymbolLookupError::NotVisible) => {
+                let (id, symbol) = self.insert_err_symbol(name, span);
+                SymbolResult::NotVisible(id, symbol)
+            }
         }
-        // if we don't have the symbol, create it with err values
-        Err(self.insert_err_symbol(name, span))
     }
 
     pub fn try_insert_or_get_existing(&mut self, symbol: Symbol) -> Result<SymbolId, SymbolId> {
@@ -464,8 +486,10 @@ impl SymbolTable {
     /// Gets the symbol with the given name. This should only be used if you don't
     /// have the symbold ID. This function will search the scopes in reverse order
     /// and return the first symbol with the given name following the scoping rules.
-    #[must_use]
-    pub fn get_symbol_by_name<S>(&self, name: S) -> Option<(SymbolId, Rc<Symbol>)>
+    pub fn get_symbol_by_name<S>(
+        &self,
+        name: S,
+    ) -> Result<(SymbolId, Rc<Symbol>), SymbolLookupError>
     where
         S: AsRef<str>,
     {
@@ -495,7 +519,7 @@ impl SymbolTable {
             .next()
         {
             if let Some((id, symbol)) = scope.get_symbol_by_name(name.as_ref()) {
-                return Some((id, symbol));
+                return Ok((id, symbol));
             }
         }
 
@@ -505,8 +529,9 @@ impl SymbolTable {
                     || matches!(symbol.ty, Type::Gate(..) | Type::Void | Type::Function(..))
                     || self.is_scope_rooted_in_global()
                 {
-                    return Some((id, symbol));
+                    return Ok((id, symbol));
                 }
+                return Err(SymbolLookupError::NotVisible);
             }
         }
         // we should be at the global, function, or gate scope now
@@ -515,12 +540,12 @@ impl SymbolTable {
                 if symbol.ty.is_const()
                     || matches!(symbol.ty, Type::Gate(..) | Type::Void | Type::Function(..))
                 {
-                    return Some((id, symbol));
+                    return Ok((id, symbol));
                 }
             }
         }
 
-        None
+        Err(SymbolLookupError::NotFound)
     }
 
     #[must_use]

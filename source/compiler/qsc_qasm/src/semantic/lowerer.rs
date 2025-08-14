@@ -35,6 +35,7 @@ use crate::parser::QasmSource;
 use crate::parser::ast::List;
 use crate::parser::ast::list_from_iter;
 use crate::semantic::ast::Expr;
+use crate::semantic::symbols::SymbolResult;
 use crate::semantic::types::base_types_equal;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
@@ -464,7 +465,7 @@ impl Lowerer {
         ];
         // only define the gate if it is not already defined
         // and it is in the list of Qiskit standard gates
-        if self.symbols.get_symbol_by_name(&name).is_none()
+        if self.symbols.get_symbol_by_name(&name).is_err()
             && QISKIT_STDGATES.contains(&name.as_ref())
         {
             self.define_qiskit_standard_gate(name, span);
@@ -545,17 +546,27 @@ impl Lowerer {
     where
         S: AsRef<str>,
     {
-        let (symbol_id, symbol) = match self
+        let result = self
             .symbols
-            .try_get_existing_or_insert_err_symbol(name.as_ref(), span)
-        {
-            Ok((symbol_id, symbol)) => (symbol_id, symbol),
-            Err((symbol_id, symbol)) => {
+            .try_get_existing_or_insert_err_symbol(name.as_ref(), span);
+
+        match result {
+            SymbolResult::Ok(symbol_id, symbol) => (symbol_id, symbol),
+
+            // The symbol was not found.
+            SymbolResult::NotFound(symbol_id, symbol) => {
                 self.push_missing_symbol_error(name, span);
                 (symbol_id, symbol)
             }
-        };
-        (symbol_id, symbol)
+            // The symbol was found, but it isn't visible, because it isn't const.
+            SymbolResult::NotVisible(symbol_id, symbol) => {
+                self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
+                    "a captured variable".into(),
+                    span,
+                ));
+                (symbol_id, symbol)
+            }
+        }
     }
 
     /// This helper method is meant to be used when failing to lower a declaration statement
@@ -933,12 +944,6 @@ impl Lowerer {
                 // const_eval function.
                 semantic::ExprKind::Ident(symbol_id)
             }
-        } else if need_to_capture_symbol && !symbol.ty.is_err() && !symbol.ty.is_const() {
-            self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
-                "a captured variable".into(),
-                ident.span,
-            ));
-            semantic::ExprKind::Ident(symbol_id)
         } else {
             semantic::ExprKind::Ident(symbol_id)
         };
@@ -1990,7 +1995,7 @@ impl Lowerer {
         // 3. Check that the gate_name actually refers to a gate in the symbol table
         //    and get its symbol_id & symbol. Make sure to use the name that could've
         //    been overriden by the Q# name and the span of the original name.
-        if self.symbols.get_symbol_by_name(&name).is_none() {
+        if self.symbols.get_symbol_by_name(&name).is_err() {
             if let Some(include) = self.get_include_file_defining_standard_gate(&name) {
                 // The symbol is not defined, but the name is a standard gate name
                 // and it is being used like a gate call. Tell the user that that they likely

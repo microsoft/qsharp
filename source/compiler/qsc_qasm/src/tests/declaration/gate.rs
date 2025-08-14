@@ -120,9 +120,9 @@ fn capturing_non_const_external_variable_fails() {
     };
 
     expect![[r#"
-        [Qasm.Lowerer.UndefinedSymbol
+        [Qasm.Lowerer.ExprMustBeConst
 
-          x undefined symbol: a
+          x a captured variable must be a const expression
            ,-[Test.qasm:4:21]
          3 |         gate my_gate q {
          4 |             int x = a;
