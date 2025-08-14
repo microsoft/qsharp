@@ -80,7 +80,7 @@ def lower_python_obj(obj: object, visited: Optional[Set[object]] = None) -> Any:
 
     # Recursive case: Array
     # By using `Iterable` instead of `list`, we can handle other kind of iterables
-    # numpy arrays and generators.
+    # like numpy arrays and generators.
     if isinstance(obj, Iterable):
         return [lower_python_obj(elt, visited) for elt in obj]
 
