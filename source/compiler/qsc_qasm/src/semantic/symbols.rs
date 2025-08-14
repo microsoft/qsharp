@@ -187,7 +187,7 @@ impl Default for Symbol {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SymbolError {
+pub enum SymbolInsertError {
     /// The symbol already exists in the symbol table, at the current scope.
     AlreadyExists,
 }
@@ -274,9 +274,13 @@ impl Scope {
     ///
     /// This function will return an error if a symbol of the same name has already
     /// been declared in this scope.
-    pub fn insert_symbol(&mut self, id: SymbolId, symbol: Rc<Symbol>) -> Result<(), SymbolError> {
+    pub fn insert_symbol(
+        &mut self,
+        id: SymbolId,
+        symbol: Rc<Symbol>,
+    ) -> Result<(), SymbolInsertError> {
         if self.name_to_id.contains_key(&symbol.name) {
-            return Err(SymbolError::AlreadyExists);
+            return Err(SymbolInsertError::AlreadyExists);
         }
         self.name_to_id.insert(symbol.name.clone(), id);
         self.id_to_symbol.insert(id, symbol);
@@ -435,7 +439,7 @@ impl SymbolTable {
         self.scopes.pop();
     }
 
-    pub fn insert_symbol(&mut self, symbol: Symbol) -> Result<SymbolId, SymbolError> {
+    pub fn insert_symbol(&mut self, symbol: Symbol) -> Result<SymbolId, SymbolInsertError> {
         let symbol = Rc::new(symbol);
         let id = self.current_id;
         match self
@@ -449,7 +453,7 @@ impl SymbolTable {
                 self.symbols.insert(id, symbol);
                 Ok(id)
             }
-            Err(SymbolError::AlreadyExists) => Err(SymbolError::AlreadyExists),
+            Err(SymbolInsertError::AlreadyExists) => Err(SymbolInsertError::AlreadyExists),
         }
     }
 
