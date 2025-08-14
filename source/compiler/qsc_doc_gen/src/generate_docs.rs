@@ -752,11 +752,16 @@ pub fn generate_summaries(
                 item,
                 display,
             ) {
-                let params = parse_doc_for_all_params(&item.doc)
+                // Prefer docs (params/output) from the true definition, not the export stub.
+                let (_, true_item) =
+                    resolve_export(package_id, package, is_current_package, item, display)
+                        .unwrap_or((package, item));
+
+                let params = parse_doc_for_all_params(&true_item.doc)
                     .into_iter()
                     .map(|(name, description)| serde_json::json!({"name": name, "description": description}))
                     .collect::<Vec<_>>();
-                let output = parse_doc_for_output(&item.doc);
+                let output = parse_doc_for_output(&true_item.doc);
                 let obj = serde_json::json!({
                     "name": metadata.name.as_ref(),
                     "namespace": metadata.namespace.as_ref(),
@@ -791,6 +796,18 @@ fn generate_summary_metadata_for_item(
         item,
         display,
     )?;
+
+    // If this item is an export, file the summary under the export's namespace and name,
+    // but use the true item's kind/signature/summary.
+    if let ItemKind::Export(export_ident, _) = &item.kind {
+        let export_ns = get_namespace(package, item)?;
+        let mut meta = get_metadata(package_kind, export_ns.clone(), true_item, display)?;
+        // Override name/uid/title to reflect the exported symbol name and location.
+        meta.name = export_ident.name.clone();
+        meta.uid = format!("Qdk.{}.{}", export_ns, export_ident.name);
+        meta.title = format!("{} {}", export_ident.name, meta.kind);
+        return Some(meta);
+    }
 
     let ns = get_namespace(true_package, true_item)?;
     get_metadata(package_kind, ns.clone(), true_item, display)

@@ -240,3 +240,84 @@ fn generates_standard_item_summary() {
         }"#]]
     .assert_eq(&pretty);
 }
+
+#[test]
+fn generates_std_core_summary() {
+    let summaries = generate_summaries(None, None, None);
+    let summaries = summaries
+        .get("Std.Core")
+        .expect("Could not find Std.Core namespace");
+
+    // Pretty-print the JSON for readability in the test
+    let pretty =
+        serde_json::to_string_pretty(summaries).expect("summaries is expected to be valid JSON");
+
+    expect![[r#"
+        [
+          {
+            "kind": "function",
+            "name": "Length",
+            "namespace": "Std.Core",
+            "output": "The total number of elements in the input array `a`.",
+            "parameters": [
+              {
+                "description": "Input array.",
+                "name": "a"
+              }
+            ],
+            "signature": "function Length<'T>(a : 'T[]) : Int",
+            "summary": "Returns the number of elements in the input array `a`."
+          },
+          {
+            "kind": "function",
+            "name": "Repeated",
+            "namespace": "Std.Core",
+            "output": "A new array of length `length`, such that every element is `value`.",
+            "parameters": [
+              {
+                "description": "The value of each element of the new array.",
+                "name": "value"
+              },
+              {
+                "description": "Length of the new array.",
+                "name": "length"
+              }
+            ],
+            "signature": "function Repeated<'T>(value : 'T, length : Int) : 'T[]",
+            "summary": "Creates an array of given `length` with all elements equal to given `value`. `length` must be a non-negative integer."
+          }
+        ]"#]]
+    .assert_eq(&pretty);
+}
+
+#[test]
+fn generates_summary_for_reexport() {
+    let summaries = generate_summaries(None, None, None);
+    let summary = summaries
+        .get("Microsoft.Quantum.Core")
+        .expect("Could not find Microsoft.Quantum.Core namespace")
+        .iter()
+        .find(|item| item["name"] == "Length" && item["kind"] == "function")
+        .expect("Could not find summary for Length");
+
+    // Pretty-print the JSON for readability in the test
+    let pretty =
+        serde_json::to_string_pretty(summary).expect("summary is expected to be valid JSON");
+
+    expect![[r#"
+        {
+          "kind": "function",
+          "name": "Length",
+          "namespace": "Microsoft.Quantum.Core",
+          "output": "The total number of elements in the input array `a`.",
+          "parameters": [
+            {
+              "description": "Input array.",
+              "name": "a"
+            }
+          ],
+          "signature": "function Length<'T>(a : 'T[]) : Int",
+          "summary": "Returns the number of elements in the input array `a`."
+        }"#]]
+    .assert_eq(&pretty);
+}
