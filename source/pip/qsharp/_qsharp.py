@@ -84,7 +84,7 @@ def lower_python_obj(obj: object, visited: Optional[Set[object]] = None) -> Any:
     if isinstance(obj, Iterable):
         return [lower_python_obj(elt, visited) for elt in obj]
 
-    return fields
+    raise TypeError(f"unsupported type: {type(obj)}")
 
 
 def python_args_to_interpreter_args(args):
