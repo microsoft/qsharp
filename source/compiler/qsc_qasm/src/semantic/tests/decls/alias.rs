@@ -304,3 +304,65 @@ fn invalid_types_raise_error_for_each() {
             ]"#]],
     );
 }
+
+#[test]
+fn bit_alias_errors() {
+    check_last_stmt(
+        r#"
+        bit b;
+        // Aliased register of twelve qubits
+        let b_alias = b;
+        "#,
+        &expect![[r#"
+            Program:
+                version: <none>
+                pragmas: <empty>
+                statements:
+                    Stmt [9-15]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-15]:
+                            symbol_id: 8
+                            ty_span: [9-12]
+                            init_expr: Expr [9-15]:
+                                ty: const bit
+                                kind: Lit: Bit(0)
+                    Stmt [69-85]:
+                        annotations: <empty>
+                        kind: AliasDeclStmt [69-85]:
+                            symbol_id: 9
+                            exprs:
+                                Expr [83-84]:
+                                    ty: bit
+                                    kind: SymbolId(8)
+
+            [Qasm.Lowerer.InvalidTypeInAlias
+
+              x invalid type in alias expression: bit
+               ,-[test:4:23]
+             3 |         // Aliased register of twelve qubits
+             4 |         let b_alias = b;
+               :                       ^
+             5 |         
+               `----
+              help: aliases can only be applied to quantum bits and registers
+            ]"#]],
+    );
+}
+
+#[test]
+fn can_alias_qubit() {
+    check_last_stmt(
+        r#"
+        qubit q;
+        // Aliased register of twelve qubits
+        let q_alias = q;
+        "#,
+        &expect![[r#"
+            AliasDeclStmt [71-87]:
+                symbol_id: 9
+                exprs:
+                    Expr [85-86]:
+                        ty: qubit
+                        kind: SymbolId(8)"#]],
+    );
+}
