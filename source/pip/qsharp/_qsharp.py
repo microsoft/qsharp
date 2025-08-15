@@ -27,6 +27,7 @@ from typing import (
     Union,
     List,
     Set,
+    Iterable,
 )
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
@@ -54,15 +55,11 @@ def lower_python_obj(obj: object, visited: Optional[Set[object]] = None) -> Any:
     if isinstance(obj, tuple):
         return tuple(lower_python_obj(elt, visited) for elt in obj)
 
-    # Recursive case: Array
-    if isinstance(obj, list):
-        return [lower_python_obj(elt, visited) for elt in obj]
-
     # Recusive case: Dict
     if isinstance(obj, dict):
         return {name: lower_python_obj(val, visited) for name, val in obj.items()}
 
-    # Recursive case: Class
+    # Recursive case: Class with slots
     if hasattr(obj, "__slots__"):
         fields = {}
         for name in obj.__slots__:
@@ -72,14 +69,22 @@ def lower_python_obj(obj: object, visited: Optional[Set[object]] = None) -> Any:
             else:
                 val = getattr(obj, name)
                 fields[name] = lower_python_obj(val, visited)
-    elif hasattr(obj, "__dict__"):
+        return fields
+
+    # Recursive case: Class
+    if hasattr(obj, "__dict__"):
         fields = {
             name: lower_python_obj(val, visited) for name, val in obj.__dict__.items()
         }
-    else:
-        fields = {}
+        return fields
 
-    return fields
+    # Recursive case: Array
+    # By using `Iterable` instead of `list`, we can handle other kind of iterables
+    # like numpy arrays and generators.
+    if isinstance(obj, Iterable):
+        return [lower_python_obj(elt, visited) for elt in obj]
+
+    raise TypeError(f"unsupported type: {type(obj)}")
 
 
 def python_args_to_interpreter_args(args):
