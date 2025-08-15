@@ -40,7 +40,7 @@ fn box_can_have_a_duration() {
         &expect![[r#"
             BoxStmt [13-25]:
                 duration: Expr [18-21]:
-                    ty: duration
+                    ty: const duration
                     const_value: Duration(5.0 ns)
                     kind: Lit: Duration(5.0 ns)
                 body: <empty>
@@ -52,7 +52,7 @@ fn box_can_have_a_duration() {
 fn box_cannot_have_a_negative_duration() {
     check_stmt_kinds(
         r#"
-            duration d = 5ns * -1.0;
+            const duration d = 5ns * -1.0;
             box [d] {}
         "#,
         &expect![[r#"
@@ -60,31 +60,31 @@ fn box_cannot_have_a_negative_duration() {
                 version: <none>
                 pragmas: <empty>
                 statements:
-                    Stmt [13-37]:
+                    Stmt [13-43]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [13-37]:
+                        kind: ClassicalDeclarationStmt [13-43]:
                             symbol_id: 8
-                            ty_span: [13-21]
-                            init_expr: Expr [26-36]:
-                                ty: duration
+                            ty_span: [19-27]
+                            init_expr: Expr [32-42]:
+                                ty: const duration
                                 const_value: Duration(-5.0 ns)
                                 kind: BinaryOpExpr:
                                     op: Mul
-                                    lhs: Expr [26-29]:
-                                        ty: duration
+                                    lhs: Expr [32-35]:
+                                        ty: const duration
                                         kind: Lit: Duration(5.0 ns)
-                                    rhs: Expr [33-36]:
+                                    rhs: Expr [39-42]:
                                         ty: const float
-                                        kind: UnaryOpExpr [33-36]:
+                                        kind: UnaryOpExpr [39-42]:
                                             op: Neg
-                                            expr: Expr [33-36]:
+                                            expr: Expr [39-42]:
                                                 ty: const float
                                                 kind: Lit: Float(1.0)
-                    Stmt [50-60]:
+                    Stmt [56-66]:
                         annotations: <empty>
-                        kind: BoxStmt [50-60]:
-                            duration: Expr [55-56]:
-                                ty: duration
+                        kind: BoxStmt [56-66]:
+                            duration: Expr [61-62]:
+                                ty: const duration
                                 const_value: Duration(-5.0 ns)
                                 kind: SymbolId(8)
                             body: <empty>
@@ -93,7 +93,7 @@ fn box_cannot_have_a_negative_duration() {
 
               x designator must be a positive duration
                ,-[test:3:18]
-             2 |             duration d = 5ns * -1.0;
+             2 |             const duration d = 5ns * -1.0;
              3 |             box [d] {}
                :                  ^
              4 |         
@@ -108,7 +108,7 @@ fn box_can_contain_delay() {
         r#"
             include "stdgates.inc";
             qubit q;
-            duration a = 300ns;
+            const duration a = 300ns;
             stretch c = 2 * a;
             box [c] {
               delay[a] q;
@@ -117,43 +117,43 @@ fn box_can_contain_delay() {
         &expect![[r#"
             QubitDeclaration [49-57]:
                 symbol_id: 40
-            ClassicalDeclarationStmt [70-89]:
+            ClassicalDeclarationStmt [70-95]:
                 symbol_id: 41
-                ty_span: [70-78]
-                init_expr: Expr [83-88]:
-                    ty: duration
+                ty_span: [76-84]
+                init_expr: Expr [89-94]:
+                    ty: const duration
                     const_value: Duration(300.0 ns)
                     kind: Lit: Duration(300.0 ns)
-            ClassicalDeclarationStmt [102-120]:
+            ClassicalDeclarationStmt [108-126]:
                 symbol_id: 42
-                ty_span: [102-109]
-                init_expr: Expr [114-119]:
+                ty_span: [108-115]
+                init_expr: Expr [120-125]:
                     ty: stretch
                     const_value: Duration(600.0 ns)
                     kind: BinaryOpExpr:
                         op: Mul
-                        lhs: Expr [114-115]:
+                        lhs: Expr [120-121]:
                             ty: const int
                             kind: Lit: Int(2)
-                        rhs: Expr [118-119]:
-                            ty: duration
+                        rhs: Expr [124-125]:
+                            ty: const duration
                             kind: SymbolId(41)
-            BoxStmt [133-182]:
-                duration: Expr [138-139]:
+            BoxStmt [139-188]:
+                duration: Expr [144-145]:
                     ty: stretch
                     const_value: Duration(600.0 ns)
                     kind: SymbolId(42)
                 body:
-                    Stmt [157-168]:
+                    Stmt [163-174]:
                         annotations: <empty>
-                        kind: DelayStmt [157-168]:
-                            duration: Expr [163-164]:
-                                ty: duration
+                        kind: DelayStmt [163-174]:
+                            duration: Expr [169-170]:
+                                ty: const duration
                                 const_value: Duration(300.0 ns)
                                 kind: SymbolId(41)
                             qubits:
-                                GateOperand [166-167]:
-                                    kind: Expr [166-167]:
+                                GateOperand [172-173]:
+                                    kind: Expr [172-173]:
                                         ty: qubit
                                         kind: SymbolId(40)
         "#]],
@@ -342,7 +342,7 @@ fn with_duration_fails() {
         &expect![[r#"
             BoxStmt [0-13]:
                 duration: Expr [5-8]:
-                    ty: duration
+                    ty: const duration
                     const_value: Duration(4.0 us)
                     kind: Lit: Duration(4.0 us)
                 body: <empty>

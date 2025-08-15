@@ -82,7 +82,7 @@ fn stretch_to_duration_changes_ty() {
                     kind: Lit: Duration(0.0 s)
             ExprStmt [28-40]:
                 expr: Expr [28-39]:
-                    ty: duration
+                    ty: const duration
                     kind: SymbolId(8)
         "#]],
     );

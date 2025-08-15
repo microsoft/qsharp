@@ -81,7 +81,7 @@ impl From<ArrayBaseType> for Type {
     fn from(value: ArrayBaseType) -> Self {
         match value {
             ArrayBaseType::Bool => Self::Bool(false),
-            ArrayBaseType::Duration => Self::Duration(true),
+            ArrayBaseType::Duration => Self::Duration(false),
             ArrayBaseType::Angle(width) => Self::Angle(width, false),
             ArrayBaseType::Complex(width) => Self::Complex(width, false),
             ArrayBaseType::Float(width) => Self::Float(width, false),
@@ -97,7 +97,7 @@ impl TryFrom<Type> for ArrayBaseType {
     fn try_from(value: Type) -> Result<Self, ()> {
         match value {
             Type::Bool(false) => Ok(Self::Bool),
-            Type::Duration(true) => Ok(Self::Duration),
+            Type::Duration(false) => Ok(Self::Duration),
             Type::Angle(width, false) => Ok(Self::Angle(width)),
             Type::Complex(width, false) => Ok(Self::Complex(width)),
             Type::Float(width, false) => Ok(Self::Float(width)),
@@ -234,7 +234,7 @@ impl Display for Type {
         match self {
             Type::Bit(is_const) => write_ty_with_const(f, *is_const, "bit"),
             Type::Bool(is_const) => write_ty_with_const(f, *is_const, "bool"),
-            Type::Duration(_) => write_always_const_ty_omitting_mutabilty(f, "duration"),
+            Type::Duration(is_const) => write_ty_with_const(f, *is_const, "duration"),
             Type::Stretch(_) => write_always_const_ty_omitting_mutabilty(f, "stretch"),
             Type::Angle(width, is_const) => {
                 write_ty_with_designator_and_const(f, *is_const, *width, "angle")
@@ -354,12 +354,13 @@ impl Type {
             Type::BitArray(_, is_const)
             | Type::Bit(is_const)
             | Type::Bool(is_const)
+            | Type::Duration(is_const)
             | Type::Angle(_, is_const)
             | Type::Complex(_, is_const)
             | Type::Float(_, is_const)
             | Type::Int(_, is_const)
             | Type::UInt(_, is_const) => *is_const,
-            Type::Duration(_) | Type::Stretch(_) => true,
+            Type::Stretch(_) => true,
             _ => false,
         }
     }

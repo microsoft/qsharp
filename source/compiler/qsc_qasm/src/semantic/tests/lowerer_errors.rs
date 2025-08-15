@@ -712,94 +712,13 @@ fn check_lowerer_error_spans_are_correct() {
               help: a function call must use parentheses, with any parameters inside
                     those parentheses.
 
-            Qasm.Lowerer.ExternDeclarationCannotReturnDuration
+            Qasm.Lowerer.ExternDeclarationCannotReturnStretch
 
-              x extern declarations cannot return durations or stretches
-                 ,-[Test.qasm:266:53]
-             265 | // ExternDeclarationCannotReturnDuration
-             266 | extern extern_function_with_duration_return(int) -> duration;
-                 :                                                     ^^^^^^^^
-             267 | 
-                 `----
-
-            Qasm.Lowerer.ExternDeclarationCannotReturnDuration
-
-              x extern declarations cannot return durations or stretches
-                 ,-[Test.qasm:269:52]
-             268 | // ExternDeclarationCannotReturnDuration
-             269 | extern extern_function_with_stretch_return(int) -> stretch;
+              x extern declarations cannot return stretches
+                 ,-[Test.qasm:266:52]
+             265 | // ExternDeclarationCannotReturnStretch
+             266 | extern extern_function_with_stretch_return(int) -> stretch;
                  :                                                    ^^^^^^^
-             270 | 
-                 `----
-
-            Qasm.Lowerer.DefParameterCannotBeDuration
-
-              x def parameters cannot be duration or stretch values
-                 ,-[Test.qasm:272:43]
-             271 | // DefParameterCannotBeDuration
-             272 | def function_with_duration_param(qubit q, duration d) {
-                 :                                           ^^^^^^^^
-             273 |     delay[d] q;
-                 `----
-
-            Qasm.Lowerer.DurationMustBeKnownAtCompileTime
-
-              x duration must be known at compile time
-                 ,-[Test.qasm:273:11]
-             272 | def function_with_duration_param(qubit q, duration d) {
-             273 |     delay[d] q;
-                 :           ^
-             274 | }
-                 `----
-
-            Qasm.Lowerer.DefParameterCannotBeDuration
-
-              x def parameters cannot be duration or stretch values
-                 ,-[Test.qasm:277:49]
-             276 | // DefParameterCannotBeDuration
-             277 | def function_with_duration_array_param(qubit q, readonly array[duration, 2, 3] d) {
-                 :                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-             278 |     delay[d[0][0]] q;
-                 `----
-
-            Qasm.Lowerer.ExprMustBeConst
-
-              x expression must be const
-                 ,-[Test.qasm:278:11]
-             277 | def function_with_duration_array_param(qubit q, readonly array[duration, 2, 3] d) {
-             278 |     delay[d[0][0]] q;
-                 :           ^^^
-             279 | }
-                 `----
-
-            Qasm.Lowerer.DurationMustBeKnownAtCompileTime
-
-              x duration must be known at compile time
-                 ,-[Test.qasm:278:11]
-             277 | def function_with_duration_array_param(qubit q, readonly array[duration, 2, 3] d) {
-             278 |     delay[d[0][0]] q;
-                 :           ^^^^^^
-             279 | }
-                 `----
-
-            Qasm.Lowerer.DefParameterCannotBeDuration
-
-              x def parameters cannot be duration or stretch values
-                 ,-[Test.qasm:282:42]
-             281 | // DefParameterCannotBeDuration
-             282 | def function_with_stretch_param(qubit q, stretch d) {
-                 :                                          ^^^^^^^
-             283 |     delay[d] q;
-                 `----
-
-            Qasm.Lowerer.DurationMustBeKnownAtCompileTime
-
-              x duration must be known at compile time
-                 ,-[Test.qasm:283:11]
-             282 | def function_with_stretch_param(qubit q, stretch d) {
-             283 |     delay[d] q;
-                 :           ^
-             284 | }
                  `----
         "#]],
     );

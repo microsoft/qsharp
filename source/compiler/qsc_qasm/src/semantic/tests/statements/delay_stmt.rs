@@ -14,7 +14,7 @@ fn on_a_single_qubit() {
                 symbol_id: 8
             DelayStmt [17-31]:
                 duration: Expr [24-27]:
-                    ty: duration
+                    ty: const duration
                     const_value: Duration(5.0 ns)
                     kind: Lit: Duration(5.0 ns)
                 qubits:
@@ -30,7 +30,7 @@ fn on_a_single_qubit() {
 fn cannot_have_a_negative_duration() {
     check_stmt_kinds(
         "qubit q;
-        duration d = 1s - 4s;
+        const duration d = 1s - 4s;
         delay [d] q;",
         &expect![[r#"
             Program:
@@ -41,32 +41,32 @@ fn cannot_have_a_negative_duration() {
                         annotations: <empty>
                         kind: QubitDeclaration [0-8]:
                             symbol_id: 8
-                    Stmt [17-38]:
+                    Stmt [17-44]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [17-38]:
+                        kind: ClassicalDeclarationStmt [17-44]:
                             symbol_id: 9
-                            ty_span: [17-25]
-                            init_expr: Expr [30-37]:
-                                ty: duration
+                            ty_span: [23-31]
+                            init_expr: Expr [36-43]:
+                                ty: const duration
                                 const_value: Duration(-3.0 s)
                                 kind: BinaryOpExpr:
                                     op: Sub
-                                    lhs: Expr [30-32]:
-                                        ty: duration
+                                    lhs: Expr [36-38]:
+                                        ty: const duration
                                         kind: Lit: Duration(1.0 s)
-                                    rhs: Expr [35-37]:
-                                        ty: duration
+                                    rhs: Expr [41-43]:
+                                        ty: const duration
                                         kind: Lit: Duration(4.0 s)
-                    Stmt [47-59]:
+                    Stmt [53-65]:
                         annotations: <empty>
-                        kind: DelayStmt [47-59]:
-                            duration: Expr [54-55]:
-                                ty: duration
+                        kind: DelayStmt [53-65]:
+                            duration: Expr [60-61]:
+                                ty: const duration
                                 const_value: Duration(-3.0 s)
                                 kind: SymbolId(9)
                             qubits:
-                                GateOperand [57-58]:
-                                    kind: Expr [57-58]:
+                                GateOperand [63-64]:
+                                    kind: Expr [63-64]:
                                         ty: qubit
                                         kind: SymbolId(8)
 
@@ -74,7 +74,7 @@ fn cannot_have_a_negative_duration() {
 
               x designator must be a positive duration
                ,-[test:3:16]
-             2 |         duration d = 1s - 4s;
+             2 |         const duration d = 1s - 4s;
              3 |         delay [d] q;
                :                ^
                `----
@@ -86,41 +86,41 @@ fn cannot_have_a_negative_duration() {
 fn on_a_single_qubit_with_variables() {
     check_stmt_kinds(
         "qubit q;
-        duration stride = 5ns;
+        const duration stride = 5ns;
         const int p = 2;
         delay [p * stride] q;",
         &expect![[r#"
             QubitDeclaration [0-8]:
                 symbol_id: 8
-            ClassicalDeclarationStmt [17-39]:
+            ClassicalDeclarationStmt [17-45]:
                 symbol_id: 9
-                ty_span: [17-25]
-                init_expr: Expr [35-38]:
-                    ty: duration
+                ty_span: [23-31]
+                init_expr: Expr [41-44]:
+                    ty: const duration
                     const_value: Duration(5.0 ns)
                     kind: Lit: Duration(5.0 ns)
-            ClassicalDeclarationStmt [48-64]:
+            ClassicalDeclarationStmt [54-70]:
                 symbol_id: 10
-                ty_span: [54-57]
-                init_expr: Expr [62-63]:
+                ty_span: [60-63]
+                init_expr: Expr [68-69]:
                     ty: const int
                     const_value: Int(2)
                     kind: Lit: Int(2)
-            DelayStmt [73-94]:
-                duration: Expr [80-90]:
-                    ty: duration
+            DelayStmt [79-100]:
+                duration: Expr [86-96]:
+                    ty: const duration
                     const_value: Duration(10.0 ns)
                     kind: BinaryOpExpr:
                         op: Mul
-                        lhs: Expr [80-81]:
+                        lhs: Expr [86-87]:
                             ty: const int
                             kind: SymbolId(10)
-                        rhs: Expr [84-90]:
-                            ty: duration
+                        rhs: Expr [90-96]:
+                            ty: const duration
                             kind: SymbolId(9)
                 qubits:
-                    GateOperand [92-93]:
-                        kind: Expr [92-93]:
+                    GateOperand [98-99]:
+                        kind: Expr [98-99]:
                             ty: qubit
                             kind: SymbolId(8)
         "#]],

@@ -17,31 +17,31 @@ fn addition_with_units_normalizes_correctly() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [22-46]:
-                    ty: duration
+                    ty: const duration
                     const_value: Duration(1003006009.0 ns)
                     kind: BinaryOpExpr:
                         op: Add
                         lhs: Expr [22-39]:
-                            ty: duration
+                            ty: const duration
                             const_value: Duration(1003006.0 us)
                             kind: BinaryOpExpr:
                                 op: Add
                                 lhs: Expr [22-32]:
-                                    ty: duration
+                                    ty: const duration
                                     const_value: Duration(1003.0 ms)
                                     kind: BinaryOpExpr:
                                         op: Add
                                         lhs: Expr [22-25]:
-                                            ty: duration
+                                            ty: const duration
                                             kind: Lit: Duration(1.0 s)
                                         rhs: Expr [28-32]:
-                                            ty: duration
+                                            ty: const duration
                                             kind: Lit: Duration(3.0 ms)
                                 rhs: Expr [35-39]:
-                                    ty: duration
+                                    ty: const duration
                                     kind: Lit: Duration(6.0 us)
                         rhs: Expr [42-46]:
-                            ty: duration
+                            ty: const duration
                             kind: Lit: Duration(9.0 ns)
         "#]],
     );
@@ -60,22 +60,22 @@ fn addition_of_two_durations_returns_duration() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [22-31]:
-                    ty: duration
+                    ty: const duration
                     const_value: Duration(5.0 s)
                     kind: BinaryOpExpr:
                         op: Add
                         lhs: Expr [22-25]:
-                            ty: duration
+                            ty: const duration
                             kind: Lit: Duration(2.0 s)
                         rhs: Expr [28-31]:
-                            ty: duration
+                            ty: const duration
                             kind: Lit: Duration(3.0 s)
         "#]],
     );
 }
 
 #[test]
-fn addition_with_duration_and_non_duration_value_errors() {
+fn addition_with_duration() {
     let input = "
         duration a;
         int b;
@@ -96,7 +96,6 @@ fn addition_with_duration_and_non_duration_value_errors() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
                     Stmt [29-35]:
                         annotations: <empty>
@@ -129,10 +128,10 @@ fn addition_with_duration_and_non_duration_value_errors() {
 }
 
 #[test]
-fn addition_assign_op_errors_as_duration_is_const() {
+fn addition_assign_op_errors_when_duration_is_const() {
     let input = "
-        duration a;
-        duration b;
+        const duration a = 2 ns;
+        const duration b = 3 ns;
         a += b;
     ";
 
@@ -143,25 +142,25 @@ fn addition_assign_op_errors_as_duration_is_const() {
                 version: <none>
                 pragmas: <empty>
                 statements:
-                    Stmt [9-20]:
+                    Stmt [9-33]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-20]:
+                        kind: ClassicalDeclarationStmt [9-33]:
                             symbol_id: 8
-                            ty_span: [9-17]
-                            init_expr: Expr [9-20]:
-                                ty: duration
-                                const_value: Duration(0.0 s)
-                                kind: Lit: Duration(0.0 s)
-                    Stmt [29-40]:
+                            ty_span: [15-23]
+                            init_expr: Expr [28-32]:
+                                ty: const duration
+                                const_value: Duration(2.0 ns)
+                                kind: Lit: Duration(2.0 ns)
+                    Stmt [42-66]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [29-40]:
+                        kind: ClassicalDeclarationStmt [42-66]:
                             symbol_id: 9
-                            ty_span: [29-37]
-                            init_expr: Expr [29-40]:
-                                ty: duration
-                                const_value: Duration(0.0 s)
-                                kind: Lit: Duration(0.0 s)
-                    Stmt [49-56]:
+                            ty_span: [48-56]
+                            init_expr: Expr [61-65]:
+                                ty: const duration
+                                const_value: Duration(3.0 ns)
+                                kind: Lit: Duration(3.0 ns)
+                    Stmt [75-82]:
                         annotations: <empty>
                         kind: Err
 
@@ -169,13 +168,54 @@ fn addition_assign_op_errors_as_duration_is_const() {
 
               x cannot update const variable a
                ,-[test:4:9]
-             3 |         duration b;
+             3 |         const duration b = 3 ns;
              4 |         a += b;
                :         ^
              5 |     
                `----
               help: mutable variables must be declared without the keyword `const`
             ]"#]],
+    );
+}
+
+#[test]
+fn addition_assign_op() {
+    let input = "
+        duration a;
+        duration b;
+        a += b;
+    ";
+
+    check_stmt_kinds(
+        input,
+        &expect![[r#"
+            ClassicalDeclarationStmt [9-20]:
+                symbol_id: 8
+                ty_span: [9-17]
+                init_expr: Expr [9-20]:
+                    ty: duration
+                    kind: Lit: Duration(0.0 s)
+            ClassicalDeclarationStmt [29-40]:
+                symbol_id: 9
+                ty_span: [29-37]
+                init_expr: Expr [29-40]:
+                    ty: duration
+                    kind: Lit: Duration(0.0 s)
+            AssignStmt [49-56]:
+                lhs: Expr [49-50]:
+                    ty: duration
+                    kind: SymbolId(8)
+                rhs: Expr [49-56]:
+                    ty: duration
+                    kind: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [49-50]:
+                            ty: duration
+                            kind: SymbolId(8)
+                        rhs: Expr [54-55]:
+                            ty: duration
+                            kind: SymbolId(9)
+        "#]],
     );
 }
 
@@ -192,15 +232,15 @@ fn subtraction() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [22-31]:
-                    ty: duration
+                    ty: const duration
                     const_value: Duration(1.0 s)
                     kind: BinaryOpExpr:
                         op: Sub
                         lhs: Expr [22-25]:
-                            ty: duration
+                            ty: const duration
                             kind: Lit: Duration(3.0 s)
                         rhs: Expr [28-31]:
-                            ty: duration
+                            ty: const duration
                             kind: Lit: Duration(2.0 s)
         "#]],
     );
@@ -219,25 +259,66 @@ fn subtraction_can_result_in_negative_duration() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [22-31]:
-                    ty: duration
+                    ty: const duration
                     const_value: Duration(-1.0 s)
                     kind: BinaryOpExpr:
                         op: Sub
                         lhs: Expr [22-25]:
-                            ty: duration
+                            ty: const duration
                             kind: Lit: Duration(2.0 s)
                         rhs: Expr [28-31]:
-                            ty: duration
+                            ty: const duration
                             kind: Lit: Duration(3.0 s)
         "#]],
     );
 }
 
 #[test]
-fn subtraction_assign_op_errors_as_duration_is_const() {
+fn subtraction_assign_op() {
     let input = "
         duration a;
         duration b;
+        a -= b;
+    ";
+
+    check_stmt_kinds(
+        input,
+        &expect![[r#"
+            ClassicalDeclarationStmt [9-20]:
+                symbol_id: 8
+                ty_span: [9-17]
+                init_expr: Expr [9-20]:
+                    ty: duration
+                    kind: Lit: Duration(0.0 s)
+            ClassicalDeclarationStmt [29-40]:
+                symbol_id: 9
+                ty_span: [29-37]
+                init_expr: Expr [29-40]:
+                    ty: duration
+                    kind: Lit: Duration(0.0 s)
+            AssignStmt [49-56]:
+                lhs: Expr [49-50]:
+                    ty: duration
+                    kind: SymbolId(8)
+                rhs: Expr [49-56]:
+                    ty: duration
+                    kind: BinaryOpExpr:
+                        op: Sub
+                        lhs: Expr [49-50]:
+                            ty: duration
+                            kind: SymbolId(8)
+                        rhs: Expr [54-55]:
+                            ty: duration
+                            kind: SymbolId(9)
+        "#]],
+    );
+}
+
+#[test]
+fn subtraction_assign_op_errors_when_duration_is_const() {
+    let input = "
+        const duration a = 2 ns;
+        const duration b = 3 ns;
         a -= b;
     ";
 
@@ -248,25 +329,25 @@ fn subtraction_assign_op_errors_as_duration_is_const() {
                 version: <none>
                 pragmas: <empty>
                 statements:
-                    Stmt [9-20]:
+                    Stmt [9-33]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-20]:
+                        kind: ClassicalDeclarationStmt [9-33]:
                             symbol_id: 8
-                            ty_span: [9-17]
-                            init_expr: Expr [9-20]:
-                                ty: duration
-                                const_value: Duration(0.0 s)
-                                kind: Lit: Duration(0.0 s)
-                    Stmt [29-40]:
+                            ty_span: [15-23]
+                            init_expr: Expr [28-32]:
+                                ty: const duration
+                                const_value: Duration(2.0 ns)
+                                kind: Lit: Duration(2.0 ns)
+                    Stmt [42-66]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [29-40]:
+                        kind: ClassicalDeclarationStmt [42-66]:
                             symbol_id: 9
-                            ty_span: [29-37]
-                            init_expr: Expr [29-40]:
-                                ty: duration
-                                const_value: Duration(0.0 s)
-                                kind: Lit: Duration(0.0 s)
-                    Stmt [49-56]:
+                            ty_span: [48-56]
+                            init_expr: Expr [61-65]:
+                                ty: const duration
+                                const_value: Duration(3.0 ns)
+                                kind: Lit: Duration(3.0 ns)
+                    Stmt [75-82]:
                         annotations: <empty>
                         kind: Err
 
@@ -274,7 +355,7 @@ fn subtraction_assign_op_errors_as_duration_is_const() {
 
               x cannot update const variable a
                ,-[test:4:9]
-             3 |         duration b;
+             3 |         const duration b = 3 ns;
              4 |         a -= b;
                :         ^
              5 |     
@@ -284,7 +365,6 @@ fn subtraction_assign_op_errors_as_duration_is_const() {
     );
 }
 
-// todo, shouldn't get a duplicate
 #[test]
 fn multiplication_by_duration_is_not_supported() {
     let input = "
@@ -306,8 +386,7 @@ fn multiplication_by_duration_is_not_supported() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [22-25]:
-                                ty: duration
-                                const_value: Duration(1.0 ms)
+                                ty: const duration
                                 kind: Lit: Duration(1.0 ms)
                     Stmt [35-52]:
                         annotations: <empty>
@@ -315,8 +394,7 @@ fn multiplication_by_duration_is_not_supported() {
                             symbol_id: 9
                             ty_span: [35-43]
                             init_expr: Expr [48-51]:
-                                ty: duration
-                                const_value: Duration(2.0 ms)
+                                ty: const duration
                                 kind: Lit: Duration(2.0 ms)
                     Stmt [61-80]:
                         annotations: <empty>
@@ -355,8 +433,7 @@ fn multiplication_duration_by_int() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [22-25]:
-                    ty: duration
-                    const_value: Duration(2.0 ms)
+                    ty: const duration
                     kind: Lit: Duration(2.0 ms)
             ClassicalDeclarationStmt [35-51]:
                 symbol_id: 9
@@ -370,7 +447,6 @@ fn multiplication_duration_by_int() {
                 ty_span: [60-68]
                 init_expr: Expr [73-78]:
                     ty: duration
-                    const_value: Duration(6.0 ms)
                     kind: BinaryOpExpr:
                         op: Mul
                         lhs: Expr [73-74]:
@@ -398,8 +474,7 @@ fn multiplication_int_by_duration() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [22-25]:
-                    ty: duration
-                    const_value: Duration(2.0 ms)
+                    ty: const duration
                     kind: Lit: Duration(2.0 ms)
             ClassicalDeclarationStmt [35-51]:
                 symbol_id: 9
@@ -413,7 +488,6 @@ fn multiplication_int_by_duration() {
                 ty_span: [60-68]
                 init_expr: Expr [73-78]:
                     ty: duration
-                    const_value: Duration(6.0 ms)
                     kind: BinaryOpExpr:
                         op: Mul
                         lhs: Expr [73-74]:
@@ -441,8 +515,7 @@ fn multiplication_duration_by_float() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [22-25]:
-                    ty: duration
-                    const_value: Duration(2.0 ms)
+                    ty: const duration
                     kind: Lit: Duration(2.0 ms)
             ClassicalDeclarationStmt [35-55]:
                 symbol_id: 9
@@ -456,7 +529,6 @@ fn multiplication_duration_by_float() {
                 ty_span: [64-72]
                 init_expr: Expr [77-82]:
                     ty: duration
-                    const_value: Duration(6.0 ms)
                     kind: BinaryOpExpr:
                         op: Mul
                         lhs: Expr [77-78]:
@@ -484,8 +556,7 @@ fn multiplication_float_by_duration() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [22-25]:
-                    ty: duration
-                    const_value: Duration(2.0 ms)
+                    ty: const duration
                     kind: Lit: Duration(2.0 ms)
             ClassicalDeclarationStmt [35-55]:
                 symbol_id: 9
@@ -499,7 +570,6 @@ fn multiplication_float_by_duration() {
                 ty_span: [64-72]
                 init_expr: Expr [77-82]:
                     ty: duration
-                    const_value: Duration(6.0 ms)
                     kind: BinaryOpExpr:
                         op: Mul
                         lhs: Expr [77-78]:
@@ -513,7 +583,7 @@ fn multiplication_float_by_duration() {
 }
 
 #[test]
-fn multiplication_assign_op_errors_as_duration_is_const() {
+fn multiplication_assign_op() {
     let input = "
         duration a = 2 ns;
         duration b = 3 ns;
@@ -533,8 +603,7 @@ fn multiplication_assign_op_errors_as_duration_is_const() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [22-26]:
-                                ty: duration
-                                const_value: Duration(2.0 ns)
+                                ty: const duration
                                 kind: Lit: Duration(2.0 ns)
                     Stmt [36-54]:
                         annotations: <empty>
@@ -542,10 +611,65 @@ fn multiplication_assign_op_errors_as_duration_is_const() {
                             symbol_id: 9
                             ty_span: [36-44]
                             init_expr: Expr [49-53]:
-                                ty: duration
-                                const_value: Duration(3.0 ns)
+                                ty: const duration
                                 kind: Lit: Duration(3.0 ns)
                     Stmt [63-70]:
+                        annotations: <empty>
+                        kind: AssignStmt [63-70]:
+                            lhs: Expr [63-64]:
+                                ty: duration
+                                kind: SymbolId(8)
+                            rhs: Expr [63-70]:
+                                ty: unknown
+                                kind: Err
+
+            [Qasm.Lowerer.CannotApplyOperatorToTypes
+
+              x cannot apply operator Mul to types duration and duration
+               ,-[test:4:9]
+             3 |         duration b = 3 ns;
+             4 |         a *= b;
+               :         ^^^^^^^
+             5 |     
+               `----
+            ]"#]],
+    );
+}
+
+#[test]
+fn multiplication_assign_op_errors_when_duration_is_const() {
+    let input = "
+        const duration a = 2 ns;
+        const duration b = 3 ns;
+        a *= b;
+    ";
+
+    check_stmt_kinds(
+        input,
+        &expect![[r#"
+            Program:
+                version: <none>
+                pragmas: <empty>
+                statements:
+                    Stmt [9-33]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-33]:
+                            symbol_id: 8
+                            ty_span: [15-23]
+                            init_expr: Expr [28-32]:
+                                ty: const duration
+                                const_value: Duration(2.0 ns)
+                                kind: Lit: Duration(2.0 ns)
+                    Stmt [42-66]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [42-66]:
+                            symbol_id: 9
+                            ty_span: [48-56]
+                            init_expr: Expr [61-65]:
+                                ty: const duration
+                                const_value: Duration(3.0 ns)
+                                kind: Lit: Duration(3.0 ns)
+                    Stmt [75-82]:
                         annotations: <empty>
                         kind: Err
 
@@ -553,7 +677,7 @@ fn multiplication_assign_op_errors_as_duration_is_const() {
 
               x cannot update const variable a
                ,-[test:4:9]
-             3 |         duration b = 3 ns;
+             3 |         const duration b = 3 ns;
              4 |         a *= b;
                :         ^
              5 |     
@@ -578,22 +702,19 @@ fn division_duration_by_duration_is_float() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [22-27]:
-                    ty: duration
-                    const_value: Duration(12.0 ns)
+                    ty: const duration
                     kind: Lit: Duration(12.0 ns)
             ClassicalDeclarationStmt [37-55]:
                 symbol_id: 9
                 ty_span: [37-45]
                 init_expr: Expr [50-54]:
-                    ty: duration
-                    const_value: Duration(4.0 ns)
+                    ty: const duration
                     kind: Lit: Duration(4.0 ns)
             ClassicalDeclarationStmt [64-80]:
                 symbol_id: 10
                 ty_span: [64-69]
                 init_expr: Expr [74-79]:
                     ty: float
-                    const_value: Float(3.0)
                     kind: BinaryOpExpr:
                         op: Div
                         lhs: Expr [74-75]:
@@ -621,8 +742,7 @@ fn division_duration_by_int_is_duration() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [22-27]:
-                    ty: duration
-                    const_value: Duration(12.0 ns)
+                    ty: const duration
                     kind: Lit: Duration(12.0 ns)
             ClassicalDeclarationStmt [37-53]:
                 symbol_id: 9
@@ -636,7 +756,6 @@ fn division_duration_by_int_is_duration() {
                 ty_span: [62-70]
                 init_expr: Expr [75-80]:
                     ty: duration
-                    const_value: Duration(3.0 ns)
                     kind: BinaryOpExpr:
                         op: Div
                         lhs: Expr [75-76]:
@@ -664,8 +783,7 @@ fn division_duration_by_float_is_duration() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [22-27]:
-                    ty: duration
-                    const_value: Duration(12.0 ns)
+                    ty: const duration
                     kind: Lit: Duration(12.0 ns)
             ClassicalDeclarationStmt [37-57]:
                 symbol_id: 9
@@ -679,7 +797,6 @@ fn division_duration_by_float_is_duration() {
                 ty_span: [66-74]
                 init_expr: Expr [79-84]:
                     ty: duration
-                    const_value: Duration(3.0 ns)
                     kind: BinaryOpExpr:
                         op: Div
                         lhs: Expr [79-80]:
@@ -693,7 +810,7 @@ fn division_duration_by_float_is_duration() {
 }
 
 #[test]
-fn division_assign_op_errors_as_duration_is_const() {
+fn division_assign_op() {
     let input = "
         duration a = 12 ns;
         const float b = 3.0;
@@ -703,42 +820,75 @@ fn division_assign_op_errors_as_duration_is_const() {
     check_stmt_kinds(
         input,
         &expect![[r#"
-            Program:
-                version: <none>
-                pragmas: <empty>
-                statements:
-                    Stmt [9-28]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-28]:
-                            symbol_id: 8
-                            ty_span: [9-17]
-                            init_expr: Expr [22-27]:
-                                ty: duration
-                                const_value: Duration(12.0 ns)
-                                kind: Lit: Duration(12.0 ns)
-                    Stmt [37-57]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [37-57]:
-                            symbol_id: 9
-                            ty_span: [43-48]
-                            init_expr: Expr [53-56]:
-                                ty: const float
-                                const_value: Float(3.0)
-                                kind: Lit: Float(3.0)
-                    Stmt [66-73]:
-                        annotations: <empty>
-                        kind: Err
+            ClassicalDeclarationStmt [9-28]:
+                symbol_id: 8
+                ty_span: [9-17]
+                init_expr: Expr [22-27]:
+                    ty: const duration
+                    kind: Lit: Duration(12.0 ns)
+            ClassicalDeclarationStmt [37-57]:
+                symbol_id: 9
+                ty_span: [43-48]
+                init_expr: Expr [53-56]:
+                    ty: const float
+                    const_value: Float(3.0)
+                    kind: Lit: Float(3.0)
+            AssignStmt [66-73]:
+                lhs: Expr [66-67]:
+                    ty: duration
+                    kind: SymbolId(8)
+                rhs: Expr [66-73]:
+                    ty: duration
+                    kind: BinaryOpExpr:
+                        op: Div
+                        lhs: Expr [66-67]:
+                            ty: duration
+                            kind: SymbolId(8)
+                        rhs: Expr [71-72]:
+                            ty: const float
+                            kind: SymbolId(9)
+        "#]],
+    );
+}
 
-            [Qasm.Lowerer.CannotUpdateConstVariable
+#[test]
+fn division_assign_op_errors_when_duration_is_const() {
+    let input = "
+        duration a = 12 ns;
+        const float b = 3.0;
+        a /= b;
+    ";
 
-              x cannot update const variable a
-               ,-[test:4:9]
-             3 |         const float b = 3.0;
-             4 |         a /= b;
-               :         ^
-             5 |     
-               `----
-              help: mutable variables must be declared without the keyword `const`
-            ]"#]],
+    check_stmt_kinds(
+        input,
+        &expect![[r#"
+            ClassicalDeclarationStmt [9-28]:
+                symbol_id: 8
+                ty_span: [9-17]
+                init_expr: Expr [22-27]:
+                    ty: const duration
+                    kind: Lit: Duration(12.0 ns)
+            ClassicalDeclarationStmt [37-57]:
+                symbol_id: 9
+                ty_span: [43-48]
+                init_expr: Expr [53-56]:
+                    ty: const float
+                    const_value: Float(3.0)
+                    kind: Lit: Float(3.0)
+            AssignStmt [66-73]:
+                lhs: Expr [66-67]:
+                    ty: duration
+                    kind: SymbolId(8)
+                rhs: Expr [66-73]:
+                    ty: duration
+                    kind: BinaryOpExpr:
+                        op: Div
+                        lhs: Expr [66-67]:
+                            ty: duration
+                            kind: SymbolId(8)
+                        rhs: Expr [71-72]:
+                            ty: const float
+                            kind: SymbolId(9)
+        "#]],
     );
 }

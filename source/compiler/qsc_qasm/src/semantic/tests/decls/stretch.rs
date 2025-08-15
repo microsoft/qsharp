@@ -31,8 +31,8 @@ fn spec_sample() {
     check_classical_decls(
         r#"
             include "stdgates.inc";
-            duration a = 10ns;
-            duration b = durationof({x [100ns] $0;});
+            const duration a = 10ns;
+            const duration b = durationof({x [100ns] $0;});
             stretch c;
             // stretchy duration with min=100ns
             stretch d = a + 2 * c;
@@ -40,118 +40,118 @@ fn spec_sample() {
             stretch e = -0.5 * b + c;
         "#,
         &expect![[r#"
-            ClassicalDeclarationStmt [49-67]:
+            ClassicalDeclarationStmt [49-73]:
                 symbol_id: 40
-                ty_span: [49-57]
-                init_expr: Expr [62-66]:
-                    ty: duration
+                ty_span: [55-63]
+                init_expr: Expr [68-72]:
+                    ty: const duration
                     const_value: Duration(10.0 ns)
                     kind: Lit: Duration(10.0 ns)
-            [40] Symbol [58-59]:
+            [40] Symbol [64-65]:
                 name: a
-                type: duration
-                ty_span: [49-57]
+                type: const duration
+                ty_span: [55-63]
                 io_kind: Default
-            ClassicalDeclarationStmt [80-121]:
+            ClassicalDeclarationStmt [86-133]:
                 symbol_id: 41
-                ty_span: [80-88]
-                init_expr: Expr [93-120]:
-                    ty: duration
+                ty_span: [92-100]
+                init_expr: Expr [105-132]:
+                    ty: const duration
                     const_value: Duration(100.0 ns)
-                    kind: DurationofCallExpr [93-120]:
-                        fn_name_span: [93-103]
+                    kind: DurationofCallExpr [105-132]:
+                        fn_name_span: [105-115]
                         duration: 100.0 ns
-                        scope: Block [104-119]:
-                            Stmt [105-118]:
+                        scope: Block [116-131]:
+                            Stmt [117-130]:
                                 annotations: <empty>
-                                kind: GateCall [105-118]:
+                                kind: GateCall [117-130]:
                                     modifiers: <empty>
                                     symbol_id: 9
-                                    gate_name_span: [105-106]
+                                    gate_name_span: [117-118]
                                     args: <empty>
                                     qubits:
-                                        GateOperand [115-117]:
-                                            kind: HardwareQubit [115-117]: 0
-                                    duration: Expr [108-113]:
-                                        ty: duration
+                                        GateOperand [127-129]:
+                                            kind: HardwareQubit [127-129]: 0
+                                    duration: Expr [120-125]:
+                                        ty: const duration
                                         const_value: Duration(100.0 ns)
                                         kind: Lit: Duration(100.0 ns)
                                     classical_arity: 0
                                     quantum_arity: 1
-            [41] Symbol [89-90]:
+            [41] Symbol [101-102]:
                 name: b
-                type: duration
-                ty_span: [80-88]
+                type: const duration
+                ty_span: [92-100]
                 io_kind: Default
-            ClassicalDeclarationStmt [134-144]:
+            ClassicalDeclarationStmt [146-156]:
                 symbol_id: 42
-                ty_span: [134-141]
-                init_expr: Expr [134-144]:
+                ty_span: [146-153]
+                init_expr: Expr [146-156]:
                     ty: stretch
                     const_value: Duration(0.0 s)
                     kind: Lit: Duration(0.0 s)
-            [42] Symbol [142-143]:
+            [42] Symbol [154-155]:
                 name: c
                 type: stretch
-                ty_span: [134-141]
+                ty_span: [146-153]
                 io_kind: Default
-            ClassicalDeclarationStmt [205-227]:
+            ClassicalDeclarationStmt [217-239]:
                 symbol_id: 43
-                ty_span: [205-212]
-                init_expr: Expr [217-226]:
+                ty_span: [217-224]
+                init_expr: Expr [229-238]:
                     ty: stretch
                     const_value: Duration(10.0 ns)
                     kind: BinaryOpExpr:
                         op: Add
-                        lhs: Expr [217-218]:
-                            ty: duration
+                        lhs: Expr [229-230]:
+                            ty: const duration
                             kind: SymbolId(40)
-                        rhs: Expr [221-226]:
-                            ty: duration
+                        rhs: Expr [233-238]:
+                            ty: const duration
                             const_value: Duration(0.0 s)
                             kind: BinaryOpExpr:
                                 op: Mul
-                                lhs: Expr [221-222]:
+                                lhs: Expr [233-234]:
                                     ty: const int
                                     kind: Lit: Int(2)
-                                rhs: Expr [225-226]:
+                                rhs: Expr [237-238]:
                                     ty: stretch
                                     kind: SymbolId(42)
-            [43] Symbol [213-214]:
+            [43] Symbol [225-226]:
                 name: d
                 type: stretch
-                ty_span: [205-212]
+                ty_span: [217-224]
                 io_kind: Default
-            ClassicalDeclarationStmt [307-332]:
+            ClassicalDeclarationStmt [319-344]:
                 symbol_id: 44
-                ty_span: [307-314]
-                init_expr: Expr [319-331]:
+                ty_span: [319-326]
+                init_expr: Expr [331-343]:
                     ty: stretch
                     const_value: Duration(-50.0 ns)
                     kind: BinaryOpExpr:
                         op: Add
-                        lhs: Expr [319-327]:
-                            ty: duration
+                        lhs: Expr [331-339]:
+                            ty: const duration
                             const_value: Duration(-50.0 ns)
                             kind: BinaryOpExpr:
                                 op: Mul
-                                lhs: Expr [320-323]:
+                                lhs: Expr [332-335]:
                                     ty: const float
-                                    kind: UnaryOpExpr [320-323]:
+                                    kind: UnaryOpExpr [332-335]:
                                         op: Neg
-                                        expr: Expr [320-323]:
+                                        expr: Expr [332-335]:
                                             ty: const float
                                             kind: Lit: Float(0.5)
-                                rhs: Expr [326-327]:
-                                    ty: duration
+                                rhs: Expr [338-339]:
+                                    ty: const duration
                                     kind: SymbolId(41)
-                        rhs: Expr [330-331]:
+                        rhs: Expr [342-343]:
                             ty: stretch
                             kind: SymbolId(42)
-            [44] Symbol [315-316]:
+            [44] Symbol [327-328]:
                 name: e
                 type: stretch
-                ty_span: [307-314]
+                ty_span: [319-326]
                 io_kind: Default
         "#]],
     );
@@ -198,7 +198,7 @@ fn spec_sample_2() {
                 symbol_id: 42
                 ty_span: [95-103]
                 init_expr: Expr [120-155]:
-                    ty: duration
+                    ty: const duration
                     const_value: Duration(-5.0 ns)
                     kind: BinaryOpExpr:
                         op: Sub
@@ -206,7 +206,7 @@ fn spec_sample_2() {
                             ty: stretch
                             kind: SymbolId(40)
                         rhs: Expr [124-155]:
-                            ty: duration
+                            ty: const duration
                             const_value: Duration(5.0 ns)
                             kind: BinaryOpExpr:
                                 op: Mul
@@ -214,7 +214,7 @@ fn spec_sample_2() {
                                     ty: const float
                                     kind: Lit: Float(0.5)
                                 rhs: Expr [129-155]:
-                                    ty: duration
+                                    ty: const duration
                                     kind: DurationofCallExpr [129-155]:
                                         fn_name_span: [129-139]
                                         duration: 10.0 ns
@@ -230,7 +230,7 @@ fn spec_sample_2() {
                                                         GateOperand [150-152]:
                                                             kind: HardwareQubit [150-152]: 0
                                                     duration: Expr [144-148]:
-                                                        ty: duration
+                                                        ty: const duration
                                                         const_value: Duration(10.0 ns)
                                                         kind: Lit: Duration(10.0 ns)
                                                     classical_arity: 0
@@ -244,12 +244,12 @@ fn spec_sample_2() {
                 symbol_id: 43
                 ty_span: [169-177]
                 init_expr: Expr [195-265]:
-                    ty: duration
+                    ty: const duration
                     const_value: Duration(-55.0 ns)
                     kind: BinaryOpExpr:
                         op: Sub
                         lhs: Expr [195-230]:
-                            ty: duration
+                            ty: const duration
                             const_value: Duration(-5.0 ns)
                             kind: BinaryOpExpr:
                                 op: Sub
@@ -257,7 +257,7 @@ fn spec_sample_2() {
                                     ty: stretch
                                     kind: SymbolId(40)
                                 rhs: Expr [199-230]:
-                                    ty: duration
+                                    ty: const duration
                                     const_value: Duration(5.0 ns)
                                     kind: BinaryOpExpr:
                                         op: Mul
@@ -265,7 +265,7 @@ fn spec_sample_2() {
                                             ty: const float
                                             kind: Lit: Float(0.5)
                                         rhs: Expr [204-230]:
-                                            ty: duration
+                                            ty: const duration
                                             kind: DurationofCallExpr [204-230]:
                                                 fn_name_span: [204-214]
                                                 duration: 10.0 ns
@@ -281,13 +281,13 @@ fn spec_sample_2() {
                                                                 GateOperand [225-227]:
                                                                     kind: HardwareQubit [225-227]: 0
                                                             duration: Expr [219-223]:
-                                                                ty: duration
+                                                                ty: const duration
                                                                 const_value: Duration(10.0 ns)
                                                                 kind: Lit: Duration(10.0 ns)
                                                             classical_arity: 0
                                                             quantum_arity: 1
                         rhs: Expr [233-265]:
-                            ty: duration
+                            ty: const duration
                             const_value: Duration(50.0 ns)
                             kind: BinaryOpExpr:
                                 op: Mul
@@ -295,7 +295,7 @@ fn spec_sample_2() {
                                     ty: const float
                                     kind: Lit: Float(0.5)
                                 rhs: Expr [238-265]:
-                                    ty: duration
+                                    ty: const duration
                                     kind: DurationofCallExpr [238-265]:
                                         fn_name_span: [238-248]
                                         duration: 100.0 ns
@@ -311,7 +311,7 @@ fn spec_sample_2() {
                                                         GateOperand [260-262]:
                                                             kind: HardwareQubit [260-262]: 0
                                                     duration: Expr [253-258]:
-                                                        ty: duration
+                                                        ty: const duration
                                                         const_value: Duration(100.0 ns)
                                                         kind: Lit: Duration(100.0 ns)
                                                     classical_arity: 0
@@ -325,7 +325,7 @@ fn spec_sample_2() {
                 symbol_id: 44
                 ty_span: [279-287]
                 init_expr: Expr [302-339]:
-                    ty: duration
+                    ty: const duration
                     const_value: Duration(-500.0 ns)
                     kind: BinaryOpExpr:
                         op: Sub
@@ -333,7 +333,7 @@ fn spec_sample_2() {
                             ty: stretch
                             kind: SymbolId(40)
                         rhs: Expr [306-339]:
-                            ty: duration
+                            ty: const duration
                             const_value: Duration(500.0 ns)
                             kind: BinaryOpExpr:
                                 op: Mul
@@ -341,7 +341,7 @@ fn spec_sample_2() {
                                     ty: const float
                                     kind: Lit: Float(0.5)
                                 rhs: Expr [311-339]:
-                                    ty: duration
+                                    ty: const duration
                                     kind: DurationofCallExpr [311-339]:
                                         fn_name_span: [311-321]
                                         duration: 1000.0 ns
@@ -357,7 +357,7 @@ fn spec_sample_2() {
                                                         GateOperand [334-336]:
                                                             kind: HardwareQubit [334-336]: 0
                                                     duration: Expr [326-332]:
-                                                        ty: duration
+                                                        ty: const duration
                                                         const_value: Duration(1000.0 ns)
                                                         kind: Lit: Duration(1000.0 ns)
                                                     classical_arity: 0

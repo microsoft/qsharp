@@ -29,7 +29,7 @@ fn duration_to_bool_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const bool
+              x cannot cast expression of type duration to type bool
                ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         bool(a);
@@ -147,7 +147,7 @@ fn duration_to_int_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const int
+              x cannot cast expression of type duration to type int
                ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         int(a);
@@ -189,7 +189,7 @@ fn duration_to_sized_int_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const int[32]
+              x cannot cast expression of type duration to type int[32]
                ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         int[32](a);
@@ -235,7 +235,7 @@ fn duration_to_uint_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const uint
+              x cannot cast expression of type duration to type uint
                ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         uint(a);
@@ -277,7 +277,7 @@ fn duration_to_sized_uint_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const uint[32]
+              x cannot cast expression of type duration to type uint[32]
                ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         uint[32](a);
@@ -323,7 +323,7 @@ fn duration_to_float_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const float
+              x cannot cast expression of type duration to type float
                ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         float(a);
@@ -365,7 +365,7 @@ fn duration_to_sized_float_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const float[32]
+              x cannot cast expression of type duration to type float[32]
                ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         float[32](a);
@@ -411,7 +411,7 @@ fn duration_to_angle_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const angle
+              x cannot cast expression of type duration to type angle
                ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         angle(a);
@@ -453,7 +453,7 @@ fn duration_to_sized_angle_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const angle[32]
+              x cannot cast expression of type duration to type angle[32]
                ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         angle[32](a);
@@ -499,7 +499,7 @@ fn duration_to_complex_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const complex[float]
+              x cannot cast expression of type duration to type complex[float]
                ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         complex(a);
@@ -541,7 +541,7 @@ fn duration_to_sized_complex_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const complex[float[32]]
+              x cannot cast expression of type duration to type complex[float[32]]
                ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         complex[float[32]](a);
@@ -587,7 +587,7 @@ fn duration_to_bit_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const bit
+              x cannot cast expression of type duration to type bit
                ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         bit(a);
@@ -629,7 +629,7 @@ fn duration_to_bitarray_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const bit[32]
+              x cannot cast expression of type duration to type bit[32]
                ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         bit[32](a);

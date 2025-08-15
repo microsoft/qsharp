@@ -38,7 +38,6 @@ fn duration_to_bool_fails() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
                     Stmt [29-37]:
                         annotations: <empty>
@@ -49,7 +48,7 @@ fn duration_to_bool_fails() {
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const bool
+              x cannot cast expression of type duration to type bool
                ,-[test:3:9]
              2 |         duration a;
              3 |         bool(a);
@@ -78,7 +77,6 @@ fn duration_to_duration() {
                 ty_span: [9-17]
                 init_expr: Expr [9-20]:
                     ty: duration
-                    const_value: Duration(0.0 s)
                     kind: Lit: Duration(0.0 s)
             ExprStmt [29-41]:
                 expr: Expr [29-40]:
@@ -106,7 +104,6 @@ fn duration_to_stretch_changes_ty() {
                 ty_span: [9-17]
                 init_expr: Expr [9-20]:
                     ty: duration
-                    const_value: Duration(0.0 s)
                     kind: Lit: Duration(0.0 s)
             ExprStmt [29-40]:
                 expr: Expr [29-39]:
@@ -140,7 +137,6 @@ fn duration_to_int_fails() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
                     Stmt [29-36]:
                         annotations: <empty>
@@ -151,7 +147,7 @@ fn duration_to_int_fails() {
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const int
+              x cannot cast expression of type duration to type int
                ,-[test:3:9]
              2 |         duration a;
              3 |         int(a);
@@ -182,7 +178,6 @@ fn duration_to_sized_int_fails() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
                     Stmt [29-40]:
                         annotations: <empty>
@@ -193,7 +188,7 @@ fn duration_to_sized_int_fails() {
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const int[32]
+              x cannot cast expression of type duration to type int[32]
                ,-[test:3:9]
              2 |         duration a;
              3 |         int[32](a);
@@ -228,7 +223,6 @@ fn duration_to_uint_fails() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
                     Stmt [29-37]:
                         annotations: <empty>
@@ -239,7 +233,7 @@ fn duration_to_uint_fails() {
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const uint
+              x cannot cast expression of type duration to type uint
                ,-[test:3:9]
              2 |         duration a;
              3 |         uint(a);
@@ -270,7 +264,6 @@ fn duration_to_sized_uint_fails() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
                     Stmt [29-41]:
                         annotations: <empty>
@@ -281,7 +274,7 @@ fn duration_to_sized_uint_fails() {
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const uint[32]
+              x cannot cast expression of type duration to type uint[32]
                ,-[test:3:9]
              2 |         duration a;
              3 |         uint[32](a);
@@ -316,7 +309,6 @@ fn duration_to_float_fails() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
                     Stmt [29-38]:
                         annotations: <empty>
@@ -327,7 +319,7 @@ fn duration_to_float_fails() {
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const float
+              x cannot cast expression of type duration to type float
                ,-[test:3:9]
              2 |         duration a;
              3 |         float(a);
@@ -358,7 +350,6 @@ fn duration_to_sized_float_fails() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
                     Stmt [29-42]:
                         annotations: <empty>
@@ -369,7 +360,7 @@ fn duration_to_sized_float_fails() {
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const float[32]
+              x cannot cast expression of type duration to type float[32]
                ,-[test:3:9]
              2 |         duration a;
              3 |         float[32](a);
@@ -404,7 +395,6 @@ fn duration_to_angle_fails() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
                     Stmt [29-38]:
                         annotations: <empty>
@@ -415,7 +405,7 @@ fn duration_to_angle_fails() {
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const angle
+              x cannot cast expression of type duration to type angle
                ,-[test:3:9]
              2 |         duration a;
              3 |         angle(a);
@@ -446,7 +436,6 @@ fn duration_to_sized_angle_fails() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
                     Stmt [29-42]:
                         annotations: <empty>
@@ -457,7 +446,7 @@ fn duration_to_sized_angle_fails() {
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const angle[32]
+              x cannot cast expression of type duration to type angle[32]
                ,-[test:3:9]
              2 |         duration a;
              3 |         angle[32](a);
@@ -492,7 +481,6 @@ fn duration_to_complex_fails() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
                     Stmt [29-40]:
                         annotations: <empty>
@@ -503,7 +491,7 @@ fn duration_to_complex_fails() {
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const complex[float]
+              x cannot cast expression of type duration to type complex[float]
                ,-[test:3:9]
              2 |         duration a;
              3 |         complex(a);
@@ -534,7 +522,6 @@ fn duration_to_sized_complex_fails() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
                     Stmt [29-51]:
                         annotations: <empty>
@@ -545,7 +532,7 @@ fn duration_to_sized_complex_fails() {
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const complex[float[32]]
+              x cannot cast expression of type duration to type complex[float[32]]
                ,-[test:3:9]
              2 |         duration a;
              3 |         complex[float[32]](a);
@@ -580,7 +567,6 @@ fn duration_to_bit_fails() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
                     Stmt [29-36]:
                         annotations: <empty>
@@ -591,7 +577,7 @@ fn duration_to_bit_fails() {
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const bit
+              x cannot cast expression of type duration to type bit
                ,-[test:3:9]
              2 |         duration a;
              3 |         bit(a);
@@ -622,7 +608,6 @@ fn duration_to_bitarray_fails() {
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
                                 ty: duration
-                                const_value: Duration(0.0 s)
                                 kind: Lit: Duration(0.0 s)
                     Stmt [29-40]:
                         annotations: <empty>
@@ -633,7 +618,7 @@ fn duration_to_bitarray_fails() {
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type duration to type const bit[32]
+              x cannot cast expression of type duration to type bit[32]
                ,-[test:3:9]
              2 |         duration a;
              3 |         bit[32](a);

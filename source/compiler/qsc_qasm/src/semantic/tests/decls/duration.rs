@@ -15,7 +15,6 @@ fn with_no_init_expr_has_generated_lit_expr() {
                 ty_span: [0-8]
                 init_expr: Expr [0-11]:
                     ty: duration
-                    const_value: Duration(0.0 s)
                     kind: Lit: Duration(0.0 s)
             [8] Symbol [9-10]:
                 name: a
@@ -34,8 +33,7 @@ fn with_lit_init_expr_has_supplied_value() {
                 symbol_id: 8
                 ty_span: [0-8]
                 init_expr: Expr [13-16]:
-                    ty: duration
-                    const_value: Duration(5.0 ns)
+                    ty: const duration
                     kind: Lit: Duration(5.0 ns)
             [8] Symbol [9-10]:
                 name: a
@@ -54,12 +52,12 @@ fn with_var_init_expr_has_supplied_value() {
                 symbol_id: 8
                 ty_span: [0-8]
                 init_expr: Expr [13-22]:
-                    ty: duration
+                    ty: const duration
                     const_value: Duration(15.0 ns)
                     kind: BinaryOpExpr:
                         op: Mul
                         lhs: Expr [13-16]:
-                            ty: duration
+                            ty: const duration
                             kind: Lit: Duration(5.0 ns)
                         rhs: Expr [19-22]:
                             ty: const float
@@ -74,7 +72,6 @@ fn with_var_init_expr_has_supplied_value() {
                 ty_span: [24-32]
                 init_expr: Expr [37-42]:
                     ty: duration
-                    const_value: Duration(30.0 ns)
                     kind: BinaryOpExpr:
                         op: Mul
                         lhs: Expr [37-38]:
@@ -101,12 +98,12 @@ fn with_binop_init_expr_has_supplied_value() {
                 symbol_id: 8
                 ty_span: [0-8]
                 init_expr: Expr [13-22]:
-                    ty: duration
+                    ty: const duration
                     const_value: Duration(15.0 ns)
                     kind: BinaryOpExpr:
                         op: Mul
                         lhs: Expr [13-16]:
-                            ty: duration
+                            ty: const duration
                             kind: Lit: Duration(5.0 ns)
                         rhs: Expr [19-22]:
                             ty: const float

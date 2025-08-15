@@ -262,23 +262,5 @@ h;
 // FuncMissingParams
 func_called_like_gate;
 
-// ExternDeclarationCannotReturnDuration
-extern extern_function_with_duration_return(int) -> duration;
-
-// ExternDeclarationCannotReturnDuration
+// ExternDeclarationCannotReturnStretch
 extern extern_function_with_stretch_return(int) -> stretch;
-
-// DefParameterCannotBeDuration
-def function_with_duration_param(qubit q, duration d) {
-    delay[d] q;
-}
-
-// DefParameterCannotBeDuration
-def function_with_duration_array_param(qubit q, readonly array[duration, 2, 3] d) {
-    delay[d[0][0]] q;
-}
-
-// DefParameterCannotBeDuration
-def function_with_stretch_param(qubit q, stretch d) {
-    delay[d] q;
-}

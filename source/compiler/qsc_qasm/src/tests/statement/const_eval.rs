@@ -1980,7 +1980,7 @@ fn binary_op_with_non_supported_types_fails() {
     expect![[r#"
         Qasm.Lowerer.CannotApplyOperatorToTypes
 
-          x cannot apply operator Div to types const int and duration
+          x cannot apply operator Div to types const int and const duration
            ,-[Test.qasm:2:23]
          1 | 
          2 |         const int a = 2 / 0s;

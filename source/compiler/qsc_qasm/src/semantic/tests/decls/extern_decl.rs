@@ -45,27 +45,12 @@ fn return_type() {
 }
 
 #[test]
-fn return_type_cannot_be_duration() {
+fn return_type_can_be_duration() {
     check_stmt_kind(
         "extern f() -> duration;",
         &expect![[r#"
-            Program:
-                version: <none>
-                pragmas: <empty>
-                statements:
-                    Stmt [0-23]:
-                        annotations: <empty>
-                        kind: ExternDecl [0-23]:
-                            symbol_id: 8
-
-            [Qasm.Lowerer.ExternDeclarationCannotReturnDuration
-
-              x extern declarations cannot return durations or stretches
-               ,-[test:1:15]
-             1 | extern f() -> duration;
-               :               ^^^^^^^^
-               `----
-            ]"#]],
+            ExternDecl [0-23]:
+                symbol_id: 8"#]],
     );
 }
 
@@ -83,9 +68,9 @@ fn return_type_cannot_be_stretch() {
                         kind: ExternDecl [0-22]:
                             symbol_id: 8
 
-            [Qasm.Lowerer.ExternDeclarationCannotReturnDuration
+            [Qasm.Lowerer.ExternDeclarationCannotReturnStretch
 
-              x extern declarations cannot return durations or stretches
+              x extern declarations cannot return stretches
                ,-[test:1:15]
              1 | extern f() -> stretch;
                :               ^^^^^^^

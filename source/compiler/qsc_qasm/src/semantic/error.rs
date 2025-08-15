@@ -80,9 +80,6 @@ pub enum SemanticErrorKind {
     #[error("def declarations must be done in global scope")]
     #[diagnostic(code("Qasm.Lowerer.DefDeclarationInNonGlobalScope"))]
     DefDeclarationInNonGlobalScope(#[label] Span),
-    #[error("def parameters cannot be duration or stretch values")]
-    #[diagnostic(code("Qasm.Lowerer.DefParameterCannotBeDuration"))]
-    DefParameterCannotBeDuration(#[label] Span),
     #[error("designator must be a positive duration")]
     #[diagnostic(code("Qasm.Lowerer.DesignatorMustBePositiveDuration"))]
     DesignatorMustBePositiveDuration(#[label] Span),
@@ -116,9 +113,9 @@ pub enum SemanticErrorKind {
     #[error("{0} must fit in a u32")]
     #[diagnostic(code("Qasm.Lowerer.ExprMustFitInU32"))]
     ExprMustFitInU32(String, #[label] Span),
-    #[error("extern declarations cannot return durations or stretches")]
-    #[diagnostic(code("Qasm.Lowerer.ExternDeclarationCannotReturnDuration"))]
-    ExternDeclarationCannotReturnDuration(#[label] Span),
+    #[error("extern declarations cannot return stretches")]
+    #[diagnostic(code("Qasm.Lowerer.ExternDeclarationCannotReturnStretch"))]
+    ExternDeclarationCannotReturnStretch(#[label] Span),
     #[error("extern declarations must be done in global scope")]
     #[diagnostic(code("Qasm.Lowerer.ExternDeclarationInNonGlobalScope"))]
     ExternDeclarationInNonGlobalScope(#[label] Span),
