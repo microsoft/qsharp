@@ -680,3 +680,105 @@ fn notebook_local_from_later_cell() {
         ("cell2", "let z = ↘x + 2;"),
     ]);
 }
+
+#[test]
+fn item_export() {
+    assert_definition(
+        r#"
+        namespace Test {
+            operation ◉Foo◉() : Unit {
+            }
+            export Fo↘o;
+        }
+    "#,
+    );
+}
+
+#[test]
+fn item_export_with_alias_on_path() {
+    assert_definition(
+        r#"
+        namespace Test {
+            operation ◉Foo◉() : Unit {
+            }
+            export Fo↘o as Bar;
+        }
+    "#,
+    );
+}
+
+#[test]
+fn item_export_with_alias_on_alias() {
+    assert_definition(
+        r#"
+        namespace Test {
+            operation ◉Foo◉() : Unit {
+            }
+            export Foo as B↘ar;
+        }
+    "#,
+    );
+}
+
+#[test]
+fn item_import() {
+    assert_definition(
+        r#"
+        namespace Test {
+            operation ◉Foo◉() : Unit {
+            }
+        }
+        namespace Other {
+            import X, Test.Fo↘o;
+        }
+    "#,
+    );
+}
+
+#[test]
+fn item_import_incomplete() {
+    assert_definition(
+        r#"
+        namespace Test {
+            operation ◉Foo◉() : Unit {
+            }
+        }
+        namespace Other {
+            import X, Test.Foo↘
+        }
+    "#,
+    );
+}
+
+#[test]
+fn item_import_alias() {
+    assert_definition(
+        r#"
+        namespace Test {
+            operation ◉Foo◉() : Unit {
+            }
+        }
+        namespace Other {
+            import Test.Foo as B↘ar;
+        }
+    "#,
+    );
+}
+
+#[test]
+fn item_import_alias_usage() {
+    assert_definition(
+        r#"
+        namespace Test {
+            operation ◉Foo◉() : Unit {
+            }
+        }
+        namespace Other {
+            import Test.Foo as Bar;
+            operation Baz() : Unit {
+                let x = Ba↘r();
+            }
+        }
+    "#,
+    );
+}

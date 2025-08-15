@@ -664,3 +664,66 @@ fn notebook_rename_across_cells() {
         "#]],
     );
 }
+
+#[test]
+fn on_declaration_with_aliased_export_finds_only_matching_names() {
+    check(
+        r#"
+        namespace Test {
+            operation ◉F↘oo◉() : Unit {
+            }
+            export ◉Foo◉ as Bar;
+        }
+        namespace Other {
+            import Test.Bar;
+            import Test.Bar as Baz;
+            operation X() : Unit {
+                Bar();
+                Baz();
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn on_export_alias_finds_only_matching_names() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo() : Unit {
+            }
+            export Foo as Bar;
+        }
+        namespace Other {
+            import Test.Bar;
+            import Test.Bar as ◉Ba↘z◉;
+            operation X() : Unit {
+                Bar();
+                ◉Baz◉();
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn on_export_alias_usage_finds_only_matching_names() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo() : Unit {
+            }
+            export Foo as Bar;
+        }
+        namespace Other {
+            import Test.Bar;
+            import Test.Bar as ◉Baz◉;
+            operation X() : Unit {
+                Bar();
+                ◉B↘az◉();
+            }
+        }
+    "#,
+    );
+}

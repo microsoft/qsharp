@@ -103,7 +103,9 @@ impl<'a> Rename<'a> {
             if self.is_prepare {
                 self.prepare = Some((ast_name.span, ast_name.name.to_string()));
             } else {
-                self.locations = self.reference_finder.for_item(item_id);
+                self.locations = self
+                    .reference_finder
+                    .for_item(item_id, Some(&ast_name.name));
             }
         }
     }
@@ -184,10 +186,11 @@ impl<'a> Handler<'a> for Rename<'a> {
     fn at_callable_ref(
         &mut self,
         path: &'a ast::Path,
+        alias: Option<&'a ast::Ident>,
         item_id: &hir::ItemId,
         _: &'a hir::CallableDecl,
     ) {
-        self.get_spans_for_item_rename(item_id, &path.name);
+        self.get_spans_for_item_rename(item_id, alias.unwrap_or(&path.name));
     }
 
     fn at_new_type_def(
@@ -244,11 +247,12 @@ impl<'a> Handler<'a> for Rename<'a> {
     fn at_new_type_ref(
         &mut self,
         path: &'a ast::Path,
+        alias: Option<&'a ast::Ident>,
         item_id: &hir::ItemId,
         _: &'a hir::Ident,
         _: &'a hir::ty::Udt,
     ) {
-        self.get_spans_for_item_rename(item_id, &path.name);
+        self.get_spans_for_item_rename(item_id, alias.unwrap_or(&path.name));
     }
 
     fn at_field_def(
