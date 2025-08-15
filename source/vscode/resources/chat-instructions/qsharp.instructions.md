@@ -127,13 +127,7 @@ and `azure-quantum` packages.
 
 To execute Q# code, use the provided tools.
 
-## Copilot tool usage for Q# libraries
-
-Whenever the user asks about Q# standard libraries, their contents, or any Q# library function, you **must** call the `qsharpGetLibraryDescriptions` tool to retrieve the authoritative list of available Q# library items, their signatures, summaries, parameters, and output descriptions.
-
-When generating Q# code, always use the `qsharpGetLibraryDescriptions` tool to determine which library functions are available and to ensure you use them correctly in your code suggestions.
-
-Do not attempt to answer questions about Q# library APIs, functions, or operations without first consulting this tool.
+Whenever the user asks about Q# standard libraries, their contents, or any Q# library function, you **must** call the `qsharpGetLibraryDescriptions` tool to retrieve the authoritative list of available Q# library items. When generating Q# code, always use the `qsharpGetLibraryDescriptions` tool to determine which library functions are available and to ensure you use them correctly in your code suggestions. Do not attempt to answer questions about Q# library APIs, functions, or operations without first consulting this tool.
 
 ## Response formatting
 

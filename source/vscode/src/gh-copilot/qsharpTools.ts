@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log, VSDiagnostic } from "qsharp-lang";
+import { VSDiagnostic } from "qsharp-lang";
 import vscode from "vscode";
 import { CircuitOrError, showCircuitCommand } from "../circuit";
 import { loadCompilerWorker, toVsCodeDiagnostic } from "../common";
@@ -248,12 +248,7 @@ export class QSharpTools {
     const summaries = await worker.getLibrarySummaries();
     clearTimeout(compilerTimeout);
     worker.terminate();
-
-    const summariesObj = deepMapToObject(summaries);
-    const temp = JSON.stringify(summariesObj, null, 2);
-    log.info(`Summaries: ${temp}`);
-
-    return summariesObj;
+    return deepMapToObject(summaries);
   }
 
   private async getProgram(filePath: string) {
