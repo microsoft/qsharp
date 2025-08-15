@@ -695,13 +695,26 @@ fn item_export() {
 }
 
 #[test]
-fn item_export_with_alias() {
+fn item_export_with_alias_on_path() {
     assert_definition(
         r#"
         namespace Test {
             operation ◉Foo◉() : Unit {
             }
             export Fo↘o as Bar;
+        }
+    "#,
+    );
+}
+
+#[test]
+fn item_export_with_alias_on_alias() {
+    assert_definition(
+        r#"
+        namespace Test {
+            operation ◉Foo◉() : Unit {
+            }
+            export Foo as B↘ar;
         }
     "#,
     );
