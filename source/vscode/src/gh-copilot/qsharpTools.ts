@@ -234,6 +234,23 @@ export class QSharpTools {
     }
   }
 
+  /**
+   * Copilot tool: Returns a structured JSON description of all Q# standard library items,
+   * organized by namespace. Each item includes its name, namespace, kind, signature, summary,
+   * parameter descriptions, and output description.
+   */
+  async qsharpGetLibraryDescriptions(): Promise<any> {
+    const compilerRunTimeoutMs = 1000 * 5; // 5 seconds
+    const compilerTimeout = setTimeout(() => {
+      worker.terminate();
+    }, compilerRunTimeoutMs);
+    const worker = loadCompilerWorker(this.extensionUri!);
+    const summaries = await worker.getLibrarySummaries();
+    clearTimeout(compilerTimeout);
+    worker.terminate();
+    return deepMapToObject(summaries);
+  }
+
   private async getProgram(filePath: string) {
     const docUri = vscode.Uri.file(filePath);
 
@@ -320,5 +337,19 @@ export class QSharpTools {
     }
     clearTimeout(compilerTimeout);
     worker.terminate();
+  }
+}
+
+function deepMapToObject(value: any): any {
+  if (value instanceof Map) {
+    const obj: any = {};
+    for (const [key, val] of value.entries()) {
+      obj[key] = deepMapToObject(val);
+    }
+    return obj;
+  } else if (Array.isArray(value)) {
+    return value.map(deepMapToObject);
+  } else {
+    return value;
   }
 }
