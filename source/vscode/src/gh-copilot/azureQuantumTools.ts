@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log } from "qsharp-lang";
+import { log, TargetProfile } from "qsharp-lang";
 import * as vscode from "vscode";
 import { getTokenForWorkspace } from "../azure/auth.js";
 import { QuantumUris } from "../azure/networkRequests.js";
@@ -15,20 +15,19 @@ import {
   WorkspaceTreeProvider,
 } from "../azure/treeView.js";
 import { getJobFiles, submitJob } from "../azure/workspaceActions.js";
-import { HistogramData } from "./types.js";
-import { getQirForVisibleSource } from "../qirGeneration.js";
-import { CopilotToolError } from "./types.js";
-import { sendMessageToPanel } from "../webviewPanel.js";
-
-export type ToolResult<T = any> = { result: T };
-import { getRandomGuid } from "../utils.js";
+import { getQirForProgram } from "../qirGeneration.js";
 import {
   EventType,
   sendTelemetryEvent,
   UserFlowStatus,
   UserTaskInvocationType,
 } from "../telemetry.js";
+import { getRandomGuid } from "../utils.js";
+import { sendMessageToPanel } from "../webviewPanel.js";
+import { ProjectInfo, QSharpTools } from "./qsharpTools.js";
+import { CopilotToolError, HistogramData } from "./types.js";
 
+export type ToolResult<T = any> = { result: T };
 /**
  * State that can be shared between tool calls in a conversation.
  */
@@ -338,14 +337,34 @@ function formatHistogramBuckets(
   }
 }
 
+type ProviderWithPreferredTargetProfile = Provider & {
+  targets: (Target & {
+    preferredProfile: TargetProfile;
+  })[];
+};
+
 /**
  * Gets the list of the providers and targets in the current workspace.
  */
-export async function getProviders(
-  toolState: ToolState,
-): Promise<{ result: Provider[] }> {
+export async function getProviders(toolState: ToolState): Promise<{
+  result: ProviderWithPreferredTargetProfile[];
+}> {
   const workspace = await getConversationWorkspace(toolState);
-  return { result: workspace?.providers ?? [] };
+  const providers = workspace?.providers ?? [];
+
+  const providersWithPreferredProfile = providers.map((p) => {
+    return {
+      ...p,
+      targets: p.targets.map((t) => {
+        return {
+          ...t,
+          preferredProfile: getPreferredTargetProfile(t.id),
+        };
+      }),
+    };
+  });
+
+  return { result: providersWithPreferredProfile };
 }
 
 /**
@@ -370,12 +389,19 @@ export async function getTarget(
  */
 export async function submitToTarget(
   toolState: ToolState,
+  qsharpTools: QSharpTools,
   {
-    job_name: jobName,
-    target_id: target_id,
-    number_of_shots: numberOfShots,
-  }: { job_name: string; target_id: string; number_of_shots: number },
-): Promise<{ result: string }> {
+    filePath,
+    jobName,
+    targetId,
+    shots,
+  }: {
+    filePath: string;
+    jobName: string;
+    targetId: string;
+    shots: number;
+  },
+): Promise<ProjectInfo & { result: string }> {
   const associationId = getRandomGuid();
   const start = performance.now();
 
@@ -386,25 +412,35 @@ export async function submitToTarget(
   );
 
   try {
-    const target = (await getTarget(toolState, { target_id })).result;
+    const target = (await getTarget(toolState, { target_id: targetId })).result;
     if (!target) {
       throw new CopilotToolError(
         "A target with the name " +
-          target_id +
+          targetId +
           " does not exist in the workspace.",
       );
     }
 
     if (target.currentAvailability !== "Available")
       throw new CopilotToolError(
-        "The target " + target_id + " is not available.",
+        "The target " + targetId + " is not available.",
       );
+
+    const preferredTargetProfile = getPreferredTargetProfile(target.id);
+    const program = await qsharpTools.getProgram(filePath, {
+      targetProfileFallback: preferredTargetProfile,
+    });
+    const programConfig = program.config;
 
     const workspace = await getConversationWorkspace(toolState);
 
     let qir = "";
     try {
-      qir = await getQirForVisibleSource(getPreferredTargetProfile(target.id));
+      qir = await getQirForProgram(
+        programConfig,
+        preferredTargetProfile,
+        program.telemetryDocumentType,
+      );
     } catch (e: any) {
       if (e?.name === "QirGenerationError") {
         throw new CopilotToolError(e.message);
@@ -429,7 +465,7 @@ export async function submitToTarget(
         target.providerId,
         target.id,
         jobName,
-        numberOfShots,
+        shots,
       );
       startRefreshingWorkspace(workspace, jobId);
       sendTelemetryEvent(
@@ -440,7 +476,10 @@ export async function submitToTarget(
         },
         { timeToCompleteMs: performance.now() - start },
       );
-      return { result: "Job submitted successfully with ID: " + jobId };
+      return {
+        result: "Job submitted successfully with ID: " + jobId,
+        ...program.additionalContextForModel,
+      };
     } catch (e: any) {
       log.error("Failed to submit job. ", e);
       const error = e instanceof Error ? e.message : "";
