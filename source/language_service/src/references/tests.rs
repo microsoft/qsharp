@@ -930,85 +930,349 @@ fn notebook_local_reference() {
 }
 
 #[test]
-fn on_item_declaration_finds_exports_and_imports() {
-    check_include_decl(
-        r#"
-        namespace Test {
-            operation ◉Fo↘o◉() : Unit {
+fn on_item_declaration_finds_all_usages() {
+    check_include_decl(indoc! {"
+            namespace Base {
+                operation ◉b↘1◉() : Unit {}
+                export
+                    ◉b1◉,
+                    ◉b1◉ as ◉b2◉;
             }
-            export ◉Foo◉ as ◉Bar◉;
-        }
-        namespace Other {
-            import Test.◉Bar◉;
-            import Test.◉Bar◉ as ◉Baz◉;
-            operation X() : Unit {
-                ◉Bar◉();
-                ◉Baz◉();
+            namespace Intermediate {
+                import
+                    Base.◉b1◉,
+                    Base.◉b1◉ as ◉i1◉,
+                    Base.◉b2◉,
+                    Base.◉b2◉ as ◉i2◉;
+                export
+                    Base.◉b1◉,
+                    Base.◉b2◉,
+                    ◉i1◉,
+                    ◉i2◉;
             }
-        }
-    "#,
-    );
+            namespace Usage1 {
+                import
+                    Base.◉b1◉,
+                    Base.◉b1◉ as ◉u1◉,
+                    Base.◉b2◉,
+                    Base.◉b2◉ as ◉u2◉,
+                    Intermediate.◉b1◉ as ◉u3◉,
+                    Intermediate.◉b2◉ as ◉u4◉,
+                    Intermediate.◉i1◉,
+                    Intermediate.◉i1◉ as ◉u5◉,
+                    Intermediate.◉i2◉,
+                    Intermediate.◉i2◉ as ◉u6◉;
+                operation useOp() : Unit {
+                    ◉b1◉();
+                    ◉b2◉();
+                    ◉i1◉();
+                    ◉i2◉();
+                    ◉u1◉();
+                    ◉u2◉();
+                    ◉u3◉();
+                    ◉u4◉();
+                    ◉u5◉();
+                    ◉u6◉();
+                }
+            }
+            namespace Usage2 {
+                import
+                    Intermediate.◉b1◉,
+                    Intermediate.◉b2◉;
+                operation useOp() : Unit {
+                    ◉b1◉();
+                    ◉b2◉();
+                }
+            }
+            "});
 }
 
 #[test]
-fn on_export_path_finds_declaration_and_usages() {
-    check_include_decl(
-        r#"
-        namespace Test {
-            operation ◉Foo◉() : Unit {
+fn on_item_export_path_finds_all_usages() {
+    check_include_decl(indoc! {"
+            namespace Base {
+                operation ◉b1◉() : Unit {}
+                export
+                    ◉b↘1◉,
+                    ◉b1◉ as ◉b2◉;
             }
-            export ◉F↘oo◉ as ◉Bar◉;
-        }
-        namespace Other {
-            import Test.◉Bar◉;
-            import Test.◉Bar◉ as ◉Baz◉;
-            operation X() : Unit {
-                ◉Bar◉();
-                ◉Baz◉();
+            namespace Intermediate {
+                import
+                    Base.◉b1◉,
+                    Base.◉b1◉ as ◉i1◉,
+                    Base.◉b2◉,
+                    Base.◉b2◉ as ◉i2◉;
+                export
+                    Base.◉b1◉,
+                    Base.◉b2◉,
+                    ◉i1◉,
+                    ◉i2◉;
             }
-        }
-    "#,
-    );
+            namespace Usage1 {
+                import
+                    Base.◉b1◉,
+                    Base.◉b1◉ as ◉u1◉,
+                    Base.◉b2◉,
+                    Base.◉b2◉ as ◉u2◉,
+                    Intermediate.◉b1◉ as ◉u3◉,
+                    Intermediate.◉b2◉ as ◉u4◉,
+                    Intermediate.◉i1◉,
+                    Intermediate.◉i1◉ as ◉u5◉,
+                    Intermediate.◉i2◉,
+                    Intermediate.◉i2◉ as ◉u6◉;
+                operation useOp() : Unit {
+                    ◉b1◉();
+                    ◉b2◉();
+                    ◉i1◉();
+                    ◉i2◉();
+                    ◉u1◉();
+                    ◉u2◉();
+                    ◉u3◉();
+                    ◉u4◉();
+                    ◉u5◉();
+                    ◉u6◉();
+                }
+            }
+            namespace Usage2 {
+                import
+                    Intermediate.◉b1◉,
+                    Intermediate.◉b2◉;
+                operation useOp() : Unit {
+                    ◉b1◉();
+                    ◉b2◉();
+                }
+            }
+            "});
 }
 
 #[test]
-fn on_export_alias_finds_declaration_and_usages() {
-    check_include_decl(
-        r#"
-        namespace Test {
-            operation ◉Foo◉() : Unit {
+fn on_item_export_alias_finds_all_usages() {
+    check_include_decl(indoc! {"
+            namespace Base {
+                operation ◉b1◉() : Unit {}
+                export
+                    ◉b1◉,
+                    ◉b1◉ as ◉b↘2◉;
             }
-            export ◉Foo◉ as ◉Ba↘r◉;
-        }
-        namespace Other {
-            import Test.◉Bar◉;
-            import Test.◉Bar◉ as ◉Baz◉;
-            operation X() : Unit {
-                ◉Bar◉();
-                ◉Baz◉();
+            namespace Intermediate {
+                import
+                    Base.◉b1◉,
+                    Base.◉b1◉ as ◉i1◉,
+                    Base.◉b2◉,
+                    Base.◉b2◉ as ◉i2◉;
+                export
+                    Base.◉b1◉,
+                    Base.◉b2◉,
+                    ◉i1◉,
+                    ◉i2◉;
             }
-        }
-    "#,
-    );
+            namespace Usage1 {
+                import
+                    Base.◉b1◉,
+                    Base.◉b1◉ as ◉u1◉,
+                    Base.◉b2◉,
+                    Base.◉b2◉ as ◉u2◉,
+                    Intermediate.◉b1◉ as ◉u3◉,
+                    Intermediate.◉b2◉ as ◉u4◉,
+                    Intermediate.◉i1◉,
+                    Intermediate.◉i1◉ as ◉u5◉,
+                    Intermediate.◉i2◉,
+                    Intermediate.◉i2◉ as ◉u6◉;
+                operation useOp() : Unit {
+                    ◉b1◉();
+                    ◉b2◉();
+                    ◉i1◉();
+                    ◉i2◉();
+                    ◉u1◉();
+                    ◉u2◉();
+                    ◉u3◉();
+                    ◉u4◉();
+                    ◉u5◉();
+                    ◉u6◉();
+                }
+            }
+            namespace Usage2 {
+                import
+                    Intermediate.◉b1◉,
+                    Intermediate.◉b2◉;
+                operation useOp() : Unit {
+                    ◉b1◉();
+                    ◉b2◉();
+                }
+            }
+            "});
 }
 
 #[test]
-fn on_export_alias_usage_finds_declaration_and_usages() {
-    check_include_decl(
-        r#"
-        namespace Test {
-            operation ◉Foo◉() : Unit {
+fn on_item_import_finds_all_usages() {
+    check_include_decl(indoc! {"
+            namespace Base {
+                operation ◉b1◉() : Unit {}
+                export
+                    ◉b1◉,
+                    ◉b1◉ as ◉b2◉;
             }
-            export ◉Foo◉ as ◉Bar◉;
-        }
-        namespace Other {
-            import Test.◉Bar◉;
-            import Test.◉Bar◉ as ◉Ba↘z◉;
-            operation X() : Unit {
-                ◉Bar◉();
-                ◉Baz◉();
+            namespace Intermediate {
+                import
+                    Base.◉b↘1◉,
+                    Base.◉b1◉ as ◉i1◉,
+                    Base.◉b2◉,
+                    Base.◉b2◉ as ◉i2◉;
+                export
+                    Base.◉b1◉,
+                    Base.◉b2◉,
+                    ◉i1◉,
+                    ◉i2◉;
             }
-        }
-    "#,
-    );
+            namespace Usage1 {
+                import
+                    Base.◉b1◉,
+                    Base.◉b1◉ as ◉u1◉,
+                    Base.◉b2◉,
+                    Base.◉b2◉ as ◉u2◉,
+                    Intermediate.◉b1◉ as ◉u3◉,
+                    Intermediate.◉b2◉ as ◉u4◉,
+                    Intermediate.◉i1◉,
+                    Intermediate.◉i1◉ as ◉u5◉,
+                    Intermediate.◉i2◉,
+                    Intermediate.◉i2◉ as ◉u6◉;
+                operation useOp() : Unit {
+                    ◉b1◉();
+                    ◉b2◉();
+                    ◉i1◉();
+                    ◉i2◉();
+                    ◉u1◉();
+                    ◉u2◉();
+                    ◉u3◉();
+                    ◉u4◉();
+                    ◉u5◉();
+                    ◉u6◉();
+                }
+            }
+            namespace Usage2 {
+                import
+                    Intermediate.◉b1◉,
+                    Intermediate.◉b2◉;
+                operation useOp() : Unit {
+                    ◉b1◉();
+                    ◉b2◉();
+                }
+            }
+            "});
+}
+
+#[test]
+fn on_item_import_alias_finds_all_usages() {
+    check_include_decl(indoc! {"
+            namespace Base {
+                operation ◉b1◉() : Unit {}
+                export
+                    ◉b1◉,
+                    ◉b1◉ as ◉b2◉;
+            }
+            namespace Intermediate {
+                import
+                    Base.◉b1◉,
+                    Base.◉b1◉ as ◉i↘1◉,
+                    Base.◉b2◉,
+                    Base.◉b2◉ as ◉i2◉;
+                export
+                    Base.◉b1◉,
+                    Base.◉b2◉,
+                    ◉i1◉,
+                    ◉i2◉;
+            }
+            namespace Usage1 {
+                import
+                    Base.◉b1◉,
+                    Base.◉b1◉ as ◉u1◉,
+                    Base.◉b2◉,
+                    Base.◉b2◉ as ◉u2◉,
+                    Intermediate.◉b1◉ as ◉u3◉,
+                    Intermediate.◉b2◉ as ◉u4◉,
+                    Intermediate.◉i1◉,
+                    Intermediate.◉i1◉ as ◉u5◉,
+                    Intermediate.◉i2◉,
+                    Intermediate.◉i2◉ as ◉u6◉;
+                operation useOp() : Unit {
+                    ◉b1◉();
+                    ◉b2◉();
+                    ◉i1◉();
+                    ◉i2◉();
+                    ◉u1◉();
+                    ◉u2◉();
+                    ◉u3◉();
+                    ◉u4◉();
+                    ◉u5◉();
+                    ◉u6◉();
+                }
+            }
+            namespace Usage2 {
+                import
+                    Intermediate.◉b1◉,
+                    Intermediate.◉b2◉;
+                operation useOp() : Unit {
+                    ◉b1◉();
+                    ◉b2◉();
+                }
+            }
+            "});
+}
+
+#[test]
+fn on_item_import_usage_finds_all_usages() {
+    check_include_decl(indoc! {"
+            namespace Base {
+                operation ◉b1◉() : Unit {}
+                export
+                    ◉b1◉,
+                    ◉b1◉ as ◉b2◉;
+            }
+            namespace Intermediate {
+                import
+                    Base.◉b1◉,
+                    Base.◉b1◉ as ◉i1◉,
+                    Base.◉b2◉,
+                    Base.◉b2◉ as ◉i2◉;
+                export
+                    Base.◉b1◉,
+                    Base.◉b2◉,
+                    ◉i1◉,
+                    ◉i2◉;
+            }
+            namespace Usage1 {
+                import
+                    Base.◉b1◉,
+                    Base.◉b1◉ as ◉u1◉,
+                    Base.◉b2◉,
+                    Base.◉b2◉ as ◉u2◉,
+                    Intermediate.◉b1◉ as ◉u3◉,
+                    Intermediate.◉b2◉ as ◉u4◉,
+                    Intermediate.◉i1◉,
+                    Intermediate.◉i1◉ as ◉u5◉,
+                    Intermediate.◉i2◉,
+                    Intermediate.◉i2◉ as ◉u6◉;
+                operation useOp() : Unit {
+                    ◉b1◉();
+                    ◉b2◉();
+                    ◉i1◉();
+                    ◉i2◉();
+                    ◉u1◉();
+                    ◉u2◉();
+                    ◉u3◉();
+                    ◉u4◉();
+                    ◉u5◉();
+                    ◉u6◉();
+                }
+            }
+            namespace Usage2 {
+                import
+                    Intermediate.◉b1◉,
+                    Intermediate.◉b2◉;
+                operation useOp() : Unit {
+                    ◉b↘1◉();
+                    ◉b2◉();
+                }
+            }
+            "});
 }
