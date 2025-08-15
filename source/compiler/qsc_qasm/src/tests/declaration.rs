@@ -101,17 +101,16 @@ fn stretch() {
     for error in &unit.errors {
         println!("{error}");
     }
-    assert!(unit.errors.len() == 2);
-    assert!(
-        unit.errors[0]
-            .to_string()
-            .contains("stretch default values are not supported"),
-    );
-    assert!(
-        unit.errors[1]
-            .to_string()
-            .contains("stretch type values are not supported"),
-    );
+    assert_eq!(unit.errors.len(), 2);
+    for error in &unit.errors {
+        assert!(
+            [
+                "stretch type values are not supported",
+                "timing literals are not supported",
+            ]
+            .contains(&error.to_string().as_str())
+        );
+    }
 }
 
 #[test]

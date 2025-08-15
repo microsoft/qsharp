@@ -16,6 +16,7 @@ pub mod ast;
 pub(crate) mod const_eval;
 pub mod error;
 mod lowerer;
+pub(crate) mod mut_visit;
 pub use error::Error;
 pub use error::SemanticErrorKind;
 pub mod passes;

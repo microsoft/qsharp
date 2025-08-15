@@ -35,13 +35,20 @@ use crate::parser::QasmSource;
 use crate::parser::ast::List;
 use crate::parser::ast::list_from_iter;
 use crate::semantic::ast::Expr;
+use crate::semantic::passes::DurationAccumulator;
 use crate::semantic::symbols::SymbolResult;
 use crate::semantic::types::base_types_equal;
+use crate::semantic::types::binary_op_is_supported_for_types;
+use crate::semantic::types::both_types_are_duration_subtypes;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
+use crate::semantic::types::either_type_is_duration_subtype;
+use crate::semantic::types::relax_constness;
+use crate::semantic::types::type_is_duration_subtype;
 use crate::stdlib::angle::Angle;
 use crate::stdlib::builtin_functions;
 use crate::stdlib::complex::Complex;
+use crate::stdlib::duration::Duration;
 
 use super::ast as semantic;
 use crate::parser::ast as syntax;
@@ -961,6 +968,7 @@ impl Lowerer {
             syntax::ExprKind::Lit(lit) => self.lower_lit_expr(lit, None),
             syntax::ExprKind::Paren(pexpr) => self.lower_paren_expr(pexpr, expr.span),
             syntax::ExprKind::UnaryOp(expr) => self.lower_unary_op_expr(expr),
+            syntax::ExprKind::DurationOf(expr) => self.lower_duration_of_expr(expr),
         }
     }
 
@@ -1122,10 +1130,10 @@ impl Lowerer {
                 (semantic::ExprKind::Err, Type::Err)
             }
             syntax::LiteralKind::Duration(value, time_unit) => (
-                semantic::ExprKind::Lit(semantic::LiteralKind::Duration(
-                    *value,
-                    (*time_unit).into(),
-                )),
+                semantic::ExprKind::Lit(semantic::LiteralKind::Duration(Duration {
+                    value: *value,
+                    unit: (*time_unit).into(),
+                })),
                 Type::Duration(true),
             ),
             syntax::LiteralKind::Array(exprs) => {
@@ -1241,6 +1249,21 @@ impl Lowerer {
         }
     }
 
+    fn lower_duration_of_expr(&mut self, expr: &syntax::DurationofCall) -> semantic::Expr {
+        let scope = self.lower_block(&expr.scope);
+
+        let duration = DurationAccumulator::get_duration(&scope);
+
+        let ty = Type::Duration(true);
+        let kind = semantic::ExprKind::DurationofCall(semantic::DurationofCallExpr {
+            span: expr.span,
+            fn_name_span: expr.name_span,
+            duration,
+            scope,
+        });
+        semantic::Expr::new(expr.span, kind, ty)
+    }
+
     fn lower_annotations(annotations: &[Box<syntax::Annotation>]) -> Vec<semantic::Annotation> {
         annotations
             .iter()
@@ -1297,12 +1320,14 @@ impl Lowerer {
             }
         }
 
+        let duration = stmt
+            .duration
+            .as_ref()
+            .map(|d| self.lower_duration_designator(d));
+
         semantic::StmtKind::Box(semantic::BoxStmt {
             span: stmt.span,
-            duration: stmt
-                .duration
-                .as_ref()
-                .map(|duration| self.lower_expr(duration)),
+            duration,
             body: list_from_iter(stmts),
         })
     }
@@ -1370,7 +1395,7 @@ impl Lowerer {
         let ty_span = stmt.ty.span();
         let stmt_span = stmt.span;
         let name = stmt.identifier.name.clone();
-        let symbol = Symbol::new(
+        let mut symbol = Symbol::new(
             &name,
             stmt.identifier.span,
             ty.clone(),
@@ -1379,7 +1404,7 @@ impl Lowerer {
         );
 
         // process the symbol and init_expr gathering any errors
-        let init_expr = match init_expr {
+        let mut init_expr = match init_expr {
             Some(expr) => match expr {
                 syntax::ValueExpr::Expr(expr) => {
                     let expr = self.lower_decl_expr(expr, &ty, false);
@@ -1392,6 +1417,17 @@ impl Lowerer {
             },
             None => self.cast_expr_with_target_type_or_default(None, &ty, stmt_span),
         };
+
+        // If the type is a stretch, we need to evaluate the init_expr
+        // to get the const value and set it in the symbol.
+        // This is because stretch can only be const.
+        // ideally you wouldn't be able to define stretches without being a const
+        // decl or making it a semantic error, but all existing code uses
+        // stretches without the const qualifier.
+        if matches!(ty, Type::Stretch(..)) {
+            init_expr = init_expr.with_const_value(self);
+            symbol = symbol.with_const_expr(Rc::new(init_expr.clone()));
+        }
 
         let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
@@ -1654,12 +1690,40 @@ impl Lowerer {
     fn lower_delay(&mut self, stmt: &syntax::DelayStmt) -> semantic::StmtKind {
         let qubits = stmt.qubits.iter().map(|q| self.lower_gate_operand(q));
         let qubits = list_from_iter(qubits);
-        let duration = self.lower_expr(&stmt.duration);
+        let duration = self.lower_duration_designator(&stmt.duration);
+
         semantic::StmtKind::Delay(semantic::DelayStmt {
             span: stmt.span,
             duration,
             qubits,
         })
+    }
+
+    fn lower_duration_designator(&mut self, expr: &syntax::Expr) -> Expr {
+        let duration = self.lower_expr(expr);
+        if duration.ty.is_const() {
+            let duration = duration.with_const_value(self);
+            self.validate_duration_ty_and_domain(&duration);
+            duration
+        } else {
+            duration
+        }
+    }
+
+    fn validate_duration_ty_and_domain(&mut self, expr: &Expr) {
+        if type_is_duration_subtype(&expr.ty) && expr.ty.is_const() {
+            if let Some(duration) = &expr.get_const_duration() {
+                if duration.value < 0.0 {
+                    let kind = SemanticErrorKind::DesignatorMustBePositiveDuration(expr.span);
+                    self.push_semantic_error(kind);
+                }
+            } else {
+                let kind = SemanticErrorKind::DurationMustBeKnownAtCompileTime(expr.span);
+                self.push_semantic_error(kind);
+            }
+        } else {
+            self.push_semantic_error(SemanticErrorKind::ExprMustBeDuration(expr.span));
+        }
     }
 
     fn lower_end_stmt(stmt: &syntax::EndStmt) -> semantic::StmtKind {
@@ -1727,6 +1791,12 @@ impl Lowerer {
         } else {
             (crate::semantic::types::Type::Void, Span::default())
         };
+
+        if matches!(return_ty, crate::semantic::types::Type::Stretch(..)) {
+            // extern functions cannot return stretches, so we push an error.
+            let kind = SemanticErrorKind::ExternDeclarationCannotReturnStretch(ty_span);
+            self.push_semantic_error(kind);
+        }
 
         // extern functions can take of any number of arguments whose types correspond to the classical types of OpenQASM.
         // However, they cannot take qubits as parameters. We don't check the param types as they
@@ -2079,7 +2149,10 @@ impl Lowerer {
         let qubits = stmt.qubits.iter().map(|q| self.lower_gate_operand(q));
         let qubits = list_from_iter(qubits);
         //   1.5. Lower the duration.
-        let duration = stmt.duration.as_ref().map(|d| self.lower_expr(d));
+        let duration = stmt
+            .duration
+            .as_ref()
+            .map(|d| self.lower_duration_designator(d));
 
         let name = stmt.name.name.to_string();
 
@@ -2976,7 +3049,7 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::BoolType => crate::semantic::types::Type::Bool(is_const),
             syntax::ScalarTypeKind::Duration => crate::semantic::types::Type::Duration(is_const),
-            syntax::ScalarTypeKind::Stretch => crate::semantic::types::Type::Stretch(is_const),
+            syntax::ScalarTypeKind::Stretch => crate::semantic::types::Type::Stretch(true),
             syntax::ScalarTypeKind::Err => crate::semantic::types::Type::Err,
         }
     }
@@ -3194,11 +3267,6 @@ impl Lowerer {
             Type::Bool(_) => Some(from_lit_kind(LiteralKind::Bool(false))),
             Type::Float(_, _) => Some(from_lit_kind(LiteralKind::Float(0.0))),
             Type::Complex(_, _) => Some(from_lit_kind(Complex::default().into())),
-            Type::Stretch(_) => {
-                let message = "stretch default values";
-                self.push_unsupported_error_message(message, span);
-                None
-            }
             Type::Qubit => {
                 let message = "qubit default values";
                 self.push_unsupported_error_message(message, span);
@@ -3218,10 +3286,9 @@ impl Lowerer {
                 BigInt::ZERO,
                 *size,
             ))),
-            Type::Duration(_) => Some(from_lit_kind(LiteralKind::Duration(
-                0.0,
-                semantic::TimeUnit::Ns,
-            ))),
+            Type::Duration(_) | Type::Stretch(_) => {
+                Some(from_lit_kind(LiteralKind::Duration(Duration::default())))
+            }
             Type::Array(array) => {
                 let base_ty: Type = array.base_ty.clone().into();
                 let default = || self.get_default_value(&base_ty, span);
@@ -3590,6 +3657,7 @@ impl Lowerer {
             }
             Type::BitArray(size, _) => Self::cast_bitarray_expr_to_type(*size, ty, expr),
             Type::Array(..) => Self::cast_array_expr_to_type(ty, expr),
+            Type::Duration(..) | Type::Stretch(..) => cast_duration_subtype_expr_to_type(ty, expr),
             _ => None,
         }
     }
@@ -3779,6 +3847,10 @@ impl Lowerer {
         if rhs.ty.is_quantum() {
             let kind = SemanticErrorKind::QuantumTypesInBinaryExpression(rhs.span);
             self.push_semantic_error(kind);
+        }
+
+        if either_type_is_duration_subtype(&lhs.ty, &rhs.ty) {
+            return self.lower_duration_stretch_binop(op, lhs, rhs, span);
         }
 
         // Bit shifts with int lhs are not allowed in the spec.
@@ -4012,6 +4084,68 @@ impl Lowerer {
                 | syntax::BinOp::Shl
                 | syntax::BinOp::Shr
         )
+    }
+
+    /// <https://openqasm.com/language/delays.html#operations-on-durations>
+    /// We can add/subtract two durations to get a new duration.
+    /// We can multiply or divide them by a constant, to get a new duration.
+    /// We can divide them by another duration, to get a machine-precision float.
+    /// Negative durations are allowed, however passing a negative duration to a gate[duration] or box[duration] expression will result in an error.
+    /// All operations on durations happen at compile time since ultimately all durations, including stretches, will be resolved to constants.
+    fn lower_duration_stretch_binop(
+        &mut self,
+        op: syntax::BinOp,
+        lhs: Expr,
+        rhs: Expr,
+        span: Span,
+    ) -> Expr {
+        let mut unsupported_binop =
+            |op: syntax::BinOp, left_type: Type, right_type: Type, span: Span| -> Expr {
+                self.push_semantic_error(SemanticErrorKind::CannotApplyOperatorToTypes(
+                    op.to_string(),
+                    left_type.to_string(),
+                    right_type.to_string(),
+                    span,
+                ));
+                err_expr!(Type::Err, span)
+            };
+
+        let left_type = lhs.ty.clone();
+        let right_type = rhs.ty.clone();
+
+        if !binary_op_is_supported_for_types(op.into(), &left_type, &right_type) {
+            return unsupported_binop(op, left_type, right_type, span);
+        }
+
+        let is_const = relax_constness(&left_type, &right_type);
+
+        // <https://openqasm.com/language/types.html#converting-duration-to-other-types>
+        // Division of two durations results in a machine-precision float
+        // No other operations between durations are allowed.
+        let ty = if both_types_are_duration_subtypes(&left_type, &right_type) {
+            if op == syntax::BinOp::Div {
+                // Division of two durations results in a machine-precision float
+                Type::Float(None, is_const)
+            } else {
+                // Add and Sub are allowed, so we return a duration type.
+                Type::Duration(is_const)
+            }
+        } else {
+            Type::Duration(is_const)
+        };
+
+        let bin_expr = semantic::BinaryOpExpr {
+            op: op.into(),
+            lhs,
+            rhs,
+        };
+        let kind = semantic::ExprKind::BinaryOp(bin_expr);
+        let expr = semantic::Expr::new(span, kind, ty);
+        if is_const {
+            expr.with_const_value(self)
+        } else {
+            expr
+        }
     }
 
     fn lower_index(&mut self, index: &syntax::Index) -> Option<Vec<semantic::Index>> {
@@ -4628,6 +4762,22 @@ fn cast_complex_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic
         // when handling the widths, that is, ignoring them, since complex
         // numbers are a pair of floats.
         return Some(rhs.clone());
+    }
+    None
+}
+
+fn cast_duration_subtype_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic::Expr> {
+    assert!(matches!(rhs.ty, Type::Duration(..) | Type::Stretch(..)));
+
+    // we know the rhs is a duration or a stretch
+    // if the target type is a duration subtype, we can 'cast' it
+    if type_is_duration_subtype(ty) {
+        // duration can only 'cast' to a duration subtype.
+        // We aren't going to actually cast, we just
+        // change the type of the expression.
+        let mut expr = rhs.clone();
+        expr.ty = ty.clone();
+        return Some(expr);
     }
     None
 }

@@ -45,7 +45,42 @@ fn return_type() {
 }
 
 #[test]
-fn no_allowed_in_non_global_scope() {
+fn return_type_can_be_duration() {
+    check_stmt_kind(
+        "extern f() -> duration;",
+        &expect![[r#"
+            ExternDecl [0-23]:
+                symbol_id: 8"#]],
+    );
+}
+
+#[test]
+fn return_type_cannot_be_stretch() {
+    check_stmt_kind(
+        "extern f() -> stretch;",
+        &expect![[r#"
+            Program:
+                version: <none>
+                pragmas: <empty>
+                statements:
+                    Stmt [0-22]:
+                        annotations: <empty>
+                        kind: ExternDecl [0-22]:
+                            symbol_id: 8
+
+            [Qasm.Lowerer.ExternDeclarationCannotReturnStretch
+
+              x extern declarations cannot return stretches
+               ,-[test:1:15]
+             1 | extern f() -> stretch;
+               :               ^^^^^^^
+               `----
+            ]"#]],
+    );
+}
+
+#[test]
+fn not_allowed_in_non_global_scope() {
     check_stmt_kind(
         "{ extern f(); }",
         &expect![[r#"
@@ -61,7 +96,7 @@ fn no_allowed_in_non_global_scope() {
                                 kind: ExternDecl [2-13]:
                                     symbol_id: 8
 
-            [Qasm.Lowerer.DefDeclarationInNonGlobalScope
+            [Qasm.Lowerer.ExternDeclarationInNonGlobalScope
 
               x extern declarations must be done in global scope
                ,-[test:1:3]
