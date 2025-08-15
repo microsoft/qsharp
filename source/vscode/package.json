@@ -699,29 +699,34 @@
         ],
         "toolReferenceName": "azureQuantumSubmitToTarget",
         "displayName": "Submit to Azure Quantum Target",
-        "modelDescription": "Submit the current program to Azure Quantum with the provided information. Call this when you need to submit or run a program with Azure Quantum, for example when a customer asks 'Can you submit this program to Azure?'",
+        "modelDescription": "Submits a Q# program to Azure Quantum. The path to a .qs file must be specified in the `filePath` parameter. The program will first be compiled to Quantum Intermediate Representation (QIR), and then submitted to run on the specified target.",
         "canBeReferencedInPrompt": true,
         "icon": "./resources/file-icon-light.svg",
         "inputSchema": {
           "type": "object",
           "properties": {
-            "job_name": {
+            "filePath": {
               "type": "string",
-              "description": "The string to name the created job."
+              "description": "The absolute path to the .qs file. If this file is part of a project, the whole project will be compiled as the program. A .qs file belongs to a project if it resides anywhere under a src/ directory whose parent directory also contains a qsharp.json manifest."
             },
-            "target_id": {
+            "jobName": {
               "type": "string",
-              "description": "The ID or name of the target to submit the job to."
+              "description": "A name for the job."
             },
-            "number_of_shots": {
+            "targetId": {
+              "type": "string",
+              "description": "The ID of the target to submit the job to, as returned by the azure-quantum-get-providers tool."
+            },
+            "shots": {
               "type": "number",
               "description": "The number of shots to use for the job."
             }
           },
           "required": [
-            "job_name",
-            "target_id",
-            "number_of_shots"
+            "filePath",
+            "jobName",
+            "targetId",
+            "shots"
           ],
           "additionalProperties": false
         }
