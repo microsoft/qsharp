@@ -262,7 +262,7 @@ fn check_signed(ty: &Ty) -> bool {
 }
 
 fn check_ord(ty: &Ty) -> bool {
-    check_num_constraint(&ClassConstraint::Ord, ty)
+    !check_complex(ty) && check_num_constraint(&ClassConstraint::Ord, ty)
 }
 
 fn check_div(ty: &Ty) -> bool {
@@ -709,6 +709,7 @@ impl Solver {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn unify(&mut self, ty1: &Ty, ty2: &Ty, span: Span) -> Vec<Constraint> {
         match (ty1, ty2) {
             (Ty::Err, _)
@@ -790,6 +791,10 @@ impl Solver {
                     .collect()
             }
             (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Vec::new(),
+            // Treat Double and Complex as equal for equality constraints.
+            (Ty::Prim(Prim::Double), ty) | (ty, Ty::Prim(Prim::Double)) if check_complex(ty) => {
+                Vec::new()
+            }
             (Ty::Tuple(items1), Ty::Tuple(items2)) => {
                 if items1.len() != items2.len() {
                     self.errors.push(Error(ErrorKind::TyMismatch(
@@ -1001,12 +1006,8 @@ fn links_to_infer_ty(solution_tys: &IndexMap<InferTyId, Ty>, id: InferTyId, ty: 
 
 fn check_add(ty: &Ty) -> bool {
     match ty {
-        Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int | Prim::String) | Ty::Array(_) => true,
-        Ty::Param { bounds, .. } => bounds
-            .0
-            .iter()
-            .any(|bound| matches!(bound, ClassConstraint::Add)),
-        _ => false,
+        Ty::Prim(Prim::String) | Ty::Array(_) => true,
+        _ => check_num_constraint(&ClassConstraint::Add, ty),
     }
 }
 
@@ -1112,6 +1113,7 @@ fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
             | Prim::String
             | Prim::Pauli,
         ) => (Vec::new(), Vec::new()),
+        ty if check_complex(&ty) => (Vec::new(), Vec::new()),
         Ty::Array(item) => (vec![Constraint::Class(Class::Eq(*item), span)], Vec::new()),
         Ty::Tuple(items) => (
             items
@@ -1155,6 +1157,14 @@ fn check_exp(base: Ty, given_power: Ty, span: Span) -> (Vec<Constraint>, Vec<Err
         Ty::Prim(Prim::Double | Prim::Int) => (
             vec![Constraint::Eq {
                 expected: base,
+                actual: given_power,
+                span,
+            }],
+            Vec::new(),
+        ),
+        ref ty if check_complex(ty) => (
+            vec![Constraint::Eq {
+                expected: base.clone(),
                 actual: given_power,
                 span,
             }],
@@ -1406,10 +1416,18 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<
 fn check_num_constraint(constraint: &ClassConstraint, ty: &Ty) -> bool {
     match ty {
         Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int) => true,
+        ty if check_complex(ty) => true,
         Ty::Param { bounds, .. } => {
             // check if the bounds contain Num
             bounds.0.contains(constraint)
         }
+        _ => false,
+    }
+}
+
+fn check_complex(ty: &Ty) -> bool {
+    match ty {
+        Ty::Udt(_, Res::Item(id)) => ItemId::get_complex_id() == *id,
         _ => false,
     }
 }

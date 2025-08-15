@@ -411,7 +411,7 @@ impl<'a> Context<'a> {
                 Lit::BigInt(_) => converge(Ty::Prim(Prim::BigInt)),
                 Lit::Bool(_) => converge(Ty::Prim(Prim::Bool)),
                 Lit::Double(_) => converge(Ty::Prim(Prim::Double)),
-                Lit::Imaginary(_) => self.converge_complex_ty(),
+                Lit::Imaginary(_) => converge(Self::complex_ty()),
                 Lit::Int(_) => converge(Ty::Prim(Prim::Int)),
                 Lit::Pauli(_) => converge(Ty::Prim(Prim::Pauli)),
                 Lit::Result(_) => converge(Ty::Prim(Prim::Result)),
@@ -743,6 +743,7 @@ impl<'a> Context<'a> {
         self.diverge_if(diverges, ty)
     }
 
+    #[allow(clippy::too_many_lines)]
     fn infer_binop(&mut self, span: Span, op: BinOp, lhs: &Expr, rhs: &Expr) -> Partial<Ty> {
         let lhs_span = lhs.span;
         let lhs = self.infer_expr(lhs);
@@ -763,9 +764,15 @@ impl<'a> Context<'a> {
                 converge(Ty::Prim(Prim::Bool))
             }
             BinOp::Add => {
-                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty.clone());
                 self.inferrer.class(lhs_span, Class::Add(lhs.ty.clone()));
-                lhs
+                if (Self::is_double(&lhs.ty) && Self::is_complex(&rhs.ty))
+                    || (Self::is_complex(&lhs.ty) && Self::is_double(&rhs.ty))
+                {
+                    converge(Self::complex_ty())
+                } else {
+                    lhs
+                }
             }
             BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
@@ -779,19 +786,37 @@ impl<'a> Context<'a> {
                 lhs
             }
             BinOp::Div => {
-                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty.clone());
                 self.inferrer.class(lhs_span, Class::Div(lhs.ty.clone()));
-                lhs
+                if (Self::is_double(&lhs.ty) && Self::is_complex(&rhs.ty))
+                    || (Self::is_complex(&lhs.ty) && Self::is_double(&rhs.ty))
+                {
+                    converge(Self::complex_ty())
+                } else {
+                    lhs
+                }
             }
             BinOp::Mul => {
-                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty.clone());
                 self.inferrer.class(lhs_span, Class::Mul(lhs.ty.clone()));
-                lhs
+                if (Self::is_double(&lhs.ty) && Self::is_complex(&rhs.ty))
+                    || (Self::is_complex(&lhs.ty) && Self::is_double(&rhs.ty))
+                {
+                    converge(Self::complex_ty())
+                } else {
+                    lhs
+                }
             }
             BinOp::Sub => {
-                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty.clone());
                 self.inferrer.class(lhs_span, Class::Sub(lhs.ty.clone()));
-                lhs
+                if (Self::is_double(&lhs.ty) && Self::is_complex(&rhs.ty))
+                    || (Self::is_complex(&lhs.ty) && Self::is_double(&rhs.ty))
+                {
+                    converge(Self::complex_ty())
+                } else {
+                    lhs
+                }
             }
             BinOp::Mod => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
@@ -803,10 +828,16 @@ impl<'a> Context<'a> {
                     span,
                     Class::Exp {
                         base: lhs.ty.clone(),
-                        power: rhs.ty,
+                        power: rhs.ty.clone(),
                     },
                 );
-                lhs
+                if (Self::is_double(&lhs.ty) && Self::is_complex(&rhs.ty))
+                    || (Self::is_complex(&lhs.ty) && Self::is_double(&rhs.ty))
+                {
+                    converge(Self::complex_ty())
+                } else {
+                    lhs
+                }
             }
             BinOp::Shl | BinOp::Shr => {
                 self.inferrer
@@ -931,23 +962,20 @@ impl<'a> Context<'a> {
         ty
     }
 
-    fn converge_complex_ty(&mut self) -> Partial<Ty> {
-        let container = Ty::Udt(
+    fn complex_ty() -> Ty {
+        Ty::Udt(
             Rc::from("Complex"),
             hir::Res::Item(ItemId::get_complex_id()),
-        ); // ToDo: formalize this reference to the Complex type.
+        ) // ToDo: formalize this reference to the Complex type.
         // maybe search self.table.udts for the Complex type?
+    }
 
-        // If the container is not a struct type, assign type Err and don't continue to process the fields.
-        match &container {
-            Ty::Udt(_, hir::Res::Item(item_id)) => match self.table.udts.get(item_id) {
-                Some(udt) if udt.is_struct() => {}
-                _ => return converge(Ty::Err),
-            },
-            _ => return converge(Ty::Err),
-        }
+    fn is_complex(ty: &Ty) -> bool {
+        matches!(ty, Ty::Udt(_, hir::Res::Item(id)) if *id == ItemId::get_complex_id())
+    }
 
-        converge(container)
+    fn is_double(ty: &Ty) -> bool {
+        matches!(ty, Ty::Prim(Prim::Double))
     }
 
     fn diverge(&mut self) -> Partial<Ty> {
