@@ -813,23 +813,3 @@ pub fn parse_doc_for_param(doc: &str, param: &str) -> String {
     .trim()
     .to_string()
 }
-
-/// Takes a doc string from Q# and returns the contents of the `# Output` section. If no
-/// such section can be found, returns the empty string.
-#[must_use]
-pub fn parse_doc_for_output(doc: &str) -> String {
-    let re = Regex::new(r"(?mi)(?:^# Output$)([\s\S]*?)(?:(^# .*)|\z)").expect("Invalid regex");
-    match re.captures(doc) {
-        Some(captures) => {
-            let capture = captures
-                .get(1)
-                .expect("Didn't find the capture for the given regex");
-            capture
-                .as_str()
-                .trim()
-                .replace("\r\n", " ")
-                .replace('\n', " ")
-        }
-        None => String::new(),
-    }
-}
