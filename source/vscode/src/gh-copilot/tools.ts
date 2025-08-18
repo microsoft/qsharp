@@ -48,18 +48,21 @@ const toolDefinitions: {
   {
     name: "azure-quantum-submit-to-target",
     tool: async (input: {
-      job_name: string;
-      target_id: string;
-      number_of_shots: number;
-    }) => (await azqTools.submitToTarget(workspaceState, input)).result,
+      filePath: string;
+      jobName: string;
+      targetId: string;
+      shots: number;
+    }) =>
+      (await azqTools.submitToTarget(workspaceState, qsharpTools!, input))
+        .result,
     confirm: (input: {
-      job_name: string;
-      target_id: string;
-      number_of_shots: number;
+      jobName: string;
+      targetId: string;
+      shots: number;
     }): vscode.PreparedToolInvocation => ({
       confirmationMessages: {
         title: "Submit Azure Quantum job",
-        message: `Submit job "${input.job_name}" to ${input.target_id} for ${input.number_of_shots} shots?`,
+        message: `Submit job "${input.jobName}" to ${input.targetId} for ${input.shots} shots?`,
       },
     }),
   },
