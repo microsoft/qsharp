@@ -814,57 +814,6 @@ pub fn parse_doc_for_param(doc: &str, param: &str) -> String {
     .to_string()
 }
 
-/// Takes a doc string from a Q# callable and returns all parameter names and their descriptions
-/// as a Vec<(String, String)>, extracted from the # Input(s) section.
-#[must_use]
-pub fn parse_doc_for_all_params(doc: &str) -> Vec<(String, String)> {
-    // Line-by-line parser for Q# doc comments, extracting params from the # Input section.
-    let mut params = Vec::new();
-    let lines = doc.lines().peekable();
-    let mut in_input_section = false;
-    let mut current_param: Option<String> = None;
-    let mut current_desc = String::new();
-    for line in lines {
-        let trimmed = line.trim();
-        if !in_input_section {
-            if trimmed.starts_with("# Input") {
-                in_input_section = true;
-            }
-            continue;
-        }
-        // End input section if a new section starts (but not a param heading)
-        if trimmed.starts_with("# ") && !trimmed.starts_with("## ") {
-            break;
-        }
-        if trimmed.starts_with("## ") {
-            // Save previous param if any
-            if let Some(param) = current_param.take() {
-                params.push((param, current_desc.trim().to_string()));
-                current_desc = String::new();
-            }
-            // Start new param
-            current_param = Some(
-                trimmed
-                    .strip_prefix("## ")
-                    .unwrap_or(trimmed)
-                    .trim()
-                    .to_string(),
-            );
-        } else if current_param.is_some() {
-            // Accumulate description
-            if !current_desc.is_empty() {
-                current_desc.push('\n');
-            }
-            current_desc.push_str(trimmed);
-        }
-    }
-    // Save last param
-    if let Some(param) = current_param {
-        params.push((param, current_desc.trim().to_string()));
-    }
-    params
-}
-
 /// Takes a doc string from Q# and returns the contents of the `# Output` section. If no
 /// such section can be found, returns the empty string.
 #[must_use]
