@@ -75,7 +75,7 @@ fn addition_of_two_durations_returns_duration() {
 }
 
 #[test]
-fn addition_with_duration() {
+fn addition_of_duration_and_int_errors() {
     let input = "
         duration a;
         int b;
@@ -583,7 +583,7 @@ fn multiplication_float_by_duration() {
 }
 
 #[test]
-fn multiplication_assign_op() {
+fn multiplication_assign_op_not_support() {
     let input = "
         duration a = 2 ns;
         duration b = 3 ns;
@@ -854,7 +854,7 @@ fn division_assign_op() {
 #[test]
 fn division_assign_op_errors_when_duration_is_const() {
     let input = "
-        duration a = 12 ns;
+        const duration a = 12 ns;
         const float b = 3.0;
         a /= b;
     ";
@@ -862,33 +862,42 @@ fn division_assign_op_errors_when_duration_is_const() {
     check_stmt_kinds(
         input,
         &expect![[r#"
-            ClassicalDeclarationStmt [9-28]:
-                symbol_id: 8
-                ty_span: [9-17]
-                init_expr: Expr [22-27]:
-                    ty: const duration
-                    kind: Lit: Duration(12.0 ns)
-            ClassicalDeclarationStmt [37-57]:
-                symbol_id: 9
-                ty_span: [43-48]
-                init_expr: Expr [53-56]:
-                    ty: const float
-                    const_value: Float(3.0)
-                    kind: Lit: Float(3.0)
-            AssignStmt [66-73]:
-                lhs: Expr [66-67]:
-                    ty: duration
-                    kind: SymbolId(8)
-                rhs: Expr [66-73]:
-                    ty: duration
-                    kind: BinaryOpExpr:
-                        op: Div
-                        lhs: Expr [66-67]:
-                            ty: duration
-                            kind: SymbolId(8)
-                        rhs: Expr [71-72]:
-                            ty: const float
-                            kind: SymbolId(9)
-        "#]],
+            Program:
+                version: <none>
+                pragmas: <empty>
+                statements:
+                    Stmt [9-34]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-34]:
+                            symbol_id: 8
+                            ty_span: [15-23]
+                            init_expr: Expr [28-33]:
+                                ty: const duration
+                                const_value: Duration(12.0 ns)
+                                kind: Lit: Duration(12.0 ns)
+                    Stmt [43-63]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [43-63]:
+                            symbol_id: 9
+                            ty_span: [49-54]
+                            init_expr: Expr [59-62]:
+                                ty: const float
+                                const_value: Float(3.0)
+                                kind: Lit: Float(3.0)
+                    Stmt [72-79]:
+                        annotations: <empty>
+                        kind: Err
+
+            [Qasm.Lowerer.CannotUpdateConstVariable
+
+              x cannot update const variable a
+               ,-[test:4:9]
+             3 |         const float b = 3.0;
+             4 |         a /= b;
+               :         ^
+             5 |     
+               `----
+              help: mutable variables must be declared without the keyword `const`
+            ]"#]],
     );
 }

@@ -116,30 +116,6 @@ fn stretch_to_stretch() {
     );
 }
 
-#[test]
-fn stretch_to_stretch_is_no_op() {
-    let source = "
-        stretch a;
-        stretch(a);
-    ";
-    check(
-        source,
-        &expect![[r#"
-            ClassicalDeclarationStmt [9-19]:
-                symbol_id: 8
-                ty_span: [9-16]
-                init_expr: Expr [9-19]:
-                    ty: stretch
-                    const_value: Duration(0.0 s)
-                    kind: Lit: Duration(0.0 s)
-            ExprStmt [28-39]:
-                expr: Expr [28-38]:
-                    ty: stretch
-                    kind: SymbolId(8)
-        "#]],
-    );
-}
-
 //=========================
 // Casts to int and int[n]
 //=========================
