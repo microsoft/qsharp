@@ -4,4 +4,5 @@
 mod arithmetic_conversions;
 mod comparison;
 mod complex;
+mod duration;
 mod ident;

@@ -21,7 +21,6 @@ use expect_test::expect;
 use super::check;
 
 #[test]
-#[ignore = "Not yet implemented"]
 fn duration_and_stretch_types_without_init_exprs() {
     check(
         r#"
@@ -29,27 +28,27 @@ fn duration_and_stretch_types_without_init_exprs() {
         stretch n;
         "#,
         &expect![[r#"
-
-
-            [Qasm.Compile.NotSupported
-
-              x Duration type values are not supported.
-               ,-[test:2:9]
-             1 |
-             2 |         duration i;
-               :         ^^^^^^^^
-             3 |         stretch n;
-               `----
-            , Qasm.Compile.NotSupported
-
-              x Stretch type values are not supported.
-               ,-[test:3:9]
-             2 |         duration i;
-             3 |         stretch n;
-               :         ^^^^^^^
-             4 |
-               `----
-            ]"#]],
+            Program:
+                version: <none>
+                pragmas: <empty>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [9-20]:
+                                ty: duration
+                                kind: Lit: Duration(0.0 s)
+                    Stmt [29-39]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [29-39]:
+                            symbol_id: 9
+                            ty_span: [29-36]
+                            init_expr: Expr [29-39]:
+                                ty: stretch
+                                const_value: Duration(0.0 s)
+                                kind: Lit: Duration(0.0 s)"#]],
     );
 }
 

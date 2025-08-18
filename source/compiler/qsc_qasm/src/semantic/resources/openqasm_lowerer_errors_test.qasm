@@ -81,9 +81,6 @@ bool binary_negation_not_supported = true;
 // NotSupported arrays with more than 7 dimensions
 array[int, 1, 2, 3, 1, 2, 3, 1, 2] array_with_more_than_7_dims;
 
-// NotSupported stretch default values
-stretch stretch_val;
-
 box [2ns] {
     // ClassicalStmtInBox
     2;
@@ -262,6 +259,8 @@ func_called_like_gate q;
 // GateCallMissingParams
 h;
 
-
 // FuncMissingParams
 func_called_like_gate;
+
+// ExternDeclarationCannotReturnStretch
+extern extern_function_with_stretch_return(int) -> stretch;
