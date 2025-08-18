@@ -3,7 +3,7 @@
 
 use qsc_data_structures::span::Span;
 
-use crate::parser::ast::{DefParameter, DefParameterType, QubitType};
+use crate::parser::ast::{ConcatExpr, DefParameter, DefParameterType, QubitType};
 
 use super::ast::{
     AccessControl, AliasDeclStmt, Annotation, ArrayBaseTypeKind, ArrayReferenceType, ArrayType,
@@ -199,6 +199,10 @@ pub trait MutVisitor: Sized {
         walk_measure_expr(self, expr);
     }
 
+    fn visit_concat_expr(&mut self, expr: &mut ConcatExpr) {
+        walk_concat_expr(self, expr);
+    }
+
     fn visit_ident_or_indexed_ident(&mut self, ident: &mut IdentOrIndexedIdent) {
         walk_ident_or_indexed_ident(self, ident);
     }
@@ -366,7 +370,7 @@ pub fn walk_stmt(vis: &mut impl MutVisitor, stmt: &mut Stmt) {
 fn walk_alias_decl_stmt(vis: &mut impl MutVisitor, stmt: &mut AliasDeclStmt) {
     vis.visit_span(&mut stmt.span);
     vis.visit_ident_or_indexed_ident(&mut stmt.ident);
-    stmt.exprs.iter_mut().for_each(|e| vis.visit_expr(e));
+    vis.visit_concat_expr(&mut stmt.rhs);
 }
 
 fn walk_assign_stmt(vis: &mut impl MutVisitor, stmt: &mut AssignStmt) {
@@ -648,6 +652,7 @@ pub fn walk_index_expr(vis: &mut impl MutVisitor, expr: &mut IndexExpr) {
 
 pub fn walk_value_expr(vis: &mut impl MutVisitor, expr: &mut ValueExpr) {
     match &mut *expr {
+        ValueExpr::Concat(expr) => vis.visit_concat_expr(expr),
         ValueExpr::Expr(expr) => vis.visit_expr(expr),
         ValueExpr::Measurement(measure_expr) => vis.visit_measure_expr(measure_expr),
     }
@@ -657,6 +662,13 @@ pub fn walk_measure_expr(vis: &mut impl MutVisitor, expr: &mut MeasureExpr) {
     vis.visit_span(&mut expr.span);
     vis.visit_span(&mut expr.measure_token_span);
     vis.visit_gate_operand(&mut expr.operand);
+}
+
+pub fn walk_concat_expr(vis: &mut impl MutVisitor, expr: &mut ConcatExpr) {
+    vis.visit_span(&mut expr.span);
+    expr.operands
+        .iter_mut()
+        .for_each(|expr| vis.visit_expr(expr));
 }
 
 pub fn walk_ident_or_indexed_ident(vis: &mut impl MutVisitor, ident: &mut IdentOrIndexedIdent) {

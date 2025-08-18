@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use super::expr;
+use crate::parser::stmt::parse as stmt;
 use crate::{
     parser::ast::StmtKind,
     parser::{scan::ParserContext, stmt, tests::check},
@@ -1188,5 +1189,33 @@ fn addition_of_casts() {
                     type: ScalarType [9-12]: BitType [9-12]:
                         size: <none>
                     arg: Expr [13-14]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
+fn array_concatenation_is_not_part_of_the_expr_tree() {
+    let source = "a ++ b;";
+
+    check(
+        stmt,
+        source,
+        &expect![[r#"
+        Stmt [0-1]:
+            annotations: <empty>
+            kind: ExprStmt [0-1]:
+                expr: Expr [0-1]: Ident [0-1] "a"
+
+        [
+            Error(
+                Token(
+                    Semicolon,
+                    PlusPlus,
+                    Span {
+                        lo: 2,
+                        hi: 4,
+                    },
+                ),
+            ),
+        ]"#]],
     );
 }

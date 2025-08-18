@@ -12,11 +12,11 @@ use crate::{
         ast::{
             AliasDeclStmt, Annotation, Array, AssignStmt, BarrierStmt, BinOp, BinaryOpExpr, Block,
             BoxStmt, BreakStmt, BuiltinFunctionCall, CalibrationGrammarStmt, CalibrationStmt, Cast,
-            ClassicalDeclarationStmt, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, EndStmt,
-            EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl, ForStmt, FunctionCall, GateCall,
-            GateModifierKind, GateOperand, GateOperandKind, HardwareQubit, IfStmt, IncludeStmt,
-            Index, IndexedClassicalTypeAssignStmt, IndexedExpr, InputDeclaration, LiteralKind,
-            MeasureArrowStmt, MeasureExpr, OutputDeclaration, Pragma, Program,
+            ClassicalDeclarationStmt, ConcatExpr, ContinueStmt, DefCalStmt, DefStmt, DelayStmt,
+            EndStmt, EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl, ForStmt, FunctionCall,
+            GateCall, GateModifierKind, GateOperand, GateOperandKind, HardwareQubit, IfStmt,
+            IncludeStmt, Index, IndexedClassicalTypeAssignStmt, IndexedExpr, InputDeclaration,
+            LiteralKind, MeasureArrowStmt, MeasureExpr, OutputDeclaration, Pragma, Program,
             QuantumGateDefinition, QuantumGateModifier, QubitArrayDeclaration, QubitDeclaration,
             Range, ResetStmt, ReturnStmt, Set, SizeofCallExpr, Stmt, StmtKind, SwitchCase,
             SwitchStmt, TimeUnit, UnaryOp, UnaryOpExpr, Version, WhileLoop,
@@ -205,6 +205,10 @@ pub trait Visitor: Sized {
 
     fn visit_sizeof_call_expr(&mut self, expr: &SizeofCallExpr) {
         walk_sizeof_call_expr(self, expr);
+    }
+
+    fn visit_concat_expr(&mut self, expr: &ConcatExpr) {
+        walk_concat_expr(self, expr);
     }
 
     // fn visit_durationof_call_expr(&mut self, expr: &DurationofCallExpr) {
@@ -551,6 +555,7 @@ pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
         ExprKind::Paren(expr) => vis.visit_expr(expr),
         ExprKind::Measure(expr) => vis.visit_measure_expr(expr),
         ExprKind::SizeofCall(call) => vis.visit_sizeof_call_expr(call),
+        ExprKind::Concat(concat) => vis.visit_concat_expr(concat),
         // ExprKind::DurationofCall(call) => vis.visit_durationof_call_expr(call), // Other PR: Handle durationof calls
         ExprKind::Err => {}
     }
@@ -605,6 +610,11 @@ pub fn walk_sizeof_call_expr(vis: &mut impl Visitor, expr: &SizeofCallExpr) {
     vis.visit_span(expr.fn_name_span);
     vis.visit_expr(&expr.array);
     vis.visit_expr(&expr.dim);
+}
+
+pub fn walk_concat_expr(vis: &mut impl Visitor, expr: &ConcatExpr) {
+    vis.visit_span(expr.span);
+    expr.operands.iter().for_each(|expr| vis.visit_expr(expr));
 }
 
 // pub fn walk_durationof_call_expr(vis: &mut impl Visitor, expr: &DurationofCallExpr) {

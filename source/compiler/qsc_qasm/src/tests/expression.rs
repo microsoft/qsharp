@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+mod array_concatenation;
 mod binary;
 mod bits;
 mod builtin_functions;

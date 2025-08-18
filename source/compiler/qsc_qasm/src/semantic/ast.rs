@@ -1100,6 +1100,7 @@ pub enum ExprKind {
     Paren(Expr),
     Measure(MeasureExpr),
     SizeofCall(SizeofCallExpr),
+    Concat(ConcatExpr),
 }
 
 impl Display for ExprKind {
@@ -1118,6 +1119,7 @@ impl Display for ExprKind {
             ExprKind::Paren(expr) => write!(f, "Paren {expr}"),
             ExprKind::Measure(expr) => write!(f, "{expr}"),
             ExprKind::SizeofCall(call) => write!(f, "{call}"),
+            ExprKind::Concat(expr) => write!(f, "{expr}"),
         }
     }
 }
@@ -1284,6 +1286,19 @@ impl Display for Cast {
         writeln_field(f, "ty", &self.ty)?;
         writeln_field(f, "expr", &self.expr)?;
         write_field(f, "kind", &self.kind)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ConcatExpr {
+    pub span: Span,
+    pub operands: List<Expr>,
+}
+
+impl Display for ConcatExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "ConcatExpr", self.span)?;
+        write_list_field(f, "operands", &self.operands)
     }
 }
 

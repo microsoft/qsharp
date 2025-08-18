@@ -756,12 +756,12 @@ impl ArrayDimensions {
     pub fn indexed_dim_size(&self) -> Option<u32> {
         match self {
             ArrayDimensions::One(d)
-            | ArrayDimensions::Two(_, d)
-            | ArrayDimensions::Three(_, _, d)
-            | ArrayDimensions::Four(_, _, _, d)
-            | ArrayDimensions::Five(_, _, _, _, d)
-            | ArrayDimensions::Six(_, _, _, _, _, d)
-            | ArrayDimensions::Seven(_, _, _, _, _, _, d) => Some(*d),
+            | ArrayDimensions::Two(d, _)
+            | ArrayDimensions::Three(d, _, _)
+            | ArrayDimensions::Four(d, _, _, _)
+            | ArrayDimensions::Five(d, _, _, _, _)
+            | ArrayDimensions::Six(d, _, _, _, _, _)
+            | ArrayDimensions::Seven(d, _, _, _, _, _, _) => Some(*d),
             ArrayDimensions::Err => None,
         }
     }
@@ -1062,6 +1062,10 @@ pub(crate) fn types_equal_except_const(lhs: &Type, rhs: &Type) -> bool {
             types_equal_except_const(&lhs.base_ty.clone().into(), &rhs.base_ty.clone().into())
                 && lhs.dims == rhs.dims
         }
+        (Type::DynArrayRef(lhs), Type::DynArrayRef(rhs)) => {
+            base_types_equal(&lhs.base_ty.clone().into(), &rhs.base_ty.clone().into())
+                && lhs.dims == rhs.dims
+        }
         (Type::Gate(lhs_cargs, lhs_qargs), Type::Gate(rhs_cargs, rhs_qargs)) => {
             lhs_cargs == rhs_cargs && lhs_qargs == rhs_qargs
         }
@@ -1096,6 +1100,10 @@ pub(crate) fn base_types_equal(lhs: &Type, rhs: &Type) -> bool {
                 && lhs.dims == rhs.dims
         }
         (Type::StaticArrayRef(lhs), Type::StaticArrayRef(rhs)) => {
+            base_types_equal(&lhs.base_ty.clone().into(), &rhs.base_ty.clone().into())
+                && lhs.dims == rhs.dims
+        }
+        (Type::DynArrayRef(lhs), Type::DynArrayRef(rhs)) => {
             base_types_equal(&lhs.base_ty.clone().into(), &rhs.base_ty.clone().into())
                 && lhs.dims == rhs.dims
         }

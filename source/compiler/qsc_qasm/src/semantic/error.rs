@@ -157,6 +157,11 @@ pub enum SemanticErrorKind {
     #[error("inconsistent types in alias expression: {0}")]
     #[diagnostic(code("Qasm.Lowerer.InconsistentTypesInAlias"))]
     InconsistentTypesInAlias(String, #[label] Span),
+
+    #[error("inconsistent types in array concatenation expression: {0}")]
+    #[diagnostic(code("Qasm.Lowerer.InconsistentTypesInArrayConcatenation"))]
+    InconsistentTypesInArrayConcatenation(String, #[label] Span),
+
     #[error("indexed must be a single expression")]
     #[diagnostic(code("Qasm.Lowerer.IndexMustBeSingleExpr"))]
     IndexMustBeSingleExpr(#[label] Span),
@@ -191,6 +196,10 @@ pub enum SemanticErrorKind {
     #[diagnostic(code("Qasm.Lowerer.InvalidTypeInAlias"))]
     #[diagnostic(help("aliases can only be applied to quantum bits and registers"))]
     InvalidTypeInAlias(String, #[label] Span),
+    #[error("invalid type in array concatenation expression: {0}")]
+    #[diagnostic(code("Qasm.Lowerer.InvalidTypeInArrayConcatenation"))]
+    #[diagnostic(help("array concatenation can only be applied to arrays"))]
+    InvalidTypeInArrayConcatenation(String, #[label] Span),
     #[error("measure statements must have a name")]
     #[diagnostic(code("Qasm.Lowerer.MeasureExpressionsMustHaveName"))]
     MeasureExpressionsMustHaveName(#[label] Span),

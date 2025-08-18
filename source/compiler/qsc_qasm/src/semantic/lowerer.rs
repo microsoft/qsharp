@@ -605,7 +605,8 @@ impl Lowerer {
         let name = get_identifier_name(&alias.ident);
 
         let rhs = alias
-            .exprs
+            .rhs
+            .operands
             .iter()
             .map(|expr| self.lower_expr(expr))
             .collect::<Vec<_>>();
@@ -742,6 +743,10 @@ impl Lowerer {
                 let expr = self.lower_measure_expr(measure_expr);
                 self.cast_expr_to_type(&ty, &expr)
             }
+            syntax::ValueExpr::Concat(expr) => {
+                let expr = self.lower_array_concat_expr(expr);
+                self.cast_expr_to_type(&ty, &expr)
+            }
         };
 
         if lhs.ty.is_const() {
@@ -786,6 +791,7 @@ impl Lowerer {
                 syntax::ValueExpr::Measurement(measure_expr) => {
                     self.lower_measure_expr(measure_expr)
                 }
+                syntax::ValueExpr::Concat(expr) => self.lower_array_concat_expr(expr),
             };
             return self.lower_indexed_classical_type_assign_stmt(
                 lhs,
@@ -803,6 +809,10 @@ impl Lowerer {
             }
             syntax::ValueExpr::Measurement(measure_expr) => {
                 let expr = self.lower_measure_expr(measure_expr);
+                self.cast_expr_to_type(indexed_ty, &expr)
+            }
+            syntax::ValueExpr::Concat(expr) => {
+                let expr = self.lower_array_concat_expr(expr);
                 self.cast_expr_to_type(indexed_ty, &expr)
             }
         };
@@ -876,6 +886,7 @@ impl Lowerer {
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => self.lower_expr(expr),
             syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
+            syntax::ValueExpr::Concat(expr) => self.lower_array_concat_expr(expr),
         };
         let binary_expr = self.lower_binary_op_expr(op, lhs.clone(), rhs, span);
 
@@ -917,6 +928,7 @@ impl Lowerer {
                 syntax::ValueExpr::Measurement(measure_expr) => {
                     self.lower_measure_expr(measure_expr)
                 }
+                syntax::ValueExpr::Concat(expr) => self.lower_array_concat_expr(expr),
             };
             let rhs = self.lower_binary_op_expr(op, binary_expr_lhs, binary_expr_rhs, span);
             return self.lower_indexed_classical_type_assign_stmt(
@@ -931,6 +943,7 @@ impl Lowerer {
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => self.lower_expr(expr),
             syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
+            syntax::ValueExpr::Concat(expr) => self.lower_array_concat_expr(expr),
         };
         let binary_expr = self.lower_binary_op_expr(op, lhs.clone(), rhs, span);
 
@@ -983,6 +996,129 @@ impl Lowerer {
             // We take this branch if we are trying to lower an array but reached a leaf node.
             self.cast_expr_to_type(ty, &expr)
         }
+    }
+
+    fn get_concat_type_from_exprs(&mut self, rhs: &Vec<Expr>) -> Type {
+        fn get_expr_ty_names_as_str(exprs: &[Expr]) -> String {
+            exprs
+                .iter()
+                .map(|expr| &expr.ty)
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        }
+
+        let first_expr = rhs
+            .first()
+            .expect("the parser guarantees that a concat expression has at least two operands");
+        let first_ty = first_expr.ty.clone();
+
+        let mut has_invalid_types = false;
+        for expr in rhs {
+            if !matches!(
+                expr.ty,
+                Type::Array(..) | Type::StaticArrayRef(..) | Type::DynArrayRef(..)
+            ) {
+                let tys = expr.ty.to_string();
+                let kind = SemanticErrorKind::InvalidTypeInArrayConcatenation(tys, expr.span);
+                self.push_semantic_error(kind);
+                has_invalid_types = true;
+            }
+        }
+
+        if has_invalid_types {
+            return Type::Err;
+        }
+
+        let dummy_index = semantic::Index::Expr(semantic::Expr::int(0, Span::default()));
+        let indexed_ty = self.get_indexed_type(&first_ty, Span::default(), &dummy_index);
+
+        // We know the types are valid at this point
+        // but they may be mixed together which isn't allowed.
+        let all_tys = rhs.iter().map(|expr| &expr.ty).collect::<Vec<_>>();
+        let all_same = all_tys.iter().all(|ty| {
+            let element_indexed_ty = self.get_indexed_type(ty, Span::default(), &dummy_index);
+            types_equal_except_const(&indexed_ty, &element_indexed_ty)
+        });
+
+        if !all_same {
+            let lo = first_expr.span.lo;
+            let hi = rhs.last().expect("missing last rhs").span.hi;
+            let span = Span { lo, hi };
+            let tys = get_expr_ty_names_as_str(rhs);
+            let kind = SemanticErrorKind::InconsistentTypesInArrayConcatenation(tys, span);
+            self.push_semantic_error(kind);
+            return Type::Err;
+        }
+
+        if matches!(first_ty, Type::DynArrayRef(..)) {
+            return first_ty.clone();
+        }
+
+        let mut size = 0;
+        for expr in rhs {
+            match &expr.ty {
+                Type::Array(array_ty) => {
+                    if let Some(operand_width) = array_ty.dims.indexed_dim_size() {
+                        size += operand_width;
+                    }
+                }
+                Type::StaticArrayRef(array_ty) => {
+                    if let Some(operand_width) = array_ty.dims.indexed_dim_size() {
+                        size += operand_width;
+                    }
+                }
+                Type::DynArrayRef(_) => {
+                    // Dynamic array references were handled above.
+                    unreachable!("`Type::DynArrayRef` was handled above");
+                }
+                _ => {
+                    unreachable!("rhs expressions must be arrays");
+                }
+            }
+        }
+
+        let Type::Array(array_ty) = &first_ty else {
+            unreachable!();
+        };
+
+        // We get the array dimension of the first operand.
+        let mut concat_dims: Vec<_> = first_ty
+            .array_dims()
+            .expect("`Type::Array` has `ArrayDimensions`")
+            .into_iter()
+            .collect();
+
+        // We replace the indexed dimension by the computed size.
+        // When editing code the number of dimensions can temporarily be zero if the source code is
+        //   `array[int,`
+        // so, we access the indexed_dimension conditionally.
+        if !concat_dims.is_empty() {
+            concat_dims[0] = size;
+        }
+        let base_ty = array_ty.base_ty.clone().into();
+
+        if matches!(first_ty, Type::Array(..)) {
+            Type::make_array_ty(&concat_dims, &base_ty)
+        } else {
+            Type::make_static_array_ref_ty(&concat_dims, &base_ty, false)
+        }
+    }
+
+    fn lower_array_concat_expr(&mut self, expr: &syntax::ConcatExpr) -> semantic::Expr {
+        // The parser guarantees that a concat expression has at least two operands.
+        assert!(expr.operands.len() >= 2);
+        let operands = expr
+            .operands
+            .iter()
+            .map(|expr| self.lower_expr(expr))
+            .collect::<Vec<_>>();
+        let ty = self.get_concat_type_from_exprs(&operands);
+        let kind = semantic::ExprKind::Concat(semantic::ConcatExpr {
+            span: expr.span,
+            operands: list_from_iter(operands),
+        });
+        Expr::new(expr.span, kind, ty)
     }
 
     fn lower_cast_expr(&mut self, cast: &syntax::Cast) -> semantic::Expr {
@@ -1389,6 +1525,10 @@ impl Lowerer {
                     let expr = self.lower_measure_expr(measure_expr);
                     self.cast_expr_to_type(&ty, &expr)
                 }
+                syntax::ValueExpr::Concat(expr) => {
+                    let expr = self.lower_array_concat_expr(expr);
+                    self.cast_expr_to_type(&ty, &expr)
+                }
             },
             None => self.cast_expr_with_target_type_or_default(None, &ty, stmt_span),
         };
@@ -1414,6 +1554,10 @@ impl Lowerer {
                 self.cast_expr_with_target_type_or_default(Some(expr), &ty, stmt.span)
             }
             syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
+            syntax::ValueExpr::Concat(expr) => {
+                let expr = self.lower_array_concat_expr(expr);
+                self.cast_expr_to_type(&ty, &expr)
+            }
         };
 
         let mut symbol = Symbol::new(
@@ -2632,6 +2776,10 @@ impl Lowerer {
             .map(|expr| match &**expr {
                 syntax::ValueExpr::Expr(expr) => self.lower_expr(expr),
                 syntax::ValueExpr::Measurement(expr) => self.lower_measure_expr(expr),
+                syntax::ValueExpr::Concat(expr) => {
+                    // We lower the concat, which will result in a type error later on.
+                    self.lower_array_concat_expr(expr)
+                }
             })
             .map(Box::new);
 

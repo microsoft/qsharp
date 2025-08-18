@@ -241,6 +241,19 @@ impl Display for MeasureExpr {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct ConcatExpr {
+    pub span: Span,
+    pub operands: List<Expr>,
+}
+
+impl Display for ConcatExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "ConcatExpr", self.span)?;
+        write_list_field(f, "operands", &self.operands)
+    }
+}
+
 /// A binary operator.
 #[derive(Clone, Copy, Debug)]
 pub enum BinOp {
@@ -403,14 +416,14 @@ impl WithSpan for HardwareQubit {
 pub struct AliasDeclStmt {
     pub span: Span,
     pub ident: Box<IdentOrIndexedIdent>,
-    pub exprs: List<Expr>,
+    pub rhs: ConcatExpr,
 }
 
 impl Display for AliasDeclStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AliasDeclStmt", self.span)?;
         writeln_field(f, "ident", &self.ident)?;
-        write_list_field(f, "exprs", &self.exprs)
+        write_field(f, "rhs", &self.rhs)
     }
 }
 
@@ -1385,8 +1398,11 @@ impl Display for ClassicalDeclarationStmt {
     }
 }
 
+/// A special kind of Expr that allows measurement and concatenation expressions.
+/// It is used as the rhs of alias, classical declaration, and assign statements.
 #[derive(Clone, Debug)]
 pub enum ValueExpr {
+    Concat(ConcatExpr),
     Expr(Expr),
     Measurement(MeasureExpr),
 }
@@ -1394,6 +1410,7 @@ pub enum ValueExpr {
 impl Display for ValueExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Concat(expr) => write!(f, "{expr}"),
             Self::Expr(expr) => write!(f, "{expr}"),
             Self::Measurement(measure) => write!(f, "{measure}"),
         }

@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+mod array_concatenation;
 mod binary;
 mod builtin_functions;
 mod explicit_cast_from_angle;

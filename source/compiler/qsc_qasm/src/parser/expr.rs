@@ -17,6 +17,7 @@ use crate::{
         ClosedBinOp, Delim, Radix, Token, TokenKind,
         cooked::{ComparisonOp, Literal, TimingLiteralKind},
     },
+    parser::ast::ConcatExpr,
 };
 
 use crate::parser::Result;
@@ -25,7 +26,7 @@ use super::{
     ast::{
         BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, GateOperand, GateOperandKind,
         HardwareQubit, Ident, IdentOrIndexedIdent, Index, IndexExpr, IndexList, IndexListItem,
-        IndexedIdent, List, Lit, LiteralKind, MeasureExpr, Range, Set, TimeUnit, TypeDef, UnaryOp,
+        IndexedIdent, Lit, LiteralKind, MeasureExpr, Range, Set, TimeUnit, TypeDef, UnaryOp,
         UnaryOpExpr, ValueExpr, Version, list_from_iter,
     },
     completion::word_kinds::WordKinds,
@@ -694,17 +695,37 @@ fn lit_array_element(s: &mut ParserContext) -> Result<Expr> {
 /// These are expressions allowed in classical declarations.
 /// Grammar: `arrayLiteral | expression | measureExpression`.
 pub(super) fn declaration_expr(s: &mut ParserContext) -> Result<ValueExpr> {
+    let lo = s.peek().span.lo;
+
+    // 1. Try to parse a measurement expression.
     if let Some(measurement) = opt(s, measure_expr)? {
         return Ok(ValueExpr::Measurement(measurement));
     }
 
-    let expr = if let Some(expr) = opt(s, expr)? {
-        expr
-    } else {
-        lit_array(s)?
-    };
+    // Try to parse an expression or a concatenation.
+    if let Some(e) = opt(s, expr)? {
+        let mut exprs = Vec::new();
+        exprs.push(e);
 
-    Ok(ValueExpr::Expr(expr))
+        // Try to parse many expressions separated by the `++` operator.
+        while opt(s, |s| token(s, TokenKind::PlusPlus))?.is_some() {
+            exprs.push(expr(s)?);
+        }
+
+        // If we parsed a single expression, this is just an `Expr`.
+        if exprs.len() == 1 {
+            return Ok(ValueExpr::Expr(
+                exprs.into_iter().next().expect("there is one element"),
+            ));
+        }
+
+        // If we parsed more than one expression, this is a concatenation.
+        let span = s.span(lo);
+        let operands = list_from_iter(exprs);
+        return Ok(ValueExpr::Concat(ConcatExpr { span, operands }));
+    }
+
+    Ok(ValueExpr::Expr(lit_array(s)?))
 }
 
 /// These are expressions allowed in constant classical declarations.
@@ -809,14 +830,19 @@ fn index_operand(s: &mut ParserContext) -> Result<Index> {
     Ok(index)
 }
 
-/// This expressions are not part of the expression tree
-/// and are only used in alias statements.
+/// This expression is not part of the expression tree
+/// and is only used as rhs of alias, classical declaration,
+/// and assignment statements.
 /// Grammar: `expression (DOUBLE_PLUS expression)*`.
-pub fn alias_expr(s: &mut ParserContext) -> Result<List<Expr>> {
+pub fn concat_expr(s: &mut ParserContext) -> Result<ConcatExpr> {
+    let lo = s.peek().span.lo;
     let mut exprs = Vec::new();
     exprs.push(expr(s)?);
     while opt(s, |s| token(s, TokenKind::PlusPlus))?.is_some() {
         exprs.push(expr(s)?);
     }
-    Ok(list_from_iter(exprs))
+    let span = s.span(lo);
+    let operands = list_from_iter(exprs);
+
+    Ok(ConcatExpr { span, operands })
 }

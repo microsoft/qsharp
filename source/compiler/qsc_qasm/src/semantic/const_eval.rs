@@ -120,6 +120,11 @@ impl Expr {
                 // in [`Lowerer::lower_sizeof_call_expr`].
                 None
             }
+            ExprKind::Concat(_) => {
+                // Arrays are non-const, so we don't need to implement array
+                // concatenation in the const-evaluator.
+                None
+            }
             ExprKind::Err => None,
         }
     }
