@@ -227,7 +227,7 @@ export class QSharpTools {
    * organized by namespace. Each item includes its name, namespace, kind, signature, summary,
    * parameter descriptions, and output description.
    */
-  async qsharpGetLibraryDescriptions(): Promise<any> {
+  async qsharpGetLibraryDescriptions(): Promise<string> {
     const compilerRunTimeoutMs = 1000 * 5; // 5 seconds
     const compilerTimeout = setTimeout(() => {
       worker.terminate();
@@ -236,7 +236,7 @@ export class QSharpTools {
     const summaries = await worker.getLibrarySummaries();
     clearTimeout(compilerTimeout);
     worker.terminate();
-    return deepMapToObject(summaries);
+    return summaries;
   }
 
   async getProgram(
@@ -341,19 +341,5 @@ export class QSharpTools {
     }
     clearTimeout(compilerTimeout);
     worker.terminate();
-  }
-}
-
-function deepMapToObject(value: any): any {
-  if (value instanceof Map) {
-    const obj: any = {};
-    for (const [key, val] of value.entries()) {
-      obj[key] = deepMapToObject(val);
-    }
-    return obj;
-  } else if (Array.isArray(value)) {
-    return value.map(deepMapToObject);
-  } else {
-    return value;
   }
 }

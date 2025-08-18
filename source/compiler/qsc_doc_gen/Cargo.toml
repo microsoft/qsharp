@@ -18,7 +18,6 @@ qsc_frontend = { path = "../qsc_frontend" }
 qsc_ast = { path = "../qsc_ast" }
 qsc_hir = { path = "../qsc_hir" }
 rustc-hash = { workspace = true }
-serde_json = { workspace = true }
 
 [lints]
 workspace = true

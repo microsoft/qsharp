@@ -1096,7 +1096,6 @@ dependencies = [
  "qsc_hir",
  "regex-lite",
  "rustc-hash",
- "serde_json",
 ]
 
 [[package]]
