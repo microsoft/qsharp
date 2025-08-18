@@ -49,7 +49,7 @@ export class QSharpTools {
   constructor(private extensionUri: vscode.Uri) {}
 
   /**
-   * Implements the `qsharp-run-program` tool call.
+   * Implements the `qdk-run-program` tool call.
    */
   async runProgram(input: {
     filePath: string;
@@ -145,7 +145,7 @@ export class QSharpTools {
   }
 
   /**
-   * Implements the `qsharp-generate-circuit` tool call.
+   * Implements the `qdk-generate-circuit` tool call.
    */
   async generateCircuit(input: { filePath: string }): Promise<
     ProjectInfo &
@@ -182,7 +182,7 @@ export class QSharpTools {
   }
 
   /**
-   * Implements the `qsharp-run-resource-estimator` tool call.
+   * Implements the `qdk-run-resource-estimator` tool call.
    */
   async runResourceEstimator(input: {
     filePath: string;
