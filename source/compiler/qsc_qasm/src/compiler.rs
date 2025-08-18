@@ -346,7 +346,7 @@ impl QasmCompiler {
             is_qiskit,
         );
 
-        let ast_ty = map_qsharp_type_to_ast_ty(&output_ty);
+        let ast_ty = map_qsharp_type_to_ast_ty(&output_ty, whole_span);
         signature.output = format!("{output_ty}");
         // This can create a collision on multiple compiles when interactive
         // We also have issues with the new entry point inference logic.
@@ -370,7 +370,7 @@ impl QasmCompiler {
                     build_arg_pat(
                         s.name.clone(),
                         s.span,
-                        map_qsharp_type_to_ast_ty(&qsharp_ty),
+                        map_qsharp_type_to_ast_ty(&qsharp_ty, s.ty_span),
                     )
                 })
                 .collect(),
@@ -563,9 +563,61 @@ impl QasmCompiler {
         }
     }
 
+    /// Alias statements are compiled into the Q# ast as array concatenation for qubits
+    /// and an compilation error for bit arrays.
+    ///
+    /// All of the heavy lifting is done in the lowerer, which transforms the
+    /// semantic AST into a form that can be easily compiled into Q#.
+    ///
+    /// So here we compile each array expression and build up a binary op addition
+    /// if there is more than one expression to concatenate.
     fn compile_alias_decl_stmt(&mut self, stmt: &semast::AliasDeclStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("alias statements", stmt.span);
-        None
+        let symbol = self.symbols[stmt.symbol_id].clone();
+        if matches!(symbol.ty, Type::BitArray(..)) {
+            self.push_unimplemented_error_message("bit register alias statements", stmt.span);
+            return None;
+        }
+        let exprs = stmt
+            .exprs
+            .iter()
+            .map(|expr| self.compile_expr(expr))
+            .collect::<Vec<_>>();
+
+        assert!(
+            !stmt.exprs.is_empty(),
+            "alias decl must have at least one expression"
+        );
+
+        let mut expr_iter = exprs.into_iter();
+        let mut expr = expr_iter
+            .next()
+            .expect("alias decl must have at least one expression");
+
+        for rhs in expr_iter {
+            let span = Span {
+                lo: expr.span.lo,
+                hi: rhs.span.hi,
+            };
+            expr = build_binary_expr(false, qsast::BinOp::Add, expr, rhs, span);
+        }
+
+        let ty = self.map_semantic_type_to_qsharp_type(&symbol.ty, symbol.ty_span);
+        let is_const = matches!(
+            ty,
+            crate::types::Type::Qubit | crate::types::Type::QubitArray(..)
+        ) || symbol.ty.is_const();
+
+        let decl = build_classical_decl(
+            &symbol.name,
+            is_const,
+            symbol.ty_span,
+            stmt.span,
+            symbol.span,
+            &ty,
+            expr,
+        );
+
+        Some(decl)
     }
 
     fn compile_assign_stmt(&mut self, stmt: &semast::AssignStmt) -> Option<qsast::Stmt> {
@@ -606,6 +658,7 @@ impl QasmCompiler {
                 span: stmt.rhs.span,
                 ty: Type::BitArray(width, false),
                 expr: stmt.lhs.clone(),
+                kind: semast::CastKind::Implicit,
             })),
             const_value: None,
             ty: Type::BitArray(width, false),
@@ -794,7 +847,7 @@ impl QasmCompiler {
                 let symbol = self.symbols[*arg].clone();
                 let name = symbol.name.clone();
                 let qsharp_ty = self.map_semantic_type_to_qsharp_type(&symbol.ty, symbol.ty_span);
-                let ast_type = map_qsharp_type_to_ast_ty(&qsharp_ty);
+                let ast_type = map_qsharp_type_to_ast_ty(&qsharp_ty, symbol.ty_span);
                 (
                     name.clone(),
                     ast_type.clone(),
@@ -805,7 +858,7 @@ impl QasmCompiler {
 
         let body = Some(self.compile_block(&stmt.body));
         let qsharp_ty = self.map_semantic_type_to_qsharp_type(return_type, stmt.return_type_span);
-        let return_type = map_qsharp_type_to_ast_ty(&qsharp_ty);
+        let return_type = map_qsharp_type_to_ast_ty(&qsharp_ty, stmt.return_type_span);
         let kind = if stmt.has_qubit_params
             || annotations
                 .iter()
@@ -871,6 +924,7 @@ impl QasmCompiler {
             &loop_var.name,
             loop_var.span,
             &qsharp_ty,
+            loop_var.ty_span,
             iterable,
             body,
             stmt.span,
@@ -946,6 +1000,11 @@ impl QasmCompiler {
             name_span,
             span,
         )
+    }
+
+    fn compile_durationof_call_expr(&mut self, expr: &semast::DurationofCallExpr) -> qsast::Expr {
+        self.push_unsupported_error_message("durationof call", expr.span);
+        err_expr(expr.span)
     }
 
     fn compile_gate_call_stmt(&mut self, stmt: &semast::GateCall) -> Option<qsast::Stmt> {
@@ -1105,7 +1164,7 @@ impl QasmCompiler {
 
         match (pragma, stmt.value.as_ref()) {
             (PragmaKind::QdkBoxOpen, Some(value)) => {
-                if let Some(symbol) = self.symbols.get_symbol_by_name(value) {
+                if let Ok(symbol) = self.symbols.get_symbol_by_name(value) {
                     if let crate::semantic::types::Type::Function(args, return_ty) = &symbol.1.ty {
                         if is_parameterless_and_returns_void(args, return_ty) {
                             self.pragma_config
@@ -1120,7 +1179,7 @@ impl QasmCompiler {
                 ));
             }
             (PragmaKind::QdkBoxClose, Some(value)) => {
-                if let Some(symbol) = self.symbols.get_symbol_by_name(value) {
+                if let Ok(symbol) = self.symbols.get_symbol_by_name(value) {
                     if let crate::semantic::types::Type::Function(args, return_ty) = &symbol.1.ty {
                         if is_parameterless_and_returns_void(args, return_ty) {
                             self.pragma_config
@@ -1182,7 +1241,7 @@ impl QasmCompiler {
                 let symbol = self.symbols[*arg].clone();
                 let name = symbol.name.clone();
                 let qsharp_ty = self.map_semantic_type_to_qsharp_type(&symbol.ty, symbol.ty_span);
-                let ast_type = map_qsharp_type_to_ast_ty(&qsharp_ty);
+                let ast_type = map_qsharp_type_to_ast_ty(&qsharp_ty, symbol.ty_span);
                 (
                     name.clone(),
                     ast_type.clone(),
@@ -1198,7 +1257,7 @@ impl QasmCompiler {
                 let symbol = self.symbols[*arg].clone();
                 let name = symbol.name.clone();
                 let qsharp_ty = self.map_semantic_type_to_qsharp_type(&symbol.ty, symbol.ty_span);
-                let ast_type = map_qsharp_type_to_ast_ty(&qsharp_ty);
+                let ast_type = map_qsharp_type_to_ast_ty(&qsharp_ty, symbol.ty_span);
                 (
                     name.clone(),
                     ast_type.clone(),
@@ -1421,6 +1480,9 @@ impl QasmCompiler {
                 span: expr.span,
                 ..Default::default()
             },
+            semast::ExprKind::CapturedIdent(symbol_id) => {
+                self.compile_captured_ident_expr(*symbol_id, expr.span)
+            }
             semast::ExprKind::Ident(symbol_id) => self.compile_ident_expr(*symbol_id, expr.span),
             semast::ExprKind::UnaryOp(unary_op_expr) => self.compile_unary_op_expr(unary_op_expr),
             semast::ExprKind::BinaryOp(binary_op_expr) => {
@@ -1444,7 +1506,21 @@ impl QasmCompiler {
             semast::ExprKind::Paren(pexpr) => self.compile_paren_expr(pexpr, expr.span),
             semast::ExprKind::Measure(mexpr) => self.compile_measure_expr(mexpr, &expr.ty),
             semast::ExprKind::SizeofCall(sizeof_call) => self.compile_sizeof_call_expr(sizeof_call),
+            semast::ExprKind::DurationofCall(duration_call) => {
+                self.compile_durationof_call_expr(duration_call)
+            }
         }
+    }
+
+    fn compile_captured_ident_expr(&mut self, symbol_id: SymbolId, span: Span) -> qsast::Expr {
+        let symbol = &self.symbols[symbol_id];
+        // when closing over a constant value we will have a const value
+        // associated with the symbol, but due to scoping rule differences
+        // we have to "copy" the value into the usage.
+        let Some(value) = symbol.get_const_value() else {
+            unreachable!("captured ident exprs should always have a const value");
+        };
+        self.compile_literal_expr(&value, span)
     }
 
     fn compile_ident_expr(&mut self, symbol_id: SymbolId, span: Span) -> qsast::Expr {
@@ -1626,8 +1702,8 @@ impl QasmCompiler {
             }
             LiteralKind::Bit(value) => Self::compile_bit_literal(*value, span),
             LiteralKind::Bool(value) => Self::compile_bool_literal(*value, span),
-            LiteralKind::Duration(value, time_unit) => {
-                self.compile_duration_literal(*value, *time_unit, span)
+            LiteralKind::Duration(duration) => {
+                self.compile_duration_literal(duration.value, duration.unit, span)
             }
             LiteralKind::Float(value) => Self::compile_float_literal(*value, span),
             LiteralKind::Complex(value) => Self::compile_complex_literal(*value, span),

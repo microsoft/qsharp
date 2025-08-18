@@ -58,6 +58,8 @@ bitflags! {
         // End hardcoded identifiers.
         //
 
+        const Durationof = 1 << 3; // `durationof` call, e.g. `durationof (scope)`
+
         //
         // Begin keywords.
         //
@@ -107,7 +109,7 @@ bitflags! {
     }
 }
 
-const KEYWORDS_START: u8 = 3;
+const KEYWORDS_START: u8 = 4;
 const fn keyword_bit(k: Keyword) -> u128 {
     1 << (k as u8 + KEYWORDS_START)
 }

@@ -6,7 +6,7 @@ use crate::{compilation::Compilation, protocol::CompletionItemKind};
 use qsc::{
     display::{CodeDisplay, Lookup},
     hir::ItemKind,
-    resolve::{Local, LocalKind},
+    resolve::Local,
 };
 
 /// Provides the locals that are visible at the cursor offset
@@ -57,8 +57,8 @@ impl Locals<'_> {
         include_tys: bool,
     ) -> Option<Completion> {
         let display = CodeDisplay { compilation };
-        let (kind, detail) = match &candidate.kind {
-            LocalKind::Item(item_id) => {
+        let (kind, detail) = match &candidate {
+            Local::Item(item_id, _) => {
                 let item = compilation.resolve_item_relative_to_user_package(item_id);
                 let (detail, kind) = match &item.0.kind {
                     ItemKind::Callable(decl) => {
@@ -87,23 +87,24 @@ impl Locals<'_> {
                 };
                 (kind, detail)
             }
-            LocalKind::Var(node_id) => {
+            Local::Var(node_id, name) => {
                 if !include_terms {
                     return None;
                 }
-                let detail = Some(display.name_ty_id(&candidate.name, *node_id).to_string());
+                let detail = Some(display.name_ty_id(name, *node_id).to_string());
                 (CompletionItemKind::Variable, detail)
             }
-            LocalKind::TyParam(_) => {
+            Local::TyParam(..) => {
                 if !include_tys {
                     return None;
                 }
                 (CompletionItemKind::TypeParameter, None)
             }
+            Local::NamespaceImport(..) => return None,
         };
 
         Some(Completion::with_detail(
-            candidate.name.to_string(),
+            candidate.name().expect("expected item name").to_string(),
             kind,
             detail,
         ))

@@ -28,7 +28,7 @@ pub enum Value {
     Range(Box<Range>),
     Result(Result),
     String(Rc<str>),
-    Tuple(Rc<[Value]>),
+    Tuple(Rc<[Value]>, Option<Rc<StoreItemId>>),
     Var(Var),
 }
 
@@ -218,7 +218,7 @@ impl Display for Value {
                 }
             },
             Value::String(v) => write!(f, "{v}"),
-            Value::Tuple(tup) => {
+            Value::Tuple(tup, _) => {
                 write!(f, "(")?;
                 join(f, tup.iter(), ", ")?;
                 if tup.len() == 1 {
@@ -258,7 +258,7 @@ impl Value {
 
     #[must_use]
     pub fn unit() -> Self {
-        UNIT.with(|unit| Self::Tuple(unit.clone()))
+        UNIT.with(|unit| Self::Tuple(unit.clone(), None))
     }
 
     /// Convert the [Value] into an array of [Value]
@@ -419,7 +419,7 @@ impl Value {
     /// This will panic if the [Value] is not a [`Value::Tuple`].
     #[must_use]
     pub fn unwrap_tuple(self) -> Rc<[Self]> {
-        let Value::Tuple(v) = self else {
+        let Value::Tuple(v, _) = self else {
             panic!("value should be Tuple, got {}", self.type_name());
         };
         v
@@ -451,7 +451,8 @@ impl Value {
             Value::Range(..) => "Range",
             Value::Result(_) => "Result",
             Value::String(_) => "String",
-            Value::Tuple(_) => "Tuple",
+            Value::Tuple(_, None) => "Tuple",
+            Value::Tuple(_, Some(_)) => "UDT",
             Value::Var(_) => "Var",
         }
     }
@@ -464,7 +465,7 @@ impl Value {
             Value::Array(arr) => arr.iter().flat_map(Value::qubits).collect(),
             Value::Closure(closure) => closure.fixed_args.iter().flat_map(Value::qubits).collect(),
             Value::Qubit(q) => vec![q.clone()],
-            Value::Tuple(tup) => tup.iter().flat_map(Value::qubits).collect(),
+            Value::Tuple(tup, _) => tup.iter().flat_map(Value::qubits).collect(),
 
             Value::BigInt(_)
             | Value::Bool(_)

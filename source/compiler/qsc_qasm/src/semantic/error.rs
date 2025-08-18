@@ -77,15 +77,21 @@ pub enum SemanticErrorKind {
     #[error("complex numbers in assignment binary expressions are not yet supported")]
     #[diagnostic(code("Qasm.Lowerer.ComplexBinaryAssignment"))]
     ComplexBinaryAssignment(#[label] Span),
-    #[error("designator must be a positive literal integer")]
-    #[diagnostic(code("Qasm.Lowerer.DesignatorMustBePositiveIntLiteral"))]
-    DesignatorMustBePositiveIntLiteral(#[label] Span),
     #[error("def declarations must be done in global scope")]
     #[diagnostic(code("Qasm.Lowerer.DefDeclarationInNonGlobalScope"))]
     DefDeclarationInNonGlobalScope(#[label] Span),
+    #[error("designator must be a positive duration")]
+    #[diagnostic(code("Qasm.Lowerer.DesignatorMustBePositiveDuration"))]
+    DesignatorMustBePositiveDuration(#[label] Span),
+    #[error("designator must be a positive literal integer")]
+    #[diagnostic(code("Qasm.Lowerer.DesignatorMustBePositiveIntLiteral"))]
+    DesignatorMustBePositiveIntLiteral(#[label] Span),
     #[error("designator is too large")]
     #[diagnostic(code("Qasm.Lowerer.DesignatorTooLarge"))]
     DesignatorTooLarge(#[label] Span),
+    #[error("duration must be known at compile time")]
+    #[diagnostic(code("Qasm.Lowerer.DurationMustBeKnownAtCompileTime"))]
+    DurationMustBeKnownAtCompileTime(#[label] Span),
     #[error("index operator must contain at least one index")]
     #[diagnostic(code("Qasm.Lowerer.EmptyIndexOperator"))]
     EmptyIndexOperator(#[label] Span),
@@ -95,6 +101,9 @@ pub enum SemanticErrorKind {
     #[error("{0} must be an integer")]
     #[diagnostic(code("Qasm.Lowerer.ExprMustBeInt"))]
     ExprMustBeInt(String, #[label] Span),
+    #[error("expression must be a duration")]
+    #[diagnostic(code("Qasm.Lowerer.ExprMustBeDuration"))]
+    ExprMustBeDuration(#[label] Span),
     #[error("{0} must be a non-negative integer")]
     #[diagnostic(code("Qasm.Lowerer.ExprMustBeNonNegativeInt"))]
     ExprMustBeNonNegativeInt(String, #[label] Span),
@@ -104,8 +113,11 @@ pub enum SemanticErrorKind {
     #[error("{0} must fit in a u32")]
     #[diagnostic(code("Qasm.Lowerer.ExprMustFitInU32"))]
     ExprMustFitInU32(String, #[label] Span),
+    #[error("extern declarations cannot return stretches")]
+    #[diagnostic(code("Qasm.Lowerer.ExternDeclarationCannotReturnStretch"))]
+    ExternDeclarationCannotReturnStretch(#[label] Span),
     #[error("extern declarations must be done in global scope")]
-    #[diagnostic(code("Qasm.Lowerer.DefDeclarationInNonGlobalScope"))]
+    #[diagnostic(code("Qasm.Lowerer.ExternDeclarationInNonGlobalScope"))]
     ExternDeclarationInNonGlobalScope(#[label] Span),
     #[error("failed to compile all expressions in expression list")]
     #[diagnostic(code("Qasm.Lowerer.FailedToCompileExpressionList"))]
@@ -166,7 +178,7 @@ pub enum SemanticErrorKind {
     #[error("index sets are only allowed in alias statements")]
     #[diagnostic(code("Qasm.Lowerer.IndexSetOnlyAllowedInAliasStmt"))]
     IndexSetOnlyAllowedInAliasStmt(#[label] Span),
-    #[error("assigning {0} values to {1} must be in a range that be converted to {1}")]
+    #[error("assigning {0} values to {1} must be in a range that can be converted to {1}")]
     #[diagnostic(code("Qasm.Lowerer.InvalidCastValueRange"))]
     InvalidCastValueRange(String, String, #[label] Span),
     #[error("gate operands other than qubits or qubit arrays are not supported")]
@@ -187,6 +199,10 @@ pub enum SemanticErrorKind {
     #[error("{0} can only appear in {1} scopes")]
     #[diagnostic(code("Qasm.Lowerer.InvalidScope"))]
     InvalidScope(String, String, #[label] Span),
+    #[error("invalid type in alias expression: {0}")]
+    #[diagnostic(code("Qasm.Lowerer.InvalidTypeInAlias"))]
+    #[diagnostic(help("aliases can only be applied to quantum bits and registers"))]
+    InvalidTypeInAlias(String, #[label] Span),
     #[error("measure statements must have a name")]
     #[diagnostic(code("Qasm.Lowerer.MeasureExpressionsMustHaveName"))]
     MeasureExpressionsMustHaveName(#[label] Span),

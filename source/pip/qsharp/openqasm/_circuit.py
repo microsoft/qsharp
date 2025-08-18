@@ -6,7 +6,12 @@ from typing import Any, Callable, Dict, Optional, Union
 from .._fs import read_file, list_directory, resolve
 from .._http import fetch_github
 from .._native import circuit_qasm_program  # type: ignore
-from .._qsharp import get_interpreter, ipython_helper, Circuit
+from .._qsharp import (
+    get_interpreter,
+    ipython_helper,
+    Circuit,
+    python_args_to_interpreter_args,
+)
 from .. import telemetry_events
 
 
@@ -39,10 +44,7 @@ def circuit(
     start = monotonic()
     telemetry_events.on_circuit_qasm()
     if isinstance(source, Callable) and hasattr(source, "__global_callable"):
-        if len(args) == 1:
-            args = args[0]
-        elif len(args) == 0:
-            args = None
+        args = python_args_to_interpreter_args(args)
         res = get_interpreter().circuit(callable=source.__global_callable, args=args)
     else:
         # remove any entries from kwargs with a None key or None value

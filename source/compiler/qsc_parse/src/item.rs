@@ -166,6 +166,7 @@ pub fn parse_namespaces_or_implicit(
     s: &mut ParserContext<'_>,
     source_name: Option<&str>,
 ) -> Result<Vec<Namespace>> {
+    let lo = s.peek().span.lo;
     let doc = parse_doc(s);
     let doc = Rc::from(doc.unwrap_or_default());
     s.expect(WordKinds::Namespace);
@@ -178,7 +179,7 @@ pub fn parse_namespaces_or_implicit(
         .map(|x| vec![x])?;
         if let Some(ref mut ns) = ns.get_mut(0) {
             if let Some(x) = ns.items.get_mut(0) {
-                x.span.lo = 0;
+                x.span.lo = lo;
                 x.doc = doc;
             }
         }
@@ -186,7 +187,7 @@ pub fn parse_namespaces_or_implicit(
     } else {
         let mut ns = parse_namespaces(s)?;
         if let Some(x) = ns.get_mut(0) {
-            x.span.lo = 0;
+            x.span.lo = lo;
             x.doc = doc;
         }
         Ok(ns)

@@ -34,7 +34,8 @@ class Tracker implements vscode.DebugAdapterTracker {
   private stoppedCount = 0;
   private stackTrace;
   private variables;
-  private onVariablesResponse: ((e: any) => void) | undefined;
+  private requestResponsePairs: RequestResponsePair[] = [];
+  private onResponse = new vscode.EventEmitter<DebugProtocol.Response>();
 
   constructor(kind: string = "qsharp") {
     this.kind = kind;
@@ -44,22 +45,38 @@ class Tracker implements vscode.DebugAdapterTracker {
    * Wait until the debugger has entered the paused state by waiting for the
    * appropriate sequence of messages in the debug adapter.
    */
-  async waitUntilPaused() {
+  async waitUntilPaused(options: {
+    expectedStackTrace?: DebugProtocol.StackFrame[];
+    expectedVariables?: any;
+  }) {
     const start = performance.now();
 
     await waitForCondition(
       () => this.stoppedCount === 1 && this.stackTrace && this.variables,
-      (listener: (e: any) => void) => {
-        this.onVariablesResponse = listener;
-        return {
-          dispose() {
-            this.onVariablesResponse = undefined;
-          },
-        };
-      },
+      this.onResponse.event,
       1800,
       "timed out waiting for the debugger to stop",
     );
+
+    if (options.expectedStackTrace) {
+      assert.deepEqual(
+        this.stackTrace,
+        options.expectedStackTrace,
+        // print copy-pastable stack trace
+        `actual stack trace:\n${JSON.stringify(this.stackTrace)}\n`,
+      );
+    }
+
+    if (options.expectedVariables) {
+      assert.deepEqual(
+        this.variables,
+        options.expectedVariables,
+        // print copy-pastable variables
+        `actual variables:\n${JSON.stringify(this.variables)}\n`,
+      );
+    }
+
+    this.resetState();
 
     const stepMs = performance.now() - start;
     if (stepMs > 700) {
@@ -75,63 +92,62 @@ class Tracker implements vscode.DebugAdapterTracker {
   }
 
   /**
+   * Wait until the debugger has returned a response for a
+   * specific command.
+   */
+  async waitUntilResponse(
+    command: string,
+  ): Promise<DebugProtocol.Response | undefined> {
+    let pair: RequestResponsePair | undefined;
+    await waitForCondition(
+      () => {
+        // Return `true` if we have a response for the command.
+        pair = this.requestResponsePairs.find((pair) => {
+          if (pair.request.command === command) {
+            if (pair.response) {
+              return true;
+            } else {
+              // If we have a request but no response yet, we wait for the response.
+              return false;
+            }
+          }
+          return false;
+        });
+        return pair !== undefined;
+      },
+      this.onResponse.event,
+      1000,
+      "timed out waiting for a response to " + command,
+    );
+    // Clear out state so we can use the tracker again.
+    this.resetState();
+    return pair?.response;
+  }
+
+  /**
    * Reset the state of the tracker so that we can use waitUntilPaused() again.
    */
   resetState() {
     this.stoppedCount = 0;
     this.stackTrace = undefined;
     this.variables = undefined;
+    this.requestResponsePairs = [];
   }
 
-  /**
-   * Wait until the debugger has entered the paused state and then asserts
-   * that the stack traces matches the `expectedStackTrace`.
-   *
-   * @param expectedStackTrace assert that the stack trace matches this value.
-   */
-  async waitUntilPausedAndAssertStackTrace(
-    expectedStackTrace: DebugProtocol.StackFrame[],
-  ) {
-    await this.waitUntilPaused();
-
-    assert.deepEqual(
-      this.stackTrace,
-      expectedStackTrace,
-      // print copy-pastable stack trace
-      `actual stack trace:\n${JSON.stringify(this.stackTrace)}\n`,
-    );
-
-    this.resetState();
-  }
-
-  /**
-   * Wait until the debugger has entered the paused state and then asserts
-   * that the local variables match the `expectedVariables`.
-   *
-   * @param expectedVariables assert that the tracker.variables trace matches this value.
-   */
-  async waitUntilPausedAndAssertVariables(
-    expectedVariables: DebugProtocol.Variable[],
-  ) {
-    await this.waitUntilPaused();
-
-    assert.deepEqual(
-      this.variables,
-      expectedVariables,
-      // print copy-pastable variables
-      `actual variables:\n${JSON.stringify(this.variables)}\n`,
-    );
-
-    this.resetState();
-  }
-
-  onWillReceiveMessage(message: any): void {
+  onWillReceiveMessage(message: DebugProtocol.Request): void {
     if (logDebugAdapterActivity) {
       console.log(`${this.kind}-tests: ->  ${JSON.stringify(message)}`);
     }
+
+    this.requestResponsePairs.push({
+      seq: message.seq,
+      request: message,
+    });
   }
 
-  onDidSendMessage(message: any): void {
+  onDidSendMessage(
+    message: DebugProtocol.Response | DebugProtocol.Event,
+  ): void {
     if (logDebugAdapterActivity) {
       if (message.type === "response") {
         console.log(`${this.kind}-tests:  <- ${JSON.stringify(message)}`);
@@ -142,16 +158,25 @@ class Tracker implements vscode.DebugAdapterTracker {
     }
 
     if (message.type === "event") {
-      if (message.event === "stopped") {
+      if ((message as DebugProtocol.Event).event === "stopped") {
         this.stoppedCount++;
       }
     } else if (message.type === "response") {
-      if (message.command === "variables") {
+      const response = message as DebugProtocol.Response;
+      if (response.command === "variables") {
         this.variables = message.body.variables;
-        this.onVariablesResponse?.(undefined);
-      } else if (message.command === "stackTrace") {
+      } else if (response.command === "stackTrace") {
         this.stackTrace = message.body.stackFrames;
       }
+
+      // Update the request-response pair with the response.
+      const pair = this.requestResponsePairs.find(
+        (pair) => pair.seq === response.request_seq,
+      );
+      if (pair) {
+        pair.response = response;
+      }
+      this.onResponse.fire(response);
     }
   }
 
@@ -179,4 +204,11 @@ class Tracker implements vscode.DebugAdapterTracker {
     }
   }
 }
+
+type RequestResponsePair = {
+  seq: number;
+  request: DebugProtocol.Request;
+  response?: DebugProtocol.Response;
+};
+
 export { Tracker };

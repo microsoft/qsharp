@@ -564,6 +564,28 @@ impl<'a> Analyzer<'a> {
             return CallComputeKind::Regular(compute_kind);
         };
 
+        if self.callee_in_active_contexts(&callee) {
+            assert_eq!(
+                expr_type,
+                &Ty::UNIT,
+                "output type for allowed recursive call should be Unit"
+            );
+
+            // This is a recursive call, which we allow with some deferred capabilities checks at runtime.
+            // We treat the call as an unresolved callee, like above, such that partial evaluation will perform
+            // extra validation on the capabilities at runtime.
+            // This covers the corner case where a recursive call is made with a dynamic argument whose
+            // type is allowed to be dynamic but whose usage in later recursion could require additional
+            // capabilities.
+            self.get_current_application_instance_mut()
+                .unresolved_callee_exprs
+                .push(callee_expr_id);
+            return CallComputeKind::Regular(ComputeKind::Quantum(QuantumProperties {
+                runtime_features: RuntimeFeatureFlags::CallToUnresolvedCallee,
+                value_kind: ValueKind::Element(RuntimeKind::Static),
+            }));
+        }
+
         // We could resolve the callee. Determine the compute kind of the call depending on the callee kind.
         let Some(global_callee) = self.package_store.get_global(callee.item) else {
             // If the callee is not found, that is an indication that it is an item that was removed during
@@ -1692,6 +1714,16 @@ impl<'a> Analyzer<'a> {
                 ApplicationGeneratorSet::default(),
             );
         }
+    }
+
+    /// Checks whether the given callee is present in any of the active contexts, which indicates we are about
+    /// to perform a call into a cycle.
+    fn callee_in_active_contexts(&self, callee: &Callee) -> bool {
+        self.active_contexts.iter().any(|context| {
+            matches!(context, AnalysisContext::Item(item)
+                if item.id == callee.item
+                    && item.current_spec_context.as_ref().map(|s| s.functor_set_value) == Some(callee.functor_app.functor_set_value()))
+        })
     }
 }
 

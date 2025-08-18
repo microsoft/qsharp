@@ -8,7 +8,7 @@
 
 use crate::{
     semantic::{
-        Lowerer,
+        Lowerer, SemanticErrorKind,
         ast::{Expr, ExprKind, LiteralKind},
         const_eval::ConstEvalError,
         types::{Type, can_cast_literal, can_cast_literal_with_value_knowledge},
@@ -67,24 +67,43 @@ fn dispatch(
     // The output type is not considered when choosing an overload. It is an error if there is
     // no valid overload for a given sequence of operands.
     for (signature, function) in fn_table {
-        if let Some(new_inputs) = try_implicit_cast_inputs(inputs, signature, ctx) {
-            let output = function(&new_inputs, call_span);
-            match output {
-                Ok(output) => {
-                    return Some(Expr::builtin_funcall(
-                        name,
-                        call_span,
-                        name_span,
-                        signature.clone(),
-                        inputs,
-                        output,
-                    ));
-                }
-                Err(err) => {
-                    ctx.push_const_eval_error(err);
+        match try_implicit_cast_inputs(inputs, signature, ctx) {
+            Ok(new_inputs) => {
+                let output = function(&new_inputs, call_span);
+                match output {
+                    Ok(output) => {
+                        return Some(Expr::builtin_funcall(
+                            name,
+                            call_span,
+                            name_span,
+                            signature.clone(),
+                            inputs,
+                            output,
+                        ));
+                    }
+                    Err(err) => {
+                        ctx.push_const_eval_error(err);
+                        return None;
+                    }
+                };
+            }
+            Err(Some(err)) => {
+                // This error is special. It means that the cast between the types is allowed,
+                // but the literal value itself doesn't fit in the target type.
+                // So, we push this error to let the user know.
+                //
+                // Note that in the other cases (when the cast is not allowed) we don't push
+                // the error since the goal is to keep trying with all the overloads until
+                // we find one that works.
+                if matches!(err, SemanticErrorKind::InvalidCastValueRange(..)) {
+                    ctx.push_semantic_error(err);
                     return None;
                 }
-            };
+            }
+            Err(None) => {
+                // This case means that the cast isn't allowed. So, we do nothing and
+                // keep trying the other signatures in the function table.
+            }
         }
     }
 
@@ -120,14 +139,14 @@ fn try_implicit_cast_inputs(
     inputs: &[Expr],
     signature: &Type,
     ctx: &mut Lowerer,
-) -> Option<Vec<Expr>> {
+) -> Result<Vec<Expr>, Option<SemanticErrorKind>> {
     let mut new_inputs = Vec::with_capacity(inputs.len());
     let Type::Function(input_types, _) = signature else {
         unreachable!("if we hit this we are initializing the function table incorrectly");
     };
 
     if inputs.len() != input_types.len() {
-        return None;
+        return Err(None);
     }
 
     for (input, ty) in inputs.iter().zip(input_types.iter()) {
@@ -140,14 +159,16 @@ fn try_implicit_cast_inputs(
             value_expr.kind = Box::new(ExprKind::Lit(
                 input.get_const_value().expect("input should be const"),
             ));
-            let coerced_input = ctx.coerce_literal_expr_to_type(ty, &value_expr, &value);
-            new_inputs.push(coerced_input.with_const_value(ctx));
+            match Lowerer::try_coerce_literal_expr_to_type(ty, &value_expr, &value) {
+                Ok(coerced_input) => new_inputs.push(coerced_input.with_const_value(ctx)),
+                Err(err) => return Err(err),
+            }
         } else {
-            return None;
+            return Err(None);
         }
     }
 
-    Some(new_inputs)
+    Ok(new_inputs)
 }
 
 /// The Display method for [`Type`] doesn't include the name of the function.

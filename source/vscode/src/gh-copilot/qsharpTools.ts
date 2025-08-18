@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { VSDiagnostic } from "qsharp-lang";
+import { TargetProfile, VSDiagnostic } from "qsharp-lang";
 import vscode from "vscode";
 import { CircuitOrError, showCircuitCommand } from "../circuit";
 import { loadCompilerWorker, toVsCodeDiagnostic } from "../common";
@@ -11,6 +11,7 @@ import { FullProgramConfig, getProgramForDocument } from "../programConfig";
 import {
   determineDocumentType,
   EventType,
+  QsharpDocumentType,
   sendTelemetryEvent,
   UserTaskInvocationType,
 } from "../telemetry";
@@ -24,8 +25,8 @@ import { CopilotToolError, HistogramData } from "./types";
  * familiar with how we expand the project or how we determine target profile,
  * this output will give Copilot context to understand what just happened.
  */
-type ProjectInfo = {
-  project: {
+export type ProjectInfo = {
+  qsharpProject: {
     name: string;
     targetProfile: string;
   };
@@ -48,7 +49,7 @@ export class QSharpTools {
   constructor(private extensionUri: vscode.Uri) {}
 
   /**
-   * Implements the `qsharp-run-program` tool call.
+   * Implements the `qdk-run-program` tool call.
    */
   async runProgram(input: {
     filePath: string;
@@ -57,7 +58,7 @@ export class QSharpTools {
     const shots = input.shots ?? 1;
 
     const program = await this.getProgram(input.filePath);
-    const programConfig = program.program.programConfig;
+    const programConfig = program.config;
 
     const output: string[] = [];
     let finalHistogram: HistogramData | undefined;
@@ -122,15 +123,10 @@ export class QSharpTools {
       );
     }
 
-    const project = {
-      name: programConfig.projectName,
-      targetProfile: programConfig.profile,
-    };
-
     if (shots === 1) {
       // Return the output and results directly
       return {
-        project,
+        ...program.additionalContextForModel,
         output: output.join("\n"),
         result:
           sampleFailures.length > 0
@@ -140,7 +136,7 @@ export class QSharpTools {
     } else {
       // No output, return the histogram
       return {
-        project,
+        ...program.additionalContextForModel,
         sampleFailures,
         histogram: finalHistogram!,
         message: `Results are displayed in the Histogram panel.`,
@@ -149,7 +145,7 @@ export class QSharpTools {
   }
 
   /**
-   * Implements the `qsharp-generate-circuit` tool call.
+   * Implements the `qdk-generate-circuit` tool call.
    */
   async generateCircuit(input: { filePath: string }): Promise<
     ProjectInfo &
@@ -158,7 +154,7 @@ export class QSharpTools {
       }
   > {
     const program = await this.getProgram(input.filePath);
-    const programConfig = program.program.programConfig;
+    const programConfig = program.config;
 
     const circuitOrError = await showCircuitCommand(
       this.extensionUri,
@@ -169,10 +165,7 @@ export class QSharpTools {
     );
 
     const result = {
-      project: {
-        name: programConfig.projectName,
-        targetProfile: programConfig.profile,
-      },
+      ...program.additionalContextForModel,
       ...circuitOrError,
     };
 
@@ -189,7 +182,7 @@ export class QSharpTools {
   }
 
   /**
-   * Implements the `qsharp-run-resource-estimator` tool call.
+   * Implements the `qdk-run-resource-estimator` tool call.
    */
   async runResourceEstimator(input: {
     filePath: string;
@@ -202,12 +195,7 @@ export class QSharpTools {
     }
   > {
     const program = await this.getProgram(input.filePath);
-    const programConfig = program.program.programConfig;
-
-    const project = {
-      name: programConfig.projectName,
-      targetProfile: programConfig.profile,
-    };
+    const programConfig = program.config;
 
     try {
       const qubitTypes = input.qubitTypes ?? ["qubit_gate_ns_e3"];
@@ -222,7 +210,7 @@ export class QSharpTools {
       );
 
       return {
-        project,
+        ...program.additionalContextForModel,
         estimates,
         message: "Results are displayed in the resource estimator panel.",
       };
@@ -251,19 +239,35 @@ export class QSharpTools {
     return deepMapToObject(summaries);
   }
 
-  private async getProgram(filePath: string) {
+  async getProgram(
+    filePath: string,
+    options: { targetProfileFallback?: TargetProfile } = {},
+  ): Promise<{
+    config: FullProgramConfig;
+    telemetryDocumentType: QsharpDocumentType;
+    additionalContextForModel: ProjectInfo;
+  }> {
     const docUri = vscode.Uri.file(filePath);
 
     const doc = await vscode.workspace.openTextDocument(docUri);
     const telemetryDocumentType = determineDocumentType(doc);
 
-    const program = await getProgramForDocument(doc);
+    const program = await getProgramForDocument(doc, options);
     if (!program.success) {
       throw new CopilotToolError(
         `Cannot get program for the file ${filePath}\n\n${program.diagnostics ? JSON.stringify(program.diagnostics) : program.errorMsg}`,
       );
     }
-    return { program, telemetryDocumentType };
+    return {
+      config: program.programConfig,
+      telemetryDocumentType,
+      additionalContextForModel: {
+        qsharpProject: {
+          name: program.programConfig.projectName,
+          targetProfile: program.programConfig.profile,
+        },
+      },
+    };
   }
 
   private async runQsharp(

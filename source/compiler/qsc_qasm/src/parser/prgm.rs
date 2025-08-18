@@ -18,7 +18,13 @@ use super::ParserContext;
 /// Grammar: `version? statementOrScope* EOF`.
 pub(super) fn parse(s: &mut ParserContext) -> Program {
     let lo = s.peek().span.lo;
-    let version = opt(s, parse_version).unwrap_or_default();
+    let version = match opt(s, parse_version) {
+        Ok(version) => version,
+        Err(err) => {
+            s.push_error(err);
+            None
+        }
+    };
     let stmts = parse_top_level_nodes(s).unwrap_or_default();
 
     Program {
@@ -36,15 +42,9 @@ pub(super) fn parse(s: &mut ParserContext) -> Program {
 fn parse_version(s: &mut ParserContext<'_>) -> Result<Version> {
     s.expect(WordKinds::OpenQASM);
     token(s, TokenKind::Keyword(crate::keyword::Keyword::OpenQASM))?;
-    let next = s.peek();
-    if let Some(version) = expr::version(s)? {
-        recovering_semi(s);
-        Ok(version)
-    } else {
-        Err(crate::parser::error::Error::new(
-            crate::parser::error::ErrorKind::Lit("version", next.span),
-        ))
-    }
+    let version = expr::version(s)?;
+    recovering_semi(s);
+    Ok(version)
 }
 
 pub(super) fn parse_top_level_nodes(s: &mut ParserContext) -> Result<Vec<Stmt>> {

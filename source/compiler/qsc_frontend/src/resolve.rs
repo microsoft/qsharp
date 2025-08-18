@@ -341,7 +341,7 @@ impl Locals {
 
         // deduping by name will effectively make locals in a child scope
         // shadow the locals in its parent scopes
-        all_locals.dedup_by(|a, b| a.name == b.name);
+        all_locals.dedup_by(|a, b| a.name().is_some() && a.name() == b.name());
 
         all_locals
     }
@@ -361,22 +361,28 @@ impl Locals {
 }
 
 #[derive(Debug)]
-pub struct Local {
-    pub name: Rc<str>,
-    pub kind: LocalKind,
-}
-
-#[derive(Debug)]
-pub enum LocalKind {
+pub enum Local {
     /// A local callable or UDT.
-    Item(ItemId),
+    Item(ItemId, Rc<str>),
     /// A type parameter.
-    TyParam(ParamId),
+    TyParam(ParamId, Rc<str>),
     /// A local variable or parameter.
-    Var(NodeId),
+    Var(NodeId, Rc<str>),
+    /// A namespace import (`import Foo as A` or `open Foo`)
+    NamespaceImport(NamespaceId, Option<Rc<str>>),
 }
 
-#[derive(Debug, Default)]
+impl Local {
+    #[must_use]
+    pub fn name(&self) -> Option<&Rc<str>> {
+        match self {
+            Local::Item(_, name) | Local::TyParam(_, name) | Local::Var(_, name) => Some(name),
+            Local::NamespaceImport(_, alias) => alias.as_ref(),
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone)]
 pub struct GlobalScope {
     /// Global names that are valid in a type context (UDTs, builtin types...)
     tys: IndexMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
@@ -394,12 +400,17 @@ pub struct GlobalScope {
 
 impl GlobalScope {
     fn get(&self, kind: NameKind, namespace: NamespaceId, name: &str) -> Option<&Res> {
-        let items = match kind {
+        self.table(kind)
+            .get(namespace)
+            .and_then(|items| items.get(name))
+    }
+
+    pub fn table(&self, kind: NameKind) -> &IndexMap<NamespaceId, FxHashMap<Rc<str>, Res>> {
+        match kind {
             NameKind::Term => &self.terms,
             NameKind::Ty => &self.tys,
             NameKind::Importable => &self.importables,
-        };
-        items.get(namespace).and_then(|items| items.get(name))
+        }
     }
 
     /// Creates a namespace in the namespace mapping. Note that namespaces are tracked separately from their
@@ -419,7 +430,7 @@ impl GlobalScope {
     }
 
     /// Finds a namespace by its path.
-    fn find_namespace<'a>(
+    pub fn find_namespace<'a>(
         &self,
         name: impl IntoIterator<Item = &'a str>,
         root: Option<NamespaceId>,
@@ -459,11 +470,22 @@ impl GlobalScope {
     }
 
     /// Returns the full namespace path for a given namespace ID.
-    fn format_namespace_name(&self, namespace_id: NamespaceId) -> String {
+    pub fn format_namespace_name(&self, namespace_id: NamespaceId) -> String {
         self.namespaces
             .find_namespace_by_id(&namespace_id)
             .0
             .join(".")
+    }
+
+    pub fn namespace_children(&self, namespace_id: NamespaceId) -> Vec<Rc<str>> {
+        self.namespaces
+            .find_namespace_by_id(&namespace_id)
+            .1
+            .borrow()
+            .children
+            .keys()
+            .cloned()
+            .collect()
     }
 }
 
@@ -475,7 +497,7 @@ enum ScopeKind {
 }
 
 #[derive(Clone, Copy, Debug)]
-enum NameKind {
+pub enum NameKind {
     /// A name that is valid as an expression context: a callable or UDT
     Term,
     /// A name that is valid in a type context: builtin or UDT
@@ -588,6 +610,10 @@ impl Resolver {
 
     pub(super) fn locals(&self) -> &Locals {
         &self.locals
+    }
+
+    pub(super) fn globals(&self) -> &GlobalScope {
+        &self.globals
     }
 
     pub(super) fn drain_errors(&mut self) -> vec::Drain<Error> {
@@ -1271,6 +1297,11 @@ impl GlobalTable {
                     }
                 }
                 (global::Kind::Namespace(item_id), hir::Visibility::Public) => {
+                    if package_root == Some(namespace) && global.name.as_ref() == "Main" {
+                        // If the namespace is `Main` and we have an alias, we treat it as the root of the package,
+                        // so there's no namespace prefix between the dependency alias and the defined items.
+                        continue;
+                    }
                     let this_namespace = self
                         .scope
                         .insert_or_find_namespace(vec![global.name.clone()], Some(namespace));
@@ -2014,10 +2045,7 @@ fn get_scope_locals(scope: &Scope, offset: u32, vars: bool) -> Vec<Local> {
             // when a variable is later shadowed in the same scope,
             // it is missed in the list. https://github.com/microsoft/qsharp/issues/897
             if offset >= *valid_at {
-                Some(Local {
-                    name: name.clone(),
-                    kind: LocalKind::Var(*id),
-                })
+                Some(Local::Var(*id, name.clone()))
             } else {
                 None
             }
@@ -2027,24 +2055,26 @@ fn get_scope_locals(scope: &Scope, offset: u32, vars: bool) -> Vec<Local> {
             scope
                 .ty_vars
                 .iter()
-                .map(|(name, (id, _constraints))| Local {
-                    name: name.clone(),
-                    kind: LocalKind::TyParam(*id),
-                }),
+                .map(|(name, (id, _constraints))| Local::TyParam(*id, name.clone())),
         );
     }
 
     // items
-    // skip adding newtypes since they're already in the terms map
+    // gather from the terms table, since it happens to contain all the
+    // declared and imported callables and newtypes
     names.extend(scope.terms.iter().filter_map(|(name, res)| {
         if let Res::Item(id, _) = res {
-            Some(Local {
-                name: name.clone(),
-                kind: LocalKind::Item(*id),
-            })
+            Some(Local::Item(*id, name.clone()))
         } else {
             None
         }
+    }));
+
+    // opens and namespace imports
+    names.extend(scope.opens.iter().flat_map(|(alias, opens)| {
+        opens
+            .iter()
+            .map(|open| Local::NamespaceImport(open.namespace, alias.clone()))
     }));
 
     names

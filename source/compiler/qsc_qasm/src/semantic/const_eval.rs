@@ -13,8 +13,10 @@ use super::ast::{
 use super::symbols::SymbolId;
 use super::types::compute_slice_components;
 use crate::semantic::Lowerer;
+
 use crate::semantic::types::binary_op_is_supported_for_types;
 use crate::stdlib::angle;
+use crate::stdlib::duration::Duration;
 use crate::{convert::safe_i64_to_f64, semantic::types::Type};
 use miette::Diagnostic;
 use num_bigint::BigInt;
@@ -54,9 +56,6 @@ pub enum ConstEvalError {
     #[error("{0} doesn't fit in {1}")]
     #[diagnostic(code("Qasm.Lowerer.ValueOverflow"))]
     ValueOverflow(String, String, #[label] Span),
-    #[error("{0} is not supported between types {1} and {2}")]
-    #[diagnostic(code("Qasm.Lowerer.UnsupportedBinaryOp"))]
-    UnsupportedBinaryOp(String, String, String, #[label] Span),
 }
 
 impl Expr {
@@ -74,6 +73,14 @@ impl Expr {
     pub(crate) fn get_const_u32(&self) -> Option<u32> {
         if let Some(LiteralKind::Int(val)) = self.get_const_value() {
             u32::try_from(val).ok()
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn get_const_duration(&self) -> Option<Duration> {
+        if let Some(LiteralKind::Duration(value)) = self.get_const_value() {
+            Some(value)
         } else {
             None
         }
@@ -99,7 +106,9 @@ impl Expr {
         }
 
         match &*self.kind {
-            ExprKind::Ident(symbol_id) => symbol_id.const_eval(ctx),
+            ExprKind::CapturedIdent(symbol_id) | ExprKind::Ident(symbol_id) => {
+                symbol_id.const_eval(ctx)
+            }
             ExprKind::UnaryOp(unary_op_expr) => unary_op_expr.const_eval(ctx),
             ExprKind::BinaryOp(binary_op_expr) => binary_op_expr.const_eval(ctx),
             ExprKind::Lit(literal_kind) => Some(literal_kind.clone()),
@@ -118,6 +127,7 @@ impl Expr {
                 // in [`Lowerer::lower_sizeof_call_expr`].
                 None
             }
+            ExprKind::DurationofCall(expr) => Some(LiteralKind::Duration(expr.duration)),
             ExprKind::Err => None,
         }
     }
@@ -311,7 +321,7 @@ fn overflowing_shr(mut lhs: i64, mut rhs: i64) -> i64 {
 impl BinaryOpExpr {
     #[allow(clippy::too_many_lines)]
     fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
-        use LiteralKind::{Angle, Bit, Bitstring, Bool, Complex, Float, Int};
+        use LiteralKind::{Angle, Bit, Bitstring, Bool, Complex, Duration, Float, Int};
 
         let lhs = self.lhs.const_eval(ctx);
         let rhs = self.rhs.const_eval(ctx);
@@ -319,12 +329,7 @@ impl BinaryOpExpr {
         let lhs_ty = &self.lhs.ty;
 
         if !binary_op_is_supported_for_types(self.op, &self.lhs.ty, &self.rhs.ty) {
-            ctx.push_const_eval_error(ConstEvalError::UnsupportedBinaryOp(
-                self.op.to_string(),
-                self.lhs.ty.to_string(),
-                self.rhs.ty.to_string(),
-                self.span(),
-            ));
+            // The lowerer should have pushed an error for unsupported binary ops
             return None;
         }
 
@@ -587,6 +592,13 @@ impl BinaryOpExpr {
                 Type::Complex(..) => {
                     rewrap_lit!((lhs, rhs), (Complex(lhs), Complex(rhs)), Complex(lhs + rhs))
                 }
+                Type::Duration(..) | Type::Stretch(..) => {
+                    rewrap_lit!(
+                        (lhs, rhs),
+                        (Duration(lhs), Duration(rhs)),
+                        Duration(lhs + rhs)
+                    )
+                }
                 _ => None,
             },
             BinOp::Sub => match lhs_ty {
@@ -602,10 +614,22 @@ impl BinaryOpExpr {
                 Type::Complex(..) => {
                     rewrap_lit!((lhs, rhs), (Complex(lhs), Complex(rhs)), Complex(lhs - rhs))
                 }
+                Type::Duration(..) | Type::Stretch(..) => {
+                    rewrap_lit!(
+                        (lhs, rhs),
+                        (Duration(lhs), Duration(rhs)),
+                        Duration(lhs - rhs)
+                    )
+                }
                 _ => None,
             },
             BinOp::Mul => match lhs_ty {
-                Type::Int(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs * rhs)),
+                Type::Int(..) => match &self.rhs.ty {
+                    Type::Duration(..) | Type::Stretch(..) => {
+                        rewrap_lit!((lhs, rhs), (Int(lhs), Duration(rhs)), Duration(rhs * lhs))
+                    }
+                    _ => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs * rhs)),
+                },
                 Type::UInt(..) => match &self.rhs.ty {
                     Type::UInt(..) => {
                         rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs * rhs))
@@ -621,12 +645,17 @@ impl BinaryOpExpr {
                         #[allow(clippy::cast_sign_loss)]
                         Angle(rhs * u64::try_from(lhs).ok()?)
                     }),
-
+                    Type::Duration(..) | Type::Stretch(..) => {
+                        rewrap_lit!((lhs, rhs), (Int(lhs), Duration(rhs)), Duration(rhs * lhs))
+                    }
                     _ => None,
                 },
-                Type::Float(..) => {
-                    rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Float(lhs * rhs))
-                }
+                Type::Float(..) => match &self.rhs.ty {
+                    Type::Duration(..) | Type::Stretch(..) => {
+                        rewrap_lit!((lhs, rhs), (Float(lhs), Duration(rhs)), Duration(rhs * lhs))
+                    }
+                    _ => rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Float(lhs * rhs)),
+                },
                 Type::Angle(..) => {
                     rewrap_lit!(
                         (lhs, rhs),
@@ -637,6 +666,15 @@ impl BinaryOpExpr {
                 Type::Complex(..) => {
                     rewrap_lit!((lhs, rhs), (Complex(lhs), Complex(rhs)), Complex(lhs * rhs))
                 }
+                Type::Duration(..) | Type::Stretch(..) => match &self.rhs.ty {
+                    Type::Int(..) | Type::UInt(..) => {
+                        rewrap_lit!((lhs, rhs), (Duration(lhs), Int(rhs)), Duration(lhs * rhs))
+                    }
+                    Type::Float(..) => {
+                        rewrap_lit!((lhs, rhs), (Duration(lhs), Float(rhs)), Duration(lhs * rhs))
+                    }
+                    _ => None,
+                },
                 _ => None,
             },
             BinOp::Div => match lhs_ty {
@@ -686,6 +724,18 @@ impl BinaryOpExpr {
                 Type::Complex(..) => {
                     rewrap_lit!((lhs, rhs), (Complex(lhs), Complex(rhs)), Complex(lhs / rhs))
                 }
+                Type::Duration(..) | Type::Stretch(..) => match &self.rhs.ty {
+                    Type::Duration(..) | Type::Stretch(..) => {
+                        rewrap_lit!((lhs, rhs), (Duration(lhs), Duration(rhs)), Float(lhs / rhs))
+                    }
+                    Type::Int(..) | Type::UInt(..) => {
+                        rewrap_lit!((lhs, rhs), (Duration(lhs), Int(rhs)), Duration(lhs / rhs))
+                    }
+                    Type::Float(..) => {
+                        rewrap_lit!((lhs, rhs), (Duration(lhs), Float(rhs)), Duration(lhs / rhs))
+                    }
+                    _ => None,
+                },
                 _ => None,
             },
             BinOp::Mod => match lhs_ty {

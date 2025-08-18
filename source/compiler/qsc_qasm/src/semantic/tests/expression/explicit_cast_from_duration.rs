@@ -37,8 +37,8 @@ fn duration_to_bool_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
-                                ty: const duration
-                                kind: Lit: Duration(0.0, Ns)
+                                ty: duration
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-37]:
                         annotations: <empty>
                         kind: ExprStmt [29-37]:
@@ -76,11 +76,38 @@ fn duration_to_duration() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [9-20]:
-                    ty: const duration
-                    kind: Lit: Duration(0.0, Ns)
+                    ty: duration
+                    kind: Lit: Duration(0.0 s)
             ExprStmt [29-41]:
                 expr: Expr [29-40]:
                     ty: duration
+                    kind: SymbolId(8)
+        "#]],
+    );
+}
+
+//===================
+// Casts to stretch
+//===================
+
+#[test]
+fn duration_to_stretch_changes_ty() {
+    let source = "
+        duration a;
+        stretch(a);
+    ";
+    check(
+        source,
+        &expect![[r#"
+            ClassicalDeclarationStmt [9-20]:
+                symbol_id: 8
+                ty_span: [9-17]
+                init_expr: Expr [9-20]:
+                    ty: duration
+                    kind: Lit: Duration(0.0 s)
+            ExprStmt [29-40]:
+                expr: Expr [29-39]:
+                    ty: stretch
                     kind: SymbolId(8)
         "#]],
     );
@@ -109,8 +136,8 @@ fn duration_to_int_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
-                                ty: const duration
-                                kind: Lit: Duration(0.0, Ns)
+                                ty: duration
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-36]:
                         annotations: <empty>
                         kind: ExprStmt [29-36]:
@@ -150,8 +177,8 @@ fn duration_to_sized_int_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
-                                ty: const duration
-                                kind: Lit: Duration(0.0, Ns)
+                                ty: duration
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-40]:
                         annotations: <empty>
                         kind: ExprStmt [29-40]:
@@ -195,8 +222,8 @@ fn duration_to_uint_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
-                                ty: const duration
-                                kind: Lit: Duration(0.0, Ns)
+                                ty: duration
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-37]:
                         annotations: <empty>
                         kind: ExprStmt [29-37]:
@@ -236,8 +263,8 @@ fn duration_to_sized_uint_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
-                                ty: const duration
-                                kind: Lit: Duration(0.0, Ns)
+                                ty: duration
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-41]:
                         annotations: <empty>
                         kind: ExprStmt [29-41]:
@@ -281,8 +308,8 @@ fn duration_to_float_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
-                                ty: const duration
-                                kind: Lit: Duration(0.0, Ns)
+                                ty: duration
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-38]:
                         annotations: <empty>
                         kind: ExprStmt [29-38]:
@@ -322,8 +349,8 @@ fn duration_to_sized_float_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
-                                ty: const duration
-                                kind: Lit: Duration(0.0, Ns)
+                                ty: duration
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-42]:
                         annotations: <empty>
                         kind: ExprStmt [29-42]:
@@ -367,8 +394,8 @@ fn duration_to_angle_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
-                                ty: const duration
-                                kind: Lit: Duration(0.0, Ns)
+                                ty: duration
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-38]:
                         annotations: <empty>
                         kind: ExprStmt [29-38]:
@@ -408,8 +435,8 @@ fn duration_to_sized_angle_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
-                                ty: const duration
-                                kind: Lit: Duration(0.0, Ns)
+                                ty: duration
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-42]:
                         annotations: <empty>
                         kind: ExprStmt [29-42]:
@@ -453,8 +480,8 @@ fn duration_to_complex_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
-                                ty: const duration
-                                kind: Lit: Duration(0.0, Ns)
+                                ty: duration
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-40]:
                         annotations: <empty>
                         kind: ExprStmt [29-40]:
@@ -494,8 +521,8 @@ fn duration_to_sized_complex_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
-                                ty: const duration
-                                kind: Lit: Duration(0.0, Ns)
+                                ty: duration
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-51]:
                         annotations: <empty>
                         kind: ExprStmt [29-51]:
@@ -539,8 +566,8 @@ fn duration_to_bit_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
-                                ty: const duration
-                                kind: Lit: Duration(0.0, Ns)
+                                ty: duration
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-36]:
                         annotations: <empty>
                         kind: ExprStmt [29-36]:
@@ -580,8 +607,8 @@ fn duration_to_bitarray_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [9-20]:
-                                ty: const duration
-                                kind: Lit: Duration(0.0, Ns)
+                                ty: duration
+                                kind: Lit: Duration(0.0 s)
                     Stmt [29-40]:
                         annotations: <empty>
                         kind: ExprStmt [29-40]:

@@ -12,14 +12,17 @@ use qsc_frontend::error::WithSource;
 
 use std::sync::Arc;
 
-pub(crate) mod ast;
+pub mod ast;
 pub(crate) mod const_eval;
 pub mod error;
 mod lowerer;
+pub(crate) mod mut_visit;
 pub use error::Error;
 pub use error::SemanticErrorKind;
+pub mod passes;
 pub mod symbols;
 pub mod types;
+pub mod visit;
 
 #[cfg(test)]
 pub(crate) mod tests;

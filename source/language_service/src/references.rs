@@ -6,11 +6,11 @@ mod tests;
 
 use std::rc::Rc;
 
-use crate::compilation::Compilation;
+use crate::compilation::{Compilation, CompilationKind, source_position_to_package_offset};
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::qsc_utils::into_location;
 use qsc::ast::PathKind;
-use qsc::ast::visit::{Visitor, walk_callable_decl, walk_expr, walk_ty};
+use qsc::ast::visit::{Visitor, walk_callable_decl, walk_expr, walk_import_or_export, walk_ty};
 use qsc::display::Lookup;
 use qsc::hir::ty::Ty;
 use qsc::hir::{PackageId, Res};
@@ -25,9 +25,13 @@ pub(crate) fn get_references(
     position_encoding: Encoding,
     include_declaration: bool,
 ) -> Vec<Location> {
+    if let CompilationKind::OpenQASM { sources, .. } = &compilation.kind {
+        return crate::openqasm::get_references(sources, source_name, position, position_encoding);
+    }
+    let unit = &compilation.user_unit();
     let offset =
-        compilation.source_position_to_package_offset(source_name, position, position_encoding);
-    let user_ast_package = &compilation.user_unit().ast.package;
+        source_position_to_package_offset(&unit.sources, source_name, position, position_encoding);
+    let user_ast_package = &unit.ast.package;
 
     let mut name_handler = NameHandler {
         reference_finder: ReferenceFinder::new(position_encoding, compilation, include_declaration),
@@ -65,17 +69,18 @@ impl<'a> Handler<'a> for NameHandler<'a> {
         if let Some(resolve::Res::Item(item_id, _)) =
             self.reference_finder.compilation.get_res(name.id)
         {
-            self.references = self.reference_finder.for_item(item_id);
+            self.references = self.reference_finder.for_item(item_id, None);
         }
     }
 
     fn at_callable_ref(
         &mut self,
         _: &'a ast::Path,
+        _: Option<&'a ast::Ident>,
         item_id: &hir::ItemId,
         _: &'a hir::CallableDecl,
     ) {
-        self.references = self.reference_finder.for_item(item_id);
+        self.references = self.reference_finder.for_item(item_id, None);
     }
 
     fn at_type_param_def(
@@ -110,7 +115,7 @@ impl<'a> Handler<'a> for NameHandler<'a> {
         if let Some(resolve::Res::Item(item_id, _)) =
             self.reference_finder.compilation.get_res(type_name.id)
         {
-            self.references = self.reference_finder.for_item(item_id);
+            self.references = self.reference_finder.for_item(item_id, None);
         }
     }
 
@@ -123,18 +128,19 @@ impl<'a> Handler<'a> for NameHandler<'a> {
         if let Some(resolve::Res::Item(item_id, _)) =
             self.reference_finder.compilation.get_res(type_name.id)
         {
-            self.references = self.reference_finder.for_item(item_id);
+            self.references = self.reference_finder.for_item(item_id, None);
         }
     }
 
     fn at_new_type_ref(
         &mut self,
         _: &'a ast::Path,
+        _: Option<&'a ast::Ident>,
         item_id: &hir::ItemId,
         _: &'a hir::Ident,
         _: &'a hir::ty::Udt,
     ) {
-        self.references = self.reference_finder.for_item(item_id);
+        self.references = self.reference_finder.for_item(item_id, None);
     }
 
     fn at_field_def(
@@ -198,31 +204,37 @@ impl<'a> ReferenceFinder<'a> {
         }
     }
 
-    pub fn for_item(&self, item_id: &hir::ItemId) -> Vec<Location> {
+    pub fn for_item(&self, item_id: &hir::ItemId, name_filter: Option<&Rc<str>>) -> Vec<Location> {
         let mut locations = vec![];
 
         let (def, _, resolved_item_id) = self
             .compilation
             .resolve_item_relative_to_user_package(item_id);
         if self.include_declaration {
-            let def_span = match &def.kind {
-                hir::ItemKind::Callable(decl) => decl.name.span,
-                hir::ItemKind::Namespace(name, _) => name.span(),
-                hir::ItemKind::Ty(name, _) | hir::ItemKind::Export(name, _) => name.span,
+            let (decl_name, decl_span) = match &def.kind {
+                hir::ItemKind::Callable(decl) => (Some(&decl.name.name), decl.name.span),
+                hir::ItemKind::Namespace(name, _) => (None, name.span()),
+                hir::ItemKind::Ty(name, _) | hir::ItemKind::Export(name, _) => {
+                    (Some(&name.name), name.span)
+                }
             };
-            locations.push(
-                self.location(
-                    def_span,
-                    resolved_item_id
-                        .package
-                        .expect("package id should have been resolved"),
-                ),
-            );
+
+            if name_filter.is_none() || decl_name == name_filter {
+                locations.push(
+                    self.location(
+                        decl_span,
+                        resolved_item_id
+                            .package
+                            .expect("package id should have been resolved"),
+                    ),
+                );
+            }
         }
 
         let mut find_refs = FindItemRefs {
             item_id: &resolved_item_id,
             compilation: self.compilation,
+            name_filter,
             locations: vec![],
         };
 
@@ -337,30 +349,40 @@ impl<'a> ReferenceFinder<'a> {
 struct FindItemRefs<'a> {
     item_id: &'a hir::ItemId,
     compilation: &'a Compilation,
+    name_filter: Option<&'a Rc<str>>,
     locations: Vec<Span>,
 }
 
 impl Visitor<'_> for FindItemRefs<'_> {
     fn visit_path(&mut self, path: &ast::Path) {
         let res = self.compilation.get_res(path.id);
-        if let Some(resolve::Res::Item(item_id, _)) = res {
-            if self.eq(item_id) {
-                self.locations.push(path.name.span);
+        if let Some(res) = res {
+            if let Some(ref item_id) = res.item_id() {
+                if self.eq(item_id)
+                    && (self.name_filter.is_none() || Some(&path.name.name) == self.name_filter)
+                {
+                    self.locations.push(path.name.span);
+                }
             }
         }
     }
 
-    fn visit_ty(&mut self, ty: &ast::Ty) {
-        if let ast::TyKind::Path(PathKind::Ok(ty_path)) = &*ty.kind {
-            let res = self.compilation.get_res(ty_path.id);
-            if let Some(resolve::Res::Item(item_id, _)) = res {
-                if self.eq(item_id) {
-                    self.locations.push(ty_path.name.span);
+    fn visit_import_or_export(&mut self, item: &'_ ast::ImportOrExportItem) {
+        if let ast::ImportKind::Direct { alias: Some(alias) } = &item.kind {
+            if let PathKind::Ok(path) = &item.path {
+                let res = self.compilation.get_res(path.id);
+                if let Some(res) = res {
+                    if let Some(item_id) = res.item_id() {
+                        if self.eq(&item_id)
+                            && (self.name_filter.is_none() || Some(&alias.name) == self.name_filter)
+                        {
+                            self.locations.push(alias.span);
+                        }
+                    }
                 }
             }
-        } else {
-            walk_ty(self, ty);
         }
+        walk_import_or_export(self, item);
     }
 }
 

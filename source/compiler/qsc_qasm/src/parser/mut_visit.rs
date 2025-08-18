@@ -3,7 +3,7 @@
 
 use qsc_data_structures::span::Span;
 
-use crate::parser::ast::{DefParameter, DefParameterType, QubitType};
+use crate::parser::ast::{DefParameter, DefParameterType, DurationofCall, QubitType};
 
 use super::ast::{
     AccessControl, AliasDeclStmt, Annotation, ArrayBaseTypeKind, ArrayReferenceType, ArrayType,
@@ -185,6 +185,10 @@ pub trait MutVisitor: Sized {
 
     fn visit_cast_expr(&mut self, expr: &mut Cast) {
         walk_cast_expr(self, expr);
+    }
+
+    fn visit_duration_of_expr(&mut self, expr: &mut DurationofCall) {
+        walk_duration_of_expr(self, expr);
     }
 
     fn visit_index_expr(&mut self, expr: &mut IndexExpr) {
@@ -607,6 +611,7 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
         super::ast::ExprKind::Cast(cast) => vis.visit_cast_expr(cast),
         super::ast::ExprKind::IndexExpr(index_expr) => vis.visit_index_expr(index_expr),
         super::ast::ExprKind::Paren(expr) => vis.visit_expr(expr),
+        super::ast::ExprKind::DurationOf(expr) => vis.visit_duration_of_expr(expr),
     }
 }
 
@@ -638,6 +643,12 @@ pub fn walk_cast_expr(vis: &mut impl MutVisitor, expr: &mut Cast) {
     vis.visit_span(&mut expr.span);
     vis.visit_tydef(&mut expr.ty);
     vis.visit_expr(&mut expr.arg);
+}
+
+pub fn walk_duration_of_expr(vis: &mut impl MutVisitor, expr: &mut DurationofCall) {
+    vis.visit_span(&mut expr.span);
+    vis.visit_span(&mut expr.name_span);
+    vis.visit_block(&mut expr.scope);
 }
 
 pub fn walk_index_expr(vis: &mut impl MutVisitor, expr: &mut IndexExpr) {

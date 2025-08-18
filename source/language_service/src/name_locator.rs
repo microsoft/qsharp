@@ -6,9 +6,10 @@ use std::rc::Rc;
 
 use crate::compilation::Compilation;
 use qsc::ast::visit::{
-    Visitor, walk_attr, walk_expr, walk_namespace, walk_pat, walk_ty, walk_ty_def,
+    Visitor, walk_attr, walk_expr, walk_import_or_export, walk_namespace, walk_pat, walk_ty,
+    walk_ty_def,
 };
-use qsc::ast::{FieldAccess, Idents, PathKind};
+use qsc::ast::{FieldAccess, Idents, ImportKind, PathKind};
 use qsc::display::Lookup;
 use qsc::{ast, hir, resolve};
 
@@ -25,6 +26,7 @@ pub(crate) trait Handler<'package> {
     fn at_callable_ref(
         &mut self,
         path: &'package ast::Path,
+        alias: Option<&'package ast::Ident>,
         item_id: &hir::ItemId,
         decl: &'package hir::CallableDecl,
     );
@@ -61,6 +63,7 @@ pub(crate) trait Handler<'package> {
     fn at_new_type_ref(
         &mut self,
         path: &'package ast::Path,
+        alias: Option<&'package ast::Ident>,
         item_id: &hir::ItemId,
         type_name: &'package hir::Ident,
         udt: &'package hir::ty::Udt,
@@ -186,7 +189,7 @@ impl<'package, T: Handler<'package>> Visitor<'package> for Locator<'_, 'package,
 
     // Handles callable, UDT, struct, and type param definitions
     fn visit_item(&mut self, item: &'package ast::Item) {
-        if item.span.contains(self.offset) {
+        if item.span.touches(self.offset) {
             let context = replace(&mut self.context.current_item_doc, item.doc.clone());
             item.attrs.iter().for_each(|a| self.visit_attr(a));
             match &*item.kind {
@@ -265,6 +268,20 @@ impl<'package, T: Handler<'package>> Visitor<'package> for Locator<'_, 'package,
 
                         self.context.current_udt_id = context;
                         self.context.current_item_name = context_curr_item_name;
+                    }
+                }
+                ast::ItemKind::ImportOrExport(decl) => {
+                    for item in &decl.items {
+                        if let ImportKind::Direct { alias: Some(alias) } = &item.kind {
+                            if alias.span.touches(self.offset) {
+                                // If the cursor is on the alias, go through the path.
+                                if let PathKind::Ok(path) = &item.path {
+                                    self.at_path(path, Some(alias));
+                                    break;
+                                }
+                            }
+                        }
+                        walk_import_or_export(self, item);
                     }
                 }
                 _ => {}
@@ -416,50 +433,62 @@ impl<'package, T: Handler<'package>> Visitor<'package> for Locator<'_, 'package,
     // Handles local variable, UDT, and callable references
     fn visit_path(&mut self, path: &'package ast::Path) {
         if path.span.touches(self.offset) {
-            match resolve::path_as_field_accessor(&self.compilation.user_unit().ast.names, path) {
-                // The path is a field accessor.
-                Some((node_id, parts)) => {
-                    let (first, rest) = parts
-                        .split_first()
-                        .expect("paths should have at least one part");
-                    if first.span.touches(self.offset) {
-                        if let Some(definition) = self.find_ident(node_id) {
-                            self.inner
-                                .at_local_ref(&self.context, first, node_id, definition);
-                        }
-                    } else {
-                        // Loop through the parts of the path to find the first part that touches the offset
-                        let mut last_id = first.id;
-                        for part in rest {
-                            if part.span.touches(self.offset) {
-                                if let Some(hir::ty::Ty::Udt(_, res)) =
-                                    &self.compilation.get_ty(last_id)
-                                {
-                                    if let Some((item_id, field_def)) =
-                                        self.get_field_def(res, part)
-                                    {
-                                        self.inner.at_field_ref(part, &item_id, field_def);
-                                    }
+            self.at_path(path, None);
+        }
+    }
+}
+
+impl<'package, T: Handler<'package>> Locator<'_, 'package, T> {
+    fn at_path(&mut self, path: &'package ast::Path, alias: Option<&'package ast::Ident>) {
+        match resolve::path_as_field_accessor(&self.compilation.user_unit().ast.names, path) {
+            // The path is a field accessor.
+            Some((node_id, parts)) => {
+                let (first, rest) = parts
+                    .split_first()
+                    .expect("paths should have at least one part");
+                if first.span.touches(self.offset) {
+                    if let Some(definition) = self.find_ident(node_id) {
+                        self.inner
+                            .at_local_ref(&self.context, first, node_id, definition);
+                    }
+                } else {
+                    // Loop through the parts of the path to find the first part that touches the offset
+                    let mut last_id = first.id;
+                    for part in rest {
+                        if part.span.touches(self.offset) {
+                            if let Some(hir::ty::Ty::Udt(_, res)) =
+                                &self.compilation.get_ty(last_id)
+                            {
+                                if let Some((item_id, field_def)) = self.get_field_def(res, part) {
+                                    self.inner.at_field_ref(part, &item_id, field_def);
                                 }
-                                break;
                             }
-                            last_id = part.id;
+                            break;
                         }
+                        last_id = part.id;
                     }
                 }
-                // The path is a namespace path.
-                None => match self.compilation.get_res(path.id) {
-                    Some(resolve::Res::Item(item_id, _)) => {
+            }
+            // The path is not a field accessor.
+            None => match self.compilation.get_res(path.id) {
+                Some(res @ (resolve::Res::Item(..) | resolve::Res::Importable(_))) => {
+                    if let Some(ref item_id) = res.item_id() {
                         let (item, _, resolved_item_id) = self
                             .compilation
                             .resolve_item_relative_to_user_package(item_id);
                         match &item.kind {
                             hir::ItemKind::Callable(decl) => {
-                                self.inner.at_callable_ref(path, &resolved_item_id, decl);
+                                self.inner
+                                    .at_callable_ref(path, alias, &resolved_item_id, decl);
                             }
                             hir::ItemKind::Ty(type_name, udt) => {
-                                self.inner
-                                    .at_new_type_ref(path, &resolved_item_id, type_name, udt);
+                                self.inner.at_new_type_ref(
+                                    path,
+                                    alias,
+                                    &resolved_item_id,
+                                    type_name,
+                                    udt,
+                                );
                             }
                             hir::ItemKind::Namespace(_, _) => {
                                 panic!(
@@ -472,19 +501,15 @@ impl<'package, T: Handler<'package>> Visitor<'package> for Locator<'_, 'package,
                             }
                         }
                     }
-                    Some(resolve::Res::Local(node_id)) => {
-                        if let Some(definition) = self.find_ident(*node_id) {
-                            self.inner.at_local_ref(
-                                &self.context,
-                                &path.name,
-                                *node_id,
-                                definition,
-                            );
-                        }
+                }
+                Some(resolve::Res::Local(node_id)) => {
+                    if let Some(definition) = self.find_ident(*node_id) {
+                        self.inner
+                            .at_local_ref(&self.context, &path.name, *node_id, definition);
                     }
-                    _ => {}
-                },
-            }
+                }
+                _ => {}
+            },
         }
     }
 }

@@ -427,20 +427,39 @@ suite("Q# Debugger Tests", function suite() {
     // Step over to prepare the tracker to detect a new variable.
     await vscode.commands.executeCommand("workbench.action.debug.stepOver");
 
+    // Wait until paused. A new variable should be in the locals.
+    await waitUntilPausedAndAssertVariables([
+      { name: "b", type: undefined, value: "3", variablesReference: 0 },
+      { name: "c", type: undefined, value: "4", variablesReference: 0 },
+    ]);
+
     // Request scopes for the frame with frameId 0 (Foo's frame).
     await vscode.debug.activeDebugSession?.customRequest("scopes", {
       frameId: 0,
     });
+    const scopes = (await waitUntilResponse(
+      "scopes",
+    )) as DebugProtocol.ScopesResponse;
 
-    // Request variables of selected frame.
-    // The variables reference value, 1003, comes from looking at the response
-    // of the "scopes" request above with `logDebugAdapterActivity = true`.
+    // Request variables for the Locals scope.
+    const variablesReference = scopes.body.scopes.find(
+      (scope) => scope.name === "Locals",
+    )?.variablesReference;
+
+    assert.isNotNull(
+      variablesReference,
+      "Expected to find a variables reference for the Locals scope",
+    );
+
     await vscode.debug.activeDebugSession?.customRequest("variables", {
-      variablesReference: 1003,
+      variablesReference,
     });
 
-    // Verify that the local variables correspond to the Main frame.
-    await waitUntilPausedAndAssertVariables([
+    const variables = (await waitUntilResponse(
+      "variables",
+    )) as DebugProtocol.VariablesResponse;
+
+    assert.deepEqual(variables.body.variables, [
       {
         name: "q",
         type: undefined,
@@ -465,7 +484,7 @@ suite("Q# Debugger Tests", function suite() {
   function waitUntilPausedAndAssertStackTrace(
     expectedStackTrace: DebugProtocol.StackFrame[],
   ) {
-    return tracker!.waitUntilPausedAndAssertStackTrace(expectedStackTrace);
+    return tracker!.waitUntilPaused({ expectedStackTrace });
   }
 
   /**
@@ -477,7 +496,17 @@ suite("Q# Debugger Tests", function suite() {
   function waitUntilPausedAndAssertVariables(
     expectedVariables: DebugProtocol.Variable[],
   ) {
-    return tracker!.waitUntilPausedAndAssertVariables(expectedVariables);
+    return tracker!.waitUntilPaused({ expectedVariables });
+  }
+
+  /**
+   * Wait until the debugger has returned a response for a
+   * specific command.
+   */
+  function waitUntilResponse(
+    command: string,
+  ): Promise<DebugProtocol.Response | undefined> {
+    return tracker!.waitUntilResponse(command);
   }
 });
 

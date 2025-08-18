@@ -10,6 +10,12 @@ from ._native import (  # type: ignore
     Output,
     Circuit,
     GlobalCallable,
+    Pauli,
+    Result,
+    UdtValue,
+    TypeIR,
+    TypeKind,
+    PrimitiveKind,
 )
 from typing import (
     Any,
@@ -20,7 +26,8 @@ from typing import (
     TypedDict,
     Union,
     List,
-    overload,
+    Set,
+    Iterable,
 )
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
@@ -28,6 +35,70 @@ import os
 import sys
 import types
 from time import monotonic
+from dataclasses import make_dataclass
+
+
+def lower_python_obj(obj: object, visited: Optional[Set[object]] = None) -> Any:
+    if visited is None:
+        visited = set()
+
+    if id(obj) in visited:
+        raise QSharpError("Cannot send circular objects from Python to Q#.")
+
+    visited = visited.copy().add(id(obj))
+
+    # Base case: Primitive types
+    if isinstance(obj, (bool, int, float, complex, str, Pauli, Result)):
+        return obj
+
+    # Recursive case: Tuple
+    if isinstance(obj, tuple):
+        return tuple(lower_python_obj(elt, visited) for elt in obj)
+
+    # Recusive case: Dict
+    if isinstance(obj, dict):
+        return {name: lower_python_obj(val, visited) for name, val in obj.items()}
+
+    # Recursive case: Class with slots
+    if hasattr(obj, "__slots__"):
+        fields = {}
+        for name in obj.__slots__:
+            if name == "__dict__":
+                for name, val in obj.__dict__.items():
+                    fields[name] = lower_python_obj(val, visited)
+            else:
+                val = getattr(obj, name)
+                fields[name] = lower_python_obj(val, visited)
+        return fields
+
+    # Recursive case: Class
+    if hasattr(obj, "__dict__"):
+        fields = {
+            name: lower_python_obj(val, visited) for name, val in obj.__dict__.items()
+        }
+        return fields
+
+    # Recursive case: Array
+    # By using `Iterable` instead of `list`, we can handle other kind of iterables
+    # like numpy arrays and generators.
+    if isinstance(obj, Iterable):
+        return [lower_python_obj(elt, visited) for elt in obj]
+
+    raise TypeError(f"unsupported type: {type(obj)}")
+
+
+def python_args_to_interpreter_args(args):
+    """
+    Helper function to turn the `*args` argument of this module
+    to the format expected by the Q# interpreter.
+    """
+    if len(args) == 0:
+        return None
+    elif len(args) == 1:
+        return lower_python_obj(args[0])
+    else:
+        return lower_python_obj(args)
+
 
 _interpreter: Union["Interpreter", None] = None
 _config: Union["Config", None] = None
@@ -198,11 +269,13 @@ def init(
             ) from e
 
     # Loop through the environment module and remove any dynamically added attributes that represent
-    # Q# callables. This is necessary to avoid conflicts with the new interpreter instance.
+    # Q# callables or structs. This is necessary to avoid conflicts with the new interpreter instance.
     keys_to_remove = []
-    for key in code.__dict__:
-        if hasattr(code.__dict__[key], "__global_callable") or isinstance(
-            code.__dict__[key], types.ModuleType
+    for key, val in code.__dict__.items():
+        if (
+            hasattr(val, "__global_callable")
+            or hasattr(val, "__qsharp_class")
+            or isinstance(val, types.ModuleType)
         ):
             keys_to_remove.append(key)
     for key in keys_to_remove:
@@ -225,6 +298,7 @@ def init(
         resolve,
         fetch_github,
         _make_callable,
+        _make_class,
     )
 
     _config = Config(target_profile, language_features, manifest_contents, project_root)
@@ -386,9 +460,10 @@ def eval(
     telemetry_events.on_eval()
     start_time = monotonic()
 
-    results["result"] = get_interpreter().interpret(
+    output = get_interpreter().interpret(
         source, on_save_events if save_events else callback
     )
+    results["result"] = qsharp_value_to_python_value(output)
 
     durationMs = (monotonic() - start_time) * 1000
     telemetry_events.on_eval_end(durationMs)
@@ -435,18 +510,125 @@ def _make_callable(callable: GlobalCallable, namespace: List[str], callable_name
                     pass
             print(output, flush=True)
 
-        if len(args) == 1:
-            args = args[0]
-        elif len(args) == 0:
-            args = None
+        args = python_args_to_interpreter_args(args)
 
-        return get_interpreter().invoke(callable, args, callback)
+        output = get_interpreter().invoke(callable, args, callback)
+        return qsharp_value_to_python_value(output)
 
     # Each callable is annotated so that we know it is auto-generated and can be removed on a re-init of the interpreter.
     _callable.__global_callable = callable
 
     # Add the callable to the module.
     module.__setattr__(callable_name, _callable)
+
+
+def qsharp_value_to_python_value(obj):
+    # Base case: Primitive types
+    if isinstance(obj, (bool, int, float, complex, str, Pauli, Result)):
+        return obj
+
+    # Recursive case: Tuple
+    if isinstance(obj, tuple):
+        # Special case Value::UNIT maps to None.
+        if not obj:
+            return None
+        return tuple(qsharp_value_to_python_value(elt) for elt in obj)
+
+    # Recursive case: Array
+    if isinstance(obj, list):
+        return [qsharp_value_to_python_value(elt) for elt in obj]
+
+    # Recursive case: Udt
+    if isinstance(obj, UdtValue):
+        class_name = obj.name
+        fields = []
+        args = []
+        for name, value_ir in obj.fields:
+            val = qsharp_value_to_python_value(value_ir)
+            ty = type(val)
+            args.append(val)
+            fields.append((name, ty))
+        return make_dataclass(class_name, fields)(*args)
+
+
+def make_class_rec(qsharp_type: TypeIR) -> type:
+    class_name = qsharp_type.unwrap_udt().name
+    fields = {}
+    for field in qsharp_type.unwrap_udt().fields:
+        ty = None
+        kind = field[1].kind()
+
+        if kind == TypeKind.Primitive:
+            prim_kind = field[1].unwrap_primitive()
+            if prim_kind == PrimitiveKind.Bool:
+                ty = bool
+            elif prim_kind == PrimitiveKind.Int:
+                ty = int
+            elif prim_kind == PrimitiveKind.Double:
+                ty = float
+            elif prim_kind == PrimitiveKind.Complex:
+                ty = complex
+            elif prim_kind == PrimitiveKind.String:
+                ty = str
+            elif prim_kind == PrimitiveKind.Pauli:
+                ty = Pauli
+            elif prim_kind == PrimitiveKind.Result:
+                ty = Result
+            else:
+                raise QSharpError(f"unknown primtive {prim_kind}")
+        elif kind == TypeKind.Tuple:
+            # Special case Value::UNIT maps to None.
+            if not field[1].unwrap_tuple():
+                ty = type(None)
+            else:
+                ty = tuple
+        elif kind == TypeKind.Array:
+            ty = list
+        elif kind == TypeKind.Udt:
+            ty = make_class_rec(field[1])
+        else:
+            raise QSharpError(f"unknown type {kind}")
+        fields[field[0]] = ty
+
+    return make_dataclass(
+        class_name,
+        fields,
+    )
+
+
+def _make_class(qsharp_type: TypeIR, namespace: List[str], class_name: str):
+    """
+    Helper function to create a python class given a description of it. This will be
+    used by the underlying native code to create classes on the fly corresponding to
+    the currently initialized interpreter instance.
+    """
+
+    module = code
+    # Create a name that will be used to collect the hierachy of namespace identifiers if they exist and use that
+    # to register created modules with the system.
+    accumulated_namespace = "qsharp.code"
+    accumulated_namespace += "."
+    for name in namespace:
+        accumulated_namespace += name
+        # Use the existing entry, which should already be a module.
+        if hasattr(module, name):
+            module = module.__getattribute__(name)
+        else:
+            # This namespace entry doesn't exist as a module yet, so create it, add it to the environment, and
+            # add it to sys.modules so it supports import properly.
+            new_module = types.ModuleType(accumulated_namespace)
+            module.__setattr__(name, new_module)
+            sys.modules[accumulated_namespace] = new_module
+            module = new_module
+        accumulated_namespace += "."
+
+    QSharpClass = make_class_rec(qsharp_type)
+
+    # Each class is annotated so that we know it is auto-generated and can be removed on a re-init of the interpreter.
+    QSharpClass.__qsharp_class = True
+
+    # Add the class to the module.
+    module.__setattr__(class_name, QSharpClass)
 
 
 def run(
@@ -521,10 +703,7 @@ def run(
 
     callable = None
     if isinstance(entry_expr, Callable) and hasattr(entry_expr, "__global_callable"):
-        if len(args) == 1:
-            args = args[0]
-        elif len(args) == 0:
-            args = None
+        args = python_args_to_interpreter_args(args)
         callable = entry_expr.__global_callable
         entry_expr = None
 
@@ -540,6 +719,7 @@ def run(
             callable,
             args,
         )
+        run_results = qsharp_value_to_python_value(run_results)
         results[-1]["result"] = run_results
         if on_result:
             on_result(results[-1])
@@ -607,10 +787,7 @@ def compile(entry_expr: Union[str, Callable], *args) -> QirInputData:
     target_profile = _config._config.get("targetProfile", "unspecified")
     telemetry_events.on_compile(target_profile)
     if isinstance(entry_expr, Callable) and hasattr(entry_expr, "__global_callable"):
-        if len(args) == 1:
-            args = args[0]
-        elif len(args) == 0:
-            args = None
+        args = python_args_to_interpreter_args(args)
         ll_str = get_interpreter().qir(
             entry_expr=None, callable=entry_expr.__global_callable, args=args
         )
@@ -646,10 +823,7 @@ def circuit(
     start = monotonic()
     telemetry_events.on_circuit()
     if isinstance(entry_expr, Callable) and hasattr(entry_expr, "__global_callable"):
-        if len(args) == 1:
-            args = args[0]
-        elif len(args) == 0:
-            args = None
+        args = python_args_to_interpreter_args(args)
         res = get_interpreter().circuit(
             callable=entry_expr.__global_callable, args=args
         )
@@ -699,10 +873,7 @@ def estimate(
     telemetry_events.on_estimate()
     start = monotonic()
     if isinstance(entry_expr, Callable) and hasattr(entry_expr, "__global_callable"):
-        if len(args) == 1:
-            args = args[0]
-        elif len(args) == 0:
-            args = None
+        args = python_args_to_interpreter_args(args)
         res_str = get_interpreter().estimate(
             param_str, callable=entry_expr.__global_callable, args=args
         )

@@ -31,11 +31,12 @@ fn to_bit_implicitly() {
                 ty_span: [32-35]
                 init_expr: Expr [40-41]:
                     ty: bit
-                    kind: Cast [0-0]:
+                    kind: Cast [40-41]:
                         ty: bit
                         expr: Expr [40-41]:
                             ty: angle
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [36-37]:
                 name: y
                 type: bit
@@ -71,11 +72,12 @@ fn explicit_width_to_bit_implicitly_fails() {
                 ty_span: [36-39]
                 init_expr: Expr [44-45]:
                     ty: bit
-                    kind: Cast [0-0]:
+                    kind: Cast [44-45]:
                         ty: bit
                         expr: Expr [44-45]:
                             ty: angle[64]
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [40-41]:
                 name: y
                 type: bit
@@ -110,11 +112,12 @@ fn to_bool_implicitly() {
                 ty_span: [32-36]
                 init_expr: Expr [41-42]:
                     ty: bool
-                    kind: Cast [0-0]:
+                    kind: Cast [41-42]:
                         ty: bool
                         expr: Expr [41-42]:
                             ty: angle
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [37-38]:
                 name: y
                 type: bool
@@ -277,7 +280,7 @@ fn negative_lit_to_implicit_uint_implicitly_fails() {
                             ty_span: [9-14]
                             init_expr: Expr [20-23]:
                                 ty: angle
-                                kind: Cast [0-0]:
+                                kind: Cast [20-23]:
                                     ty: angle
                                     expr: Expr [20-23]:
                                         ty: const float
@@ -286,6 +289,7 @@ fn negative_lit_to_implicit_uint_implicitly_fails() {
                                             expr: Expr [20-23]:
                                                 ty: const float
                                                 kind: Lit: Float(42.0)
+                                    kind: Implicit
                     Stmt [33-44]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [33-44]:
@@ -634,11 +638,12 @@ fn to_explicit_angle_implicitly() {
                 ty_span: [32-40]
                 init_expr: Expr [45-46]:
                     ty: angle[4]
-                    kind: Cast [0-0]:
+                    kind: Cast [45-46]:
                         ty: angle[4]
                         expr: Expr [45-46]:
                             ty: angle
                             kind: SymbolId(8)
+                        kind: Implicit
             [9] Symbol [41-42]:
                 name: y
                 type: angle[4]
@@ -686,7 +691,7 @@ fn width_promotion() {
                 ty_span: [63-66]
                 init_expr: Expr [71-76]:
                     ty: bit
-                    kind: Cast [0-0]:
+                    kind: Cast [71-76]:
                         ty: bit
                         expr: Expr [71-76]:
                             ty: uint[48]
@@ -694,14 +699,16 @@ fn width_promotion() {
                                 op: Div
                                 lhs: Expr [71-72]:
                                     ty: angle[48]
-                                    kind: Cast [0-0]:
+                                    kind: Cast [71-72]:
                                         ty: angle[48]
                                         expr: Expr [71-72]:
                                             ty: angle[32]
                                             kind: SymbolId(8)
+                                        kind: Implicit
                                 rhs: Expr [75-76]:
                                     ty: angle[48]
                                     kind: SymbolId(9)
+                        kind: Implicit
             [10] Symbol [67-68]:
                 name: z
                 type: bit

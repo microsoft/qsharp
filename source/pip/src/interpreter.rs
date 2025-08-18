@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+pub(crate) mod data_interop;
+
 use crate::{
     displayable_output::{DisplayableMatrix, DisplayableOutput, DisplayableState},
     fs::file_system,
@@ -10,10 +12,14 @@ use crate::{
         create_filesystem_from_py, get_operation_name, get_output_semantics, get_program_type,
         get_search_path, resource_estimate_qasm_program, run_qasm_program,
     },
+    interpreter::data_interop::{
+        PrimitiveKind, TypeIR, TypeKind, UdtFields, UdtIR, UdtValue, collect_udt_fields,
+        pyobj_to_value, type_ir_from_qsharp_ty, value_to_pyobj,
+    },
     noisy_simulator::register_noisy_simulator_submodule,
 };
 use miette::{Diagnostic, Report};
-use num_bigint::{BigInt, BigUint};
+use num_bigint::BigUint;
 use num_complex::Complex64;
 use pyo3::{
     IntoPyObjectExt, create_exception,
@@ -27,7 +33,7 @@ use qsc::{
     fir::{self},
     hir::ty::{Prim, Ty},
     interpret::{
-        self, CircuitEntryPoint, PauliNoise, Value,
+        self, CircuitEntryPoint, PauliNoise, TaggedItem, Value,
         output::{Error, Receiver},
     },
     packages::BuildableProgram,
@@ -63,6 +69,12 @@ fn verify_classes_are_sendable() {
     is_send::<Output>();
     is_send::<StateDumpData>();
     is_send::<Circuit>();
+    is_send::<UdtValue>();
+    is_send::<UdtFields>();
+    is_send::<TypeIR>();
+    is_send::<TypeKind>();
+    is_send::<PrimitiveKind>();
+    is_send::<UdtIR>();
 }
 
 #[pymodule]
@@ -78,6 +90,11 @@ fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
     m.add_class::<StateDumpData>()?;
     m.add_class::<Circuit>()?;
     m.add_class::<GlobalCallable>()?;
+    m.add_class::<UdtValue>()?;
+    m.add_class::<TypeIR>()?;
+    m.add_class::<TypeKind>()?;
+    m.add_class::<PrimitiveKind>()?;
+    m.add_class::<UdtIR>()?;
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
     m.add("QSharpError", py.get_type::<QSharpError>())?;
     register_noisy_simulator_submodule(py, m)?;
@@ -320,6 +337,8 @@ pub(crate) struct Interpreter {
     pub(crate) interpreter: interpret::Interpreter,
     /// The Python function to call to create a new function wrapping a callable invocation.
     pub(crate) make_callable: Option<PyObject>,
+    /// The Python function to call to create a class representing a qsharp struct.
+    pub(crate) make_class: Option<PyObject>,
 }
 
 thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default(); }
@@ -329,7 +348,7 @@ thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default();
 impl Interpreter {
     #[allow(clippy::too_many_arguments)]
     #[allow(clippy::needless_pass_by_value)]
-    #[pyo3(signature = (target_profile, language_features=None, project_root=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, make_callable=None))]
+    #[pyo3(signature = (target_profile, language_features=None, project_root=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, make_callable=None, make_class=None))]
     #[new]
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(
@@ -342,6 +361,7 @@ impl Interpreter {
         resolve_path: Option<PyObject>,
         fetch_github: Option<PyObject>,
         make_callable: Option<PyObject>,
+        make_class: Option<PyObject>,
     ) -> PyResult<Self> {
         let target = Into::<Profile>::into(target_profile).into();
 
@@ -388,14 +408,28 @@ impl Interpreter {
             Ok(interpreter) => {
                 if let Some(make_callable) = &make_callable {
                     // Add any global callables from the user source as Python functions to the environment.
-                    let exported_items = interpreter.user_globals();
+                    let exported_items = interpreter.source_globals();
                     for (namespace, name, val) in exported_items {
                         create_py_callable(py, make_callable, &namespace, &name, val)?;
+                    }
+                }
+                if let Some(make_class) = &make_class {
+                    // Add any global structs from the user source as Python classes to the environment.
+                    let exported_items = interpreter.source_types();
+                    for TaggedItem {
+                        item_id,
+                        name,
+                        namespace,
+                    } in exported_items
+                    {
+                        let ty = Ty::Udt(name.clone(), qsc::hir::Res::Item(item_id));
+                        create_py_class(&interpreter, py, make_class, &namespace, &name, &ty)?;
                     }
                 }
                 Ok(Self {
                     interpreter,
                     make_callable,
+                    make_class,
                 })
             }
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
@@ -425,12 +459,28 @@ impl Interpreter {
                     // every callable that was defined in the input and by previous calls that added to the open package.
                     // This is safe because either the callable will be replaced with itself or a new callable with the
                     // same name will shadow the previous one, which is the expected behavior.
-                    let new_items = self.interpreter.source_globals();
+                    let new_items = self.interpreter.user_globals();
                     for (namespace, name, val) in new_items {
                         create_py_callable(py, make_callable, &namespace, &name, val)?;
                     }
                 }
-                Ok(ValueWrapper(value).into_pyobject(py)?.unbind())
+                if let Some(make_class) = &self.make_class {
+                    // Get any global UDTs from the evaluated input and add them to the environment. This will grab
+                    // every UDT that was defined in the input and by previous calls that added to the open package.
+                    // This is safe because either the UDT will be replaced with itself or a new UDT with the
+                    // same name will shadow the previous one, which is the expected behavior.
+                    let new_items = self.interpreter.user_types();
+                    for TaggedItem {
+                        item_id,
+                        name,
+                        namespace,
+                    } in new_items
+                    {
+                        let ty = Ty::Udt(name.clone(), qsc::hir::Res::Item(item_id));
+                        create_py_class(&self.interpreter, py, make_class, &namespace, &name, &ty)?;
+                    }
+                }
+                value_to_pyobj(&self.interpreter, py, &value)
             }
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -531,12 +581,12 @@ impl Interpreter {
                     // every callable that was defined in the input and by previous calls that added to the open package.
                     // This is safe because either the callable will be replaced with itself or a new callable with the
                     // same name will shadow the previous one, which is the expected behavior.
-                    let new_items = self.interpreter.source_globals();
+                    let new_items = self.interpreter.user_globals();
                     for (namespace, name, val) in new_items {
                         create_py_callable(py, make_callable, &namespace, &name, val)?;
                     }
                 }
-                Ok(ValueWrapper(value).into_pyobject(py)?.unbind())
+                value_to_pyobj(&self.interpreter, py, &value)
             }
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -596,9 +646,10 @@ impl Interpreter {
             Some(callable) => {
                 let (input_ty, output_ty) = self
                     .interpreter
-                    .global_tys(&callable.0)
+                    .global_callable_ty(&callable.0)
                     .ok_or(QSharpError::new_err("callable not found"))?;
-                let args = args_to_values(py, args, &input_ty, &output_ty)?;
+                let args = args_to_values(&self.interpreter, py, args, &input_ty, &output_ty)?;
+
                 self.interpreter.invoke_with_noise(
                     &mut receiver,
                     callable.0,
@@ -613,7 +664,7 @@ impl Interpreter {
         };
 
         match result {
-            Ok(value) => Ok(ValueWrapper(value).into_pyobject(py)?.unbind()),
+            Ok(value) => value_to_pyobj(&self.interpreter, py, &value),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
@@ -629,13 +680,13 @@ impl Interpreter {
         let mut receiver = OptionalCallbackReceiver { callback, py };
         let (input_ty, output_ty) = self
             .interpreter
-            .global_tys(&callable.0)
+            .global_callable_ty(&callable.0)
             .ok_or(QSharpError::new_err("callable not found"))?;
 
-        let args = args_to_values(py, args, &input_ty, &output_ty)?;
+        let args = args_to_values(&self.interpreter, py, args, &input_ty, &output_ty)?;
 
         match self.interpreter.invoke(&mut receiver, callable.0, args) {
-            Ok(value) => Ok(ValueWrapper(value).into_pyobject(py)?.unbind()),
+            Ok(value) => value_to_pyobj(&self.interpreter, py, &value),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
@@ -659,10 +710,10 @@ impl Interpreter {
             })?;
             let (input_ty, output_ty) = self
                 .interpreter
-                .global_tys(&callable.0)
+                .global_callable_ty(&callable.0)
                 .ok_or(QSharpError::new_err("callable not found"))?;
 
-            let args = args_to_values(py, args, &input_ty, &output_ty)?;
+            let args = args_to_values(&self.interpreter, py, args, &input_ty, &output_ty)?;
             match self.interpreter.qirgen_from_callable(&callable.0, args) {
                 Ok(qir) => Ok(qir),
                 Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
@@ -699,9 +750,9 @@ impl Interpreter {
             (None, None, Some(callable)) => {
                 let (input_ty, output_ty) = self
                     .interpreter
-                    .global_tys(&callable.0)
+                    .global_callable_ty(&callable.0)
                     .ok_or(QSharpError::new_err("callable not found"))?;
-                let args = args_to_values(py, args, &input_ty, &output_ty)?;
+                let args = args_to_values(&self.interpreter, py, args, &input_ty, &output_ty)?;
                 CircuitEntryPoint::Callable(callable.0, args)
             }
             _ => {
@@ -734,9 +785,9 @@ impl Interpreter {
             })?;
             let (input_ty, output_ty) = self
                 .interpreter
-                .global_tys(&callable.0)
+                .global_callable_ty(&callable.0)
                 .ok_or(QSharpError::new_err("callable not found"))?;
-            let args = args_to_values(py, args, &input_ty, &output_ty)?;
+            let args = args_to_values(&self.interpreter, py, args, &input_ty, &output_ty)?;
             estimate_call(&mut self.interpreter, callable.0, args, job_params)
         };
         match results {
@@ -767,6 +818,7 @@ impl Interpreter {
 }
 
 fn args_to_values(
+    ctx: &interpret::Interpreter,
     py: Python,
     args: Option<PyObject>,
     input_ty: &Ty,
@@ -774,18 +826,18 @@ fn args_to_values(
 ) -> PyResult<Value> {
     // If the types are not supported, we can't convert the arguments or return value.
     // Check this before trying to convert the arguments, and return an error if the types are not supported.
-    if let Some(ty) = first_unsupported_interop_ty(input_ty) {
+    if let Some(ty) = first_unsupported_interop_ty(ctx, input_ty) {
         return Err(QSharpError::new_err(format!(
             "unsupported input type: `{ty}`"
         )));
     }
-    if let Some(ty) = first_unsupported_interop_ty(output_ty) {
+    if let Some(ty) = first_unsupported_interop_ty(ctx, output_ty) {
         return Err(QSharpError::new_err(format!(
             "unsupported output type: `{ty}`"
         )));
     }
 
-    // Conver the Python arguments to Q# values, treating None as an empty tuple aka `Unit`.
+    // Convert the Python arguments to Q# values, treating None as an empty tuple aka `Unit`.
     if matches!(&input_ty, Ty::Tuple(tup) if tup.is_empty()) {
         // Special case for unit, where args should be None
         if args.is_some() {
@@ -799,13 +851,19 @@ fn args_to_values(
             )));
         };
         // This conversion will produce errors if the types don't match or can't be converted.
-        Ok(convert_obj_with_ty(py, &args, input_ty)?)
+        Ok(pyobj_to_value(ctx, py, &args, input_ty)?)
     }
 }
 
 /// Finds any Q# type recursively that does not support interop with Python, meaning our code cannot convert it back and forth
 /// across the interop boundary.
-fn first_unsupported_interop_ty(ty: &Ty) -> Option<&Ty> {
+fn first_unsupported_interop_ty<'ctx, 'ty>(
+    ctx: &'ctx interpret::Interpreter,
+    ty: &'ty Ty,
+) -> Option<&'ctx Ty>
+where
+    'ty: 'ctx,
+{
     match ty {
         Ty::Prim(prim_ty) => match prim_ty {
             Prim::Pauli
@@ -821,64 +879,27 @@ fn first_unsupported_interop_ty(ty: &Ty) -> Option<&Ty> {
         },
         Ty::Tuple(tup) => tup
             .iter()
-            .find(|t| first_unsupported_interop_ty(t).is_some()),
-        Ty::Array(ty) => first_unsupported_interop_ty(ty),
-        _ => Some(ty),
-    }
-}
+            .find(|t| first_unsupported_interop_ty(ctx, t).is_some()),
+        Ty::Array(ty) => first_unsupported_interop_ty(ctx, ty),
+        Ty::Udt(_, res) => {
+            let qsc::hir::Res::Item(item_id) = res else {
+                panic!("Udt should be an item");
+            };
+            let (udt, _) = ctx.udt_ty_from_item_id(item_id);
 
-/// Given a type, convert a Python object into a Q# value of that type. This will recur through tuples and arrays,
-/// and will return an error if the type is not supported or the object cannot be converted.
-fn convert_obj_with_ty(py: Python, obj: &PyObject, ty: &Ty) -> PyResult<Value> {
-    match ty {
-        Ty::Prim(prim_ty) => match prim_ty {
-            Prim::BigInt => Ok(Value::BigInt(obj.extract::<BigInt>(py)?)),
-            Prim::Bool => Ok(Value::Bool(obj.extract::<bool>(py)?)),
-            Prim::Double => Ok(Value::Double(obj.extract::<f64>(py)?)),
-            Prim::Int => Ok(Value::Int(obj.extract::<i64>(py)?)),
-            Prim::String => Ok(Value::String(obj.extract::<String>(py)?.into())),
-            Prim::Result => Ok(Value::Result(qsc::interpret::Result::Val(
-                obj.extract::<Result>(py)? == Result::One,
-            ))),
-            Prim::Pauli => Ok(Value::Pauli(match obj.extract::<Pauli>(py)? {
-                Pauli::I => fir::Pauli::I,
-                Pauli::X => fir::Pauli::X,
-                Pauli::Y => fir::Pauli::Y,
-                Pauli::Z => fir::Pauli::Z,
-            })),
-            Prim::Qubit | Prim::Range | Prim::RangeTo | Prim::RangeFrom | Prim::RangeFull => {
-                unimplemented!("primitive input type: {prim_ty:?}")
-            }
-        },
-        Ty::Tuple(tup) => {
-            if tup.len() == 1 {
-                let value = convert_obj_with_ty(py, obj, &tup[0]);
-                Ok(Value::Tuple(vec![value?].into()))
-            } else {
-                let obj = obj.extract::<Vec<PyObject>>(py)?;
-                if obj.len() != tup.len() {
-                    return Err(QSharpError::new_err(format!(
-                        "mismatched tuple arity: expected {}, got {}",
-                        tup.len(),
-                        obj.len()
-                    )));
+            let Ok(fields) = collect_udt_fields(udt) else {
+                return Some(ty);
+            };
+
+            for field in fields {
+                if let Some(ty) = first_unsupported_interop_ty(ctx, field.1) {
+                    return Some(ty);
                 }
-                let mut values = Vec::with_capacity(obj.len());
-                for (i, ty) in tup.iter().enumerate() {
-                    values.push(convert_obj_with_ty(py, &obj[i], ty)?);
-                }
-                Ok(Value::Tuple(values.into()))
             }
+
+            None
         }
-        Ty::Array(ty) => {
-            let obj = obj.extract::<Vec<PyObject>>(py)?;
-            let mut values = Vec::with_capacity(obj.len());
-            for item in &obj {
-                values.push(convert_obj_with_ty(py, item, ty)?);
-            }
-            Ok(Value::Array(values.into()))
-        }
-        _ => unimplemented!("input type: {ty}"),
+        Ty::Arrow(..) | Ty::Infer(..) | Ty::Param { .. } | Ty::Err => Some(ty),
     }
 }
 
@@ -1041,6 +1062,15 @@ pub(crate) enum Result {
     Loss,
 }
 
+impl From<Result> for qsc::interpret::Result {
+    fn from(value: Result) -> Self {
+        match value {
+            Result::Loss => qsc::interpret::Result::Loss,
+            Result::One | Result::Zero => qsc::interpret::Result::Val(value == Result::One),
+        }
+    }
+}
+
 #[pymethods]
 impl Result {
     #[allow(clippy::trivially_copy_pass_by_ref)]
@@ -1077,49 +1107,13 @@ pub(crate) enum Pauli {
     Z,
 }
 
-// Mapping of Q# value types to Python value types.
-pub(crate) struct ValueWrapper(pub(crate) Value);
-
-impl<'py> IntoPyObject<'py> for ValueWrapper {
-    type Target = PyAny;
-
-    type Output = Bound<'py, Self::Target>;
-
-    type Error = pyo3::PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> std::result::Result<Self::Output, Self::Error> {
-        match self.0 {
-            Value::Int(val) => val.into_bound_py_any(py),
-            Value::BigInt(val) => val.into_bound_py_any(py),
-            Value::Double(val) => val.into_bound_py_any(py),
-            Value::Bool(val) => val.into_bound_py_any(py),
-            Value::String(val) => val.into_bound_py_any(py),
-            Value::Result(val) => match val {
-                qsc::interpret::Result::Id(_) => panic!("unexpected Result::Id in ValueWrapper"),
-                qsc::interpret::Result::Val(true) => Result::One,
-                qsc::interpret::Result::Val(false) => Result::Zero,
-                qsc::interpret::Result::Loss => Result::Loss,
-            }
-            .into_bound_py_any(py),
-            Value::Pauli(val) => match val {
-                fir::Pauli::I => Pauli::I.into_bound_py_any(py),
-                fir::Pauli::X => Pauli::X.into_bound_py_any(py),
-                fir::Pauli::Y => Pauli::Y.into_bound_py_any(py),
-                fir::Pauli::Z => Pauli::Z.into_bound_py_any(py),
-            },
-            Value::Tuple(val) => {
-                if val.is_empty() {
-                    // Special case Value::unit as None
-                    Ok(py.None().into_bound(py))
-                } else {
-                    PyTuple::new(py, val.iter().map(|v| ValueWrapper(v.clone())))?
-                        .into_bound_py_any(py)
-                }
-            }
-            Value::Array(val) => {
-                PyList::new(py, val.iter().map(|v| ValueWrapper(v.clone())))?.into_bound_py_any(py)
-            }
-            _ => format!("<{}> {}", Value::type_name(&self.0), &self.0).into_bound_py_any(py),
+impl From<Pauli> for fir::Pauli {
+    fn from(value: Pauli) -> Self {
+        match value {
+            Pauli::I => fir::Pauli::I,
+            Pauli::X => fir::Pauli::X,
+            Pauli::Y => fir::Pauli::Y,
+            Pauli::Z => fir::Pauli::Z,
         }
     }
 }
@@ -1268,6 +1262,33 @@ fn create_py_callable(
 
     // Call into the Python layer to create the function wrapping the callable invocation.
     make_callable.call1(py, args)?;
+
+    Ok(())
+}
+
+/// Create a Python class from a Q# type and adds it to the given environment.
+fn create_py_class(
+    ctx: &interpret::Interpreter,
+    py: Python,
+    make_class: &PyObject,
+    namespace: &[Rc<str>],
+    name: &str,
+    ty: &Ty,
+) -> PyResult<()> {
+    let Some(type_ir) = type_ir_from_qsharp_ty(ctx, ty) else {
+        // If the UDT can't be expressed in Python, we don't want to raise
+        // an error, instead we just don't define that type in `qsharp.code.*`.
+        return Ok(());
+    };
+
+    let args = (
+        Py::new(py, type_ir).expect("should be able to create callable"), // callable id
+        PyList::new(py, namespace.iter().map(ToString::to_string))?, // namespace as string array
+        PyString::new(py, name),                                     // name of callable
+    );
+
+    // Call into the Python layer to create the function wrapping the callable invocation.
+    make_class.call1(py, args)?;
 
     Ok(())
 }

@@ -96,6 +96,42 @@ fn duration_to_duration() {
     );
 }
 
+//===================
+// Casts to stretch
+//===================
+
+#[test]
+fn duration_to_stretch_fails() {
+    let source = "
+        duration a;
+        stretch(a);
+    ";
+    check(
+        source,
+        &expect![[r#"
+            Qasm.Compiler.NotSupported
+
+              x duration type values are not supported
+               ,-[Test.qasm:2:9]
+             1 | 
+             2 |         duration a;
+               :         ^^^^^^^^
+             3 |         stretch(a);
+               `----
+
+            Qasm.Compiler.NotSupported
+
+              x timing literals are not supported
+               ,-[Test.qasm:2:9]
+             1 | 
+             2 |         duration a;
+               :         ^^^^^^^^^^^
+             3 |         stretch(a);
+               `----
+        "#]],
+    );
+}
+
 //=========================
 // Casts to int and int[n]
 //=========================

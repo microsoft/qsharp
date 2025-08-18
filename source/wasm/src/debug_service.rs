@@ -202,7 +202,11 @@ impl DebugService {
     }
 
     pub fn get_locals(&self, frame_id: usize) -> IVariableList {
-        let locals = self.debugger().get_locals(frame_id);
+        // VS-Code Debugger's frame_id is 0-indexed.
+        // However, our frame_id is 1-indexed, since we reserve
+        // the id 0 for the entry expr. So, we add 1 here to
+        // convert from VS-Code convention to our internal convention.
+        let locals = self.debugger().get_locals(frame_id + 1);
         let variables: Vec<_> = locals
             .into_iter()
             .map(|local| Variable {

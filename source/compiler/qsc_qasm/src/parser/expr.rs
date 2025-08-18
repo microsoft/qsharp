@@ -17,6 +17,7 @@ use crate::{
         ClosedBinOp, Delim, Radix, Token, TokenKind,
         cooked::{ComparisonOp, Literal, TimingLiteralKind},
     },
+    parser::{ast::DurationofCall, stmt::parse_block},
 };
 
 use crate::parser::Result;
@@ -133,6 +134,8 @@ fn expr_base(s: &mut ParserContext) -> Result<Expr> {
         })
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         paren_expr(s, lo)
+    } else if let Some(expr) = opt(s, duration_of)? {
+        Ok(expr)
     } else {
         match opt(s, scalar_or_array_type) {
             Err(err) => Err(err),
@@ -182,17 +185,18 @@ pub(super) fn lit(s: &mut ParserContext) -> Result<Option<Lit>> {
     }
 }
 
-pub(super) fn version(s: &mut ParserContext) -> Result<Option<Version>> {
+pub(super) fn version(s: &mut ParserContext) -> Result<Version> {
     let lexeme = s.read();
     let token = s.peek();
     match version_token(lexeme, token) {
-        Ok(Some(lit)) => {
+        Ok(lit) => {
             s.advance();
-            Ok(Some(lit))
+            Ok(lit)
         }
-        Ok(None) => Ok(None),
         Err(err) => {
-            s.advance();
+            // If the peeked token is not a valid version
+            // we don't advance the iterator, this allows
+            // us to give cleaner error messages to the user.
             Err(err)
         }
     }
@@ -222,9 +226,13 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
             }
             Literal::Float => {
                 let lexeme = lexeme.replace('_', "");
-                let value = lexeme
+                let value: f64 = lexeme
                     .parse()
                     .map_err(|_| Error::new(ErrorKind::Lit("floating-point", token.span)))?;
+                // Reject NaN, Infinity, and Neg-Infinity to ensure only finite floating-point literals are accepted.
+                if !value.is_finite() {
+                    return Err(Error::new(ErrorKind::Lit("floating-point", token.span)));
+                }
                 Ok(Some(Lit {
                     kind: LiteralKind::Float(value),
                     span: token.span,
@@ -296,17 +304,17 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
     }
 }
 
-pub(super) fn version_token(lexeme: &str, token: Token) -> Result<Option<Version>> {
+pub(super) fn version_token(lexeme: &str, token: Token) -> Result<Version> {
     match token.kind {
         TokenKind::Literal(literal) => {
             if let Literal::Float = literal {
                 // validate the version number is in the form of `x.y`
                 let (major, minor) = split_and_parse_numbers(lexeme, token)?;
-                Ok(Some(Version {
+                Ok(Version {
                     major,
                     minor: Some(minor),
                     span: token.span,
-                }))
+                })
             } else if let Literal::Integer(radix) = literal {
                 if radix != Radix::Decimal {
                     return Err(Error::new(ErrorKind::Lit("version", token.span)));
@@ -315,16 +323,16 @@ pub(super) fn version_token(lexeme: &str, token: Token) -> Result<Option<Version
                     .parse::<u32>()
                     .map_err(|_| Error::new(ErrorKind::Lit("version", token.span)))?;
 
-                Ok(Some(Version {
+                Ok(Version {
                     major,
                     minor: None,
                     span: token.span,
-                }))
+                })
             } else {
-                Ok(None)
+                Err(Error::new(ErrorKind::Lit("version", token.span)))
             }
         }
-        _ => Ok(None),
+        _ => Err(Error::new(ErrorKind::Lit("version", token.span))),
     }
 }
 
@@ -818,4 +826,25 @@ pub fn alias_expr(s: &mut ParserContext) -> Result<List<Expr>> {
         exprs.push(expr(s)?);
     }
     Ok(list_from_iter(exprs))
+}
+
+/// Grammar: `DURATIONOF LPAREN scope RPAREN`
+fn duration_of(s: &mut ParserContext) -> Result<Expr> {
+    let lo = s.peek().span.lo;
+    s.expect(WordKinds::Durationof);
+    token(s, TokenKind::DurationOf)?;
+    let name_span = s.span(lo);
+    token(s, TokenKind::Open(Delim::Paren))?;
+    let scope = parse_block(s)?;
+    recovering_token(s, TokenKind::Close(Delim::Paren));
+    let duration = DurationofCall {
+        span: s.span(lo),
+        name_span,
+        scope,
+    };
+    let expr = Expr {
+        span: s.span(lo),
+        kind: Box::new(ExprKind::DurationOf(duration)),
+    };
+    Ok(expr)
 }

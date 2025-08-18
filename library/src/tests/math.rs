@@ -399,11 +399,11 @@ fn check_round_away_from_zero() {
 fn check_divrem_i() {
     test_expression(
         "Microsoft.Quantum.Math.DivRemI(20, 3)",
-        &Value::Tuple(vec![Value::Int(6), Value::Int(2)].into()),
+        &Value::Tuple(vec![Value::Int(6), Value::Int(2)].into(), None),
     );
     test_expression(
         "Microsoft.Quantum.Math.DivRemI(-20, 3)",
-        &Value::Tuple(vec![Value::Int(-6), Value::Int(-2)].into()),
+        &Value::Tuple(vec![Value::Int(-6), Value::Int(-2)].into(), None),
     );
 }
 
@@ -417,6 +417,7 @@ fn check_divrem_l() {
                 Value::BigInt(BigInt::from(2)),
             ]
             .into(),
+            None,
         ),
     );
     test_expression(
@@ -427,6 +428,7 @@ fn check_divrem_l() {
                 Value::BigInt(BigInt::from(-2)),
             ]
             .into(),
+            None,
         ),
     );
 }
@@ -569,23 +571,23 @@ fn check_cfc_i() {
     // to return canonical result.
     test_expression(
         "Microsoft.Quantum.Math.ContinuedFractionConvergentI((72,100), 2)",
-        &Value::Tuple(vec![Value::Int(-1), Value::Int(-1)].into()),
+        &Value::Tuple(vec![Value::Int(-1), Value::Int(-1)].into(), None),
     );
     test_expression(
         "Microsoft.Quantum.Math.ContinuedFractionConvergentI((72,100), 3)",
-        &Value::Tuple(vec![Value::Int(2), Value::Int(3)].into()),
+        &Value::Tuple(vec![Value::Int(2), Value::Int(3)].into(), None),
     );
     test_expression(
         "Microsoft.Quantum.Math.ContinuedFractionConvergentI((72,100), 4)",
-        &Value::Tuple(vec![Value::Int(-3), Value::Int(-4)].into()),
+        &Value::Tuple(vec![Value::Int(-3), Value::Int(-4)].into(), None),
     );
     test_expression(
         "Microsoft.Quantum.Math.ContinuedFractionConvergentI((72,100), 7)",
-        &Value::Tuple(vec![Value::Int(5), Value::Int(7)].into()),
+        &Value::Tuple(vec![Value::Int(5), Value::Int(7)].into(), None),
     );
     test_expression(
         "Microsoft.Quantum.Math.ContinuedFractionConvergentI((72,100), 25)",
-        &Value::Tuple(vec![Value::Int(-18), Value::Int(-25)].into()),
+        &Value::Tuple(vec![Value::Int(-18), Value::Int(-25)].into(), None),
     );
 }
 
@@ -602,6 +604,7 @@ fn check_cfc_l() {
                 Value::BigInt(BigInt::from(-1)),
             ]
             .into(),
+            None,
         ),
     );
     test_expression(
@@ -612,6 +615,7 @@ fn check_cfc_l() {
                 Value::BigInt(BigInt::from(3)),
             ]
             .into(),
+            None,
         ),
     );
     test_expression(
@@ -622,6 +626,7 @@ fn check_cfc_l() {
                 Value::BigInt(BigInt::from(-25)),
             ]
             .into(),
+            None,
         ),
     );
     test_expression(
@@ -632,6 +637,7 @@ fn check_cfc_l() {
                 Value::BigInt(BigInt::from(2)),
             ]
             .into(),
+            None,
         ),
     );
     test_expression(
@@ -642,6 +648,7 @@ fn check_cfc_l() {
                 Value::BigInt(BigInt::from(65_874)),
             ]
             .into(),
+            None,
         ),
     );
 }
@@ -998,13 +1005,13 @@ fn check_negation_c() {
         "{
         import Std.Math.*;
         NegationC(Complex(1.0,2.0))}",
-        &Value::Tuple(vec![Value::Double(-1.0), Value::Double(-2.0)].into()),
+        &Value::Tuple(vec![Value::Double(-1.0), Value::Double(-2.0)].into(), None),
     );
     test_expression(
         "{
         import Std.Math.*;
         NegationC(Complex(5.0,-1.0))}",
-        &Value::Tuple(vec![Value::Double(-5.0), Value::Double(1.0)].into()),
+        &Value::Tuple(vec![Value::Double(-5.0), Value::Double(1.0)].into(), None),
     );
 }
 
@@ -1014,13 +1021,16 @@ fn check_negation_cp() {
         "{
         import Std.Math.*;
         NegationCP(ComplexPolar(1.0,0.0))}",
-        &Value::Tuple(vec![Value::Double(1.0), Value::Double(PI)].into()),
+        &Value::Tuple(vec![Value::Double(1.0), Value::Double(PI)].into(), None),
     );
     test_expression(
         "{
         import Std.Math.*;
         NegationCP(ComplexPolar(5.0,-PI()/2.0))}",
-        &Value::Tuple(vec![Value::Double(5.0), Value::Double(PI / 2.0)].into()),
+        &Value::Tuple(
+            vec![Value::Double(5.0), Value::Double(PI / 2.0)].into(),
+            None,
+        ),
     );
 }
 
@@ -1030,13 +1040,13 @@ fn check_plus_c() {
         "{
         import Std.Math.*;
         PlusC(Complex(1.0,0.0), Complex(0.0,1.0))}",
-        &Value::Tuple(vec![Value::Double(1.0), Value::Double(1.0)].into()),
+        &Value::Tuple(vec![Value::Double(1.0), Value::Double(1.0)].into(), None),
     );
     test_expression(
         "{
         import Std.Math.*;
         PlusC(Complex(10.0,10.0), Complex(-10.0,10.0))}",
-        &Value::Tuple(vec![Value::Double(0.0), Value::Double(20.0)].into()),
+        &Value::Tuple(vec![Value::Double(0.0), Value::Double(20.0)].into(), None),
     );
 }
 
@@ -1046,13 +1056,19 @@ fn check_plus_cp() {
         "{
         import Std.Math.*;
         PlusCP(ComplexPolar(1.0,0.0), ComplexPolar(1.0,PI()/2.0))}",
-        &Value::Tuple(vec![Value::Double(2.0_f64.sqrt()), Value::Double(PI / 4.0)].into()),
+        &Value::Tuple(
+            vec![Value::Double(2.0_f64.sqrt()), Value::Double(PI / 4.0)].into(),
+            None,
+        ),
     );
     test_expression(
         "{
         import Std.Math.*;
         PlusCP(ComplexPolar(10.0,PI()/4.0), ComplexPolar(10.0,3.0*PI()/4.0))}",
-        &Value::Tuple(vec![Value::Double(200.0_f64.sqrt()), Value::Double(PI / 2.0)].into()),
+        &Value::Tuple(
+            vec![Value::Double(200.0_f64.sqrt()), Value::Double(PI / 2.0)].into(),
+            None,
+        ),
     );
 }
 
@@ -1062,13 +1078,13 @@ fn check_minus_c() {
         "{
         import Std.Math.*;
         MinusC(Complex(1.0,0.0), Complex(0.0,1.0))}",
-        &Value::Tuple(vec![Value::Double(1.0), Value::Double(-1.0)].into()),
+        &Value::Tuple(vec![Value::Double(1.0), Value::Double(-1.0)].into(), None),
     );
     test_expression(
         "{
         import Std.Math.*;
         MinusC(Complex(10.0,10.0), Complex(-10.0,10.0))}",
-        &Value::Tuple(vec![Value::Double(20.0), Value::Double(0.0)].into()),
+        &Value::Tuple(vec![Value::Double(20.0), Value::Double(0.0)].into(), None),
     );
 }
 
@@ -1078,7 +1094,7 @@ fn check_minus_cp() {
         "{
         import Std.Math.*;
         MinusCP(ComplexPolar(4.0,0.0), ComplexPolar(1.0,-PI()))}",
-        &Value::Tuple(vec![Value::Double(5.0), Value::Double(0.0)].into()),
+        &Value::Tuple(vec![Value::Double(5.0), Value::Double(0.0)].into(), None),
     );
 }
 
@@ -1088,19 +1104,19 @@ fn check_times_c() {
         "{
         import Std.Math.*;
         TimesC(Complex(2.0,0.0), Complex(3.0,0.0))}",
-        &Value::Tuple(vec![Value::Double(6.0), Value::Double(0.0)].into()),
+        &Value::Tuple(vec![Value::Double(6.0), Value::Double(0.0)].into(), None),
     );
     test_expression(
         "{
         import Std.Math.*;
         TimesC(Complex(3.0,0.0), Complex(0.0,1.0))}",
-        &Value::Tuple(vec![Value::Double(0.0), Value::Double(3.0)].into()),
+        &Value::Tuple(vec![Value::Double(0.0), Value::Double(3.0)].into(), None),
     );
     test_expression(
         "{
         import Std.Math.*;
         TimesC(Complex(1.0,2.0), Complex(3.0,4.0))}",
-        &Value::Tuple(vec![Value::Double(-5.0), Value::Double(10.0)].into()),
+        &Value::Tuple(vec![Value::Double(-5.0), Value::Double(10.0)].into(), None),
     );
 }
 
@@ -1110,13 +1126,16 @@ fn check_times_cp() {
         "{
         import Std.Math.*;
         TimesCP(ComplexPolar(1.0,0.0), ComplexPolar(1.0,PI()/2.0))}",
-        &Value::Tuple(vec![Value::Double(1.0), Value::Double(PI / 2.0)].into()),
+        &Value::Tuple(
+            vec![Value::Double(1.0), Value::Double(PI / 2.0)].into(),
+            None,
+        ),
     );
     test_expression(
         "{
         import Std.Math.*;
         TimesCP(ComplexPolar(1.0,PI()/4.0), ComplexPolar(2.0,3.0*PI()/4.0))}",
-        &Value::Tuple(vec![Value::Double(2.0), Value::Double(PI)].into()),
+        &Value::Tuple(vec![Value::Double(2.0), Value::Double(PI)].into(), None),
     );
 }
 
@@ -1126,13 +1145,16 @@ fn check_pow_c() {
         "{
         import Std.Math.*;
         PowC(Complex(2.0,0.0), Complex(3.0,0.0))}",
-        &Value::Tuple(vec![Value::Double(8.0), Value::Double(0.0)].into()),
+        &Value::Tuple(vec![Value::Double(8.0), Value::Double(0.0)].into(), None),
     );
     test_expression(
         "{
         import Std.Math.*;
         PowC(Complex(0.0,1.0), Complex(0.0,1.0))}",
-        &Value::Tuple(vec![Value::Double(E.powf(-PI / 2.0)), Value::Double(0.0)].into()),
+        &Value::Tuple(
+            vec![Value::Double(E.powf(-PI / 2.0)), Value::Double(0.0)].into(),
+            None,
+        ),
     );
 }
 
@@ -1142,7 +1164,7 @@ fn check_pow_cp() {
         "{
         import Std.Math.*;
         PowCP(ComplexPolar(2.0,0.0), ComplexPolar(3.0,0.0))}",
-        &Value::Tuple(vec![Value::Double(8.0), Value::Double(0.0)].into()),
+        &Value::Tuple(vec![Value::Double(8.0), Value::Double(0.0)].into(), None),
     );
 }
 
@@ -1152,19 +1174,19 @@ fn check_divide_by_c() {
         "{
         import Std.Math.*;
         DividedByC(Complex(1.0,0.0), Complex(2.0,0.0))}",
-        &Value::Tuple(vec![Value::Double(0.5), Value::Double(0.0)].into()),
+        &Value::Tuple(vec![Value::Double(0.5), Value::Double(0.0)].into(), None),
     );
     test_expression(
         "{
         import Std.Math.*;
         DividedByC(Complex(3.0,0.0), Complex(0.0,1.0))}",
-        &Value::Tuple(vec![Value::Double(0.0), Value::Double(-3.0)].into()),
+        &Value::Tuple(vec![Value::Double(0.0), Value::Double(-3.0)].into(), None),
     );
     test_expression(
         "{
         import Std.Math.*;
         DividedByC(Complex(1.0,2.0), Complex(3.0,4.0))}",
-        &Value::Tuple(vec![Value::Double(0.44), Value::Double(0.08)].into()),
+        &Value::Tuple(vec![Value::Double(0.44), Value::Double(0.08)].into(), None),
     );
 }
 
@@ -1174,13 +1196,19 @@ fn check_devide_by_cp() {
         "{
         import Std.Math.*;
         DividedByCP(ComplexPolar(1.0,0.0), ComplexPolar(1.0,PI()/2.0))}",
-        &Value::Tuple(vec![Value::Double(1.0), Value::Double(-PI / 2.0)].into()),
+        &Value::Tuple(
+            vec![Value::Double(1.0), Value::Double(-PI / 2.0)].into(),
+            None,
+        ),
     );
     test_expression(
         "{
         import Std.Math.*;
         DividedByCP(ComplexPolar(1.0,PI()/4.0), ComplexPolar(2.0,3.0*PI()/4.0))}",
-        &Value::Tuple(vec![Value::Double(0.5), Value::Double(-PI / 2.0)].into()),
+        &Value::Tuple(
+            vec![Value::Double(0.5), Value::Double(-PI / 2.0)].into(),
+            None,
+        ),
     );
 }
 

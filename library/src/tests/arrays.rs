@@ -238,9 +238,9 @@ fn check_enumerated() {
         "Microsoft.Quantum.Arrays.Enumerated([false, true, false])",
         &Value::Array(
             vec![
-                Value::Tuple(vec![Value::Int(0), Value::Bool(false)].into()),
-                Value::Tuple(vec![Value::Int(1), Value::Bool(true)].into()),
-                Value::Tuple(vec![Value::Int(2), Value::Bool(false)].into()),
+                Value::Tuple(vec![Value::Int(0), Value::Bool(false)].into(), None),
+                Value::Tuple(vec![Value::Int(1), Value::Bool(true)].into(), None),
+                Value::Tuple(vec![Value::Int(2), Value::Bool(false)].into(), None),
             ]
             .into(),
         ),
@@ -339,6 +339,7 @@ fn check_head_and_rest() {
                 Value::Array(vec![Value::Int(6), Value::Int(7), Value::Int(8)].into()),
             ]
             .into(),
+            None,
         ),
     );
 }
@@ -554,6 +555,7 @@ fn check_most_and_tail() {
                 Value::Int(8),
             ]
             .into(),
+            None,
         ),
     );
 }
@@ -819,7 +821,10 @@ fn check_unzipped() {
             let empty: (Int, Int)[] = [];
             Microsoft.Quantum.Arrays.Unzipped(empty)
         }",
-        &Value::Tuple(vec![Value::Array(vec![].into()), Value::Array(vec![].into())].into()),
+        &Value::Tuple(
+            vec![Value::Array(vec![].into()), Value::Array(vec![].into())].into(),
+            None,
+        ),
     );
     test_expression(
         "Microsoft.Quantum.Arrays.Unzipped([(5, true), (4, false), (3, true), (2, true), (1, false)])",
@@ -847,6 +852,7 @@ fn check_unzipped() {
                 ),
             ]
             .into(),
+            None,
         ),
     );
     test_expression(
@@ -875,6 +881,7 @@ fn check_unzipped() {
                 ),
             ]
             .into(),
+            None,
         ),
     );
 }
@@ -962,11 +969,11 @@ fn check_zipped() {
         "Microsoft.Quantum.Arrays.Zipped([1, 2, 3, 4, 5], [false, true, true, false, true])",
         &Value::Array(
             vec![
-                Value::Tuple(vec![Value::Int(1), Value::Bool(false)].into()),
-                Value::Tuple(vec![Value::Int(2), Value::Bool(true)].into()),
-                Value::Tuple(vec![Value::Int(3), Value::Bool(true)].into()),
-                Value::Tuple(vec![Value::Int(4), Value::Bool(false)].into()),
-                Value::Tuple(vec![Value::Int(5), Value::Bool(true)].into()),
+                Value::Tuple(vec![Value::Int(1), Value::Bool(false)].into(), None),
+                Value::Tuple(vec![Value::Int(2), Value::Bool(true)].into(), None),
+                Value::Tuple(vec![Value::Int(3), Value::Bool(true)].into(), None),
+                Value::Tuple(vec![Value::Int(4), Value::Bool(false)].into(), None),
+                Value::Tuple(vec![Value::Int(5), Value::Bool(true)].into(), None),
             ]
             .into(),
         ),
@@ -975,11 +982,11 @@ fn check_zipped() {
         "Microsoft.Quantum.Arrays.Zipped([false, true, true, false, true], [1, 2, 3, 4, 5])",
         &Value::Array(
             vec![
-                Value::Tuple(vec![Value::Bool(false), Value::Int(1)].into()),
-                Value::Tuple(vec![Value::Bool(true), Value::Int(2)].into()),
-                Value::Tuple(vec![Value::Bool(true), Value::Int(3)].into()),
-                Value::Tuple(vec![Value::Bool(false), Value::Int(4)].into()),
-                Value::Tuple(vec![Value::Bool(true), Value::Int(5)].into()),
+                Value::Tuple(vec![Value::Bool(false), Value::Int(1)].into(), None),
+                Value::Tuple(vec![Value::Bool(true), Value::Int(2)].into(), None),
+                Value::Tuple(vec![Value::Bool(true), Value::Int(3)].into(), None),
+                Value::Tuple(vec![Value::Bool(false), Value::Int(4)].into(), None),
+                Value::Tuple(vec![Value::Bool(true), Value::Int(5)].into(), None),
             ]
             .into(),
         ),
@@ -988,9 +995,9 @@ fn check_zipped() {
         "Microsoft.Quantum.Arrays.Zipped([1, 2, 3], [false, true, true, false, true])",
         &Value::Array(
             vec![
-                Value::Tuple(vec![Value::Int(1), Value::Bool(false)].into()),
-                Value::Tuple(vec![Value::Int(2), Value::Bool(true)].into()),
-                Value::Tuple(vec![Value::Int(3), Value::Bool(true)].into()),
+                Value::Tuple(vec![Value::Int(1), Value::Bool(false)].into(), None),
+                Value::Tuple(vec![Value::Int(2), Value::Bool(true)].into(), None),
+                Value::Tuple(vec![Value::Int(3), Value::Bool(true)].into(), None),
             ]
             .into(),
         ),
@@ -999,9 +1006,9 @@ fn check_zipped() {
         "Microsoft.Quantum.Arrays.Zipped([1, 2, 3, 4, 5], [false, true, true])",
         &Value::Array(
             vec![
-                Value::Tuple(vec![Value::Int(1), Value::Bool(false)].into()),
-                Value::Tuple(vec![Value::Int(2), Value::Bool(true)].into()),
-                Value::Tuple(vec![Value::Int(3), Value::Bool(true)].into()),
+                Value::Tuple(vec![Value::Int(1), Value::Bool(false)].into(), None),
+                Value::Tuple(vec![Value::Int(2), Value::Bool(true)].into(), None),
+                Value::Tuple(vec![Value::Int(3), Value::Bool(true)].into(), None),
             ]
             .into(),
         ),

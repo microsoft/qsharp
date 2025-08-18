@@ -4,7 +4,10 @@
 #[cfg(test)]
 mod tests;
 
-use crate::compilation::Compilation;
+#[cfg(test)]
+mod openqasm_tests;
+
+use crate::compilation::{Compilation, CompilationKind, source_position_to_package_offset};
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::qsc_utils::into_range;
 use crate::references::ReferenceFinder;
@@ -20,9 +23,13 @@ pub(crate) fn prepare_rename(
     position: Position,
     position_encoding: Encoding,
 ) -> Option<(Range, String)> {
+    if let CompilationKind::OpenQASM { sources, .. } = &compilation.kind {
+        return crate::openqasm::prepare_rename(sources, source_name, position, position_encoding);
+    }
+    let unit = &compilation.user_unit();
     let offset =
-        compilation.source_position_to_package_offset(source_name, position, position_encoding);
-    let user_ast_package = &compilation.user_unit().ast.package;
+        source_position_to_package_offset(&unit.sources, source_name, position, position_encoding);
+    let user_ast_package = &unit.ast.package;
 
     let mut prepare_rename = Rename::new(position_encoding, compilation, true);
     let mut locator = Locator::new(&mut prepare_rename, offset, compilation);
@@ -41,9 +48,13 @@ pub(crate) fn get_rename(
     position: Position,
     position_encoding: Encoding,
 ) -> Vec<Location> {
+    if let CompilationKind::OpenQASM { sources, .. } = &compilation.kind {
+        return crate::openqasm::get_rename(sources, source_name, position, position_encoding);
+    }
+    let unit = &compilation.user_unit();
     let offset =
-        compilation.source_position_to_package_offset(source_name, position, position_encoding);
-    let user_ast_package = &compilation.user_unit().ast.package;
+        source_position_to_package_offset(&unit.sources, source_name, position, position_encoding);
+    let user_ast_package = &unit.ast.package;
 
     let mut rename = Rename::new(position_encoding, compilation, false);
     let mut locator = Locator::new(&mut rename, offset, compilation);
@@ -92,7 +103,9 @@ impl<'a> Rename<'a> {
             if self.is_prepare {
                 self.prepare = Some((ast_name.span, ast_name.name.to_string()));
             } else {
-                self.locations = self.reference_finder.for_item(item_id);
+                self.locations = self
+                    .reference_finder
+                    .for_item(item_id, Some(&ast_name.name));
             }
         }
     }
@@ -173,10 +186,11 @@ impl<'a> Handler<'a> for Rename<'a> {
     fn at_callable_ref(
         &mut self,
         path: &'a ast::Path,
+        alias: Option<&'a ast::Ident>,
         item_id: &hir::ItemId,
         _: &'a hir::CallableDecl,
     ) {
-        self.get_spans_for_item_rename(item_id, &path.name);
+        self.get_spans_for_item_rename(item_id, alias.unwrap_or(&path.name));
     }
 
     fn at_new_type_def(
@@ -233,11 +247,12 @@ impl<'a> Handler<'a> for Rename<'a> {
     fn at_new_type_ref(
         &mut self,
         path: &'a ast::Path,
+        alias: Option<&'a ast::Ident>,
         item_id: &hir::ItemId,
         _: &'a hir::Ident,
         _: &'a hir::ty::Udt,
     ) {
-        self.get_spans_for_item_rename(item_id, &path.name);
+        self.get_spans_for_item_rename(item_id, alias.unwrap_or(&path.name));
     }
 
     fn at_field_def(

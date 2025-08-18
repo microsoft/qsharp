@@ -1349,6 +1349,66 @@ fn call_to_unresolved_callee_with_static_arg_and_entry_return_value_succeeds() {
 }
 
 #[test]
+fn call_to_recursive_callable_succeeds() {
+    let program = get_rir_program_with_capabilities(
+        indoc! {"
+        namespace Test {
+            operation Main() : Result {
+                use q = Qubit();
+                Recursive(3, q);
+                MResetZ(q)
+            }
+            operation Recursive(n : Int, q : Qubit) : Unit {
+                if n > 0 {
+                    H(q);
+                    Recursive(n - 1, q)
+                }
+            }
+        }"},
+        TargetCapabilityFlags::empty(),
+    );
+
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(0), )
+                Call id(2), args( Qubit(0), Result(0), )
+                Call id(3), args( Result(0), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn call_to_recursive_callable_with_unsupported_capabilities_fails() {
+    let error = get_partial_evaluation_error_with_capabilities(
+        indoc! {"
+        namespace Test {
+            operation Main() : Result[] {
+                use qs = Qubit[2];
+                Recursive(3, 0, qs);
+                MResetEachZ(qs)
+            }
+            operation Recursive(n : Int, idx : Int, qs : Qubit[]) : Unit {
+                if n > 0 {
+                    H(qs[idx]);
+                    Recursive(n - 1, if MResetZ(qs[idx]) == One { 1 } else { 0 }, qs)
+                }
+            }
+        }"},
+        TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::IntegerComputations,
+    );
+
+    assert_error(
+        &error,
+        &expect!["CapabilityError(UseOfDynamicQubit(Span { lo: 260, hi: 325 }))"],
+    );
+}
+
+#[test]
 fn call_to_test_callable_triggers_error() {
     let error = get_partial_evaluation_error_with_capabilities(
         indoc! {"
