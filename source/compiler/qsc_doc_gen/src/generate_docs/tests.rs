@@ -1,8 +1,31 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::generate_docs::{generate_docs, generate_summaries};
+use crate::generate_docs::{generate_docs, generate_summaries_map, metadata_to_markdown};
 use expect_test::expect;
+use std::collections::BTreeMap;
+
+/// Testing helper function that returns summaries as a structured map
+/// for easier test validation. Returns a map where each namespace maps to
+/// a vector of markdown strings, one per item.
+pub fn generate_summaries_for_testing() -> BTreeMap<String, Vec<String>> {
+    let summaries_map = generate_summaries_map();
+
+    let mut result = BTreeMap::new();
+
+    for (ns, items) in summaries_map {
+        let mut item_markdowns = Vec::new();
+
+        for item in items {
+            let markdown = metadata_to_markdown(&item);
+            item_markdowns.push(markdown);
+        }
+
+        result.insert(ns, item_markdowns);
+    }
+
+    result
+}
 
 #[test]
 fn generates_standard_item() {
@@ -210,114 +233,81 @@ fn top_index_file_generation() {
 
 #[test]
 fn generates_standard_item_summary() {
-    let summaries = generate_summaries(None, None, None);
+    let summaries = generate_summaries_for_testing();
     // Find a summary for a known item, e.g., Std.Core.Length
-    let summary = summaries
+    let core_summaries = summaries
         .get("Std.Core")
-        .expect("Could not find Std.Core namespace")
+        .expect("Could not find Std.Core namespace");
+    let length_summary = core_summaries
         .iter()
-        .find(|item| item["name"] == "Length" && item["kind"] == "function")
+        .find(|item| item.contains("## Length"))
         .expect("Could not find summary for Length");
 
-    // Pretty-print the JSON for readability in the test
-    let pretty =
-        serde_json::to_string_pretty(summary).expect("summary is expected to be valid JSON");
-
     expect![[r#"
-        {
-          "kind": "function",
-          "name": "Length",
-          "namespace": "Std.Core",
-          "output": "The total number of elements in the input array `a`.",
-          "parameters": [
-            {
-              "description": "Input array.",
-              "name": "a"
-            }
-          ],
-          "signature": "function Length<'T>(a : 'T[]) : Int",
-          "summary": "Returns the number of elements in the input array `a`."
-        }"#]]
-    .assert_eq(&pretty);
+        ## Length
+
+        ```qsharp
+        function Length<'T>(a : 'T[]) : Int
+        ```
+
+        Returns the number of elements in the input array `a`.
+
+    "#]]
+    .assert_eq(length_summary);
 }
 
 #[test]
 fn generates_std_core_summary() {
-    let summaries = generate_summaries(None, None, None);
-    let summaries = summaries
+    let summaries = generate_summaries_for_testing();
+    let core_summaries = summaries
         .get("Std.Core")
         .expect("Could not find Std.Core namespace");
 
-    // Pretty-print the JSON for readability in the test
-    let pretty =
-        serde_json::to_string_pretty(summaries).expect("summaries is expected to be valid JSON");
+    // Combine all summaries for the namespace
+    let combined_summary = core_summaries.join("\n\n");
 
     expect![[r#"
-        [
-          {
-            "kind": "function",
-            "name": "Length",
-            "namespace": "Std.Core",
-            "output": "The total number of elements in the input array `a`.",
-            "parameters": [
-              {
-                "description": "Input array.",
-                "name": "a"
-              }
-            ],
-            "signature": "function Length<'T>(a : 'T[]) : Int",
-            "summary": "Returns the number of elements in the input array `a`."
-          },
-          {
-            "kind": "function",
-            "name": "Repeated",
-            "namespace": "Std.Core",
-            "output": "A new array of length `length`, such that every element is `value`.",
-            "parameters": [
-              {
-                "description": "The value of each element of the new array.",
-                "name": "value"
-              },
-              {
-                "description": "Length of the new array.",
-                "name": "length"
-              }
-            ],
-            "signature": "function Repeated<'T>(value : 'T, length : Int) : 'T[]",
-            "summary": "Creates an array of given `length` with all elements equal to given `value`. `length` must be a non-negative integer."
-          }
-        ]"#]]
-    .assert_eq(&pretty);
+        ## Length
+
+        ```qsharp
+        function Length<'T>(a : 'T[]) : Int
+        ```
+
+        Returns the number of elements in the input array `a`.
+
+
+
+        ## Repeated
+
+        ```qsharp
+        function Repeated<'T>(value : 'T, length : Int) : 'T[]
+        ```
+
+        Creates an array of given `length` with all elements equal to given `value`. `length` must be a non-negative integer.
+
+    "#]]
+    .assert_eq(&combined_summary);
 }
 
 #[test]
 fn generates_summary_for_reexport() {
-    let summaries = generate_summaries(None, None, None);
-    let summary = summaries
+    let summaries = generate_summaries_for_testing();
+    let length_summary = summaries
         .get("Microsoft.Quantum.Core")
         .expect("Could not find Microsoft.Quantum.Core namespace")
         .iter()
-        .find(|item| item["name"] == "Length" && item["kind"] == "function")
+        .find(|item| item.contains("## Length"))
         .expect("Could not find summary for Length");
 
-    // Pretty-print the JSON for readability in the test
-    let pretty =
-        serde_json::to_string_pretty(summary).expect("summary is expected to be valid JSON");
-
     expect![[r#"
-        {
-          "kind": "function",
-          "name": "Length",
-          "namespace": "Microsoft.Quantum.Core",
-          "output": "The total number of elements in the input array `a`.",
-          "parameters": [
-            {
-              "description": "Input array.",
-              "name": "a"
-            }
-          ],
-          "signature": "function Length<'T>(a : 'T[]) : Int",
-          "summary": "Returns the number of elements in the input array `a`."
-        }"#]]
-    .assert_eq(&pretty);
+        ## Length
+
+        ```qsharp
+
+        ```
+
+        This is an exported item. The actual definition is found here: [Std.Core.Length](xref:Qdk.Std.Core.Length)
+
+    "#]]
+    .assert_eq(length_summary);
 }

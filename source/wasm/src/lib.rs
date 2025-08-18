@@ -671,9 +671,9 @@ pub fn generate_docs(additional_program: Option<ProgramConfig>) -> Vec<IDocFile>
 }
 
 #[wasm_bindgen]
-pub fn get_library_summaries() -> JsValue {
-    let summaries = qsc_doc_gen::generate_docs::generate_summaries(None, None, None);
-    serde_wasm_bindgen::to_value(&summaries).expect("serializing summaries to json should succeed")
+#[must_use]
+pub fn get_library_summaries() -> String {
+    qsc_doc_gen::generate_docs::generate_summaries()
 }
 
 fn get_debugger_from_openqasm(

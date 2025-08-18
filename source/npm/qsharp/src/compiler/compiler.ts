@@ -76,7 +76,7 @@ export interface ICompiler {
 
   getDocumentation(additionalProgram?: ProgramConfig): Promise<IDocFile[]>;
 
-  getLibrarySummaries(): Promise<any>;
+  getLibrarySummaries(): Promise<string>;
 
   checkExerciseSolution(
     userCode: string,
@@ -251,7 +251,7 @@ export class Compiler implements ICompiler {
     );
   }
 
-  async getLibrarySummaries(): Promise<any> {
+  async getLibrarySummaries(): Promise<string> {
     return this.wasm.get_library_summaries();
   }
 
