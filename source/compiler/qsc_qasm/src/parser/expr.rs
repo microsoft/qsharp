@@ -223,9 +223,13 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
             }
             Literal::Float => {
                 let lexeme = lexeme.replace('_', "");
-                let value = lexeme
+                let value: f64 = lexeme
                     .parse()
                     .map_err(|_| Error::new(ErrorKind::Lit("floating-point", token.span)))?;
+                // Reject NaN, Infinity, and Neg-Infinity to ensure only finite floating-point literals are accepted.
+                if !value.is_finite() {
+                    return Err(Error::new(ErrorKind::Lit("floating-point", token.span)));
+                }
                 Ok(Some(Lit {
                     kind: LiteralKind::Float(value),
                     span: token.span,
