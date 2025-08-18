@@ -695,11 +695,12 @@
         "tags": [
           "azure-quantum",
           "qsharp",
-          "qdk"
+          "qdk",
+          "openqasm"
         ],
         "toolReferenceName": "azureQuantumSubmitToTarget",
-        "displayName": "Submit to Azure Quantum Target",
-        "modelDescription": "Submits a Q# program to Azure Quantum. The path to a .qs file must be specified in the `filePath` parameter. The program will first be compiled to Quantum Intermediate Representation (QIR), and then submitted to run on the specified target.",
+        "displayName": "Submit Program to Azure Quantum",
+        "modelDescription": "Submits a Q# or OpenQASM program to Azure Quantum. The path to a .qs or .qasm file must be specified in the `filePath` parameter. The program will first be compiled to Quantum Intermediate Representation (QIR), and then submitted to run on the specified target.",
         "canBeReferencedInPrompt": true,
         "icon": "./resources/file-icon-light.svg",
         "inputSchema": {
@@ -707,7 +708,7 @@
           "properties": {
             "filePath": {
               "type": "string",
-              "description": "The absolute path to the .qs file. If this file is part of a project, the whole project will be compiled as the program. A .qs file belongs to a project if it resides anywhere under a src/ directory whose parent directory also contains a qsharp.json manifest."
+              "description": "The absolute path to the .qs or .qasm file. If this file is part of a project, the whole project will be compiled as the program. A .qs file belongs to a project if it resides anywhere under a src/ directory whose parent directory also contains a qsharp.json manifest."
             },
             "jobName": {
               "type": "string",
@@ -822,15 +823,16 @@
         }
       },
       {
-        "name": "qsharp-run-program",
+        "name": "qdk-run-program",
         "tags": [
           "azure-quantum",
           "qsharp",
-          "qdk"
+          "qdk",
+          "openqasm"
         ],
-        "toolReferenceName": "qsharpRunProgram",
-        "displayName": "Run Q# Program",
-        "modelDescription": "Executes a Q# program. The path to a .qs file must be specified in the `filePath` parameter. A quantum simulator will be run locally. Q# does not provide any CLI tools, so call this tool whenever you need to execute Q#, instead of running any CLI commands. The `shots` parameter controls the number of times to repeat the simulation. If the number of shots is greater than 1, a histogram will be generated, and the results will be displayed in a dedicated panel.",
+        "toolReferenceName": "qdkRunProgram",
+        "displayName": "Run Quantum Program",
+        "modelDescription": "Executes a Q# or OpenQASM program. The path to a .qs or .qasm file must be specified in the `filePath` parameter. A quantum simulator will be run locally. Q# or OpenQASM do not provide any CLI tools, so call this tool whenever you need to execute code, instead of running any CLI commands. The `shots` parameter controls the number of times to repeat the simulation. If the number of shots is greater than 1, a histogram will be generated, and the results will be displayed in a dedicated panel.",
         "canBeReferencedInPrompt": true,
         "icon": "./resources/file-icon-light.svg",
         "inputSchema": {
@@ -838,7 +840,7 @@
           "properties": {
             "filePath": {
               "type": "string",
-              "description": "The absolute path to the .qs file. If this file is part of a project, the whole project will be compiled as the program. A .qs file belongs to a project if it resides anywhere under a src/ directory whose parent directory also contains a qsharp.json manifest."
+              "description": "The absolute path to the .qs or .qasm file. If this file is part of a project, the whole project will be compiled as the program. A .qs file belongs to a project if it resides anywhere under a src/ directory whose parent directory also contains a qsharp.json manifest."
             },
             "shots": {
               "type": "number",
@@ -853,15 +855,16 @@
         }
       },
       {
-        "name": "qsharp-generate-circuit",
+        "name": "qdk-generate-circuit",
         "tags": [
           "azure-quantum",
           "qsharp",
-          "qdk"
+          "qdk",
+          "openqasm"
         ],
-        "toolReferenceName": "qsharpGenerateCircuit",
-        "displayName": "Generate Q# Circuit Diagram",
-        "modelDescription": "Generates a visual circuit diagram for a Q# program. The path to a .qs file must be specified in the `filePath` parameter. This tool will compile the Q# program and generate a quantum circuit diagram that visually represents the quantum operations in the code. If the program contains any dynamic behavior such as comparing measurement results, then the program will be executed using a quantum simulator, and the resulting circuit diagram will simply be a trace of the operations that were actually executed during simulation. The diagram will be displayed in a dedicated circuit panel.",
+        "toolReferenceName": "qdkGenerateCircuit",
+        "displayName": "Generate Quantum Circuit Diagram",
+        "modelDescription": "Generates a visual circuit diagram for a Q# or OpenQASM program. The path to a .qs or .qasm file must be specified in the `filePath` parameter. This tool will compile the program and generate a quantum circuit diagram that visually represents the quantum operations in the code. If the program contains any dynamic behavior such as comparing measurement results, then the program will be executed using a quantum simulator, and the resulting circuit diagram will simply be a trace of the operations that were actually executed during simulation. The diagram will be displayed in a dedicated circuit panel.",
         "canBeReferencedInPrompt": true,
         "icon": "./resources/file-icon-light.svg",
         "inputSchema": {
@@ -869,7 +872,7 @@
           "properties": {
             "filePath": {
               "type": "string",
-              "description": "The absolute path to the .qs file. If this file is part of a project, the whole project will be compiled as the program. A .qs file belongs to a project if it resides anywhere under a src/ directory whose parent directory also contains a qsharp.json manifest."
+              "description": "The absolute path to the .qs or .qasm file. If this file is part of a project, the whole project will be compiled as the program. A .qs file belongs to a project if it resides anywhere under a src/ directory whose parent directory also contains a qsharp.json manifest."
             }
           },
           "required": [
@@ -879,15 +882,16 @@
         }
       },
       {
-        "name": "qsharp-run-resource-estimator",
+        "name": "qdk-run-resource-estimator",
         "tags": [
           "azure-quantum",
           "qsharp",
-          "qdk"
+          "qdk",
+          "openqasm"
         ],
-        "toolReferenceName": "qsharpRunResourceEstimator",
-        "displayName": "Run Q# Resource Estimator",
-        "modelDescription": "Runs the quantum resource estimator on a Q# program to calculate the required physical resources. The path to a .qs file must be specified in the `filePath` parameter. This tool will analyze the Q# program and generate estimates of the quantum resources required to run the algorithm, such as the number of qubits, T gates, and other quantum operations. Results will be displayed in a dedicated resource estimator panel.",
+        "toolReferenceName": "qdkRunResourceEstimator",
+        "displayName": "Run Quantum Resource Estimator",
+        "modelDescription": "Runs the quantum resource estimator on a Q# or OpenQASM program to calculate the required physical resources. The path to a .qs or .qasm file must be specified in the `filePath` parameter. This tool will analyze the Q# program and generate estimates of the quantum resources required to run the algorithm, such as the number of qubits, T gates, and other quantum operations. Results will be displayed in a dedicated resource estimator panel.",
         "canBeReferencedInPrompt": true,
         "icon": "./resources/file-icon-light.svg",
         "inputSchema": {
@@ -895,7 +899,7 @@
           "properties": {
             "filePath": {
               "type": "string",
-              "description": "The absolute path to the .qs file. If this file is part of a project, the whole project will be compiled as the program. A .qs file belongs to a project if it resides anywhere under a src/ directory whose parent directory also contains a qsharp.json manifest."
+              "description": "The absolute path to the .qs or .qasm file. If this file is part of a project, the whole project will be compiled as the program. A .qs file belongs to a project if it resides anywhere under a src/ directory whose parent directory also contains a qsharp.json manifest."
             },
             "qubitTypes": {
               "type": "array",

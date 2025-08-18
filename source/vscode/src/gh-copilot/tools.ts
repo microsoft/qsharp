@@ -86,15 +86,15 @@ const toolDefinitions: {
       (await azqTools.getTarget(workspaceState, input)).result,
   },
   {
-    name: "qsharp-run-program",
+    name: "qdk-run-program",
     tool: async (input) => await qsharpTools!.runProgram(input),
   },
   {
-    name: "qsharp-generate-circuit",
+    name: "qdk-generate-circuit",
     tool: async (input) => await qsharpTools!.generateCircuit(input),
   },
   {
-    name: "qsharp-run-resource-estimator",
+    name: "qdk-run-resource-estimator",
     tool: async (input) => await qsharpTools!.runResourceEstimator(input),
   },
 ];
