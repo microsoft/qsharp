@@ -107,7 +107,7 @@ impl Display for Metadata {
     }
 }
 
-#[derive(Debug, PartialOrd, Ord, Eq, PartialEq, Clone)]
+#[derive(PartialOrd, Ord, Eq, PartialEq, Clone)]
 enum MetadataKind {
     Function,
     Operation,
