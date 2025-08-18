@@ -48,18 +48,21 @@ const toolDefinitions: {
   {
     name: "azure-quantum-submit-to-target",
     tool: async (input: {
-      job_name: string;
-      target_id: string;
-      number_of_shots: number;
-    }) => (await azqTools.submitToTarget(workspaceState, input)).result,
+      filePath: string;
+      jobName: string;
+      targetId: string;
+      shots: number;
+    }) =>
+      (await azqTools.submitToTarget(workspaceState, qsharpTools!, input))
+        .result,
     confirm: (input: {
-      job_name: string;
-      target_id: string;
-      number_of_shots: number;
+      jobName: string;
+      targetId: string;
+      shots: number;
     }): vscode.PreparedToolInvocation => ({
       confirmationMessages: {
         title: "Submit Azure Quantum job",
-        message: `Submit job "${input.job_name}" to ${input.target_id} for ${input.number_of_shots} shots?`,
+        message: `Submit job "${input.jobName}" to ${input.targetId} for ${input.shots} shots?`,
       },
     }),
   },
@@ -83,15 +86,15 @@ const toolDefinitions: {
       (await azqTools.getTarget(workspaceState, input)).result,
   },
   {
-    name: "qsharp-run-program",
+    name: "qdk-run-program",
     tool: async (input) => await qsharpTools!.runProgram(input),
   },
   {
-    name: "qsharp-generate-circuit",
+    name: "qdk-generate-circuit",
     tool: async (input) => await qsharpTools!.generateCircuit(input),
   },
   {
-    name: "qsharp-run-resource-estimator",
+    name: "qdk-run-resource-estimator",
     tool: async (input) => await qsharpTools!.runResourceEstimator(input),
   },
 ];

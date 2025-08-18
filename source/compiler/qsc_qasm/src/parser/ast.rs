@@ -255,7 +255,7 @@ impl Display for ConcatExpr {
 }
 
 /// A binary operator.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BinOp {
     /// Addition: `+`.
     Add,
@@ -591,6 +591,21 @@ impl Display for Block {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write_header(f, "Block", self.span)?;
         write_indented_list(f, &self.stmts)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct DurationofCall {
+    pub span: Span,
+    pub name_span: Span,
+    pub scope: Block,
+}
+
+impl Display for DurationofCall {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "DurationofCall", self.span)?;
+        writeln_field(f, "name_span", &self.name_span)?;
+        write_field(f, "scope", &self.scope)
     }
 }
 
@@ -1667,6 +1682,7 @@ pub enum ExprKind {
     Cast(Cast),
     IndexExpr(IndexExpr),
     Paren(Expr),
+    DurationOf(DurationofCall),
 }
 
 impl Display for ExprKind {
@@ -1681,6 +1697,7 @@ impl Display for ExprKind {
             ExprKind::Cast(expr) => write!(f, "{expr}"),
             ExprKind::IndexExpr(expr) => write!(f, "{expr}"),
             ExprKind::Paren(expr) => write!(f, "Paren {expr}"),
+            ExprKind::DurationOf(duration) => write!(f, "{duration}"),
         }
     }
 }

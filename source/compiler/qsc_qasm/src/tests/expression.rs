@@ -12,6 +12,7 @@ mod explicit_cast_from_complex;
 mod explicit_cast_from_duration;
 mod explicit_cast_from_float;
 mod explicit_cast_from_int;
+mod explicit_cast_from_stretch;
 mod explicit_cast_from_uint;
 mod function_call;
 mod ident;

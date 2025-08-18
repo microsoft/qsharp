@@ -13,13 +13,13 @@ use crate::{
             AliasDeclStmt, Annotation, Array, AssignStmt, BarrierStmt, BinOp, BinaryOpExpr, Block,
             BoxStmt, BreakStmt, BuiltinFunctionCall, CalibrationGrammarStmt, CalibrationStmt, Cast,
             ClassicalDeclarationStmt, ConcatExpr, ContinueStmt, DefCalStmt, DefStmt, DelayStmt,
-            EndStmt, EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl, ForStmt, FunctionCall,
-            GateCall, GateModifierKind, GateOperand, GateOperandKind, HardwareQubit, IfStmt,
-            IncludeStmt, Index, IndexedClassicalTypeAssignStmt, IndexedExpr, InputDeclaration,
-            LiteralKind, MeasureArrowStmt, MeasureExpr, OutputDeclaration, Pragma, Program,
-            QuantumGateDefinition, QuantumGateModifier, QubitArrayDeclaration, QubitDeclaration,
-            Range, ResetStmt, ReturnStmt, Set, SizeofCallExpr, Stmt, StmtKind, SwitchCase,
-            SwitchStmt, TimeUnit, UnaryOp, UnaryOpExpr, Version, WhileLoop,
+            DurationofCallExpr, EndStmt, EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl,
+            ForStmt, FunctionCall, GateCall, GateModifierKind, GateOperand, GateOperandKind,
+            HardwareQubit, IfStmt, IncludeStmt, Index, IndexedClassicalTypeAssignStmt, IndexedExpr,
+            InputDeclaration, LiteralKind, MeasureArrowStmt, MeasureExpr, OutputDeclaration,
+            Pragma, Program, QuantumGateDefinition, QuantumGateModifier, QubitArrayDeclaration,
+            QubitDeclaration, Range, ResetStmt, ReturnStmt, Set, SizeofCallExpr, Stmt, StmtKind,
+            SwitchCase, SwitchStmt, TimeUnit, UnaryOp, UnaryOpExpr, Version, WhileLoop,
         },
         symbols::SymbolId,
         types::Type,
@@ -211,9 +211,9 @@ pub trait Visitor: Sized {
         walk_concat_expr(self, expr);
     }
 
-    // fn visit_durationof_call_expr(&mut self, expr: &DurationofCallExpr) {
-    //     walk_durationof_call_expr(self, expr);
-    // }
+    fn visit_durationof_call_expr(&mut self, expr: &DurationofCallExpr) {
+        walk_durationof_call_expr(self, expr);
+    }
 
     fn visit_set(&mut self, set: &Set) {
         walk_set(self, set);
@@ -555,8 +555,8 @@ pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
         ExprKind::Paren(expr) => vis.visit_expr(expr),
         ExprKind::Measure(expr) => vis.visit_measure_expr(expr),
         ExprKind::SizeofCall(call) => vis.visit_sizeof_call_expr(call),
+        ExprKind::DurationofCall(call) => vis.visit_durationof_call_expr(call),
         ExprKind::Concat(concat) => vis.visit_concat_expr(concat),
-        // ExprKind::DurationofCall(call) => vis.visit_durationof_call_expr(call), // Other PR: Handle durationof calls
         ExprKind::Err => {}
     }
 }
@@ -617,11 +617,11 @@ pub fn walk_concat_expr(vis: &mut impl Visitor, expr: &ConcatExpr) {
     expr.operands.iter().for_each(|expr| vis.visit_expr(expr));
 }
 
-// pub fn walk_durationof_call_expr(vis: &mut impl Visitor, expr: &DurationofCallExpr) {
-//     vis.visit_span(expr.span);
-//     vis.visit_span(expr.fn_name_span);
-//     vis.visit_block(&expr.scope);
-// }
+pub fn walk_durationof_call_expr(vis: &mut impl Visitor, expr: &DurationofCallExpr) {
+    vis.visit_span(expr.span);
+    vis.visit_span(expr.fn_name_span);
+    vis.visit_block(&expr.scope);
+}
 
 pub fn walk_set(vis: &mut impl Visitor, set: &Set) {
     vis.visit_span(set.span);
@@ -683,11 +683,13 @@ pub fn walk_index(vis: &mut impl Visitor, index: &Index) {
 pub fn walk_literal(vis: &mut impl Visitor, literal: &LiteralKind) {
     match literal {
         LiteralKind::Array(array) => vis.visit_array(array),
+        LiteralKind::Duration(duration) => {
+            vis.visit_time_unit(duration.unit);
+        }
         // Other literal kinds are terminal and don't need traversal
         LiteralKind::Angle(_)
         | LiteralKind::Bitstring(_, _)
         | LiteralKind::Bool(_)
-        | LiteralKind::Duration(..)
         | LiteralKind::Float(_)
         | LiteralKind::Complex(_)
         | LiteralKind::Int(_)

@@ -14,14 +14,11 @@ import {
   FullProgramConfig,
   getActiveProgram,
   getActiveQdkDocumentUri,
-  getVisibleProgram,
-  getVisibleQdkDocumentUri,
 } from "./programConfig";
 import { openManifestFile } from "./projectSystem";
 import {
   EventType,
   getActiveDocumentType,
-  getVisibleDocumentType,
   QsharpDocumentType,
   sendTelemetryEvent,
 } from "./telemetry";
@@ -36,26 +33,6 @@ export class QirGenerationError extends Error {
     super(message);
     this.name = "QirGenerationError";
   }
-}
-
-export async function getQirForVisibleSource(
-  preferredTargetProfile: TargetProfile,
-): Promise<string> {
-  const program = await getVisibleProgram({
-    targetProfileFallback: preferredTargetProfile,
-  });
-
-  if (!program.success) {
-    throw new QirGenerationError(program.errorMsg);
-  }
-
-  const docUri = getVisibleQdkDocumentUri();
-  return getQirForProgram(
-    program.programConfig,
-    preferredTargetProfile,
-    getVisibleDocumentType(),
-    docUri,
-  );
 }
 
 export async function getQirForActiveWindow(
@@ -101,7 +78,7 @@ function checkCompatibility(
   );
 }
 
-async function getQirForProgram(
+export async function getQirForProgram(
   config: FullProgramConfig,
   preferredTargetProfile: TargetProfile,
   telemetryDocumentType: QsharpDocumentType,
