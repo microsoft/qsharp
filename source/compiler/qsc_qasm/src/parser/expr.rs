@@ -17,8 +17,10 @@ use crate::{
         ClosedBinOp, Delim, Radix, Token, TokenKind,
         cooked::{ComparisonOp, Literal, TimingLiteralKind},
     },
-    parser::ast::ConcatExpr,
-    parser::{ast::DurationofCall, stmt::parse_block},
+    parser::{
+        ast::{ConcatExpr, DurationofCall, List},
+        stmt::parse_block,
+    },
 };
 
 use crate::parser::Result;
@@ -837,21 +839,16 @@ fn index_operand(s: &mut ParserContext) -> Result<Index> {
     Ok(index)
 }
 
-/// This expression is not part of the expression tree
-/// and is only used as rhs of alias, classical declaration,
-/// and assignment statements.
+/// This expressions are not part of the expression tree
+/// and are only used in alias statements.
 /// Grammar: `expression (DOUBLE_PLUS expression)*`.
-pub fn concat_expr(s: &mut ParserContext) -> Result<ConcatExpr> {
-    let lo = s.peek().span.lo;
+pub fn alias_expr(s: &mut ParserContext) -> Result<List<Expr>> {
     let mut exprs = Vec::new();
     exprs.push(expr(s)?);
     while opt(s, |s| token(s, TokenKind::PlusPlus))?.is_some() {
         exprs.push(expr(s)?);
     }
-    let span = s.span(lo);
-    let operands = list_from_iter(exprs);
-
-    Ok(ConcatExpr { span, operands })
+    Ok(list_from_iter(exprs))
 }
 
 /// Grammar: `DURATIONOF LPAREN scope RPAREN`

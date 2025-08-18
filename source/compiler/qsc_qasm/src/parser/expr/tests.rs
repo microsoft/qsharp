@@ -1193,6 +1193,27 @@ fn addition_of_casts() {
 }
 
 #[test]
+fn duration_of() {
+    check_expr(
+        "durationof({x [25ms] $0;})",
+        &expect![[r#"
+            Expr [0-26]: DurationofCall [0-26]:
+                name_span: [0-10]
+                scope: Block [11-25]:
+                    Stmt [12-24]:
+                        annotations: <empty>
+                        kind: GateCall [12-24]:
+                            modifiers: <empty>
+                            name: Ident [12-13] "x"
+                            args: <empty>
+                            duration: Expr [15-19]: Lit: Duration(25.0, Ms)
+                            qubits:
+                                GateOperand [21-23]:
+                                    kind: HardwareQubit [21-23]: 0"#]],
+    );
+}
+
+#[test]
 fn array_concatenation_is_not_part_of_the_expr_tree() {
     let source = "a ++ b;";
 
@@ -1217,26 +1238,5 @@ fn array_concatenation_is_not_part_of_the_expr_tree() {
                 ),
             ),
         ]"#]],
-    );
-}
-
-fn duration_of() {
-    check_expr(
-        "durationof({x [25ms] $0;})",
-        &expect![[r#"
-            Expr [0-26]: DurationofCall [0-26]:
-                name_span: [0-10]
-                scope: Block [11-25]:
-                    Stmt [12-24]:
-                        annotations: <empty>
-                        kind: GateCall [12-24]:
-                            modifiers: <empty>
-                            name: Ident [12-13] "x"
-                            args: <empty>
-                            duration: Expr [15-19]: Lit: Duration(25.0, Ms)
-                            qubits:
-                                GateOperand [21-23]:
-                                    kind: HardwareQubit [21-23]: 0"#]],
-
     );
 }

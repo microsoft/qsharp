@@ -374,7 +374,7 @@ pub fn walk_stmt(vis: &mut impl MutVisitor, stmt: &mut Stmt) {
 fn walk_alias_decl_stmt(vis: &mut impl MutVisitor, stmt: &mut AliasDeclStmt) {
     vis.visit_span(&mut stmt.span);
     vis.visit_ident_or_indexed_ident(&mut stmt.ident);
-    vis.visit_concat_expr(&mut stmt.rhs);
+    stmt.exprs.iter_mut().for_each(|e| vis.visit_expr(e));
 }
 
 fn walk_assign_stmt(vis: &mut impl MutVisitor, stmt: &mut AssignStmt) {

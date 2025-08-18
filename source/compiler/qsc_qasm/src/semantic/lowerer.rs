@@ -612,8 +612,7 @@ impl Lowerer {
         let name = get_identifier_name(&alias.ident);
 
         let rhs = alias
-            .rhs
-            .operands
+            .exprs
             .iter()
             .map(|expr| self.lower_expr(expr))
             .collect::<Vec<_>>();

@@ -1491,12 +1491,12 @@ fn parse_alias_stmt(s: &mut ParserContext) -> Result<AliasDeclStmt> {
     token(s, TokenKind::Keyword(Keyword::Let))?;
     let ident = Box::new(IdentOrIndexedIdent::Ident(prim::ident(s)?));
     token(s, TokenKind::Eq)?;
-    let exprs = expr::concat_expr(s)?;
+    let exprs = expr::alias_expr(s)?;
     recovering_semi(s);
 
     Ok(AliasDeclStmt {
         ident,
-        rhs: exprs,
+        exprs,
         span: s.span(lo),
     })
 }

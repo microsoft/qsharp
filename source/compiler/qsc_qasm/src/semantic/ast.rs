@@ -855,6 +855,7 @@ pub enum ExprKind {
     Measure(MeasureExpr),
     SizeofCall(SizeofCallExpr),
     DurationofCall(DurationofCallExpr),
+    Concat(ConcatExpr),
 }
 
 impl Display for ExprKind {
@@ -1010,26 +1011,6 @@ impl Display for AngleType {
         writeln_header(f, "AngleType", self.span)?;
         write_opt_field(f, "size", self.size.as_ref())
     }
-}
-
-#[derive(Clone, Debug, Default)]
-pub enum ExprKind {
-    /// An expression with invalid syntax that can't be parsed.
-    #[default]
-    Err,
-    CapturedIdent(SymbolId),
-    Ident(SymbolId),
-    UnaryOp(UnaryOpExpr),
-    BinaryOp(BinaryOpExpr),
-    Lit(LiteralKind),
-    FunctionCall(FunctionCall),
-    BuiltinFunctionCall(BuiltinFunctionCall),
-    Cast(Cast),
-    IndexedExpr(IndexedExpr),
-    Paren(Expr),
-    Measure(MeasureExpr),
-    SizeofCall(SizeofCallExpr),
-    Concat(ConcatExpr),
 }
 
 #[derive(Clone, Debug)]

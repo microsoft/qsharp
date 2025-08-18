@@ -241,6 +241,10 @@ impl Display for MeasureExpr {
     }
 }
 
+/// This expression is not part of the expression tree
+/// and is only used as rhs of alias, classical declaration,
+/// and assignment statements.
+/// Grammar: `expression (DOUBLE_PLUS expression)*`.
 #[derive(Clone, Debug)]
 pub struct ConcatExpr {
     pub span: Span,
@@ -416,14 +420,14 @@ impl WithSpan for HardwareQubit {
 pub struct AliasDeclStmt {
     pub span: Span,
     pub ident: Box<IdentOrIndexedIdent>,
-    pub rhs: ConcatExpr,
+    pub exprs: List<Expr>,
 }
 
 impl Display for AliasDeclStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AliasDeclStmt", self.span)?;
         writeln_field(f, "ident", &self.ident)?;
-        write_field(f, "rhs", &self.rhs)
+        write_list_field(f, "exprs", &self.exprs)
     }
 }
 
