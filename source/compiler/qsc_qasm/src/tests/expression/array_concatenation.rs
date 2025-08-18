@@ -5,6 +5,42 @@ use crate::tests::check_qasm_to_qsharp as check;
 use expect_test::expect;
 
 #[test]
+fn array_concatenation_in_alias_fails() {
+    let source = "
+    array[int, 3] a;
+    array[int, 4] b;
+    let c = a ++ b;
+    ";
+
+    check(
+        source,
+        &expect![[r#"
+            Qasm.Lowerer.InvalidTypeInAlias
+
+              x invalid type in alias expression: array[int, 3]
+               ,-[Test.qasm:4:13]
+             3 |     array[int, 4] b;
+             4 |     let c = a ++ b;
+               :             ^
+             5 |     
+               `----
+              help: aliases can only be applied to quantum bits and registers
+
+            Qasm.Lowerer.InvalidTypeInAlias
+
+              x invalid type in alias expression: array[int, 4]
+               ,-[Test.qasm:4:18]
+             3 |     array[int, 4] b;
+             4 |     let c = a ++ b;
+               :                  ^
+             5 |     
+               `----
+              help: aliases can only be applied to quantum bits and registers
+        "#]],
+    );
+}
+
+#[test]
 fn array_concatenation_has_the_right_type() {
     let source = "
     array[int, 3] a;
@@ -90,7 +126,6 @@ fn array_concatenation_with_different_types_errors() {
     );
 }
 
-#[allow(clippy::too_many_lines)]
 #[test]
 fn multidimensional_array_concatenation_has_the_right_type() {
     let source = "
@@ -127,7 +162,6 @@ fn multidimensional_array_can_be_concatenated_with_itself() {
     );
 }
 
-#[allow(clippy::too_many_lines)]
 #[test]
 fn multidimensional_array_concatenation_with_different_widths_errors() {
     let source = "
@@ -153,7 +187,6 @@ fn multidimensional_array_concatenation_with_different_widths_errors() {
     );
 }
 
-#[allow(clippy::too_many_lines)]
 #[test]
 fn multidimensional_array_concatenation_with_different_types_errors() {
     let source = "

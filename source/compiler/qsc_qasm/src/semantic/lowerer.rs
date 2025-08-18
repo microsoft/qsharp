@@ -751,7 +751,7 @@ impl Lowerer {
             }
             syntax::ValueExpr::Concat(expr) => {
                 let expr = self.lower_array_concat_expr(expr);
-                self.cast_expr_to_type(&ty, &expr)
+                self.cast_expr_with_target_type_or_default(Some(expr), &ty, span)
             }
         };
 
@@ -819,7 +819,7 @@ impl Lowerer {
             }
             syntax::ValueExpr::Concat(expr) => {
                 let expr = self.lower_array_concat_expr(expr);
-                self.cast_expr_to_type(indexed_ty, &expr)
+                self.cast_expr_with_target_type_or_default(Some(expr), indexed_ty, span)
             }
         };
 
@@ -1045,7 +1045,14 @@ impl Lowerer {
         let all_tys = rhs.iter().map(|expr| &expr.ty).collect::<Vec<_>>();
         let all_same = all_tys.iter().all(|ty| {
             let element_indexed_ty = self.get_indexed_type(ty, Span::default(), &dummy_index);
-            types_equal_except_const(&indexed_ty, &element_indexed_ty)
+            let indexed_ty_is_the_same = types_equal_except_const(&indexed_ty, &element_indexed_ty);
+            let same_kind_of_array = matches!(
+                (&first_ty, ty),
+                (Type::Array(..), Type::Array(..))
+                    | (Type::StaticArrayRef(..), Type::StaticArrayRef(..))
+                    | (Type::DynArrayRef(..), Type::DynArrayRef(..))
+            );
+            indexed_ty_is_the_same && same_kind_of_array
         });
 
         if !all_same {
@@ -1085,8 +1092,12 @@ impl Lowerer {
             }
         }
 
-        let Type::Array(array_ty) = &first_ty else {
-            unreachable!();
+        let base_ty = if let Type::Array(array_ty) = &first_ty {
+            array_ty.base_ty.clone().into()
+        } else if let Type::StaticArrayRef(array_ty) = &first_ty {
+            array_ty.base_ty.clone().into()
+        } else {
+            unreachable!()
         };
 
         // We get the array dimension of the first operand.
@@ -1103,7 +1114,6 @@ impl Lowerer {
         if !concat_dims.is_empty() {
             concat_dims[0] = size;
         }
-        let base_ty = array_ty.base_ty.clone().into();
 
         if matches!(first_ty, Type::Array(..)) {
             Type::make_array_ty(&concat_dims, &base_ty)
@@ -1551,7 +1561,7 @@ impl Lowerer {
                 }
                 syntax::ValueExpr::Concat(expr) => {
                     let expr = self.lower_array_concat_expr(expr);
-                    self.cast_expr_to_type(&ty, &expr)
+                    self.cast_expr_with_target_type_or_default(Some(expr), &ty, stmt_span)
                 }
             },
             None => self.cast_expr_with_target_type_or_default(None, &ty, stmt_span),
@@ -1591,7 +1601,7 @@ impl Lowerer {
             syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
             syntax::ValueExpr::Concat(expr) => {
                 let expr = self.lower_array_concat_expr(expr);
-                self.cast_expr_to_type(&ty, &expr)
+                self.cast_expr_with_target_type_or_default(Some(expr), &ty, stmt.span)
             }
         };
 
@@ -3804,6 +3814,8 @@ impl Lowerer {
             }
             Type::BitArray(size, _) => Self::cast_bitarray_expr_to_type(*size, ty, expr),
             Type::Array(..) => Self::cast_array_expr_to_type(ty, expr),
+            Type::StaticArrayRef(..) => Self::cast_static_array_ref_to_type(ty, expr),
+            Type::DynArrayRef(..) => Self::cast_dyn_array_ref_to_type(ty, expr),
             Type::Duration(..) | Type::Stretch(..) => cast_duration_subtype_expr_to_type(ty, expr),
             _ => None,
         }
@@ -3975,6 +3987,38 @@ impl Lowerer {
                 ty: ty.clone(),
             }),
             _ => None,
+        }
+    }
+
+    /// The only purpose of this cast is relaxing the mutability of array references.
+    fn cast_static_array_ref_to_type(ty: &Type, expr: &semantic::Expr) -> Option<semantic::Expr> {
+        assert!(matches!(expr.ty, Type::StaticArrayRef(..)));
+
+        if base_types_equal(ty, &expr.ty) {
+            Some(Expr {
+                span: expr.span,
+                kind: expr.kind.clone(),
+                const_value: expr.const_value.clone(),
+                ty: ty.clone(),
+            })
+        } else {
+            None
+        }
+    }
+
+    /// The only purpose of this cast is relaxing the mutability of array references.
+    fn cast_dyn_array_ref_to_type(ty: &Type, expr: &semantic::Expr) -> Option<semantic::Expr> {
+        assert!(matches!(expr.ty, Type::DynArrayRef(..)));
+
+        if base_types_equal(ty, &expr.ty) {
+            Some(Expr {
+                span: expr.span,
+                kind: expr.kind.clone(),
+                const_value: expr.const_value.clone(),
+                ty: ty.clone(),
+            })
+        } else {
+            None
         }
     }
 

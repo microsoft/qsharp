@@ -1064,7 +1064,7 @@ pub(crate) fn types_equal_except_const(lhs: &Type, rhs: &Type) -> bool {
                 && lhs.dims == rhs.dims
         }
         (Type::DynArrayRef(lhs), Type::DynArrayRef(rhs)) => {
-            base_types_equal(&lhs.base_ty.clone().into(), &rhs.base_ty.clone().into())
+            types_equal_except_const(&lhs.base_ty.clone().into(), &rhs.base_ty.clone().into())
                 && lhs.dims == rhs.dims
         }
         (Type::Gate(lhs_cargs, lhs_qargs), Type::Gate(rhs_cargs, rhs_qargs)) => {
