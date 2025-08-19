@@ -559,13 +559,14 @@ impl Interpreter {
             //         as the argument of a function call. When performing type checking
             //         for this function call in the interop layer, there are two cases:
             //
-            //           1. The input type is not `Std.Math.Complex` and we return an error.
-            //           2. The input type is `Std.Math.Complex`. To verify that the input
-            //              type is indeed `Complex`, we call `udt_ty_from_item_id`, which
-            //              caches the `Complex` UDT `LocalItemId`.
+            //           1. The input type is not `Std.OpenQASM.Angle.Angle` and we return
+            //              an error.
+            //           2. The input type is `Std.OpenQASM.Angle.Angle`. To verify that
+            //              the input type is indeed `Angle`, we call `udt_ty_from_item_id`,
+            //              which caches the `Angle` UDT `LocalItemId`.
             //
             //         So, if we proceed to execute the function's body, it's guaranteed
-            //         that we have already cached `Std.Math.Complex`'s `LocalItemId`.
+            //         that we have already cached `Std.OpenQASM.Angle.Angle`'s `LocalItemId`.
             //         Therefore, this else-branch is unreachable.
             unreachable!()
         }
@@ -603,14 +604,13 @@ impl Interpreter {
             //         as the argument of a function call. When performing type checking
             //         for this function call in the interop layer, there are two cases:
             //
-            //           1. The input type is not `Std.OpenQASM.Angle.Angle` and we return
-            //              an error.
-            //           2. The input type is `Std.OpenQASM.Angle.Angle`. To verify that
-            //              the input type is indeed `Complex`, we call `udt_ty_from_item_id`,
-            //              which caches the `Complex` UDT `LocalItemId`.
+            //           1. The input type is not `Std.Math.Complex` and we return an error.
+            //           2. The input type is `Std.Math.Complex`. To verify that the input
+            //              type is indeed `Complex`, we call `udt_ty_from_item_id`, which
+            //              caches the `Complex` UDT `LocalItemId`.
             //
             //         So, if we proceed to execute the function's body, it's guaranteed
-            //         that we have already cached `Std.OpenQASM.Angle.Angle`'s `LocalItemId`.
+            //         that we have already cached `Std.Math.Complex`'s `LocalItemId`.
             //         Therefore, this else-branch is unreachable.
             unreachable!()
         }
