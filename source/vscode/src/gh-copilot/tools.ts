@@ -159,10 +159,11 @@ export function registerLanguageModelTools(context: vscode.ExtensionContext) {
       };
 
       const message = {
+        command: "circuit",
         props,
       };
 
-      webview.postMessage(message);
+      setTimeout(() => webview.postMessage(message), 10);
 
       // webview.html = `
       // 		<!DOCTYPE html>
