@@ -76,7 +76,9 @@ fn concantenation_in_assign_op_errors() {
     b += a ++ a;
     ";
 
-    check(source, &expect![[r#"
+    check(
+        source,
+        &expect![[r#"
         Program:
             version: <none>
             pragmas: <empty>
@@ -138,5 +140,6 @@ fn concantenation_in_assign_op_errors() {
            :          ^^^^^^
          5 |     
            `----
-        ]"#]]);
+        ]"#]],
+    );
 }
