@@ -278,14 +278,14 @@ pub(super) fn pyobj_to_value(
                     let size = i64::from(angle.size);
                     Ok(Value::Tuple(
                         Rc::new([Value::Int(value), Value::Int(size)]),
-                        None,
+                        Some(Rc::new(ctx.get_angle_id())),
                     ))
                 }
                 interpret::UdtKind::Complex => {
                     let val = extract_obj::<num_complex::Complex64>(py, obj, ty)?;
                     Ok(Value::Tuple(
                         Rc::new([Value::Double(val.re), Value::Double(val.im)]),
-                        None,
+                        Some(Rc::new(ctx.get_complex_id())),
                     ))
                 }
                 interpret::UdtKind::Udt => {
