@@ -169,11 +169,9 @@ pub enum SemanticErrorKind {
     #[error("inconsistent types in alias expression: {0}")]
     #[diagnostic(code("Qasm.Lowerer.InconsistentTypesInAlias"))]
     InconsistentTypesInAlias(String, #[label] Span),
-
     #[error("inconsistent types in array concatenation expression: {0}")]
     #[diagnostic(code("Qasm.Lowerer.InconsistentTypesInArrayConcatenation"))]
     InconsistentTypesInArrayConcatenation(String, #[label] Span),
-
     #[error("indexed must be a single expression")]
     #[diagnostic(code("Qasm.Lowerer.IndexMustBeSingleExpr"))]
     IndexMustBeSingleExpr(#[label] Span),
