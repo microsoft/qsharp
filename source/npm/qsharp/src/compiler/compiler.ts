@@ -76,6 +76,8 @@ export interface ICompiler {
 
   getDocumentation(additionalProgram?: ProgramConfig): Promise<IDocFile[]>;
 
+  getLibrarySummaries(): Promise<string>;
+
   checkExerciseSolution(
     userCode: string,
     exerciseSources: string[],
@@ -249,6 +251,10 @@ export class Compiler implements ICompiler {
     );
   }
 
+  async getLibrarySummaries(): Promise<string> {
+    return this.wasm.get_library_summaries();
+  }
+
   async checkExerciseSolution(
     userCode: string,
     exerciseSources: string[],
@@ -348,6 +354,7 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
     getEstimates: "request",
     getCircuit: "request",
     getDocumentation: "request",
+    getLibrarySummaries: "request",
     run: "requestWithProgress",
     runWithNoise: "requestWithProgress",
     checkExerciseSolution: "requestWithProgress",

@@ -4,8 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::display::{CodeDisplay, Lookup};
-use crate::display::{increase_header_level, parse_doc_for_summary};
+use crate::display::{CodeDisplay, Lookup, increase_header_level, parse_doc_for_summary};
 use crate::table_of_contents::table_of_contents;
 use qsc_ast::ast;
 use qsc_data_structures::language_features::LanguageFeatures;
@@ -15,6 +14,8 @@ use qsc_frontend::resolve;
 use qsc_hir::hir::{CallableKind, Item, ItemKind, Package, PackageId, Res, Visibility};
 use qsc_hir::{hir, ty};
 use rustc_hash::FxHashMap;
+use std::collections::BTreeMap;
+use std::fmt::Write;
 use std::fmt::{Display, Formatter, Result};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -276,6 +277,64 @@ impl Lookup for Compilation {
     }
 }
 
+/// Determines the package kind for a given package in the compilation context
+fn determine_package_kind(package_id: PackageId, compilation: &Compilation) -> Option<PackageKind> {
+    let is_current_package = compilation.current_package_id == Some(package_id);
+
+    if package_id == PackageId::CORE {
+        // Core package is always included in the compilation.
+        Some(PackageKind::Core)
+    } else if package_id == 1.into() {
+        // Standard package is currently always included, but this isn't enforced by the compiler.
+        Some(PackageKind::StandardLibrary)
+    } else if is_current_package {
+        // This package could be user code if current package is specified.
+        Some(PackageKind::UserCode)
+    } else {
+        // This is a either a direct dependency of the user code or
+        // is not a package user can access (an indirect dependency).
+        compilation
+            .dependencies
+            .get(&package_id)
+            .map(|alias| PackageKind::AliasedPackage(alias.to_string()))
+    }
+}
+
+/// Processes all packages in a compilation and builds a table-of-contents structure
+fn build_toc_from_compilation(
+    compilation: &Compilation,
+    mut files: Option<&mut FilesWithMetadata>,
+) -> ToC {
+    let display = &CodeDisplay { compilation };
+
+    let mut toc: ToC = FxHashMap::default();
+
+    for (package_id, unit) in &compilation.package_store {
+        let Some(package_kind) = determine_package_kind(package_id, compilation) else {
+            continue;
+        };
+
+        let is_current_package = compilation.current_package_id == Some(package_id);
+        let package = &unit.package;
+
+        for (_, item) in &package.items {
+            if let Some((ns, metadata)) = generate_doc_for_item(
+                package_id,
+                package,
+                package_kind.clone(),
+                is_current_package,
+                item,
+                display,
+                files.as_deref_mut().unwrap_or(&mut vec![]),
+            ) {
+                toc.entry(ns).or_default().push(metadata);
+            }
+        }
+    }
+
+    toc
+}
+
 /// Generates and returns documentation files for the standard library
 /// and additional sources (if specified.)
 #[must_use]
@@ -289,47 +348,7 @@ pub fn generate_docs(
     let compilation = Compilation::new(additional_sources, capabilities, language_features);
     let mut files: FilesWithMetadata = vec![];
 
-    let display = &CodeDisplay {
-        compilation: &compilation,
-    };
-
-    let mut toc: ToC = FxHashMap::default();
-
-    for (package_id, unit) in &compilation.package_store {
-        let is_current_package = compilation.current_package_id == Some(package_id);
-        let package_kind;
-        if package_id == PackageId::CORE {
-            // Core package is always included in the compilation.
-            package_kind = PackageKind::Core;
-        } else if package_id == 1.into() {
-            // Standard package is currently always included, but this isn't enforced by the compiler.
-            package_kind = PackageKind::StandardLibrary;
-        } else if is_current_package {
-            // This package could be user code if current package is specified.
-            package_kind = PackageKind::UserCode;
-        } else if let Some(alias) = compilation.dependencies.get(&package_id) {
-            // This is a direct dependency of the user code.
-            package_kind = PackageKind::AliasedPackage(alias.to_string());
-        } else {
-            // This is not a package user can access (an indirect dependency).
-            continue;
-        }
-
-        let package = &unit.package;
-        for (_, item) in &package.items {
-            if let Some((ns, metadata)) = generate_doc_for_item(
-                package_id,
-                package,
-                package_kind.clone(),
-                is_current_package,
-                item,
-                display,
-                &mut files,
-            ) {
-                toc.entry(ns).or_default().push(metadata);
-            }
-        }
-    }
+    let mut toc = build_toc_from_compilation(&compilation, Some(&mut files));
 
     // Generate Overview files for each namespace
     for (ns, items) in &mut toc {
@@ -708,4 +727,75 @@ fn get_metadata(
         summary,
         signature,
     })
+}
+
+/// Generates summary documentation organized by namespace.
+/// Returns a map of namespace -> metadata items for easier testing and manipulation.
+fn generate_summaries_map() -> BTreeMap<String, Vec<Rc<Metadata>>> {
+    let compilation = Compilation::new(None, None, None);
+
+    // Use the shared logic to build ToC structure
+    let toc = build_toc_from_compilation(&compilation, None);
+
+    // Convert ToC to BTreeMap, filtering out table of contents entries
+    let mut result = BTreeMap::new();
+
+    for (ns, items) in toc {
+        let mut summaries = Vec::new();
+
+        for item in items {
+            // Skip table of contents entries
+            if item.kind == MetadataKind::TableOfContents {
+                continue;
+            }
+
+            summaries.push(item);
+        }
+
+        if !summaries.is_empty() {
+            // Sort items within namespace
+            summaries.sort_by_key(|item| item.name.clone());
+            result.insert(ns.to_string(), summaries);
+        }
+    }
+
+    result
+}
+/// Converts a Metadata item to its markdown representation
+fn metadata_to_markdown(item: &Metadata) -> String {
+    let mut result = format!("## {}\n\n", item.name);
+    let _ = write!(result, "```qsharp\n{}\n```\n\n", item.signature);
+    if !item.summary.is_empty() {
+        let _ = write!(result, "{}\n\n", item.summary);
+    }
+    result
+}
+
+/// Generates markdown summary for a single namespace
+fn generate_namespace_summary(namespace: &str, items: &[Rc<Metadata>]) -> String {
+    let mut result = format!("# {namespace}\n\n");
+
+    for item in items {
+        result.push_str(&metadata_to_markdown(item));
+    }
+
+    result
+}
+
+/// Generates summary documentation organized by namespace.
+/// Returns a single markdown string with namespace headers and minimal item documentation
+/// containing just function signatures and summaries for efficient consumption by language models.
+#[must_use]
+pub fn generate_summaries() -> String {
+    let summaries_map = generate_summaries_map();
+
+    // Generate markdown output organized by namespace
+    let mut result = String::new();
+
+    // Sort namespaces for consistent output (BTreeMap already sorts keys)
+    for (ns, items) in &summaries_map {
+        result.push_str(&generate_namespace_summary(ns, items));
+    }
+
+    result
 }
