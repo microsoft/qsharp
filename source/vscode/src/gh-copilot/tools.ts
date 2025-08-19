@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log } from "qsharp-lang";
+import { CircuitData, log } from "qsharp-lang";
 import * as vscode from "vscode";
 import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
 import { getRandomGuid } from "../utils";
@@ -10,6 +10,8 @@ import { updateCopilotInstructions } from "./instructions";
 import { QSharpTools } from "./qsharpTools";
 import { CopilotToolError } from "./types";
 import { ToolState } from "./azureQuantumTools";
+import { generateWebviewHtml } from "../circuitEditor";
+import { _getWebviewContent } from "../webviewPanel";
 
 // state
 const workspaceState: ToolState = {};
@@ -97,9 +99,91 @@ const toolDefinitions: {
     name: "qdk-run-resource-estimator",
     tool: async (input) => await qsharpTools!.runResourceEstimator(input),
   },
+  {
+    name: "qdk-test",
+    tool: async (): Promise<vscode.LanguageModelToolResult> => {
+      const result = new vscode.LanguageModelToolResult([
+        new vscode.LanguageModelTextPart("hi"),
+      ]);
+      (result as vscode.ExtendedLanguageModelToolResult2).toolResultDetails2 = {
+        mime: "application/x.qsharp-config",
+        value: new TextEncoder().encode('{ "hi" : "yes" }'),
+      };
+      return result;
+    },
+  },
 ];
 
 export function registerLanguageModelTools(context: vscode.ExtensionContext) {
+  vscode.chat.registerChatOutputRenderer("qdk-config-renderer", {
+    async renderChatOutput({ value }, webview) {
+      const content = _getWebviewContent(webview);
+      // const source = new TextDecoder().decode(value);
+
+      // let nonce = "";
+      // const possible =
+      //   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      // for (let i = 0; i < 64; i++) {
+      //   nonce += possible.charAt(Math.floor(Math.random() * possible.length));
+      // }
+
+      log.info(content);
+      webview.html = content;
+
+      const title = "hi title";
+      const target = `hi target`;
+      const circuit: CircuitData = {
+        version: 1,
+        circuits: [
+          {
+            qubits: [],
+            componentGrid: [
+              // {
+              // components: [{
+              //   gate: "X",
+              //   kind: "unitary",
+              //   targets: ""
+              // }
+            ],
+          },
+        ],
+      };
+
+      const props = {
+        title,
+        targetProfile: target,
+        simulated: false,
+        calculating: false,
+        circuit,
+        errorHtml: undefined,
+      };
+
+      const message = {
+        props,
+      };
+
+      webview.postMessage(message);
+
+      // webview.html = `
+      // 		<!DOCTYPE html>
+      // 		<html lang="en">
+
+      // 		<head>
+      // 			<meta charset="UTF-8">
+      // 			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+      // 			<title>omg</title>
+      // 			<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${webview.cspSource} 'nonce-${nonce}'; style-src 'self' 'unsafe-inline';" />
+      // 		</head>
+
+      // 		<body>
+      // 			<pre>
+      // 				${source}
+      // 			</pre>
+      // 		</body>
+      // 		</html>`;
+    },
+  });
+
   qsharpTools = new QSharpTools(context.extensionUri);
   for (const { name, tool: fn, confirm: confirmFn } of toolDefinitions) {
     context.subscriptions.push(
@@ -150,6 +234,11 @@ async function invokeTool<T>(
       associationId,
       flowStatus: UserFlowStatus.Succeeded,
     });
+
+    if (result instanceof vscode.LanguageModelToolResult) {
+      log.debug("returning tool result directly");
+      return result;
+    }
 
     resultText = JSON.stringify(result);
   } catch (e) {

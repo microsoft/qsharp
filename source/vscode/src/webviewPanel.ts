@@ -321,7 +321,7 @@ export class QSharpWebViewPanel {
     log.info(`Creating webview panel of type ${type} and id ${id}`);
     this.panel.onDidDispose(() => this.dispose());
 
-    this.panel.webview.html = this._getWebviewContent(this.panel.webview);
+    this.panel.webview.html = _getWebviewContent(this.panel.webview);
     this._setWebviewMessageListener(this.panel.webview);
   }
 
@@ -333,40 +333,6 @@ export class QSharpWebViewPanel {
     if (!this.panel.visible) {
       this.panel.reveal(column, true);
     }
-  }
-
-  private _getWebviewContent(webview: Webview) {
-    const extensionUri = QSharpWebViewPanel.extensionUri;
-
-    function getUri(pathList: string[]) {
-      return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
-    }
-
-    const katexCss = getUri(["out", "katex", "katex.min.css"]);
-    const githubCss = getUri(["out", "katex", "github-markdown-dark.css"]);
-    const webviewCss = getUri(["out", "webview", "webview.css"]);
-    const webviewJs = getUri(["out", "webview", "webview.js"]);
-    const resourcesUri = getUri(["resources"]);
-
-    return /*html*/ `
-  <!DOCTYPE html>
-  <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Q#</title>
-      <link rel="stylesheet" href="${githubCss}" />
-      <link rel="stylesheet" href="${katexCss}" />
-      <link rel="stylesheet" href="${webviewCss}" />
-      <script src="${webviewJs}"></script>
-      <script>
-        window.resourcesUri = "${resourcesUri.toString()}";
-      </script>
-    </head>
-    <body>
-    </body>
-  </html>
-`;
   }
 
   sendMessage(message: any) {
@@ -437,4 +403,39 @@ export class QSharpViewViewPanelSerializer implements WebviewPanelSerializer {
 
     createPanel(panelType, id, panel);
   }
+}
+
+export function _getWebviewContent(webview: Webview) {
+  const extensionUri = QSharpWebViewPanel.extensionUri;
+
+  function getUri(pathList: string[]) {
+    return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
+  }
+
+  const katexCss = getUri(["out", "katex", "katex.min.css"]);
+  const githubCss = getUri(["out", "katex", "github-markdown-dark.css"]);
+  const webviewCss = getUri(["out", "webview", "webview.css"]);
+  const webviewJs = getUri(["out", "webview", "webview.js"]);
+  const resourcesUri = getUri(["resources"]);
+
+  return /*html*/ `
+  <!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Q#</title>
+      <link rel="stylesheet" href="${githubCss}" />
+      <link rel="stylesheet" href="${katexCss}" />
+      <link rel="stylesheet" href="${webviewCss}" />
+      <script src="${webviewJs}"></script>
+      <script>
+        window.resourcesUri = "${resourcesUri.toString()}";
+      </script>
+    </head>
+    <body>
+    hey?
+    </body>
+  </html>
+`;
 }

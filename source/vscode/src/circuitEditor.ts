@@ -104,35 +104,7 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
   private getHtmlForWebview(webview: vscode.Webview): string {
     const extensionUri = this.context.extensionUri;
 
-    function getUri(pathList: string[]) {
-      return webview.asWebviewUri(
-        vscode.Uri.joinPath(extensionUri, ...pathList),
-      );
-    }
-
-    const katexCss = getUri(["out", "katex", "katex.min.css"]);
-    const githubCss = getUri(["out", "katex", "github-markdown-dark.css"]);
-    const webviewCss = getUri(["out", "webview", "webview.css"]);
-    const scriptUri = getUri(["out", "webview", "editor.js"]);
-    const resourcesUri = getUri(["resources"]);
-    return `
-      <!DOCTYPE html>
-      <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Q#</title>
-          <link rel="stylesheet" href="${githubCss}" />
-          <link rel="stylesheet" href="${katexCss}" />
-          <link rel="stylesheet" href="${webviewCss}" />
-          <script src="${scriptUri}"></script>
-          <script>
-            window.resourcesUri = "${resourcesUri.toString()}";
-          </script>
-        </head>
-        <body>
-        </body>
-      </html>`;
+    return generateWebviewHtml(webview, extensionUri);
   }
 
   private getDocumentAsJson(document: vscode.TextDocument): {
@@ -174,6 +146,39 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     await vscode.workspace.applyEdit(edit);
     this.updatingDocument = false;
   }
+}
+
+export function generateWebviewHtml(
+  webview: vscode.Webview,
+  extensionUri: vscode.Uri,
+) {
+  function getUri(pathList: string[]) {
+    return webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, ...pathList));
+  }
+
+  const katexCss = getUri(["out", "katex", "katex.min.css"]);
+  const githubCss = getUri(["out", "katex", "github-markdown-dark.css"]);
+  const webviewCss = getUri(["out", "webview", "webview.css"]);
+  const scriptUri = getUri(["out", "webview", "editor.js"]);
+  const resourcesUri = getUri(["resources"]);
+  return `
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Q#</title>
+          <link rel="stylesheet" href="${githubCss}" />
+          <link rel="stylesheet" href="${katexCss}" />
+          <link rel="stylesheet" href="${webviewCss}" />
+          <script src="${scriptUri}"></script>
+          <script>
+            window.resourcesUri = "${resourcesUri.toString()}";
+          </script>
+        </head>
+        <body>
+        </body>
+      </html>`;
 }
 
 /**
