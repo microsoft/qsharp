@@ -25,7 +25,10 @@ pub use qsc_eval::{
 };
 use qsc_hir::{global, ty};
 use qsc_linter::{HirLint, Lint, LintKind, LintLevel};
-use qsc_lowerer::{map_fir_local_item_to_hir, map_fir_package_to_hir, map_hir_package_to_fir};
+use qsc_lowerer::{
+    map_fir_local_item_to_hir, map_fir_package_to_hir, map_hir_local_item_to_fir,
+    map_hir_package_to_fir,
+};
 use qsc_partial_eval::ProgramEntry;
 use qsc_rca::PackageStoreComputeProperties;
 
@@ -526,6 +529,91 @@ impl Interpreter {
         };
 
         (udt, kind)
+    }
+
+    /// Returns the [`fir::StoreItemId`] for the `Std.OpenQASM.Angle.Angle` UDT.
+    ///
+    /// This function intended to be used from
+    /// `source/pip/src/interpreter/data_interop.rs::pyobj_to_value`
+    /// to tag the angles coming from Python with the correct `StoreItemId`.
+    pub fn get_angle_id(&self) -> fir::StoreItemId {
+        if let Some(id) = &*self.angle_ty_cache.borrow() {
+            let crate::hir::ItemId {
+                package: hir_package_id_opt,
+                item: hir_local_item_id,
+            } = id;
+            let package_id = if let Some(package_id) = hir_package_id_opt {
+                package_id
+            } else {
+                &self.compiler.package_id()
+            };
+            let fir_package_id = map_hir_package_to_fir(*package_id);
+            let fir_local_item_id = map_hir_local_item_to_fir(*hir_local_item_id);
+            crate::fir::StoreItemId {
+                package: fir_package_id,
+                item: fir_local_item_id,
+            }
+        } else {
+            // SAFETY: This function is intended to be used when receiving Python objects
+            //         in the interop layer. The only way to send a Python object to Q# is
+            //         as the argument of a function call. When performing type checking
+            //         for this function call in the interop layer, there are two cases:
+            //
+            //           1. The input type is not `Std.Math.Complex` and we return an error.
+            //           2. The input type is `Std.Math.Complex`. To verify that the input
+            //              type is indeed `Complex`, we call `udt_ty_from_item_id`, which
+            //              caches the `Complex` UDT `LocalItemId`.
+            //
+            //         So, if we proceed to execute the function's body, it's guaranteed
+            //         that we have already cached `Std.Math.Complex`'s `LocalItemId`.
+            //         Therefore, this else-branch is unreachable.
+            unreachable!()
+        }
+    }
+
+    /// Returns the [`fir::StoreItemId`] for the `Std.Math.Complex` UDT.
+    ///
+    /// This function intended to be used from
+    /// `source/pip/src/interpreter/data_interop.rs::pyobj_to_value`
+    /// to tag the complex numbers coming from Python with the correct
+    /// `StoreItemId`.
+    pub fn get_complex_id(&self) -> crate::fir::StoreItemId {
+        if let Some(id) = &*self.complex_ty_cache.borrow() {
+            let crate::hir::ItemId {
+                package: hir_package_id_opt,
+                item: hir_local_item_id,
+            } = id;
+
+            let package_id = if let Some(package_id) = hir_package_id_opt {
+                package_id
+            } else {
+                &self.compiler.package_id()
+            };
+
+            let fir_package_id = map_hir_package_to_fir(*package_id);
+            let fir_local_item_id = map_hir_local_item_to_fir(*hir_local_item_id);
+
+            crate::fir::StoreItemId {
+                package: fir_package_id,
+                item: fir_local_item_id,
+            }
+        } else {
+            // SAFETY: This function is intended to be used when receiving Python objects
+            //         in the interop layer. The only way to send a Python object to Q# is
+            //         as the argument of a function call. When performing type checking
+            //         for this function call in the interop layer, there are two cases:
+            //
+            //           1. The input type is not `Std.OpenQASM.Angle.Angle` and we return
+            //              an error.
+            //           2. The input type is `Std.OpenQASM.Angle.Angle`. To verify that
+            //              the input type is indeed `Complex`, we call `udt_ty_from_item_id`,
+            //              which caches the `Complex` UDT `LocalItemId`.
+            //
+            //         So, if we proceed to execute the function's body, it's guaranteed
+            //         that we have already cached `Std.OpenQASM.Angle.Angle`'s `LocalItemId`.
+            //         Therefore, this else-branch is unreachable.
+            unreachable!()
+        }
     }
 
     pub fn set_quantum_seed(&mut self, seed: Option<u64>) {
