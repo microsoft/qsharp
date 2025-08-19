@@ -15,11 +15,14 @@ fn to_static_array_ref() {
     check_qasm_to_qsharp(
         source,
         &expect![[r#"
-        import Std.OpenQASM.Intrinsic.*;
-        mutable arr = [[false, false, false, false], [false, false, false, false], [false, false, false, false]];
-        function f(a : Bool[][]) : Unit {}
-        f(arr);
-    "#]],
+            import Std.OpenQASM.Intrinsic.*;
+            mutable arr = [[false, false, false, false], [false, false, false, false], [false, false, false, false]];
+            function f(a : Bool[][]) : Unit {
+                Std.Diagnostics.Fact(Std.Core.Length(a) == 3, "Argument `a` is not compatible with its OpenQASM type `readonly array[bool, 3, 4]`.");
+                Std.Diagnostics.Fact(Std.Core.Length(a[0]) == 4, "Argument `a` is not compatible with its OpenQASM type `readonly array[bool, 3, 4]`.");
+            }
+            f(arr);
+        "#]],
     );
 }
 
@@ -34,10 +37,10 @@ fn to_dyn_array_ref() {
     check_qasm_to_qsharp(
         source,
         &expect![[r#"
-        import Std.OpenQASM.Intrinsic.*;
-        mutable arr = [[false, false, false, false], [false, false, false, false], [false, false, false, false]];
-        function f(a : Bool[][]) : Unit {}
-        f(arr);
-    "#]],
+            import Std.OpenQASM.Intrinsic.*;
+            mutable arr = [[false, false, false, false], [false, false, false, false], [false, false, false, false]];
+            function f(a : Bool[][]) : Unit {}
+            f(arr);
+        "#]],
     );
 }

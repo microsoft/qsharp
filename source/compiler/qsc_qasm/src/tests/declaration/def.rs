@@ -64,6 +64,7 @@ fn qubit_array_parameter() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
         operation square(qs : Qubit[]) : Int {
+            Std.Diagnostics.Fact(Std.Core.Length(qs) == 3, "Argument `qs` is not compatible with its OpenQASM type `qubit[3]`.");
             return 1;
         }
     "#]]

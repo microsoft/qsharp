@@ -49,7 +49,7 @@ fn bigint_output_is_initially_zero_l() {
     let expect = expect![[r#"
         operation Test(input_var : BigInt) : BigInt {
             import Std.OpenQASM.Intrinsic.*;
-            mutable output_var : BigInt = 0L;
+            mutable output_var = 0L;
             set output_var = input_var;
             output_var
         }

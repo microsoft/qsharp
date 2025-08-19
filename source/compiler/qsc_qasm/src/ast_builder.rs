@@ -15,6 +15,7 @@ use qsc_data_structures::span::Span;
 
 use crate::{
     parser::ast::{List, list_from_iter},
+    semantic::types::Type,
     stdlib::angle::Angle,
     types::{ArrayDimensions, Complex},
 };
@@ -1467,11 +1468,80 @@ pub(crate) fn build_barrier_call(span: Span) -> Stmt {
     build_stmt_semi_from_expr(expr)
 }
 
+pub(crate) fn build_argument_validation_stmts(name: &String, ty: &Type, span: Span) -> Vec<Stmt> {
+    assert!(ty.is_array(), "Expected array type");
+    assert!(
+        !matches!(ty, Type::DynArrayRef(..)),
+        "Unexpected dynamic array type"
+    );
+
+    let message = Expr {
+        kind: Box::new(ExprKind::Lit(Box::new(Lit::String(
+            format!("Argument `{name}` is not compatible with its OpenQASM type `{ty}`.").into(),
+        )))),
+        span,
+        ..Default::default()
+    };
+    let mut rank = 0;
+    let mut stmts = Vec::new();
+    let dims = if let Type::BitArray(width, _) = ty {
+        vec![*width]
+    } else if let Type::QubitArray(width) = ty {
+        vec![*width]
+    } else if let Type::StaticArrayRef(array_ty) = &ty {
+        array_ty.dims.clone().into_iter().collect::<Vec<_>>()
+    } else if let Type::Array(array_ty) = &ty {
+        array_ty.dims.clone().into_iter().collect::<Vec<_>>()
+    } else {
+        unreachable!("Expected static array type, got: {ty:?}")
+    };
+
+    for dim in dims {
+        if dim == 0 {
+            // OpenQASM allows for 0 length arrays and dimension. If we encounter a 0 length dim, stop
+            // generating length checks.
+            break;
+        }
+
+        let len_operand = if rank == 0 {
+            rank += 1;
+            build_path_ident_expr(name, span, span)
+        } else {
+            rank += 1;
+            let index_expr = build_lit_int_expr(0, span);
+            let ident = build_path_ident_expr(name, span, span);
+            let mut expr = build_index_expr(ident, index_expr.clone(), span);
+            for _ in 2..rank {
+                expr = build_index_expr(expr, index_expr.clone(), span);
+            }
+
+            expr
+        };
+
+        let lhs = build_call_with_param("Length", &["Std", "Core"], len_operand, span, span, span);
+
+        let rhs = build_lit_int_expr(dim.into(), span);
+        let binop_expr = build_binary_expr(false, ast::BinOp::Eq, lhs, rhs, span);
+
+        let call_expr = build_call_with_params(
+            "Fact",
+            &["Std", "Diagnostics"],
+            [binop_expr, message.clone()].to_vec(),
+            span,
+            span,
+        );
+        let stmt = build_stmt_semi_from_expr(call_expr);
+        stmts.push(stmt);
+    }
+
+    stmts
+}
+
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 pub(crate) fn build_function_or_operation(
     name: String,
-    cargs: Vec<(String, Ty, Pat)>,
-    qargs: Vec<(String, Ty, Pat)>,
+    cargs: Vec<(String, Ty, Pat, Type)>,
+    qargs: Vec<(String, Ty, Pat, Type)>,
     body: Option<Block>,
     name_span: Span,
     body_span: Span,
@@ -1484,7 +1554,7 @@ pub(crate) fn build_function_or_operation(
     let args = cargs
         .into_iter()
         .chain(qargs)
-        .map(|(_, _, pat)| Box::new(pat))
+        .map(|(_, _, pat, _)| Box::new(pat))
         .collect::<Vec<_>>();
 
     let lo = args

@@ -15,11 +15,11 @@ fn sizeof_with_non_existent_dimension_generates_correct_qsharp() {
     check(
         source,
         &expect![[r#"
-        import Std.OpenQASM.Intrinsic.*;
-        function f(a : Int[]) : Unit {
-            Std.OpenQASM.Builtin.sizeof_1(a, 4);
-        }
-    "#]],
+            import Std.OpenQASM.Intrinsic.*;
+            function f(a : Int[]) : Unit {
+                Std.OpenQASM.Builtin.sizeof_1(a, 4);
+            }
+        "#]],
     );
 }
 

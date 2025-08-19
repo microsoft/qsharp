@@ -17,9 +17,9 @@ use crate::{
     QubitSemantics,
     ast_builder::{
         build_adj_plus_ctl_functor, build_angle_cast_call_by_name,
-        build_angle_convert_call_with_two_params, build_arg_pat, build_array_reverse_expr,
-        build_assignment_statement, build_attr, build_barrier_call, build_binary_expr,
-        build_call_no_params, build_call_stmt_no_params, build_call_with_param,
+        build_angle_convert_call_with_two_params, build_arg_pat, build_argument_validation_stmts,
+        build_array_reverse_expr, build_assignment_statement, build_attr, build_barrier_call,
+        build_binary_expr, build_call_no_params, build_call_stmt_no_params, build_call_with_param,
         build_call_with_params, build_classical_decl, build_complex_from_expr,
         build_convert_call_expr, build_convert_cast_call_by_name, build_end_stmt,
         build_expr_array_expr, build_for_stmt, build_function_or_operation,
@@ -345,6 +345,20 @@ impl QasmCompiler {
             &mut stmts,
             is_qiskit,
         );
+
+        if let Some(input) = &input {
+            let args = input
+                .iter()
+                .map(|s| {
+                    let qsharp_ty = self.map_semantic_type_to_qsharp_type(&s.ty, s.ty_span);
+                    let ast_ty = map_qsharp_type_to_ast_ty(&qsharp_ty, s.ty_span);
+                    (&s.name, ast_ty, s.span, &s.ty)
+                })
+                .collect::<Vec<_>>();
+            let mut validation_stmts = Self::get_argument_validation_stmts(&args);
+            validation_stmts.extend(stmts);
+            stmts = validation_stmts;
+        }
 
         let ast_ty = map_qsharp_type_to_ast_ty(&output_ty, whole_span);
         signature.output = format!("{output_ty}");
@@ -874,17 +888,20 @@ impl QasmCompiler {
             .map(|arg| {
                 let symbol = self.symbols[*arg].clone();
                 let name = symbol.name.clone();
+                let semantic_type = symbol.ty.clone();
                 let qsharp_ty = self.map_semantic_type_to_qsharp_type(&symbol.ty, symbol.ty_span);
                 let ast_type = map_qsharp_type_to_ast_ty(&qsharp_ty, symbol.ty_span);
                 (
                     name.clone(),
                     ast_type.clone(),
                     build_arg_pat(name, symbol.span, ast_type),
+                    semantic_type,
                 )
             })
             .collect();
 
-        let body = Some(self.compile_block(&stmt.body));
+        let body = self.compile_block(&stmt.body);
+        let body = Self::prepend_argument_validation_to_block(body, &args);
         let qsharp_ty = self.map_semantic_type_to_qsharp_type(return_type, stmt.return_type_span);
         let return_type = map_qsharp_type_to_ast_ty(&qsharp_ty, stmt.return_type_span);
         let kind = if stmt.has_qubit_params
@@ -1268,12 +1285,14 @@ impl QasmCompiler {
             .map(|arg| {
                 let symbol = self.symbols[*arg].clone();
                 let name = symbol.name.clone();
+                let semantic_type = symbol.ty.clone();
                 let qsharp_ty = self.map_semantic_type_to_qsharp_type(&symbol.ty, symbol.ty_span);
                 let ast_type = map_qsharp_type_to_ast_ty(&qsharp_ty, symbol.ty_span);
                 (
                     name.clone(),
                     ast_type.clone(),
                     build_arg_pat(name, symbol.span, ast_type),
+                    semantic_type,
                 )
             })
             .collect();
@@ -1284,12 +1303,14 @@ impl QasmCompiler {
             .map(|arg| {
                 let symbol = self.symbols[*arg].clone();
                 let name = symbol.name.clone();
+                let semantic_type = symbol.ty.clone();
                 let qsharp_ty = self.map_semantic_type_to_qsharp_type(&symbol.ty, symbol.ty_span);
                 let ast_type = map_qsharp_type_to_ast_ty(&qsharp_ty, symbol.ty_span);
                 (
                     name.clone(),
                     ast_type.clone(),
                     build_arg_pat(name, symbol.span, ast_type),
+                    semantic_type,
                 )
             })
             .collect();
@@ -2465,5 +2486,35 @@ impl QasmCompiler {
                 }
             }
         }
+    }
+
+    fn get_argument_validation_stmts(
+        args: &[(&String, qsast::Ty, Span, &Type)],
+    ) -> Vec<qsast::Stmt> {
+        args.iter()
+            .filter_map(|(name, _, span, ty)| {
+                if ty.is_array() && !matches!(ty, Type::DynArrayRef(..)) {
+                    Some(build_argument_validation_stmts(name, ty, *span))
+                } else {
+                    None
+                }
+            })
+            .flatten()
+            .collect::<Vec<_>>()
+    }
+
+    fn prepend_argument_validation_to_block(
+        mut body: qsast::Block,
+        args: &[(String, qsast::Ty, qsast::Pat, Type)],
+    ) -> Option<qsast::Block> {
+        let args = args
+            .iter()
+            .map(|(name, ast_ty, pat, sym_type)| (name, ast_ty.clone(), pat.span, sym_type))
+            .collect::<Vec<_>>();
+        let stmts = Self::get_argument_validation_stmts(&args);
+        let stmts = list_from_iter(stmts);
+        body.stmts = stmts.into_iter().chain(body.stmts).collect();
+
+        Some(body)
     }
 }
