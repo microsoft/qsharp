@@ -158,6 +158,7 @@ fn index_file_generation() {
 
         | Name | Description |
         |------|-------------|
+        | [Complex](xref:Qdk.Std.Core.Complex) | Represents a complex number by its real and imaginary components. The first element of the tuple is the real component, the second one - the imaginary component. |
         | [Length](xref:Qdk.Std.Core.Length) | Returns the number of elements in the input array `a`. |
         | [Repeated](xref:Qdk.Std.Core.Repeated) | Creates an array of given `length` with all elements equal to given `value`. `length` must be a non-negative integer. |
     "#]]

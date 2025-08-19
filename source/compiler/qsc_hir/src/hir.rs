@@ -191,6 +191,12 @@ impl ItemId {
             item: LocalItemId(3), // ToDo: formalize this reference to the Complex type.
         }
     }
+
+    /// Checks if this [`ItemId`] corresponds to the Complex UDT from the Core namespace.
+    #[must_use]
+    pub fn is_complex_udt(&self) -> bool {
+        *self == Self::get_complex_id()
+    }
 }
 
 impl Display for ItemId {

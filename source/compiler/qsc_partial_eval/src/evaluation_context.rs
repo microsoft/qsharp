@@ -322,6 +322,7 @@ fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
         Value::BigInt(_)
         | Value::Bool(_)
         | Value::Closure(_)
+        | Value::Complex(_, _)
         | Value::Double(_)
         | Value::Global(_, _)
         | Value::Int(_)

@@ -1074,6 +1074,13 @@ impl<'a> PartialEvaluator<'a> {
                     bin_op_expr_span,
                 )
             }
+            VarTy::Complex => {
+                // For Complex types, we currently don't have RIR support, so treat as classical
+                Err(Error::EvaluationFailed(
+                    "Complex number operations are not supported in partial evaluation".to_string(),
+                    bin_op_expr_span,
+                ))
+            }
         }
     }
 
@@ -3109,6 +3116,7 @@ impl<'a> PartialEvaluator<'a> {
 
             Value::BigInt(_)
             | Value::Closure(_)
+            | Value::Complex(_, _)
             | Value::Global(_, _)
             | Value::Pauli(_)
             | Value::Qubit(_)
@@ -3563,6 +3571,9 @@ fn map_eval_var_type_to_rir_type(var_ty: VarTy) -> rir::Ty {
         VarTy::Boolean => rir::Ty::Boolean,
         VarTy::Integer => rir::Ty::Integer,
         VarTy::Double => rir::Ty::Double,
+        VarTy::Complex => {
+            panic!("Complex numbers are not supported in RIR")
+        }
     }
 }
 

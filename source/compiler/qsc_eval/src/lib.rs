@@ -990,7 +990,7 @@ impl State {
                 self.eval_range(start.is_some(), step.is_some(), end.is_some());
             }
             ExprKind::Return(..) => panic!("return expr should be handled by control flow"),
-            ExprKind::Struct(res, copy, fields) => self.eval_struct(res, *copy, fields),
+            ExprKind::Struct(res, copy, fields) => self.eval_struct(globals, res, *copy, fields),
             ExprKind::String(components) => self.collect_string(components),
             ExprKind::UpdateIndex(_, mid, _) => {
                 let mid_span = globals.get_expr((self.package, *mid).into()).span;
@@ -1166,7 +1166,20 @@ impl State {
             Some(Global::Callable(callable)) => callable,
             Some(Global::Udt) => {
                 let arg = match arg {
-                    Value::Tuple(items, _) => Value::Tuple(items, Some(callee_id.into())),
+                    Value::Tuple(items, _) => {
+                        // Check if this is the Complex UDT and convert to Value::Complex
+                        if is_complex_udt(globals, callee_id) && items.len() == 2 {
+                            if let (Value::Double(real), Value::Double(imag)) =
+                                (&items[0], &items[1])
+                            {
+                                Value::Complex(*real, *imag)
+                            } else {
+                                Value::Tuple(items, Some(callee_id.into()))
+                            }
+                        } else {
+                            Value::Tuple(items, Some(callee_id.into()))
+                        }
+                    }
                     _ => arg,
                 };
                 self.set_val_register(arg);
@@ -1318,6 +1331,15 @@ impl State {
                     .end
                     .expect("range access should be validated by compiler"),
             ),
+            // Handle Complex field access
+            (Value::Complex(real, imag), Field::Path(path)) => {
+                // For Complex, we expect field access by index: 0 = Real, 1 = Imag
+                match path.indices.as_slice() {
+                    [0] => Value::Double(real),
+                    [1] => Value::Double(imag),
+                    _ => panic!("invalid field path for complex value"),
+                }
+            }
             (record, Field::Path(path)) => {
                 follow_field_path(record, &path.indices).expect("field path should be valid")
             }
@@ -1368,7 +1390,13 @@ impl State {
         self.set_val_register(Value::Range(val::Range { start, step, end }.into()));
     }
 
-    fn eval_struct(&mut self, res: &Res, copy: Option<ExprId>, fields: &[FieldAssign]) {
+    fn eval_struct(
+        &mut self,
+        globals: &impl PackageStoreLookup,
+        res: &Res,
+        copy: Option<ExprId>,
+        fields: &[FieldAssign],
+    ) {
         // Extract a flat list of field indexes.
         let field_indexes = fields
             .iter()
@@ -1413,7 +1441,19 @@ impl State {
             panic!("UDT should be an item");
         };
 
-        self.set_val_register(Value::Tuple(strct.into(), Some(Rc::new(store_item_id))));
+        // Check if this is the Complex UDT and convert to Value::Complex
+        let value = if is_complex_udt(globals, store_item_id) && strct.len() == 2 {
+            // For Complex struct, we expect fields at index 0 (Real) and 1 (Imag)
+            if let (Value::Double(real), Value::Double(imag)) = (&strct[0], &strct[1]) {
+                Value::Complex(*real, *imag)
+            } else {
+                Value::Tuple(strct.into(), Some(Rc::new(store_item_id)))
+            }
+        } else {
+            Value::Tuple(strct.into(), Some(Rc::new(store_item_id)))
+        };
+
+        self.set_val_register(value);
     }
 
     fn eval_update_index(&mut self, span: Span) -> Result<(), Error> {
@@ -1510,6 +1550,7 @@ impl State {
             },
             UnOp::Neg => match val {
                 Value::BigInt(v) => self.set_val_register(Value::BigInt(v.neg())),
+                Value::Complex(real, imag) => self.set_val_register(Value::Complex(-real, -imag)),
                 Value::Double(v) => self.set_val_register(Value::Double(v.neg())),
                 Value::Int(v) => self.set_val_register(Value::Int(v.wrapping_neg())),
                 _ => panic!("value should be number"),
@@ -1524,7 +1565,9 @@ impl State {
                 _ => panic!("value should be bool"),
             },
             UnOp::Pos => match val {
-                Value::BigInt(_) | Value::Int(_) | Value::Double(_) => self.set_val_register(val),
+                Value::BigInt(_) | Value::Int(_) | Value::Double(_) | Value::Complex(_, _) => {
+                    self.set_val_register(val);
+                }
                 _ => panic!("value should be number"),
             },
             UnOp::Unwrap => self.set_val_register(val),
@@ -1546,6 +1589,15 @@ impl State {
             (Value::Range(mut inner), Field::Prim(PrimField::End)) => {
                 inner.end = Some(value.unwrap_int());
                 Value::Range(inner)
+            }
+            // Handle Complex field updates
+            (Value::Complex(real, imag), Field::Path(path)) => {
+                let new_double = value.unwrap_double();
+                match path.indices.as_slice() {
+                    [0] => Value::Complex(new_double, imag), // Update Real
+                    [1] => Value::Complex(real, new_double), // Update Imag
+                    _ => panic!("invalid field path for complex value"),
+                }
             }
             (record, Field::Path(path)) => update_field_path(&record, &path.indices, &value)
                 .expect("field path should be valid"),
@@ -1884,6 +1936,17 @@ fn eval_binop_eq(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Resul
             // failure.
             Err(Error::ResultLossComparisonUnsupported(rhs_span))
         }
+        // Handle Double/Complex cross-comparisons
+        (Value::Double(lhs), Value::Complex(real, imag)) =>
+        {
+            #[allow(clippy::float_cmp)]
+            Ok(Value::Bool(lhs == real && imag.abs() < f64::EPSILON))
+        }
+        (Value::Complex(real, imag), Value::Double(rhs)) =>
+        {
+            #[allow(clippy::float_cmp)]
+            Ok(Value::Bool(real == rhs && imag.abs() < f64::EPSILON))
+        }
         (lhs, rhs) => Ok(Value::Bool(lhs == rhs)),
     }
 }
@@ -1902,6 +1965,17 @@ fn eval_binop_neq(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Resu
             // failure.
             Err(Error::ResultLossComparisonUnsupported(rhs_span))
         }
+        // Handle Double/Complex cross-comparisons
+        (Value::Double(lhs), Value::Complex(real, imag)) =>
+        {
+            #[allow(clippy::float_cmp)]
+            Ok(Value::Bool(!(lhs == real && imag.abs() < f64::EPSILON)))
+        }
+        (Value::Complex(real, imag), Value::Double(rhs)) =>
+        {
+            #[allow(clippy::float_cmp)]
+            Ok(Value::Bool(!(real == rhs && imag.abs() < f64::EPSILON)))
+        }
         (lhs, rhs) => Ok(Value::Bool(lhs != rhs)),
     }
 }
@@ -1917,10 +1991,16 @@ fn eval_binop_add(lhs_val: Value, rhs_val: Value) -> Value {
             let rhs = rhs_val.unwrap_big_int();
             Value::BigInt(val + rhs)
         }
-        Value::Double(val) => {
-            let rhs = rhs_val.unwrap_double();
-            Value::Double(val + rhs)
-        }
+        Value::Complex(real1, imag1) => match rhs_val {
+            Value::Complex(real2, imag2) => Value::Complex(real1 + real2, imag1 + imag2),
+            Value::Double(rhs) => Value::Complex(real1 + rhs, imag1),
+            _ => panic!("cannot add Complex with {}", rhs_val.type_name()),
+        },
+        Value::Double(val) => match rhs_val {
+            Value::Complex(real, imag) => Value::Complex(val + real, imag),
+            Value::Double(rhs) => Value::Double(val + rhs),
+            _ => panic!("cannot add Double with {}", rhs_val.type_name()),
+        },
         Value::Int(val) => {
             let rhs = rhs_val.unwrap_int();
             Value::Int(val.wrapping_add(rhs))
@@ -1957,6 +2037,47 @@ fn eval_binop_div(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Resu
                 Ok(Value::BigInt(val / rhs))
             }
         }
+        Value::Complex(real1, imag1) => {
+            match rhs_val {
+                Value::Complex(real2, imag2) => {
+                    // (a + bi) / (c + di) = ((ac + bd) + (bc - ad)i) / (c^2 + d^2)
+                    let denominator = real2 * real2 + imag2 * imag2;
+                    if denominator.abs() < f64::EPSILON {
+                        Err(Error::DivZero(rhs_span))
+                    } else {
+                        let real_result = (real1 * real2 + imag1 * imag2) / denominator;
+                        let imag_result = (imag1 * real2 - real1 * imag2) / denominator;
+                        Ok(Value::Complex(real_result, imag_result))
+                    }
+                }
+                Value::Double(rhs) => {
+                    if rhs.abs() < f64::EPSILON {
+                        Err(Error::DivZero(rhs_span))
+                    } else {
+                        Ok(Value::Complex(real1 / rhs, imag1 / rhs))
+                    }
+                }
+                _ => panic!("cannot divide Complex by {}", rhs_val.type_name()),
+            }
+        }
+        Value::Double(val) => match rhs_val {
+            Value::Complex(real, imag) => {
+                let denominator = real * real + imag * imag;
+                if denominator.abs() < f64::EPSILON {
+                    Err(Error::DivZero(rhs_span))
+                } else {
+                    let real_result = val * real / denominator;
+                    let imag_result = -val * imag / denominator;
+                    Ok(Value::Complex(real_result, imag_result))
+                }
+            }
+            Value::Double(rhs) => {
+                // Allow IEEE floating-point semantics for double division
+                // This will produce infinity for x/0.0 and NaN for 0.0/0.0
+                Ok(Value::Double(val / rhs))
+            }
+            _ => panic!("cannot divide Double by {}", rhs_val.type_name()),
+        },
         Value::Int(val) => {
             let rhs = rhs_val.unwrap_int();
             if rhs == 0 {
@@ -1965,14 +2086,11 @@ fn eval_binop_div(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Resu
                 Ok(Value::Int(val.wrapping_div(rhs)))
             }
         }
-        Value::Double(val) => {
-            let rhs = rhs_val.unwrap_double();
-            Ok(Value::Double(val / rhs))
-        }
         _ => panic!("value should support div"),
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn eval_binop_exp(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Result<Value, Error> {
     match lhs_val {
         Value::BigInt(val) => {
@@ -1987,7 +2105,154 @@ fn eval_binop_exp(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Resu
                 Ok(Value::BigInt(val.pow(rhs_val)))
             }
         }
-        Value::Double(val) => Ok(Value::Double(val.powf(rhs_val.unwrap_double()))),
+        Value::Complex(real, imag) => {
+            match rhs_val {
+                Value::Complex(exp_real, exp_imag) => {
+                    // Complex exponentiation: z^w = exp(w * ln(z))
+                    // ln(z) = ln|z| + i * arg(z)
+                    let magnitude = (real * real + imag * imag).sqrt();
+                    let arg = imag.atan2(real);
+
+                    if magnitude.abs() < f64::EPSILON {
+                        if exp_real > 0.0 || exp_imag.abs() > f64::EPSILON {
+                            Ok(Value::Complex(0.0, 0.0))
+                        } else {
+                            Err(Error::DivZero(rhs_span)) // 0^0 or 0^negative is undefined
+                        }
+                    } else {
+                        let ln_magnitude = magnitude.ln();
+                        let new_real = exp_real * ln_magnitude - exp_imag * arg;
+                        let new_imag = exp_real * arg + exp_imag * ln_magnitude;
+                        let result_magnitude = new_real.exp();
+                        Ok(Value::Complex(
+                            result_magnitude * new_imag.cos(),
+                            result_magnitude * new_imag.sin(),
+                        ))
+                    }
+                }
+                Value::Double(exp) => {
+                    let magnitude = (real * real + imag * imag).sqrt();
+                    if magnitude.abs() < f64::EPSILON {
+                        if exp > 0.0 {
+                            Ok(Value::Complex(0.0, 0.0))
+                        } else {
+                            Err(Error::DivZero(rhs_span)) // 0^0 or 0^negative is undefined
+                        }
+                    } else {
+                        let arg = imag.atan2(real);
+                        let new_magnitude = magnitude.powf(exp);
+                        let new_arg = arg * exp;
+                        Ok(Value::Complex(
+                            new_magnitude * new_arg.cos(),
+                            new_magnitude * new_arg.sin(),
+                        ))
+                    }
+                }
+                Value::Int(exp) => {
+                    if exp < 0 {
+                        // For negative integer exponents, compute 1/z^|exp|
+                        let exp = -exp;
+                        let magnitude_sq = real * real + imag * imag;
+                        if magnitude_sq.abs() < f64::EPSILON {
+                            return Err(Error::DivZero(rhs_span));
+                        }
+
+                        // z^exp for positive exp
+                        let mut result_real = 1.0;
+                        let mut result_imag = 0.0;
+                        let mut base_real = real;
+                        let mut base_imag = imag;
+                        let mut exp = exp;
+
+                        while exp > 0 {
+                            if exp % 2 == 1 {
+                                let temp_real = result_real * base_real - result_imag * base_imag;
+                                let temp_imag = result_real * base_imag + result_imag * base_real;
+                                result_real = temp_real;
+                                result_imag = temp_imag;
+                            }
+                            let temp_real = base_real * base_real - base_imag * base_imag;
+                            let temp_imag = 2.0 * base_real * base_imag;
+                            base_real = temp_real;
+                            base_imag = temp_imag;
+                            exp /= 2;
+                        }
+
+                        // Now compute 1/result
+                        let magnitude_sq = result_real * result_real + result_imag * result_imag;
+                        Ok(Value::Complex(
+                            result_real / magnitude_sq,
+                            -result_imag / magnitude_sq,
+                        ))
+                    } else {
+                        // Fast exponentiation for positive integer exponents
+                        let mut result_real = 1.0;
+                        let mut result_imag = 0.0;
+                        let mut base_real = real;
+                        let mut base_imag = imag;
+                        let mut exp = exp;
+
+                        while exp > 0 {
+                            if exp % 2 == 1 {
+                                let temp_real = result_real * base_real - result_imag * base_imag;
+                                let temp_imag = result_real * base_imag + result_imag * base_real;
+                                result_real = temp_real;
+                                result_imag = temp_imag;
+                            }
+                            let temp_real = base_real * base_real - base_imag * base_imag;
+                            let temp_imag = 2.0 * base_real * base_imag;
+                            base_real = temp_real;
+                            base_imag = temp_imag;
+                            exp /= 2;
+                        }
+
+                        Ok(Value::Complex(result_real, result_imag))
+                    }
+                }
+                _ => panic!("cannot exponentiate Complex with {}", rhs_val.type_name()),
+            }
+        }
+        Value::Double(val) => {
+            match rhs_val {
+                Value::Complex(exp_real, exp_imag) => {
+                    if val <= 0.0 {
+                        if val == 0.0 && exp_real > 0.0 && exp_imag.abs() < f64::EPSILON {
+                            Ok(Value::Complex(0.0, 0.0))
+                        } else {
+                            // For negative or zero base with complex exponent, we need complex result
+                            let ln_val = val.abs().ln();
+                            let arg = if val < 0.0 { std::f64::consts::PI } else { 0.0 };
+                            let new_real = exp_real * ln_val - exp_imag * arg;
+                            let new_imag = exp_real * arg + exp_imag * ln_val;
+                            let result_magnitude = new_real.exp();
+                            Ok(Value::Complex(
+                                result_magnitude * new_imag.cos(),
+                                result_magnitude * new_imag.sin(),
+                            ))
+                        }
+                    } else {
+                        let ln_val = val.ln();
+                        let new_real = exp_real * ln_val;
+                        let new_imag = exp_imag * ln_val;
+                        let result_magnitude = new_real.exp();
+                        Ok(Value::Complex(
+                            result_magnitude * new_imag.cos(),
+                            result_magnitude * new_imag.sin(),
+                        ))
+                    }
+                }
+                Value::Double(rhs) => Ok(Value::Double(val.powf(rhs))),
+                Value::Int(rhs) => {
+                    if rhs < 0 {
+                        Err(Error::InvalidNegativeInt(rhs, rhs_span))
+                    } else {
+                        #[allow(clippy::cast_possible_truncation)]
+                        Ok(Value::Double(val.powi(rhs as i32)))
+                    }
+                }
+                _ => panic!("cannot exponentiate Double with {}", rhs_val.type_name()),
+            }
+        }
         Value::Int(val) => {
             let rhs_val = rhs_val.unwrap_int();
             if rhs_val < 0 {
@@ -2114,13 +2379,24 @@ fn eval_binop_mul(lhs_val: Value, rhs_val: Value) -> Value {
             let rhs = rhs_val.unwrap_big_int();
             Value::BigInt(val * rhs)
         }
+        Value::Complex(real1, imag1) => {
+            match rhs_val {
+                Value::Complex(real2, imag2) => {
+                    // (a + bi) * (c + di) = (ac - bd) + (ad + bc)i
+                    Value::Complex(real1 * real2 - imag1 * imag2, real1 * imag2 + imag1 * real2)
+                }
+                Value::Double(rhs) => Value::Complex(real1 * rhs, imag1 * rhs),
+                _ => panic!("cannot multiply Complex with {}", rhs_val.type_name()),
+            }
+        }
+        Value::Double(val) => match rhs_val {
+            Value::Complex(real, imag) => Value::Complex(val * real, val * imag),
+            Value::Double(rhs) => Value::Double(val * rhs),
+            _ => panic!("cannot multiply Double with {}", rhs_val.type_name()),
+        },
         Value::Int(val) => {
             let rhs = rhs_val.unwrap_int();
             Value::Int(val.wrapping_mul(rhs))
-        }
-        Value::Double(val) => {
-            let rhs = rhs_val.unwrap_double();
-            Value::Double(val * rhs)
         }
         _ => panic!("value should support mul"),
     }
@@ -2206,10 +2482,16 @@ fn eval_binop_sub(lhs_val: Value, rhs_val: Value) -> Value {
             let rhs = rhs_val.unwrap_big_int();
             Value::BigInt(val - rhs)
         }
-        Value::Double(val) => {
-            let rhs = rhs_val.unwrap_double();
-            Value::Double(val - rhs)
-        }
+        Value::Complex(real1, imag1) => match rhs_val {
+            Value::Complex(real2, imag2) => Value::Complex(real1 - real2, imag1 - imag2),
+            Value::Double(rhs) => Value::Complex(real1 - rhs, imag1),
+            _ => panic!("cannot subtract {} from Complex", rhs_val.type_name()),
+        },
+        Value::Double(val) => match rhs_val {
+            Value::Complex(real, imag) => Value::Complex(val - real, -imag),
+            Value::Double(rhs) => Value::Double(val - rhs),
+            _ => panic!("cannot subtract {} from Double", rhs_val.type_name()),
+        },
         Value::Int(val) => {
             let rhs = rhs_val.unwrap_int();
             Value::Int(val.wrapping_sub(rhs))
@@ -2240,6 +2522,22 @@ fn follow_field_path(mut value: Value, path: &[usize]) -> Option<Value> {
         value = items[index].clone();
     }
     Some(value)
+}
+
+/// Check if the given UDT item is the Complex type from Core namespace
+fn is_complex_udt(_globals: &impl PackageStoreLookup, udt_id: StoreItemId) -> bool {
+    // Get the expected Complex type ID from HIR
+    let complex_hir_id = qsc_hir::hir::ItemId::get_complex_id();
+
+    // Compare the underlying usize values directly
+    // Both FIR and HIR PackageId/LocalItemId types implement From<T> for usize
+    let expected_package_id: usize = complex_hir_id.package.map_or(0, std::convert::Into::into);
+    let expected_item_id: usize = complex_hir_id.item.into();
+
+    let actual_package_id: usize = udt_id.package.into();
+    let actual_item_id: usize = udt_id.item.into();
+
+    actual_package_id == expected_package_id && actual_item_id == expected_item_id
 }
 
 fn update_field_path(record: &Value, path: &[usize], replace: &Value) -> Option<Value> {

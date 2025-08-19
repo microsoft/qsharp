@@ -1005,13 +1005,13 @@ fn check_negation_c() {
         "{
         import Std.Math.*;
         NegationC(Complex(1.0,2.0))}",
-        &Value::Tuple(vec![Value::Double(-1.0), Value::Double(-2.0)].into(), None),
+        &Value::Complex(-1.0, -2.0),
     );
     test_expression(
         "{
         import Std.Math.*;
         NegationC(Complex(5.0,-1.0))}",
-        &Value::Tuple(vec![Value::Double(-5.0), Value::Double(1.0)].into(), None),
+        &Value::Complex(-5.0, 1.0),
     );
 }
 
@@ -1040,13 +1040,13 @@ fn check_plus_c() {
         "{
         import Std.Math.*;
         PlusC(Complex(1.0,0.0), Complex(0.0,1.0))}",
-        &Value::Tuple(vec![Value::Double(1.0), Value::Double(1.0)].into(), None),
+        &Value::Complex(1.0, 1.0),
     );
     test_expression(
         "{
         import Std.Math.*;
         PlusC(Complex(10.0,10.0), Complex(-10.0,10.0))}",
-        &Value::Tuple(vec![Value::Double(0.0), Value::Double(20.0)].into(), None),
+        &Value::Complex(0.0, 20.0),
     );
 }
 
@@ -1078,13 +1078,13 @@ fn check_minus_c() {
         "{
         import Std.Math.*;
         MinusC(Complex(1.0,0.0), Complex(0.0,1.0))}",
-        &Value::Tuple(vec![Value::Double(1.0), Value::Double(-1.0)].into(), None),
+        &Value::Complex(1.0, -1.0),
     );
     test_expression(
         "{
         import Std.Math.*;
         MinusC(Complex(10.0,10.0), Complex(-10.0,10.0))}",
-        &Value::Tuple(vec![Value::Double(20.0), Value::Double(0.0)].into(), None),
+        &Value::Complex(20.0, 0.0),
     );
 }
 
@@ -1104,19 +1104,19 @@ fn check_times_c() {
         "{
         import Std.Math.*;
         TimesC(Complex(2.0,0.0), Complex(3.0,0.0))}",
-        &Value::Tuple(vec![Value::Double(6.0), Value::Double(0.0)].into(), None),
+        &Value::Complex(6.0, 0.0),
     );
     test_expression(
         "{
         import Std.Math.*;
         TimesC(Complex(3.0,0.0), Complex(0.0,1.0))}",
-        &Value::Tuple(vec![Value::Double(0.0), Value::Double(3.0)].into(), None),
+        &Value::Complex(0.0, 3.0),
     );
     test_expression(
         "{
         import Std.Math.*;
         TimesC(Complex(1.0,2.0), Complex(3.0,4.0))}",
-        &Value::Tuple(vec![Value::Double(-5.0), Value::Double(10.0)].into(), None),
+        &Value::Complex(-5.0, 10.0),
     );
 }
 
@@ -1145,16 +1145,13 @@ fn check_pow_c() {
         "{
         import Std.Math.*;
         PowC(Complex(2.0,0.0), Complex(3.0,0.0))}",
-        &Value::Tuple(vec![Value::Double(8.0), Value::Double(0.0)].into(), None),
+        &Value::Complex(8.0, 0.0),
     );
     test_expression(
         "{
         import Std.Math.*;
         PowC(Complex(0.0,1.0), Complex(0.0,1.0))}",
-        &Value::Tuple(
-            vec![Value::Double(E.powf(-PI / 2.0)), Value::Double(0.0)].into(),
-            None,
-        ),
+        &Value::Complex(E.powf(-PI / 2.0), 0.0),
     );
 }
 
@@ -1174,19 +1171,19 @@ fn check_divide_by_c() {
         "{
         import Std.Math.*;
         DividedByC(Complex(1.0,0.0), Complex(2.0,0.0))}",
-        &Value::Tuple(vec![Value::Double(0.5), Value::Double(0.0)].into(), None),
+        &Value::Complex(0.5, 0.0),
     );
     test_expression(
         "{
         import Std.Math.*;
         DividedByC(Complex(3.0,0.0), Complex(0.0,1.0))}",
-        &Value::Tuple(vec![Value::Double(0.0), Value::Double(-3.0)].into(), None),
+        &Value::Complex(0.0, -3.0),
     );
     test_expression(
         "{
         import Std.Math.*;
         DividedByC(Complex(1.0,2.0), Complex(3.0,4.0))}",
-        &Value::Tuple(vec![Value::Double(0.44), Value::Double(0.08)].into(), None),
+        &Value::Complex(0.44, 0.08),
     );
 }
 

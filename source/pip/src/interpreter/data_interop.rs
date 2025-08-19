@@ -370,6 +370,13 @@ pub(crate) fn value_to_pyobj(
         Value::Int(val) => val.into_py_any(py),
         Value::BigInt(val) => val.into_py_any(py),
         Value::Double(val) => val.into_py_any(py),
+        Value::Complex(real, imag) => {
+            let val = num_complex::Complex {
+                re: *real,
+                im: *imag,
+            };
+            val.into_py_any(py)
+        }
         Value::Bool(val) => val.into_py_any(py),
         Value::String(val) => val.into_py_any(py),
         Value::Result(val) => {

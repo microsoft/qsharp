@@ -20,6 +20,7 @@ pub enum Value {
     BigInt(BigInt),
     Bool(bool),
     Closure(Box<Closure>),
+    Complex(f64, f64), // (real, imaginary)
     Double(f64),
     Global(StoreItemId, FunctorApp),
     Int(i64),
@@ -161,6 +162,26 @@ pub struct Var {
     pub ty: VarTy,
 }
 
+/// Format a double value consistently, showing whole numbers with .1 precision
+fn format_double(f: &mut Formatter, v: f64) -> fmt::Result {
+    if (v.floor() - v.ceil()).abs() < f64::EPSILON {
+        // The value is a whole number, which by convention is displayed with one decimal point
+        // to differentiate it from an integer value.
+        write!(f, "{v:.1}")
+    } else {
+        write!(f, "{v}")
+    }
+}
+
+/// Format a double value as a string consistently, showing whole numbers with .1 precision
+fn format_double_string(v: f64) -> String {
+    if (v.floor() - v.ceil()).abs() < f64::EPSILON {
+        format!("{v:.1}")
+    } else {
+        format!("{v}")
+    }
+}
+
 impl Display for Value {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
@@ -172,15 +193,36 @@ impl Display for Value {
             Value::BigInt(v) => write!(f, "{v}"),
             Value::Bool(v) => write!(f, "{v}"),
             Value::Closure(..) => f.write_str("<closure>"),
-            Value::Double(v) => {
-                if (v.floor() - v.ceil()).abs() < f64::EPSILON {
-                    // The value is a whole number, which by convention is displayed with one decimal point
-                    // to differentiate it from an integer value.
-                    write!(f, "{v:.1}")
+            Value::Complex(real, imag) => {
+                if imag.abs() < f64::EPSILON {
+                    // Only real part, format as double
+                    format_double(f, *real)
+                } else if real.abs() < f64::EPSILON {
+                    // Only imaginary part
+                    if (imag - 1.0).abs() < f64::EPSILON {
+                        write!(f, "i")
+                    } else if (imag + 1.0).abs() < f64::EPSILON {
+                        write!(f, "-i")
+                    } else {
+                        write!(f, "{}i", format_double_string(*imag))
+                    }
                 } else {
-                    write!(f, "{v}")
+                    // Both real and imaginary parts
+                    let sign = if *imag < 0.0 { " - " } else { " + " };
+                    if (imag.abs() - 1.0).abs() < f64::EPSILON {
+                        write!(f, "{}{}i", format_double_string(*real), sign)
+                    } else {
+                        write!(
+                            f,
+                            "{}{}{}i",
+                            format_double_string(*real),
+                            sign,
+                            format_double_string(imag.abs())
+                        )
+                    }
                 }
             }
+            Value::Double(v) => format_double(f, *v),
             Value::Global(id, functor) if functor == &FunctorApp::default() => id.fmt(f),
             Value::Global(id, functor) => write!(f, "{functor} {id}"),
             Value::Int(v) => write!(f, "{v}"),
@@ -236,6 +278,7 @@ pub enum VarTy {
     Boolean,
     Integer,
     Double,
+    Complex,
 }
 
 impl Display for VarTy {
@@ -244,6 +287,7 @@ impl Display for VarTy {
             Self::Boolean => write!(f, "Boolean"),
             Self::Integer => write!(f, "Integer"),
             Self::Double => write!(f, "Double"),
+            Self::Complex => write!(f, "Complex"),
         }
     }
 }
@@ -327,6 +371,17 @@ impl Value {
             panic!("value should be Bool, got {}", self.type_name());
         };
         v
+    }
+
+    /// Convert the [Value] into a complex tuple (real, imaginary)
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::Complex`].
+    #[must_use]
+    pub fn unwrap_complex(self) -> (f64, f64) {
+        let Value::Complex(real, imag) = self else {
+            panic!("value should be Complex, got {}", self.type_name());
+        };
+        (real, imag)
     }
 
     /// Convert the [Value] into a double
@@ -416,13 +471,17 @@ impl Value {
 
     /// Convert the [Value] into an array of [Value]
     /// # Panics
-    /// This will panic if the [Value] is not a [`Value::Tuple`].
+    /// This will panic if the [Value] is not a [`Value::Tuple`] or [`Value::Complex`].
     #[must_use]
     pub fn unwrap_tuple(self) -> Rc<[Self]> {
-        let Value::Tuple(v, _) = self else {
-            panic!("value should be Tuple, got {}", self.type_name());
-        };
-        v
+        match self {
+            Value::Tuple(v, _) => v,
+            Value::Complex(real, imag) => {
+                // Convert Complex to a tuple of [Real, Imaginary] for compatibility
+                vec![Value::Double(real), Value::Double(imag)].into()
+            }
+            _ => panic!("value should be Tuple or Complex, got {}", self.type_name()),
+        }
     }
 
     /// Convert the [Value] into a var
@@ -443,6 +502,7 @@ impl Value {
             Value::BigInt(_) => "BigInt",
             Value::Bool(_) => "Bool",
             Value::Closure(..) => "Closure",
+            Value::Complex(_, _) => "Complex",
             Value::Double(_) => "Double",
             Value::Global(..) => "Global",
             Value::Int(_) => "Int",
@@ -469,6 +529,7 @@ impl Value {
 
             Value::BigInt(_)
             | Value::Bool(_)
+            | Value::Complex(_, _)
             | Value::Double(_)
             | Value::Global(..)
             | Value::Int(_)

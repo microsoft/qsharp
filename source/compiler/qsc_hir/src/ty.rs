@@ -210,6 +210,15 @@ impl Ty {
             Ty::Tuple(items) => items.iter().map(Ty::size).sum::<usize>() + 1,
         }
     }
+
+    /// Checks if this type is the Complex UDT from the Core namespace.
+    #[must_use]
+    pub fn is_complex_udt(&self) -> bool {
+        match self {
+            Ty::Udt(_, Res::Item(id)) => id.is_complex_udt(),
+            _ => false,
+        }
+    }
 }
 
 impl Display for Ty {

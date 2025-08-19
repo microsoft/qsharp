@@ -471,8 +471,8 @@ fn block_qubit_use_array_invalid_count_expr() {
                         0,
                     ),
                     span: Span {
-                        lo: 2050,
-                        hi: 2107,
+                        lo: 2489,
+                        hi: 2546,
                     },
                 },
             )
@@ -4131,5 +4131,150 @@ fn partial_eval_stmt_function_calls_from_library() {
                 Pats:
                     Pat 0 [5-6] [Type (Int)[]]: Bind: Ident 0 [5-6] "x""#]],
         &expect!["3"],
+    );
+}
+
+#[test]
+fn test_complex_udt_constructor() {
+    check_expr(
+        "",
+        indoc! {"{
+            Complex(1.0, 2.0)
+        }"},
+        &expect!["1.0 + 2.0i"],
+    );
+}
+
+#[test]
+fn test_complex_udt_struct_literal() {
+    check_expr(
+        "",
+        indoc! {"{
+            new Complex { Real = 3.0, Imag = 4.0 }
+        }"},
+        &expect!["3.0 + 4.0i"],
+    );
+}
+
+#[test]
+fn test_complex_arithmetic() {
+    check_expr(
+        "",
+        indoc! {"{
+            (1.0 + 2.0i) + (3.0 + 4.0i)
+        }"},
+        &expect!["4.0 + 6.0i"],
+    );
+}
+
+#[test]
+fn test_complex_field_access() {
+    check_expr(
+        "",
+        indoc! {"{
+            let c = 5.0 + 6.0i;
+            c.Real
+        }"},
+        &expect!["5.0"],
+    );
+}
+
+#[test]
+fn test_complex_string_interpolation() {
+    check_expr(
+        "",
+        indoc! {"{
+            let c = 1.0 + 3.0i;
+            $\"Value is {c}\"
+        }"},
+        &expect!["Value is 1.0 + 3.0i"],
+    );
+}
+
+#[test]
+fn test_complex_string_interpolation_negative() {
+    check_expr(
+        "",
+        indoc! {"{
+            let c = 2.5 - 1.5i;
+            $\"Result: {c}\"
+        }"},
+        &expect!["Result: 2.5 - 1.5i"],
+    );
+}
+
+#[test]
+fn test_complex_string_interpolation_pure_real() {
+    check_expr(
+        "",
+        indoc! {"{
+            let c = Complex(5.0, 0.0);
+            $\"Pure real: {c}\"
+        }"},
+        &expect!["Pure real: 5.0"],
+    );
+}
+
+#[test]
+fn test_complex_string_interpolation_pure_imaginary() {
+    check_expr(
+        "",
+        indoc! {"{
+            let c = 3.0i;
+            $\"Pure imaginary: {c}\"
+        }"},
+        &expect!["Pure imaginary: 3.0i"],
+    );
+}
+
+#[test]
+fn test_complex_arithmetic_string_interpolation() {
+    check_expr(
+        "",
+        indoc! {"{
+            let c1 = 1.0 + 2.0i;
+            let c2 = 3.0 + 4.0i;
+            let result = c1 + c2;
+            $\"Sum: {result}\"
+        }"},
+        &expect!["Sum: 4.0 + 6.0i"],
+    );
+}
+
+#[test]
+fn test_complex_division_zero_real_denominator() {
+    check_expr(
+        "",
+        indoc! {"{
+            1.0 / 1.0i
+        }"},
+        &expect!["-1i"],
+    );
+
+    check_expr(
+        "",
+        indoc! {"{
+            1.0i / 1.0i
+        }"},
+        &expect!["1.0"],
+    );
+
+    check_expr(
+        "",
+        indoc! {"{
+            (1.0 + 1.0i) / 2.0i
+        }"},
+        &expect!["0.5 - 0.5i"],
+    );
+}
+
+#[test]
+fn test_complex_division_negative_imaginary_denominator() {
+    check_expr(
+        "",
+        indoc! {"{
+            (2.0 + 3.0i) / -4.0i
+        }"},
+        &expect!["-0.75 + 0.5i"],
     );
 }

@@ -766,8 +766,8 @@ impl<'a> Context<'a> {
             BinOp::Add => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty.clone());
                 self.inferrer.class(lhs_span, Class::Add(lhs.ty.clone()));
-                if (Self::is_double(&lhs.ty) && Self::is_complex(&rhs.ty))
-                    || (Self::is_complex(&lhs.ty) && Self::is_double(&rhs.ty))
+                if (Self::is_double(&lhs.ty) && rhs.ty.is_complex_udt())
+                    || (lhs.ty.is_complex_udt() && Self::is_double(&rhs.ty))
                 {
                     converge(Self::complex_ty())
                 } else {
@@ -788,8 +788,8 @@ impl<'a> Context<'a> {
             BinOp::Div => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty.clone());
                 self.inferrer.class(lhs_span, Class::Div(lhs.ty.clone()));
-                if (Self::is_double(&lhs.ty) && Self::is_complex(&rhs.ty))
-                    || (Self::is_complex(&lhs.ty) && Self::is_double(&rhs.ty))
+                if (Self::is_double(&lhs.ty) && rhs.ty.is_complex_udt())
+                    || (lhs.ty.is_complex_udt() && Self::is_double(&rhs.ty))
                 {
                     converge(Self::complex_ty())
                 } else {
@@ -799,8 +799,8 @@ impl<'a> Context<'a> {
             BinOp::Mul => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty.clone());
                 self.inferrer.class(lhs_span, Class::Mul(lhs.ty.clone()));
-                if (Self::is_double(&lhs.ty) && Self::is_complex(&rhs.ty))
-                    || (Self::is_complex(&lhs.ty) && Self::is_double(&rhs.ty))
+                if (Self::is_double(&lhs.ty) && rhs.ty.is_complex_udt())
+                    || (lhs.ty.is_complex_udt() && Self::is_double(&rhs.ty))
                 {
                     converge(Self::complex_ty())
                 } else {
@@ -810,8 +810,8 @@ impl<'a> Context<'a> {
             BinOp::Sub => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty.clone());
                 self.inferrer.class(lhs_span, Class::Sub(lhs.ty.clone()));
-                if (Self::is_double(&lhs.ty) && Self::is_complex(&rhs.ty))
-                    || (Self::is_complex(&lhs.ty) && Self::is_double(&rhs.ty))
+                if (Self::is_double(&lhs.ty) && rhs.ty.is_complex_udt())
+                    || (lhs.ty.is_complex_udt() && Self::is_double(&rhs.ty))
                 {
                     converge(Self::complex_ty())
                 } else {
@@ -831,8 +831,8 @@ impl<'a> Context<'a> {
                         power: rhs.ty.clone(),
                     },
                 );
-                if (Self::is_double(&lhs.ty) && Self::is_complex(&rhs.ty))
-                    || (Self::is_complex(&lhs.ty) && Self::is_double(&rhs.ty))
+                if (Self::is_double(&lhs.ty) && rhs.ty.is_complex_udt())
+                    || (lhs.ty.is_complex_udt() && Self::is_double(&rhs.ty))
                 {
                     converge(Self::complex_ty())
                 } else {
@@ -968,10 +968,6 @@ impl<'a> Context<'a> {
             hir::Res::Item(ItemId::get_complex_id()),
         ) // ToDo: formalize this reference to the Complex type.
         // maybe search self.table.udts for the Complex type?
-    }
-
-    fn is_complex(ty: &Ty) -> bool {
-        matches!(ty, Ty::Udt(_, hir::Res::Item(id)) if *id == ItemId::get_complex_id())
     }
 
     fn is_double(ty: &Ty) -> bool {

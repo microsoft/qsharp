@@ -262,7 +262,7 @@ fn check_signed(ty: &Ty) -> bool {
 }
 
 fn check_ord(ty: &Ty) -> bool {
-    !check_complex(ty) && check_num_constraint(&ClassConstraint::Ord, ty)
+    !ty.is_complex_udt() && check_num_constraint(&ClassConstraint::Ord, ty)
 }
 
 fn check_div(ty: &Ty) -> bool {
@@ -792,7 +792,7 @@ impl Solver {
             }
             (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Vec::new(),
             // Treat Double and Complex as equal for equality constraints.
-            (Ty::Prim(Prim::Double), ty) | (ty, Ty::Prim(Prim::Double)) if check_complex(ty) => {
+            (Ty::Prim(Prim::Double), ty) | (ty, Ty::Prim(Prim::Double)) if ty.is_complex_udt() => {
                 Vec::new()
             }
             (Ty::Tuple(items1), Ty::Tuple(items2)) => {
@@ -1113,7 +1113,7 @@ fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
             | Prim::String
             | Prim::Pauli,
         ) => (Vec::new(), Vec::new()),
-        ty if check_complex(&ty) => (Vec::new(), Vec::new()),
+        ty if ty.is_complex_udt() => (Vec::new(), Vec::new()),
         Ty::Array(item) => (vec![Constraint::Class(Class::Eq(*item), span)], Vec::new()),
         Ty::Tuple(items) => (
             items
@@ -1162,7 +1162,7 @@ fn check_exp(base: Ty, given_power: Ty, span: Span) -> (Vec<Constraint>, Vec<Err
             }],
             Vec::new(),
         ),
-        ref ty if check_complex(ty) => (
+        ref ty if ty.is_complex_udt() => (
             vec![Constraint::Eq {
                 expected: base.clone(),
                 actual: given_power,
@@ -1416,18 +1416,11 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<
 fn check_num_constraint(constraint: &ClassConstraint, ty: &Ty) -> bool {
     match ty {
         Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int) => true,
-        ty if check_complex(ty) => true,
+        ty if ty.is_complex_udt() => true,
         Ty::Param { bounds, .. } => {
             // check if the bounds contain Num
             bounds.0.contains(constraint)
         }
-        _ => false,
-    }
-}
-
-fn check_complex(ty: &Ty) -> bool {
-    match ty {
-        Ty::Udt(_, Res::Item(id)) => ItemId::get_complex_id() == *id,
         _ => false,
     }
 }
@@ -1459,6 +1452,10 @@ fn check_show(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
                     vec![Error(ErrorKind::MissingClassShow(ty.display(), span))],
                 ),
             }
+        }
+        ty if ty.is_complex_udt() => {
+            // Complex UDT supports Show class for string interpolation
+            (Vec::new(), Vec::new())
         }
         _ => (
             Vec::new(),
