@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::tests::{compile_qasm_to_qir, compile_qasm_to_qsharp};
+use crate::tests::{check_qasm_to_qsharp, compile_qasm_to_qir, compile_qasm_to_qsharp};
 use expect_test::expect;
 use miette::Report;
 
@@ -396,4 +396,142 @@ fn qdk_qir_intrinsic_on_def_stmt_generates_correct_qir() -> miette::Result<(), V
     "#]]
     .assert_eq(&qsharp);
     Ok(())
+}
+
+#[test]
+fn implicit_cast_array_to_static_array_ref() {
+    let source = "
+        def f(readonly array[int, 4] a) {}
+        array[int, 4] a;
+        f(a);
+    ";
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        function f(a : Int[]) : Unit {}
+        mutable a = [0, 0, 0, 0];
+        f(a);
+    "#]],
+    );
+}
+
+#[test]
+fn implicit_cast_to_static_array_ref_with_different_base_ty_errors() {
+    let source = "
+        def f(readonly array[uint, 4] a) {}
+        array[int, 4] a;
+        f(a);
+    ";
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        Qasm.Lowerer.CannotCast
+
+          x cannot cast expression of type array[int, 4] to type readonly array[uint,
+          | 4]
+           ,-[Test.qasm:4:11]
+         3 |         array[int, 4] a;
+         4 |         f(a);
+           :           ^
+         5 |     
+           `----
+    "#]],
+    );
+}
+
+#[test]
+fn implicit_cast_to_static_array_ref_with_different_shape_errors() {
+    let source = "
+        def f(readonly array[int, 4] a) {}
+        array[int, 5] a;
+        f(a);
+    ";
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        Qasm.Lowerer.CannotCast
+
+          x cannot cast expression of type array[int, 5] to type readonly array[int,
+          | 4]
+           ,-[Test.qasm:4:11]
+         3 |         array[int, 5] a;
+         4 |         f(a);
+           :           ^
+         5 |     
+           `----
+    "#]],
+    );
+}
+
+#[test]
+fn implicit_cast_array_to_dyn_array_ref() {
+    let source = "
+        def f(readonly array[int, #dim = 1] a) {}
+        array[int, 4] a;
+        f(a);
+    ";
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        function f(a : Int[]) : Unit {}
+        mutable a = [0, 0, 0, 0];
+        f(a);
+    "#]],
+    );
+}
+
+#[test]
+fn implicit_cast_to_dyn_array_ref_with_different_base_ty_errors() {
+    let source = "
+        def f(readonly array[uint, #dim = 1] a) {}
+        array[int, 4] a;
+        f(a);
+    ";
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        Qasm.Lowerer.CannotCast
+
+          x cannot cast expression of type array[int, 4] to type readonly array[uint,
+          | #dim = 1]
+           ,-[Test.qasm:4:11]
+         3 |         array[int, 4] a;
+         4 |         f(a);
+           :           ^
+         5 |     
+           `----
+    "#]],
+    );
+}
+
+#[test]
+fn implicit_cast_to_dyn_array_ref_with_different_shape_errors() {
+    let source = "
+        def f(readonly array[int, #dim = 2] a) {}
+        array[int, 5] a;
+        f(a);
+    ";
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        Qasm.Lowerer.CannotCast
+
+          x cannot cast expression of type array[int, 5] to type readonly array[int,
+          | #dim = 2]
+           ,-[Test.qasm:4:11]
+         3 |         array[int, 5] a;
+         4 |         f(a);
+           :           ^
+         5 |     
+           `----
+    "#]],
+    );
 }

@@ -264,3 +264,23 @@ func_called_like_gate;
 
 // ExternDeclarationCannotReturnStretch
 extern extern_function_with_stretch_return(int) -> stretch;
+
+// InvalidConcatenationPosition
+array[int, 3] concat_operand_1;
+array[int, 4] concat_operand_2;
+array[int, 6] concat_target;
+concat_target += concat_operand_1 ++ concat_operand_2;
+
+def return_concat(readonly array[int, 3] a) -> int {
+    return a ++ a;
+}
+
+// InconsistentTypesInArrayConcatenation
+array[int[8], 4] concat_operand_3;
+array[int[16], 4] concat_operand_4;
+concat_target = concat_operand_3 ++ concat_operand_4;
+
+// InvalidTypeInArrayConcatenation
+bit[8] concat_operand_5;
+bit[8] concat_operand_6;
+concat_target = concat_operand_5 ++ concat_operand_6;

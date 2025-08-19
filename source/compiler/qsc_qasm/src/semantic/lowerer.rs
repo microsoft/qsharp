@@ -749,6 +749,10 @@ impl Lowerer {
                 let expr = self.lower_measure_expr(measure_expr);
                 self.cast_expr_to_type(&ty, &expr)
             }
+            syntax::ValueExpr::Concat(expr) => {
+                let expr = self.lower_array_concat_expr(expr);
+                self.cast_expr_with_target_type_or_default(Some(expr), &ty, span)
+            }
         };
 
         if lhs.ty.is_const() {
@@ -793,6 +797,7 @@ impl Lowerer {
                 syntax::ValueExpr::Measurement(measure_expr) => {
                     self.lower_measure_expr(measure_expr)
                 }
+                syntax::ValueExpr::Concat(expr) => self.lower_array_concat_expr(expr),
             };
             return self.lower_indexed_classical_type_assign_stmt(
                 lhs,
@@ -811,6 +816,10 @@ impl Lowerer {
             syntax::ValueExpr::Measurement(measure_expr) => {
                 let expr = self.lower_measure_expr(measure_expr);
                 self.cast_expr_to_type(indexed_ty, &expr)
+            }
+            syntax::ValueExpr::Concat(expr) => {
+                let expr = self.lower_array_concat_expr(expr);
+                self.cast_expr_with_target_type_or_default(Some(expr), indexed_ty, span)
             }
         };
 
@@ -883,6 +892,14 @@ impl Lowerer {
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => self.lower_expr(expr),
             syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
+            syntax::ValueExpr::Concat(expr) => {
+                let kind = SemanticErrorKind::InvalidConcatenationPosition(
+                    "the rhs of assignment operation statements".to_string(),
+                    expr.span,
+                );
+                self.push_semantic_error(kind);
+                return semantic::StmtKind::Err;
+            }
         };
         let binary_expr = self.lower_binary_op_expr(op, lhs.clone(), rhs, span);
 
@@ -924,6 +941,7 @@ impl Lowerer {
                 syntax::ValueExpr::Measurement(measure_expr) => {
                     self.lower_measure_expr(measure_expr)
                 }
+                syntax::ValueExpr::Concat(expr) => self.lower_array_concat_expr(expr),
             };
             let rhs = self.lower_binary_op_expr(op, binary_expr_lhs, binary_expr_rhs, span);
             return self.lower_indexed_classical_type_assign_stmt(
@@ -938,6 +956,7 @@ impl Lowerer {
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => self.lower_expr(expr),
             syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
+            syntax::ValueExpr::Concat(expr) => self.lower_array_concat_expr(expr),
         };
         let binary_expr = self.lower_binary_op_expr(op, lhs.clone(), rhs, span);
 
@@ -991,6 +1010,139 @@ impl Lowerer {
             // We take this branch if we are trying to lower an array but reached a leaf node.
             self.cast_expr_to_type(ty, &expr)
         }
+    }
+
+    fn get_concat_type_from_exprs(&mut self, rhs: &Vec<Expr>) -> Type {
+        fn get_expr_ty_names_as_str(exprs: &[Expr]) -> String {
+            exprs
+                .iter()
+                .map(|expr| &expr.ty)
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        }
+
+        let first_expr = rhs
+            .first()
+            .expect("the parser guarantees that a concat expression has at least two operands");
+        let first_ty = first_expr.ty.clone();
+
+        let mut has_invalid_types = false;
+        for expr in rhs {
+            if !matches!(
+                expr.ty,
+                Type::Array(..) | Type::StaticArrayRef(..) | Type::DynArrayRef(..)
+            ) {
+                let tys = expr.ty.to_string();
+                let kind = SemanticErrorKind::InvalidTypeInArrayConcatenation(tys, expr.span);
+                self.push_semantic_error(kind);
+                has_invalid_types = true;
+            }
+        }
+
+        if has_invalid_types {
+            return Type::Err;
+        }
+
+        let dummy_index = semantic::Index::Expr(semantic::Expr::int(0, Span::default()));
+        let indexed_ty = self.get_indexed_type(&first_ty, Span::default(), &dummy_index);
+
+        // We know the types are valid at this point
+        // but they may be mixed together which isn't allowed.
+        let all_tys = rhs.iter().map(|expr| &expr.ty).collect::<Vec<_>>();
+        let all_same = all_tys.iter().all(|ty| {
+            let element_indexed_ty = self.get_indexed_type(ty, Span::default(), &dummy_index);
+            let indexed_ty_is_the_same = types_equal_except_const(&indexed_ty, &element_indexed_ty);
+            let same_kind_of_array = matches!(
+                (&first_ty, ty),
+                (Type::Array(..), Type::Array(..))
+                    | (Type::StaticArrayRef(..), Type::StaticArrayRef(..))
+                    | (Type::DynArrayRef(..), Type::DynArrayRef(..))
+            );
+            indexed_ty_is_the_same && same_kind_of_array
+        });
+
+        if !all_same {
+            let lo = first_expr.span.lo;
+            let hi = rhs.last().expect("missing last rhs").span.hi;
+            let span = Span { lo, hi };
+            let tys = get_expr_ty_names_as_str(rhs);
+            let kind = SemanticErrorKind::InconsistentTypesInArrayConcatenation(tys, span);
+            self.push_semantic_error(kind);
+            return Type::Err;
+        }
+
+        if matches!(first_ty, Type::DynArrayRef(..)) {
+            return first_ty.clone();
+        }
+
+        let mut size = 0;
+        for expr in rhs {
+            match &expr.ty {
+                Type::Array(array_ty) => {
+                    if let Some(operand_width) = array_ty.dims.indexed_dim_size() {
+                        size += operand_width;
+                    }
+                }
+                Type::StaticArrayRef(array_ty) => {
+                    if let Some(operand_width) = array_ty.dims.indexed_dim_size() {
+                        size += operand_width;
+                    }
+                }
+                Type::DynArrayRef(_) => {
+                    // Dynamic array references were handled above.
+                    unreachable!("`Type::DynArrayRef` was handled above");
+                }
+                _ => {
+                    unreachable!("rhs expressions must be arrays");
+                }
+            }
+        }
+
+        let base_ty = if let Type::Array(array_ty) = &first_ty {
+            array_ty.base_ty.clone().into()
+        } else if let Type::StaticArrayRef(array_ty) = &first_ty {
+            array_ty.base_ty.clone().into()
+        } else {
+            unreachable!()
+        };
+
+        // We get the array dimension of the first operand.
+        let mut concat_dims: Vec<_> = first_ty
+            .array_dims()
+            .expect("`Type::Array` has `ArrayDimensions`")
+            .into_iter()
+            .collect();
+
+        // We replace the indexed dimension by the computed size.
+        // When editing code the number of dimensions can temporarily be zero if the source code is
+        //   `array[int,`
+        // so, we access the indexed_dimension conditionally.
+        if !concat_dims.is_empty() {
+            concat_dims[0] = size;
+        }
+
+        if matches!(first_ty, Type::Array(..)) {
+            Type::make_array_ty(&concat_dims, &base_ty)
+        } else {
+            Type::make_static_array_ref_ty(&concat_dims, &base_ty, false)
+        }
+    }
+
+    fn lower_array_concat_expr(&mut self, expr: &syntax::ConcatExpr) -> semantic::Expr {
+        // The parser guarantees that a concat expression has at least two operands.
+        assert!(expr.operands.len() >= 2);
+        let operands = expr
+            .operands
+            .iter()
+            .map(|expr| self.lower_expr(expr))
+            .collect::<Vec<_>>();
+        let ty = self.get_concat_type_from_exprs(&operands);
+        let kind = semantic::ExprKind::Concat(semantic::ConcatExpr {
+            span: expr.span,
+            operands: list_from_iter(operands),
+        });
+        Expr::new(expr.span, kind, ty)
     }
 
     fn lower_cast_expr(&mut self, cast: &syntax::Cast) -> semantic::Expr {
@@ -1414,6 +1566,10 @@ impl Lowerer {
                     let expr = self.lower_measure_expr(measure_expr);
                     self.cast_expr_to_type(&ty, &expr)
                 }
+                syntax::ValueExpr::Concat(expr) => {
+                    let expr = self.lower_array_concat_expr(expr);
+                    self.cast_expr_with_target_type_or_default(Some(expr), &ty, stmt_span)
+                }
             },
             None => self.cast_expr_with_target_type_or_default(None, &ty, stmt_span),
         };
@@ -1450,6 +1606,10 @@ impl Lowerer {
                 self.cast_expr_with_target_type_or_default(Some(expr), &ty, stmt.span)
             }
             syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
+            syntax::ValueExpr::Concat(expr) => {
+                let expr = self.lower_array_concat_expr(expr);
+                self.cast_expr_with_target_type_or_default(Some(expr), &ty, stmt.span)
+            }
         };
 
         let mut symbol = Symbol::new(
@@ -2699,14 +2859,23 @@ impl Lowerer {
     }
 
     fn lower_return(&mut self, stmt: &syntax::ReturnStmt) -> semantic::StmtKind {
-        let mut expr = stmt
-            .expr
-            .as_ref()
-            .map(|expr| match &**expr {
-                syntax::ValueExpr::Expr(expr) => self.lower_expr(expr),
-                syntax::ValueExpr::Measurement(expr) => self.lower_measure_expr(expr),
-            })
-            .map(Box::new);
+        let expr = if let Some(expr) = stmt.expr.as_ref() {
+            match &**expr {
+                syntax::ValueExpr::Expr(expr) => Some(self.lower_expr(expr)),
+                syntax::ValueExpr::Measurement(expr) => Some(self.lower_measure_expr(expr)),
+                syntax::ValueExpr::Concat(expr) => {
+                    let kind = SemanticErrorKind::InvalidConcatenationPosition(
+                        "return statements".to_string(),
+                        expr.span,
+                    );
+                    self.push_semantic_error(kind);
+                    return semantic::StmtKind::Err;
+                }
+            }
+        } else {
+            None
+        };
+        let mut expr = expr.map(Box::new);
 
         let return_ty = self.symbols.get_subroutine_return_ty();
 
@@ -3657,6 +3826,8 @@ impl Lowerer {
             }
             Type::BitArray(size, _) => Self::cast_bitarray_expr_to_type(*size, ty, expr),
             Type::Array(..) => Self::cast_array_expr_to_type(ty, expr),
+            Type::StaticArrayRef(..) => Self::cast_static_array_ref_to_type(ty, expr),
+            Type::DynArrayRef(..) => Self::cast_dyn_array_ref_to_type(ty, expr),
             Type::Duration(..) | Type::Stretch(..) => cast_duration_subtype_expr_to_type(ty, expr),
             _ => None,
         }
@@ -3814,20 +3985,76 @@ impl Lowerer {
     fn cast_array_expr_to_type(ty: &Type, expr: &semantic::Expr) -> Option<semantic::Expr> {
         assert!(matches!(expr.ty, Type::Array(..)));
 
+        let Type::Array(array_ty) = &expr.ty else {
+            unreachable!("`expr` should be an array");
+        };
+
         match ty {
-            Type::StaticArrayRef(ref_ty) if !ref_ty.is_mutable => Some(Expr {
-                span: expr.span,
-                kind: expr.kind.clone(),
-                const_value: expr.const_value.clone(),
-                ty: ty.clone(),
-            }),
-            Type::DynArrayRef(ref_ty) if !ref_ty.is_mutable => Some(Expr {
-                span: expr.span,
-                kind: expr.kind.clone(),
-                const_value: expr.const_value.clone(),
-                ty: ty.clone(),
-            }),
+            Type::StaticArrayRef(ref_ty) if !ref_ty.is_mutable => {
+                if !types_equal_except_const(
+                    &array_ty.base_ty.clone().into(),
+                    &ref_ty.base_ty.clone().into(),
+                ) || array_ty.dims != ref_ty.dims
+                {
+                    return None;
+                }
+
+                Some(Expr {
+                    span: expr.span,
+                    kind: expr.kind.clone(),
+                    const_value: expr.const_value.clone(),
+                    ty: ty.clone(),
+                })
+            }
+            Type::DynArrayRef(ref_ty) if !ref_ty.is_mutable => {
+                if !types_equal_except_const(
+                    &array_ty.base_ty.clone().into(),
+                    &ref_ty.base_ty.clone().into(),
+                ) || array_ty.dims.num_dims() != u32::from(ref_ty.dims)
+                {
+                    return None;
+                }
+
+                Some(Expr {
+                    span: expr.span,
+                    kind: expr.kind.clone(),
+                    const_value: expr.const_value.clone(),
+                    ty: ty.clone(),
+                })
+            }
             _ => None,
+        }
+    }
+
+    /// The only purpose of this cast is relaxing the mutability of array references.
+    fn cast_static_array_ref_to_type(ty: &Type, expr: &semantic::Expr) -> Option<semantic::Expr> {
+        assert!(matches!(expr.ty, Type::StaticArrayRef(..)));
+
+        if base_types_equal(ty, &expr.ty) {
+            Some(Expr {
+                span: expr.span,
+                kind: expr.kind.clone(),
+                const_value: expr.const_value.clone(),
+                ty: ty.clone(),
+            })
+        } else {
+            None
+        }
+    }
+
+    /// The only purpose of this cast is relaxing the mutability of array references.
+    fn cast_dyn_array_ref_to_type(ty: &Type, expr: &semantic::Expr) -> Option<semantic::Expr> {
+        assert!(matches!(expr.ty, Type::DynArrayRef(..)));
+
+        if base_types_equal(ty, &expr.ty) {
+            Some(Expr {
+                span: expr.span,
+                kind: expr.kind.clone(),
+                const_value: expr.const_value.clone(),
+                ty: ty.clone(),
+            })
+        } else {
+            None
         }
     }
 
