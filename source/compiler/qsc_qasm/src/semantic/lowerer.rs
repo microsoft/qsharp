@@ -3985,19 +3985,43 @@ impl Lowerer {
     fn cast_array_expr_to_type(ty: &Type, expr: &semantic::Expr) -> Option<semantic::Expr> {
         assert!(matches!(expr.ty, Type::Array(..)));
 
+        let Type::Array(array_ty) = &expr.ty else {
+            unreachable!("`expr` should be an array");
+        };
+
         match ty {
-            Type::StaticArrayRef(ref_ty) if !ref_ty.is_mutable => Some(Expr {
-                span: expr.span,
-                kind: expr.kind.clone(),
-                const_value: expr.const_value.clone(),
-                ty: ty.clone(),
-            }),
-            Type::DynArrayRef(ref_ty) if !ref_ty.is_mutable => Some(Expr {
-                span: expr.span,
-                kind: expr.kind.clone(),
-                const_value: expr.const_value.clone(),
-                ty: ty.clone(),
-            }),
+            Type::StaticArrayRef(ref_ty) if !ref_ty.is_mutable => {
+                if !types_equal_except_const(
+                    &array_ty.base_ty.clone().into(),
+                    &ref_ty.base_ty.clone().into(),
+                ) || array_ty.dims != ref_ty.dims
+                {
+                    return None;
+                }
+
+                Some(Expr {
+                    span: expr.span,
+                    kind: expr.kind.clone(),
+                    const_value: expr.const_value.clone(),
+                    ty: ty.clone(),
+                })
+            }
+            Type::DynArrayRef(ref_ty) if !ref_ty.is_mutable => {
+                if !types_equal_except_const(
+                    &array_ty.base_ty.clone().into(),
+                    &ref_ty.base_ty.clone().into(),
+                ) || array_ty.dims.num_dims() != u32::from(ref_ty.dims)
+                {
+                    return None;
+                }
+
+                Some(Expr {
+                    span: expr.span,
+                    kind: expr.kind.clone(),
+                    const_value: expr.const_value.clone(),
+                    ty: ty.clone(),
+                })
+            }
             _ => None,
         }
     }
