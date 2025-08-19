@@ -67,3 +67,76 @@ fn concatenating_static_and_dynamic_array_refs_errors() {
         ]"#]],
     );
 }
+
+#[test]
+fn concantenation_in_assign_op_errors() {
+    let source = "
+    array[int, 3] a;
+    array[int, 6] b;
+    b += a ++ a;
+    ";
+
+    check(source, &expect![[r#"
+        Program:
+            version: <none>
+            pragmas: <empty>
+            statements:
+                Stmt [5-21]:
+                    annotations: <empty>
+                    kind: ClassicalDeclarationStmt [5-21]:
+                        symbol_id: 8
+                        ty_span: [5-18]
+                        init_expr: Expr [5-21]:
+                            ty: array[int, 3]
+                            kind: Lit:     array:
+                                    Expr [5-21]:
+                                        ty: const int
+                                        kind: Lit: Int(0)
+                                    Expr [5-21]:
+                                        ty: const int
+                                        kind: Lit: Int(0)
+                                    Expr [5-21]:
+                                        ty: const int
+                                        kind: Lit: Int(0)
+                Stmt [26-42]:
+                    annotations: <empty>
+                    kind: ClassicalDeclarationStmt [26-42]:
+                        symbol_id: 9
+                        ty_span: [26-39]
+                        init_expr: Expr [26-42]:
+                            ty: array[int, 6]
+                            kind: Lit:     array:
+                                    Expr [26-42]:
+                                        ty: const int
+                                        kind: Lit: Int(0)
+                                    Expr [26-42]:
+                                        ty: const int
+                                        kind: Lit: Int(0)
+                                    Expr [26-42]:
+                                        ty: const int
+                                        kind: Lit: Int(0)
+                                    Expr [26-42]:
+                                        ty: const int
+                                        kind: Lit: Int(0)
+                                    Expr [26-42]:
+                                        ty: const int
+                                        kind: Lit: Int(0)
+                                    Expr [26-42]:
+                                        ty: const int
+                                        kind: Lit: Int(0)
+                Stmt [47-59]:
+                    annotations: <empty>
+                    kind: Err
+
+        [Qasm.Lowerer.InvalidConcatenationPosition
+
+          x concatenation expressions are not allowed in the rhs of assignment
+          | operation statements
+           ,-[test:4:10]
+         3 |     array[int, 6] b;
+         4 |     b += a ++ a;
+           :          ^^^^^^
+         5 |     
+           `----
+        ]"#]]);
+}

@@ -184,6 +184,9 @@ pub enum SemanticErrorKind {
     #[error("assigning {0} values to {1} must be in a range that can be converted to {1}")]
     #[diagnostic(code("Qasm.Lowerer.InvalidCastValueRange"))]
     InvalidCastValueRange(String, String, #[label] Span),
+    #[error("concatenation expressions are not allowed in {0}")]
+    #[diagnostic(code("Qasm.Lowerer.InvalidConcatenationPosition"))]
+    InvalidConcatenationPosition(String, #[label] Span),
     #[error("gate operands other than qubits or qubit arrays are not supported")]
     #[diagnostic(code("Qasm.Lowerer.InvalidGateOperand"))]
     InvalidGateOperand(#[label] Span),

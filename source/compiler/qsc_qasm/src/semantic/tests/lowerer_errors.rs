@@ -719,7 +719,50 @@ fn check_lowerer_error_spans_are_correct() {
              265 | // ExternDeclarationCannotReturnStretch
              266 | extern extern_function_with_stretch_return(int) -> stretch;
                  :                                                    ^^^^^^^
+             267 | 
                  `----
+
+            Qasm.Lowerer.InvalidConcatenationPosition
+
+              x concatenation expressions are not allowed in the rhs of assignment
+              | operation statements
+                 ,-[Test.qasm:272:18]
+             271 | array[int, 6] concat_target;
+             272 | concat_target += concat_operand_1 ++ concat_operand_2;
+                 :                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             273 | 
+                 `----
+
+            Qasm.Lowerer.InconsistentTypesInArrayConcatenation
+
+              x inconsistent types in array concatenation expression: array[int[8], 4],
+              | array[int[16], 4]
+                 ,-[Test.qasm:277:17]
+             276 | array[int[16], 4] concat_operand_4;
+             277 | concat_target = concat_operand_3 ++ concat_operand_4;
+                 :                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             278 | 
+                 `----
+
+            Qasm.Lowerer.InvalidTypeInArrayConcatenation
+
+              x invalid type in array concatenation expression: bit[8]
+                 ,-[Test.qasm:282:17]
+             281 | bit[8] concat_operand_6;
+             282 | concat_target = concat_operand_5 ++ concat_operand_6;
+                 :                 ^^^^^^^^^^^^^^^^
+                 `----
+              help: array concatenation can only be applied to arrays
+
+            Qasm.Lowerer.InvalidTypeInArrayConcatenation
+
+              x invalid type in array concatenation expression: bit[8]
+                 ,-[Test.qasm:282:37]
+             281 | bit[8] concat_operand_6;
+             282 | concat_target = concat_operand_5 ++ concat_operand_6;
+                 :                                     ^^^^^^^^^^^^^^^^
+                 `----
+              help: array concatenation can only be applied to arrays
         "#]],
     );
 }

@@ -892,7 +892,14 @@ impl Lowerer {
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => self.lower_expr(expr),
             syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
-            syntax::ValueExpr::Concat(expr) => self.lower_array_concat_expr(expr),
+            syntax::ValueExpr::Concat(expr) => {
+                let kind = SemanticErrorKind::InvalidConcatenationPosition(
+                    "the rhs of assignment operation statements".to_string(),
+                    expr.span,
+                );
+                self.push_semantic_error(kind);
+                return semantic::StmtKind::Err;
+            }
         };
         let binary_expr = self.lower_binary_op_expr(op, lhs.clone(), rhs, span);
 
