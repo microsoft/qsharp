@@ -15,7 +15,9 @@ input bit[2] c;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(c : Result[]) : Unit {
-            Std.Diagnostics.Fact(Std.Core.Length(c) == 2, "Argument `c` is not compatible with its OpenQASM type `bit[2]`.");
+            if Std.Core.Length(c) != 2 {
+                fail "Argument `c` is not compatible with its OpenQASM type `bit[2]`."
+            };
             import Std.OpenQASM.Intrinsic.*;
         }
     "#]]
@@ -234,7 +236,9 @@ input bit[2] b2;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(bi : BigInt, i : Int, ui : Int, u : Int, f : Double, b : Bool, c : Result, cf : Std.Math.Complex, b2 : Result[]) : Unit {
-            Std.Diagnostics.Fact(Std.Core.Length(b2) == 2, "Argument `b2` is not compatible with its OpenQASM type `bit[2]`.");
+            if Std.Core.Length(b2) != 2 {
+                fail "Argument `b2` is not compatible with its OpenQASM type `bit[2]`."
+            };
             import Std.OpenQASM.Intrinsic.*;
         }
     "#]]

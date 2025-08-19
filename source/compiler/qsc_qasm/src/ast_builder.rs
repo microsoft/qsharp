@@ -1496,6 +1496,22 @@ pub(crate) fn build_argument_validation_stmts(name: &String, ty: &Type, span: Sp
         unreachable!("Expected static array type, got: {ty:?}")
     };
 
+    let fail_expr = Expr {
+        kind: Box::new(ExprKind::Fail(Box::new(message.clone()))),
+        span: Span::default(),
+        id: NodeId::default(),
+    };
+    let fail_stmt = Stmt {
+        kind: Box::new(StmtKind::Expr(Box::new(fail_expr))),
+        span: Span::default(),
+        id: NodeId::default(),
+    };
+    let fail_block = Block {
+        id: NodeId::default(),
+        span,
+        stmts: list_from_iter([fail_stmt]),
+    };
+
     for dim in dims {
         if dim == 0 {
             // OpenQASM allows for 0 length arrays and dimension. If we encounter a 0 length dim, stop
@@ -1521,16 +1537,18 @@ pub(crate) fn build_argument_validation_stmts(name: &String, ty: &Type, span: Sp
         let lhs = build_call_with_param("Length", &["Std", "Core"], len_operand, span, span, span);
 
         let rhs = build_lit_int_expr(dim.into(), span);
-        let binop_expr = build_binary_expr(false, ast::BinOp::Eq, lhs, rhs, span);
+        let binop_expr = build_binary_expr(false, ast::BinOp::Neq, lhs, rhs, span);
 
-        let call_expr = build_call_with_params(
-            "Fact",
-            &["Std", "Diagnostics"],
-            [binop_expr, message.clone()].to_vec(),
-            span,
-            span,
-        );
-        let stmt = build_stmt_semi_from_expr(call_expr);
+        let if_expr = Expr {
+            kind: Box::new(ExprKind::If(
+                Box::new(binop_expr),
+                Box::new(fail_block.clone()),
+                None,
+            )),
+            span: Span::default(), // Ensure the stmt has an empty span for debugging
+            id: NodeId::default(),
+        };
+        let stmt = build_stmt_semi_from_expr(if_expr);
         stmts.push(stmt);
     }
 

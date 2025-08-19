@@ -246,7 +246,9 @@ fn spec_case_4() -> miette::Result<(), Vec<Report>> {
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         mutable b = [Zero, Zero];
         operation foo(i : Int, d : Qubit[]) : Result {
-            Std.Diagnostics.Fact(Std.Core.Length(d) == 8, "Argument `d` is not compatible with its OpenQASM type `qubit[8]`.");
+            if Std.Core.Length(d) != 8 {
+                fail "Argument `d` is not compatible with its OpenQASM type `qubit[8]`."
+            };
             return Std.Intrinsic.M(d[i]);
         }
         mutable i = 15;

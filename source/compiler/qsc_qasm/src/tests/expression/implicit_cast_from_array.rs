@@ -18,8 +18,12 @@ fn to_static_array_ref() {
             import Std.OpenQASM.Intrinsic.*;
             mutable arr = [[false, false, false, false], [false, false, false, false], [false, false, false, false]];
             function f(a : Bool[][]) : Unit {
-                Std.Diagnostics.Fact(Std.Core.Length(a) == 3, "Argument `a` is not compatible with its OpenQASM type `readonly array[bool, 3, 4]`.");
-                Std.Diagnostics.Fact(Std.Core.Length(a[0]) == 4, "Argument `a` is not compatible with its OpenQASM type `readonly array[bool, 3, 4]`.");
+                if Std.Core.Length(a) != 3 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[bool, 3, 4]`."
+                };
+                if Std.Core.Length(a[0]) != 4 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[bool, 3, 4]`."
+                };
             }
             f(arr);
         "#]],
