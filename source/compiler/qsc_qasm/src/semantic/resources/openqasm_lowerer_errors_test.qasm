@@ -271,6 +271,10 @@ array[int, 4] concat_operand_2;
 array[int, 6] concat_target;
 concat_target += concat_operand_1 ++ concat_operand_2;
 
+def return_concat(readonly array[int, 3] a) -> int {
+    return a ++ a;
+}
+
 // InconsistentTypesInArrayConcatenation
 array[int[8], 4] concat_operand_3;
 array[int[16], 4] concat_operand_4;

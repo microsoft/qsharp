@@ -751,16 +751,6 @@ pub(super) fn const_declaration_expr(s: &mut ParserContext) -> Result<ValueExpr>
     Ok(ValueExpr::Expr(expr))
 }
 
-/// These are expressions allowed in `Assign`, `AssignOp`, and return stmts.
-/// Grammar: `expression | measureExpression`.
-pub(super) fn expr_or_measurement(s: &mut ParserContext) -> Result<ValueExpr> {
-    if let Some(measurement) = opt(s, measure_expr)? {
-        return Ok(ValueExpr::Measurement(measurement));
-    }
-
-    Ok(ValueExpr::Expr(expr(s)?))
-}
-
 pub(crate) fn expr_list(s: &mut ParserContext) -> Result<Vec<Expr>> {
     seq(s, expr).map(|pair| pair.0)
 }

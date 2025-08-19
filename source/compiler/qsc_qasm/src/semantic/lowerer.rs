@@ -2859,18 +2859,23 @@ impl Lowerer {
     }
 
     fn lower_return(&mut self, stmt: &syntax::ReturnStmt) -> semantic::StmtKind {
-        let mut expr = stmt
-            .expr
-            .as_ref()
-            .map(|expr| match &**expr {
-                syntax::ValueExpr::Expr(expr) => self.lower_expr(expr),
-                syntax::ValueExpr::Measurement(expr) => self.lower_measure_expr(expr),
+        let expr = if let Some(expr) = stmt.expr.as_ref() {
+            match &**expr {
+                syntax::ValueExpr::Expr(expr) => Some(self.lower_expr(expr)),
+                syntax::ValueExpr::Measurement(expr) => Some(self.lower_measure_expr(expr)),
                 syntax::ValueExpr::Concat(expr) => {
-                    // We lower the concat, which will result in a type error later on.
-                    self.lower_array_concat_expr(expr)
+                    let kind = SemanticErrorKind::InvalidConcatenationPosition(
+                        "return statements".to_string(),
+                        expr.span,
+                    );
+                    self.push_semantic_error(kind);
+                    return semantic::StmtKind::Err;
                 }
-            })
-            .map(Box::new);
+            }
+        } else {
+            None
+        };
+        let mut expr = expr.map(Box::new);
 
         let return_ty = self.symbols.get_subroutine_return_ty();
 

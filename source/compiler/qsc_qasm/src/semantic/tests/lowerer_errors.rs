@@ -733,23 +733,43 @@ fn check_lowerer_error_spans_are_correct() {
              273 | 
                  `----
 
+            Qasm.Lowerer.InvalidConcatenationPosition
+
+              x concatenation expressions are not allowed in return statements
+                 ,-[Test.qasm:275:12]
+             274 | def return_concat(readonly array[int, 3] a) -> int {
+             275 |     return a ++ a;
+                 :            ^^^^^^
+             276 | }
+                 `----
+
+            Qasm.Lowerer.NonVoidDefShouldAlwaysReturn
+
+              x non-void def should always return
+                 ,-[Test.qasm:274:48]
+             273 | 
+             274 | def return_concat(readonly array[int, 3] a) -> int {
+                 :                                                ^^^
+             275 |     return a ++ a;
+                 `----
+
             Qasm.Lowerer.InconsistentTypesInArrayConcatenation
 
               x inconsistent types in array concatenation expression: array[int[8], 4],
               | array[int[16], 4]
-                 ,-[Test.qasm:277:17]
-             276 | array[int[16], 4] concat_operand_4;
-             277 | concat_target = concat_operand_3 ++ concat_operand_4;
+                 ,-[Test.qasm:281:17]
+             280 | array[int[16], 4] concat_operand_4;
+             281 | concat_target = concat_operand_3 ++ concat_operand_4;
                  :                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-             278 | 
+             282 | 
                  `----
 
             Qasm.Lowerer.InvalidTypeInArrayConcatenation
 
               x invalid type in array concatenation expression: bit[8]
-                 ,-[Test.qasm:282:17]
-             281 | bit[8] concat_operand_6;
-             282 | concat_target = concat_operand_5 ++ concat_operand_6;
+                 ,-[Test.qasm:286:17]
+             285 | bit[8] concat_operand_6;
+             286 | concat_target = concat_operand_5 ++ concat_operand_6;
                  :                 ^^^^^^^^^^^^^^^^
                  `----
               help: array concatenation can only be applied to arrays
@@ -757,9 +777,9 @@ fn check_lowerer_error_spans_are_correct() {
             Qasm.Lowerer.InvalidTypeInArrayConcatenation
 
               x invalid type in array concatenation expression: bit[8]
-                 ,-[Test.qasm:282:37]
-             281 | bit[8] concat_operand_6;
-             282 | concat_target = concat_operand_5 ++ concat_operand_6;
+                 ,-[Test.qasm:286:37]
+             285 | bit[8] concat_operand_6;
+             286 | concat_target = concat_operand_5 ++ concat_operand_6;
                  :                                     ^^^^^^^^^^^^^^^^
                  `----
               help: array concatenation can only be applied to arrays

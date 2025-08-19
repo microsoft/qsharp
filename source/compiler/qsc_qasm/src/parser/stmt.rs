@@ -805,7 +805,7 @@ fn gate_params(s: &mut ParserContext<'_>) -> Result<Vec<SeqItem<Ident>>> {
 fn parse_return(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(crate::keyword::Keyword::Return))?;
-    let expr = opt(s, expr::expr_or_measurement)?.map(Box::new);
+    let expr = opt(s, expr::declaration_expr)?.map(Box::new);
     recovering_semi(s);
     Ok(StmtKind::Return(ReturnStmt {
         span: s.span(lo),
