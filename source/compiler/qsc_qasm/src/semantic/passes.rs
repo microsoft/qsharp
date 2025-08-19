@@ -80,8 +80,8 @@ impl Visitor for ReferenceFinder<'_> {
             let symbol = &self.symbol_table[self.id];
             self.references.push(symbol.span);
         }
-        stmt.params.iter().for_each(|id| {
-            if self.id == *id {
+        stmt.params.iter().for_each(|param| {
+            if self.id == param.symbol_id {
                 let symbol = &self.symbol_table[self.id];
                 self.references.push(symbol.span);
             }
@@ -186,10 +186,15 @@ impl Visitor for ReferenceFinder<'_> {
     }
 
     fn visit_expr(&mut self, expr: &Expr) {
-        if let ExprKind::Ident(id) = expr.kind.as_ref() {
-            if self.id == *id {
-                self.references.push(expr.span);
+        // we process here rather than visit_symbol_id
+        // since we need to push the expr's span.
+        match expr.kind.as_ref() {
+            ExprKind::CapturedIdent(id) | ExprKind::Ident(id) => {
+                if self.id == *id {
+                    self.references.push(expr.span);
+                }
             }
+            _ => {}
         }
         walk_expr(self, expr);
     }
@@ -254,10 +259,10 @@ impl Visitor for SymbolFinder<'_> {
             self.symbol_id = Some(stmt.symbol_id);
             return;
         }
-        stmt.params.iter().for_each(|id| {
-            let symbol = &self.symbol_table[*id];
+        stmt.params.iter().for_each(|param| {
+            let symbol = &self.symbol_table[param.symbol_id];
             if symbol.span.touches(self.offset) {
-                self.symbol_id = Some(*id);
+                self.symbol_id = Some(param.symbol_id);
             }
         });
         // function calls can be recursive, so we need to visit the body looking for references
@@ -353,11 +358,14 @@ impl Visitor for SymbolFinder<'_> {
     }
 
     fn visit_expr(&mut self, expr: &Expr) {
-        if let ExprKind::Ident(id) = expr.kind.as_ref() {
-            if expr.span.touches(self.offset) {
-                self.symbol_id = Some(*id);
-                return;
+        match expr.kind.as_ref() {
+            ExprKind::CapturedIdent(id) | ExprKind::Ident(id) => {
+                if expr.span.touches(self.offset) {
+                    self.symbol_id = Some(*id);
+                    return;
+                }
             }
+            _ => {}
         }
         walk_expr(self, expr);
     }

@@ -398,20 +398,353 @@ fn ty_param_ref() {
 }
 
 #[test]
-#[ignore = "not yet implemented"]
-fn sized_ty_param_ref() {
+#[ignore = "index sets aren't yet supported"]
+fn alias_index_set_ref() {
     check(
         r#"
-    OPENQASM 3.0;
+    // classical decl
+    const int ◉s↘kip◉ = 2;
+    
+    qubit[5] qreg0;
+    qubit[5] qreg1;
+    let my_reg = qreg0[{0 * ◉skip◉, ◉skip◉, ◉skip◉ * 2}] ++ qreg1[{◉skip◉ - 1, ◉skip◉ + ◉skip◉ / 2}];
+    "#,
+    );
+}
+
+#[test]
+fn alias_range_ref() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘kip◉ = 2;
+    
+    qubit[5] qreg0;
+    qubit[5] qreg1;
+    let my_reg = qreg0[◉skip◉-2:◉skip◉:2 * ◉skip◉ + 1] ++ qreg1[◉skip◉ - 1:◉skip◉:5];
+    "#,
+    );
+}
+
+#[test]
+fn box_designator_expr_ref() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    const duration ad = 2ns;
+    box [◉size◉ * ad] {}
+    "#,
+    );
+}
+
+#[test]
+fn delay_designator_expr_ref() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    const duration ad = 2ns;
+    delay [◉size◉ * ad] $0;
+    "#,
+    );
+}
+
+#[test]
+fn box_and_delay_designator_expr_ref() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    const duration ad = 2ns;
+    box [◉size◉ * ad] {
+        delay [◉size◉ * ad] $0;
+    }
+    "#,
+    );
+}
+
+#[test]
+fn gphase_and_gate_call_designator_expr_ref() {
+    check(
+        r#"
     include "stdgates.inc";
+
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    U(0.0, 0.0, 0.0) [◉size◉ * 2ns] $0;
+    gphase [◉size◉ * 2ns] $0;
+    "#,
+    );
+}
+
+#[test]
+fn sized_for_loop_iter_ty_param_decl_def() {
+    check(
+        r#"
+    // classical decl
     const int ◉size◉ = 5;
-    def Foo(int[◉↘size◉] t) -> int { return t; }
-    const int[◉size◉] u = 10;
-    float[◉size◉] v = 3.14;
-    complex[float[◉size◉]] w = 1.0 + 2.0i;
-    uint[◉size◉] x = 0;
-    array[int[◉size◉]] y = [1, 2, 3, 4, 5];
-    array[complex[float[◉size◉ - 3]]] z = [1.0 + 2.0i, 3.0 + 4.0i];
+
+    // for stmt initializer var width
+    // redefine size so the inner scope should be a different var
+    for int[◉s↘ize◉] size in [◉size◉ - 0:◉size◉ * 2] {
+        for int[size] i in [size - 0:size * 2] {
+            // Do something with i
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn sized_quantum_register_def_length_param_def() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    // quantum decl bitarray length
+    qubit[◉size◉] cdecl_qal;
+    "#,
+    );
+}
+
+#[test]
+fn sized_bit_register_def_length_param_def() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    // classical decl bitarray length
+    bit[◉size◉] cdecl_bal = 3;
+    "#,
+    );
+}
+
+#[test]
+fn sized_classical_def_ty_param_def() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    // classical decl int width
+    int[◉size◉] cdecl_iw = 3;
+
+    // classical decl uint width
+    uint[◉size◉] cdecl_uiw = 3;
+
+    // classical decl float width
+    float[◉size◉] cdecl_fw = 3.14;
+
+    // classical decl angle width
+    angle[◉size◉] cdecl_aw = pi;
+
+    // complex type width
+    complex[float[◉size◉]] w = 1.0 + 2.0im;
+
+    // const decl width
+    const float[◉size◉] ccdecl_cfw = 1.0 * ◉size◉;
+
+    // const complex type width
+    const complex[float[◉size◉]] ccw = 1.0 + 2.0im;
+    "#,
+    );
+}
+
+#[test]
+fn sized_io_scalar_ty_param_ref() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    // input decl width
+    input float[◉size◉] ifw;
+    "#,
+    );
+}
+
+#[test]
+fn sized_old_style_length_param_ref() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    // old style classical length
+    creg old_creg[◉size◉];
+
+    // old style quantum length
+    qreg old_qreg[◉size◉];
+    "#,
+    );
+}
+
+#[test]
+fn sized_cast_ty_param_ref() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    // cast width
+    float[◉size◉] cast = float[◉size◉](4);
+    "#,
+    );
+}
+
+#[test]
+fn array_decls_ty_param_ref() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    // classical array decl type width
+    array[int[◉size◉], 5] cadecl_itw;
+    "#,
+    );
+}
+
+#[test]
+fn array_decls_dims_param_ref() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    // classical array dims
+    array[int, ◉size◉, 2 * ◉size◉] cadecl_itw_dims_sizes;
+    "#,
+    );
+}
+
+#[test]
+fn array_decls_ty_size_and_dims_param_ref() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    // classical array dims
+    array[int[◉size◉], ◉size◉, 2 * ◉size◉] cadecl_itw_dims_sizes;
+    "#,
+    );
+}
+
+#[test]
+fn complex_array_decls_ty_param_and_dims_ref() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    // complex array size and dims
+    array[complex[float[◉size◉ - 3]], ◉size◉, 2 * ◉size◉] cadecl_ctw_dims_sizes;
+    "#,
+    );
+}
+
+#[test]
+fn io_array_decls_ty_param_ref() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    // classical array size and dims
+    input array[int[◉size◉], ◉size◉, 2 * ◉size◉] cadecl_iitw_dims_sizes;
+
+    // classical array size and dims
+    output array[int[◉size◉], ◉size◉, 2 * ◉size◉] cadecl_oitw_dims_sizes;
+
+    // complex array size and dims
+    input array[complex[float[◉size◉ - 3]], ◉size◉, 2 * ◉size◉] cadecl_ictw_dims_sizes;
+
+    // complex array size and dims
+    output array[complex[float[◉size◉ - 3]], ◉size◉, 2 * ◉size◉] cadecl_octw_dims_sizes;
+    "#,
+    );
+}
+
+#[test]
+fn def_ty_params_and_returns() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    // return ty width
+    def sample_def_return(int t) -> int[◉size◉] { return t; }
+
+    // def param ty width
+    def sample_def_param(int[◉size◉] t) -> int { return t; }
+
+    // return ty width
+    def sample_def_complex_return(int c) -> complex[float[◉size◉]] { return c; }
+
+    // def param ty width
+    def sample_def_complex_param(complex[float[◉size◉]] c) -> complex { return c; }
+
+    // def param array ty width
+    def sample_def_array_param(readonly array[int[◉size◉], ◉size◉, 2 * ◉size◉] c) -> int { return 0; }
+
+    // def param array ty width
+    def sample_def_mut_array_param(mutable array[int[◉size◉], ◉size◉, 2 * ◉size◉] c) -> int { return 0; }
+    "#,
+    );
+}
+
+#[test]
+fn extern_ty_params_and_returns() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    // return ty width
+    extern sample_def_return(int) -> int[◉size◉];
+
+    // def param ty width
+    extern sample_def_param(int[◉size◉]) -> int;
+
+    // return complex ty width
+    extern sample_def_complex_return(int) -> complex[float[◉size◉]];
+
+    // def param complex ty width
+    extern sample_def_complex_param(complex[float[◉size◉]]) -> complex;
+
+    // extern def param array ty width
+    extern sample_extern_def_array_param(readonly array[int[◉size◉], ◉size◉, 2 * ◉size◉]) -> int;
+
+    // extern def param mut array ty width
+    extern sample_extern_def_mut_array_param(mutable array[int[◉size◉], ◉size◉, 2 * ◉size◉]) -> int;
+
+    // extern def param creg ty width
+    extern sample_extern_def_creg_param(creg[2 * ◉size◉]) -> int;
+    "#,
+    );
+}
+
+#[test]
+fn def_captures_ref_original_symbol_def() {
+    check(
+        r#"
+    // classical decl
+    const int ◉n↘Qubits◉ = 5;
+
+    def PrepareUniform(qubit[◉nQubits◉] q) -> bit[◉nQubits◉] {
+        bit[◉nQubits◉] results;
+        int ivar = ◉nQubits◉;
+        for int i in [0:◉nQubits◉-1] {
+        }
+    }
     "#,
     );
 }

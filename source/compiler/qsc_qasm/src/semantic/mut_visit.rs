@@ -12,14 +12,15 @@ use crate::{
         ast::{
             AliasDeclStmt, Annotation, Array, AssignStmt, BarrierStmt, BinOp, BinaryOpExpr, Block,
             BoxStmt, BreakStmt, BuiltinFunctionCall, CalibrationGrammarStmt, CalibrationStmt, Cast,
-            ClassicalDeclarationStmt, ConcatExpr, ContinueStmt, DefCalStmt, DefStmt, DelayStmt,
-            DurationofCallExpr, EndStmt, EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl,
-            ForStmt, FunctionCall, GateCall, GateModifierKind, GateOperand, GateOperandKind,
-            HardwareQubit, IfStmt, IncludeStmt, Index, IndexedClassicalTypeAssignStmt, IndexedExpr,
-            InputDeclaration, LiteralKind, MeasureArrowStmt, MeasureExpr, OutputDeclaration,
-            Pragma, Program, QuantumGateDefinition, QuantumGateModifier, QubitArrayDeclaration,
-            QubitDeclaration, Range, ResetStmt, ReturnStmt, Set, SizeofCallExpr, Stmt, StmtKind,
-            SwitchCase, SwitchStmt, TimeUnit, UnaryOp, UnaryOpExpr, Version, WhileLoop,
+            ClassicalDeclarationStmt, ConcatExpr, ContinueStmt, DefCalStmt, DefParameter, DefStmt,
+            DelayStmt, DurationofCallExpr, EndStmt, EnumerableSet, Expr, ExprKind, ExprStmt,
+            ExternDecl, ForStmt, FunctionCall, GateCall, GateModifierKind, GateOperand,
+            GateOperandKind, HardwareQubit, IfStmt, IncludeStmt, Index,
+            IndexedClassicalTypeAssignStmt, IndexedExpr, InputDeclaration, LiteralKind,
+            MeasureArrowStmt, MeasureExpr, OutputDeclaration, Pragma, Program,
+            QuantumGateDefinition, QuantumGateModifier, QubitArrayDeclaration, QubitDeclaration,
+            Range, ResetStmt, ReturnStmt, Set, SizeofCallExpr, Stmt, StmtKind, SwitchCase,
+            SwitchStmt, TimeUnit, UnaryOp, UnaryOpExpr, Version, WhileLoop,
         },
         symbols::SymbolId,
         types::Type,
@@ -89,6 +90,10 @@ pub trait MutVisitor: Sized {
 
     fn visit_def_stmt(&mut self, stmt: &mut DefStmt) {
         walk_def_stmt(self, stmt);
+    }
+
+    fn visit_def_param(&mut self, param: &mut DefParameter) {
+        walk_def_param(self, param);
     }
 
     fn visit_def_cal_stmt(&mut self, stmt: &mut DefCalStmt) {
@@ -410,6 +415,9 @@ pub fn walk_classical_decl_stmt(vis: &mut impl MutVisitor, stmt: &mut ClassicalD
     vis.visit_span(&mut stmt.span);
     vis.visit_span(&mut stmt.ty_span);
     vis.visit_symbol_id(&mut stmt.symbol_id);
+    stmt.ty_exprs
+        .iter_mut()
+        .for_each(|expr| vis.visit_expr(expr));
     vis.visit_expr(&mut stmt.init_expr);
 }
 
@@ -420,9 +428,21 @@ pub fn walk_continue_stmt(vis: &mut impl MutVisitor, stmt: &mut ContinueStmt) {
 pub fn walk_def_stmt(vis: &mut impl MutVisitor, stmt: &mut DefStmt) {
     vis.visit_span(&mut stmt.span);
     vis.visit_symbol_id(&mut stmt.symbol_id);
-    stmt.params.iter_mut().for_each(|p| vis.visit_symbol_id(p));
+    stmt.params.iter_mut().for_each(|p| vis.visit_def_param(p));
     vis.visit_block(&mut stmt.body);
     vis.visit_span(&mut stmt.return_type_span);
+    stmt.return_ty_exprs
+        .iter_mut()
+        .for_each(|expr| vis.visit_expr(expr));
+}
+
+pub fn walk_def_param(vis: &mut impl MutVisitor, param: &mut DefParameter) {
+    vis.visit_span(&mut param.span);
+    vis.visit_symbol_id(&mut param.symbol_id);
+    param
+        .ty_exprs
+        .iter_mut()
+        .for_each(|expr| vis.visit_expr(expr));
 }
 
 pub fn walk_def_cal_stmt(vis: &mut impl MutVisitor, stmt: &mut DefCalStmt) {
@@ -449,11 +469,20 @@ pub fn walk_expr_stmt(vis: &mut impl MutVisitor, stmt: &mut ExprStmt) {
 pub fn walk_extern_decl(vis: &mut impl MutVisitor, stmt: &mut ExternDecl) {
     vis.visit_span(&mut stmt.span);
     vis.visit_symbol_id(&mut stmt.symbol_id);
+    stmt.ty_exprs
+        .iter_mut()
+        .for_each(|expr| vis.visit_expr(expr));
+    stmt.return_ty_exprs
+        .iter_mut()
+        .for_each(|expr| vis.visit_expr(expr));
 }
 
 pub fn walk_for_stmt(vis: &mut impl MutVisitor, stmt: &mut ForStmt) {
     vis.visit_span(&mut stmt.span);
     vis.visit_symbol_id(&mut stmt.loop_variable);
+    stmt.ty_exprs
+        .iter_mut()
+        .for_each(|expr| vis.visit_expr(expr));
     vis.visit_enumerable_set(&mut stmt.set_declaration);
     vis.visit_stmt(&mut stmt.body);
 }
@@ -496,12 +525,18 @@ pub fn walk_indexed_classical_type_assign_stmt(
 pub fn walk_input_declaration(vis: &mut impl MutVisitor, stmt: &mut InputDeclaration) {
     vis.visit_span(&mut stmt.span);
     vis.visit_symbol_id(&mut stmt.symbol_id);
+    stmt.ty_exprs
+        .iter_mut()
+        .for_each(|expr| vis.visit_expr(expr));
 }
 
 pub fn walk_output_declaration(vis: &mut impl MutVisitor, stmt: &mut OutputDeclaration) {
     vis.visit_span(&mut stmt.span);
     vis.visit_span(&mut stmt.ty_span);
     vis.visit_symbol_id(&mut stmt.symbol_id);
+    stmt.ty_exprs
+        .iter_mut()
+        .for_each(|expr| vis.visit_expr(expr));
     vis.visit_expr(&mut stmt.init_expr);
 }
 
@@ -609,6 +644,9 @@ pub fn walk_builtin_function_call_expr(vis: &mut impl MutVisitor, expr: &mut Bui
 pub fn walk_cast_expr(vis: &mut impl MutVisitor, expr: &mut Cast) {
     vis.visit_span(&mut expr.span);
     vis.visit_ty(&mut expr.ty);
+    expr.ty_exprs
+        .iter_mut()
+        .for_each(|expr| vis.visit_expr(expr));
     vis.visit_expr(&mut expr.expr);
 }
 
