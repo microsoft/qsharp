@@ -944,7 +944,7 @@
         ],
         "toolReferenceName": "qsharpGetLibraryDescriptions",
         "displayName": "Get Q# Library API Descriptions",
-        "modelDescription": "Returns a structured JSON description of all Q# standard library items, organized by namespace. Each item includes its name, namespace, kind, signature, summary, parameter descriptions, and output description. Use this tool to answer any questions about Q# library functions or to ensure generated Q# code uses library functions correctly.",
+        "modelDescription": "Returns a Markdown string summarizing all Q# standard library items, grouped by namespace. Each entry includes its signature and a short description extracted from doc comments when available. Use this tool to answer any questions about Q# library functions or to ensure generated Q# code uses library functions correctly.",
         "canBeReferencedInPrompt": true,
         "icon": "./resources/file-icon-light.svg",
         "inputSchema": {

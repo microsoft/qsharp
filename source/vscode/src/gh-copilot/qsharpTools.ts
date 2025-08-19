@@ -223,9 +223,9 @@ export class QSharpTools {
   }
 
   /**
-   * Copilot tool: Returns a structured JSON description of all Q# standard library items,
-   * organized by namespace. Each item includes its name, namespace, kind, signature, summary,
-   * parameter descriptions, and output description.
+   * Copilot tool: Returns a Markdown string summarizing all Q# standard library items,
+   * organized by namespace. Each entry includes its signature and a short description extracted
+   * from doc comments when available.
    */
   async qsharpGetLibraryDescriptions(): Promise<string> {
     const compilerRunTimeoutMs = 1000 * 5; // 5 seconds
