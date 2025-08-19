@@ -563,12 +563,12 @@ impl Interpreter {
             //              an error.
             //           2. The input type is `Std.OpenQASM.Angle.Angle`. To verify that
             //              the input type is indeed `Angle`, we call `udt_ty_from_item_id`,
-            //              which caches the `Angle` UDT `LocalItemId`.
+            //              which caches the `Angle` UDT's `LocalItemId`.
             //
             //         So, if we proceed to execute the function's body, it's guaranteed
             //         that we have already cached `Std.OpenQASM.Angle.Angle`'s `LocalItemId`.
             //         Therefore, this else-branch is unreachable.
-            unreachable!()
+            unreachable!("`self.angle_ty_cache` should be set by `udt_ty_from_item_id`")
         }
     }
 
@@ -607,12 +607,12 @@ impl Interpreter {
             //           1. The input type is not `Std.Math.Complex` and we return an error.
             //           2. The input type is `Std.Math.Complex`. To verify that the input
             //              type is indeed `Complex`, we call `udt_ty_from_item_id`, which
-            //              caches the `Complex` UDT `LocalItemId`.
+            //              caches the `Complex` UDT's `LocalItemId`.
             //
             //         So, if we proceed to execute the function's body, it's guaranteed
             //         that we have already cached `Std.Math.Complex`'s `LocalItemId`.
             //         Therefore, this else-branch is unreachable.
-            unreachable!()
+            unreachable!("`self.complex_ty_cache` should be set by `udt_ty_from_item_id`")
         }
     }
 
