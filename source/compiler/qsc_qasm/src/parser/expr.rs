@@ -703,6 +703,10 @@ fn lit_array_element(s: &mut ParserContext) -> Result<Expr> {
 
 /// These are expressions allowed in classical declarations.
 /// Grammar: `arrayLiteral | expression | measureExpression`.
+///
+/// The Grammar and this comment don't match, since there is a bug in
+/// the Grammar. Here is a link to the issue:
+/// <https://github.com/openqasm/openqasm/issues/620>
 pub(super) fn declaration_expr(s: &mut ParserContext) -> Result<ValueExpr> {
     let lo = s.peek().span.lo;
 
