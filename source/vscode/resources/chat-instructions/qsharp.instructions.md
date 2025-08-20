@@ -2,7 +2,7 @@
 applyTo: "**/*.{qs,qsc,ipynb}"
 ---
 
-# Q# coding instructions
+# Q# instructions
 
 Follow these instructions when generating Q# code in .qs files,
 and Q# project folders that include a `qsharp.json` file.
@@ -128,3 +128,8 @@ and `azure-quantum` packages.
 To execute Q# code, use the provided tools.
 
 Whenever the user asks about Q# standard libraries, their contents, or any Q# library function, you **must** call the `qsharpGetLibraryDescriptions` tool to retrieve the authoritative list of available Q# library items. When generating Q# code, always use the `qsharpGetLibraryDescriptions` tool to determine which library functions are available and to ensure you use them correctly in your code suggestions. Do not attempt to answer questions about Q# library APIs, functions, or operations without first consulting this tool.
+
+
+## Response Formatting
+
+*Strongly* prefer KaTeX in your formatting over plain Unicode whenever your responses involve mathematical expressions, such as braket notation, vector, matrices, or other linear algebra concepts. Use `$` and `$$` delimiters.
