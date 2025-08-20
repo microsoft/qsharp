@@ -6,17 +6,17 @@ use qsc_data_structures::span::Span;
 use crate::{
     semantic::{
         ast::{
-            AliasDeclStmt, Block, BoxStmt, ClassicalDeclarationStmt, DefStmt, DelayStmt, Expr,
-            ExprKind, ExternDecl, ForStmt, FunctionCall, GateCall, InputDeclaration,
-            OutputDeclaration, Program, QuantumGateDefinition, QubitArrayDeclaration,
-            QubitDeclaration,
+            AliasDeclStmt, Block, BoxStmt, ClassicalDeclarationStmt, DefParameter, DefStmt,
+            DelayStmt, Expr, ExprKind, ExternDecl, ForStmt, FunctionCall, GateCall,
+            InputDeclaration, OutputDeclaration, Program, QuantumGateDefinition,
+            QubitArrayDeclaration, QubitDeclaration,
         },
         symbols::{self, SymbolId},
         visit::{
-            Visitor, walk_alias_decl_stmt, walk_classical_decl_stmt, walk_def_stmt, walk_expr,
-            walk_extern_decl, walk_for_stmt, walk_function_call_expr, walk_gate_call_stmt,
-            walk_input_declaration, walk_output_declaration, walk_quantum_gate_definition,
-            walk_qubit_array_decl, walk_qubit_decl,
+            Visitor, walk_alias_decl_stmt, walk_classical_decl_stmt, walk_def_param, walk_def_stmt,
+            walk_expr, walk_extern_decl, walk_for_stmt, walk_function_call_expr,
+            walk_gate_call_stmt, walk_input_declaration, walk_output_declaration,
+            walk_quantum_gate_definition, walk_qubit_array_decl, walk_qubit_decl,
         },
     },
     stdlib::duration::Duration,
@@ -80,15 +80,17 @@ impl Visitor for ReferenceFinder<'_> {
             let symbol = &self.symbol_table[self.id];
             self.references.push(symbol.span);
         }
-        stmt.params.iter().for_each(|param| {
-            if self.id == param.symbol_id {
-                let symbol = &self.symbol_table[self.id];
-                self.references.push(symbol.span);
-            }
-        });
         // function calls can be recursive, so we need to visit the body looking for references
         // to the target id.
         walk_def_stmt(self, stmt);
+    }
+
+    fn visit_def_param(&mut self, param: &DefParameter) {
+        if self.id == param.symbol_id {
+            let symbol = &self.symbol_table[self.id];
+            self.references.push(symbol.span);
+        }
+        walk_def_param(self, param);
     }
 
     fn visit_extern_decl(&mut self, stmt: &ExternDecl) {
@@ -259,15 +261,18 @@ impl Visitor for SymbolFinder<'_> {
             self.symbol_id = Some(stmt.symbol_id);
             return;
         }
-        stmt.params.iter().for_each(|param| {
-            let symbol = &self.symbol_table[param.symbol_id];
-            if symbol.span.touches(self.offset) {
-                self.symbol_id = Some(param.symbol_id);
-            }
-        });
         // function calls can be recursive, so we need to visit the body looking for references
         // to the target id.
         walk_def_stmt(self, stmt);
+    }
+
+    fn visit_def_param(&mut self, param: &DefParameter) {
+        let symbol = &self.symbol_table[param.symbol_id];
+        if symbol.span.touches(self.offset) {
+            self.symbol_id = Some(param.symbol_id);
+            return;
+        }
+        walk_def_param(self, param);
     }
 
     fn visit_extern_decl(&mut self, stmt: &ExternDecl) {

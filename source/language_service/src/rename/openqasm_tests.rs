@@ -702,6 +702,19 @@ fn def_ty_params_and_returns() {
 }
 
 #[test]
+fn def_dyn_array_ty_params() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    // def param dyn array ty width and dims
+    def sample_def_dyn_array_param(readonly array[int[◉size◉], dim = 1 * ◉size◉] c) -> int { return 0; }
+    "#,
+    );
+}
+
+#[test]
 fn extern_ty_params_and_returns() {
     check(
         r#"
@@ -728,6 +741,19 @@ fn extern_ty_params_and_returns() {
 
     // extern def param creg ty width
     extern sample_extern_def_creg_param(creg[2 * ◉size◉]) -> int;
+    "#,
+    );
+}
+
+#[test]
+fn extern_dyn_array_ty_params_and_returns() {
+    check(
+        r#"
+    // classical decl
+    const int ◉s↘ize◉ = 5;
+
+    // extern def param mut array ty width
+    extern sample_extern_def_mut_dyn_array_param(readonly array[int[◉size◉], dim = 1 * ◉size◉]) -> int;
     "#,
     );
 }
