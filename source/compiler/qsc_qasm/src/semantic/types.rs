@@ -401,9 +401,7 @@ impl Type {
             | Type::Angle(..)
             | Type::Complex(..)
             | Type::Bool(..)
-            | Type::BitArray(..)
-            | Type::Range
-            | Type::Set => true,
+            | Type::BitArray(..) => true,
             Type::Array(array) => {
                 Into::<Self>::into(array.base_ty.clone()).is_inferred_output_type()
             }

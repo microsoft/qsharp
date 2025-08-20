@@ -3432,7 +3432,19 @@ impl Lowerer {
         let expr = match ty {
             Type::Angle(_, _) => Some(from_lit_kind(LiteralKind::Angle(Default::default()))),
             Type::Bit(_) => Some(from_lit_kind(LiteralKind::Bit(false))),
-            Type::Int(_, _) | Type::UInt(_, _) => Some(from_lit_kind(LiteralKind::Int(0))),
+            Type::Int(width, _) | Type::UInt(width, _) => {
+                if let Some(width) = width {
+                    if *width > 64 {
+                        Some(from_lit_kind(LiteralKind::BigInt(
+                            BigInt::from_u32(0).expect("0 should be a valid BigInt"),
+                        )))
+                    } else {
+                        Some(from_lit_kind(LiteralKind::Int(0)))
+                    }
+                } else {
+                    Some(from_lit_kind(LiteralKind::Int(0)))
+                }
+            }
             Type::Bool(_) => Some(from_lit_kind(LiteralKind::Bool(false))),
             Type::Float(_, _) => Some(from_lit_kind(LiteralKind::Float(0.0))),
             Type::Complex(_, _) => Some(from_lit_kind(Complex::default().into())),

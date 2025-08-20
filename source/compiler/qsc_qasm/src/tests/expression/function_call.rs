@@ -100,6 +100,9 @@ fn funcall_with_qubit_argument() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         operation parity(qs : Qubit[]) : Result {
+            if Std.Core.Length(qs) != 2 {
+                fail "Argument `qs` is not compatible with its OpenQASM type `qubit[2]`."
+            };
             mutable a = Std.Intrinsic.M(qs[0]);
             mutable b = Std.Intrinsic.M(qs[1]);
             return Std.OpenQASM.Convert.IntAsResult(Std.OpenQASM.Convert.ResultAsInt(a) ^^^ Std.OpenQASM.Convert.ResultAsInt(b));
@@ -257,6 +260,9 @@ fn funcall_implicit_arg_cast_uint_to_bitarray() -> miette::Result<(), Vec<Report
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         function parity(arr : Result[]) : Result {
+            if Std.Core.Length(arr) != 2 {
+                fail "Argument `arr` is not compatible with its OpenQASM type `bit[2]`."
+            };
             return Std.OpenQASM.Convert.IntAsResult(1);
         }
         mutable x = 2;
@@ -409,11 +415,15 @@ fn implicit_cast_array_to_static_array_ref() {
     check_qasm_to_qsharp(
         source,
         &expect![[r#"
-        import Std.OpenQASM.Intrinsic.*;
-        function f(a : Int[]) : Unit {}
-        mutable a = [0, 0, 0, 0];
-        f(a);
-    "#]],
+            import Std.OpenQASM.Intrinsic.*;
+            function f(a : Int[]) : Unit {
+                if Std.Core.Length(a) != 4 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 4]`."
+                };
+            }
+            mutable a = [0, 0, 0, 0];
+            f(a);
+        "#]],
     );
 }
 
@@ -478,11 +488,11 @@ fn implicit_cast_array_to_dyn_array_ref() {
     check_qasm_to_qsharp(
         source,
         &expect![[r#"
-        import Std.OpenQASM.Intrinsic.*;
-        function f(a : Int[]) : Unit {}
-        mutable a = [0, 0, 0, 0];
-        f(a);
-    "#]],
+            import Std.OpenQASM.Intrinsic.*;
+            function f(a : Int[]) : Unit {}
+            mutable a = [0, 0, 0, 0];
+            f(a);
+        "#]],
     );
 }
 

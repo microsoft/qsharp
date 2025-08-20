@@ -510,8 +510,6 @@ def test_callable_with_bool_exposed_into_env_fails_incorrect_types() -> None:
         code.Identity([4])
 
 
-# mark this test xfail until we support arrays as arguments
-@pytest.mark.xfail(reason="Arrays as arguments are not supported yet")
 def test_callable_with_array_exposed_into_env_fails_incorrect_types() -> None:
     init()
     import_openqasm(
@@ -519,18 +517,19 @@ def test_callable_with_array_exposed_into_env_fails_incorrect_types() -> None:
         program_type=ProgramType.Fragments,
     )
     assert code.fst([4, 5, 6]) == 4
+    assert code.fst((5, 6, 7)) == 5
+    with pytest.raises(QSharpError):  # out of range
+        code.fst([])
     with pytest.raises(TypeError):
-        code.Identity([])
+        code.fst((4, 5.0, 6))
     with pytest.raises(TypeError):
-        code.Identity((4, 5, 6))
+        code.fst(4)
     with pytest.raises(TypeError):
-        code.Identity(4)
+        code.fst("4")
     with pytest.raises(TypeError):
-        code.Identity("4")
+        code.fst(4.0)
     with pytest.raises(TypeError):
-        code.Identity(4.0)
-    with pytest.raises(TypeError):
-        code.Identity([1, 2, 3.0])
+        code.fst([1, 2, 3.0])
 
 
 @pytest.mark.xfail(
