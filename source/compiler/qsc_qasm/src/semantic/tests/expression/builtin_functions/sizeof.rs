@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::semantic::tests::check_last_stmt as check;
+use crate::semantic::tests::{check_err, check_last_stmt as check};
 use expect_test::expect;
 
 #[test]
@@ -22,6 +22,7 @@ fn sizeof_no_args_errors() {
                         kind: ClassicalDeclarationStmt [9-40]:
                             symbol_id: 8
                             ty_span: [15-19]
+                            ty_exprs: <empty>
                             init_expr: Expr [31-39]:
                                 ty: unknown
                                 kind: Err
@@ -60,6 +61,7 @@ fn sizeof_too_many_args_errors() {
                         kind: ClassicalDeclarationStmt [9-47]:
                             symbol_id: 8
                             ty_span: [15-19]
+                            ty_exprs: <empty>
                             init_expr: Expr [31-46]:
                                 ty: unknown
                                 kind: Err
@@ -99,6 +101,7 @@ fn sizeof_non_array_errors() {
                         kind: ClassicalDeclarationStmt [9-41]:
                             symbol_id: 8
                             ty_span: [15-19]
+                            ty_exprs: <empty>
                             init_expr: Expr [31-40]:
                                 ty: unknown
                                 kind: Err
@@ -129,13 +132,14 @@ fn sizeof_array() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [40-77]:
-            symbol_id: 9
-            ty_span: [46-50]
-            init_expr: Expr [62-76]:
-                ty: const uint
-                const_value: Int(4)
-                kind: Lit: Int(4)"#]],
+            ClassicalDeclarationStmt [40-77]:
+                symbol_id: 9
+                ty_span: [46-50]
+                ty_exprs: <empty>
+                init_expr: Expr [62-76]:
+                    ty: const uint
+                    const_value: Int(4)
+                    kind: Lit: Int(4)"#]],
     );
 }
 
@@ -149,13 +153,14 @@ fn sizeof_array_omitted_dimension() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [40-74]:
-            symbol_id: 9
-            ty_span: [46-50]
-            init_expr: Expr [62-73]:
-                ty: const uint
-                const_value: Int(3)
-                kind: Lit: Int(3)"#]],
+            ClassicalDeclarationStmt [40-74]:
+                symbol_id: 9
+                ty_span: [46-50]
+                ty_exprs: <empty>
+                init_expr: Expr [62-73]:
+                    ty: const uint
+                    const_value: Int(3)
+                    kind: Lit: Int(3)"#]],
     );
 }
 
@@ -178,6 +183,15 @@ fn sizeof_array_invalid_dimension_errors() {
                         kind: ClassicalDeclarationStmt [9-31]:
                             symbol_id: 8
                             ty_span: [9-26]
+                            ty_exprs:
+                                Expr [21-22]:
+                                    ty: const uint
+                                    const_value: Int(3)
+                                    kind: Lit: Int(3)
+                                Expr [24-25]:
+                                    ty: const uint
+                                    const_value: Int(4)
+                                    kind: Lit: Int(4)
                             init_expr: Expr [9-31]:
                                 ty: array[bool, 3, 4]
                                 kind: Lit:     array:
@@ -231,6 +245,7 @@ fn sizeof_array_invalid_dimension_errors() {
                         kind: ClassicalDeclarationStmt [40-77]:
                             symbol_id: 9
                             ty_span: [46-50]
+                            ty_exprs: <empty>
                             init_expr: Expr [62-76]:
                                 ty: unknown
                                 kind: Err
@@ -265,14 +280,26 @@ fn sizeof_static_array_ref() {
                 symbol_id: 9
                 has_qubit_params: false
                 parameters:
-                    10
+                    DefParameter [74-75]:
+                        symbol_id: 10
+                        ty_exprs:
+                            Expr [68-69]:
+                                ty: const uint
+                                const_value: Int(3)
+                                kind: Lit: Int(3)
+                            Expr [71-72]:
+                                ty: const uint
+                                const_value: Int(4)
+                                kind: Lit: Int(4)
                 return_type_span: [0-0]
+                return_ty_exprs: <empty>
                 body: Block [77-136]:
                     Stmt [91-126]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [91-126]:
                             symbol_id: 11
                             ty_span: [97-101]
+                            ty_exprs: <empty>
                             init_expr: Expr [113-125]:
                                 ty: const uint
                                 const_value: Int(4)
@@ -297,14 +324,26 @@ fn sizeof_static_array_ref_omitted_dimension() {
                 symbol_id: 9
                 has_qubit_params: false
                 parameters:
-                    10
+                    DefParameter [74-75]:
+                        symbol_id: 10
+                        ty_exprs:
+                            Expr [68-69]:
+                                ty: const uint
+                                const_value: Int(3)
+                                kind: Lit: Int(3)
+                            Expr [71-72]:
+                                ty: const uint
+                                const_value: Int(4)
+                                kind: Lit: Int(4)
                 return_type_span: [0-0]
+                return_ty_exprs: <empty>
                 body: Block [77-133]:
                     Stmt [91-123]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [91-123]:
                             symbol_id: 11
                             ty_span: [97-101]
+                            ty_exprs: <empty>
                             init_expr: Expr [113-122]:
                                 ty: const uint
                                 const_value: Int(3)
@@ -322,84 +361,9 @@ fn sizeof_static_array_ref_invalid_dimension_errors() {
         }
     ";
 
-    check(
+    check_err(
         source,
         &expect![[r#"
-            Program:
-                version: <none>
-                pragmas: <empty>
-                statements:
-                    Stmt [9-31]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-31]:
-                            symbol_id: 8
-                            ty_span: [9-26]
-                            init_expr: Expr [9-31]:
-                                ty: array[bool, 3, 4]
-                                kind: Lit:     array:
-                                        Expr [0-0]:
-                                            ty: array[bool, 4]
-                                            kind: Lit:     array:
-                                                    Expr [9-31]:
-                                                        ty: const bool
-                                                        kind: Lit: Bool(false)
-                                                    Expr [9-31]:
-                                                        ty: const bool
-                                                        kind: Lit: Bool(false)
-                                                    Expr [9-31]:
-                                                        ty: const bool
-                                                        kind: Lit: Bool(false)
-                                                    Expr [9-31]:
-                                                        ty: const bool
-                                                        kind: Lit: Bool(false)
-                                        Expr [0-0]:
-                                            ty: array[bool, 4]
-                                            kind: Lit:     array:
-                                                    Expr [9-31]:
-                                                        ty: const bool
-                                                        kind: Lit: Bool(false)
-                                                    Expr [9-31]:
-                                                        ty: const bool
-                                                        kind: Lit: Bool(false)
-                                                    Expr [9-31]:
-                                                        ty: const bool
-                                                        kind: Lit: Bool(false)
-                                                    Expr [9-31]:
-                                                        ty: const bool
-                                                        kind: Lit: Bool(false)
-                                        Expr [0-0]:
-                                            ty: array[bool, 4]
-                                            kind: Lit:     array:
-                                                    Expr [9-31]:
-                                                        ty: const bool
-                                                        kind: Lit: Bool(false)
-                                                    Expr [9-31]:
-                                                        ty: const bool
-                                                        kind: Lit: Bool(false)
-                                                    Expr [9-31]:
-                                                        ty: const bool
-                                                        kind: Lit: Bool(false)
-                                                    Expr [9-31]:
-                                                        ty: const bool
-                                                        kind: Lit: Bool(false)
-                    Stmt [41-136]:
-                        annotations: <empty>
-                        kind: DefStmt [41-136]:
-                            symbol_id: 9
-                            has_qubit_params: false
-                            parameters:
-                                10
-                            return_type_span: [0-0]
-                            body: Block [77-136]:
-                                Stmt [91-126]:
-                                    annotations: <empty>
-                                    kind: ClassicalDeclarationStmt [91-126]:
-                                        symbol_id: 11
-                                        ty_span: [97-101]
-                                        init_expr: Expr [113-125]:
-                                            ty: unknown
-                                            kind: Err
-
             [Qasm.Lowerer.SizeofInvalidDimension
 
               x requested dimension 2 but array has 2 dimensions
@@ -430,14 +394,22 @@ fn sizeof_dyn_array_ref() {
                 symbol_id: 9
                 has_qubit_params: false
                 parameters:
-                    10
+                    DefParameter [78-79]:
+                        symbol_id: 10
+                        ty_exprs:
+                            Expr [75-76]:
+                                ty: const uint
+                                const_value: Int(2)
+                                kind: Lit: Int(2)
                 return_type_span: [0-0]
+                return_ty_exprs: <empty>
                 body: Block [81-134]:
                     Stmt [95-124]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [95-124]:
                             symbol_id: 11
                             ty_span: [95-99]
+                            ty_exprs: <empty>
                             init_expr: Expr [111-123]:
                                 ty: uint
                                 kind: SizeofCallExpr [111-123]:
@@ -469,14 +441,22 @@ fn sizeof_dyn_array_ref_omitted_dimension() {
                 symbol_id: 9
                 has_qubit_params: false
                 parameters:
-                    10
+                    DefParameter [78-79]:
+                        symbol_id: 10
+                        ty_exprs:
+                            Expr [75-76]:
+                                ty: const uint
+                                const_value: Int(2)
+                                kind: Lit: Int(2)
                 return_type_span: [0-0]
+                return_ty_exprs: <empty>
                 body: Block [81-131]:
                     Stmt [95-121]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [95-121]:
                             symbol_id: 11
                             ty_span: [95-99]
+                            ty_exprs: <empty>
                             init_expr: Expr [111-120]:
                                 ty: uint
                                 kind: SizeofCallExpr [111-120]:
@@ -510,14 +490,22 @@ fn sizeof_dyn_array_ref_invalid_dimension_lowers_correctly() {
                 symbol_id: 9
                 has_qubit_params: false
                 parameters:
-                    10
+                    DefParameter [78-79]:
+                        symbol_id: 10
+                        ty_exprs:
+                            Expr [75-76]:
+                                ty: const uint
+                                const_value: Int(2)
+                                kind: Lit: Int(2)
                 return_type_span: [0-0]
+                return_ty_exprs: <empty>
                 body: Block [81-134]:
                     Stmt [95-124]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [95-124]:
                             symbol_id: 11
                             ty_span: [95-99]
+                            ty_exprs: <empty>
                             init_expr: Expr [111-123]:
                                 ty: uint
                                 kind: SizeofCallExpr [111-123]:

@@ -13,6 +13,7 @@ fn implicit_bitness_default() {
             ClassicalDeclarationStmt [0-17]:
                 symbol_id: 8
                 ty_span: [0-14]
+                ty_exprs: <empty>
                 init_expr: Expr [0-17]:
                     ty: const complex[float]
                     kind: Lit: Complex(0.0, 0.0)
@@ -32,6 +33,11 @@ fn explicit_bitness_default() {
             ClassicalDeclarationStmt [0-21]:
                 symbol_id: 8
                 ty_span: [0-18]
+                ty_exprs:
+                    Expr [14-16]:
+                        ty: const uint
+                        const_value: Int(42)
+                        kind: Lit: Int(42)
                 init_expr: Expr [0-21]:
                     ty: const complex[float[42]]
                     kind: Lit: Complex(0.0, 0.0)
@@ -51,6 +57,7 @@ fn const_implicit_bitness_double_img_only() {
             ClassicalDeclarationStmt [0-32]:
                 symbol_id: 8
                 ty_span: [6-20]
+                ty_exprs: <empty>
                 init_expr: Expr [25-31]:
                     ty: const complex[float]
                     const_value: Complex(0.0, 1.01)
@@ -71,6 +78,7 @@ fn const_implicit_bitness_int_img_only() {
             ClassicalDeclarationStmt [0-29]:
                 symbol_id: 8
                 ty_span: [6-20]
+                ty_exprs: <empty>
                 init_expr: Expr [25-28]:
                     ty: const complex[float]
                     const_value: Complex(0.0, 1.0)
@@ -91,6 +99,11 @@ fn const_explicit_bitness_double_img_only() {
             ClassicalDeclarationStmt [0-36]:
                 symbol_id: 8
                 ty_span: [6-24]
+                ty_exprs:
+                    Expr [20-22]:
+                        ty: const uint
+                        const_value: Int(42)
+                        kind: Lit: Int(42)
                 init_expr: Expr [29-35]:
                     ty: const complex[float[42]]
                     const_value: Complex(0.0, 1.01)
@@ -111,6 +124,11 @@ fn const_explicit_bitness_int_img_only() {
             ClassicalDeclarationStmt [0-33]:
                 symbol_id: 8
                 ty_span: [6-24]
+                ty_exprs:
+                    Expr [20-22]:
+                        ty: const uint
+                        const_value: Int(42)
+                        kind: Lit: Int(42)
                 init_expr: Expr [29-32]:
                     ty: const complex[float[42]]
                     const_value: Complex(0.0, 1.0)
@@ -131,6 +149,7 @@ fn implicit_bitness_double_img_only() {
             ClassicalDeclarationStmt [0-26]:
                 symbol_id: 8
                 ty_span: [0-14]
+                ty_exprs: <empty>
                 init_expr: Expr [19-25]:
                     ty: complex[float]
                     kind: Lit: Complex(0.0, 1.01)
@@ -150,6 +169,7 @@ fn implicit_bitness_int_img_only() {
             ClassicalDeclarationStmt [0-23]:
                 symbol_id: 8
                 ty_span: [0-14]
+                ty_exprs: <empty>
                 init_expr: Expr [19-22]:
                     ty: complex[float]
                     kind: Lit: Complex(0.0, 1.0)
@@ -169,6 +189,7 @@ fn const_implicit_bitness_double_real_only() {
             ClassicalDeclarationStmt [0-30]:
                 symbol_id: 8
                 ty_span: [6-20]
+                ty_exprs: <empty>
                 init_expr: Expr [25-29]:
                     ty: const complex[float]
                     const_value: Complex(1.01, 0.0)
@@ -189,6 +210,7 @@ fn const_implicit_bitness_int_real_only() {
             ClassicalDeclarationStmt [0-27]:
                 symbol_id: 8
                 ty_span: [6-20]
+                ty_exprs: <empty>
                 init_expr: Expr [25-26]:
                     ty: const complex[float]
                     const_value: Complex(1.0, 0.0)
@@ -209,6 +231,7 @@ fn implicit_bitness_double_real_only() {
             ClassicalDeclarationStmt [0-24]:
                 symbol_id: 8
                 ty_span: [0-14]
+                ty_exprs: <empty>
                 init_expr: Expr [19-23]:
                     ty: const complex[float]
                     kind: Lit: Complex(1.01, 0.0)
@@ -228,6 +251,7 @@ fn implicit_bitness_int_real_only() {
             ClassicalDeclarationStmt [0-21]:
                 symbol_id: 8
                 ty_span: [0-14]
+                ty_exprs: <empty>
                 init_expr: Expr [19-20]:
                     ty: const complex[float]
                     kind: Lit: Complex(1.0, 0.0)
@@ -247,6 +271,7 @@ fn implicit_bitness_simple_double_pos_im() {
             ClassicalDeclarationStmt [0-31]:
                 symbol_id: 8
                 ty_span: [0-14]
+                ty_exprs: <empty>
                 init_expr: Expr [19-30]:
                     ty: complex[float]
                     kind: BinaryOpExpr:
@@ -273,6 +298,7 @@ fn implicit_bitness_simple_double_neg_im() {
             ClassicalDeclarationStmt [0-31]:
                 symbol_id: 8
                 ty_span: [0-14]
+                ty_exprs: <empty>
                 init_expr: Expr [19-30]:
                     ty: complex[float]
                     kind: BinaryOpExpr:
@@ -299,6 +325,7 @@ fn const_implicit_bitness_simple_double_neg_im() {
             ClassicalDeclarationStmt [0-37]:
                 symbol_id: 8
                 ty_span: [6-20]
+                ty_exprs: <empty>
                 init_expr: Expr [25-36]:
                     ty: const complex[float]
                     const_value: Complex(1.1, -2.2)
@@ -326,6 +353,7 @@ fn implicit_bitness_simple_double_neg_real() {
             ClassicalDeclarationStmt [0-32]:
                 symbol_id: 8
                 ty_span: [0-14]
+                ty_exprs: <empty>
                 init_expr: Expr [19-31]:
                     ty: complex[float]
                     kind: BinaryOpExpr:
@@ -334,6 +362,7 @@ fn implicit_bitness_simple_double_neg_real() {
                             ty: const complex[float]
                             kind: Cast [20-23]:
                                 ty: const complex[float]
+                                ty_exprs: <empty>
                                 expr: Expr [20-23]:
                                     ty: const float
                                     kind: UnaryOpExpr [20-23]:
@@ -361,6 +390,7 @@ fn const_implicit_bitness_simple_double_neg_real() {
             ClassicalDeclarationStmt [0-38]:
                 symbol_id: 8
                 ty_span: [6-20]
+                ty_exprs: <empty>
                 init_expr: Expr [25-37]:
                     ty: const complex[float]
                     const_value: Complex(-1.1, 2.2)
@@ -370,6 +400,7 @@ fn const_implicit_bitness_simple_double_neg_real() {
                             ty: const complex[float]
                             kind: Cast [26-29]:
                                 ty: const complex[float]
+                                ty_exprs: <empty>
                                 expr: Expr [26-29]:
                                     ty: const float
                                     kind: UnaryOpExpr [26-29]:

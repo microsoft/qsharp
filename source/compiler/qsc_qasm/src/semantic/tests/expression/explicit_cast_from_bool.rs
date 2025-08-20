@@ -30,6 +30,7 @@ fn bool_to_bool() {
             ClassicalDeclarationStmt [9-16]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [9-16]:
                     ty: const bool
                     kind: Lit: Bool(false)
@@ -63,6 +64,7 @@ fn bool_to_duration_fails() {
                         kind: ClassicalDeclarationStmt [9-16]:
                             symbol_id: 8
                             ty_span: [9-13]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-16]:
                                 ty: const bool
                                 kind: Lit: Bool(false)
@@ -102,6 +104,7 @@ fn bool_to_int() {
             ClassicalDeclarationStmt [9-16]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [9-16]:
                     ty: const bool
                     kind: Lit: Bool(false)
@@ -110,6 +113,7 @@ fn bool_to_int() {
                     ty: int
                     kind: Cast [25-31]:
                         ty: int
+                        ty_exprs: <empty>
                         expr: Expr [29-30]:
                             ty: bool
                             kind: SymbolId(8)
@@ -130,6 +134,7 @@ fn bool_to_sized_int() {
             ClassicalDeclarationStmt [9-16]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [9-16]:
                     ty: const bool
                     kind: Lit: Bool(false)
@@ -138,6 +143,11 @@ fn bool_to_sized_int() {
                     ty: int[32]
                     kind: Cast [25-35]:
                         ty: int[32]
+                        ty_exprs:
+                            Expr [29-31]:
+                                ty: const uint
+                                const_value: Int(32)
+                                kind: Lit: Int(32)
                         expr: Expr [33-34]:
                             ty: bool
                             kind: SymbolId(8)
@@ -162,6 +172,7 @@ fn bool_to_uint() {
             ClassicalDeclarationStmt [9-16]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [9-16]:
                     ty: const bool
                     kind: Lit: Bool(false)
@@ -170,6 +181,7 @@ fn bool_to_uint() {
                     ty: uint
                     kind: Cast [25-32]:
                         ty: uint
+                        ty_exprs: <empty>
                         expr: Expr [30-31]:
                             ty: bool
                             kind: SymbolId(8)
@@ -190,6 +202,7 @@ fn bool_to_sized_uint() {
             ClassicalDeclarationStmt [9-16]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [9-16]:
                     ty: const bool
                     kind: Lit: Bool(false)
@@ -198,6 +211,11 @@ fn bool_to_sized_uint() {
                     ty: uint[32]
                     kind: Cast [25-36]:
                         ty: uint[32]
+                        ty_exprs:
+                            Expr [30-32]:
+                                ty: const uint
+                                const_value: Int(32)
+                                kind: Lit: Int(32)
                         expr: Expr [34-35]:
                             ty: bool
                             kind: SymbolId(8)
@@ -222,6 +240,7 @@ fn bool_to_float() {
             ClassicalDeclarationStmt [9-16]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [9-16]:
                     ty: const bool
                     kind: Lit: Bool(false)
@@ -230,6 +249,7 @@ fn bool_to_float() {
                     ty: float
                     kind: Cast [25-33]:
                         ty: float
+                        ty_exprs: <empty>
                         expr: Expr [31-32]:
                             ty: bool
                             kind: SymbolId(8)
@@ -250,6 +270,7 @@ fn bool_to_sized_float() {
             ClassicalDeclarationStmt [9-16]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [9-16]:
                     ty: const bool
                     kind: Lit: Bool(false)
@@ -258,6 +279,11 @@ fn bool_to_sized_float() {
                     ty: float[32]
                     kind: Cast [25-37]:
                         ty: float[32]
+                        ty_exprs:
+                            Expr [31-33]:
+                                ty: const uint
+                                const_value: Int(32)
+                                kind: Lit: Int(32)
                         expr: Expr [35-36]:
                             ty: bool
                             kind: SymbolId(8)
@@ -288,6 +314,7 @@ fn bool_to_angle_fails() {
                         kind: ClassicalDeclarationStmt [9-16]:
                             symbol_id: 8
                             ty_span: [9-13]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-16]:
                                 ty: const bool
                                 kind: Lit: Bool(false)
@@ -329,6 +356,7 @@ fn bool_to_sized_angle_fails() {
                         kind: ClassicalDeclarationStmt [9-16]:
                             symbol_id: 8
                             ty_span: [9-13]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-16]:
                                 ty: const bool
                                 kind: Lit: Bool(false)
@@ -374,6 +402,7 @@ fn bool_to_complex_fails() {
                         kind: ClassicalDeclarationStmt [9-16]:
                             symbol_id: 8
                             ty_span: [9-13]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-16]:
                                 ty: const bool
                                 kind: Lit: Bool(false)
@@ -415,6 +444,7 @@ fn bool_to_sized_complex_fails() {
                         kind: ClassicalDeclarationStmt [9-16]:
                             symbol_id: 8
                             ty_span: [9-13]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-16]:
                                 ty: const bool
                                 kind: Lit: Bool(false)
@@ -454,6 +484,7 @@ fn bool_to_bit() {
             ClassicalDeclarationStmt [9-16]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [9-16]:
                     ty: const bool
                     kind: Lit: Bool(false)
@@ -462,6 +493,7 @@ fn bool_to_bit() {
                     ty: bit
                     kind: Cast [25-31]:
                         ty: bit
+                        ty_exprs: <empty>
                         expr: Expr [29-30]:
                             ty: bool
                             kind: SymbolId(8)
@@ -482,6 +514,7 @@ fn bool_to_bitarray() {
             ClassicalDeclarationStmt [9-16]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [9-16]:
                     ty: const bool
                     kind: Lit: Bool(false)
@@ -490,6 +523,11 @@ fn bool_to_bitarray() {
                     ty: bit[32]
                     kind: Cast [25-35]:
                         ty: bit[32]
+                        ty_exprs:
+                            Expr [29-31]:
+                                ty: const uint
+                                const_value: Int(32)
+                                kind: Lit: Int(32)
                         expr: Expr [33-34]:
                             ty: bool
                             kind: SymbolId(8)

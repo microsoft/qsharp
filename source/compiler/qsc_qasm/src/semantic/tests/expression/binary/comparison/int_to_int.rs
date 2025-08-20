@@ -19,6 +19,7 @@ fn greater_than() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-18]:
                     ty: int
                     kind: Lit: Int(5)
@@ -30,6 +31,7 @@ fn greater_than() {
             ClassicalDeclarationStmt [28-38]:
                 symbol_id: 9
                 ty_span: [28-31]
+                ty_exprs: <empty>
                 init_expr: Expr [36-37]:
                     ty: int
                     kind: Lit: Int(3)
@@ -41,6 +43,7 @@ fn greater_than() {
             ClassicalDeclarationStmt [47-62]:
                 symbol_id: 10
                 ty_span: [47-51]
+                ty_exprs: <empty>
                 init_expr: Expr [56-61]:
                     ty: bool
                     kind: BinaryOpExpr:
@@ -74,6 +77,7 @@ fn greater_than_equals() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-18]:
                     ty: int
                     kind: Lit: Int(5)
@@ -85,6 +89,7 @@ fn greater_than_equals() {
             ClassicalDeclarationStmt [28-38]:
                 symbol_id: 9
                 ty_span: [28-31]
+                ty_exprs: <empty>
                 init_expr: Expr [36-37]:
                     ty: int
                     kind: Lit: Int(3)
@@ -96,6 +101,7 @@ fn greater_than_equals() {
             ClassicalDeclarationStmt [47-63]:
                 symbol_id: 10
                 ty_span: [47-51]
+                ty_exprs: <empty>
                 init_expr: Expr [56-62]:
                     ty: bool
                     kind: BinaryOpExpr:
@@ -129,6 +135,7 @@ fn less_than() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-18]:
                     ty: int
                     kind: Lit: Int(5)
@@ -140,6 +147,7 @@ fn less_than() {
             ClassicalDeclarationStmt [28-38]:
                 symbol_id: 9
                 ty_span: [28-31]
+                ty_exprs: <empty>
                 init_expr: Expr [36-37]:
                     ty: int
                     kind: Lit: Int(3)
@@ -151,6 +159,7 @@ fn less_than() {
             ClassicalDeclarationStmt [47-62]:
                 symbol_id: 10
                 ty_span: [47-51]
+                ty_exprs: <empty>
                 init_expr: Expr [56-61]:
                     ty: bool
                     kind: BinaryOpExpr:
@@ -184,6 +193,7 @@ fn less_than_equals() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-18]:
                     ty: int
                     kind: Lit: Int(5)
@@ -195,6 +205,7 @@ fn less_than_equals() {
             ClassicalDeclarationStmt [28-38]:
                 symbol_id: 9
                 ty_span: [28-31]
+                ty_exprs: <empty>
                 init_expr: Expr [36-37]:
                     ty: int
                     kind: Lit: Int(3)
@@ -206,6 +217,7 @@ fn less_than_equals() {
             ClassicalDeclarationStmt [47-63]:
                 symbol_id: 10
                 ty_span: [47-51]
+                ty_exprs: <empty>
                 init_expr: Expr [56-62]:
                     ty: bool
                     kind: BinaryOpExpr:
@@ -239,6 +251,7 @@ fn equals() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-18]:
                     ty: int
                     kind: Lit: Int(5)
@@ -250,6 +263,7 @@ fn equals() {
             ClassicalDeclarationStmt [28-38]:
                 symbol_id: 9
                 ty_span: [28-31]
+                ty_exprs: <empty>
                 init_expr: Expr [36-37]:
                     ty: int
                     kind: Lit: Int(3)
@@ -261,6 +275,7 @@ fn equals() {
             ClassicalDeclarationStmt [47-63]:
                 symbol_id: 10
                 ty_span: [47-51]
+                ty_exprs: <empty>
                 init_expr: Expr [56-62]:
                     ty: bool
                     kind: BinaryOpExpr:
@@ -294,6 +309,7 @@ fn not_equals() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-18]:
                     ty: int
                     kind: Lit: Int(5)
@@ -305,6 +321,7 @@ fn not_equals() {
             ClassicalDeclarationStmt [28-38]:
                 symbol_id: 9
                 ty_span: [28-31]
+                ty_exprs: <empty>
                 init_expr: Expr [36-37]:
                     ty: int
                     kind: Lit: Int(3)
@@ -316,6 +333,7 @@ fn not_equals() {
             ClassicalDeclarationStmt [47-63]:
                 symbol_id: 10
                 ty_span: [47-51]
+                ty_exprs: <empty>
                 init_expr: Expr [56-62]:
                     ty: bool
                     kind: BinaryOpExpr:

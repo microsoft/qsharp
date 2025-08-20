@@ -13,6 +13,7 @@ fn implicit_bitness_int_negative() {
             ClassicalDeclarationStmt [0-12]:
                 symbol_id: 8
                 ty_span: [0-3]
+                ty_exprs: <empty>
                 init_expr: Expr [9-11]:
                     ty: int
                     kind: UnaryOpExpr [9-11]:
@@ -36,6 +37,7 @@ fn implicit_bitness_int_const_negative() {
             ClassicalDeclarationStmt [0-18]:
                 symbol_id: 8
                 ty_span: [6-9]
+                ty_exprs: <empty>
                 init_expr: Expr [15-17]:
                     ty: const int
                     const_value: Int(-42)
@@ -60,6 +62,7 @@ fn implicit_bitness_int_default() {
             ClassicalDeclarationStmt [0-6]:
                 symbol_id: 8
                 ty_span: [0-3]
+                ty_exprs: <empty>
                 init_expr: Expr [0-6]:
                     ty: const int
                     kind: Lit: Int(0)
@@ -79,6 +82,7 @@ fn const_implicit_bitness_int_lit() {
             ClassicalDeclarationStmt [0-17]:
                 symbol_id: 8
                 ty_span: [6-9]
+                ty_exprs: <empty>
                 init_expr: Expr [14-16]:
                     ty: const int
                     const_value: Int(42)
@@ -99,6 +103,7 @@ fn implicit_bitness_int_hex_cap() {
             ClassicalDeclarationStmt [0-16]:
                 symbol_id: 8
                 ty_span: [0-3]
+                ty_exprs: <empty>
                 init_expr: Expr [8-15]:
                     ty: int
                     kind: Lit: Int(64031)
@@ -118,6 +123,7 @@ fn const_implicit_bitness_int_hex_cap() {
             ClassicalDeclarationStmt [0-22]:
                 symbol_id: 8
                 ty_span: [6-9]
+                ty_exprs: <empty>
                 init_expr: Expr [14-21]:
                     ty: const int
                     const_value: Int(64031)
@@ -138,6 +144,7 @@ fn implicit_bitness_int_octal() {
             ClassicalDeclarationStmt [0-13]:
                 symbol_id: 8
                 ty_span: [0-3]
+                ty_exprs: <empty>
                 init_expr: Expr [8-12]:
                     ty: int
                     kind: Lit: Int(34)
@@ -157,6 +164,7 @@ fn const_implicit_bitness_int_octal() {
             ClassicalDeclarationStmt [0-19]:
                 symbol_id: 8
                 ty_span: [6-9]
+                ty_exprs: <empty>
                 init_expr: Expr [14-18]:
                     ty: const int
                     const_value: Int(34)
@@ -177,6 +185,7 @@ fn const_implicit_bitness_int_octal_cap() {
             ClassicalDeclarationStmt [0-19]:
                 symbol_id: 8
                 ty_span: [6-9]
+                ty_exprs: <empty>
                 init_expr: Expr [14-18]:
                     ty: const int
                     const_value: Int(34)
@@ -197,6 +206,7 @@ fn implicit_bitness_int_binary_low() {
             ClassicalDeclarationStmt [0-20]:
                 symbol_id: 8
                 ty_span: [0-3]
+                ty_exprs: <empty>
                 init_expr: Expr [8-19]:
                     ty: int
                     kind: Lit: Int(153)
@@ -216,6 +226,7 @@ fn implicit_bitness_int_binary_cap() {
             ClassicalDeclarationStmt [0-15]:
                 symbol_id: 8
                 ty_span: [0-3]
+                ty_exprs: <empty>
                 init_expr: Expr [8-14]:
                     ty: int
                     kind: Lit: Int(10)
@@ -235,6 +246,7 @@ fn const_implicit_bitness_int_binary_low() {
             ClassicalDeclarationStmt [0-26]:
                 symbol_id: 8
                 ty_span: [6-9]
+                ty_exprs: <empty>
                 init_expr: Expr [14-25]:
                     ty: const int
                     const_value: Int(153)
@@ -255,6 +267,7 @@ fn const_implicit_bitness_int_binary_cap() {
             ClassicalDeclarationStmt [0-21]:
                 symbol_id: 8
                 ty_span: [6-9]
+                ty_exprs: <empty>
                 init_expr: Expr [14-20]:
                     ty: const int
                     const_value: Int(10)
@@ -275,6 +288,7 @@ fn implicit_bitness_int_formatted() {
             ClassicalDeclarationStmt [0-15]:
                 symbol_id: 8
                 ty_span: [0-3]
+                ty_exprs: <empty>
                 init_expr: Expr [8-14]:
                     ty: int
                     kind: Lit: Int(2000)
@@ -294,6 +308,7 @@ fn const_implicit_bitness_int_formatted() {
             ClassicalDeclarationStmt [0-21]:
                 symbol_id: 8
                 ty_span: [6-9]
+                ty_exprs: <empty>
                 init_expr: Expr [14-20]:
                     ty: const int
                     const_value: Int(2000)
@@ -314,6 +329,11 @@ fn explicit_bitness_int_default() {
             ClassicalDeclarationStmt [0-10]:
                 symbol_id: 8
                 ty_span: [0-7]
+                ty_exprs:
+                    Expr [4-6]:
+                        ty: const uint
+                        const_value: Int(10)
+                        kind: Lit: Int(10)
                 init_expr: Expr [0-10]:
                     ty: const int[10]
                     kind: Lit: Int(0)
@@ -333,6 +353,11 @@ fn explicit_bitness_int() {
             ClassicalDeclarationStmt [0-15]:
                 symbol_id: 8
                 ty_span: [0-7]
+                ty_exprs:
+                    Expr [4-6]:
+                        ty: const uint
+                        const_value: Int(10)
+                        kind: Lit: Int(10)
                 init_expr: Expr [12-14]:
                     ty: const int[10]
                     kind: Lit: Int(42)
@@ -352,6 +377,11 @@ fn const_explicit_bitness_int() {
             ClassicalDeclarationStmt [0-21]:
                 symbol_id: 8
                 ty_span: [6-13]
+                ty_exprs:
+                    Expr [10-12]:
+                        ty: const uint
+                        const_value: Int(10)
+                        kind: Lit: Int(10)
                 init_expr: Expr [18-20]:
                     ty: const int[10]
                     const_value: Int(42)
@@ -372,10 +402,12 @@ fn implicit_bitness_int_negative_float_decl_is_runtime_conversion() {
             ClassicalDeclarationStmt [0-13]:
                 symbol_id: 8
                 ty_span: [0-3]
+                ty_exprs: <empty>
                 init_expr: Expr [9-12]:
                     ty: int
                     kind: Cast [9-12]:
                         ty: int
+                        ty_exprs: <empty>
                         expr: Expr [9-12]:
                             ty: const float
                             kind: UnaryOpExpr [9-12]:

@@ -15,6 +15,7 @@ fn if_branch_creates_its_own_scope() {
             ClassicalDeclarationStmt [5-15]:
                 symbol_id: 8
                 ty_span: [5-8]
+                ty_exprs: <empty>
                 init_expr: Expr [13-14]:
                     ty: int
                     kind: Lit: Int(2)
@@ -30,6 +31,7 @@ fn if_branch_creates_its_own_scope() {
                             kind: ClassicalDeclarationStmt [30-40]:
                                 symbol_id: 9
                                 ty_span: [30-33]
+                                ty_exprs: <empty>
                                 init_expr: Expr [38-39]:
                                     ty: int
                                     kind: Lit: Int(1)
@@ -50,6 +52,7 @@ fn else_branch_creates_its_own_scope() {
             ClassicalDeclarationStmt [5-15]:
                 symbol_id: 8
                 ty_span: [5-8]
+                ty_exprs: <empty>
                 init_expr: Expr [13-14]:
                     ty: int
                     kind: Lit: Int(2)
@@ -68,6 +71,7 @@ fn else_branch_creates_its_own_scope() {
                             kind: ClassicalDeclarationStmt [42-52]:
                                 symbol_id: 9
                                 ty_span: [42-45]
+                                ty_exprs: <empty>
                                 init_expr: Expr [50-51]:
                                     ty: int
                                     kind: Lit: Int(1)
@@ -86,6 +90,7 @@ fn branch_block_creates_a_new_scope() {
             ClassicalDeclarationStmt [5-15]:
                 symbol_id: 8
                 ty_span: [5-8]
+                ty_exprs: <empty>
                 init_expr: Expr [13-14]:
                     ty: int
                     kind: Lit: Int(2)
@@ -101,6 +106,7 @@ fn branch_block_creates_a_new_scope() {
                             kind: ClassicalDeclarationStmt [32-42]:
                                 symbol_id: 9
                                 ty_span: [32-35]
+                                ty_exprs: <empty>
                                 init_expr: Expr [40-41]:
                                     ty: int
                                     kind: Lit: Int(1)
@@ -121,6 +127,7 @@ fn if_scope_and_else_scope_are_different() {
             ClassicalDeclarationStmt [5-15]:
                 symbol_id: 8
                 ty_span: [5-8]
+                ty_exprs: <empty>
                 init_expr: Expr [13-14]:
                     ty: int
                     kind: Lit: Int(2)
@@ -136,6 +143,7 @@ fn if_scope_and_else_scope_are_different() {
                             kind: ClassicalDeclarationStmt [32-42]:
                                 symbol_id: 9
                                 ty_span: [32-35]
+                                ty_exprs: <empty>
                                 init_expr: Expr [40-41]:
                                     ty: int
                                     kind: Lit: Int(1)
@@ -147,6 +155,7 @@ fn if_scope_and_else_scope_are_different() {
                             kind: ClassicalDeclarationStmt [56-66]:
                                 symbol_id: 10
                                 ty_span: [56-59]
+                                ty_exprs: <empty>
                                 init_expr: Expr [64-65]:
                                     ty: int
                                     kind: Lit: Int(2)
@@ -164,6 +173,7 @@ fn condition_cast() {
                     ty: const bool
                     kind: Cast [4-5]:
                         ty: const bool
+                        ty_exprs: <empty>
                         expr: Expr [4-5]:
                             ty: const int
                             kind: Lit: Int(1)

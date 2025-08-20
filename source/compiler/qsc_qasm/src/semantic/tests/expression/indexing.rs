@@ -18,6 +18,11 @@ fn simple_array_slice_has_correct_size() {
             ClassicalDeclarationStmt [9-23]:
                 symbol_id: 8
                 ty_span: [9-15]
+                ty_exprs:
+                    Expr [13-14]:
+                        ty: const uint
+                        const_value: Int(8)
+                        kind: Lit: Int(8)
                 init_expr: Expr [20-22]:
                     ty: const bit[8]
                     kind: Lit: Bitstring("00010000")
@@ -55,6 +60,11 @@ fn array_slice_with_negative_start_has_correct_size() {
             ClassicalDeclarationStmt [9-23]:
                 symbol_id: 8
                 ty_span: [9-15]
+                ty_exprs:
+                    Expr [13-14]:
+                        ty: const uint
+                        const_value: Int(8)
+                        kind: Lit: Int(8)
                 init_expr: Expr [20-22]:
                     ty: const bit[8]
                     kind: Lit: Bitstring("00010000")
@@ -96,6 +106,11 @@ fn array_slice_with_negative_end_has_correct_size() {
             ClassicalDeclarationStmt [9-23]:
                 symbol_id: 8
                 ty_span: [9-15]
+                ty_exprs:
+                    Expr [13-14]:
+                        ty: const uint
+                        const_value: Int(8)
+                        kind: Lit: Int(8)
                 init_expr: Expr [20-22]:
                     ty: const bit[8]
                     kind: Lit: Bitstring("00010000")
@@ -137,6 +152,11 @@ fn array_slice_with_non_exact_divisor_step_has_correct_size() {
             ClassicalDeclarationStmt [9-23]:
                 symbol_id: 8
                 ty_span: [9-15]
+                ty_exprs:
+                    Expr [13-14]:
+                        ty: const uint
+                        const_value: Int(8)
+                        kind: Lit: Int(8)
                 init_expr: Expr [20-22]:
                     ty: const bit[8]
                     kind: Lit: Bitstring("00010000")
@@ -177,6 +197,11 @@ fn array_slice_with_exact_divisor_step_has_correct_size() {
             ClassicalDeclarationStmt [9-23]:
                 symbol_id: 8
                 ty_span: [9-15]
+                ty_exprs:
+                    Expr [13-14]:
+                        ty: const uint
+                        const_value: Int(8)
+                        kind: Lit: Int(8)
                 init_expr: Expr [20-22]:
                     ty: const bit[8]
                     kind: Lit: Bitstring("00010000")
@@ -217,6 +242,11 @@ fn array_slice_with_negative_step_has_correct_size() {
             ClassicalDeclarationStmt [9-23]:
                 symbol_id: 8
                 ty_span: [9-15]
+                ty_exprs:
+                    Expr [13-14]:
+                        ty: const uint
+                        const_value: Int(8)
+                        kind: Lit: Int(8)
                 init_expr: Expr [20-22]:
                     ty: const bit[8]
                     kind: Lit: Bitstring("00010000")
@@ -267,6 +297,11 @@ fn array_slice_with_zero_step_errors() {
                         kind: ClassicalDeclarationStmt [9-23]:
                             symbol_id: 8
                             ty_span: [9-15]
+                            ty_exprs:
+                                Expr [13-14]:
+                                    ty: const uint
+                                    const_value: Int(8)
+                                    kind: Lit: Int(8)
                             init_expr: Expr [20-22]:
                                 ty: const bit[8]
                                 kind: Lit: Bitstring("00010000")
@@ -302,8 +337,19 @@ fn index_into_readonly_static_array_ref() {
                 symbol_id: 8
                 has_qubit_params: false
                 parameters:
-                    9
+                    DefParameter [66-67]:
+                        symbol_id: 9
+                        ty_exprs:
+                            Expr [60-61]:
+                                ty: const uint
+                                const_value: Int(2)
+                                kind: Lit: Int(2)
+                            Expr [63-64]:
+                                ty: const uint
+                                const_value: Int(3)
+                                kind: Lit: Int(3)
                 return_type_span: [0-0]
+                return_ty_exprs: <empty>
                 body: Block [69-101]:
                     Stmt [83-91]:
                         annotations: <empty>
@@ -342,8 +388,19 @@ fn index_into_mutable_static_array_ref() {
                 symbol_id: 8
                 has_qubit_params: false
                 parameters:
-                    9
+                    DefParameter [65-66]:
+                        symbol_id: 9
+                        ty_exprs:
+                            Expr [59-60]:
+                                ty: const uint
+                                const_value: Int(2)
+                                kind: Lit: Int(2)
+                            Expr [62-63]:
+                                ty: const uint
+                                const_value: Int(3)
+                                kind: Lit: Int(3)
                 return_type_span: [0-0]
+                return_ty_exprs: <empty>
                 body: Block [68-100]:
                     Stmt [82-90]:
                         annotations: <empty>
@@ -382,8 +439,15 @@ fn index_into_readonly_dyn_array_ref() {
                 symbol_id: 8
                 has_qubit_params: false
                 parameters:
-                    9
+                    DefParameter [70-71]:
+                        symbol_id: 9
+                        ty_exprs:
+                            Expr [67-68]:
+                                ty: const uint
+                                const_value: Int(2)
+                                kind: Lit: Int(2)
                 return_type_span: [0-0]
+                return_ty_exprs: <empty>
                 body: Block [73-105]:
                     Stmt [87-95]:
                         annotations: <empty>
@@ -422,8 +486,15 @@ fn index_into_mutable_dyn_array_ref() {
                 symbol_id: 8
                 has_qubit_params: false
                 parameters:
-                    9
+                    DefParameter [69-70]:
+                        symbol_id: 9
+                        ty_exprs:
+                            Expr [66-67]:
+                                ty: const uint
+                                const_value: Int(2)
+                                kind: Lit: Int(2)
                 return_type_span: [0-0]
+                return_ty_exprs: <empty>
                 body: Block [72-104]:
                     Stmt [86-94]:
                         annotations: <empty>

@@ -13,6 +13,7 @@ fn implicit_bitness_default() {
             ClassicalDeclarationStmt [0-8]:
                 symbol_id: 8
                 ty_span: [0-5]
+                ty_exprs: <empty>
                 init_expr: Expr [0-8]:
                     ty: const angle
                     kind: Lit: Angle(0)
@@ -32,6 +33,7 @@ fn lit() {
             ClassicalDeclarationStmt [0-15]:
                 symbol_id: 8
                 ty_span: [0-5]
+                ty_exprs: <empty>
                 init_expr: Expr [10-14]:
                     ty: const angle
                     kind: Lit: Angle(4.400888156922484)
@@ -51,6 +53,7 @@ fn const_lit() {
             ClassicalDeclarationStmt [0-21]:
                 symbol_id: 8
                 ty_span: [6-11]
+                ty_exprs: <empty>
                 init_expr: Expr [16-20]:
                     ty: const angle
                     const_value: Angle(4.400888156922484)
@@ -71,6 +74,11 @@ fn lit_explicit_width() {
             ClassicalDeclarationStmt [0-19]:
                 symbol_id: 8
                 ty_span: [0-9]
+                ty_exprs:
+                    Expr [6-8]:
+                        ty: const uint
+                        const_value: Int(64)
+                        kind: Lit: Int(64)
                 init_expr: Expr [14-18]:
                     ty: const angle[64]
                     kind: Lit: Angle(4.400888156922484)
@@ -90,6 +98,11 @@ fn const_explicit_width_lit() {
             ClassicalDeclarationStmt [0-25]:
                 symbol_id: 8
                 ty_span: [6-15]
+                ty_exprs:
+                    Expr [12-14]:
+                        ty: const uint
+                        const_value: Int(64)
+                        kind: Lit: Int(64)
                 init_expr: Expr [20-24]:
                     ty: const angle[64]
                     const_value: Angle(4.400888156922484)
@@ -110,6 +123,7 @@ fn lit_decl_leading_dot() {
             ClassicalDeclarationStmt [0-15]:
                 symbol_id: 8
                 ty_span: [0-5]
+                ty_exprs: <empty>
                 init_expr: Expr [10-14]:
                     ty: const angle
                     kind: Lit: Angle(0.4210000000000001)
@@ -129,6 +143,7 @@ fn const_lit_decl_leading_dot() {
             ClassicalDeclarationStmt [0-21]:
                 symbol_id: 8
                 ty_span: [6-11]
+                ty_exprs: <empty>
                 init_expr: Expr [16-20]:
                     ty: const angle
                     const_value: Angle(0.4210000000000001)
@@ -149,6 +164,7 @@ fn const_lit_decl_leading_dot_scientific() {
             ClassicalDeclarationStmt [0-23]:
                 symbol_id: 8
                 ty_span: [6-11]
+                ty_exprs: <empty>
                 init_expr: Expr [16-22]:
                     ty: const angle
                     const_value: Angle(4.400888156922484)
@@ -169,6 +185,7 @@ fn lit_decl_trailing_dot() {
             ClassicalDeclarationStmt [0-15]:
                 symbol_id: 8
                 ty_span: [0-5]
+                ty_exprs: <empty>
                 init_expr: Expr [10-14]:
                     ty: const angle
                     kind: Lit: Angle(0.02658441896772248)
@@ -188,6 +205,7 @@ fn const_lit_decl_trailing_dot() {
             ClassicalDeclarationStmt [0-21]:
                 symbol_id: 8
                 ty_span: [6-11]
+                ty_exprs: <empty>
                 init_expr: Expr [16-20]:
                     ty: const angle
                     const_value: Angle(0.02658441896772248)
@@ -208,6 +226,7 @@ fn lit_decl_scientific() {
             ClassicalDeclarationStmt [0-17]:
                 symbol_id: 8
                 ty_span: [0-5]
+                ty_exprs: <empty>
                 init_expr: Expr [10-16]:
                     ty: const angle
                     kind: Lit: Angle(4.400888156922484)
@@ -227,6 +246,7 @@ fn const_lit_decl_scientific() {
             ClassicalDeclarationStmt [0-23]:
                 symbol_id: 8
                 ty_span: [6-11]
+                ty_exprs: <empty>
                 init_expr: Expr [16-22]:
                     ty: const angle
                     const_value: Angle(4.400888156922484)
@@ -247,6 +267,7 @@ fn lit_decl_scientific_signed_pos() {
             ClassicalDeclarationStmt [0-18]:
                 symbol_id: 8
                 ty_span: [0-5]
+                ty_exprs: <empty>
                 init_expr: Expr [10-17]:
                     ty: const angle
                     kind: Lit: Angle(4.400888156922484)
@@ -266,6 +287,7 @@ fn const_lit_decl_scientific_signed_pos() {
             ClassicalDeclarationStmt [0-24]:
                 symbol_id: 8
                 ty_span: [6-11]
+                ty_exprs: <empty>
                 init_expr: Expr [16-23]:
                     ty: const angle
                     const_value: Angle(4.400888156922484)
@@ -286,6 +308,7 @@ fn lit_decl_scientific_cap_e() {
             ClassicalDeclarationStmt [0-17]:
                 symbol_id: 8
                 ty_span: [0-5]
+                ty_exprs: <empty>
                 init_expr: Expr [10-16]:
                     ty: const angle
                     kind: Lit: Angle(4.400888156922484)
@@ -305,6 +328,7 @@ fn const_lit_decl_scientific_cap_e() {
             ClassicalDeclarationStmt [0-23]:
                 symbol_id: 8
                 ty_span: [6-11]
+                ty_exprs: <empty>
                 init_expr: Expr [16-22]:
                     ty: const angle
                     const_value: Angle(4.400888156922484)
@@ -325,6 +349,7 @@ fn lit_decl_scientific_signed_neg() {
             ClassicalDeclarationStmt [0-19]:
                 symbol_id: 8
                 ty_span: [0-5]
+                ty_exprs: <empty>
                 init_expr: Expr [10-18]:
                     ty: const angle
                     kind: Lit: Angle(4.400888156922484)
@@ -344,6 +369,7 @@ fn const_lit_decl_scientific_signed_neg() {
             ClassicalDeclarationStmt [0-25]:
                 symbol_id: 8
                 ty_span: [6-11]
+                ty_exprs: <empty>
                 init_expr: Expr [16-24]:
                     ty: const angle
                     const_value: Angle(4.400888156922484)
@@ -364,11 +390,13 @@ fn const_lit_decl_signed_float_lit_cast_neg() {
             ClassicalDeclarationStmt [0-20]:
                 symbol_id: 8
                 ty_span: [6-11]
+                ty_exprs: <empty>
                 init_expr: Expr [17-19]:
                     ty: const angle
                     const_value: Angle(5.5663706143591725)
                     kind: Cast [17-19]:
                         ty: const angle
+                        ty_exprs: <empty>
                         expr: Expr [17-19]:
                             ty: const float
                             kind: UnaryOpExpr [17-19]:
@@ -399,6 +427,7 @@ fn const_lit_decl_signed_int_lit_cast_neg_fails() {
                         kind: ClassicalDeclarationStmt [0-19]:
                             symbol_id: 8
                             ty_span: [6-11]
+                            ty_exprs: <empty>
                             init_expr: Expr [17-18]:
                                 ty: const int
                                 const_value: Int(-7)
@@ -433,6 +462,7 @@ fn explicit_zero_width_fails() {
                         kind: ClassicalDeclarationStmt [0-18]:
                             symbol_id: 8
                             ty_span: [0-8]
+                            ty_exprs: <empty>
                             init_expr: Expr [0-18]:
                                 ty: unknown
                                 kind: Err
@@ -462,6 +492,7 @@ fn explicit_width_over_64_fails() {
                         kind: ClassicalDeclarationStmt [0-25]:
                             symbol_id: 8
                             ty_span: [6-15]
+                            ty_exprs: <empty>
                             init_expr: Expr [0-25]:
                                 ty: unknown
                                 kind: Err

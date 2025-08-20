@@ -17,6 +17,11 @@ fn popcount() {
             ClassicalDeclarationStmt [9-34]:
                 symbol_id: 8
                 ty_span: [15-21]
+                ty_exprs:
+                    Expr [19-20]:
+                        ty: const uint
+                        const_value: Int(5)
+                        kind: Lit: Int(5)
                 init_expr: Expr [26-33]:
                     ty: const bit[5]
                     const_value: Bitstring("10101")

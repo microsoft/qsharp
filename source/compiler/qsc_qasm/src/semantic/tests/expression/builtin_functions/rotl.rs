@@ -17,6 +17,11 @@ fn rotl_bitarray() {
             ClassicalDeclarationStmt [9-34]:
                 symbol_id: 8
                 ty_span: [15-21]
+                ty_exprs:
+                    Expr [19-20]:
+                        ty: const uint
+                        const_value: Int(5)
+                        kind: Lit: Int(5)
                 init_expr: Expr [26-33]:
                     ty: const bit[5]
                     const_value: Bitstring("10001")
@@ -55,6 +60,11 @@ fn rotl_bitarray_negative_distance() {
             ClassicalDeclarationStmt [9-34]:
                 symbol_id: 8
                 ty_span: [15-21]
+                ty_exprs:
+                    Expr [19-20]:
+                        ty: const uint
+                        const_value: Int(5)
+                        kind: Lit: Int(5)
                 init_expr: Expr [26-33]:
                     ty: const bit[5]
                     const_value: Bitstring("10001")
@@ -94,31 +104,36 @@ fn rotl_bitarray_zero_edge_case() {
     check_stmt_kinds(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-34]:
-            symbol_id: 8
-            ty_span: [15-21]
-            init_expr: Expr [26-33]:
-                ty: const bit[5]
-                const_value: Bitstring("10001")
-                kind: Lit: Bitstring("10001")
-        ExprStmt [43-54]:
-            expr: Expr [43-53]:
-                ty: const bit[5]
-                const_value: Bitstring("10001")
-                kind: BuiltinFunctionCall [43-53]:
-                    fn_name_span: [43-47]
-                    name: rotl
-                    function_ty: def (const bit[5], const int) -> const bit[5]
-                    args:
-                        Expr [48-49]:
-                            ty: const bit[5]
-                            const_value: Bitstring("10001")
-                            kind: SymbolId(8)
-                        Expr [51-52]:
-                            ty: const int
-                            const_value: Int(0)
-                            kind: Lit: Int(0)
-    "#]],
+            ClassicalDeclarationStmt [9-34]:
+                symbol_id: 8
+                ty_span: [15-21]
+                ty_exprs:
+                    Expr [19-20]:
+                        ty: const uint
+                        const_value: Int(5)
+                        kind: Lit: Int(5)
+                init_expr: Expr [26-33]:
+                    ty: const bit[5]
+                    const_value: Bitstring("10001")
+                    kind: Lit: Bitstring("10001")
+            ExprStmt [43-54]:
+                expr: Expr [43-53]:
+                    ty: const bit[5]
+                    const_value: Bitstring("10001")
+                    kind: BuiltinFunctionCall [43-53]:
+                        fn_name_span: [43-47]
+                        name: rotl
+                        function_ty: def (const bit[5], const int) -> const bit[5]
+                        args:
+                            Expr [48-49]:
+                                ty: const bit[5]
+                                const_value: Bitstring("10001")
+                                kind: SymbolId(8)
+                            Expr [51-52]:
+                                ty: const int
+                                const_value: Int(0)
+                                kind: Lit: Int(0)
+        "#]],
     );
 }
 
@@ -135,6 +150,11 @@ fn rotl_uint() {
             ClassicalDeclarationStmt [9-30]:
                 symbol_id: 8
                 ty_span: [15-22]
+                ty_exprs:
+                    Expr [20-21]:
+                        ty: const uint
+                        const_value: Int(5)
+                        kind: Lit: Int(5)
                 init_expr: Expr [27-29]:
                     ty: const uint[5]
                     const_value: Int(17)
@@ -173,6 +193,11 @@ fn rotl_uint_negative_distance() {
             ClassicalDeclarationStmt [9-30]:
                 symbol_id: 8
                 ty_span: [15-22]
+                ty_exprs:
+                    Expr [20-21]:
+                        ty: const uint
+                        const_value: Int(5)
+                        kind: Lit: Int(5)
                 init_expr: Expr [27-29]:
                     ty: const uint[5]
                     const_value: Int(17)
@@ -212,31 +237,36 @@ fn rotl_uint_zero_edge_case() {
     check_stmt_kinds(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-30]:
-            symbol_id: 8
-            ty_span: [15-22]
-            init_expr: Expr [27-29]:
-                ty: const uint[5]
-                const_value: Int(17)
-                kind: Lit: Int(17)
-        ExprStmt [39-50]:
-            expr: Expr [39-49]:
-                ty: const bit[5]
-                const_value: Bitstring("10001")
-                kind: BuiltinFunctionCall [39-49]:
-                    fn_name_span: [39-43]
-                    name: rotl
-                    function_ty: def (const bit[5], const int) -> const bit[5]
-                    args:
-                        Expr [44-45]:
-                            ty: const uint[5]
-                            const_value: Int(17)
-                            kind: SymbolId(8)
-                        Expr [47-48]:
-                            ty: const int
-                            const_value: Int(0)
-                            kind: Lit: Int(0)
-    "#]],
+            ClassicalDeclarationStmt [9-30]:
+                symbol_id: 8
+                ty_span: [15-22]
+                ty_exprs:
+                    Expr [20-21]:
+                        ty: const uint
+                        const_value: Int(5)
+                        kind: Lit: Int(5)
+                init_expr: Expr [27-29]:
+                    ty: const uint[5]
+                    const_value: Int(17)
+                    kind: Lit: Int(17)
+            ExprStmt [39-50]:
+                expr: Expr [39-49]:
+                    ty: const bit[5]
+                    const_value: Bitstring("10001")
+                    kind: BuiltinFunctionCall [39-49]:
+                        fn_name_span: [39-43]
+                        name: rotl
+                        function_ty: def (const bit[5], const int) -> const bit[5]
+                        args:
+                            Expr [44-45]:
+                                ty: const uint[5]
+                                const_value: Int(17)
+                                kind: SymbolId(8)
+                            Expr [47-48]:
+                                ty: const int
+                                const_value: Int(0)
+                                kind: Lit: Int(0)
+        "#]],
     );
 }
 

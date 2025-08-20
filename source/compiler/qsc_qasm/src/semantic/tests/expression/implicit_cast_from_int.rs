@@ -18,6 +18,7 @@ fn to_bit_implicitly() {
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-19]:
                     ty: int
                     kind: Lit: Int(42)
@@ -29,10 +30,12 @@ fn to_bit_implicitly() {
             ClassicalDeclarationStmt [29-39]:
                 symbol_id: 9
                 ty_span: [29-32]
+                ty_exprs: <empty>
                 init_expr: Expr [37-38]:
                     ty: bit
                     kind: Cast [37-38]:
                         ty: bit
+                        ty_exprs: <empty>
                         expr: Expr [37-38]:
                             ty: int
                             kind: SymbolId(8)
@@ -59,6 +62,7 @@ fn to_bool_implicitly() {
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-19]:
                     ty: int
                     kind: Lit: Int(42)
@@ -70,10 +74,12 @@ fn to_bool_implicitly() {
             ClassicalDeclarationStmt [29-40]:
                 symbol_id: 9
                 ty_span: [29-33]
+                ty_exprs: <empty>
                 init_expr: Expr [38-39]:
                     ty: bool
                     kind: Cast [38-39]:
                         ty: bool
+                        ty_exprs: <empty>
                         expr: Expr [38-39]:
                             ty: int
                             kind: SymbolId(8)
@@ -100,6 +106,7 @@ fn to_implicit_int_implicitly() {
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-19]:
                     ty: int
                     kind: Lit: Int(42)
@@ -111,6 +118,7 @@ fn to_implicit_int_implicitly() {
             ClassicalDeclarationStmt [29-39]:
                 symbol_id: 9
                 ty_span: [29-32]
+                ty_exprs: <empty>
                 init_expr: Expr [37-38]:
                     ty: int
                     kind: SymbolId(8)
@@ -136,6 +144,7 @@ fn to_explicit_int_implicitly() {
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-19]:
                     ty: int
                     kind: Lit: Int(42)
@@ -147,10 +156,16 @@ fn to_explicit_int_implicitly() {
             ClassicalDeclarationStmt [29-43]:
                 symbol_id: 9
                 ty_span: [29-36]
+                ty_exprs:
+                    Expr [33-35]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [41-42]:
                     ty: int[32]
                     kind: Cast [41-42]:
                         ty: int[32]
+                        ty_exprs: <empty>
                         expr: Expr [41-42]:
                             ty: int
                             kind: SymbolId(8)
@@ -177,6 +192,7 @@ fn to_implicit_uint_implicitly() {
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-19]:
                     ty: int
                     kind: Lit: Int(42)
@@ -188,10 +204,12 @@ fn to_implicit_uint_implicitly() {
             ClassicalDeclarationStmt [29-40]:
                 symbol_id: 9
                 ty_span: [29-33]
+                ty_exprs: <empty>
                 init_expr: Expr [38-39]:
                     ty: uint
                     kind: Cast [38-39]:
                         ty: uint
+                        ty_exprs: <empty>
                         expr: Expr [38-39]:
                             ty: int
                             kind: SymbolId(8)
@@ -218,6 +236,7 @@ fn to_explicit_uint_implicitly() {
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-19]:
                     ty: int
                     kind: Lit: Int(42)
@@ -229,10 +248,16 @@ fn to_explicit_uint_implicitly() {
             ClassicalDeclarationStmt [29-44]:
                 symbol_id: 9
                 ty_span: [29-37]
+                ty_exprs:
+                    Expr [34-36]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [42-43]:
                     ty: uint[32]
                     kind: Cast [42-43]:
                         ty: uint[32]
+                        ty_exprs: <empty>
                         expr: Expr [42-43]:
                             ty: int
                             kind: SymbolId(8)
@@ -259,6 +284,7 @@ fn to_explicit_bigint_implicitly() {
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-19]:
                     ty: int
                     kind: Lit: Int(42)
@@ -270,10 +296,16 @@ fn to_explicit_bigint_implicitly() {
             ClassicalDeclarationStmt [29-43]:
                 symbol_id: 9
                 ty_span: [29-36]
+                ty_exprs:
+                    Expr [33-35]:
+                        ty: const uint
+                        const_value: Int(65)
+                        kind: Lit: Int(65)
                 init_expr: Expr [41-42]:
                     ty: int[65]
                     kind: Cast [41-42]:
                         ty: int[65]
+                        ty_exprs: <empty>
                         expr: Expr [41-42]:
                             ty: int
                             kind: SymbolId(8)
@@ -300,6 +332,7 @@ fn to_implicit_float_implicitly() {
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-19]:
                     ty: int
                     kind: Lit: Int(42)
@@ -311,10 +344,12 @@ fn to_implicit_float_implicitly() {
             ClassicalDeclarationStmt [29-41]:
                 symbol_id: 9
                 ty_span: [29-34]
+                ty_exprs: <empty>
                 init_expr: Expr [39-40]:
                     ty: float
                     kind: Cast [39-40]:
                         ty: float
+                        ty_exprs: <empty>
                         expr: Expr [39-40]:
                             ty: int
                             kind: SymbolId(8)
@@ -341,6 +376,7 @@ fn to_explicit_float_implicitly() {
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-19]:
                     ty: int
                     kind: Lit: Int(42)
@@ -352,10 +388,16 @@ fn to_explicit_float_implicitly() {
             ClassicalDeclarationStmt [29-45]:
                 symbol_id: 9
                 ty_span: [29-38]
+                ty_exprs:
+                    Expr [35-37]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [43-44]:
                     ty: float[32]
                     kind: Cast [43-44]:
                         ty: float[32]
+                        ty_exprs: <empty>
                         expr: Expr [43-44]:
                             ty: int
                             kind: SymbolId(8)
@@ -382,6 +424,7 @@ fn to_implicit_complex_implicitly() {
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-19]:
                     ty: int
                     kind: Lit: Int(42)
@@ -393,10 +436,12 @@ fn to_implicit_complex_implicitly() {
             ClassicalDeclarationStmt [29-50]:
                 symbol_id: 9
                 ty_span: [29-43]
+                ty_exprs: <empty>
                 init_expr: Expr [48-49]:
                     ty: complex[float]
                     kind: Cast [48-49]:
                         ty: complex[float]
+                        ty_exprs: <empty>
                         expr: Expr [48-49]:
                             ty: int
                             kind: SymbolId(8)
@@ -423,6 +468,7 @@ fn to_explicit_complex_implicitly() {
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [17-19]:
                     ty: int
                     kind: Lit: Int(42)
@@ -434,10 +480,16 @@ fn to_explicit_complex_implicitly() {
             ClassicalDeclarationStmt [29-54]:
                 symbol_id: 9
                 ty_span: [29-47]
+                ty_exprs:
+                    Expr [43-45]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [52-53]:
                     ty: complex[float[32]]
                     kind: Cast [52-53]:
                         ty: complex[float[32]]
+                        ty_exprs: <empty>
                         expr: Expr [52-53]:
                             ty: int
                             kind: SymbolId(8)

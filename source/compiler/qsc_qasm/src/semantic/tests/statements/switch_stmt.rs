@@ -58,6 +58,7 @@ fn cases_introduce_their_own_scope() {
             ClassicalDeclarationStmt [5-15]:
                 symbol_id: 8
                 ty_span: [5-8]
+                ty_exprs: <empty>
                 init_expr: Expr [13-14]:
                     ty: int
                     kind: Lit: Int(3)
@@ -77,6 +78,7 @@ fn cases_introduce_their_own_scope() {
                                 kind: ClassicalDeclarationStmt [50-60]:
                                     symbol_id: 9
                                     ty_span: [50-53]
+                                    ty_exprs: <empty>
                                     init_expr: Expr [58-59]:
                                         ty: int
                                         kind: Lit: Int(1)
@@ -94,6 +96,7 @@ fn cases_introduce_their_own_scope() {
                                 kind: ClassicalDeclarationStmt [83-93]:
                                     symbol_id: 10
                                     ty_span: [83-86]
+                                    ty_exprs: <empty>
                                     init_expr: Expr [91-92]:
                                         ty: int
                                         kind: Lit: Int(2)
@@ -112,6 +115,7 @@ fn target_cast() {
                     ty: const int
                     kind: Cast [8-12]:
                         ty: const int
+                        ty_exprs: <empty>
                         expr: Expr [8-12]:
                             ty: const bool
                             kind: Lit: Bool(true)
@@ -123,6 +127,7 @@ fn target_cast() {
                                 ty: const int
                                 kind: Cast [21-26]:
                                     ty: const int
+                                    ty_exprs: <empty>
                                     expr: Expr [21-26]:
                                         ty: const bool
                                         kind: Lit: Bool(false)
