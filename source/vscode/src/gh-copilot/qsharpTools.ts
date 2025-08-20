@@ -147,7 +147,10 @@ export class QSharpTools {
   /**
    * Implements the `qdk-generate-circuit` tool call.
    */
-  async generateCircuit(input: { filePath: string }): Promise<
+  async generateCircuit(input: {
+    filePath: string;
+    entryPoint?: string;
+  }): Promise<
     | (ProjectInfo &
         CircuitOrError & {
           message?: string;
@@ -157,9 +160,16 @@ export class QSharpTools {
     const program = await this.getProgram(input.filePath);
     const programConfig = program.config;
 
+    const operation = input.entryPoint
+      ? {
+          operation: input.entryPoint,
+          totalNumQubits: 0,
+        }
+      : undefined;
+
     const circuitOrError = await showCircuitCommand(
       this.extensionUri,
-      undefined,
+      operation,
       UserTaskInvocationType.ChatToolCall,
       program.telemetryDocumentType,
       programConfig,
