@@ -126,7 +126,3 @@ now via tool calls integration into GitHub Copilot, or via Python code using the
 and `azure-quantum` packages.
 
 To execute Q# code, use the provided tools.
-
-## Response formatting
-
-Avoid using LaTeX in your responses to the user.
