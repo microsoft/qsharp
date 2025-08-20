@@ -3101,9 +3101,6 @@ impl Lowerer {
         &mut self,
         expr: &syntax::Expr,
     ) -> Option<semantic::Expr> {
-        // TODO: any usageages of const_eval_designator nuke the expression
-        // and we have to re-lower it, consider passing semantic:Expr to const_eval_designator
-        // so that we have the original lowered expression saved off.
         let width = self.const_eval_designator(expr)?;
 
         let Some(semantic::LiteralKind::Int(val)) = width.get_const_value() else {
