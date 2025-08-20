@@ -876,7 +876,7 @@
             },
             "entryPoint": {
               "type": "string",
-              "description": "(Optional) The fully qualified name of the operation to generate the circuit diagram for. When constructing the fully qualified name, take implicit namespaces into account. The operation *must* take no arguments. If not specified, the default entrypoint will be used (`Main()` or the operation marked with `@EntryPoint()`"
+              "description": "(Optional) The fully qualified name of the operation to generate the circuit diagram for. When constructing the fully qualified name, note that if there is no `namespace` declaration in the file, the filename is the namespace. The operation *must* take no arguments. If not specified, the default entrypoint will be used (`Main()` or the operation marked with `@EntryPoint()`"
             }
           },
           "required": [

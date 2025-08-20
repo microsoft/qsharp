@@ -234,7 +234,11 @@ function App({ state }: { state: State }) {
       return <CircuitPanel {...state.props}></CircuitPanel>;
     case "circuit-slim":
       return (
-        <Circuit isEditable={false} circuit={state.props.circuit}></Circuit>
+        <Circuit
+          isEditable={false}
+          showZoomControl={false}
+          circuit={state.props.circuit}
+        ></Circuit>
       );
     case "help":
       return <HelpPage />;

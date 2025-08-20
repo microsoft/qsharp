@@ -161,10 +161,7 @@ export class QSharpTools {
     const programConfig = program.config;
 
     const operation = input.entryPoint
-      ? {
-          operation: input.entryPoint,
-          totalNumQubits: 0,
-        }
+      ? buildOperationInfo(input.entryPoint, input.filePath)
       : undefined;
 
     const circuitOrError = await showCircuitCommand(
@@ -192,6 +189,25 @@ export class QSharpTools {
       return {
         ...result,
       };
+    }
+
+    function buildOperationInfo(entryPoint: string, filePath: string) {
+      if (entryPoint.split(".").length > 1) {
+        return {
+          operation: entryPoint,
+          totalNumQubits: 0,
+        };
+      } else {
+        // use base filename as namespace (handle both / and \ separators)
+        const namespace = filePath
+          .split(/[/\\]/)
+          .slice(-1)[0]
+          .replace(/\.[^/.]+$/, "");
+        return {
+          operation: `${namespace}.${entryPoint}`,
+          totalNumQubits: 0,
+        };
+      }
     }
   }
 

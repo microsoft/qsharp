@@ -21,6 +21,7 @@ const MAX_CIRCUITS = 1;
 export function Circuit(props: {
   circuit?: qviz.CircuitGroup | qviz.Circuit;
   isEditable: boolean;
+  showZoomControl: boolean;
   editCallback?: (fileData: qviz.CircuitGroup) => void;
   runCallback?: () => void;
 }) {
@@ -65,6 +66,7 @@ export function Circuit(props: {
 function ZoomableCircuit(props: {
   circuitGroup: qviz.CircuitGroup;
   isEditable: boolean;
+  showZoomControl: boolean;
   editCallback?: (fileData: qviz.CircuitGroup) => void;
   runCallback?: () => void;
 }) {
@@ -119,7 +121,7 @@ function ZoomableCircuit(props: {
   return (
     <div>
       <div>
-        {props.isEditable || rendering ? null : (
+        {!props.showZoomControl || rendering ? null : (
           <ZoomControl zoom={zoomLevel} onInput={userSetZoomLevel} />
         )}
       </div>
@@ -199,7 +201,8 @@ function ZoomableCircuit(props: {
 
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
     const zoom = Math.min(Math.ceil((containerWidth / width) * 100), 100);
-    return zoom;
+    // Don't automatically go any lower than 50%
+    return Math.max(zoom, 50);
   }
 
   function currentSvg(): SVGElement | undefined {
@@ -327,6 +330,7 @@ export function CircuitPanel(props: CircuitProps) {
         <Circuit
           circuit={props.circuit}
           isEditable={props.isEditable}
+          showZoomControl={!props.isEditable}
           editCallback={props.editCallback}
           runCallback={props.runCallback}
         ></Circuit>
