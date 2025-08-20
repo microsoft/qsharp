@@ -7,6 +7,7 @@ const vscodeApi = acquireVsCodeApi();
 
 import { render } from "preact";
 import {
+  Circuit,
   CircuitPanel,
   CircuitProps,
   EstimatesPanel,
@@ -55,6 +56,12 @@ type CircuitState = {
   props: CircuitProps;
 };
 
+type SlimCircuitState = {
+  viewType: "circuit-slim";
+  panelId: string;
+  props: CircuitProps;
+};
+
 type DocumentationState = {
   viewType: "documentation";
   fragmentsToRender: IDocFile[];
@@ -67,7 +74,8 @@ type State =
   | HistogramState
   | EstimatesState
   | CircuitState
-  | DocumentationState;
+  | DocumentationState
+  | SlimCircuitState;
 const loadingState: State = { viewType: "loading", panelId: "" };
 const helpState: State = { viewType: "help" };
 let state: State = loadingState;
@@ -133,6 +141,14 @@ function onMessage(event: any) {
       {
         state = {
           viewType: "circuit",
+          ...message,
+        };
+      }
+      break;
+    case "circuit-slim":
+      {
+        state = {
+          viewType: "circuit-slim",
           ...message,
         };
       }
@@ -216,6 +232,10 @@ function App({ state }: { state: State }) {
       );
     case "circuit":
       return <CircuitPanel {...state.props}></CircuitPanel>;
+    case "circuit-slim":
+      return (
+        <Circuit isEditable={false} circuit={state.props.circuit}></Circuit>
+      );
     case "help":
       return <HelpPage />;
     case "documentation":

@@ -148,10 +148,11 @@ export class QSharpTools {
    * Implements the `qdk-generate-circuit` tool call.
    */
   async generateCircuit(input: { filePath: string }): Promise<
-    ProjectInfo &
-      CircuitOrError & {
-        message?: string;
-      }
+    | (ProjectInfo &
+        CircuitOrError & {
+          message?: string;
+        })
+    | vscode.LanguageModelToolResult
   > {
     const program = await this.getProgram(input.filePath);
     const programConfig = program.config;
@@ -162,6 +163,7 @@ export class QSharpTools {
       UserTaskInvocationType.ChatToolCall,
       program.telemetryDocumentType,
       programConfig,
+      false,
     );
 
     const result = {
@@ -170,10 +172,12 @@ export class QSharpTools {
     };
 
     if (circuitOrError.result === "success") {
-      return {
-        ...result,
-        message: "Circuit is displayed in the Circuit panel.",
-      };
+      return richToolResult(
+        "The circuit diagram was rendered and displayed to the user. Here is the raw data: " +
+          JSON.stringify(result),
+        qdkCircuitMimeType,
+        JSON.stringify(circuitOrError.circuit),
+      );
     } else {
       return {
         ...result,
@@ -325,4 +329,22 @@ export class QSharpTools {
     clearTimeout(compilerTimeout);
     worker.terminate();
   }
+}
+
+export const qdkCircuitMimeType = "application/x.qdk-circuit";
+export const qdkCircuitViewType = "qdk-circuit-chat-renderer";
+
+export function richToolResult(
+  outputText: string,
+  mime: string,
+  outputData: string,
+) {
+  const result = new vscode.LanguageModelToolResult([
+    new vscode.LanguageModelTextPart(outputText),
+  ]);
+  (result as vscode.ExtendedLanguageModelToolResult2).toolResultDetails2 = {
+    mime,
+    value: new TextEncoder().encode(outputData),
+  };
+  return result;
 }

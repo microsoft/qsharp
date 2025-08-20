@@ -386,7 +386,8 @@ export class QSharpViewViewPanelSerializer implements WebviewPanelSerializer {
       panelType !== "histogram" &&
       panelType !== "circuit" &&
       panelType !== "help" &&
-      panelType != "documentation"
+      panelType != "documentation" &&
+      panelType != "circuit-slim"
     ) {
       // If it was loading when closed, that's fine
       if (panelType === "loading") {
@@ -424,7 +425,6 @@ export function _getWebviewContent(webview: Webview) {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${webview.cspSource} 'nonce-${nonce}'; style-src 'self' 'unsafe-inline';" />
       <title>Q#</title>
       <link rel="stylesheet" href="${githubCss}" />
       <link rel="stylesheet" href="${katexCss}" />
@@ -435,7 +435,6 @@ export function _getWebviewContent(webview: Webview) {
       </script>
     </head>
     <body>
-    hey?
     </body>
   </html>
 `;

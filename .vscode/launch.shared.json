@@ -11,6 +11,7 @@
             "request": "launch",
             "runtimeExecutable": "${execPath}",
             "args": [
+                "--enable-proposed-api=quantum.qsharp-lang-vscode-dev",
                 "--profile=dev",
                 "--extensionDevelopmentPath=${workspaceFolder}/source/vscode",
                 "${workspaceFolder}/samples/"
@@ -23,6 +24,7 @@
             "debugWebWorkerHost": true,
             "request": "launch",
             "args": [
+                "--enable-proposed-api=quantum.qsharp-lang-vscode-dev",
                 "--extensionDevelopmentPath=${workspaceFolder}/source/vscode",
                 "--extensionDevelopmentKind=web",
                 "${workspaceFolder}/samples/"

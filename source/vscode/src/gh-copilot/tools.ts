@@ -7,10 +7,14 @@ import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
 import { getRandomGuid } from "../utils";
 import * as azqTools from "./azureQuantumTools";
 import { updateCopilotInstructions } from "./instructions";
-import { QSharpTools } from "./qsharpTools";
+import {
+  qdkCircuitMimeType,
+  qdkCircuitViewType,
+  QSharpTools,
+  richToolResult,
+} from "./qsharpTools";
 import { CopilotToolError } from "./types";
 import { ToolState } from "./azureQuantumTools";
-import { generateWebviewHtml } from "../circuitEditor";
 import { _getWebviewContent } from "../webviewPanel";
 
 // state
@@ -102,52 +106,65 @@ const toolDefinitions: {
   {
     name: "qdk-test",
     tool: async (): Promise<vscode.LanguageModelToolResult> => {
-      const result = new vscode.LanguageModelToolResult([
-        new vscode.LanguageModelTextPart("hi"),
-      ]);
-      (result as vscode.ExtendedLanguageModelToolResult2).toolResultDetails2 = {
-        mime: "application/x.qsharp-config",
-        value: new TextEncoder().encode('{ "hi" : "yes" }'),
-      };
-      return result;
+      return richToolResult(
+        "hi this is a sample circuit",
+        qdkCircuitMimeType,
+        `{
+  "version": 1,
+  "circuits": [
+    {
+      "qubits": [
+        {
+          "id": 0,
+          "numResults": 1
+        }
+      ],
+      "componentGrid": [
+        {
+          "components": [
+            {
+              "kind": "measurement",
+              "gate": "Measure",
+              "qubits": [
+                {
+                  "qubit": 0
+                }
+              ],
+              "results": [
+                {
+                  "qubit": 0,
+                  "result": 0
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+`,
+      );
     },
   },
 ];
 
 export function registerLanguageModelTools(context: vscode.ExtensionContext) {
-  vscode.chat.registerChatOutputRenderer("qdk-config-renderer", {
+  vscode.chat.registerChatOutputRenderer(qdkCircuitViewType, {
     async renderChatOutput({ value }, webview) {
+      const circuitJSON = new TextDecoder().decode(value);
+      const circuit = JSON.parse(circuitJSON) as CircuitData;
       const content = _getWebviewContent(webview);
-      // const source = new TextDecoder().decode(value);
-
-      // let nonce = "";
-      // const possible =
-      //   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-      // for (let i = 0; i < 64; i++) {
-      //   nonce += possible.charAt(Math.floor(Math.random() * possible.length));
-      // }
 
       log.info(content);
       webview.html = content;
 
+      webview.options = {
+        enableScripts: true,
+      };
+
       const title = "hi title";
       const target = `hi target`;
-      const circuit: CircuitData = {
-        version: 1,
-        circuits: [
-          {
-            qubits: [],
-            componentGrid: [
-              // {
-              // components: [{
-              //   gate: "X",
-              //   kind: "unitary",
-              //   targets: ""
-              // }
-            ],
-          },
-        ],
-      };
 
       const props = {
         title,
@@ -159,29 +176,11 @@ export function registerLanguageModelTools(context: vscode.ExtensionContext) {
       };
 
       const message = {
-        command: "circuit",
+        command: "circuit-slim",
         props,
       };
 
-      setTimeout(() => webview.postMessage(message), 10);
-
-      // webview.html = `
-      // 		<!DOCTYPE html>
-      // 		<html lang="en">
-
-      // 		<head>
-      // 			<meta charset="UTF-8">
-      // 			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-      // 			<title>omg</title>
-      // 			<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${webview.cspSource} 'nonce-${nonce}'; style-src 'self' 'unsafe-inline';" />
-      // 		</head>
-
-      // 		<body>
-      // 			<pre>
-      // 				${source}
-      // 			</pre>
-      // 		</body>
-      // 		</html>`;
+      setTimeout(() => webview.postMessage(message), 0);
     },
   });
 

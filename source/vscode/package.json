@@ -864,7 +864,7 @@
         ],
         "toolReferenceName": "qdkGenerateCircuit",
         "displayName": "Generate Quantum Circuit Diagram",
-        "modelDescription": "Generates a visual circuit diagram for a Q# or OpenQASM program. The path to a .qs or .qasm file must be specified in the `filePath` parameter. This tool will compile the program and generate a quantum circuit diagram that visually represents the quantum operations in the code. If the program contains any dynamic behavior such as comparing measurement results, then the program will be executed using a quantum simulator, and the resulting circuit diagram will simply be a trace of the operations that were actually executed during simulation. The diagram will be displayed in a dedicated circuit panel.",
+        "modelDescription": "Generates a visual circuit diagram for a Q# or OpenQASM program. The path to a .qs or .qasm file must be specified in the `filePath` parameter. This tool will compile the program and generate a quantum circuit diagram that visually represents the quantum operations in the code. If the program contains any dynamic behavior such as comparing measurement results, then the program will be executed using a quantum simulator, and the resulting circuit diagram will simply be a trace of the operations that were actually executed during simulation.",
         "canBeReferencedInPrompt": true,
         "icon": "./resources/file-icon-light.svg",
         "inputSchema": {
@@ -946,9 +946,9 @@
     ],
     "chatOutputRenderers": [
       {
-        "viewType": "qdk-config-renderer",
+        "viewType": "qdk-circuit-chat-renderer",
         "mimeTypes": [
-          "application/x.qsharp-config"
+          "application/x.qdk-circuit"
         ]
       }
     ]

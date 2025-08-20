@@ -61,6 +61,7 @@ export async function showCircuitCommand(
   telemetryInvocationType: UserTaskInvocationType,
   telemetryDocumentType?: QsharpDocumentType,
   programConfig?: FullProgramConfig,
+  panel: boolean = true,
 ): Promise<CircuitOrError> {
   clearCommandDiagnostics();
 
@@ -96,10 +97,14 @@ export async function showCircuitCommand(
   // Generate the circuit and update the panel.
   // generateCircuits() takes care of handling timeouts and
   // falling back to the simulator for dynamic circuits.
-  const result = await generateCircuit(extensionUri, {
-    program: programConfig,
-    operation,
-  });
+  const result = await generateCircuit(
+    extensionUri,
+    {
+      program: programConfig,
+      operation,
+    },
+    panel,
+  );
 
   if (result.result === "success") {
     sendTelemetryEvent(EventType.CircuitEnd, {
@@ -143,14 +148,17 @@ export async function showCircuitCommand(
 export async function generateCircuit(
   extensionUri: Uri,
   params: CircuitParams,
+  panel: boolean = true,
 ): Promise<CircuitOrError> {
-  // Before we start, reveal the panel with the "calculating" spinner
-  updateCircuitPanel(
-    params.program.profile,
-    params.program.projectName,
-    true, // reveal
-    { operation: params.operation, calculating: true },
-  );
+  if (panel) {
+    // Before we start, reveal the panel with the "calculating" spinner
+    updateCircuitPanel(
+      params.program.profile,
+      params.program.projectName,
+      true, // reveal
+      { operation: params.operation, calculating: true },
+    );
+  }
 
   // First, try without simulating
   let result = await getCircuitOrErrorWithTimeout(
@@ -163,16 +171,18 @@ export async function generateCircuit(
     // Retry with the simulator if circuit generation failed because
     // there was a result comparison (i.e. if this is a dynamic circuit)
 
-    updateCircuitPanel(
-      params.program.profile,
-      params.program.projectName,
-      false, // reveal
-      {
-        operation: params.operation,
-        calculating: true,
-        simulated: true,
-      },
-    );
+    if (panel) {
+      updateCircuitPanel(
+        params.program.profile,
+        params.program.projectName,
+        false, // reveal
+        {
+          operation: params.operation,
+          calculating: true,
+          simulated: true,
+        },
+      );
+    }
 
     // try again with the simulator
     result = await getCircuitOrErrorWithTimeout(
@@ -185,16 +195,18 @@ export async function generateCircuit(
   // Update the panel with the results
 
   if (result.result === "success") {
-    updateCircuitPanel(
-      params.program.profile,
-      params.program.projectName,
-      false, // reveal
-      {
-        circuit: result.circuit,
-        operation: params.operation,
-        simulated: result.simulated,
-      },
-    );
+    if (panel) {
+      updateCircuitPanel(
+        params.program.profile,
+        params.program.projectName,
+        false, // reveal
+        {
+          circuit: result.circuit,
+          operation: params.operation,
+          simulated: result.simulated,
+        },
+      );
+    }
   } else {
     log.error("Circuit error. ", result);
     let errorHtml = "There was an error generating the circuit.";
@@ -204,16 +216,18 @@ export async function generateCircuit(
       errorHtml = `The circuit generation exceeded the timeout of ${compilerRunTimeoutMs}ms.`;
     }
 
-    updateCircuitPanel(
-      params.program.profile,
-      params.program.projectName,
-      false, // reveal
-      {
-        errorHtml,
-        operation: params.operation,
-        simulated: result.simulated,
-      },
-    );
+    if (panel) {
+      updateCircuitPanel(
+        params.program.profile,
+        params.program.projectName,
+        false, // reveal
+        {
+          errorHtml,
+          operation: params.operation,
+          simulated: result.simulated,
+        },
+      );
+    }
   }
 
   return result;
