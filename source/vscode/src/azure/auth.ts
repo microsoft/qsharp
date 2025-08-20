@@ -32,7 +32,7 @@ export async function getAuthSession(
         createIfNone: true,
       });
     }
-    log.debug("Got session: ", JSON.stringify(session, null, 2));
+    log.debug("Got auth session.");
     sendTelemetryEvent(
       EventType.AuthSessionEnd,
       {
