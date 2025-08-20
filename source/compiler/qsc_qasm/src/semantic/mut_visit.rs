@@ -12,7 +12,7 @@ use crate::{
         ast::{
             AliasDeclStmt, Annotation, Array, AssignStmt, BarrierStmt, BinOp, BinaryOpExpr, Block,
             BoxStmt, BreakStmt, BuiltinFunctionCall, CalibrationGrammarStmt, CalibrationStmt, Cast,
-            ClassicalDeclarationStmt, ContinueStmt, DefCalStmt, DefStmt, DelayStmt,
+            ClassicalDeclarationStmt, ConcatExpr, ContinueStmt, DefCalStmt, DefStmt, DelayStmt,
             DurationofCallExpr, EndStmt, EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl,
             ForStmt, FunctionCall, GateCall, GateModifierKind, GateOperand, GateOperandKind,
             HardwareQubit, IfStmt, IncludeStmt, Index, IndexedClassicalTypeAssignStmt, IndexedExpr,
@@ -212,6 +212,10 @@ pub trait MutVisitor: Sized {
 
     fn visit_durationof_call_expr(&mut self, expr: &mut DurationofCallExpr) {
         walk_durationof_call_expr(self, expr);
+    }
+
+    fn visit_concat_expr(&mut self, expr: &mut ConcatExpr) {
+        walk_concat_expr(self, expr);
     }
 
     fn visit_set(&mut self, set: &mut Set) {
@@ -571,6 +575,7 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
         ExprKind::Measure(expr) => vis.visit_measure_expr(expr),
         ExprKind::SizeofCall(call) => vis.visit_sizeof_call_expr(call),
         ExprKind::DurationofCall(call) => vis.visit_durationof_call_expr(call),
+        ExprKind::Concat(concat) => vis.visit_concat_expr(concat),
         ExprKind::Err => {}
     }
 }
@@ -630,6 +635,13 @@ pub fn walk_durationof_call_expr(vis: &mut impl MutVisitor, expr: &mut Durationo
     vis.visit_span(&mut expr.span);
     vis.visit_span(&mut expr.fn_name_span);
     vis.visit_block(&mut expr.scope);
+}
+
+pub fn walk_concat_expr(vis: &mut impl MutVisitor, expr: &mut ConcatExpr) {
+    vis.visit_span(&mut expr.span);
+    expr.operands
+        .iter_mut()
+        .for_each(|expr| vis.visit_expr(expr));
 }
 
 pub fn walk_set(vis: &mut impl MutVisitor, set: &mut Set) {

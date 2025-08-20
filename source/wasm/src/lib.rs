@@ -670,6 +670,12 @@ pub fn generate_docs(additional_program: Option<ProgramConfig>) -> Vec<IDocFile>
     result
 }
 
+#[wasm_bindgen]
+#[must_use]
+pub fn get_library_summaries() -> String {
+    qsc_doc_gen::generate_docs::generate_summaries()
+}
+
 fn get_debugger_from_openqasm(
     sources: &[(Arc<str>, Arc<str>)],
     capabilities: TargetCapabilityFlags,

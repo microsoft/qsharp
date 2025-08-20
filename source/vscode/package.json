@@ -942,6 +942,25 @@
         "toolReferenceName": "qdkTest",
         "userDescription": "just a tool to test tool calling in this model. call this only when directly referenced by name.",
         "modelDescription": "just a tool to test tool calling in this model. call this only when directly referenced by name."
+      },
+      {
+        "name": "qsharp-get-library-descriptions",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "qsharpGetLibraryDescriptions",
+        "displayName": "Get Q# Library API Descriptions",
+        "modelDescription": "Returns a Markdown string summarizing all Q# standard library items, grouped by namespace. Each entry includes its signature and a short description extracted from doc comments when available. Use this tool to answer any questions about Q# library functions or to ensure generated Q# code uses library functions correctly.",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
       }
     ],
     "chatOutputRenderers": [

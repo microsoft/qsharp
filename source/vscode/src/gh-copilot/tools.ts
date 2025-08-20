@@ -147,6 +147,10 @@ const toolDefinitions: {
       );
     },
   },
+  {
+    name: "qsharp-get-library-descriptions",
+    tool: async () => await qsharpTools!.qsharpGetLibraryDescriptions(),
+  },
 ];
 
 export function registerLanguageModelTools(context: vscode.ExtensionContext) {

@@ -536,6 +536,12 @@ def test_run_with_complex_udt() -> None:
     assert val == 2 + 3j
 
 
+def test_identity_returning_complex_udt() -> None:
+    qsharp.init()
+    qsharp.eval("function Identity(a : Std.Math.Complex) : Std.Math.Complex { a }")
+    assert qsharp.code.Identity(2 + 3j) == 2 + 3j
+
+
 def test_run_with_udt() -> None:
     qsharp.init()
     val = qsharp.run(

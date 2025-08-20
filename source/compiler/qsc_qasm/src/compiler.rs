@@ -620,6 +620,34 @@ impl QasmCompiler {
         Some(decl)
     }
 
+    fn compile_concat_expr(&mut self, expr: &semast::ConcatExpr) -> qsast::Expr {
+        let exprs = expr
+            .operands
+            .iter()
+            .map(|expr| self.compile_expr(expr))
+            .collect::<Vec<_>>();
+
+        assert!(
+            exprs.len() >= 2,
+            "the parser guarantees that a concat expression has at least two operands"
+        );
+
+        let mut expr_iter = exprs.into_iter();
+        let mut expr = expr_iter
+            .next()
+            .expect("concat exprs must have at least one expression");
+
+        for rhs in expr_iter {
+            let span = Span {
+                lo: expr.span.lo,
+                hi: rhs.span.hi,
+            };
+            expr = build_binary_expr(false, qsast::BinOp::Add, expr, rhs, span);
+        }
+
+        expr
+    }
+
     fn compile_assign_stmt(&mut self, stmt: &semast::AssignStmt) -> Option<qsast::Stmt> {
         let lhs = self.compile_expr(&stmt.lhs);
         let rhs = self.compile_expr(&stmt.rhs);
@@ -1506,6 +1534,7 @@ impl QasmCompiler {
             semast::ExprKind::Paren(pexpr) => self.compile_paren_expr(pexpr, expr.span),
             semast::ExprKind::Measure(mexpr) => self.compile_measure_expr(mexpr, &expr.ty),
             semast::ExprKind::SizeofCall(sizeof_call) => self.compile_sizeof_call_expr(sizeof_call),
+            semast::ExprKind::Concat(concat) => self.compile_concat_expr(concat),
             semast::ExprKind::DurationofCall(duration_call) => {
                 self.compile_durationof_call_expr(duration_call)
             }

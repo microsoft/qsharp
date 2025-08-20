@@ -241,6 +241,23 @@ impl Display for MeasureExpr {
     }
 }
 
+/// This expression is not part of the expression tree
+/// and is only used as rhs of alias, classical declaration,
+/// and assignment statements.
+/// Grammar: `expression (DOUBLE_PLUS expression)*`.
+#[derive(Clone, Debug)]
+pub struct ConcatExpr {
+    pub span: Span,
+    pub operands: List<Expr>,
+}
+
+impl Display for ConcatExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "ConcatExpr", self.span)?;
+        write_list_field(f, "operands", &self.operands)
+    }
+}
+
 /// A binary operator.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BinOp {
@@ -1400,8 +1417,11 @@ impl Display for ClassicalDeclarationStmt {
     }
 }
 
+/// A special kind of Expr that allows measurement and concatenation expressions.
+/// It is used as the rhs of alias, classical declaration, and assign statements.
 #[derive(Clone, Debug)]
 pub enum ValueExpr {
+    Concat(ConcatExpr),
     Expr(Expr),
     Measurement(MeasureExpr),
 }
@@ -1409,6 +1429,7 @@ pub enum ValueExpr {
 impl Display for ValueExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Concat(expr) => write!(f, "{expr}"),
             Self::Expr(expr) => write!(f, "{expr}"),
             Self::Measurement(measure) => write!(f, "{measure}"),
         }

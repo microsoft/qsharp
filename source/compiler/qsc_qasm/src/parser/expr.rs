@@ -17,7 +17,10 @@ use crate::{
         ClosedBinOp, Delim, Radix, Token, TokenKind,
         cooked::{ComparisonOp, Literal, TimingLiteralKind},
     },
-    parser::{ast::DurationofCall, stmt::parse_block},
+    parser::{
+        ast::{ConcatExpr, DurationofCall, List},
+        stmt::parse_block,
+    },
 };
 
 use crate::parser::Result;
@@ -26,7 +29,7 @@ use super::{
     ast::{
         BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, GateOperand, GateOperandKind,
         HardwareQubit, Ident, IdentOrIndexedIdent, Index, IndexExpr, IndexList, IndexListItem,
-        IndexedIdent, List, Lit, LiteralKind, MeasureExpr, Range, Set, TimeUnit, TypeDef, UnaryOp,
+        IndexedIdent, Lit, LiteralKind, MeasureExpr, Range, Set, TimeUnit, TypeDef, UnaryOp,
         UnaryOpExpr, ValueExpr, Version, list_from_iter,
     },
     completion::word_kinds::WordKinds,
@@ -700,18 +703,42 @@ fn lit_array_element(s: &mut ParserContext) -> Result<Expr> {
 
 /// These are expressions allowed in classical declarations.
 /// Grammar: `arrayLiteral | expression | measureExpression`.
+///
+/// The Grammar and this comment don't match, since there is a bug in
+/// the Grammar. Here is a link to the issue:
+/// <https://github.com/openqasm/openqasm/issues/620>
 pub(super) fn declaration_expr(s: &mut ParserContext) -> Result<ValueExpr> {
+    let lo = s.peek().span.lo;
+
+    // 1. Try to parse a measurement expression.
     if let Some(measurement) = opt(s, measure_expr)? {
         return Ok(ValueExpr::Measurement(measurement));
     }
 
-    let expr = if let Some(expr) = opt(s, expr)? {
-        expr
-    } else {
-        lit_array(s)?
-    };
+    // Try to parse an expression or a concatenation.
+    if let Some(e) = opt(s, expr)? {
+        let mut exprs = Vec::new();
+        exprs.push(e);
 
-    Ok(ValueExpr::Expr(expr))
+        // Try to parse many expressions separated by the `++` operator.
+        while opt(s, |s| token(s, TokenKind::PlusPlus))?.is_some() {
+            exprs.push(expr(s)?);
+        }
+
+        // If we parsed a single expression, this is just an `Expr`.
+        if exprs.len() == 1 {
+            return Ok(ValueExpr::Expr(
+                exprs.into_iter().next().expect("there is one element"),
+            ));
+        }
+
+        // If we parsed more than one expression, this is a concatenation.
+        let span = s.span(lo);
+        let operands = list_from_iter(exprs);
+        return Ok(ValueExpr::Concat(ConcatExpr { span, operands }));
+    }
+
+    Ok(ValueExpr::Expr(lit_array(s)?))
 }
 
 /// These are expressions allowed in constant classical declarations.
@@ -726,16 +753,6 @@ pub(super) fn const_declaration_expr(s: &mut ParserContext) -> Result<ValueExpr>
     };
 
     Ok(ValueExpr::Expr(expr))
-}
-
-/// These are expressions allowed in `Assign`, `AssignOp`, and return stmts.
-/// Grammar: `expression | measureExpression`.
-pub(super) fn expr_or_measurement(s: &mut ParserContext) -> Result<ValueExpr> {
-    if let Some(measurement) = opt(s, measure_expr)? {
-        return Ok(ValueExpr::Measurement(measurement));
-    }
-
-    Ok(ValueExpr::Expr(expr(s)?))
 }
 
 pub(crate) fn expr_list(s: &mut ParserContext) -> Result<Vec<Expr>> {

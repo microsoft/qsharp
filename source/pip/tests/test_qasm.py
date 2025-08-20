@@ -569,6 +569,15 @@ def test_callable_with_complex_input_output() -> None:
     assert code.ComplexOutput(2 + 3j) == 4 + 6j
 
 
+def test_identity_returning_complex_udt() -> None:
+    init()
+    import_openqasm(
+        "def ComplexOutput(complex a) -> complex { return a; }",
+        program_type=ProgramType.Fragments,
+    )
+    assert code.ComplexOutput(2 + 3j) == 2 + 3j
+
+
 def test_callable_with_angle_input() -> None:
     init()
     import_openqasm("def AngleInput(angle a) { }", program_type=ProgramType.Fragments)
@@ -582,6 +591,15 @@ def test_callable_with_angle_output() -> None:
         program_type=ProgramType.Fragments,
     )
     assert code.AngleOutput() == pi
+
+
+def test_callable_with_angle_input_output() -> None:
+    init()
+    import_openqasm(
+        "def AngleOutput(angle a) -> angle { return a; }",
+        program_type=ProgramType.Fragments,
+    )
+    assert code.AngleOutput(pi) == pi
 
 
 def test_circuit_from_program() -> None:

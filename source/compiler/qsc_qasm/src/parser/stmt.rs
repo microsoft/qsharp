@@ -221,7 +221,7 @@ fn disambiguate_ident(
     let lo = ident_or_indexed_ident.span().lo;
     if s.peek().kind == TokenKind::Eq {
         s.advance();
-        let expr = expr::expr_or_measurement(s)?;
+        let expr = expr::declaration_expr(s)?;
         recovering_semi(s);
         Ok(StmtKind::Assign(AssignStmt {
             span: s.span(lo),
@@ -231,7 +231,7 @@ fn disambiguate_ident(
     } else if let TokenKind::BinOpEq(op) = s.peek().kind {
         s.advance();
         let op = expr::closed_bin_op(op);
-        let expr = expr::expr_or_measurement(s)?;
+        let expr = expr::declaration_expr(s)?;
         recovering_semi(s);
         Ok(StmtKind::AssignOp(AssignOpStmt {
             span: s.span(lo),
@@ -805,7 +805,7 @@ fn gate_params(s: &mut ParserContext<'_>) -> Result<Vec<SeqItem<Ident>>> {
 fn parse_return(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(crate::keyword::Keyword::Return))?;
-    let expr = opt(s, expr::expr_or_measurement)?.map(Box::new);
+    let expr = opt(s, expr::declaration_expr)?.map(Box::new);
     recovering_semi(s);
     Ok(StmtKind::Return(ReturnStmt {
         span: s.span(lo),

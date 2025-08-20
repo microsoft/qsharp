@@ -226,6 +226,23 @@ export class QSharpTools {
     }
   }
 
+  /**
+   * Copilot tool: Returns a Markdown string summarizing all Q# standard library items,
+   * organized by namespace. Each entry includes its signature and a short description extracted
+   * from doc comments when available.
+   */
+  async qsharpGetLibraryDescriptions(): Promise<string> {
+    const compilerRunTimeoutMs = 1000 * 5; // 5 seconds
+    const compilerTimeout = setTimeout(() => {
+      worker.terminate();
+    }, compilerRunTimeoutMs);
+    const worker = loadCompilerWorker(this.extensionUri!);
+    const summaries = await worker.getLibrarySummaries();
+    clearTimeout(compilerTimeout);
+    worker.terminate();
+    return summaries;
+  }
+
   async getProgram(
     filePath: string,
     options: { targetProfileFallback?: TargetProfile } = {},

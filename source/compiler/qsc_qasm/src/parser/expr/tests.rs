@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use super::expr;
+use crate::parser::stmt::parse as stmt;
 use crate::{
     parser::ast::StmtKind,
     parser::{scan::ParserContext, stmt, tests::check},
@@ -1209,5 +1210,33 @@ fn duration_of() {
                             qubits:
                                 GateOperand [21-23]:
                                     kind: HardwareQubit [21-23]: 0"#]],
+    );
+}
+
+#[test]
+fn array_concatenation_is_not_part_of_the_expr_tree() {
+    let source = "a ++ b;";
+
+    check(
+        stmt,
+        source,
+        &expect![[r#"
+        Stmt [0-1]:
+            annotations: <empty>
+            kind: ExprStmt [0-1]:
+                expr: Expr [0-1]: Ident [0-1] "a"
+
+        [
+            Error(
+                Token(
+                    Semicolon,
+                    PlusPlus,
+                    Span {
+                        lo: 2,
+                        hi: 4,
+                    },
+                ),
+            ),
+        ]"#]],
     );
 }
