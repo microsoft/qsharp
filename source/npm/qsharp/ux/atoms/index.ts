@@ -7,15 +7,14 @@ import {
   createZoomControls,
 } from "./controls";
 import "./index.css";
-import { Layout } from "./layout";
-import { MachineLayout, TraceData } from "./loader";
+import { Layout, type ZoneLayout, type TraceData } from "./layout";
 import { addChildWithClass } from "./utils";
 
-export type { MachineLayout, TraceData } from "./loader.js";
+export type { TraceData, ZoneLayout };
 
 export function Atoms(
   container: HTMLElement,
-  machineLayout: MachineLayout,
+  zoneLayout: ZoneLayout,
   trace: TraceData,
 ) {
   container.classList.add("qs-atoms-app");
@@ -32,7 +31,7 @@ export function Atoms(
 
   // Render the layout
   const zones = addChildWithClass(container, "div", "qs-atoms-zones");
-  const layout = new Layout(machineLayout, trace);
+  const layout = new Layout(zoneLayout, trace);
   zones.appendChild(layout.container);
 
   scrubberControls.setNavHandler((step: number) => layout.gotoStep(step));
@@ -154,5 +153,5 @@ export function Atoms(
   play.addEventListener("click", onPlayPause);
   pause.addEventListener("click", onPlayPause);
 
-  onZoomIn();
+  setTimeout(onZoomOut, 16);
 }

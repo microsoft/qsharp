@@ -117,12 +117,12 @@
 }
 
 .qs-atoms-zones {
-  margin: 16px auto;
+  margin: 8px auto;
 }
 
 .qs-atoms-zone-text {
-  font-size: 6px;
-  font-family: "Helvetica";
+  font-size: 8px;
+  font-family: system-ui;
   fill: gray;
   stroke-width: 0;
   user-select: none;
@@ -131,7 +131,7 @@
 
 .qs-atoms-label {
   font-size: 6px;
-  font-family: "Helvetica";
+  font-family: system-ui;
   fill: var(--qs-atoms-label);
   stroke-width: 0;
   user-select: none;

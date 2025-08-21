@@ -1,15 +1,38 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { TraceData } from "./loader";
 import { appendChildren, createSvgElements, setAttributes } from "./utils";
 
-type MachineLayout = {
-  cols: number;
-  readoutRows: number;
-  interactionRows: number;
-  storageRows: number;
+// Zones will be rendered from top to bottom in array order
+type ZoneData = {
+  title: string;
+  rows: number;
+  kind: "register" | "interaction" | "measurement";
 };
+
+export type ZoneLayout = {
+  cols: number;
+  zones: ZoneData[];
+};
+
+export type TraceData = {
+  metadata: any;
+  qubits: Array<[number, number]>;
+  steps: Array<{
+    id: string | number;
+    ops: Array<string>;
+  }>;
+};
+
+// const exampleLayout: ZoneLayout = {
+//   "cols": 36,
+//   "zones": [
+//     { "title": "Register 1", "rows": 17, "kind": "register" },
+//     { "title": "Interaction Zone", "rows": 4, "kind": "interaction" },
+//     { "title": "Register 2", "rows": 17, "kind": "register" },
+//     { "title": "Measurement Zone", "rows": 4, "kind": "measurement" },
+//   ],
+// };
 
 type Location = [number, number, SVGElement?];
 
@@ -19,25 +42,32 @@ type PerStepLayout = Array<{
 }>;
 
 const qubitSize = 10;
-const zoneSpacing = 10;
+const zoneSpacing = 8;
 const colPadding = 20;
-const initialScale = 2.5;
+const initialScale = 2;
 const scaleStep = 0.25;
 const speedStep = 0.75;
 const zoneBoxCornerRadius = 3;
 const doublonCornerRadius = 5;
 
+// Used when no trace data is provided to fill the qubit mappings, assuming all register
+// zones are populated with sequentially numbered qubit ids from the top left to the bottom right.
 export function fillQubitLocations(
-  rows: number,
-  cols: number,
-  startRow: number,
-): Location[] {
-  const qubits: Location[] = [];
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      qubits.push([row + startRow, col]);
+  layout: ZoneLayout,
+): Array<[number, number]> {
+  const qubits: Array<[number, number]> = [];
+  let currRow = 0;
+  layout.zones.forEach((zone) => {
+    for (let row = 0; row < zone.rows; ++row) {
+      if (zone.kind === "register") {
+        for (let col = 0; col < layout.cols; ++col) {
+          qubits.push([currRow, col]);
+        }
+      }
+      ++currRow;
     }
-  }
+  });
+
   return qubits;
 }
 
@@ -97,6 +127,7 @@ export class Layout {
   height: number;
   scale: number = initialScale;
   qubits: Location[];
+  rowOffset: number[];
   currentStep = 0;
   trackParent: SVGGElement;
   activeGates: SVGElement[] = [];
@@ -105,12 +136,13 @@ export class Layout {
   stepInterval = 500; // Used for playing and animations
 
   constructor(
-    public layout: MachineLayout,
+    public layout: ZoneLayout,
     trace: TraceData,
   ) {
-    if (layout.interactionRows != 1) {
-      throw "Only 1 interaction row supported";
+    if (!trace.qubits?.length) {
+      trace.qubits = fillQubitLocations(layout);
     }
+
     this.perStepLayout = TraceToPerStepLayout(trace);
     this.qubits = structuredClone(this.perStepLayout[0].qubits);
 
@@ -119,9 +151,10 @@ export class Layout {
       "svg",
     );
 
-    const totalRows =
-      layout.readoutRows + layout.interactionRows + layout.storageRows;
-    this.height = totalRows * qubitSize + zoneSpacing * 4;
+    const totalRows = layout.zones.reduce((prev, curr) => prev + curr.rows, 0);
+
+    this.height =
+      totalRows * qubitSize + zoneSpacing * (layout.zones.length + 1);
     this.width = layout.cols * qubitSize + colPadding;
 
     setAttributes(this.container, {
@@ -130,137 +163,93 @@ export class Layout {
       height: `${this.height * this.scale}px`,
     });
 
-    const readoutOffset = this.getQubitRowOffset(0);
-    const interactionOffset = this.getQubitRowOffset(layout.readoutRows);
-    const storageOffset = this.getQubitRowOffset(
-      layout.readoutRows + layout.interactionRows,
-    );
-    const colNumOffset = this.getQubitRowOffset(totalRows);
+    // Loop through the zones, calculating the row offsets, and rendering the zones
+    this.rowOffset = [];
+    let nextOffset = zoneSpacing;
+    let nextRowNum = 0;
+    layout.zones.forEach((zone, index) => {
+      this.renderZone(index, nextOffset, nextRowNum);
+      for (let i = 0; i < zone.rows; ++i) {
+        this.rowOffset.push(nextOffset);
+        nextOffset += qubitSize;
+        ++nextRowNum;
+      }
+      nextOffset += zoneSpacing; // Add spacing after each zone
+    });
 
-    this.renderZone(readoutOffset, "Readout", layout.readoutRows, layout.cols);
-    this.renderDoublons(
-      interactionOffset,
-      "Interaction",
-      layout.cols,
-      layout.readoutRows,
-    );
-    this.renderZone(
-      storageOffset,
-      "Storage",
-      layout.storageRows,
-      layout.cols,
-      layout.readoutRows + layout.interactionRows,
-    );
+    const colNumOffset = nextOffset - 8;
+    this.renderColNums(layout.cols, colNumOffset);
 
     // Put the track parent before the qubits, so the qubits render on top
     this.trackParent = createSvgElements("g")[0] as SVGGElement;
     appendChildren(this.container, [this.trackParent]);
 
     this.renderQubits();
-    this.renderColNums(layout.cols, colNumOffset);
   }
 
-  private renderZone(
-    offset: number,
-    title: string,
-    rows: number,
-    cols: number,
-    firstRowNum = 0,
-  ) {
-    const g = createSvgElements("g")[0];
-    setAttributes(g, {
-      transform: `translate(0 ${offset})`,
-      class: "qs-atoms-zonebox",
-    });
-    const rect = createSvgElements("rect")[0];
-    setAttributes(rect, {
-      x: "0",
-      y: "0",
-      width: `${cols * qubitSize}`,
-      height: `${rows * qubitSize}`,
-      rx: `${zoneBoxCornerRadius}`,
-    });
-    appendChildren(g, [rect]);
-
-    // Draw the lines between the rows
-    for (let i = 1; i < rows; i++) {
-      const path = createSvgElements("path")[0];
-      setAttributes(path, {
-        d: `M 0,${i * qubitSize} h${cols * qubitSize}`,
-      });
-      appendChildren(g, [path]);
-    }
-
-    // Number the rows
-    for (let i = 0; i < rows; ++i) {
-      const rowNum = firstRowNum + i;
-      const label = createSvgElements("text")[0];
-      setAttributes(label, {
-        x: `${cols * qubitSize + 5}`,
-        y: `${i * qubitSize + 5}`,
-        class: "qs-atoms-label",
-      });
-      label.textContent = `${rowNum}`;
-      appendChildren(g, [label]);
-    }
-
-    // Draw the lines between the columns
-    for (let i = 1; i < cols; i++) {
-      const path = createSvgElements("path")[0];
-      setAttributes(path, {
-        d: `M ${i * qubitSize},0 v${rows * qubitSize}`,
-      });
-      appendChildren(g, [path]);
-    }
-
-    // Draw the title
-    const text = createSvgElements("text")[0];
-    setAttributes(text, {
-      x: "1",
-      y: "-1",
-      class: "qs-atoms-zone-text",
-    });
-    text.textContent = title;
-
-    appendChildren(g, [text]);
-    appendChildren(this.container, [g]);
-  }
-
-  private renderDoublons(
-    offset: number,
-    title: string,
-    cols: number,
-    firstRowNum = 1,
-  ) {
+  private renderZone(zoneIndex: number, offset: number, firstRowNum = 0) {
+    const zoneData = this.layout.zones[zoneIndex];
     const g = createSvgElements("g")[0];
     setAttributes(g, {
       transform: `translate(0 ${offset})`,
       class: "qs-atoms-zonebox",
     });
 
-    // Draw each doublon
-    for (let i = 0; i < cols; i += 2) {
+    if (zoneData.kind !== "interaction") {
+      // For non-interaction zones we draw one big rounded rectangle with lines between qubit rows & cols
       const rect = createSvgElements("rect")[0];
       setAttributes(rect, {
-        x: `${i * qubitSize}`,
+        x: "0",
         y: "0",
-        width: `${qubitSize * 2}`,
-        height: `${qubitSize}`,
-        rx: `${doublonCornerRadius}`,
+        width: `${this.layout.cols * qubitSize}`,
+        height: `${zoneData.rows * qubitSize}`,
+        rx: `${zoneBoxCornerRadius}`,
       });
-      const path = createSvgElements("path")[0];
-      setAttributes(path, {
-        d: `M ${(i + 1) * qubitSize},0 v${qubitSize}`,
-      });
-      appendChildren(g, [rect, path]);
+      appendChildren(g, [rect]);
+
+      // Draw the lines between the rows
+      for (let i = 1; i < zoneData.rows; i++) {
+        const path = createSvgElements("path")[0];
+        setAttributes(path, {
+          d: `M 0,${i * qubitSize} h${this.layout.cols * qubitSize}`,
+        });
+        appendChildren(g, [path]);
+      }
+      // Draw the lines between the columns
+      for (let i = 1; i < this.layout.cols; i++) {
+        const path = createSvgElements("path")[0];
+        setAttributes(path, {
+          d: `M ${i * qubitSize},0 v${zoneData.rows * qubitSize}`,
+        });
+        appendChildren(g, [path]);
+      }
+    } else {
+      // For the interaction zone draw each doublon
+      for (let row = 0; row < zoneData.rows; ++row) {
+        for (let i = 0; i < this.layout.cols; i += 2) {
+          const rect = createSvgElements("rect")[0];
+          setAttributes(rect, {
+            x: `${i * qubitSize}`,
+            y: `${row * qubitSize}`,
+            width: `${qubitSize * 2}`,
+            height: `${qubitSize}`,
+            rx: `${doublonCornerRadius}`,
+          });
+          const path = createSvgElements("path")[0];
+          setAttributes(path, {
+            d: `M ${(i + 1) * qubitSize},${row * qubitSize} v${qubitSize}`,
+          });
+          appendChildren(g, [rect, path]);
+        }
+      }
     }
 
     // Number the rows
-    for (let i = 0; i < 1 /* only 1 doublon row */; ++i) {
+    for (let i = 0; i < zoneData.rows; ++i) {
       const rowNum = firstRowNum + i;
       const label = createSvgElements("text")[0];
       setAttributes(label, {
-        x: `${cols * qubitSize + 5}`,
+        x: `${this.layout.cols * qubitSize + 5}`,
         y: `${i * qubitSize + 5}`,
         class: "qs-atoms-label",
       });
@@ -275,7 +264,7 @@ export class Layout {
       y: "-1",
       class: "qs-atoms-zone-text",
     });
-    text.textContent = title;
+    text.textContent = zoneData.title;
 
     appendChildren(g, [text]);
     appendChildren(this.container, [g]);
@@ -451,13 +440,7 @@ export class Layout {
   }
 
   getQubitRowOffset(row: number) {
-    if (row < this.layout.readoutRows) {
-      return zoneSpacing + row * qubitSize;
-    } else if (row < this.layout.readoutRows + this.layout.interactionRows) {
-      return 2 * zoneSpacing + row * qubitSize;
-    } else {
-      return 3 * zoneSpacing + row * qubitSize;
-    }
+    return this.rowOffset[row];
   }
 
   getLocationCenter(row: number, col: number): [number, number] {
