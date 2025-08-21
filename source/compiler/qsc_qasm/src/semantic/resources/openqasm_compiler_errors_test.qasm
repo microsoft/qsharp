@@ -74,8 +74,5 @@ def mut_subroutine_static(mutable array[int[8], 2, 3] arr_arg) {
 // NotSupported stretch types values
 //stretch stretch_val = dur0 - dur1;
 
-// Unimplemented
-extern extern_func(int);
-
 // NotSupported hardware qubit
 x $0;

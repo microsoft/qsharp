@@ -128,23 +128,12 @@ fn check_compiler_error_spans_are_correct() {
              55 | 
                 `----
 
-            Qasm.Compiler.Unimplemented
-
-              x this statement is not yet handled during OpenQASM 3 import: extern
-              | statements
-                ,-[Test.qasm:78:1]
-             77 | // Unimplemented
-             78 | extern extern_func(int);
-                : ^^^^^^^^^^^^^^^^^^^^^^^^
-             79 | 
-                `----
-
             Qasm.Compiler.NotSupported
 
               x hardware qubit operands are not supported
-                ,-[Test.qasm:81:3]
-             80 | // NotSupported hardware qubit
-             81 | x $0;
+                ,-[Test.qasm:78:3]
+             77 | // NotSupported hardware qubit
+             78 | x $0;
                 :   ^^
                 `----
         "#]],
