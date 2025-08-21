@@ -436,6 +436,12 @@ pub(super) enum Constraint {
         actual: Ty,
         span: Span,
     },
+    // Constraint that is satisfied if the two types are equal OR form a (Double, Complex) mix.
+    Interoperable {
+        a: Ty,
+        b: Ty,
+        span: Span,
+    },
     Superset {
         expected: FunctorSetValue,
         actual: FunctorSet,
@@ -451,6 +457,9 @@ pub(super) struct Inferrer {
     ty_metadata: IndexMap<InferTyId, TySource>,
     next_ty: InferTyId,
     next_functor: InferFunctorId,
+    /// Records of (result_infer, lhs_ty_snapshot, rhs_ty_snapshot) for '+' so we can adjust
+    /// result type post solving for Double/Complex mixes without forcing Double==Complex.
+    add_result_adjustments: Vec<(InferTyId, Ty, Ty)>,
 }
 
 impl Inferrer {
@@ -461,6 +470,7 @@ impl Inferrer {
             next_ty: InferTyId::default(),
             next_functor: InferFunctorId::default(),
             ty_metadata: IndexMap::default(),
+            add_result_adjustments: Vec::new(),
         }
     }
 
@@ -471,6 +481,12 @@ impl Inferrer {
             actual,
             span,
         });
+    }
+
+    /// Introduces an interoperability constraint (equal OR Double/Complex mix)
+    pub(super) fn interoperable(&mut self, span: Span, a: Ty, b: Ty) {
+        self.constraints
+            .push_back(Constraint::Interoperable { a, b, span });
     }
 
     /// Introduces a class constraint.
@@ -541,12 +557,54 @@ impl Inferrer {
         (ty, args)
     }
 
+    /// Record an addition result triple for later adjustment.
+    pub(super) fn record_add_result(&mut self, result: &Ty, lhs: &Ty, rhs: &Ty) {
+        if let Ty::Infer(infer) = result {
+            self.add_result_adjustments
+                .push((*infer, lhs.clone(), rhs.clone()));
+        }
+    }
+
     /// Solves for all variables given the accumulated constraints.
     pub(super) fn solve(&mut self, udts: &FxHashMap<ItemId, Udt>) -> Vec<Error> {
         while let Some(constraint) = self.constraints.pop_front() {
             for constraint in self.solver.constrain(udts, constraint).into_iter().rev() {
                 self.constraints.push_front(constraint);
             }
+        }
+        // Post-process recorded '+' results: if operands resolved to Double+Complex mix, set result Complex.
+        for (res_infer, mut lhs, mut rhs) in self.add_result_adjustments.drain(..) {
+            substitute_ty(&self.solver.solution, &mut lhs);
+            substitute_ty(&self.solver.solution, &mut rhs);
+            let lhs_is_complex = lhs.is_complex_udt();
+            let rhs_is_complex = rhs.is_complex_udt();
+            let lhs_is_double = matches!(lhs, Ty::Prim(Prim::Double));
+            let rhs_is_double = matches!(rhs, Ty::Prim(Prim::Double));
+            let complex_ty = if lhs_is_complex {
+                Some(lhs.clone())
+            } else if rhs_is_complex {
+                Some(rhs.clone())
+            } else {
+                None
+            };
+            if let Some(complex_ty) = complex_ty {
+                // If either side Complex, ensure result is Complex.
+                if !self.solver.solution.tys.contains_key(res_infer) {
+                    self.solver.solution.tys.insert(res_infer, complex_ty);
+                }
+            } else if (lhs_is_double && rhs_is_double) || (matches!(lhs, Ty::Prim(_)) && lhs == rhs)
+            {
+                // Both same primitive numeric: adopt lhs if unset.
+                if !self.solver.solution.tys.contains_key(res_infer) {
+                    self.solver.solution.tys.insert(res_infer, lhs.clone());
+                }
+            }
+            // Fallback: if still unresolved (e.g., invalid mix like (Int,Int)+Double), default to lhs
+            // so we don't emit an extra AmbiguousTy on top of the real errors.
+            if !self.solver.solution.tys.contains_key(res_infer) {
+                self.solver.solution.tys.insert(res_infer, lhs.clone());
+            }
+            // Mixed Double with other numeric types (Int/BigInt) already produce mismatch elsewhere.
         }
         let unresolved_ty_errs = self.find_unresolved_types();
         self.solver.default_functors(self.next_functor);
@@ -625,6 +683,29 @@ impl Solver {
                 actual,
                 span,
             } => self.eq(expected, actual, span),
+            Constraint::Interoperable { mut a, mut b, span } => {
+                // Substitute known solutions; if either remains an Infer, degrade to Eq to drive inference
+                let a_sub = substitute_ty(&self.solution, &mut a);
+                let b_sub = substitute_ty(&self.solution, &mut b);
+                if matches!(a, Ty::Infer(_)) || matches!(b, Ty::Infer(_)) || !a_sub || !b_sub {
+                    return vec![Constraint::Eq {
+                        expected: a,
+                        actual: b,
+                        span,
+                    }];
+                }
+                if a == b {
+                    return Vec::new();
+                }
+                let is_double_complex_mix = (matches!(a, Ty::Prim(Prim::Double))
+                    && b.is_complex_udt())
+                    || (matches!(b, Ty::Prim(Prim::Double)) && a.is_complex_udt());
+                if is_double_complex_mix {
+                    return Vec::new();
+                }
+
+                self.eq(a, b, span)
+            }
             Constraint::Superset {
                 expected,
                 actual,
@@ -791,10 +872,7 @@ impl Solver {
                     .collect()
             }
             (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Vec::new(),
-            // Treat Double and Complex as equal for equality constraints.
-            (Ty::Prim(Prim::Double), ty) | (ty, Ty::Prim(Prim::Double)) if ty.is_complex_udt() => {
-                Vec::new()
-            }
+            // No special-casing Double vs Complex here; use Interoperable constraint instead.
             (Ty::Tuple(items1), Ty::Tuple(items2)) => {
                 if items1.len() != items2.len() {
                     self.errors.push(Error(ErrorKind::TyMismatch(

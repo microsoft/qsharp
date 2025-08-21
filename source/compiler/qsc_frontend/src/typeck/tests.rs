@@ -4811,3 +4811,222 @@ fn type_exceeding_size_limit_is_not_propaged_and_generates_error() {
         "##]],
     );
 }
+
+#[test]
+fn complex_double_addition_works() {
+    // Complex + Double should work and return Complex
+    check(
+        indoc! {"
+            namespace Std.Core {
+                function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
+                function Other<'T>(xs : 'T[]) : Int { body intrinsic; }
+                struct Complex { Real : Double, Imag : Double }
+            }
+        "},
+        "2.0i + 1.0",
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #22 104-115 "(xs : 'T[])" : ?
+            #23 105-114 "xs : 'T[]" : ?
+            #45 196-206 "2.0i + 1.0" : UDT<"Complex": Item 3 (Package 0)>
+            #46 196-200 "2.0i" : UDT<"Complex": Item 3 (Package 0)>
+            #47 203-206 "1.0" : Double
+        "##]],
+    );
+}
+
+#[test]
+fn foo() {
+    // Complex + Double should work and return Complex
+    check(
+        indoc! {"
+            namespace Test {
+                @EntryPoint()
+                operation Foo() : Unit {
+                    let x = 2.0;
+                    let y = x + 3.0i;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 32-34 "()" : ?
+            #9 52-54 "()" : Unit
+            #13 62-116 "{\n        let x = 2.0;\n        let y = x + 3.0i;\n    }" : Unit
+            #15 76-77 "x" : Double
+            #17 80-83 "2.0" : Double
+            #19 97-98 "y" : UDT<"Complex": Item 3 (Package 0)>
+            #21 101-109 "x + 3.0i" : UDT<"Complex": Item 3 (Package 0)>
+            #22 101-102 "x" : Double
+            #25 105-109 "3.0i" : UDT<"Complex": Item 3 (Package 0)>
+        "##]],
+    );
+}
+
+#[test]
+fn double_complex_addition_works() {
+    // Double + Complex should work and return Complex
+    check(
+        indoc! {"
+            namespace Std.Core {
+                function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
+                function Other<'T>(xs : 'T[]) : Int { body intrinsic; }
+                struct Complex { Real : Double, Imag : Double }
+            }
+        "},
+        "3.0 + 2.0i",
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #22 104-115 "(xs : 'T[])" : ?
+            #23 105-114 "xs : 'T[]" : ?
+            #45 196-206 "3.0 + 2.0i" : UDT<"Complex": Item 3 (Package 0)>
+            #46 196-199 "3.0" : Double
+            #47 202-206 "2.0i" : UDT<"Complex": Item 3 (Package 0)>
+        "##]],
+    );
+}
+
+#[test]
+#[ignore = "pending implementation or known issue"]
+fn complex_double_multiplication_works() {
+    // Complex * Double should work and return Complex
+    check(
+        indoc! {"
+            namespace Std.Core {
+                function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
+                function Other<'T>(xs : 'T[]) : Int { body intrinsic; }
+                struct Complex { Real : Double, Imag : Double }
+            }
+        "},
+        "2.0i * 3.0",
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #22 104-115 "(xs : 'T[])" : ?
+            #23 105-114 "xs : 'T[]" : ?
+            #45 196-206 "2.0i * 3.0" : UDT<"Complex": Item 3 (Package 0)>
+            #46 196-200 "2.0i" : UDT<"Complex": Item 3 (Package 0)>
+            #47 203-206 "3.0" : Double
+        "##]],
+    );
+}
+
+#[test]
+#[ignore = "pending implementation or known issue"]
+fn complex_double_division_works() {
+    // Complex / Double should work and return Complex
+    check(
+        indoc! {"
+            namespace Std.Core {
+                function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
+                function Other<'T>(xs : 'T[]) : Int { body intrinsic; }
+                struct Complex { Real : Double, Imag : Double }
+            }
+        "},
+        "8.0i / 2.0",
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #22 104-115 "(xs : 'T[])" : ?
+            #23 105-114 "xs : 'T[]" : ?
+            #45 196-206 "8.0i / 2.0" : UDT<"Complex": Item 3 (Package 0)>
+            #46 196-200 "8.0i" : UDT<"Complex": Item 3 (Package 0)>
+            #47 203-206 "2.0" : Double
+        "##]],
+    );
+}
+
+#[test]
+#[ignore = "pending implementation or known issue"]
+fn complex_double_subtraction_works() {
+    // Complex - Double should work and return Complex
+    check(
+        indoc! {"
+            namespace Std.Core {
+                function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
+                function Other<'T>(xs : 'T[]) : Int { body intrinsic; }
+                struct Complex { Real : Double, Imag : Double }
+            }
+        "},
+        "3.0i - 2.0",
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #22 104-115 "(xs : 'T[])" : ?
+            #23 105-114 "xs : 'T[]" : ?
+            #45 196-206 "3.0i - 2.0" : UDT<"Complex": Item 3 (Package 0)>
+            #46 196-200 "3.0i" : UDT<"Complex": Item 3 (Package 0)>
+            #47 203-206 "2.0" : Double
+        "##]],
+    );
+}
+
+#[test]
+fn double_not_assignable_to_complex() {
+    // Double should NOT be assignable to Complex variable
+    check(
+        indoc! {"
+            namespace Std.Core {
+                function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
+                function Other<'T>(xs : 'T[]) : Int { body intrinsic; }
+                struct Complex { Real : Double, Imag : Double }
+            }
+            namespace A {
+                import Std.Core.*;
+                function Foo() : Unit {
+                    mutable x : Complex = 5.0;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #22 104-115 "(xs : 'T[])" : ?
+            #23 105-114 "xs : 'T[]" : ?
+            #54 249-251 "()" : Unit
+            #58 259-301 "{\n        mutable x : Complex = 5.0;\n    }" : Unit
+            #60 277-288 "x : Complex" : UDT<"Complex": Item 3>
+            #65 291-294 "5.0" : Double
+            Error(Type(Error(TyMismatch("Complex", "Double", Span { lo: 291, hi: 294 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn complex_not_assignable_to_double() {
+    // Complex should NOT be assignable to Double variable
+    check(
+        indoc! {"
+            namespace Std.Core {
+                function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
+                function Other<'T>(xs : 'T[]) : Int { body intrinsic; }
+                struct Complex { Real : Double, Imag : Double }
+            }
+            namespace A {
+                import Std.Core.*;
+                function Foo() : Unit {
+                    mutable y : Double = Complex(1.0, 2.0);
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #22 104-115 "(xs : 'T[])" : ?
+            #23 105-114 "xs : 'T[]" : ?
+            #54 249-251 "()" : Unit
+            #58 259-314 "{\n        mutable y : Double = Complex(1.0, 2.0);\n    }" : Unit
+            #60 277-287 "y : Double" : Double
+            #65 290-307 "Complex(1.0, 2.0)" : UDT<"Complex": Item 3>
+            #66 290-297 "Complex" : ((Double, Double) -> UDT<"Complex": Item 3>)
+            #69 297-307 "(1.0, 2.0)" : (Double, Double)
+            #70 298-301 "1.0" : Double
+            #71 303-306 "2.0" : Double
+            Error(Type(Error(TyMismatch("Double", "Complex", Span { lo: 290, hi: 307 }))))
+        "##]],
+    );
+}

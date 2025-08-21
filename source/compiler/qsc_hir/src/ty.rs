@@ -215,7 +215,8 @@ impl Ty {
     #[must_use]
     pub fn is_complex_udt(&self) -> bool {
         match self {
-            Ty::Udt(_, Res::Item(id)) => id.is_complex_udt(),
+            // Prefer the canonical Core Complex by ItemId when available
+            Ty::Udt(name, Res::Item(id)) => id.is_complex_udt() || name.as_ref() == "Complex",
             _ => false,
         }
     }

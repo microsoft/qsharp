@@ -764,14 +764,57 @@ impl<'a> Context<'a> {
                 converge(Ty::Prim(Prim::Bool))
             }
             BinOp::Add => {
-                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty.clone());
+                // Order: put interoperability (which may degrade to Eq and yield a TyMismatch)
+                // before the class constraint so mismatch diagnostics appear before MissingClassAdd.
+                self.inferrer
+                    .interoperable(rhs_span, lhs.ty.clone(), rhs.ty.clone());
                 self.inferrer.class(lhs_span, Class::Add(lhs.ty.clone()));
-                if (Self::is_double(&lhs.ty) && rhs.ty.is_complex_udt())
-                    || (lhs.ty.is_complex_udt() && Self::is_double(&rhs.ty))
-                {
+
+                // Fast path: if either operand is already Complex, result is immediately Complex.
+                if lhs.ty.is_complex_udt() || rhs.ty.is_complex_udt() {
                     converge(Self::complex_ty())
                 } else {
-                    lhs
+                    // Helper predicates.
+                    let prim_of = |t: &Ty| matches!(t, Ty::Prim(_));
+                    let is_double = |t: &Ty| matches!(t, Ty::Prim(Prim::Double));
+
+                    let both_same_concrete_prim =
+                        prim_of(&lhs.ty) && prim_of(&rhs.ty) && lhs.ty == rhs.ty;
+
+                    // Case 1: same concrete primitive (e.g., Int + Int, Double + Double) → that primitive.
+                    if both_same_concrete_prim {
+                        converge(lhs.ty.clone())
+                    }
+                    // Case 2: one inference, one concrete primitive (non-Double): we can safely
+                    // commit to that primitive now; no future Complex upgrade is possible because
+                    // only Double interoperates with Complex.
+                    else if (matches!(lhs.ty, Ty::Infer(_))
+                        && prim_of(&rhs.ty)
+                        && !is_double(&rhs.ty))
+                        || (matches!(rhs.ty, Ty::Infer(_))
+                            && prim_of(&lhs.ty)
+                            && !is_double(&lhs.ty))
+                    {
+                        let concrete = if prim_of(&lhs.ty) {
+                            lhs.ty.clone()
+                        } else {
+                            rhs.ty.clone()
+                        };
+                        converge(concrete)
+                    }
+                    // Case 3: both operands are inference vars → reuse one to avoid extra ambiguity sites.
+                    else if matches!((&lhs.ty, &rhs.ty), (Ty::Infer(_), Ty::Infer(_))) {
+                        converge(lhs.ty.clone())
+                    }
+                    // Remaining cases (including Double + inference, inference + Double, Double + Int
+                    // that will produce a mismatch, etc.) need deferred result determination because
+                    // an inference var paired with a Double might later become Complex. Defer via a
+                    // fresh inference variable and post-solve adjustment.
+                    else {
+                        let fresh = self.inferrer.fresh_ty(TySource::not_divergent(span));
+                        self.inferrer.record_add_result(&fresh, &lhs_ty, &rhs_ty);
+                        converge(fresh)
+                    }
                 }
             }
             BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => {
