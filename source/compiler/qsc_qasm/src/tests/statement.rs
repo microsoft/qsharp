@@ -4,6 +4,7 @@
 mod annotation;
 mod const_eval;
 mod end;
+mod extern_def;
 mod for_loop;
 mod gate_call;
 mod if_stmt;

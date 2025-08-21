@@ -428,12 +428,18 @@ impl Display for ExprStmt {
 pub struct ExternDecl {
     pub span: Span,
     pub symbol_id: SymbolId,
+    pub default_value_expr: Option<Expr>,
+    pub param_spans: List<Span>,
+    pub return_ty_span: Span,
 }
 
 impl Display for ExternDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "ExternDecl", self.span)?;
-        write_field(f, "symbol_id", &self.symbol_id)
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_opt_field(f, "default_value_expr", self.default_value_expr.as_ref())?;
+        writeln_list_field(f, "param_spans", &self.param_spans)?;
+        write_field(f, "return_ty_span", &self.return_ty_span)
     }
 }
 

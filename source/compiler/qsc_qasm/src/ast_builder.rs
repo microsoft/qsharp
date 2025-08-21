@@ -944,6 +944,14 @@ pub(crate) fn build_lit_double_expr(value: f64, span: Span) -> Expr {
     }
 }
 
+pub(crate) fn build_expr_stmt_from_expr(expr: Expr) -> Stmt {
+    Stmt {
+        id: NodeId::default(),
+        span: expr.span,
+        kind: Box::new(StmtKind::Expr(Box::new(expr))),
+    }
+}
+
 pub(crate) fn build_stmt_semi_from_expr(expr: Expr) -> Stmt {
     Stmt {
         id: NodeId::default(),
@@ -977,6 +985,14 @@ pub(crate) fn build_expr_wrapped_block_expr(expr: Expr) -> Block {
             kind: Box::new(StmtKind::Expr(Box::new(expr))),
             ..Default::default()
         })]),
+    }
+}
+
+pub(crate) fn build_block_wrapped_stmts(stmts: Vec<Stmt>, span: Span) -> Block {
+    Block {
+        id: NodeId::default(),
+        span,
+        stmts: list_from_iter(stmts),
     }
 }
 
@@ -1466,6 +1482,28 @@ pub(crate) fn build_index_expr(expr: Expr, index_expr: Expr, span: Span) -> Expr
 pub(crate) fn build_barrier_call(span: Span) -> Stmt {
     let expr = build_call_no_params("__quantum__qis__barrier__body", &[], span, span);
     build_stmt_semi_from_expr(expr)
+}
+
+pub(crate) fn build_fail_stmt_with_message<S: AsRef<str>>(name: S, span: Span) -> Stmt {
+    let message = Expr {
+        kind: Box::new(ExprKind::Lit(Box::new(Lit::String(
+            format!(
+                "Extern `{}` cannot be used without a linked implementation.",
+                name.as_ref()
+            )
+            .into(),
+        )))),
+        span,
+        ..Default::default()
+    };
+
+    let fail_expr = Expr {
+        kind: Box::new(ExprKind::Fail(Box::new(message))),
+        span,
+        ..Default::default()
+    };
+
+    build_stmt_semi_from_expr(fail_expr)
 }
 
 pub(crate) fn build_argument_validation_stmts(name: &String, ty: &Type, span: Span) -> Vec<Stmt> {

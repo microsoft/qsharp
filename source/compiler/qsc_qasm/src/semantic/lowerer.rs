@@ -1936,14 +1936,16 @@ impl Lowerer {
 
         // 2. Build the parameter's type.
         let mut params = Vec::with_capacity(stmt.params.len());
+        let mut param_spans = Vec::with_capacity(stmt.params.len());
 
         for param in &stmt.params {
             let ty = self.lower_extern_param(param);
             params.push(ty);
+            param_spans.push(param.span());
         }
 
         // 2. Build the return type.
-        let (return_ty, ty_span) = if let Some(ty) = &stmt.return_type {
+        let (return_ty, return_ty_span) = if let Some(ty) = &stmt.return_type {
             let ty_span = ty.span;
             let tydef = syntax::TypeDef::Scalar(ty.clone());
             let ty = self.get_semantic_type_from_tydef(&tydef, false);
@@ -1954,7 +1956,7 @@ impl Lowerer {
 
         if matches!(return_ty, crate::semantic::types::Type::Stretch(..)) {
             // extern functions cannot return stretches, so we push an error.
-            let kind = SemanticErrorKind::ExternDeclarationCannotReturnStretch(ty_span);
+            let kind = SemanticErrorKind::ExternDeclarationCannotReturnStretch(return_ty_span);
             self.push_semantic_error(kind);
         }
 
@@ -1964,16 +1966,26 @@ impl Lowerer {
 
         // we also don't check the return type as it is a parse error to have an invalid return type.
 
+        // we can change the two above to parse successfully if we want to control sematic errors here.
+
         // 3. Push the extern symbol to the symbol table.
+        let default_value_expr = if matches!(return_ty, Type::Void) {
+            None
+        } else {
+            Some(self.get_default_value(&return_ty, return_ty_span))
+        };
         let name = stmt.ident.name.clone();
         let name_span = stmt.ident.span;
         let ty = crate::semantic::types::Type::Function(params.into(), return_ty.into());
-        let symbol = Symbol::new(&name, name_span, ty, ty_span, IOKind::Default);
+        let symbol = Symbol::new(&name, name_span, ty, return_ty_span, IOKind::Default);
         let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
         semantic::StmtKind::ExternDecl(semantic::ExternDecl {
             span: stmt.span,
             symbol_id,
+            default_value_expr,
+            param_spans: list_from_iter(param_spans),
+            return_ty_span,
         })
     }
 

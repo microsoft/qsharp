@@ -10,7 +10,10 @@ fn void_no_args() {
         "extern f();",
         &expect![[r#"
             ExternDecl [0-11]:
-                symbol_id: 8"#]],
+                symbol_id: 8
+                default_value_expr: <none>
+                param_spans: <empty>
+                return_ty_span: [0-0]"#]],
     );
 }
 
@@ -20,7 +23,11 @@ fn void_one_arg() {
         "extern f(int);",
         &expect![[r#"
             ExternDecl [0-14]:
-                symbol_id: 8"#]],
+                symbol_id: 8
+                default_value_expr: <none>
+                param_spans:
+                    [9-12]
+                return_ty_span: [0-0]"#]],
     );
 }
 
@@ -30,7 +37,15 @@ fn void_multiple_args() {
         "extern f(uint, int, float, bit, bool);",
         &expect![[r#"
             ExternDecl [0-38]:
-                symbol_id: 8"#]],
+                symbol_id: 8
+                default_value_expr: <none>
+                param_spans:
+                    [9-13]
+                    [15-18]
+                    [20-25]
+                    [27-30]
+                    [32-36]
+                return_ty_span: [0-0]"#]],
     );
 }
 
@@ -40,7 +55,12 @@ fn return_type() {
         "extern f() -> int;",
         &expect![[r#"
             ExternDecl [0-18]:
-                symbol_id: 8"#]],
+                symbol_id: 8
+                default_value_expr: Expr [14-17]:
+                    ty: const int
+                    kind: Lit: Int(0)
+                param_spans: <empty>
+                return_ty_span: [14-17]"#]],
     );
 }
 
@@ -50,7 +70,12 @@ fn return_type_can_be_duration() {
         "extern f() -> duration;",
         &expect![[r#"
             ExternDecl [0-23]:
-                symbol_id: 8"#]],
+                symbol_id: 8
+                default_value_expr: Expr [14-22]:
+                    ty: duration
+                    kind: Lit: Duration(0.0 s)
+                param_spans: <empty>
+                return_ty_span: [14-22]"#]],
     );
 }
 
@@ -67,6 +92,11 @@ fn return_type_cannot_be_stretch() {
                         annotations: <empty>
                         kind: ExternDecl [0-22]:
                             symbol_id: 8
+                            default_value_expr: Expr [14-21]:
+                                ty: stretch
+                                kind: Lit: Duration(0.0 s)
+                            param_spans: <empty>
+                            return_ty_span: [14-21]
 
             [Qasm.Lowerer.ExternDeclarationCannotReturnStretch
 
@@ -95,6 +125,9 @@ fn not_allowed_in_non_global_scope() {
                                 annotations: <empty>
                                 kind: ExternDecl [2-13]:
                                     symbol_id: 8
+                                    default_value_expr: <none>
+                                    param_spans: <empty>
+                                    return_ty_span: [0-0]
 
             [Qasm.Lowerer.ExternDeclarationInNonGlobalScope
 

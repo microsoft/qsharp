@@ -19,26 +19,27 @@ use crate::{
         build_adj_plus_ctl_functor, build_angle_cast_call_by_name,
         build_angle_convert_call_with_two_params, build_arg_pat, build_argument_validation_stmts,
         build_array_reverse_expr, build_assignment_statement, build_attr, build_barrier_call,
-        build_binary_expr, build_call_no_params, build_call_stmt_no_params, build_call_with_param,
-        build_call_with_params, build_classical_decl, build_complex_from_expr,
-        build_convert_call_expr, build_convert_cast_call_by_name, build_end_stmt,
-        build_expr_array_expr, build_for_stmt, build_function_or_operation,
-        build_gate_call_param_expr, build_gate_call_with_params_and_callee,
-        build_if_expr_then_block, build_if_expr_then_block_else_block,
-        build_if_expr_then_block_else_expr, build_if_expr_then_expr_else_expr,
-        build_implicit_return_stmt, build_index_expr, build_lit_angle_expr, build_lit_bigint_expr,
-        build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
-        build_lit_result_array_expr, build_lit_result_expr, build_managed_qubit_alloc,
-        build_math_call_from_exprs, build_math_call_no_params, build_measure_call,
-        build_measureeachz_call, build_operation_with_stmts, build_path_ident_expr,
-        build_path_ident_ty, build_qasm_convert_call_with_one_param, build_qasm_import_decl,
-        build_qasm_import_items, build_qasmstd_convert_call_with_two_params, build_range_expr,
-        build_reset_all_call, build_reset_call, build_return_expr, build_return_unit,
-        build_stmt_semi_from_expr, build_stmt_semi_from_expr_with_span,
-        build_top_level_ns_with_items, build_tuple_expr, build_unary_op_expr,
-        build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array, build_while_stmt,
-        build_wrapped_block_expr, managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
-        wrap_expr_in_parens,
+        build_binary_expr, build_block_wrapped_stmts, build_call_no_params,
+        build_call_stmt_no_params, build_call_with_param, build_call_with_params,
+        build_classical_decl, build_complex_from_expr, build_convert_call_expr,
+        build_convert_cast_call_by_name, build_end_stmt, build_expr_array_expr,
+        build_expr_stmt_from_expr, build_fail_stmt_with_message, build_for_stmt,
+        build_function_or_operation, build_gate_call_param_expr,
+        build_gate_call_with_params_and_callee, build_if_expr_then_block,
+        build_if_expr_then_block_else_block, build_if_expr_then_block_else_expr,
+        build_if_expr_then_expr_else_expr, build_implicit_return_stmt, build_index_expr,
+        build_lit_angle_expr, build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr,
+        build_lit_double_expr, build_lit_int_expr, build_lit_result_array_expr,
+        build_lit_result_expr, build_managed_qubit_alloc, build_math_call_from_exprs,
+        build_math_call_no_params, build_measure_call, build_measureeachz_call,
+        build_operation_with_stmts, build_path_ident_expr, build_path_ident_ty,
+        build_qasm_convert_call_with_one_param, build_qasm_import_decl, build_qasm_import_items,
+        build_qasmstd_convert_call_with_two_params, build_range_expr, build_reset_all_call,
+        build_reset_call, build_return_expr, build_return_unit, build_stmt_semi_from_expr,
+        build_stmt_semi_from_expr_with_span, build_top_level_ns_with_items, build_tuple_expr,
+        build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
+        build_while_stmt, build_wrapped_block_expr, managed_qubit_alloc_array,
+        map_qsharp_type_to_ast_ty, wrap_expr_in_parens,
     },
     io::SourceResolver,
     parser::ast::{List, PathKind, list_from_iter},
@@ -955,8 +956,81 @@ impl QasmCompiler {
     }
 
     fn compile_extern_stmt(&mut self, stmt: &semast::ExternDecl) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("extern statements", stmt.span);
-        None
+        let symbol = self.symbols[stmt.symbol_id].clone();
+        let (params, return_type) = match &symbol.ty {
+            Type::Function(params, return_type) => (params, return_type),
+            _ => {
+                // this can happen if the def statement shadows a non-def symbol
+                // Since the symbol is not a function, we assume it returns an error type.
+                // There is already an error reported for this case.
+                (&[].into(), &Arc::from(crate::semantic::types::Type::Err))
+            }
+        };
+
+        let name = symbol.name.clone();
+
+        // iterate over parmams with the value and index of the param
+
+        let args: Vec<_> = params
+            .iter()
+            .enumerate()
+            .zip(stmt.param_spans.clone())
+            .map(|((i, ty), span)| {
+                let name = format!("param_{i}");
+                let qsharp_ty = self.map_semantic_type_to_qsharp_type(ty, *span);
+                let ast_type = map_qsharp_type_to_ast_ty(&qsharp_ty, *span);
+                (
+                    name.clone(),
+                    ast_type.clone(),
+                    build_arg_pat(name, symbol.span, ast_type),
+                    ty.clone(),
+                )
+            })
+            .collect();
+
+        let fail_stmt = build_fail_stmt_with_message(&symbol.name, stmt.span);
+        let mut stmts = vec![fail_stmt];
+        if let Some(ref default_value_expr) = stmt.default_value_expr {
+            // If there is a default value, we compile it and add it to the stmts
+            let default_value_expr = self.compile_expr(default_value_expr);
+            let default_stmt = build_expr_stmt_from_expr(default_value_expr);
+            stmts.push(default_stmt);
+        }
+
+        let body = Some(build_block_wrapped_stmts(stmts, stmt.span));
+
+        let qsharp_ty = self.map_semantic_type_to_qsharp_type(return_type, stmt.return_ty_span);
+        let return_type = map_qsharp_type_to_ast_ty(&qsharp_ty, stmt.return_ty_span);
+
+        // extern functions cannot have qubit parameters
+        // so we would normally use a function, but intrinsic attrs
+        // require us to use an operation
+        let kind = qsast::CallableKind::Operation;
+
+        // If there was no qir intrinsic annotation, we generate one.
+        // we always want the annotation on externs, but this is safety mechanism
+        // we use the `QSHARP_QIR_INTRINSIC_ANNOTATION` since that is what the Q# compiler expects
+        let attrs = vec![build_attr(
+            QSHARP_QIR_INTRINSIC_ANNOTATION,
+            None::<String>,
+            stmt.span,
+        )];
+
+        // We use the same primitives used for declaring gates, because def declarations
+        // in QASM can take qubits as arguments and call quantum gates.
+        Some(build_function_or_operation(
+            name,
+            args,
+            vec![],
+            body,
+            symbol.span,
+            stmt.span,
+            stmt.span,
+            return_type,
+            kind,
+            None,
+            list_from_iter(attrs),
+        ))
     }
 
     fn compile_for_stmt(&mut self, stmt: &semast::ForStmt) -> Option<qsast::Stmt> {
