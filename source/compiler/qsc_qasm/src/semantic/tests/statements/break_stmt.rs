@@ -11,6 +11,7 @@ fn for_loop() {
         &expect![[r#"
             ForStmt [0-29]:
                 loop_variable: 8
+                ty_exprs: <empty>
                 iterable: Set [13-22]:
                     values:
                         Expr [14-15]:
@@ -126,6 +127,7 @@ fn intermediate_def_scope_fails() {
                                             has_qubit_params: false
                                             parameters: <empty>
                                             return_type_span: [0-0]
+                                            return_ty_exprs: <empty>
                                             body: Block [44-54]:
                                                 Stmt [46-52]:
                                                     annotations: <empty>

@@ -169,6 +169,7 @@ fn builtin_call_with_const_expr_succeeds() {
             ClassicalDeclarationStmt [9-25]:
                 symbol_id: 8
                 ty_span: [15-18]
+                ty_exprs: <empty>
                 init_expr: Expr [23-24]:
                     ty: const int
                     const_value: Int(9)
@@ -176,6 +177,7 @@ fn builtin_call_with_const_expr_succeeds() {
             ClassicalDeclarationStmt [34-50]:
                 symbol_id: 9
                 ty_span: [40-43]
+                ty_exprs: <empty>
                 init_expr: Expr [48-49]:
                     ty: const int
                     const_value: Int(7)
@@ -222,6 +224,7 @@ fn nested_builtin_call_succeeds() {
             ClassicalDeclarationStmt [9-25]:
                 symbol_id: 8
                 ty_span: [15-18]
+                ty_exprs: <empty>
                 init_expr: Expr [23-24]:
                     ty: const int
                     const_value: Int(9)
@@ -229,6 +232,7 @@ fn nested_builtin_call_succeeds() {
             ClassicalDeclarationStmt [34-50]:
                 symbol_id: 9
                 ty_span: [40-43]
+                ty_exprs: <empty>
                 init_expr: Expr [48-49]:
                     ty: const int
                     const_value: Int(7)

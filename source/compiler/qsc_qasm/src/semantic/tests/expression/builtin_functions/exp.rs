@@ -43,6 +43,7 @@ fn exp_complex() {
             ClassicalDeclarationStmt [9-36]:
                 symbol_id: 8
                 ty_span: [15-22]
+                ty_exprs: <empty>
                 init_expr: Expr [27-35]:
                     ty: const complex[float]
                     const_value: Complex(2.0, 3.0)

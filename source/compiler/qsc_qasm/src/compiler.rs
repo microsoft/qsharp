@@ -701,6 +701,7 @@ impl QasmCompiler {
                 ty: Type::BitArray(width, false),
                 expr: stmt.lhs.clone(),
                 kind: semast::CastKind::Implicit,
+                ty_exprs: list_from_iter([]),
             })),
             const_value: None,
             ty: Type::BitArray(width, false),
@@ -886,7 +887,7 @@ impl QasmCompiler {
             .params
             .iter()
             .map(|arg| {
-                let symbol = self.symbols[*arg].clone();
+                let symbol = self.symbols[arg.symbol_id].clone();
                 let name = symbol.name.clone();
                 let semantic_type = symbol.ty.clone();
                 let qsharp_ty = self.map_semantic_type_to_qsharp_type(&symbol.ty, symbol.ty_span);

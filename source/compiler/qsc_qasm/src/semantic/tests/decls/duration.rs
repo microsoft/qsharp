@@ -13,6 +13,7 @@ fn with_no_init_expr_has_generated_lit_expr() {
             ClassicalDeclarationStmt [0-11]:
                 symbol_id: 8
                 ty_span: [0-8]
+                ty_exprs: <empty>
                 init_expr: Expr [0-11]:
                     ty: duration
                     kind: Lit: Duration(0.0 s)
@@ -32,6 +33,7 @@ fn with_lit_init_expr_has_supplied_value() {
             ClassicalDeclarationStmt [0-17]:
                 symbol_id: 8
                 ty_span: [0-8]
+                ty_exprs: <empty>
                 init_expr: Expr [13-16]:
                     ty: const duration
                     kind: Lit: Duration(5.0 ns)
@@ -51,6 +53,7 @@ fn with_var_init_expr_has_supplied_value() {
             ClassicalDeclarationStmt [0-23]:
                 symbol_id: 8
                 ty_span: [0-8]
+                ty_exprs: <empty>
                 init_expr: Expr [13-22]:
                     ty: const duration
                     const_value: Duration(15.0 ns)
@@ -70,6 +73,7 @@ fn with_var_init_expr_has_supplied_value() {
             ClassicalDeclarationStmt [24-43]:
                 symbol_id: 9
                 ty_span: [24-32]
+                ty_exprs: <empty>
                 init_expr: Expr [37-42]:
                     ty: duration
                     kind: BinaryOpExpr:
@@ -97,6 +101,7 @@ fn with_binop_init_expr_has_supplied_value() {
             ClassicalDeclarationStmt [0-23]:
                 symbol_id: 8
                 ty_span: [0-8]
+                ty_exprs: <empty>
                 init_expr: Expr [13-22]:
                     ty: const duration
                     const_value: Duration(15.0 ns)

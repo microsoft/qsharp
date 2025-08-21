@@ -37,6 +37,7 @@ fn duration_and_stretch_types_without_init_exprs() {
                         kind: ClassicalDeclarationStmt [9-20]:
                             symbol_id: 8
                             ty_span: [9-17]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-20]:
                                 ty: duration
                                 kind: Lit: Duration(0.0 s)
@@ -45,6 +46,7 @@ fn duration_and_stretch_types_without_init_exprs() {
                         kind: ClassicalDeclarationStmt [29-39]:
                             symbol_id: 9
                             ty_span: [29-36]
+                            ty_exprs: <empty>
                             init_expr: Expr [29-39]:
                                 ty: stretch
                                 const_value: Duration(0.0 s)
@@ -66,6 +68,7 @@ fn scalar_ty_designator_must_be_positive() {
                         kind: ClassicalDeclarationStmt [0-10]:
                             symbol_id: 8
                             ty_span: [0-7]
+                            ty_exprs: <empty>
                             init_expr: Expr [0-0]:
                                 ty: unknown
                                 kind: Err
@@ -95,6 +98,7 @@ fn scalar_ty_designator_must_be_castable_to_const_int() {
                         kind: ClassicalDeclarationStmt [0-23]:
                             symbol_id: 8
                             ty_span: [6-11]
+                            ty_exprs: <empty>
                             init_expr: Expr [19-22]:
                                 ty: const angle
                                 const_value: Angle(2.0000000000000004)
@@ -104,6 +108,7 @@ fn scalar_ty_designator_must_be_castable_to_const_int() {
                         kind: ClassicalDeclarationStmt [24-36]:
                             symbol_id: 9
                             ty_span: [24-33]
+                            ty_exprs: <empty>
                             init_expr: Expr [0-0]:
                                 ty: unknown
                                 kind: Err

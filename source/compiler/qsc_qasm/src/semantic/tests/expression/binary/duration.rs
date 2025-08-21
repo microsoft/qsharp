@@ -16,6 +16,7 @@ fn addition_with_units_normalizes_correctly() {
             ClassicalDeclarationStmt [9-47]:
                 symbol_id: 8
                 ty_span: [9-17]
+                ty_exprs: <empty>
                 init_expr: Expr [22-46]:
                     ty: const duration
                     const_value: Duration(1003006009.0 ns)
@@ -59,6 +60,7 @@ fn addition_of_two_durations_returns_duration() {
             ClassicalDeclarationStmt [9-32]:
                 symbol_id: 8
                 ty_span: [9-17]
+                ty_exprs: <empty>
                 init_expr: Expr [22-31]:
                     ty: const duration
                     const_value: Duration(5.0 s)
@@ -94,6 +96,7 @@ fn addition_of_duration_and_int_errors() {
                         kind: ClassicalDeclarationStmt [9-20]:
                             symbol_id: 8
                             ty_span: [9-17]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-20]:
                                 ty: duration
                                 kind: Lit: Duration(0.0 s)
@@ -102,6 +105,7 @@ fn addition_of_duration_and_int_errors() {
                         kind: ClassicalDeclarationStmt [29-35]:
                             symbol_id: 9
                             ty_span: [29-32]
+                            ty_exprs: <empty>
                             init_expr: Expr [29-35]:
                                 ty: const int
                                 kind: Lit: Int(0)
@@ -110,6 +114,7 @@ fn addition_of_duration_and_int_errors() {
                         kind: ClassicalDeclarationStmt [44-63]:
                             symbol_id: 10
                             ty_span: [44-52]
+                            ty_exprs: <empty>
                             init_expr: Expr [57-62]:
                                 ty: unknown
                                 kind: Err
@@ -147,6 +152,7 @@ fn addition_assign_op_errors_when_duration_is_const() {
                         kind: ClassicalDeclarationStmt [9-33]:
                             symbol_id: 8
                             ty_span: [15-23]
+                            ty_exprs: <empty>
                             init_expr: Expr [28-32]:
                                 ty: const duration
                                 const_value: Duration(2.0 ns)
@@ -156,6 +162,7 @@ fn addition_assign_op_errors_when_duration_is_const() {
                         kind: ClassicalDeclarationStmt [42-66]:
                             symbol_id: 9
                             ty_span: [48-56]
+                            ty_exprs: <empty>
                             init_expr: Expr [61-65]:
                                 ty: const duration
                                 const_value: Duration(3.0 ns)
@@ -192,12 +199,14 @@ fn addition_assign_op() {
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-17]
+                ty_exprs: <empty>
                 init_expr: Expr [9-20]:
                     ty: duration
                     kind: Lit: Duration(0.0 s)
             ClassicalDeclarationStmt [29-40]:
                 symbol_id: 9
                 ty_span: [29-37]
+                ty_exprs: <empty>
                 init_expr: Expr [29-40]:
                     ty: duration
                     kind: Lit: Duration(0.0 s)
@@ -231,6 +240,7 @@ fn subtraction() {
             ClassicalDeclarationStmt [9-32]:
                 symbol_id: 8
                 ty_span: [9-17]
+                ty_exprs: <empty>
                 init_expr: Expr [22-31]:
                     ty: const duration
                     const_value: Duration(1.0 s)
@@ -258,6 +268,7 @@ fn subtraction_can_result_in_negative_duration() {
             ClassicalDeclarationStmt [9-32]:
                 symbol_id: 8
                 ty_span: [9-17]
+                ty_exprs: <empty>
                 init_expr: Expr [22-31]:
                     ty: const duration
                     const_value: Duration(-1.0 s)
@@ -287,12 +298,14 @@ fn subtraction_assign_op() {
             ClassicalDeclarationStmt [9-20]:
                 symbol_id: 8
                 ty_span: [9-17]
+                ty_exprs: <empty>
                 init_expr: Expr [9-20]:
                     ty: duration
                     kind: Lit: Duration(0.0 s)
             ClassicalDeclarationStmt [29-40]:
                 symbol_id: 9
                 ty_span: [29-37]
+                ty_exprs: <empty>
                 init_expr: Expr [29-40]:
                     ty: duration
                     kind: Lit: Duration(0.0 s)
@@ -334,6 +347,7 @@ fn subtraction_assign_op_errors_when_duration_is_const() {
                         kind: ClassicalDeclarationStmt [9-33]:
                             symbol_id: 8
                             ty_span: [15-23]
+                            ty_exprs: <empty>
                             init_expr: Expr [28-32]:
                                 ty: const duration
                                 const_value: Duration(2.0 ns)
@@ -343,6 +357,7 @@ fn subtraction_assign_op_errors_when_duration_is_const() {
                         kind: ClassicalDeclarationStmt [42-66]:
                             symbol_id: 9
                             ty_span: [48-56]
+                            ty_exprs: <empty>
                             init_expr: Expr [61-65]:
                                 ty: const duration
                                 const_value: Duration(3.0 ns)
@@ -385,6 +400,7 @@ fn multiplication_by_duration_is_not_supported() {
                         kind: ClassicalDeclarationStmt [9-26]:
                             symbol_id: 8
                             ty_span: [9-17]
+                            ty_exprs: <empty>
                             init_expr: Expr [22-25]:
                                 ty: const duration
                                 kind: Lit: Duration(1.0 ms)
@@ -393,6 +409,7 @@ fn multiplication_by_duration_is_not_supported() {
                         kind: ClassicalDeclarationStmt [35-52]:
                             symbol_id: 9
                             ty_span: [35-43]
+                            ty_exprs: <empty>
                             init_expr: Expr [48-51]:
                                 ty: const duration
                                 kind: Lit: Duration(2.0 ms)
@@ -401,6 +418,7 @@ fn multiplication_by_duration_is_not_supported() {
                         kind: ClassicalDeclarationStmt [61-80]:
                             symbol_id: 10
                             ty_span: [61-69]
+                            ty_exprs: <empty>
                             init_expr: Expr [74-79]:
                                 ty: unknown
                                 kind: Err
@@ -432,12 +450,14 @@ fn multiplication_duration_by_int() {
             ClassicalDeclarationStmt [9-26]:
                 symbol_id: 8
                 ty_span: [9-17]
+                ty_exprs: <empty>
                 init_expr: Expr [22-25]:
                     ty: const duration
                     kind: Lit: Duration(2.0 ms)
             ClassicalDeclarationStmt [35-51]:
                 symbol_id: 9
                 ty_span: [41-44]
+                ty_exprs: <empty>
                 init_expr: Expr [49-50]:
                     ty: const int
                     const_value: Int(3)
@@ -445,6 +465,7 @@ fn multiplication_duration_by_int() {
             ClassicalDeclarationStmt [60-79]:
                 symbol_id: 10
                 ty_span: [60-68]
+                ty_exprs: <empty>
                 init_expr: Expr [73-78]:
                     ty: duration
                     kind: BinaryOpExpr:
@@ -473,12 +494,14 @@ fn multiplication_int_by_duration() {
             ClassicalDeclarationStmt [9-26]:
                 symbol_id: 8
                 ty_span: [9-17]
+                ty_exprs: <empty>
                 init_expr: Expr [22-25]:
                     ty: const duration
                     kind: Lit: Duration(2.0 ms)
             ClassicalDeclarationStmt [35-51]:
                 symbol_id: 9
                 ty_span: [41-44]
+                ty_exprs: <empty>
                 init_expr: Expr [49-50]:
                     ty: const int
                     const_value: Int(3)
@@ -486,6 +509,7 @@ fn multiplication_int_by_duration() {
             ClassicalDeclarationStmt [60-79]:
                 symbol_id: 10
                 ty_span: [60-68]
+                ty_exprs: <empty>
                 init_expr: Expr [73-78]:
                     ty: duration
                     kind: BinaryOpExpr:
@@ -514,12 +538,14 @@ fn multiplication_duration_by_float() {
             ClassicalDeclarationStmt [9-26]:
                 symbol_id: 8
                 ty_span: [9-17]
+                ty_exprs: <empty>
                 init_expr: Expr [22-25]:
                     ty: const duration
                     kind: Lit: Duration(2.0 ms)
             ClassicalDeclarationStmt [35-55]:
                 symbol_id: 9
                 ty_span: [41-46]
+                ty_exprs: <empty>
                 init_expr: Expr [51-54]:
                     ty: const float
                     const_value: Float(3.0)
@@ -527,6 +553,7 @@ fn multiplication_duration_by_float() {
             ClassicalDeclarationStmt [64-83]:
                 symbol_id: 10
                 ty_span: [64-72]
+                ty_exprs: <empty>
                 init_expr: Expr [77-82]:
                     ty: duration
                     kind: BinaryOpExpr:
@@ -555,12 +582,14 @@ fn multiplication_float_by_duration() {
             ClassicalDeclarationStmt [9-26]:
                 symbol_id: 8
                 ty_span: [9-17]
+                ty_exprs: <empty>
                 init_expr: Expr [22-25]:
                     ty: const duration
                     kind: Lit: Duration(2.0 ms)
             ClassicalDeclarationStmt [35-55]:
                 symbol_id: 9
                 ty_span: [41-46]
+                ty_exprs: <empty>
                 init_expr: Expr [51-54]:
                     ty: const float
                     const_value: Float(3.0)
@@ -568,6 +597,7 @@ fn multiplication_float_by_duration() {
             ClassicalDeclarationStmt [64-83]:
                 symbol_id: 10
                 ty_span: [64-72]
+                ty_exprs: <empty>
                 init_expr: Expr [77-82]:
                     ty: duration
                     kind: BinaryOpExpr:
@@ -602,6 +632,7 @@ fn multiplication_assign_op_not_support() {
                         kind: ClassicalDeclarationStmt [9-27]:
                             symbol_id: 8
                             ty_span: [9-17]
+                            ty_exprs: <empty>
                             init_expr: Expr [22-26]:
                                 ty: const duration
                                 kind: Lit: Duration(2.0 ns)
@@ -610,6 +641,7 @@ fn multiplication_assign_op_not_support() {
                         kind: ClassicalDeclarationStmt [36-54]:
                             symbol_id: 9
                             ty_span: [36-44]
+                            ty_exprs: <empty>
                             init_expr: Expr [49-53]:
                                 ty: const duration
                                 kind: Lit: Duration(3.0 ns)
@@ -656,6 +688,7 @@ fn multiplication_assign_op_errors_when_duration_is_const() {
                         kind: ClassicalDeclarationStmt [9-33]:
                             symbol_id: 8
                             ty_span: [15-23]
+                            ty_exprs: <empty>
                             init_expr: Expr [28-32]:
                                 ty: const duration
                                 const_value: Duration(2.0 ns)
@@ -665,6 +698,7 @@ fn multiplication_assign_op_errors_when_duration_is_const() {
                         kind: ClassicalDeclarationStmt [42-66]:
                             symbol_id: 9
                             ty_span: [48-56]
+                            ty_exprs: <empty>
                             init_expr: Expr [61-65]:
                                 ty: const duration
                                 const_value: Duration(3.0 ns)
@@ -701,18 +735,21 @@ fn division_duration_by_duration_is_float() {
             ClassicalDeclarationStmt [9-28]:
                 symbol_id: 8
                 ty_span: [9-17]
+                ty_exprs: <empty>
                 init_expr: Expr [22-27]:
                     ty: const duration
                     kind: Lit: Duration(12.0 ns)
             ClassicalDeclarationStmt [37-55]:
                 symbol_id: 9
                 ty_span: [37-45]
+                ty_exprs: <empty>
                 init_expr: Expr [50-54]:
                     ty: const duration
                     kind: Lit: Duration(4.0 ns)
             ClassicalDeclarationStmt [64-80]:
                 symbol_id: 10
                 ty_span: [64-69]
+                ty_exprs: <empty>
                 init_expr: Expr [74-79]:
                     ty: float
                     kind: BinaryOpExpr:
@@ -741,12 +778,14 @@ fn division_duration_by_int_is_duration() {
             ClassicalDeclarationStmt [9-28]:
                 symbol_id: 8
                 ty_span: [9-17]
+                ty_exprs: <empty>
                 init_expr: Expr [22-27]:
                     ty: const duration
                     kind: Lit: Duration(12.0 ns)
             ClassicalDeclarationStmt [37-53]:
                 symbol_id: 9
                 ty_span: [43-46]
+                ty_exprs: <empty>
                 init_expr: Expr [51-52]:
                     ty: const int
                     const_value: Int(4)
@@ -754,6 +793,7 @@ fn division_duration_by_int_is_duration() {
             ClassicalDeclarationStmt [62-81]:
                 symbol_id: 10
                 ty_span: [62-70]
+                ty_exprs: <empty>
                 init_expr: Expr [75-80]:
                     ty: duration
                     kind: BinaryOpExpr:
@@ -782,12 +822,14 @@ fn division_duration_by_float_is_duration() {
             ClassicalDeclarationStmt [9-28]:
                 symbol_id: 8
                 ty_span: [9-17]
+                ty_exprs: <empty>
                 init_expr: Expr [22-27]:
                     ty: const duration
                     kind: Lit: Duration(12.0 ns)
             ClassicalDeclarationStmt [37-57]:
                 symbol_id: 9
                 ty_span: [43-48]
+                ty_exprs: <empty>
                 init_expr: Expr [53-56]:
                     ty: const float
                     const_value: Float(4.0)
@@ -795,6 +837,7 @@ fn division_duration_by_float_is_duration() {
             ClassicalDeclarationStmt [66-85]:
                 symbol_id: 10
                 ty_span: [66-74]
+                ty_exprs: <empty>
                 init_expr: Expr [79-84]:
                     ty: duration
                     kind: BinaryOpExpr:
@@ -823,12 +866,14 @@ fn division_assign_op() {
             ClassicalDeclarationStmt [9-28]:
                 symbol_id: 8
                 ty_span: [9-17]
+                ty_exprs: <empty>
                 init_expr: Expr [22-27]:
                     ty: const duration
                     kind: Lit: Duration(12.0 ns)
             ClassicalDeclarationStmt [37-57]:
                 symbol_id: 9
                 ty_span: [43-48]
+                ty_exprs: <empty>
                 init_expr: Expr [53-56]:
                     ty: const float
                     const_value: Float(3.0)
@@ -871,6 +916,7 @@ fn division_assign_op_errors_when_duration_is_const() {
                         kind: ClassicalDeclarationStmt [9-34]:
                             symbol_id: 8
                             ty_span: [15-23]
+                            ty_exprs: <empty>
                             init_expr: Expr [28-33]:
                                 ty: const duration
                                 const_value: Duration(12.0 ns)
@@ -880,6 +926,7 @@ fn division_assign_op_errors_when_duration_is_const() {
                         kind: ClassicalDeclarationStmt [43-63]:
                             symbol_id: 9
                             ty_span: [49-54]
+                            ty_exprs: <empty>
                             init_expr: Expr [59-62]:
                                 ty: const float
                                 const_value: Float(3.0)

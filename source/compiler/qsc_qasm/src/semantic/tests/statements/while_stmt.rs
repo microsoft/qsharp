@@ -15,6 +15,7 @@ fn single_stmt_body_creates_its_own_scope() {
             ClassicalDeclarationStmt [5-15]:
                 symbol_id: 8
                 ty_span: [5-8]
+                ty_exprs: <empty>
                 init_expr: Expr [13-14]:
                     ty: int
                     kind: Lit: Int(3)
@@ -30,6 +31,7 @@ fn single_stmt_body_creates_its_own_scope() {
                             kind: ClassicalDeclarationStmt [32-42]:
                                 symbol_id: 9
                                 ty_span: [32-35]
+                                ty_exprs: <empty>
                                 init_expr: Expr [40-41]:
                                     ty: int
                                     kind: Lit: Int(1)
@@ -48,6 +50,7 @@ fn block_body_creates_its_own_scope() {
             ClassicalDeclarationStmt [5-15]:
                 symbol_id: 8
                 ty_span: [5-8]
+                ty_exprs: <empty>
                 init_expr: Expr [13-14]:
                     ty: int
                     kind: Lit: Int(3)
@@ -63,6 +66,7 @@ fn block_body_creates_its_own_scope() {
                             kind: ClassicalDeclarationStmt [34-44]:
                                 symbol_id: 9
                                 ty_span: [34-37]
+                                ty_exprs: <empty>
                                 init_expr: Expr [42-43]:
                                     ty: int
                                     kind: Lit: Int(1)
@@ -80,6 +84,7 @@ fn condition_cast() {
                     ty: const bool
                     kind: Cast [7-8]:
                         ty: const bool
+                        ty_exprs: <empty>
                         expr: Expr [7-8]:
                             ty: const int
                             kind: Lit: Int(1)
