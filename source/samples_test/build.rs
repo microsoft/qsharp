@@ -157,7 +157,17 @@ fn compile_{file_stem}() {{
 }
 
 fn create_tests_for_projects() {
-    let paths = collect_qsharp_project_folders(Path::new("../../samples"));
+    let mut paths = Vec::new();
+    for entry in read_dir(Path::new("../../samples")).expect("folder should exist and be readable")
+    {
+        let entry = entry.expect("directory entries should be readable");
+        let path = entry.path();
+        // Exclude samples/scratch
+        if path.is_dir() && path.file_name().and_then(OsStr::to_str) != Some("scratch") {
+            paths.append(&mut collect_qsharp_project_folders(&path));
+        }
+    }
+
     let out_dir = "./src/tests";
     let dest_path = Path::new(&out_dir).join("project_generated.rs");
     let mut f = File::create(dest_path).expect("files should be creatable in ./src/tests");
