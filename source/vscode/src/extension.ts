@@ -34,6 +34,7 @@ import {
   maybeShowChangelogPrompt,
   registerChangelogCommand,
 } from "./changelog.js";
+import { registerChatParticipant } from "./gh-copilot/participant.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -85,6 +86,7 @@ export async function activate(
   await initFileSystem(context);
   await initProjectCreator(context);
   registerLanguageModelTools(context);
+  registerChatParticipant(context);
   // fire-and-forget
   registerGhCopilotInstructionsCommand(context);
 
