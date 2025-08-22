@@ -27,3 +27,7 @@ workspace = true
 
 [lib]
 doctest = false
+
+[features]
+# (Former numeric_promotion feature merged into baseline; feature stanza left for future additions.)
+default = []

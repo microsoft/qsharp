@@ -411,7 +411,7 @@ impl<'a> Context<'a> {
                 Lit::BigInt(_) => converge(Ty::Prim(Prim::BigInt)),
                 Lit::Bool(_) => converge(Ty::Prim(Prim::Bool)),
                 Lit::Double(_) => converge(Ty::Prim(Prim::Double)),
-                Lit::Imaginary(_) => converge(Self::complex_ty()),
+                Lit::Imaginary(_) => converge(crate::typeck::numeric::complex_ty()),
                 Lit::Int(_) => converge(Ty::Prim(Prim::Int)),
                 Lit::Pauli(_) => converge(Ty::Prim(Prim::Pauli)),
                 Lit::Result(_) => converge(Ty::Prim(Prim::Result)),
@@ -751,6 +751,11 @@ impl<'a> Context<'a> {
         let rhs = self.infer_expr(rhs);
         let diverges = lhs.diverges || rhs.diverges;
 
+        // Capture operand types prior to entering operator-specific logic so promotion helpers
+        // (which may allocate deferred placeholders) can reference original ty handles.
+        let lhs_ty = lhs.ty.clone();
+        let rhs_ty = rhs.ty.clone();
+
         let ty = match op {
             BinOp::AndL | BinOp::OrL => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
@@ -764,56 +769,41 @@ impl<'a> Context<'a> {
                 converge(Ty::Prim(Prim::Bool))
             }
             BinOp::Add => {
-                // Order: put interoperability (which may degrade to Eq and yield a TyMismatch)
-                // before the class constraint so mismatch diagnostics appear before MissingClassAdd.
-                self.inferrer
-                    .interoperable(rhs_span, lhs.ty.clone(), rhs.ty.clone());
+                use super::promotion::{PromotionDecision, apply_arith, record_deferred_arith};
+                use crate::typeck::infer::ArithOp;
+                let outcome = apply_arith(
+                    self.inferrer,
+                    ArithOp::Add,
+                    span,
+                    lhs_span,
+                    rhs_span,
+                    &lhs.ty,
+                    &rhs.ty,
+                );
+                if outcome.needs_interop {
+                    self.inferrer
+                        .interoperable(rhs_span, lhs.ty.clone(), rhs.ty.clone());
+                }
+                // Constrain lhs for Add as usual.
                 self.inferrer.class(lhs_span, Class::Add(lhs.ty.clone()));
-
-                // Fast path: if either operand is already Complex, result is immediately Complex.
-                if lhs.ty.is_complex_udt() || rhs.ty.is_complex_udt() {
-                    converge(Self::complex_ty())
-                } else {
-                    // Helper predicates.
-                    let prim_of = |t: &Ty| matches!(t, Ty::Prim(_));
-                    let is_double = |t: &Ty| matches!(t, Ty::Prim(Prim::Double));
-
-                    let both_same_concrete_prim =
-                        prim_of(&lhs.ty) && prim_of(&rhs.ty) && lhs.ty == rhs.ty;
-
-                    // Case 1: same concrete primitive (e.g., Int + Int, Double + Double) → that primitive.
-                    if both_same_concrete_prim {
-                        converge(lhs.ty.clone())
-                    }
-                    // Case 2: one inference, one concrete primitive (non-Double): we can safely
-                    // commit to that primitive now; no future Complex upgrade is possible because
-                    // only Double interoperates with Complex.
-                    else if (matches!(lhs.ty, Ty::Infer(_))
-                        && prim_of(&rhs.ty)
-                        && !is_double(&rhs.ty))
-                        || (matches!(rhs.ty, Ty::Infer(_))
-                            && prim_of(&lhs.ty)
-                            && !is_double(&lhs.ty))
-                    {
-                        let concrete = if prim_of(&lhs.ty) {
-                            lhs.ty.clone()
-                        } else {
-                            rhs.ty.clone()
-                        };
-                        converge(concrete)
-                    }
-                    // Case 3: both operands are inference vars → reuse one to avoid extra ambiguity sites.
-                    else if matches!((&lhs.ty, &rhs.ty), (Ty::Infer(_), Ty::Infer(_))) {
-                        converge(lhs.ty.clone())
-                    }
-                    // Remaining cases (including Double + inference, inference + Double, Double + Int
-                    // that will produce a mismatch, etc.) need deferred result determination because
-                    // an inference var paired with a Double might later become Complex. Defer via a
-                    // fresh inference variable and post-solve adjustment.
-                    else {
-                        let fresh = self.inferrer.fresh_ty(TySource::not_divergent(span));
-                        self.inferrer.record_add_result(&fresh, &lhs_ty, &rhs_ty);
-                        converge(fresh)
+                // If both operands are inference variables, also constrain rhs independently so
+                // they remain distinct inference vars rather than collapsing early.
+                if matches!(lhs.ty, Ty::Infer(_)) && matches!(rhs.ty, Ty::Infer(_)) {
+                    self.inferrer.class(rhs_span, Class::Add(rhs.ty.clone()));
+                }
+                match outcome.decision {
+                    PromotionDecision::Eager(t) => converge(t),
+                    PromotionDecision::ReuseLhsInfer => converge(lhs.ty.clone()),
+                    PromotionDecision::Deferred => {
+                        let placeholder = self.inferrer.fresh_ty(TySource::not_divergent(span));
+                        record_deferred_arith(
+                            self.inferrer,
+                            ArithOp::Add,
+                            &placeholder,
+                            &lhs_ty,
+                            &rhs_ty,
+                        );
+                        converge(placeholder)
                     }
                 }
             }
@@ -828,37 +818,49 @@ impl<'a> Context<'a> {
                     .class(lhs_span, Class::Integral(lhs.ty.clone()));
                 lhs
             }
-            BinOp::Div => {
-                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty.clone());
-                self.inferrer.class(lhs_span, Class::Div(lhs.ty.clone()));
-                if (Self::is_double(&lhs.ty) && rhs.ty.is_complex_udt())
-                    || (lhs.ty.is_complex_udt() && Self::is_double(&rhs.ty))
-                {
-                    converge(Self::complex_ty())
-                } else {
-                    lhs
+            BinOp::Div | BinOp::Mul | BinOp::Sub => {
+                use super::promotion::{PromotionDecision, apply_arith, record_deferred_arith};
+                use crate::typeck::infer::ArithOp;
+                let class = match op {
+                    BinOp::Div => Class::Div(lhs.ty.clone()),
+                    BinOp::Mul => Class::Mul(lhs.ty.clone()),
+                    BinOp::Sub => Class::Sub(lhs.ty.clone()),
+                    _ => unreachable!(),
+                };
+                let arith_op = match op {
+                    BinOp::Div => ArithOp::Div,
+                    BinOp::Mul => ArithOp::Mul,
+                    BinOp::Sub => ArithOp::Sub,
+                    _ => unreachable!(),
+                };
+                let outcome = apply_arith(
+                    self.inferrer,
+                    arith_op,
+                    span,
+                    lhs_span,
+                    rhs_span,
+                    &lhs.ty,
+                    &rhs.ty,
+                );
+                if outcome.needs_interop {
+                    self.inferrer
+                        .interoperable(rhs_span, lhs.ty.clone(), rhs.ty.clone());
                 }
-            }
-            BinOp::Mul => {
-                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty.clone());
-                self.inferrer.class(lhs_span, Class::Mul(lhs.ty.clone()));
-                if (Self::is_double(&lhs.ty) && rhs.ty.is_complex_udt())
-                    || (lhs.ty.is_complex_udt() && Self::is_double(&rhs.ty))
-                {
-                    converge(Self::complex_ty())
-                } else {
-                    lhs
-                }
-            }
-            BinOp::Sub => {
-                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty.clone());
-                self.inferrer.class(lhs_span, Class::Sub(lhs.ty.clone()));
-                if (Self::is_double(&lhs.ty) && rhs.ty.is_complex_udt())
-                    || (lhs.ty.is_complex_udt() && Self::is_double(&rhs.ty))
-                {
-                    converge(Self::complex_ty())
-                } else {
-                    lhs
+                self.inferrer.class(lhs_span, class);
+                match outcome.decision {
+                    PromotionDecision::Eager(t) => converge(t),
+                    PromotionDecision::ReuseLhsInfer => converge(lhs.ty.clone()),
+                    PromotionDecision::Deferred => {
+                        let placeholder = self.inferrer.fresh_ty(TySource::not_divergent(span));
+                        record_deferred_arith(
+                            self.inferrer,
+                            arith_op,
+                            &placeholder,
+                            &lhs_ty,
+                            &rhs_ty,
+                        );
+                        converge(placeholder)
+                    }
                 }
             }
             BinOp::Mod => {
@@ -874,10 +876,16 @@ impl<'a> Context<'a> {
                         power: rhs.ty.clone(),
                     },
                 );
-                if (Self::is_double(&lhs.ty) && rhs.ty.is_complex_udt())
-                    || (lhs.ty.is_complex_udt() && Self::is_double(&rhs.ty))
+                if (crate::typeck::numeric::is_double(&lhs.ty) && rhs.ty.is_complex_udt())
+                    || (lhs.ty.is_complex_udt() && crate::typeck::numeric::is_double(&rhs.ty))
                 {
-                    converge(Self::complex_ty())
+                    // Reuse the existing Complex operand's representation to avoid mismatched IDs.
+                    let complex_operand = if lhs.ty.is_complex_udt() {
+                        lhs.ty.clone()
+                    } else {
+                        rhs.ty.clone()
+                    };
+                    converge(complex_operand)
                 } else {
                     lhs
                 }
@@ -1003,18 +1011,6 @@ impl<'a> Context<'a> {
 
         self.record(init.id, ty.ty.clone());
         ty
-    }
-
-    fn complex_ty() -> Ty {
-        Ty::Udt(
-            Rc::from("Complex"),
-            hir::Res::Item(ItemId::get_complex_id()),
-        ) // ToDo: formalize this reference to the Complex type.
-        // maybe search self.table.udts for the Complex type?
-    }
-
-    fn is_double(ty: &Ty) -> bool {
-        matches!(ty, Ty::Prim(Prim::Double))
     }
 
     fn diverge(&mut self) -> Partial<Ty> {

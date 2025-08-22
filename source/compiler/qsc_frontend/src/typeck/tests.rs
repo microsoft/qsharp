@@ -4889,7 +4889,6 @@ fn double_complex_addition_works() {
 }
 
 #[test]
-#[ignore = "pending implementation or known issue"]
 fn complex_double_multiplication_works() {
     // Complex * Double should work and return Complex
     check(
@@ -4914,7 +4913,6 @@ fn complex_double_multiplication_works() {
 }
 
 #[test]
-#[ignore = "pending implementation or known issue"]
 fn complex_double_division_works() {
     // Complex / Double should work and return Complex
     check(
@@ -4939,7 +4937,6 @@ fn complex_double_division_works() {
 }
 
 #[test]
-#[ignore = "pending implementation or known issue"]
 fn complex_double_subtraction_works() {
     // Complex - Double should work and return Complex
     check(
@@ -5027,6 +5024,243 @@ fn complex_not_assignable_to_double() {
             #70 298-301 "1.0" : Double
             #71 303-306 "2.0" : Double
             Error(Type(Error(TyMismatch("Double", "Complex", Span { lo: 290, hi: 307 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn lambda_param_inference_add_double_literal_keeps_infer() {
+    check(
+        indoc! {"
+            namespace Std.Core {
+                function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
+                function Other<'T>(xs : 'T[]) : Int { body intrinsic; }
+                struct Complex { Real : Double, Imag : Double }
+            }
+            namespace A {
+                import Std.Core.*;
+                function Foo() : Unit {
+                    let f = x -> x + 2.0;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #22 104-115 "(xs : 'T[])" : ?
+            #23 105-114 "xs : 'T[]" : ?
+            #54 249-251 "()" : Unit
+            #58 259-296 "{\n        let f = x -> x + 2.0;\n    }" : Unit
+            #60 273-274 "f" : (?2 -> ?2)
+            #62 277-289 "x -> x + 2.0" : (?2 -> ?2)
+            #63 277-278 "x" : ?2
+            #65 282-289 "x + 2.0" : ?2
+            #66 282-283 "x" : ?2
+            #69 286-289 "2.0" : Double
+            Error(Type(Error(AmbiguousTy(Span { lo: 282, hi: 289 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn lambda_param_inference_add_complex_literal_infers_complex() {
+    check(
+        indoc! {"
+            namespace Std.Core {
+                function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
+                function Other<'T>(xs : 'T[]) : Int { body intrinsic; }
+                struct Complex { Real : Double, Imag : Double }
+            }
+            namespace A {
+                import Std.Core.*;
+                function Foo() : Unit {
+                    let f = x -> x + 2.0i;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #22 104-115 "(xs : 'T[])" : ?
+            #23 105-114 "xs : 'T[]" : ?
+            #54 249-251 "()" : Unit
+            #58 259-297 "{\n        let f = x -> x + 2.0i;\n    }" : Unit
+            #60 273-274 "f" : (UDT<"Complex": Item 3 (Package 0)> -> UDT<"Complex": Item 3 (Package 0)>)
+            #62 277-290 "x -> x + 2.0i" : (UDT<"Complex": Item 3 (Package 0)> -> UDT<"Complex": Item 3 (Package 0)>)
+            #63 277-278 "x" : UDT<"Complex": Item 3 (Package 0)>
+            #65 282-290 "x + 2.0i" : UDT<"Complex": Item 3 (Package 0)>
+            #66 282-283 "x" : UDT<"Complex": Item 3 (Package 0)>
+            #69 286-290 "2.0i" : UDT<"Complex": Item 3 (Package 0)>
+        "##]],
+    );
+}
+
+#[test]
+fn lambda_params_inference_add_keeps_infer_separate() {
+    check(
+        indoc! {"
+            namespace Std.Core {
+                function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
+                function Other<'T>(xs : 'T[]) : Int { body intrinsic; }
+                struct Complex { Real : Double, Imag : Double }
+            }
+            namespace A {
+                import Std.Core.*;
+                function Foo() : Unit {
+                    let f = (x, y) -> x + y;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #22 104-115 "(xs : 'T[])" : ?
+            #23 105-114 "xs : 'T[]" : ?
+            #54 249-251 "()" : Unit
+            #58 259-299 "{\n        let f = (x, y) -> x + y;\n    }" : Unit
+            #60 273-274 "f" : ((?1, ?2) -> ?3)
+            #62 277-292 "(x, y) -> x + y" : ((?1, ?2) -> ?3)
+            #63 277-283 "(x, y)" : (?1, ?2)
+            #64 278-279 "x" : ?1
+            #66 281-282 "y" : ?2
+            #68 287-292 "x + y" : ?3
+            #69 287-288 "x" : ?1
+            #72 291-292 "y" : ?2
+            Error(Type(Error(AmbiguousTy(Span { lo: 278, hi: 279 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 281, hi: 282 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 287, hi: 292 }))))
+        "##]],
+    );
+}
+
+// -------------------------------------------------------------------------------------------------
+// Additional numeric promotion tests (Double/Complex interoperability + inference edge cases)
+// -------------------------------------------------------------------------------------------------
+
+#[test]
+fn double_infer_then_complex_upgrade_add() {
+    // LHS infer binds to Double first, RHS becomes Complex later, result should upgrade to Complex.
+    check(
+        indoc! {"
+            namespace Std.Core {
+                function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
+                function Other<'T>(xs : 'T[]) : Int { body intrinsic; }
+                struct Complex { Real : Double, Imag : Double }
+            }
+            namespace A {
+                import Std.Core.*;
+                function Foo(c : Complex) : Complex {
+                    let x = 1.0; // x : Double
+                    // `x + c` should infer placeholder then upgrade to Complex
+                    x + c
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #22 104-115 "(xs : 'T[])" : ?
+            #23 105-114 "xs : 'T[]" : ?
+            #54 249-262 "(c : Complex)" : UDT<"Complex": Item 3>
+            #55 250-261 "c : Complex" : UDT<"Complex": Item 3>
+            #63 273-397 "{\n        let x = 1.0; // x : Double\n        // `x + c` should infer placeholder then upgrade to Complex\n        x + c\n    }" : UDT<"Complex": Item 3>
+            #65 287-288 "x" : Double
+            #67 291-294 "1.0" : Double
+            #69 386-391 "x + c" : UDT<"Complex": Item 3>
+            #70 386-387 "x" : Double
+            #73 390-391 "c" : UDT<"Complex": Item 3>
+        "##]],
+    );
+}
+
+#[test]
+fn infer_infer_then_double_complex_mix_deferred_mul() {
+    // Both sides start as inference vars; one becomes Double, the other Complex via parameter.
+    check(
+        indoc! {"
+            namespace Std.Core {
+                function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
+                function Other<'T>(xs : 'T[]) : Int { body intrinsic; }
+                struct Complex { Real : Double, Imag : Double }
+            }
+            namespace A {
+                import Std.Core.*;
+                function Lift(d : Double) : Double { d }
+                function Use(c : Complex) : Complex {
+                    let a = Lift(2.0);      // a : Double
+                    let b = c;              // b : Complex
+                    a * b
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #22 104-115 "(xs : 'T[])" : ?
+            #23 105-114 "xs : 'T[]" : ?
+            #54 250-262 "(d : Double)" : Double
+            #55 251-261 "d : Double" : Double
+            #63 272-277 "{ d }" : Double
+            #65 274-275 "d" : Double
+            #71 294-307 "(c : Complex)" : UDT<"Complex": Item 3>
+            #72 295-306 "c : Complex" : UDT<"Complex": Item 3>
+            #80 318-432 "{\n        let a = Lift(2.0);      // a : Double\n        let b = c;              // b : Complex\n        a * b\n    }" : Double
+            #82 332-333 "a" : Double
+            #84 336-345 "Lift(2.0)" : Double
+            #85 336-340 "Lift" : (Double -> Double)
+            #88 340-345 "(2.0)" : Double
+            #89 341-344 "2.0" : Double
+            #91 378-379 "b" : UDT<"Complex": Item 3>
+            #93 382-383 "c" : UDT<"Complex": Item 3>
+            #97 421-426 "a * b" : Double
+            #98 421-422 "a" : Double
+            #101 425-426 "b" : UDT<"Complex": Item 3>
+            Error(Type(Error(TyMismatch("Complex", "Double", Span { lo: 421, hi: 426 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn int_complex_add_error_no_promotion() {
+    // Int + Complex should not silently widen; should still treat Int as needing Add class (error).
+    check(
+        indoc! {"
+            namespace Std.Core {
+                function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
+                function Other<'T>(xs : 'T[]) : Int { body intrinsic; }
+                struct Complex { Real : Double, Imag : Double }
+            }
+        "},
+        "1 + 2.0i",
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #22 104-115 "(xs : 'T[])" : ?
+            #23 105-114 "xs : 'T[]" : ?
+            #45 196-204 "1 + 2.0i" : UDT<"Complex": Item 3 (Package 0)>
+            #46 196-197 "1" : Int
+            #47 200-204 "2.0i" : UDT<"Complex": Item 3 (Package 0)>
+            Error(Type(Error(TyMismatch("Int", "Complex", Span { lo: 200, hi: 204 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn double_bigint_no_cross_widen_add() {
+    // Double + BigInt should not widen; should produce a mismatch / class error path (no implicit LUB).
+    check(
+        "",
+        "3.0 + 4L",
+        &expect![[r##"
+            #1 0-8 "3.0 + 4L" : Double
+            #2 0-3 "3.0" : Double
+            #3 6-8 "4L" : BigInt
+            Error(Type(Error(TyMismatch("Double", "BigInt", Span { lo: 6, hi: 8 }))))
         "##]],
     );
 }

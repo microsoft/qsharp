@@ -10,6 +10,8 @@
 mod check;
 pub(super) mod convert;
 mod infer;
+mod numeric; // shared numeric helpers (Complex, predicates)
+mod promotion; // always enabled (numeric promotion merged into baseline)
 mod rules;
 #[cfg(test)]
 mod tests;
