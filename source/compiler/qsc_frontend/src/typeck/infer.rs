@@ -437,6 +437,17 @@ pub(super) enum Constraint {
         actual: Ty,
         span: Span,
     },
+    // Specialized equality for indexing relationships (array index type == Int, or
+    // array element type == item result) that should NOT participate in the general
+    // deferral heuristics used by arithmetic / interoperability. These constraints
+    // eagerly attempt unification even when one side is still an inference variable so
+    // that index expressions don't remain ambiguous (e.g., `arr[i]` where `i` was only
+    // ever constrained by being used as an index).
+    IndexEq {
+        expected: Ty,
+        actual: Ty,
+        span: Span,
+    },
     // Constraint that is satisfied if the two types are equal OR form a (Double, Complex) mix.
     Interoperable {
         a: Ty,
@@ -592,11 +603,36 @@ impl Inferrer {
                 if let Some(final_ty) = promotion::finalize_deferred_arith(&lhs, &rhs) {
                     self.solver.solution.tys.insert(res_infer, final_ty);
                 } else {
-                    // If both operands remain inference variables, leave result unresolved so it
-                    // can unify later with more info.
-                    if !(matches!(lhs, Ty::Infer(_)) && matches!(rhs, Ty::Infer(_))) {
-                        self.solver.solution.tys.insert(res_infer, lhs.clone());
+                    // Fallback (Option 1): ensure the placeholder does not remain floating.
+                    // Previous logic skipped assigning when both operands were still inference
+                    // vars, which left result types of expressions like `i + j` unresolved in
+                    // contexts that require a concrete primitive (e.g., array indices). Here we
+                    // always adopt a concrete operand if one exists; if both are still inference
+                    // variables we conservatively adopt lhs (restoring prior determinism while
+                    // still allowing earlier divergence before solve).
+                    // If the result inference variable already resolved to a concrete (non-infer)
+                    // type (e.g., due to contextual requirements like array indexing demanding Int),
+                    // preserve that binding. Only adopt when still unset or still pointing at an
+                    // inference variable.
+                    let already = self.solver.solution.tys.get(res_infer).cloned();
+                    let should_adopt = match &already {
+                        None => true,
+                        Some(t) => matches!(t, Ty::Infer(_)),
+                    };
+                    if should_adopt {
+                        let lhs_infer = matches!(lhs, Ty::Infer(_));
+                        let rhs_infer = matches!(rhs, Ty::Infer(_));
+                        let adopt = if !lhs_infer {
+                            lhs.clone()
+                        } else if !rhs_infer {
+                            rhs.clone()
+                        } else {
+                            lhs.clone()
+                        };
+                        self.solver.solution.tys.insert(res_infer, adopt);
                     }
+                    // Option 4 note: we could instead link result to both operands for a second
+                    // pass if future numeric kinds require richer late promotion.
                 }
             }
         }
@@ -677,6 +713,19 @@ impl Solver {
                 actual,
                 span,
             } => self.eq(expected, actual, span),
+            Constraint::IndexEq {
+                expected,
+                actual,
+                span,
+            } => {
+                // Eager equality for indexing: substitute then unify directly without
+                // deferring on (Infer, Int) or (Infer, Infer) mixes.
+                let mut expected_subst = expected;
+                let mut actual_subst = actual;
+                substitute_ty(&self.solution, &mut expected_subst);
+                substitute_ty(&self.solution, &mut actual_subst);
+                self.unify(&expected_subst, &actual_subst, span)
+            }
             Constraint::Interoperable { mut a, mut b, span } => {
                 let a_sub = substitute_ty(&self.solution, &mut a);
                 let b_sub = substitute_ty(&self.solution, &mut b);
@@ -731,20 +780,43 @@ impl Solver {
         // true if a dependency of this class constraint is currently unknown, meaning we
         // have to come back to it later.
         // false if we know everything we need to know and this is solved
-        let unknown_dependency = class.dependencies().into_iter().any(|ty| {
-            if ty == &Ty::Err {
-                true
+        let unknown_dependency = match &class {
+            // For HasIndex we want the index inference variable (if any) to be *driven* by
+            // the constraint (it produces an eager IndexEq Int = index). If we treated that
+            // inference var as an unknown dependency we would defer the whole class constraint
+            // and never generate the IndexEq that forces it to Int, leaving it floating until
+            // some other context binds it (which is exactly the bar2 failure scenario).
+            Class::HasIndex { index, .. } => class.dependencies().into_iter().any(|ty| {
+                if std::ptr::eq(ty, index) && matches!(index, Ty::Infer(_)) {
+                    // Skip the index inference var so the constraint proceeds.
+                    false
+                } else if ty == &Ty::Err {
+                    true
+                } else if let Some(infer) = unknown_ty(&self.solution.tys, ty) {
+                    self.pending_tys
+                        .entry(infer)
+                        .or_default()
+                        .push(class.clone());
+                    true
+                } else {
+                    false
+                }
+            }),
+            _ => class.dependencies().into_iter().any(|ty| {
+                if ty == &Ty::Err {
+                    true
                 // if this needs to be inferred further, `unknown_ty` returns `Some(ty_id)`
-            } else if let Some(infer) = unknown_ty(&self.solution.tys, ty) {
-                self.pending_tys
-                    .entry(infer)
-                    .or_default()
-                    .push(class.clone());
-                true
-            } else {
-                false
-            }
-        });
+                } else if let Some(infer) = unknown_ty(&self.solution.tys, ty) {
+                    self.pending_tys
+                        .entry(infer)
+                        .or_default()
+                        .push(class.clone());
+                    true
+                } else {
+                    false
+                }
+            }),
+        };
 
         if unknown_dependency {
             Vec::new()
@@ -1416,7 +1488,34 @@ fn check_has_index(
     item: Ty,
     span: Span,
 ) -> (Vec<Constraint>, Vec<Error>) {
-    match (container, index) {
+    match (container, &index) {
+        // If the container is an array but the index is still an inference variable, we can't
+        // yet prove it is an Int. Instead of emitting a MissingClassHasIndex error prematurely,
+        // emit constraints that will (a) force the index to unify with Int, and (b) tie the
+        // resulting item type to the array's element type. This allows contexts that use an
+        // index expression to drive the resolution of arithmetic (or other) expressions used
+        // as indices. Without this, we may leave both the index expression and the indexed
+        // element type ambiguous if the index expression itself was deferred.
+        (Ty::Array(container_item), Ty::Infer(_)) => {
+            let index_clone = index.clone();
+            (
+                vec![
+                    // Force the index expression to be an Int.
+                    Constraint::IndexEq {
+                        expected: Ty::Prim(Prim::Int),
+                        actual: index_clone,
+                        span,
+                    },
+                    // Force the result item type to be the element type of the array.
+                    Constraint::IndexEq {
+                        expected: *container_item,
+                        actual: item,
+                        span,
+                    },
+                ],
+                Vec::new(),
+            )
+        }
         (Ty::Array(container_item), Ty::Prim(Prim::Int)) => (
             vec![Constraint::Eq {
                 expected: *container_item,
@@ -1436,7 +1535,7 @@ fn check_has_index(
             }],
             Vec::new(),
         ),
-        (container, index) => (
+        (container, _) => (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassHasIndex(
                 container.display(),

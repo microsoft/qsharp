@@ -793,12 +793,60 @@ impl<'a> Context<'a> {
                 }
                 match outcome.decision {
                     PromotionDecision::Eager(t) => converge(t),
-                    PromotionDecision::ReuseLhsInfer => converge(lhs.ty.clone()),
+                    PromotionDecision::ReuseLhsInfer => {
+                        // Special case: both sides are still inference vars. Reusing the lhs
+                        // variable collapses their future possibilities (e.g., one side later
+                        // becoming Complex while the other remains Double). Allocate a fresh
+                        // placeholder and defer the final result decision until after solving
+                        // so each operand can independently evolve.
+                        let lhs_is_infer = matches!(lhs_ty, Ty::Infer(_));
+                        let rhs_is_infer = matches!(rhs_ty, Ty::Infer(_));
+                        if lhs_is_infer && rhs_is_infer {
+                            let placeholder = self.inferrer.fresh_ty(TySource::not_divergent(span));
+                            record_deferred_arith(
+                                self.inferrer,
+                                ArithOp::Add,
+                                &placeholder,
+                                &lhs_ty,
+                                &rhs_ty,
+                            );
+                            converge(placeholder)
+                        } else {
+                            converge(lhs.ty.clone())
+                        }
+                    }
                     PromotionDecision::Deferred => {
                         let placeholder = self.inferrer.fresh_ty(TySource::not_divergent(span));
+                        // Also constrain the placeholder itself so downstream uses of the
+                        // arithmetic result retain the relevant numeric class capability
+                        // (Add/Sub/Mul/Div) even before deferred finalization selects a
+                        // concrete numeric type. Previously this was only done for Add which
+                        // meant deferred placeholders for -, *, / missed their class
+                        // constraint and could lead to ambiguous or missing-class diagnostics
+                        // in downstream uses (see tests `bar` / `bar2`).
+                        let arith_op = match op {
+                            BinOp::Add => {
+                                self.inferrer.class(span, Class::Add(placeholder.clone()));
+                                ArithOp::Add
+                            }
+                            BinOp::Sub => {
+                                self.inferrer.class(span, Class::Sub(placeholder.clone()));
+                                ArithOp::Sub
+                            }
+                            BinOp::Mul => {
+                                self.inferrer.class(span, Class::Mul(placeholder.clone()));
+                                ArithOp::Mul
+                            }
+                            BinOp::Div => {
+                                self.inferrer.class(span, Class::Div(placeholder.clone()));
+                                ArithOp::Div
+                            }
+                            // Should not reach here for non-arithmetic ops using promotion.
+                            _ => unreachable!("deferred arithmetic placeholder for non arith op"),
+                        };
                         record_deferred_arith(
                             self.inferrer,
-                            ArithOp::Add,
+                            arith_op,
                             &placeholder,
                             &lhs_ty,
                             &rhs_ty,

@@ -3302,21 +3302,23 @@ fn lambda_implicit_return_without_call_ambiguous() {
             }
         "},
         "",
-        &expect![[r#"
+        &expect![[r##"
             #6 30-32 "()" : Unit
             #10 40-104 "{\n        let f = (a, b) -> {\n            a + b\n        };\n    }" : Unit
-            #12 54-55 "f" : ((?3, ?3) -> ?3)
-            #14 58-97 "(a, b) -> {\n            a + b\n        }" : ((?3, ?3) -> ?3)
-            #15 58-64 "(a, b)" : (?3, ?3)
-            #16 59-60 "a" : ?3
-            #18 62-63 "b" : ?3
+            #12 54-55 "f" : ((?1, ?2) -> ?3)
+            #14 58-97 "(a, b) -> {\n            a + b\n        }" : ((?1, ?2) -> ?3)
+            #15 58-64 "(a, b)" : (?1, ?2)
+            #16 59-60 "a" : ?1
+            #18 62-63 "b" : ?2
             #20 68-97 "{\n            a + b\n        }" : ?3
             #21 68-97 "{\n            a + b\n        }" : ?3
             #23 82-87 "a + b" : ?3
-            #24 82-83 "a" : ?3
-            #27 86-87 "b" : ?3
+            #24 82-83 "a" : ?1
+            #27 86-87 "b" : ?2
+            Error(Type(Error(AmbiguousTy(Span { lo: 59, hi: 60 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 62, hi: 63 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 68, hi: 97 }))))
-        "#]],
+        "##]],
     );
 }
 
@@ -5052,12 +5054,13 @@ fn lambda_param_inference_add_double_literal_keeps_infer() {
             #23 105-114 "xs : 'T[]" : ?
             #54 249-251 "()" : Unit
             #58 259-296 "{\n        let f = x -> x + 2.0;\n    }" : Unit
-            #60 273-274 "f" : (?2 -> ?2)
-            #62 277-289 "x -> x + 2.0" : (?2 -> ?2)
-            #63 277-278 "x" : ?2
+            #60 273-274 "f" : (?1 -> ?2)
+            #62 277-289 "x -> x + 2.0" : (?1 -> ?2)
+            #63 277-278 "x" : ?1
             #65 282-289 "x + 2.0" : ?2
-            #66 282-283 "x" : ?2
+            #66 282-283 "x" : ?1
             #69 286-289 "2.0" : Double
+            Error(Type(Error(AmbiguousTy(Span { lo: 277, hi: 278 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 282, hi: 289 }))))
         "##]],
     );
@@ -5093,6 +5096,133 @@ fn lambda_param_inference_add_complex_literal_infers_complex() {
             #65 282-290 "x + 2.0i" : UDT<"Complex": Item 3 (Package 0)>
             #66 282-283 "x" : UDT<"Complex": Item 3 (Package 0)>
             #69 286-290 "2.0i" : UDT<"Complex": Item 3 (Package 0)>
+        "##]],
+    );
+}
+
+#[test]
+fn bar() {
+    check(
+        indoc! {"
+            namespace Std.Core {
+                function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
+                function Other<'T>(xs : 'T[]) : Int { body intrinsic; }
+                struct Complex { Real : Double, Imag : Double }
+            }
+            namespace A {
+                import Std.Core.*;
+                function MultiplexZCoefficients(coefficients : Double[]) : (Double[], Double[]) {
+                    let newCoefficientsLength = Length(coefficients) / 2;
+                    mutable coefficients0 = [];
+                    mutable coefficients1 = [];
+
+                    for idxCoeff in 0..newCoefficientsLength - 1 {
+                        set coefficients0 += [0.5 * (coefficients[idxCoeff] + coefficients[idxCoeff + newCoefficientsLength])];
+                        set coefficients1 += [0.5 * (coefficients[idxCoeff] - coefficients[idxCoeff + newCoefficientsLength])];
+                    }
+
+                    return (coefficients0, coefficients1);
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #22 104-115 "(xs : 'T[])" : ?
+            #23 105-114 "xs : 'T[]" : ?
+            #54 268-293 "(coefficients : Double[])" : Double[]
+            #55 269-292 "coefficients : Double[]" : Double[]
+            #70 317-804 "{\n        let newCoefficientsLength = Length(coefficients) / 2;\n        mutable coefficients0 = [];\n        mutable coefficients1 = [];\n\n        for idxCoeff in 0..newCoefficientsLength - 1 {\n            set coefficients0 += [0.5 * (coefficients[idxCoeff] + coefficients[idxCoeff + newCoefficientsLength])];\n            set coefficients1 += [0.5 * (coefficients[idxCoeff] - coefficients[idxCoeff + newCoefficientsLength])];\n        }\n\n        return (coefficients0, coefficients1);\n    }" : (Double[], Double[])
+            #72 331-352 "newCoefficientsLength" : Int
+            #74 355-379 "Length(coefficients) / 2" : Int
+            #75 355-375 "Length(coefficients)" : Int
+            #76 355-361 "Length" : (Double[] -> Int)
+            #79 361-375 "(coefficients)" : Double[]
+            #80 362-374 "coefficients" : Double[]
+            #83 378-379 "2" : Int
+            #85 397-410 "coefficients0" : Double[]
+            #87 413-415 "[]" : Double[]
+            #89 433-446 "coefficients1" : Double[]
+            #91 449-451 "[]" : Double[]
+            #93 462-750 "for idxCoeff in 0..newCoefficientsLength - 1 {\n            set coefficients0 += [0.5 * (coefficients[idxCoeff] + coefficients[idxCoeff + newCoefficientsLength])];\n            set coefficients1 += [0.5 * (coefficients[idxCoeff] - coefficients[idxCoeff + newCoefficientsLength])];\n        }" : Unit
+            #94 466-474 "idxCoeff" : Int
+            #96 478-506 "0..newCoefficientsLength - 1" : Range
+            #97 478-479 "0" : Int
+            #98 481-506 "newCoefficientsLength - 1" : Int
+            #99 481-502 "newCoefficientsLength" : Int
+            #102 505-506 "1" : Int
+            #103 507-750 "{\n            set coefficients0 += [0.5 * (coefficients[idxCoeff] + coefficients[idxCoeff + newCoefficientsLength])];\n            set coefficients1 += [0.5 * (coefficients[idxCoeff] - coefficients[idxCoeff + newCoefficientsLength])];\n        }" : Unit
+            #105 521-623 "set coefficients0 += [0.5 * (coefficients[idxCoeff] + coefficients[idxCoeff + newCoefficientsLength])]" : Unit
+            #106 525-538 "coefficients0" : Double[]
+            #109 542-623 "[0.5 * (coefficients[idxCoeff] + coefficients[idxCoeff + newCoefficientsLength])]" : Double[]
+            #110 543-622 "0.5 * (coefficients[idxCoeff] + coefficients[idxCoeff + newCoefficientsLength])" : Double
+            #111 543-546 "0.5" : Double
+            #112 549-622 "(coefficients[idxCoeff] + coefficients[idxCoeff + newCoefficientsLength])" : Double
+            #113 550-621 "coefficients[idxCoeff] + coefficients[idxCoeff + newCoefficientsLength]" : Double
+            #114 550-572 "coefficients[idxCoeff]" : Double
+            #115 550-562 "coefficients" : Double[]
+            #118 563-571 "idxCoeff" : Int
+            #121 575-621 "coefficients[idxCoeff + newCoefficientsLength]" : Double
+            #122 575-587 "coefficients" : Double[]
+            #125 588-620 "idxCoeff + newCoefficientsLength" : Int
+            #126 588-596 "idxCoeff" : Int
+            #129 599-620 "newCoefficientsLength" : Int
+            #133 637-739 "set coefficients1 += [0.5 * (coefficients[idxCoeff] - coefficients[idxCoeff + newCoefficientsLength])]" : Unit
+            #134 641-654 "coefficients1" : Double[]
+            #137 658-739 "[0.5 * (coefficients[idxCoeff] - coefficients[idxCoeff + newCoefficientsLength])]" : Double[]
+            #138 659-738 "0.5 * (coefficients[idxCoeff] - coefficients[idxCoeff + newCoefficientsLength])" : Double
+            #139 659-662 "0.5" : Double
+            #140 665-738 "(coefficients[idxCoeff] - coefficients[idxCoeff + newCoefficientsLength])" : Double
+            #141 666-737 "coefficients[idxCoeff] - coefficients[idxCoeff + newCoefficientsLength]" : Double
+            #142 666-688 "coefficients[idxCoeff]" : Double
+            #143 666-678 "coefficients" : Double[]
+            #146 679-687 "idxCoeff" : Int
+            #149 691-737 "coefficients[idxCoeff + newCoefficientsLength]" : Double
+            #150 691-703 "coefficients" : Double[]
+            #153 704-736 "idxCoeff + newCoefficientsLength" : Int
+            #154 704-712 "idxCoeff" : Int
+            #157 715-736 "newCoefficientsLength" : Int
+            #161 760-797 "return (coefficients0, coefficients1)" : Unit
+            #162 767-797 "(coefficients0, coefficients1)" : (Double[], Double[])
+            #163 768-781 "coefficients0" : Double[]
+            #166 783-796 "coefficients1" : Double[]
+        "##]],
+    );
+}
+
+#[test]
+fn bar2() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Unit {
+                    let x = [1.0, 2.0];
+                    let y = 0;
+                    let z = 0;
+
+                    let temp = x[y + z];
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 30-32 "()" : Unit
+            #10 40-143 "{\n        let x = [1.0, 2.0];\n        let y = 0;\n        let z = 0;\n\n        let temp = x[y + z];\n    }" : Unit
+            #12 54-55 "x" : Double[]
+            #14 58-68 "[1.0, 2.0]" : Double[]
+            #15 59-62 "1.0" : Double
+            #16 64-67 "2.0" : Double
+            #18 82-83 "y" : Int
+            #20 86-87 "0" : Int
+            #22 101-102 "z" : Int
+            #24 105-106 "0" : Int
+            #26 121-125 "temp" : Double
+            #28 128-136 "x[y + z]" : Double
+            #29 128-129 "x" : Double[]
+            #32 130-135 "y + z" : Int
+            #33 130-131 "y" : Int
+            #36 134-135 "z" : Int
         "##]],
     );
 }

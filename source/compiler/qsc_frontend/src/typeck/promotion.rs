@@ -278,7 +278,14 @@ fn arith_rules() -> &'static [PromotionRule] {
                         | (Shape::Numeric(NumericKind::Double), Shape::Infer)
                 )
             },
-            action: |_lhs, _rhs, _l, _r| PromotionDecision::ReuseLhsInfer,
+            // IMPORTANT: We must allocate a fresh deferred placeholder here rather than
+            // reusing the lhs. Returning `ReuseLhsInfer` when the lhs is the concrete Double
+            // (case: Double + infer) prematurely fixes the result to Double and prevents a
+            // later upgrade to Complex if the inference variable acquires a Complex constraint
+            // through other usages (see tests `bar` / `bar2`). Using `Deferred` ensures we
+            // postpone committing to Double until post‑solve when we can examine the fully
+            // substituted operands and (if needed) upgrade to Complex or adopt a common kind.
+            action: |_lhs, _rhs, _l, _r| PromotionDecision::Deferred,
         },
         // (Remaining mixes considered by lattice / fallback.)
     ];
