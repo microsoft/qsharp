@@ -327,10 +327,10 @@ operation ecr(qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
 /// Rotation θ around the cos(φ)x + sin(φ)y axis.
 /// `gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}`
 operation r(theta : Angle, phi : Angle, qubit : Qubit) : Unit is Adj + Ctl {
-    u3(theta, PI_OVER_4(), SubtractAngles(
+    u3(theta, AddAngles(
         phi,
         NEG_PI_OVER_2()
-    ), qubit);
+    ), SubtractAngles(PI_OVER_2(), phi), qubit);
 }
 
 /// A parametric 2-qubit `Z ⊗ X` interaction (rotation about ZX).
