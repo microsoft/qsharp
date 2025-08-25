@@ -43,14 +43,14 @@ class ResourceEstimatorBackend(BackendBase):
         qiskit_pass_options: Optional[Dict[str, Any]] = None,
         transpile_options: Optional[Dict[str, Any]] = None,
         qasm_export_options: Optional[Dict[str, Any]] = None,
-        skip_transpilation: bool = False,
+        skip_transpilation: bool = True,
         **fields,
     ):
         """
         Parameters:
             target (Target): The target to use for the backend.
             qiskit_pass_options (Dict): Options for the Qiskit passes.
-            transpile_options (Dict): Options for the transpiler.
+            transpile_options (Dict): Options for the transpiler. [Deprecated]
             qasm_export_options (Dict): Options for the QASM3 exporter.
             **options: Additional options for the execution.
                 - params (EstimatorParams): Configuration values for resource estimation.
@@ -115,6 +115,12 @@ class ResourceEstimatorBackend(BackendBase):
         :raises QasmError: If there is an error generating, parsing, or compiling QASM.
         :raises ValueError: If the run_input is not a QuantumCircuit.
         """
+
+        if "skip_transpilation" in options:
+            raise NotImplementedError(
+                "skip_transpilation will be removed in the next release, transpile any circuits prior to estimation"
+            )
+
         if isinstance(run_input, QuantumCircuit):
             run_input = [run_input]
         if len(run_input) != 1:

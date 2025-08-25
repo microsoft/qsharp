@@ -53,14 +53,14 @@ class QSharpBackend(BackendBase):
         qiskit_pass_options: Optional[Dict[str, Any]] = None,
         transpile_options: Optional[Dict[str, Any]] = None,
         qasm_export_options: Optional[Dict[str, Any]] = None,
-        skip_transpilation: bool = False,
+        skip_transpilation: bool = True,
         **fields,
     ):
         """
         Parameters:
             target (Target): The target to use for the backend.
             qiskit_pass_options (Dict): Options for the Qiskit passes.
-            transpile_options (Dict): Options for the transpiler.
+            transpile_options (Dict): Options for the transpiler. [Deprecated]
             qasm_export_options (Dict): Options for the QASM3 exporter.
             **options: Additional options for the execution.
               - name (str): The name of the circuit. This is used as the entry point for the program.

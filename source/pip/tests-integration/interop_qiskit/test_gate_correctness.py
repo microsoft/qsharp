@@ -119,7 +119,13 @@ def test_qiskit_qir_exercise_barrier_delay() -> None:
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
 def test_qiskit_qir_exercise_initialize_prepare_state() -> None:
-    _test_circuit(*exercise_initialize_prepare_state())
+    from qiskit import transpile
+    from qiskit.providers.fake_provider import GenericBackendV2
+
+    (circuit, peaks) = exercise_initialize_prepare_state()
+    backend = GenericBackendV2(circuit.num_qubits)
+    circuit = transpile(circuit, backend)
+    _test_circuit(*(circuit, peaks))
 
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
@@ -245,9 +251,6 @@ def _test_circuit(
     backend = QSharpBackend(
         target_profile=target_profile,
         seed=seed,
-        transpile_options={
-            "optimization_level": 0  # Use no optimization to get consistent results in simulations
-        },
     )
     try:
         job = backend.run(circuit, shots=num_shots)

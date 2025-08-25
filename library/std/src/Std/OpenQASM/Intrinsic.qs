@@ -534,27 +534,45 @@ operation c3x(a : Qubit, b : Qubit, c : Qubit, d : Qubit) : Unit is Adj + Ctl {
 ///     u2(0,pi) d;
 /// }
 /// ```
+// operation rc3x(a : Qubit, b : Qubit, c : Qubit, d : Qubit) : Unit is Adj + Ctl {
+//     u2(ZERO_ANGLE(), PI_ANGLE(), d);
+//     u1(PI_OVER_4(), d);
+//     cx(c, d);
+//     u1(NEG_PI_OVER_4(), d);
+//     u2(ZERO_ANGLE(), PI_ANGLE(), d);
+//     cx(a, d);
+//     u1(PI_OVER_4(), d);
+//     cx(b, d);
+//     u1(NEG_PI_OVER_4(), d);
+//     cx(a, d);
+//     u1(PI_OVER_4(), d);
+//     cx(b, d);
+//     u1(NEG_PI_OVER_4(), d);
+//     u2(ZERO_ANGLE(), PI_ANGLE(), d);
+//     u1(PI_OVER_4(), d);
+//     cx(c, d);
+//     u1(NEG_PI_OVER_4(), d);
+//     u2(ZERO_ANGLE(), PI_ANGLE(), d);
+// }
 operation rc3x(a : Qubit, b : Qubit, c : Qubit, d : Qubit) : Unit is Adj + Ctl {
-    u2(ZERO_ANGLE(), PI_ANGLE(), d);
-    u1(PI_OVER_4(), d);
+    h(d);
+    t(d);
     cx(c, d);
-    u1(NEG_PI_OVER_4(), d);
-    u2(ZERO_ANGLE(), PI_ANGLE(), d);
+    tdg(d);
+    h(d);
     cx(a, d);
-    u1(PI_OVER_4(), d);
+    t(d);
     cx(b, d);
-    u1(NEG_PI_OVER_4(), d);
+    tdg(d);
     cx(a, d);
-    u1(PI_OVER_4(), d);
+    t(d);
     cx(b, d);
-    u1(NEG_PI_OVER_4(), d);
-    u2(ZERO_ANGLE(), PI_ANGLE(), d);
-    u1(PI_OVER_4(), d);
-    cx(c, d);
-    u1(NEG_PI_OVER_4(), d);
-    u2(ZERO_ANGLE(), PI_ANGLE(), d);
+    h(d);
+    t(d);
+    cx(b, d);
+    tdg(d);
+    h(d);
 }
-
 /// XX-YY gate.
 /// ```
 /// gate xx_minus_yy(theta, beta) a, b {
