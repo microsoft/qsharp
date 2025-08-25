@@ -1277,6 +1277,72 @@ fn ternop_update_array_index_expr() {
 }
 
 #[test]
+fn ternop_update_array_index_expr_with_ambiguous_lambda_params() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    let xs = [2];
+                    let f = (i, j) -> xs w/ i + j <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 30-32 "()" : Unit
+            #8 38-111 "{\n        let xs = [2];\n        let f = (i, j) -> xs w/ i + j <- 3;\n    }" : Unit
+            #10 52-54 "xs" : Int[]
+            #12 57-60 "[2]" : Int[]
+            #13 58-59 "2" : Int
+            #15 74-75 "f" : ((?2, ?3) -> Int[])
+            #17 78-104 "(i, j) -> xs w/ i + j <- 3" : ((?2, ?3) -> Int[])
+            #18 78-84 "(i, j)" : (?2, ?3)
+            #19 79-80 "i" : ?2
+            #21 82-83 "j" : ?3
+            #23 88-104 "xs w/ i + j <- 3" : Int[]
+            #24 88-90 "xs" : Int[]
+            #27 94-99 "i + j" : Int
+            #28 94-95 "i" : ?2
+            #31 98-99 "j" : ?3
+            #34 103-104 "3" : Int
+            Error(Type(Error(AmbiguousTy(Span { lo: 79, hi: 80 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 82, hi: 83 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_update_array_index_expr_with_single_lambda_param() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    let xs = [2];
+                    let f = i -> xs w/ i + 1 <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 30-32 "()" : Unit
+            #8 38-106 "{\n        let xs = [2];\n        let f = i -> xs w/ i + 1 <- 3;\n    }" : Unit
+            #10 52-54 "xs" : Int[]
+            #12 57-60 "[2]" : Int[]
+            #13 58-59 "2" : Int
+            #15 74-75 "f" : (Int -> Int[])
+            #17 78-99 "i -> xs w/ i + 1 <- 3" : (Int -> Int[])
+            #18 78-79 "i" : Int
+            #20 83-99 "xs w/ i + 1 <- 3" : Int[]
+            #21 83-85 "xs" : Int[]
+            #24 89-94 "i + 1" : Int
+            #25 89-90 "i" : Int
+            #28 93-94 "1" : Int
+            #29 98-99 "3" : Int
+        "##]],
+    );
+}
+
+#[test]
 fn ternop_update_udt_known_field_name() {
     check(
         indoc! {"
@@ -1322,7 +1388,7 @@ fn ternop_update_udt_known_field_name_expr() {
             }
         "},
         "",
-        &expect![[r#"
+        &expect![[r##"
             #19 79-81 "()" : Unit
             #21 87-159 "{\n        let p = Pair(1, 2);\n        let q = p w/ First + 1 <- 3;\n    }" : Unit
             #23 101-102 "p" : UDT<"Pair": Item 1>
@@ -1339,7 +1405,8 @@ fn ternop_update_udt_known_field_name_expr() {
             #43 146-147 "1" : Int
             #44 151-152 "3" : Int
             Error(Resolve(NotFound("First", Span { lo: 138, hi: 143 })))
-        "#]],
+            Error(Type(Error(MissingClassHasIndex("Pair", "?", Span { lo: 133, hi: 152 }))))
+        "##]],
     );
 }
 
@@ -1410,6 +1477,84 @@ fn ternop_update_udt_unknown_field_name_known_global() {
             #48 177-178 "3" : Int
             Error(Type(Error(MissingClassHasField("Pair", "Third", Span { lo: 163, hi: 178 }))))
         "#]],
+    );
+}
+
+#[test]
+fn ternop_update_udt_with_index_expr_with_ambiguous_lambda_params() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Foo() : () {
+                    let y = Pair(1, 2);
+                    let f = (i, j) -> y w/ i + j <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #19 79-81 "()" : Unit
+            #21 87-165 "{\n        let y = Pair(1, 2);\n        let f = (i, j) -> y w/ i + j <- 3;\n    }" : Unit
+            #23 101-102 "y" : UDT<"Pair": Item 1>
+            #25 105-115 "Pair(1, 2)" : UDT<"Pair": Item 1>
+            #26 105-109 "Pair" : ((Int, Int) -> UDT<"Pair": Item 1>)
+            #29 109-115 "(1, 2)" : (Int, Int)
+            #30 110-111 "1" : Int
+            #31 113-114 "2" : Int
+            #33 129-130 "f" : ((?3, ?4) -> UDT<"Pair": Item 1>)
+            #35 133-158 "(i, j) -> y w/ i + j <- 3" : ((?3, ?4) -> UDT<"Pair": Item 1>)
+            #36 133-139 "(i, j)" : (?3, ?4)
+            #37 134-135 "i" : ?3
+            #39 137-138 "j" : ?4
+            #41 143-158 "y w/ i + j <- 3" : UDT<"Pair": Item 1>
+            #42 143-144 "y" : UDT<"Pair": Item 1>
+            #45 148-153 "i + j" : ?3
+            #46 148-149 "i" : ?3
+            #49 152-153 "j" : ?4
+            #52 157-158 "3" : Int
+            Error(Type(Error(MissingClassHasIndex("Pair", "?", Span { lo: 143, hi: 158 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 134, hi: 135 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 137, hi: 138 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_update_udt_with_index_expr_with_single_lambda_param() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Foo() : () {
+                    let y = Pair(1, 2);
+                    let f = i -> y w/ i + 1 <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #19 79-81 "()" : Unit
+            #21 87-160 "{\n        let y = Pair(1, 2);\n        let f = i -> y w/ i + 1 <- 3;\n    }" : Unit
+            #23 101-102 "y" : UDT<"Pair": Item 1>
+            #25 105-115 "Pair(1, 2)" : UDT<"Pair": Item 1>
+            #26 105-109 "Pair" : ((Int, Int) -> UDT<"Pair": Item 1>)
+            #29 109-115 "(1, 2)" : (Int, Int)
+            #30 110-111 "1" : Int
+            #31 113-114 "2" : Int
+            #33 129-130 "f" : (Int -> UDT<"Pair": Item 1>)
+            #35 133-153 "i -> y w/ i + 1 <- 3" : (Int -> UDT<"Pair": Item 1>)
+            #36 133-134 "i" : Int
+            #38 138-153 "y w/ i + 1 <- 3" : UDT<"Pair": Item 1>
+            #39 138-139 "y" : UDT<"Pair": Item 1>
+            #42 143-148 "i + 1" : Int
+            #43 143-144 "i" : Int
+            #46 147-148 "1" : Int
+            #47 152-153 "3" : Int
+            Error(Type(Error(MissingClassHasIndex("Pair", "Int", Span { lo: 138, hi: 153 }))))
+        "##]],
     );
 }
 
@@ -3286,6 +3431,50 @@ fn lambda_inner_return_without_call_ambiguous() {
             #28 93-94 "b" : ?2
             Error(Type(Error(AmbiguousTy(Span { lo: 62, hi: 63 }))))
         "#]],
+    );
+}
+
+#[test]
+fn lambda_implicit_return_with_call_complex() {
+    check(
+        indoc! {"
+            namespace Std.Core {
+                function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
+                function Other<'T>(xs : 'T[]) : Int { body intrinsic; }
+                struct Complex { Real : Double, Imag : Double }
+            }
+            namespace A {
+                import Std.Core.*;
+                function Foo() : Unit {
+                    let f = (a, b) -> a + b;
+                    let temp = f(1.0, 2.0i);
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #22 104-115 "(xs : 'T[])" : ?
+            #23 105-114 "xs : 'T[]" : ?
+            #54 249-251 "()" : Unit
+            #58 259-332 "{\n        let f = (a, b) -> a + b;\n        let temp = f(1.0, 2.0i);\n    }" : Unit
+            #60 273-274 "f" : ((Double, UDT<"Complex": Item 3 (Package 0)>) -> UDT<"Complex": Item 3 (Package 0)>)
+            #62 277-292 "(a, b) -> a + b" : ((Double, UDT<"Complex": Item 3 (Package 0)>) -> UDT<"Complex": Item 3 (Package 0)>)
+            #63 277-283 "(a, b)" : (Double, UDT<"Complex": Item 3 (Package 0)>)
+            #64 278-279 "a" : Double
+            #66 281-282 "b" : UDT<"Complex": Item 3 (Package 0)>
+            #68 287-292 "a + b" : UDT<"Complex": Item 3 (Package 0)>
+            #69 287-288 "a" : Double
+            #72 291-292 "b" : UDT<"Complex": Item 3 (Package 0)>
+            #76 306-310 "temp" : UDT<"Complex": Item 3 (Package 0)>
+            #78 313-325 "f(1.0, 2.0i)" : UDT<"Complex": Item 3 (Package 0)>
+            #79 313-314 "f" : ((Double, UDT<"Complex": Item 3 (Package 0)>) -> UDT<"Complex": Item 3 (Package 0)>)
+            #82 314-325 "(1.0, 2.0i)" : (Double, UDT<"Complex": Item 3 (Package 0)>)
+            #83 315-318 "1.0" : Double
+            #84 320-324 "2.0i" : UDT<"Complex": Item 3 (Package 0)>
+            
+        "##]],
     );
 }
 
@@ -5339,7 +5528,7 @@ fn infer_infer_then_double_complex_mix_deferred_mul() {
             #65 274-275 "d" : Double
             #71 294-307 "(c : Complex)" : UDT<"Complex": Item 3>
             #72 295-306 "c : Complex" : UDT<"Complex": Item 3>
-            #80 318-432 "{\n        let a = Lift(2.0);      // a : Double\n        let b = c;              // b : Complex\n        a * b\n    }" : Double
+            #80 318-432 "{\n        let a = Lift(2.0);      // a : Double\n        let b = c;              // b : Complex\n        a * b\n    }" : UDT<"Complex": Item 3>
             #82 332-333 "a" : Double
             #84 336-345 "Lift(2.0)" : Double
             #85 336-340 "Lift" : (Double -> Double)
@@ -5347,10 +5536,9 @@ fn infer_infer_then_double_complex_mix_deferred_mul() {
             #89 341-344 "2.0" : Double
             #91 378-379 "b" : UDT<"Complex": Item 3>
             #93 382-383 "c" : UDT<"Complex": Item 3>
-            #97 421-426 "a * b" : Double
+            #97 421-426 "a * b" : UDT<"Complex": Item 3>
             #98 421-422 "a" : Double
             #101 425-426 "b" : UDT<"Complex": Item 3>
-            Error(Type(Error(TyMismatch("Complex", "Double", Span { lo: 421, hi: 426 }))))
         "##]],
     );
 }

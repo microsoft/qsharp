@@ -36,7 +36,9 @@
 //!  1. `complex_involvement`: If either side is Complex → result = Complex (eager)
 //!  2. `same_concrete_numeric`: Same primitive numeric kind → that kind (eager)
 //!  3. `infer_plus_non_double_primitive`: Infer with Int/BigInt → concrete primitive (eager)
-//!  4. `both_infer`: Reuse lhs inference variable (keeps previous behavior for e.g. `a + b`)
+//!  4. `both_infer`: Defer (allocate fresh placeholder) so later concrete operands (e.g. Double +
+//!     Complex) can upgrade the result; reusing the lhs would strand the result as an unconstrained
+//!     inference when only interoperability (not equality) constraints are emitted.
 //!  5. (fallback) Attempt lattice LUB (e.g., Double + Complex) else defer
 //!
 //! DEFERRED RESOLUTION
@@ -260,11 +262,16 @@ fn arith_rules() -> &'static [PromotionRule] {
                 PromotionDecision::Eager(concrete)
             },
         },
-        // 4. Both inference -> reuse lhs.
+        // 4. Both inference -> defer. We need a distinct placeholder recorded for post‑solve so
+        // that if one side later becomes Complex (and the other Double) we can upgrade the
+        // result to Complex. Reusing the lhs would (a) prevent us from recording the arithmetic
+        // triple and (b) risk leaving the result inference var unsolved because interoperability
+        // does not force equality. This manifested in `lambda_implicit_return_with_call_complex`
+        // where `a + b` stayed as an unresolved inference variable instead of upgrading.
         PromotionRule {
             name: "both_infer",
             matcher: |l, r| matches!(l, Shape::Infer) && matches!(r, Shape::Infer),
-            action: |_lhs, _rhs, _l, _r| PromotionDecision::ReuseLhsInfer,
+            action: |_lhs, _rhs, _l, _r| PromotionDecision::Deferred,
         },
         // 5. Mixed Double + inference (or inference + Double) – force deferral explicitly so we
         // don't accidentally hit LUB (which would eagerly choose Double) before the inference
