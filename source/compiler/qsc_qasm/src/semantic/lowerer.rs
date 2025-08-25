@@ -4286,6 +4286,20 @@ impl Lowerer {
                 let new_rhs = self.cast_expr_to_type(&angle_ty, &rhs);
                 let int_ty = Type::UInt(angle_ty.width(), ty_constness);
                 (new_lhs, new_rhs, int_ty)
+            }
+            // Design Decision: This branch isn't Spec compliant. It is an exception
+            //                  to support existing code in the Qiskit ecosystem which
+            //                  compiles to qasm that adds and subtracts floats and angles.
+            else if matches!(op, syntax::BinOp::Add | syntax::BinOp::Sub) {
+                if matches!(left_type, Type::Float(..)) {
+                    let ty = Type::Angle(rhs.ty.width(), ty_constness);
+                    let new_lhs = self.cast_expr_to_type(&ty, &lhs);
+                    (new_lhs, rhs, ty)
+                } else {
+                    let ty = Type::Angle(rhs.ty.width(), ty_constness);
+                    let new_rhs = self.cast_expr_to_type(&ty, &rhs);
+                    (lhs, new_rhs, ty)
+                }
             } else if matches!(left_type, Type::Angle(..)) {
                 let ty = Type::Angle(left_type.width(), ty_constness);
                 let new_lhs = self.cast_expr_to_type(&ty, &lhs);
