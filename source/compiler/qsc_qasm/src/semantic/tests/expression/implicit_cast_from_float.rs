@@ -689,3 +689,341 @@ fn to_explicit_angle_implicitly() {
         "#]],
     );
 }
+
+#[test]
+fn to_angle_implicitly_in_add_bin_op() {
+    let source = "
+        angle a = pi;
+        angle b = 1.0 + a;
+        angle c = a + 2.0;
+    ";
+
+    check_classical_decls(
+        source,
+        &expect![[r#"
+            ClassicalDeclarationStmt [9-22]:
+                symbol_id: 8
+                ty_span: [9-14]
+                ty_exprs: <empty>
+                init_expr: Expr [19-21]:
+                    ty: angle
+                    kind: Cast [19-21]:
+                        ty: angle
+                        ty_exprs: <empty>
+                        expr: Expr [19-21]:
+                            ty: const float
+                            kind: SymbolId(2)
+                        kind: Implicit
+            [8] Symbol [15-16]:
+                name: a
+                type: angle
+                ty_span: [9-14]
+                io_kind: Default
+            ClassicalDeclarationStmt [31-49]:
+                symbol_id: 9
+                ty_span: [31-36]
+                ty_exprs: <empty>
+                init_expr: Expr [41-48]:
+                    ty: angle
+                    kind: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [41-44]:
+                            ty: angle
+                            kind: Cast [41-44]:
+                                ty: angle
+                                ty_exprs: <empty>
+                                expr: Expr [41-44]:
+                                    ty: const float
+                                    kind: Lit: Float(1.0)
+                                kind: Implicit
+                        rhs: Expr [47-48]:
+                            ty: angle
+                            kind: SymbolId(8)
+            [9] Symbol [37-38]:
+                name: b
+                type: angle
+                ty_span: [31-36]
+                io_kind: Default
+            ClassicalDeclarationStmt [58-76]:
+                symbol_id: 10
+                ty_span: [58-63]
+                ty_exprs: <empty>
+                init_expr: Expr [68-75]:
+                    ty: angle
+                    kind: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [68-69]:
+                            ty: angle
+                            kind: SymbolId(8)
+                        rhs: Expr [72-75]:
+                            ty: angle
+                            kind: Cast [72-75]:
+                                ty: angle
+                                ty_exprs: <empty>
+                                expr: Expr [72-75]:
+                                    ty: const float
+                                    kind: Lit: Float(2.0)
+                                kind: Implicit
+            [10] Symbol [64-65]:
+                name: c
+                type: angle
+                ty_span: [58-63]
+                io_kind: Default
+        "#]],
+    );
+}
+
+#[test]
+fn to_const_angle_implicitly_in_add_bin_op() {
+    let source = "
+        const angle a = pi;
+        const angle b = 1.0 + a;
+        const angle c = a + 2.0;
+    ";
+
+    check_classical_decls(
+        source,
+        &expect![[r#"
+            ClassicalDeclarationStmt [9-28]:
+                symbol_id: 8
+                ty_span: [15-20]
+                ty_exprs: <empty>
+                init_expr: Expr [25-27]:
+                    ty: const angle
+                    const_value: Angle(3.141592653589793)
+                    kind: Cast [25-27]:
+                        ty: const angle
+                        ty_exprs: <empty>
+                        expr: Expr [25-27]:
+                            ty: const float
+                            kind: SymbolId(2)
+                        kind: Implicit
+            [8] Symbol [21-22]:
+                name: a
+                type: const angle
+                ty_span: [15-20]
+                io_kind: Default
+            ClassicalDeclarationStmt [37-61]:
+                symbol_id: 9
+                ty_span: [43-48]
+                ty_exprs: <empty>
+                init_expr: Expr [53-60]:
+                    ty: const angle
+                    const_value: Angle(4.141592653589793)
+                    kind: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [53-56]:
+                            ty: const angle
+                            kind: Cast [53-56]:
+                                ty: const angle
+                                ty_exprs: <empty>
+                                expr: Expr [53-56]:
+                                    ty: const float
+                                    kind: Lit: Float(1.0)
+                                kind: Implicit
+                        rhs: Expr [59-60]:
+                            ty: const angle
+                            kind: SymbolId(8)
+            [9] Symbol [49-50]:
+                name: b
+                type: const angle
+                ty_span: [43-48]
+                io_kind: Default
+            ClassicalDeclarationStmt [70-94]:
+                symbol_id: 10
+                ty_span: [76-81]
+                ty_exprs: <empty>
+                init_expr: Expr [86-93]:
+                    ty: const angle
+                    const_value: Angle(5.141592653589793)
+                    kind: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [86-87]:
+                            ty: const angle
+                            kind: SymbolId(8)
+                        rhs: Expr [90-93]:
+                            ty: const angle
+                            kind: Cast [90-93]:
+                                ty: const angle
+                                ty_exprs: <empty>
+                                expr: Expr [90-93]:
+                                    ty: const float
+                                    kind: Lit: Float(2.0)
+                                kind: Implicit
+            [10] Symbol [82-83]:
+                name: c
+                type: const angle
+                ty_span: [76-81]
+                io_kind: Default
+        "#]],
+    );
+}
+
+#[test]
+fn to_angle_implicitly_in_sub_bin_op() {
+    let source = "
+        angle a = pi;
+        angle b = 1.0 + a;
+        angle c = a + 2.0;
+    ";
+
+    check_classical_decls(
+        source,
+        &expect![[r#"
+            ClassicalDeclarationStmt [9-22]:
+                symbol_id: 8
+                ty_span: [9-14]
+                ty_exprs: <empty>
+                init_expr: Expr [19-21]:
+                    ty: angle
+                    kind: Cast [19-21]:
+                        ty: angle
+                        ty_exprs: <empty>
+                        expr: Expr [19-21]:
+                            ty: const float
+                            kind: SymbolId(2)
+                        kind: Implicit
+            [8] Symbol [15-16]:
+                name: a
+                type: angle
+                ty_span: [9-14]
+                io_kind: Default
+            ClassicalDeclarationStmt [31-49]:
+                symbol_id: 9
+                ty_span: [31-36]
+                ty_exprs: <empty>
+                init_expr: Expr [41-48]:
+                    ty: angle
+                    kind: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [41-44]:
+                            ty: angle
+                            kind: Cast [41-44]:
+                                ty: angle
+                                ty_exprs: <empty>
+                                expr: Expr [41-44]:
+                                    ty: const float
+                                    kind: Lit: Float(1.0)
+                                kind: Implicit
+                        rhs: Expr [47-48]:
+                            ty: angle
+                            kind: SymbolId(8)
+            [9] Symbol [37-38]:
+                name: b
+                type: angle
+                ty_span: [31-36]
+                io_kind: Default
+            ClassicalDeclarationStmt [58-76]:
+                symbol_id: 10
+                ty_span: [58-63]
+                ty_exprs: <empty>
+                init_expr: Expr [68-75]:
+                    ty: angle
+                    kind: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [68-69]:
+                            ty: angle
+                            kind: SymbolId(8)
+                        rhs: Expr [72-75]:
+                            ty: angle
+                            kind: Cast [72-75]:
+                                ty: angle
+                                ty_exprs: <empty>
+                                expr: Expr [72-75]:
+                                    ty: const float
+                                    kind: Lit: Float(2.0)
+                                kind: Implicit
+            [10] Symbol [64-65]:
+                name: c
+                type: angle
+                ty_span: [58-63]
+                io_kind: Default
+        "#]],
+    );
+}
+
+#[test]
+fn to_const_angle_implicitly_in_sub_bin_op() {
+    let source = "
+        const angle a = pi;
+        const angle b = 1.0 + a;
+        const angle c = a + 2.0;
+    ";
+
+    check_classical_decls(
+        source,
+        &expect![[r#"
+            ClassicalDeclarationStmt [9-28]:
+                symbol_id: 8
+                ty_span: [15-20]
+                ty_exprs: <empty>
+                init_expr: Expr [25-27]:
+                    ty: const angle
+                    const_value: Angle(3.141592653589793)
+                    kind: Cast [25-27]:
+                        ty: const angle
+                        ty_exprs: <empty>
+                        expr: Expr [25-27]:
+                            ty: const float
+                            kind: SymbolId(2)
+                        kind: Implicit
+            [8] Symbol [21-22]:
+                name: a
+                type: const angle
+                ty_span: [15-20]
+                io_kind: Default
+            ClassicalDeclarationStmt [37-61]:
+                symbol_id: 9
+                ty_span: [43-48]
+                ty_exprs: <empty>
+                init_expr: Expr [53-60]:
+                    ty: const angle
+                    const_value: Angle(4.141592653589793)
+                    kind: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [53-56]:
+                            ty: const angle
+                            kind: Cast [53-56]:
+                                ty: const angle
+                                ty_exprs: <empty>
+                                expr: Expr [53-56]:
+                                    ty: const float
+                                    kind: Lit: Float(1.0)
+                                kind: Implicit
+                        rhs: Expr [59-60]:
+                            ty: const angle
+                            kind: SymbolId(8)
+            [9] Symbol [49-50]:
+                name: b
+                type: const angle
+                ty_span: [43-48]
+                io_kind: Default
+            ClassicalDeclarationStmt [70-94]:
+                symbol_id: 10
+                ty_span: [76-81]
+                ty_exprs: <empty>
+                init_expr: Expr [86-93]:
+                    ty: const angle
+                    const_value: Angle(5.141592653589793)
+                    kind: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [86-87]:
+                            ty: const angle
+                            kind: SymbolId(8)
+                        rhs: Expr [90-93]:
+                            ty: const angle
+                            kind: Cast [90-93]:
+                                ty: const angle
+                                ty_exprs: <empty>
+                                expr: Expr [90-93]:
+                                    ty: const float
+                                    kind: Lit: Float(2.0)
+                                kind: Implicit
+            [10] Symbol [82-83]:
+                name: c
+                type: const angle
+                ty_span: [76-81]
+                io_kind: Default
+        "#]],
+    );
+}
