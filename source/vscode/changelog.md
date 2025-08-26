@@ -89,6 +89,110 @@ Numerous improvements to the language service have been made for correctness and
 
 **Full Changelog**: [v1.19.0...v1.20.0](https://github.com/microsoft/qsharp/compare/v1.19.0...v1.20.0)
 
+## v1.19.0
+
+Below are some of the highlights for the 1.19 release of the QDK.
+
+### Simulating qubit loss
+
+Simulation in the QDK can now model qubit loss, which can occur with some probability on some modalities.
+
+For simulations run directly in VS Code, such as using the 'Histogram' CodeLens, this can be controlled via a VS Code setting. The screenshot below shows setting qubit loss to 0.5% and running a Bell pair simulation. For convenience, the VS Code setting is easily accessible from a link on the histogram window (shown in a red circle below).
+
+<img width="1000" alt="image" src="https://github.com/user-attachments/assets/298250b8-bdda-4529-aa40-804b787153b0" />
+
+The qubit loss probability can also be specified if running a simulation via the Python API.
+
+```python
+result = qsharp.run("BellPair()", 100, qubit_loss=0.5)
+display(qsharp_widgets.Histogram(result))
+```
+
+There is also a new Q# API for detecting a loss result:
+
+```qsharp
+operation CheckForLoss() : Unit {
+    use q = Qubit();
+    H(q);
+    let res = MResetZ(q);
+    if IsLossResult(res) {
+        // Handle qubit loss here
+    } else {
+        // Handle Zero or One result
+    }
+}
+```
+
+You can find more details in the sample Jupyter Notebook at <https://github.com/microsoft/qsharp/blob/main/samples/notebooks/noise.ipynb>.
+
+### Debugger improvements
+
+When debugging, previously if you navigated up the call stack using the area circled below, the `Locals` view would not change context to reflect the state of the variables in the selected stack frame. This has now been implemented.
+
+<img width="1000" alt="image" src="https://github.com/user-attachments/assets/971ef5f7-d4f3-49dd-b002-923a63fca65b" />
+
+Call stacks reported when a runtime error occurs now also show the source location for each frame in the call stack.
+
+### OpenQASM improvements
+
+We have continued to improve support for OpenQASM. For example, you can now use `readonly` arrays as arguments to subroutines and the builtin `sizeof` function, which allows you to query the size of arrays.
+
+```qasm
+def static_array_example(readonly array[int, 3, 4] a) {
+    // The returned value for static arrays is const.
+    const uint dim_1 = sizeof(a, 0);
+    const uint dim_2 = sizeof(a, 1);
+}
+
+def dyn_array_example(readonly array[int, #dim = 2] a) {
+    // The 2nd argument is inferred to be 0 if missing.
+    uint dim_1 = sizeof(a);
+    uint dim_2 = sizeof(a, 1);
+}
+```
+
+This release also adds many other built-in functions, as well as pragmas to specify the semantics and code generation for `box` statements.
+
+For more examples of the OpenQASM support see the samples at <https://github.com/microsoft/qsharp/tree/main/samples/OpenQASM> or the Jupyter Notebook at <https://github.com/microsoft/qsharp/blob/main/samples/notebooks/openqasm.ipynb>.
+
+### Test improvements
+
+A challenge when writing tests for code intended to run on hardware was that the test code would also be restricted to what could run on hardware. For example, if the target profile is set to `base` then mid-circuit measurements and result comparisons are not possible, which limits the validation a test can do. Trying to verify a measurement result in a test would previously result in errors such as `using a bool value that depends on a measurement result is not supported by the configured target profile`.
+
+In this release we have relaxed the checks performed on code marked with the `@Test` attribute, so such code is valid regardless of the target hardware profile:
+
+<img width="977" alt="image" src="https://github.com/user-attachments/assets/dd81c8e4-e957-4e99-9e0e-1ec6f10b5e73" />
+
+### Azure Quantum job reporting
+
+When submitting jobs to Azure using the VS Code "Quantum Workspaces" explorer view, previously jobs would use the v1 reporting format, which does not include details for each shot's results. The default format for job submission in this release is now v2, which includes the results of each shot.
+
+We also added an additional icon beside successfully completed jobs so the results may be shown as a histogram or as the raw text. The below screenshot shows fetching both formats from a completed job.
+
+<img width="1000" alt="image" src="https://github.com/user-attachments/assets/c19bf68e-401c-40b9-bd50-d765217d2323" />
+
+### Other notable changes
+
+- Show local variables of selected frame when debugging. by [@orpuente-MS](https://github.com/orpuente-MS) in [#2572](https://github.com/microsoft/qsharp/pull/2572)
+- When an error occurs show line/col info for each frame in the stack by [@orpuente-MS](https://github.com/orpuente-MS) in [#2573](https://github.com/microsoft/qsharp/pull/2573)
+- Upgrade rust edition to 2024 by [@orpuente-MS](https://github.com/orpuente-MS) in [#2577](https://github.com/microsoft/qsharp/pull/2577)
+- Update to mimalloc v2.2.4 by [@idavis](https://github.com/idavis) in [#2579](https://github.com/microsoft/qsharp/pull/2579)
+- Support for qubit loss by [@swernli](https://github.com/swernli) in [#2567](https://github.com/microsoft/qsharp/pull/2567)
+- Allow unrestricted capabilities in `@Test` callables by [@swernli](https://github.com/swernli) in [#2584](https://github.com/microsoft/qsharp/pull/2584)
+- Upgrade the rust version to 1.88 by [@orpuente-MS](https://github.com/orpuente-MS) in [#2583](https://github.com/microsoft/qsharp/pull/2583)
+- Add sizeof bultin to qasm by [@orpuente-MS](https://github.com/orpuente-MS) in [#2586](https://github.com/microsoft/qsharp/pull/2586)
+- Adding box pragma support to QASM compiler by [@idavis](https://github.com/idavis) in [#2571](https://github.com/microsoft/qsharp/pull/2571)
+- Making MapPauliAxis public with updates to functionality and comments by [@DmitryVasilevsky](https://github.com/DmitryVasilevsky) in [#2585](https://github.com/microsoft/qsharp/pull/2585)
+- Improve runtime error debugging by [@swernli](https://github.com/swernli) in [#2592](https://github.com/microsoft/qsharp/pull/2592)
+- Show downloaded results as histograms by [@billti](https://github.com/billti) in [#2595](https://github.com/microsoft/qsharp/pull/2595)
+- Changelog View Added by [@ScottCarda-MS](https://github.com/ScottCarda-MS) in [#2576](https://github.com/microsoft/qsharp/pull/2576)
+- Switch the default reporting format to v2 by [@billti](https://github.com/billti) in [#2605](https://github.com/microsoft/qsharp/pull/2605)
+- Allow indexing into array references in OpenQASM by [@orpuente-MS](https://github.com/orpuente-MS) in [#2616](https://github.com/microsoft/qsharp/pull/2616)
+- Fix source offset when printing call stack by [@orpuente-MS](https://github.com/orpuente-MS) in [#2629](https://github.com/microsoft/qsharp/pull/2629)
+- Angle from floats handle rounding when operating on values less than epsilon by [@idavis](https://github.com/idavis) in [#2630](https://github.com/microsoft/qsharp/pull/2630)
+
+**Full Changelog**: [v1.18.0...v1.19.0](https://github.com/microsoft/qsharp/compare/v1.18.0...v1.19.0)
+
 ## v1.18.0
 
 ### What's Changed
