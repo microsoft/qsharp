@@ -1,5 +1,9 @@
 # QDK Changelog
 
+## v1.20.0
+
+TODO: Lots of cool stuff!
+
 ## v1.19.0
 
 Below are some of the highlights for the 1.19 release of the QDK.
