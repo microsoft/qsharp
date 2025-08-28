@@ -19,6 +19,7 @@ fn logical_and() {
             ClassicalDeclarationStmt [9-23]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [18-22]:
                     ty: bool
                     kind: Lit: Bool(true)
@@ -30,6 +31,7 @@ fn logical_and() {
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-36]
+                ty_exprs: <empty>
                 init_expr: Expr [41-46]:
                     ty: bool
                     kind: Lit: Bool(false)
@@ -41,6 +43,7 @@ fn logical_and() {
             ClassicalDeclarationStmt [56-72]:
                 symbol_id: 10
                 ty_span: [56-60]
+                ty_exprs: <empty>
                 init_expr: Expr [65-71]:
                     ty: bool
                     kind: BinaryOpExpr:
@@ -74,6 +77,7 @@ fn logical_or() {
             ClassicalDeclarationStmt [9-23]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [18-22]:
                     ty: bool
                     kind: Lit: Bool(true)
@@ -85,6 +89,7 @@ fn logical_or() {
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-36]
+                ty_exprs: <empty>
                 init_expr: Expr [41-46]:
                     ty: bool
                     kind: Lit: Bool(false)
@@ -96,6 +101,7 @@ fn logical_or() {
             ClassicalDeclarationStmt [56-72]:
                 symbol_id: 10
                 ty_span: [56-60]
+                ty_exprs: <empty>
                 init_expr: Expr [65-71]:
                     ty: bool
                     kind: BinaryOpExpr:
@@ -129,6 +135,7 @@ fn unop_not_logical_and_unop_not() {
             ClassicalDeclarationStmt [9-23]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [18-22]:
                     ty: bool
                     kind: Lit: Bool(true)
@@ -140,6 +147,7 @@ fn unop_not_logical_and_unop_not() {
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-36]
+                ty_exprs: <empty>
                 init_expr: Expr [41-46]:
                     ty: bool
                     kind: Lit: Bool(false)
@@ -151,6 +159,7 @@ fn unop_not_logical_and_unop_not() {
             ClassicalDeclarationStmt [56-74]:
                 symbol_id: 10
                 ty_span: [56-60]
+                ty_exprs: <empty>
                 init_expr: Expr [65-73]:
                     ty: bool
                     kind: BinaryOpExpr:
@@ -192,6 +201,7 @@ fn unop_not_logical_or_unop_not() {
             ClassicalDeclarationStmt [9-23]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [18-22]:
                     ty: bool
                     kind: Lit: Bool(true)
@@ -203,6 +213,7 @@ fn unop_not_logical_or_unop_not() {
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-36]
+                ty_exprs: <empty>
                 init_expr: Expr [41-46]:
                     ty: bool
                     kind: Lit: Bool(false)
@@ -214,6 +225,7 @@ fn unop_not_logical_or_unop_not() {
             ClassicalDeclarationStmt [56-74]:
                 symbol_id: 10
                 ty_span: [56-60]
+                ty_exprs: <empty>
                 init_expr: Expr [65-73]:
                     ty: bool
                     kind: BinaryOpExpr:
@@ -255,6 +267,7 @@ fn unop_not_logical_and() {
             ClassicalDeclarationStmt [9-23]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [18-22]:
                     ty: bool
                     kind: Lit: Bool(true)
@@ -266,6 +279,7 @@ fn unop_not_logical_and() {
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-36]
+                ty_exprs: <empty>
                 init_expr: Expr [41-46]:
                     ty: bool
                     kind: Lit: Bool(false)
@@ -277,6 +291,7 @@ fn unop_not_logical_and() {
             ClassicalDeclarationStmt [56-73]:
                 symbol_id: 10
                 ty_span: [56-60]
+                ty_exprs: <empty>
                 init_expr: Expr [65-72]:
                     ty: bool
                     kind: BinaryOpExpr:
@@ -314,6 +329,7 @@ fn unop_not_logical_or() {
             ClassicalDeclarationStmt [9-23]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [18-22]:
                     ty: bool
                     kind: Lit: Bool(true)
@@ -325,6 +341,7 @@ fn unop_not_logical_or() {
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-36]
+                ty_exprs: <empty>
                 init_expr: Expr [41-46]:
                     ty: bool
                     kind: Lit: Bool(false)
@@ -336,6 +353,7 @@ fn unop_not_logical_or() {
             ClassicalDeclarationStmt [56-73]:
                 symbol_id: 10
                 ty_span: [56-60]
+                ty_exprs: <empty>
                 init_expr: Expr [65-72]:
                     ty: bool
                     kind: BinaryOpExpr:
@@ -373,6 +391,7 @@ fn logical_and_unop_not() {
             ClassicalDeclarationStmt [9-23]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [18-22]:
                     ty: bool
                     kind: Lit: Bool(true)
@@ -384,6 +403,7 @@ fn logical_and_unop_not() {
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-36]
+                ty_exprs: <empty>
                 init_expr: Expr [41-46]:
                     ty: bool
                     kind: Lit: Bool(false)
@@ -395,6 +415,7 @@ fn logical_and_unop_not() {
             ClassicalDeclarationStmt [56-73]:
                 symbol_id: 10
                 ty_span: [56-60]
+                ty_exprs: <empty>
                 init_expr: Expr [65-72]:
                     ty: bool
                     kind: BinaryOpExpr:
@@ -432,6 +453,7 @@ fn logical_or_unop_not() {
             ClassicalDeclarationStmt [9-23]:
                 symbol_id: 8
                 ty_span: [9-13]
+                ty_exprs: <empty>
                 init_expr: Expr [18-22]:
                     ty: bool
                     kind: Lit: Bool(true)
@@ -443,6 +465,7 @@ fn logical_or_unop_not() {
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-36]
+                ty_exprs: <empty>
                 init_expr: Expr [41-46]:
                     ty: bool
                     kind: Lit: Bool(false)
@@ -454,6 +477,7 @@ fn logical_or_unop_not() {
             ClassicalDeclarationStmt [56-73]:
                 symbol_id: 10
                 ty_span: [56-60]
+                ty_exprs: <empty>
                 init_expr: Expr [65-72]:
                     ty: bool
                     kind: BinaryOpExpr:

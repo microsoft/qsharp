@@ -328,6 +328,7 @@ pub struct ClassicalDeclarationStmt {
     pub span: Span,
     pub ty_span: Span,
     pub symbol_id: SymbolId,
+    pub ty_exprs: List<Expr>,
     pub init_expr: Box<Expr>,
 }
 
@@ -336,6 +337,7 @@ impl Display for ClassicalDeclarationStmt {
         writeln_header(f, "ClassicalDeclarationStmt", self.span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_field(f, "ty_span", &self.ty_span)?;
+        writeln_list_field(f, "ty_exprs", &self.ty_exprs)?;
         write_field(f, "init_expr", self.init_expr.as_ref())
     }
 }
@@ -352,13 +354,29 @@ impl Display for ContinueStmt {
 }
 
 #[derive(Clone, Debug)]
+pub struct DefParameter {
+    pub span: Span,
+    pub symbol_id: SymbolId,
+    pub ty_exprs: List<Expr>,
+}
+
+impl Display for DefParameter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "DefParameter", self.span)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        write_list_field(f, "ty_exprs", &self.ty_exprs)
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct DefStmt {
     pub span: Span,
     pub symbol_id: SymbolId,
     pub has_qubit_params: bool,
-    pub params: Box<[SymbolId]>,
+    pub params: List<DefParameter>,
     pub body: Block,
     pub return_type_span: Span,
+    pub return_ty_exprs: List<Expr>,
 }
 
 impl Display for DefStmt {
@@ -368,6 +386,7 @@ impl Display for DefStmt {
         writeln_field(f, "has_qubit_params", &self.has_qubit_params)?;
         writeln_list_field(f, "parameters", &self.params)?;
         writeln_field(f, "return_type_span", &self.return_type_span)?;
+        writeln_list_field(f, "return_ty_exprs", &self.return_ty_exprs)?;
         write_field(f, "body", &self.body)
     }
 }
@@ -428,12 +447,16 @@ impl Display for ExprStmt {
 pub struct ExternDecl {
     pub span: Span,
     pub symbol_id: SymbolId,
+    pub ty_exprs: List<Expr>,
+    pub return_ty_exprs: List<Expr>,
 }
 
 impl Display for ExternDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "ExternDecl", self.span)?;
-        write_field(f, "symbol_id", &self.symbol_id)
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_list_field(f, "ty_exprs", &self.ty_exprs)?;
+        write_list_field(f, "return_ty_exprs", &self.return_ty_exprs)
     }
 }
 
@@ -441,6 +464,7 @@ impl Display for ExternDecl {
 pub struct ForStmt {
     pub span: Span,
     pub loop_variable: SymbolId,
+    pub ty_exprs: List<Expr>,
     pub set_declaration: Box<EnumerableSet>,
     pub body: Stmt,
 }
@@ -449,6 +473,7 @@ impl Display for ForStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "ForStmt", self.span)?;
         writeln_field(f, "loop_variable", &self.loop_variable)?;
+        writeln_list_field(f, "ty_exprs", &self.ty_exprs)?;
         writeln_field(f, "iterable", &self.set_declaration)?;
         write_field(f, "body", &self.body)
     }
@@ -534,12 +559,14 @@ pub struct InputDeclaration {
     // We don't have a type span here, because input decls are in
     // the symbol table which tracks the ty span separately.
     pub symbol_id: SymbolId,
+    pub ty_exprs: List<Expr>,
 }
 
 impl Display for InputDeclaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "InputDeclaration", self.span)?;
-        write_field(f, "symbol_id", &self.symbol_id)
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        write_list_field(f, "ty_exprs", &self.ty_exprs)
     }
 }
 
@@ -547,6 +574,7 @@ impl Display for InputDeclaration {
 pub struct OutputDeclaration {
     pub span: Span,
     pub ty_span: Span,
+    pub ty_exprs: List<Expr>,
     pub symbol_id: SymbolId,
     pub init_expr: Box<Expr>,
 }
@@ -555,6 +583,7 @@ impl Display for OutputDeclaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "OutputDeclaration", self.span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_list_field(f, "ty_exprs", &self.ty_exprs)?;
         writeln_field(f, "ty_span", &self.ty_span)?;
         write_field(f, "init_expr", &self.init_expr)
     }
@@ -1194,6 +1223,7 @@ impl Display for CastKind {
 pub struct Cast {
     pub span: Span,
     pub ty: Type,
+    pub ty_exprs: List<Expr>,
     pub expr: Expr,
     pub kind: CastKind,
 }
@@ -1202,6 +1232,7 @@ impl Display for Cast {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "Cast", self.span)?;
         writeln_field(f, "ty", &self.ty)?;
+        writeln_list_field(f, "ty_exprs", &self.ty_exprs)?;
         writeln_field(f, "expr", &self.expr)?;
         write_field(f, "kind", &self.kind)
     }

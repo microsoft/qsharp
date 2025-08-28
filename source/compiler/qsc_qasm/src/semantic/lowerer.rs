@@ -3,10 +3,12 @@
 
 use std::collections::VecDeque;
 use std::fmt::Write;
+use std::iter::once;
 use std::ops::ShlAssign;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::vec;
 
 use super::const_eval::ConstEvalError;
 use super::symbols::ScopeKind;
@@ -1148,13 +1150,14 @@ impl Lowerer {
     fn lower_cast_expr(&mut self, cast: &syntax::Cast) -> semantic::Expr {
         let cast_span = cast.span;
         let expr = self.lower_expr(&cast.arg);
-        let ty = self.get_semantic_type_from_tydef(&cast.ty, expr.ty.is_const());
+        let (ty, ty_exprs) = self.get_semantic_type_from_tydef(&cast.ty, expr.ty.is_const());
         let mut cast = self.cast_expr_to_type_with_span(&ty, &expr, cast_span);
 
         cast.span = cast_span;
         // If lowering the cast succeeded, mark it as explicit.
         if let semantic::ExprKind::Cast(cast_ref) = cast.kind.as_mut() {
             cast_ref.kind = semantic::CastKind::Explicit;
+            cast_ref.ty_exprs = list_from_iter(ty_exprs);
         }
 
         cast
@@ -1531,7 +1534,7 @@ impl Lowerer {
         stmt: &syntax::ClassicalDeclarationStmt,
     ) -> semantic::StmtKind {
         let is_const = false; // const decls are handled separately
-        let ty = self.get_semantic_type_from_tydef(&stmt.ty, is_const);
+        let (ty, ty_exprs) = self.get_semantic_type_from_tydef(&stmt.ty, is_const);
 
         // Arrays are only allowed in the global scope.
         // If we are not in the global scope, we push an error.
@@ -1591,13 +1594,14 @@ impl Lowerer {
             span: stmt_span,
             ty_span,
             symbol_id,
+            ty_exprs: list_from_iter(ty_exprs),
             init_expr: Box::new(init_expr),
         })
     }
 
     fn lower_const_decl(&mut self, stmt: &syntax::ConstantDeclStmt) -> semantic::StmtKind {
         let is_const = true;
-        let ty = self.get_semantic_type_from_tydef(&stmt.ty, is_const);
+        let (ty, ty_exprs) = self.get_semantic_type_from_tydef(&stmt.ty, is_const);
         let ty_span = stmt.ty.span();
         let name = stmt.identifier.name.clone();
         let mut init_expr = match &stmt.init_expr {
@@ -1638,6 +1642,7 @@ impl Lowerer {
             span: stmt.span,
             ty_span,
             symbol_id,
+            ty_exprs: list_from_iter(ty_exprs),
             init_expr: Box::new(init_expr),
         })
     }
@@ -1666,25 +1671,29 @@ impl Lowerer {
         // 2. Build the parameter's type.
         let mut param_types = Vec::with_capacity(stmt.params.len());
         let mut param_symbols = Vec::with_capacity(stmt.params.len());
+        let mut param_ty_exprs = Vec::with_capacity(stmt.params.len());
 
         for param in &stmt.params {
-            let symbol = self.lower_typed_parameter(param);
+            let (symbol, ty_exprs) = self.lower_typed_parameter(param);
             param_types.push(symbol.ty.clone());
             param_symbols.push(symbol);
+            param_ty_exprs.push(ty_exprs);
         }
 
         // 3. Build the return type.
-        let return_ty: Arc<crate::semantic::types::Type> = if let Some(ty) = &stmt.return_type {
+        let (return_ty, return_ty_exprs) = if let Some(ty) = &stmt.return_type {
             let tydef = syntax::TypeDef::Scalar(*ty.clone());
-            self.get_semantic_type_from_tydef(&tydef, false).into()
+            let (ty, ty_exprs) = self.get_semantic_type_from_tydef(&tydef, false);
+            (ty, ty_exprs)
         } else {
-            crate::semantic::types::Type::Void.into()
+            (crate::semantic::types::Type::Void, Vec::new())
         };
 
         // 2. Push the function symbol to the symbol table.
         let name = stmt.name.name.clone();
         let name_span = stmt.name.span;
-        let ty = crate::semantic::types::Type::Function(param_types.into(), return_ty.clone());
+        let ty =
+            crate::semantic::types::Type::Function(param_types.into(), return_ty.clone().into());
 
         let has_qubit_params = stmt
             .params
@@ -1708,15 +1717,23 @@ impl Lowerer {
 
         // Push the scope where the def lives.
         self.symbols
-            .push_scope(ScopeKind::Function(return_ty.clone()));
+            .push_scope(ScopeKind::Function(return_ty.into()));
 
         let params = param_symbols
             .into_iter()
-            .map(|symbol| {
+            .zip(param_ty_exprs)
+            .map(|(symbol, ty_exprs)| {
                 let name = symbol.name.clone();
-                self.try_insert_or_get_existing_symbol_id(name, symbol)
+                let span = symbol.span;
+                let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
+                let ty_exprs = list_from_iter(ty_exprs);
+                semantic::DefParameter {
+                    span,
+                    symbol_id,
+                    ty_exprs,
+                }
             })
-            .collect();
+            .collect::<Vec<_>>();
 
         let mut stmts = Vec::new();
         for stmt in &stmt.body.stmts {
@@ -1748,9 +1765,10 @@ impl Lowerer {
             span: stmt.span,
             symbol_id,
             has_qubit_params,
-            params,
+            params: list_from_iter(params),
             body,
             return_type_span,
+            return_ty_exprs: list_from_iter(return_ty_exprs),
         })
     }
 
@@ -1801,8 +1819,8 @@ impl Lowerer {
         }
     }
 
-    fn lower_typed_parameter(&mut self, typed_param: &syntax::DefParameter) -> Symbol {
-        let ty = match &*typed_param.ty {
+    fn lower_typed_parameter(&mut self, typed_param: &syntax::DefParameter) -> (Symbol, Vec<Expr>) {
+        let (ty, ty_exprs) = match &*typed_param.ty {
             syntax::DefParameterType::ArrayReference(ty) => {
                 let tydef = syntax::TypeDef::ArrayReference(ty.clone());
                 self.get_semantic_type_from_tydef(&tydef, false)
@@ -1814,29 +1832,37 @@ impl Lowerer {
             }
         };
 
-        Symbol::new(
-            &typed_param.ident.name,
-            typed_param.ident.span,
-            ty,
-            typed_param.ty.span(),
-            IOKind::Default,
+        (
+            Symbol::new(
+                &typed_param.ident.name,
+                typed_param.ident.span,
+                ty,
+                typed_param.ty.span(),
+                IOKind::Default,
+            ),
+            ty_exprs,
         )
     }
 
     fn lower_qubit_type(
         &mut self,
         typed_param: &syntax::QubitType,
-    ) -> crate::semantic::types::Type {
+    ) -> (crate::semantic::types::Type, Vec<Expr>) {
         if let Some(size) = &typed_param.size {
             let size = self.const_eval_array_size_designator_expr(size);
-            if let Some(size) = size {
-                let size = size.get_const_u32().expect("const evaluation succeeded");
-                crate::semantic::types::Type::QubitArray(size)
+            if let Some(size_expr) = size {
+                let size = size_expr
+                    .get_const_u32()
+                    .expect("const evaluation succeeded");
+                (
+                    crate::semantic::types::Type::QubitArray(size),
+                    vec![size_expr],
+                )
             } else {
-                crate::semantic::types::Type::Err
+                (crate::semantic::types::Type::Err, Vec::new())
             }
         } else {
-            crate::semantic::types::Type::Qubit
+            (crate::semantic::types::Type::Qubit, Vec::new())
         }
     }
 
@@ -1943,13 +1969,17 @@ impl Lowerer {
         }
 
         // 2. Build the return type.
-        let (return_ty, ty_span) = if let Some(ty) = &stmt.return_type {
+        let (return_ty, ty_span, return_ty_exprs) = if let Some(ty) = &stmt.return_type {
             let ty_span = ty.span;
             let tydef = syntax::TypeDef::Scalar(ty.clone());
-            let ty = self.get_semantic_type_from_tydef(&tydef, false);
-            (ty, ty_span)
+            let (ty, ty_exprs) = self.get_semantic_type_from_tydef(&tydef, false);
+            (ty, ty_span, ty_exprs)
         } else {
-            (crate::semantic::types::Type::Void, Span::default())
+            (
+                crate::semantic::types::Type::Void,
+                Span::default(),
+                Vec::new(),
+            )
         };
 
         if matches!(return_ty, crate::semantic::types::Type::Stretch(..)) {
@@ -1967,17 +1997,21 @@ impl Lowerer {
         // 3. Push the extern symbol to the symbol table.
         let name = stmt.ident.name.clone();
         let name_span = stmt.ident.span;
-        let ty = crate::semantic::types::Type::Function(params.into(), return_ty.into());
+        let tys = params.iter().map(|f| f.0.clone()).collect::<Vec<_>>();
+        let ty_exprs = params.into_iter().flat_map(|f| f.1).collect::<Vec<_>>();
+        let ty = crate::semantic::types::Type::Function(tys.into(), return_ty.into());
         let symbol = Symbol::new(&name, name_span, ty, ty_span, IOKind::Default);
         let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
         semantic::StmtKind::ExternDecl(semantic::ExternDecl {
             span: stmt.span,
             symbol_id,
+            ty_exprs: list_from_iter(ty_exprs),
+            return_ty_exprs: list_from_iter(return_ty_exprs),
         })
     }
 
-    fn lower_extern_param(&mut self, param: &syntax::ExternParameter) -> Type {
+    fn lower_extern_param(&mut self, param: &syntax::ExternParameter) -> (Type, Vec<Expr>) {
         let tydef = match param {
             syntax::ExternParameter::ArrayReference(array_reference_type, _) => {
                 syntax::TypeDef::ArrayReference(array_reference_type.clone())
@@ -2022,7 +2056,7 @@ impl Lowerer {
         // Push scope where the loop variable lives.
         self.symbols.push_scope(ScopeKind::Loop);
 
-        let ty = self.get_semantic_type_from_scalar_ty(&stmt.ty, false);
+        let (ty, ty_exprs) = self.get_semantic_type_from_scalar_ty(&stmt.ty, false);
         let symbol = Symbol::new(
             &stmt.ident.name,
             stmt.ident.span,
@@ -2050,6 +2084,7 @@ impl Lowerer {
         semantic::StmtKind::For(semantic::ForStmt {
             span: stmt.span,
             loop_variable: symbol_id,
+            ty_exprs: list_from_iter(ty_exprs),
             set_declaration: Box::new(set_declaration),
             body,
         })
@@ -2642,7 +2677,7 @@ impl Lowerer {
 
     fn lower_io_decl(&mut self, stmt: &syntax::IODeclaration) -> semantic::StmtKind {
         let is_const = false;
-        let ty = self.get_semantic_type_from_tydef(&stmt.ty, is_const);
+        let (ty, ty_exprs) = self.get_semantic_type_from_tydef(&stmt.ty, is_const);
         let io_kind = stmt.io_identifier.into();
 
         assert!(
@@ -2661,6 +2696,7 @@ impl Lowerer {
             return semantic::StmtKind::InputDeclaration(semantic::InputDeclaration {
                 span: stmt_span,
                 symbol_id,
+                ty_exprs: list_from_iter(ty_exprs),
             });
         }
 
@@ -2671,6 +2707,7 @@ impl Lowerer {
         semantic::StmtKind::OutputDeclaration(semantic::OutputDeclaration {
             span: stmt_span,
             ty_span,
+            ty_exprs: list_from_iter(ty_exprs),
             symbol_id,
             init_expr: Box::new(init_expr),
         })
@@ -3007,7 +3044,7 @@ impl Lowerer {
         &mut self,
         ty: &syntax::TypeDef,
         is_const: bool,
-    ) -> crate::semantic::types::Type {
+    ) -> (crate::semantic::types::Type, Vec<Expr>) {
         match ty {
             syntax::TypeDef::Scalar(scalar_type) => {
                 self.get_semantic_type_from_scalar_ty(scalar_type, is_const)
@@ -3118,51 +3155,66 @@ impl Lowerer {
         &mut self,
         scalar_ty: &syntax::ScalarType,
         is_const: bool,
-    ) -> crate::semantic::types::Type {
+    ) -> (crate::semantic::types::Type, Vec<Expr>) {
         match &scalar_ty.kind {
             syntax::ScalarTypeKind::Bit(bit_type) => match &bit_type.size {
                 Some(size) => {
                     let Some(size_expr) = self.const_eval_array_size_designator_expr(size) else {
-                        return crate::semantic::types::Type::Err;
+                        return (crate::semantic::types::Type::Err, Vec::new());
                     };
                     let Some(size) = size_expr.get_const_u32() else {
-                        return crate::semantic::types::Type::Err;
+                        return (crate::semantic::types::Type::Err, Vec::new());
                     };
-                    crate::semantic::types::Type::BitArray(size, is_const)
+                    (
+                        crate::semantic::types::Type::BitArray(size, is_const),
+                        vec![size_expr],
+                    )
                 }
-                None => crate::semantic::types::Type::Bit(is_const),
+                None => (crate::semantic::types::Type::Bit(is_const), Vec::new()),
             },
             syntax::ScalarTypeKind::Int(int_type) => match &int_type.size {
                 Some(size) => {
                     let Some(size_expr) = self.const_eval_type_width_designator_expr(size) else {
-                        return crate::semantic::types::Type::Err;
+                        return (crate::semantic::types::Type::Err, Vec::new());
                     };
                     let Some(size) = size_expr.get_const_u32() else {
-                        return crate::semantic::types::Type::Err;
+                        return (crate::semantic::types::Type::Err, Vec::new());
                     };
-                    crate::semantic::types::Type::Int(Some(size), is_const)
+                    (
+                        crate::semantic::types::Type::Int(Some(size), is_const),
+                        vec![size_expr],
+                    )
                 }
-                None => crate::semantic::types::Type::Int(None, is_const),
+                None => (
+                    crate::semantic::types::Type::Int(None, is_const),
+                    Vec::new(),
+                ),
             },
             syntax::ScalarTypeKind::UInt(uint_type) => match &uint_type.size {
                 Some(size) => {
                     let Some(size_expr) = self.const_eval_type_width_designator_expr(size) else {
-                        return crate::semantic::types::Type::Err;
+                        return (crate::semantic::types::Type::Err, Vec::new());
                     };
                     let Some(size) = size_expr.get_const_u32() else {
-                        return crate::semantic::types::Type::Err;
+                        return (crate::semantic::types::Type::Err, Vec::new());
                     };
-                    crate::semantic::types::Type::UInt(Some(size), is_const)
+                    (
+                        crate::semantic::types::Type::UInt(Some(size), is_const),
+                        vec![size_expr],
+                    )
                 }
-                None => crate::semantic::types::Type::UInt(None, is_const),
+                None => (
+                    crate::semantic::types::Type::UInt(None, is_const),
+                    Vec::new(),
+                ),
             },
             syntax::ScalarTypeKind::Float(float_type) => match &float_type.size {
                 Some(size) => {
                     let Some(size_expr) = self.const_eval_type_width_designator_expr(size) else {
-                        return crate::semantic::types::Type::Err;
+                        return (crate::semantic::types::Type::Err, Vec::new());
                     };
                     let Some(size) = size_expr.get_const_u32() else {
-                        return crate::semantic::types::Type::Err;
+                        return (crate::semantic::types::Type::Err, Vec::new());
                     };
                     if size > 64 {
                         self.push_semantic_error(SemanticErrorKind::TypeMaxWidthExceeded(
@@ -3171,36 +3223,51 @@ impl Lowerer {
                             size as usize,
                             float_type.span,
                         ));
-                        crate::semantic::types::Type::Err
+                        (crate::semantic::types::Type::Err, Vec::new())
                     } else {
-                        crate::semantic::types::Type::Float(Some(size), is_const)
+                        (
+                            crate::semantic::types::Type::Float(Some(size), is_const),
+                            vec![size_expr],
+                        )
                     }
                 }
-                None => crate::semantic::types::Type::Float(None, is_const),
+                None => (
+                    crate::semantic::types::Type::Float(None, is_const),
+                    Vec::new(),
+                ),
             },
             syntax::ScalarTypeKind::Complex(complex_type) => match &complex_type.base_size {
                 Some(float_type) => match &float_type.size {
                     Some(size) => {
                         let Some(size_expr) = self.const_eval_type_width_designator_expr(size)
                         else {
-                            return crate::semantic::types::Type::Err;
+                            return (crate::semantic::types::Type::Err, Vec::new());
                         };
                         let Some(size) = size_expr.get_const_u32() else {
-                            return crate::semantic::types::Type::Err;
+                            return (crate::semantic::types::Type::Err, Vec::new());
                         };
-                        crate::semantic::types::Type::Complex(Some(size), is_const)
+                        (
+                            crate::semantic::types::Type::Complex(Some(size), is_const),
+                            vec![size_expr],
+                        )
                     }
-                    None => crate::semantic::types::Type::Complex(None, is_const),
+                    None => (
+                        crate::semantic::types::Type::Complex(None, is_const),
+                        Vec::new(),
+                    ),
                 },
-                None => crate::semantic::types::Type::Complex(None, is_const),
+                None => (
+                    crate::semantic::types::Type::Complex(None, is_const),
+                    Vec::new(),
+                ),
             },
             syntax::ScalarTypeKind::Angle(angle_type) => match &angle_type.size {
                 Some(size) => {
                     let Some(size_expr) = self.const_eval_type_width_designator_expr(size) else {
-                        return crate::semantic::types::Type::Err;
+                        return (crate::semantic::types::Type::Err, Vec::new());
                     };
                     let Some(size) = size_expr.get_const_u32() else {
-                        return crate::semantic::types::Type::Err;
+                        return (crate::semantic::types::Type::Err, Vec::new());
                     };
                     if size > 64 {
                         self.push_semantic_error(SemanticErrorKind::TypeMaxWidthExceeded(
@@ -3209,17 +3276,29 @@ impl Lowerer {
                             size as usize,
                             angle_type.span,
                         ));
-                        crate::semantic::types::Type::Err
+                        (crate::semantic::types::Type::Err, Vec::new())
                     } else {
-                        crate::semantic::types::Type::Angle(Some(size), is_const)
+                        (
+                            crate::semantic::types::Type::Angle(Some(size), is_const),
+                            vec![size_expr],
+                        )
                     }
                 }
-                None => crate::semantic::types::Type::Angle(None, is_const),
+                None => (
+                    crate::semantic::types::Type::Angle(None, is_const),
+                    Vec::new(),
+                ),
             },
-            syntax::ScalarTypeKind::BoolType => crate::semantic::types::Type::Bool(is_const),
-            syntax::ScalarTypeKind::Duration => crate::semantic::types::Type::Duration(is_const),
-            syntax::ScalarTypeKind::Stretch => crate::semantic::types::Type::Stretch(true),
-            syntax::ScalarTypeKind::Err => crate::semantic::types::Type::Err,
+            syntax::ScalarTypeKind::BoolType => {
+                (crate::semantic::types::Type::Bool(is_const), Vec::new())
+            }
+            syntax::ScalarTypeKind::Duration => {
+                (crate::semantic::types::Type::Duration(is_const), Vec::new())
+            }
+            syntax::ScalarTypeKind::Stretch => {
+                (crate::semantic::types::Type::Stretch(true), Vec::new())
+            }
+            syntax::ScalarTypeKind::Err => (crate::semantic::types::Type::Err, Vec::new()),
         }
     }
 
@@ -3227,7 +3306,7 @@ impl Lowerer {
         &mut self,
         array_base_ty: &syntax::ArrayBaseTypeKind,
         span: Span,
-    ) -> Type {
+    ) -> (Type, Vec<Expr>) {
         let base_tydef = match array_base_ty {
             syntax::ArrayBaseTypeKind::Int(ty) => syntax::TypeDef::Scalar(syntax::ScalarType {
                 span,
@@ -3262,11 +3341,11 @@ impl Lowerer {
         self.get_semantic_type_from_tydef(&base_tydef, false)
     }
 
-    fn lower_array_dims(&mut self, dims: &List<syntax::Expr>) -> Vec<u32> {
+    fn lower_array_dims(&mut self, dims: &List<syntax::Expr>) -> Vec<(u32, Expr)> {
         dims.iter()
             .filter_map(|expr| {
                 self.const_eval_array_size_designator_expr(expr)
-                    .and_then(|expr| expr.get_const_u32())
+                    .and_then(|expr| expr.get_const_u32().map(|size| (size, expr)))
             })
             .collect::<Vec<_>>()
     }
@@ -3274,17 +3353,17 @@ impl Lowerer {
     fn get_semantic_type_from_array_ty(
         &mut self,
         array_ty: &syntax::ArrayType,
-    ) -> crate::semantic::types::Type {
+    ) -> (crate::semantic::types::Type, Vec<semantic::Expr>) {
         let base_ty = self.get_semantic_type_from_array_base_ty(&array_ty.base_type, array_ty.span);
         let dims = self.lower_array_dims(&array_ty.dimensions);
 
         if dims.len() != array_ty.dimensions.len() {
-            return Type::Err;
+            return (Type::Err, Vec::new());
         }
 
         if dims.is_empty() {
             self.push_unsupported_error_message("arrays with 0 dimensions", array_ty.span);
-            return Type::Err;
+            return (Type::Err, Vec::new());
         }
 
         if dims.len() > 7 {
@@ -3292,16 +3371,21 @@ impl Lowerer {
                 "arrays with more than 7 dimensions",
                 array_ty.span,
             );
-            return Type::Err;
+            return (Type::Err, Vec::new());
         }
-
-        Type::make_array_ty(&dims, &base_ty)
+        let dim_vals = dims.iter().map(|f| f.0).collect::<Vec<_>>();
+        let exprs = base_ty
+            .1
+            .into_iter()
+            .chain(dims.into_iter().map(|f| f.1))
+            .collect();
+        (Type::make_array_ty(&dim_vals, &base_ty.0), exprs)
     }
 
     fn get_semantic_type_from_array_reference_ty(
         &mut self,
         array_ref_ty: &syntax::ArrayReferenceType,
-    ) -> crate::semantic::types::Type {
+    ) -> (crate::semantic::types::Type, Vec<Expr>) {
         match array_ref_ty {
             syntax::ArrayReferenceType::Static(ref_ty) => {
                 let is_mutable = matches!(ref_ty.mutability, syntax::AccessControl::Mutable);
@@ -3310,12 +3394,12 @@ impl Lowerer {
                 let dims = self.lower_array_dims(&ref_ty.dimensions);
 
                 if dims.len() != ref_ty.dimensions.len() {
-                    return Type::Err;
+                    return (Type::Err, Vec::new());
                 }
 
                 if dims.is_empty() {
                     self.push_unsupported_error_message("arrays with 0 dimensions", ref_ty.span);
-                    return Type::Err;
+                    return (Type::Err, Vec::new());
                 }
 
                 if dims.len() > 7 {
@@ -3323,29 +3407,40 @@ impl Lowerer {
                         "arrays with more than 7 dimensions",
                         ref_ty.span,
                     );
-                    return Type::Err;
+                    return (Type::Err, Vec::new());
                 }
 
-                Type::make_static_array_ref_ty(&dims, &base_ty, is_mutable)
+                let dim_vals = dims.iter().map(|f| f.0).collect::<Vec<_>>();
+                let exprs = base_ty
+                    .1
+                    .into_iter()
+                    .chain(dims.into_iter().map(|f| f.1))
+                    .collect();
+
+                (
+                    Type::make_static_array_ref_ty(&dim_vals, &base_ty.0, is_mutable),
+                    exprs,
+                )
             }
             syntax::ArrayReferenceType::Dyn(ref_ty) => {
                 let is_mutable = matches!(ref_ty.mutability, syntax::AccessControl::Mutable);
                 let base_ty =
                     self.get_semantic_type_from_array_base_ty(&ref_ty.base_type, ref_ty.span);
-                let Some(num_dims) = self.const_eval_array_size_designator_expr(&ref_ty.dimensions)
+                let Some(num_dims_expr) =
+                    self.const_eval_array_size_designator_expr(&ref_ty.dimensions)
                 else {
                     // `Self::const_eval_array_size_designator_expr` already pushed
                     // the relevant error message. So we just return `Type::Err` here.
-                    return Type::Err;
+                    return (Type::Err, Vec::new());
                 };
 
-                let num_dims = num_dims
+                let num_dims = num_dims_expr
                     .get_const_u32()
                     .expect("we only get here if we have a valid const expr");
 
                 if num_dims == 0 {
                     self.push_unsupported_error_message("arrays with 0 dimensions", ref_ty.span);
-                    return Type::Err;
+                    return (Type::Err, Vec::new());
                 }
 
                 if num_dims > 7 {
@@ -3353,10 +3448,14 @@ impl Lowerer {
                         "arrays with more than 7 dimensions",
                         ref_ty.span,
                     );
-                    return Type::Err;
+                    return (Type::Err, Vec::new());
                 }
 
-                Type::make_dyn_array_ref_ty(num_dims.into(), &base_ty, is_mutable)
+                let exprs = base_ty.1.into_iter().chain(once(num_dims_expr)).collect();
+                (
+                    Type::make_dyn_array_ref_ty(num_dims.into(), &base_ty.0, is_mutable),
+                    exprs,
+                )
             }
         }
     }
@@ -3432,7 +3531,19 @@ impl Lowerer {
         let expr = match ty {
             Type::Angle(_, _) => Some(from_lit_kind(LiteralKind::Angle(Default::default()))),
             Type::Bit(_) => Some(from_lit_kind(LiteralKind::Bit(false))),
-            Type::Int(_, _) | Type::UInt(_, _) => Some(from_lit_kind(LiteralKind::Int(0))),
+            Type::Int(width, _) | Type::UInt(width, _) => {
+                if let Some(width) = width {
+                    if *width > 64 {
+                        Some(from_lit_kind(LiteralKind::BigInt(
+                            BigInt::from_u32(0).expect("0 should be a valid BigInt"),
+                        )))
+                    } else {
+                        Some(from_lit_kind(LiteralKind::Int(0)))
+                    }
+                } else {
+                    Some(from_lit_kind(LiteralKind::Int(0)))
+                }
+            }
             Type::Bool(_) => Some(from_lit_kind(LiteralKind::Bool(false))),
             Type::Float(_, _) => Some(from_lit_kind(LiteralKind::Float(0.0))),
             Type::Complex(_, _) => Some(from_lit_kind(Complex::default().into())),
@@ -4175,6 +4286,20 @@ impl Lowerer {
                 let new_rhs = self.cast_expr_to_type(&angle_ty, &rhs);
                 let int_ty = Type::UInt(angle_ty.width(), ty_constness);
                 (new_lhs, new_rhs, int_ty)
+            }
+            // Design Decision: This branch isn't Spec compliant. It is an exception
+            //                  to support existing code in the Qiskit ecosystem which
+            //                  compiles to qasm that adds and subtracts floats and angles.
+            else if matches!(op, syntax::BinOp::Add | syntax::BinOp::Sub) {
+                if matches!(left_type, Type::Float(..)) {
+                    let ty = Type::Angle(rhs.ty.width(), ty_constness);
+                    let new_lhs = self.cast_expr_to_type(&ty, &lhs);
+                    (new_lhs, rhs, ty)
+                } else {
+                    let ty = Type::Angle(rhs.ty.width(), ty_constness);
+                    let new_rhs = self.cast_expr_to_type(&ty, &rhs);
+                    (lhs, new_rhs, ty)
+                }
             } else if matches!(left_type, Type::Angle(..)) {
                 let ty = Type::Angle(left_type.width(), ty_constness);
                 let new_lhs = self.cast_expr_to_type(&ty, &lhs);
@@ -4959,6 +5084,7 @@ fn wrap_expr_in_cast_expr(ty: Type, rhs: semantic::Expr) -> semantic::Expr {
             expr: rhs,
             ty: ty.clone(),
             kind: semantic::CastKind::Implicit,
+            ty_exprs: list_from_iter(vec![]),
         }),
         ty,
     )

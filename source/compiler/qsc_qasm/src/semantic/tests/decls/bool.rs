@@ -13,6 +13,7 @@ fn with_no_init_expr_has_generated_lit_expr() {
             ClassicalDeclarationStmt [0-7]:
                 symbol_id: 8
                 ty_span: [0-4]
+                ty_exprs: <empty>
                 init_expr: Expr [0-7]:
                     ty: const bool
                     kind: Lit: Bool(false)
@@ -32,6 +33,11 @@ fn array_with_no_init_expr_has_generated_lit_expr() {
             ClassicalDeclarationStmt [0-17]:
                 symbol_id: 8
                 ty_span: [0-14]
+                ty_exprs:
+                    Expr [12-13]:
+                        ty: const uint
+                        const_value: Int(4)
+                        kind: Lit: Int(4)
                 init_expr: Expr [0-17]:
                     ty: array[bool, 4]
                     kind: Lit:     array:
@@ -63,6 +69,7 @@ fn decl_with_lit_false_init_expr() {
             ClassicalDeclarationStmt [0-15]:
                 symbol_id: 8
                 ty_span: [0-4]
+                ty_exprs: <empty>
                 init_expr: Expr [9-14]:
                     ty: bool
                     kind: Lit: Bool(false)
@@ -82,6 +89,7 @@ fn decl_with_lit_true_init_expr() {
             ClassicalDeclarationStmt [0-14]:
                 symbol_id: 8
                 ty_span: [0-4]
+                ty_exprs: <empty>
                 init_expr: Expr [9-13]:
                     ty: bool
                     kind: Lit: Bool(true)
@@ -101,6 +109,7 @@ fn const_decl_with_lit_false_init_expr() {
             ClassicalDeclarationStmt [0-21]:
                 symbol_id: 8
                 ty_span: [6-10]
+                ty_exprs: <empty>
                 init_expr: Expr [15-20]:
                     ty: const bool
                     const_value: Bool(false)
@@ -121,6 +130,7 @@ fn const_decl_with_lit_true_init_expr() {
             ClassicalDeclarationStmt [0-20]:
                 symbol_id: 8
                 ty_span: [6-10]
+                ty_exprs: <empty>
                 init_expr: Expr [15-19]:
                     ty: const bool
                     const_value: Bool(true)

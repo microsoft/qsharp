@@ -14,6 +14,7 @@ fn shadowing_loop_variable_in_single_stmt_body() {
         &expect![[r#"
             ForStmt [5-39]:
                 loop_variable: 8
+                ty_exprs: <empty>
                 iterable: Set [18-20]:
                     values: <empty>
                 body: Stmt [29-39]:
@@ -24,6 +25,7 @@ fn shadowing_loop_variable_in_single_stmt_body() {
                             kind: ClassicalDeclarationStmt [29-39]:
                                 symbol_id: 9
                                 ty_span: [29-32]
+                                ty_exprs: <empty>
                                 init_expr: Expr [37-38]:
                                     ty: int
                                     kind: Lit: Int(2)
@@ -42,6 +44,7 @@ fn shadowing_loop_variable_in_block_body_succeeds() {
         &expect![[r#"
             ForStmt [5-47]:
                 loop_variable: 8
+                ty_exprs: <empty>
                 iterable: Set [18-20]:
                     values: <empty>
                 body: Stmt [21-47]:
@@ -52,6 +55,7 @@ fn shadowing_loop_variable_in_block_body_succeeds() {
                             kind: ClassicalDeclarationStmt [31-41]:
                                 symbol_id: 9
                                 ty_span: [31-34]
+                                ty_exprs: <empty>
                                 init_expr: Expr [39-40]:
                                     ty: int
                                     kind: Lit: Int(2)
@@ -74,11 +78,13 @@ fn loop_creates_its_own_scope() {
             ClassicalDeclarationStmt [5-15]:
                 symbol_id: 8
                 ty_span: [5-8]
+                ty_exprs: <empty>
                 init_expr: Expr [13-14]:
                     ty: int
                     kind: Lit: Int(0)
             ForStmt [20-177]:
                 loop_variable: 9
+                ty_exprs: <empty>
                 iterable: Set [33-35]:
                     values: <empty>
                 body: Stmt [167-177]:
@@ -89,6 +95,7 @@ fn loop_creates_its_own_scope() {
                             kind: ClassicalDeclarationStmt [167-177]:
                                 symbol_id: 10
                                 ty_span: [167-170]
+                                ty_exprs: <empty>
                                 init_expr: Expr [175-176]:
                                     ty: int
                                     kind: Lit: Int(1)

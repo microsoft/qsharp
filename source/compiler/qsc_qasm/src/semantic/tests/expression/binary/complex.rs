@@ -16,6 +16,7 @@ fn implicit_cast_from_int() {
             ClassicalDeclarationStmt [9-30]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs: <empty>
                 init_expr: Expr [21-29]:
                     ty: complex[float]
                     kind: BinaryOpExpr:
@@ -42,6 +43,7 @@ fn implicit_cast_from_float() {
             ClassicalDeclarationStmt [9-34]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs: <empty>
                 init_expr: Expr [21-33]:
                     ty: complex[float]
                     kind: BinaryOpExpr:
@@ -69,11 +71,14 @@ fn addition() {
         &expect![[r#"
             InputDeclaration [9-32]:
                 symbol_id: 8
+                ty_exprs: <empty>
             InputDeclaration [41-64]:
                 symbol_id: 9
+                ty_exprs: <empty>
             ClassicalDeclarationStmt [73-91]:
                 symbol_id: 10
                 ty_span: [73-80]
+                ty_exprs: <empty>
                 init_expr: Expr [85-90]:
                     ty: complex[float]
                     kind: BinaryOpExpr:
@@ -101,9 +106,11 @@ fn addition_assign_op() {
         &expect![[r#"
             InputDeclaration [9-32]:
                 symbol_id: 8
+                ty_exprs: <empty>
             ClassicalDeclarationStmt [41-57]:
                 symbol_id: 9
                 ty_span: [41-48]
+                ty_exprs: <empty>
                 init_expr: Expr [53-56]:
                     ty: const complex[float]
                     kind: Lit: Complex(0.0, 0.0)
@@ -138,11 +145,14 @@ fn subtraction() {
         &expect![[r#"
             InputDeclaration [9-32]:
                 symbol_id: 8
+                ty_exprs: <empty>
             InputDeclaration [41-64]:
                 symbol_id: 9
+                ty_exprs: <empty>
             ClassicalDeclarationStmt [73-91]:
                 symbol_id: 10
                 ty_span: [73-80]
+                ty_exprs: <empty>
                 init_expr: Expr [85-90]:
                     ty: complex[float]
                     kind: BinaryOpExpr:
@@ -170,9 +180,11 @@ fn subtraction_assign_op() {
         &expect![[r#"
             InputDeclaration [9-32]:
                 symbol_id: 8
+                ty_exprs: <empty>
             ClassicalDeclarationStmt [41-57]:
                 symbol_id: 9
                 ty_span: [41-48]
+                ty_exprs: <empty>
                 init_expr: Expr [53-56]:
                     ty: const complex[float]
                     kind: Lit: Complex(0.0, 0.0)
@@ -207,11 +219,14 @@ fn multiplication() {
         &expect![[r#"
             InputDeclaration [9-32]:
                 symbol_id: 8
+                ty_exprs: <empty>
             InputDeclaration [41-64]:
                 symbol_id: 9
+                ty_exprs: <empty>
             ClassicalDeclarationStmt [73-91]:
                 symbol_id: 10
                 ty_span: [73-80]
+                ty_exprs: <empty>
                 init_expr: Expr [85-90]:
                     ty: complex[float]
                     kind: BinaryOpExpr:
@@ -239,9 +254,11 @@ fn multiplication_assign_op() {
         &expect![[r#"
             InputDeclaration [9-32]:
                 symbol_id: 8
+                ty_exprs: <empty>
             ClassicalDeclarationStmt [41-57]:
                 symbol_id: 9
                 ty_span: [41-48]
+                ty_exprs: <empty>
                 init_expr: Expr [53-56]:
                     ty: const complex[float]
                     kind: Lit: Complex(0.0, 0.0)
@@ -276,11 +293,14 @@ fn division() {
         &expect![[r#"
             InputDeclaration [9-32]:
                 symbol_id: 8
+                ty_exprs: <empty>
             InputDeclaration [41-64]:
                 symbol_id: 9
+                ty_exprs: <empty>
             ClassicalDeclarationStmt [73-91]:
                 symbol_id: 10
                 ty_span: [73-80]
+                ty_exprs: <empty>
                 init_expr: Expr [85-90]:
                     ty: complex[float]
                     kind: BinaryOpExpr:
@@ -308,9 +328,11 @@ fn division_assign_op() {
         &expect![[r#"
             InputDeclaration [9-32]:
                 symbol_id: 8
+                ty_exprs: <empty>
             ClassicalDeclarationStmt [41-57]:
                 symbol_id: 9
                 ty_span: [41-48]
+                ty_exprs: <empty>
                 init_expr: Expr [53-56]:
                     ty: const complex[float]
                     kind: Lit: Complex(0.0, 0.0)
@@ -345,11 +367,14 @@ fn power() {
         &expect![[r#"
             InputDeclaration [9-32]:
                 symbol_id: 8
+                ty_exprs: <empty>
             InputDeclaration [41-64]:
                 symbol_id: 9
+                ty_exprs: <empty>
             ClassicalDeclarationStmt [73-92]:
                 symbol_id: 10
                 ty_span: [73-80]
+                ty_exprs: <empty>
                 init_expr: Expr [85-91]:
                     ty: complex[float]
                     kind: BinaryOpExpr:
@@ -377,9 +402,11 @@ fn power_assign_op() {
         &expect![[r#"
             InputDeclaration [9-32]:
                 symbol_id: 8
+                ty_exprs: <empty>
             ClassicalDeclarationStmt [41-57]:
                 symbol_id: 9
                 ty_span: [41-48]
+                ty_exprs: <empty>
                 init_expr: Expr [53-56]:
                     ty: const complex[float]
                     kind: Lit: Complex(0.0, 0.0)
@@ -420,15 +447,18 @@ fn modulo_fails() {
                         annotations: <empty>
                         kind: InputDeclaration [9-32]:
                             symbol_id: 8
+                            ty_exprs: <empty>
                     Stmt [41-64]:
                         annotations: <empty>
                         kind: InputDeclaration [41-64]:
                             symbol_id: 9
+                            ty_exprs: <empty>
                     Stmt [73-91]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [73-91]:
                             symbol_id: 10
                             ty_span: [73-80]
+                            ty_exprs: <empty>
                             init_expr: Expr [0-0]:
                                 ty: complex[float]
                                 kind: Err
@@ -465,15 +495,18 @@ fn modulo_non_complex_type_fails() {
                         annotations: <empty>
                         kind: InputDeclaration [9-32]:
                             symbol_id: 8
+                            ty_exprs: <empty>
                     Stmt [41-55]:
                         annotations: <empty>
                         kind: InputDeclaration [41-55]:
                             symbol_id: 9
+                            ty_exprs: <empty>
                     Stmt [64-82]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [64-82]:
                             symbol_id: 10
                             ty_span: [64-71]
+                            ty_exprs: <empty>
                             init_expr: Expr [0-0]:
                                 ty: complex[float]
                                 kind: Err

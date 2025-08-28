@@ -195,7 +195,7 @@ output int[65] i;
     expect![[r#"
         operation Test() : BigInt {
             import Std.OpenQASM.Intrinsic.*;
-            mutable i = 0;
+            mutable i = 0L;
             i
         }
     "#]]
@@ -238,7 +238,7 @@ output bit[2] b2;
     expect![[r#"
         operation Test() : (BigInt, Int, Int, Int, Double, Bool, Result, Std.Math.Complex, Result[]) {
             import Std.OpenQASM.Intrinsic.*;
-            mutable bi = 0;
+            mutable bi = 0L;
             mutable i = 0;
             mutable ui = 0;
             mutable u = 0;

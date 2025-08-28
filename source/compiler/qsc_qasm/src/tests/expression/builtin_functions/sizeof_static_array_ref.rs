@@ -41,6 +41,9 @@ fn sizeof_with_1_dimensional_array_generates_correct_qsharp() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             function f(a : Int[]) : Unit {
+                if Std.Core.Length(a) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1]`."
+                };
                 1;
             }
         "#]],
@@ -60,6 +63,12 @@ fn sizeof_with_2_dimensional_array_generates_correct_qsharp() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             function f(a : Int[][]) : Unit {
+                if Std.Core.Length(a) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 2]`."
+                };
+                if Std.Core.Length(a[0]) != 2 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 2]`."
+                };
                 2;
             }
         "#]],
@@ -79,6 +88,15 @@ fn sizeof_with_3_dimensional_array_generates_correct_qsharp() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             function f(a : Int[][][]) : Unit {
+                if Std.Core.Length(a) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 3]`."
+                };
+                if Std.Core.Length(a[0]) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 3]`."
+                };
+                if Std.Core.Length(a[0][0]) != 3 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 3]`."
+                };
                 3;
             }
         "#]],
@@ -98,6 +116,18 @@ fn sizeof_with_4_dimensional_array_generates_correct_qsharp() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             function f(a : Int[][][][]) : Unit {
+                if Std.Core.Length(a) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 4]`."
+                };
+                if Std.Core.Length(a[0]) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 4]`."
+                };
+                if Std.Core.Length(a[0][0]) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 4]`."
+                };
+                if Std.Core.Length(a[0][0][0]) != 4 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 4]`."
+                };
                 4;
             }
         "#]],
@@ -117,6 +147,21 @@ fn sizeof_with_5_dimensional_array_generates_correct_qsharp() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             function f(a : Int[][][][][]) : Unit {
+                if Std.Core.Length(a) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 5]`."
+                };
+                if Std.Core.Length(a[0]) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 5]`."
+                };
+                if Std.Core.Length(a[0][0]) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 5]`."
+                };
+                if Std.Core.Length(a[0][0][0]) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 5]`."
+                };
+                if Std.Core.Length(a[0][0][0][0]) != 5 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 5]`."
+                };
                 5;
             }
         "#]],
@@ -136,6 +181,24 @@ fn sizeof_with_6_dimensional_array_generates_correct_qsharp() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             function f(a : Int[][][][][][]) : Unit {
+                if Std.Core.Length(a) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 1, 6]`."
+                };
+                if Std.Core.Length(a[0]) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 1, 6]`."
+                };
+                if Std.Core.Length(a[0][0]) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 1, 6]`."
+                };
+                if Std.Core.Length(a[0][0][0]) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 1, 6]`."
+                };
+                if Std.Core.Length(a[0][0][0][0]) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 1, 6]`."
+                };
+                if Std.Core.Length(a[0][0][0][0][0]) != 6 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 1, 6]`."
+                };
                 6;
             }
         "#]],
@@ -155,6 +218,27 @@ fn sizeof_with_7_dimensional_array_generates_correct_qsharp() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             function f(a : Int[][][][][][][]) : Unit {
+                if Std.Core.Length(a) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 1, 1, 7]`."
+                };
+                if Std.Core.Length(a[0]) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 1, 1, 7]`."
+                };
+                if Std.Core.Length(a[0][0]) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 1, 1, 7]`."
+                };
+                if Std.Core.Length(a[0][0][0]) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 1, 1, 7]`."
+                };
+                if Std.Core.Length(a[0][0][0][0]) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 1, 1, 7]`."
+                };
+                if Std.Core.Length(a[0][0][0][0][0]) != 1 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 1, 1, 7]`."
+                };
+                if Std.Core.Length(a[0][0][0][0][0][0]) != 7 {
+                    fail "Argument `a` is not compatible with its OpenQASM type `readonly array[int, 1, 1, 1, 1, 1, 1, 7]`."
+                };
                 7;
             }
         "#]],

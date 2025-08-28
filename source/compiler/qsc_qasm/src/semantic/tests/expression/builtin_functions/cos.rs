@@ -43,11 +43,13 @@ fn cos_angle() {
             ClassicalDeclarationStmt [9-28]:
                 symbol_id: 8
                 ty_span: [15-20]
+                ty_exprs: <empty>
                 init_expr: Expr [25-27]:
                     ty: const angle
                     const_value: Angle(3.141592653589793)
                     kind: Cast [25-27]:
                         ty: const angle
+                        ty_exprs: <empty>
                         expr: Expr [25-27]:
                             ty: const float
                             kind: SymbolId(2)

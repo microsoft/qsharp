@@ -401,9 +401,7 @@ impl Type {
             | Type::Angle(..)
             | Type::Complex(..)
             | Type::Bool(..)
-            | Type::BitArray(..)
-            | Type::Range
-            | Type::Set => true,
+            | Type::BitArray(..) => true,
             Type::Array(array) => {
                 Into::<Self>::into(array.base_ty.clone()).is_inferred_output_type()
             }
@@ -1195,6 +1193,15 @@ pub(crate) fn binop_requires_asymmetric_angle_op(
     rhs: &Type,
 ) -> bool {
     match op {
+        // Design Decision: This branch isn't Spec compliant. It is an exception
+        //                  to support existing code in the Qiskit ecosystem which
+        //                  compiles to qasm that adds and subtracts floats and angles.
+        syntax::BinOp::Add | syntax::BinOp::Sub => {
+            matches!(
+                (lhs, rhs),
+                (Type::Float(..), Type::Angle(..)) | (Type::Angle(..), Type::Float(..))
+            )
+        }
         syntax::BinOp::Div => {
             matches!(
                 (lhs, rhs),

@@ -89,6 +89,7 @@ fn first_bit_from_aliased_creg() {
             ClassicalDeclarationStmt [131-159]:
                 symbol_id: 11
                 ty_span: [131-134]
+                ty_exprs: <empty>
                 init_expr: Expr [143-157]:
                     ty: bit
                     kind: IndexedExpr [143-157]:
@@ -129,6 +130,11 @@ fn inconsistent_types_raise_error() {
                         kind: ClassicalDeclarationStmt [81-106]:
                             symbol_id: 9
                             ty_span: [81-87]
+                            ty_exprs:
+                                Expr [85-86]:
+                                    ty: const uint
+                                    const_value: Int(5)
+                                    kind: Lit: Int(5)
                             init_expr: Expr [81-106]:
                                 ty: const bit[5]
                                 kind: Lit: Bitstring("00000")
@@ -176,6 +182,11 @@ fn invalid_types_raise_error() {
                         kind: ClassicalDeclarationStmt [40-65]:
                             symbol_id: 8
                             ty_span: [40-46]
+                            ty_exprs:
+                                Expr [44-45]:
+                                    ty: const uint
+                                    const_value: Int(2)
+                                    kind: Lit: Int(2)
                             init_expr: Expr [40-65]:
                                 ty: const bit[2]
                                 kind: Lit: Bitstring("00")
@@ -184,6 +195,7 @@ fn invalid_types_raise_error() {
                         kind: ClassicalDeclarationStmt [74-96]:
                             symbol_id: 9
                             ty_span: [74-77]
+                            ty_exprs: <empty>
                             init_expr: Expr [74-96]:
                                 ty: const int
                                 kind: Lit: Int(0)
@@ -232,6 +244,11 @@ fn invalid_types_raise_error_for_each() {
                         kind: ClassicalDeclarationStmt [9-41]:
                             symbol_id: 8
                             ty_span: [9-22]
+                            ty_exprs:
+                                Expr [20-21]:
+                                    ty: const uint
+                                    const_value: Int(5)
+                                    kind: Lit: Int(5)
                             init_expr: Expr [9-41]:
                                 ty: array[int, 5]
                                 kind: Lit:     array:
@@ -255,6 +272,11 @@ fn invalid_types_raise_error_for_each() {
                         kind: ClassicalDeclarationStmt [50-75]:
                             symbol_id: 9
                             ty_span: [50-56]
+                            ty_exprs:
+                                Expr [54-55]:
+                                    ty: const uint
+                                    const_value: Int(2)
+                                    kind: Lit: Int(2)
                             init_expr: Expr [50-75]:
                                 ty: const bit[2]
                                 kind: Lit: Bitstring("00")
@@ -263,6 +285,7 @@ fn invalid_types_raise_error_for_each() {
                         kind: ClassicalDeclarationStmt [84-106]:
                             symbol_id: 10
                             ty_span: [84-87]
+                            ty_exprs: <empty>
                             init_expr: Expr [84-106]:
                                 ty: const int
                                 kind: Lit: Int(0)
@@ -323,6 +346,7 @@ fn bit_alias_errors() {
                         kind: ClassicalDeclarationStmt [9-15]:
                             symbol_id: 8
                             ty_span: [9-12]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-15]:
                                 ty: const bit
                                 kind: Lit: Bit(0)

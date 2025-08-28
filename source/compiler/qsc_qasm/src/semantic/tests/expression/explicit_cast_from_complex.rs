@@ -36,6 +36,7 @@ fn complex_to_bool_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-19]:
                                 ty: const complex[float]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -77,6 +78,11 @@ fn sized_complex_to_bool_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -122,6 +128,7 @@ fn complex_to_duration_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-19]:
                                 ty: const complex[float]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -163,6 +170,11 @@ fn sized_complex_to_duration_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -208,6 +220,7 @@ fn complex_to_int_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-19]:
                                 ty: const complex[float]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -249,6 +262,7 @@ fn complex_to_sized_int_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-19]:
                                 ty: const complex[float]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -290,6 +304,11 @@ fn sized_complex_to_int_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -331,6 +350,11 @@ fn sized_complex_to_sized_int_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -372,6 +396,11 @@ fn sized_complex_to_sized_int_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -413,6 +442,11 @@ fn sized_complex_to_sized_int_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -458,6 +492,7 @@ fn complex_to_uint_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-19]:
                                 ty: const complex[float]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -499,6 +534,7 @@ fn complex_to_sized_uint_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-19]:
                                 ty: const complex[float]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -540,6 +576,11 @@ fn sized_complex_to_uint_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -581,6 +622,11 @@ fn sized_complex_to_sized_uint_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -622,6 +668,11 @@ fn sized_complex_to_sized_uint_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -663,6 +714,11 @@ fn sized_complex_to_sized_uint_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -708,6 +764,7 @@ fn complex_to_float_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-19]:
                                 ty: const complex[float]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -749,6 +806,7 @@ fn complex_to_sized_float_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-19]:
                                 ty: const complex[float]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -790,6 +848,11 @@ fn sized_complex_to_float_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -831,6 +894,11 @@ fn sized_complex_to_sized_float_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -872,6 +940,11 @@ fn sized_complex_to_sized_float_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -913,6 +986,11 @@ fn sized_complex_to_sized_float_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -958,6 +1036,7 @@ fn complex_to_angle_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-19]:
                                 ty: const complex[float]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -999,6 +1078,7 @@ fn complex_to_sized_angle_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-19]:
                                 ty: const complex[float]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -1040,6 +1120,11 @@ fn sized_complex_to_angle_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -1081,6 +1166,11 @@ fn sized_complex_to_sized_angle_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -1122,6 +1212,11 @@ fn sized_complex_to_sized_angle_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -1163,6 +1258,11 @@ fn sized_complex_to_sized_angle_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -1202,6 +1302,7 @@ fn complex_to_complex() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs: <empty>
                 init_expr: Expr [9-19]:
                     ty: const complex[float]
                     kind: Lit: Complex(0.0, 0.0)
@@ -1225,6 +1326,7 @@ fn complex_to_sized_complex() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs: <empty>
                 init_expr: Expr [9-19]:
                     ty: const complex[float]
                     kind: Lit: Complex(0.0, 0.0)
@@ -1233,6 +1335,11 @@ fn complex_to_sized_complex() {
                     ty: complex[float[32]]
                     kind: Cast [28-49]:
                         ty: complex[float[32]]
+                        ty_exprs:
+                            Expr [42-44]:
+                                ty: const uint
+                                const_value: Int(32)
+                                kind: Lit: Int(32)
                         expr: Expr [47-48]:
                             ty: complex[float]
                             kind: SymbolId(8)
@@ -1253,6 +1360,11 @@ fn sized_complex_to_complex() {
             ClassicalDeclarationStmt [9-30]:
                 symbol_id: 8
                 ty_span: [9-27]
+                ty_exprs:
+                    Expr [23-25]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-30]:
                     ty: const complex[float[32]]
                     kind: Lit: Complex(0.0, 0.0)
@@ -1261,6 +1373,7 @@ fn sized_complex_to_complex() {
                     ty: complex[float]
                     kind: Cast [39-49]:
                         ty: complex[float]
+                        ty_exprs: <empty>
                         expr: Expr [47-48]:
                             ty: complex[float[32]]
                             kind: SymbolId(8)
@@ -1281,6 +1394,11 @@ fn sized_complex_to_sized_complex() {
             ClassicalDeclarationStmt [9-30]:
                 symbol_id: 8
                 ty_span: [9-27]
+                ty_exprs:
+                    Expr [23-25]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-30]:
                     ty: const complex[float[32]]
                     kind: Lit: Complex(0.0, 0.0)
@@ -1304,6 +1422,11 @@ fn sized_complex_to_sized_complex_truncating() {
             ClassicalDeclarationStmt [9-30]:
                 symbol_id: 8
                 ty_span: [9-27]
+                ty_exprs:
+                    Expr [23-25]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-30]:
                     ty: const complex[float[32]]
                     kind: Lit: Complex(0.0, 0.0)
@@ -1327,6 +1450,11 @@ fn sized_complex_to_sized_complex_expanding() {
             ClassicalDeclarationStmt [9-30]:
                 symbol_id: 8
                 ty_span: [9-27]
+                ty_exprs:
+                    Expr [23-25]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-30]:
                     ty: const complex[float[32]]
                     kind: Lit: Complex(0.0, 0.0)
@@ -1335,6 +1463,11 @@ fn sized_complex_to_sized_complex_expanding() {
                     ty: complex[float[64]]
                     kind: Cast [39-60]:
                         ty: complex[float[64]]
+                        ty_exprs:
+                            Expr [53-55]:
+                                ty: const uint
+                                const_value: Int(64)
+                                kind: Lit: Int(64)
                         expr: Expr [58-59]:
                             ty: complex[float[32]]
                             kind: SymbolId(8)
@@ -1365,6 +1498,7 @@ fn complex_to_bit_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-19]:
                                 ty: const complex[float]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -1406,6 +1540,7 @@ fn complex_to_bitarray_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-19]:
                                 ty: const complex[float]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -1447,6 +1582,11 @@ fn sized_complex_to_bit_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -1488,6 +1628,11 @@ fn sized_complex_to_bitarray_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -1529,6 +1674,11 @@ fn sized_complex_to_bitarray_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)
@@ -1570,6 +1720,11 @@ fn sized_complex_to_bitarray_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-30]:
                             symbol_id: 8
                             ty_span: [9-27]
+                            ty_exprs:
+                                Expr [23-25]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-30]:
                                 ty: const complex[float[32]]
                                 kind: Lit: Complex(0.0, 0.0)

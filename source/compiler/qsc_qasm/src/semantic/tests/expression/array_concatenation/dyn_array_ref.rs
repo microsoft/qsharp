@@ -19,10 +19,29 @@ fn array_concatenation_has_the_right_type() {
                 symbol_id: 8
                 has_qubit_params: false
                 parameters:
-                    9
-                    10
-                    11
+                    DefParameter [41-42]:
+                        symbol_id: 9
+                        ty_exprs:
+                            Expr [38-39]:
+                                ty: const uint
+                                const_value: Int(1)
+                                kind: Lit: Int(1)
+                    DefParameter [74-75]:
+                        symbol_id: 10
+                        ty_exprs:
+                            Expr [71-72]:
+                                ty: const uint
+                                const_value: Int(1)
+                                kind: Lit: Int(1)
+                    DefParameter [106-107]:
+                        symbol_id: 11
+                        ty_exprs:
+                            Expr [103-104]:
+                                ty: const uint
+                                const_value: Int(1)
+                                kind: Lit: Int(1)
                 return_type_span: [0-0]
+                return_ty_exprs: <empty>
                 body: Block [109-136]:
                     Stmt [119-130]:
                         annotations: <empty>
@@ -59,9 +78,22 @@ fn array_can_be_concatenated_with_itself() {
                 symbol_id: 8
                 has_qubit_params: false
                 parameters:
-                    9
-                    10
+                    DefParameter [41-42]:
+                        symbol_id: 9
+                        ty_exprs:
+                            Expr [38-39]:
+                                ty: const uint
+                                const_value: Int(1)
+                                kind: Lit: Int(1)
+                    DefParameter [73-74]:
+                        symbol_id: 10
+                        ty_exprs:
+                            Expr [70-71]:
+                                ty: const uint
+                                const_value: Int(1)
+                                kind: Lit: Int(1)
                 return_type_span: [0-0]
+                return_ty_exprs: <empty>
                 body: Block [76-103]:
                     Stmt [86-97]:
                         annotations: <empty>
@@ -104,10 +136,41 @@ fn array_concatenation_with_different_widths_errors() {
                             symbol_id: 8
                             has_qubit_params: false
                             parameters:
-                                9
-                                10
-                                11
+                                DefParameter [44-45]:
+                                    symbol_id: 9
+                                    ty_exprs:
+                                        Expr [30-31]:
+                                            ty: const uint
+                                            const_value: Int(8)
+                                            kind: Lit: Int(8)
+                                        Expr [41-42]:
+                                            ty: const uint
+                                            const_value: Int(1)
+                                            kind: Lit: Int(1)
+                                DefParameter [81-82]:
+                                    symbol_id: 10
+                                    ty_exprs:
+                                        Expr [66-68]:
+                                            ty: const uint
+                                            const_value: Int(16)
+                                            kind: Lit: Int(16)
+                                        Expr [78-79]:
+                                            ty: const uint
+                                            const_value: Int(1)
+                                            kind: Lit: Int(1)
+                                DefParameter [116-117]:
+                                    symbol_id: 11
+                                    ty_exprs:
+                                        Expr [102-103]:
+                                            ty: const uint
+                                            const_value: Int(8)
+                                            kind: Lit: Int(8)
+                                        Expr [113-114]:
+                                            ty: const uint
+                                            const_value: Int(1)
+                                            kind: Lit: Int(1)
                             return_type_span: [0-0]
+                            return_ty_exprs: <empty>
                             body: Block [119-146]:
                                 Stmt [129-140]:
                                     annotations: <empty>
@@ -161,10 +224,41 @@ fn array_concatenation_with_different_types_errors() {
                             symbol_id: 8
                             has_qubit_params: false
                             parameters:
-                                9
-                                10
-                                11
+                                DefParameter [44-45]:
+                                    symbol_id: 9
+                                    ty_exprs:
+                                        Expr [30-31]:
+                                            ty: const uint
+                                            const_value: Int(8)
+                                            kind: Lit: Int(8)
+                                        Expr [41-42]:
+                                            ty: const uint
+                                            const_value: Int(1)
+                                            kind: Lit: Int(1)
+                                DefParameter [81-82]:
+                                    symbol_id: 10
+                                    ty_exprs:
+                                        Expr [67-68]:
+                                            ty: const uint
+                                            const_value: Int(8)
+                                            kind: Lit: Int(8)
+                                        Expr [78-79]:
+                                            ty: const uint
+                                            const_value: Int(1)
+                                            kind: Lit: Int(1)
+                                DefParameter [116-117]:
+                                    symbol_id: 11
+                                    ty_exprs:
+                                        Expr [102-103]:
+                                            ty: const uint
+                                            const_value: Int(8)
+                                            kind: Lit: Int(8)
+                                        Expr [113-114]:
+                                            ty: const uint
+                                            const_value: Int(1)
+                                            kind: Lit: Int(1)
                             return_type_span: [0-0]
+                            return_ty_exprs: <empty>
                             body: Block [119-146]:
                                 Stmt [129-140]:
                                     annotations: <empty>
@@ -212,10 +306,29 @@ fn multidimensional_array_concatenation_has_the_right_type() {
                 symbol_id: 8
                 has_qubit_params: false
                 parameters:
-                    9
-                    10
-                    11
+                    DefParameter [41-42]:
+                        symbol_id: 9
+                        ty_exprs:
+                            Expr [38-39]:
+                                ty: const uint
+                                const_value: Int(2)
+                                kind: Lit: Int(2)
+                    DefParameter [74-75]:
+                        symbol_id: 10
+                        ty_exprs:
+                            Expr [71-72]:
+                                ty: const uint
+                                const_value: Int(2)
+                                kind: Lit: Int(2)
+                    DefParameter [106-107]:
+                        symbol_id: 11
+                        ty_exprs:
+                            Expr [103-104]:
+                                ty: const uint
+                                const_value: Int(2)
+                                kind: Lit: Int(2)
                 return_type_span: [0-0]
+                return_ty_exprs: <empty>
                 body: Block [109-136]:
                     Stmt [119-130]:
                         annotations: <empty>
@@ -252,9 +365,22 @@ fn multidimensional_array_can_be_concatenated_with_itself() {
                 symbol_id: 8
                 has_qubit_params: false
                 parameters:
-                    9
-                    10
+                    DefParameter [41-42]:
+                        symbol_id: 9
+                        ty_exprs:
+                            Expr [38-39]:
+                                ty: const uint
+                                const_value: Int(2)
+                                kind: Lit: Int(2)
+                    DefParameter [73-74]:
+                        symbol_id: 10
+                        ty_exprs:
+                            Expr [70-71]:
+                                ty: const uint
+                                const_value: Int(2)
+                                kind: Lit: Int(2)
                 return_type_span: [0-0]
+                return_ty_exprs: <empty>
                 body: Block [76-103]:
                     Stmt [86-97]:
                         annotations: <empty>
@@ -297,10 +423,41 @@ fn multidimensional_array_concatenation_with_different_widths_errors() {
                             symbol_id: 8
                             has_qubit_params: false
                             parameters:
-                                9
-                                10
-                                11
+                                DefParameter [44-45]:
+                                    symbol_id: 9
+                                    ty_exprs:
+                                        Expr [30-31]:
+                                            ty: const uint
+                                            const_value: Int(8)
+                                            kind: Lit: Int(8)
+                                        Expr [41-42]:
+                                            ty: const uint
+                                            const_value: Int(2)
+                                            kind: Lit: Int(2)
+                                DefParameter [81-82]:
+                                    symbol_id: 10
+                                    ty_exprs:
+                                        Expr [66-68]:
+                                            ty: const uint
+                                            const_value: Int(16)
+                                            kind: Lit: Int(16)
+                                        Expr [78-79]:
+                                            ty: const uint
+                                            const_value: Int(2)
+                                            kind: Lit: Int(2)
+                                DefParameter [116-117]:
+                                    symbol_id: 11
+                                    ty_exprs:
+                                        Expr [102-103]:
+                                            ty: const uint
+                                            const_value: Int(8)
+                                            kind: Lit: Int(8)
+                                        Expr [113-114]:
+                                            ty: const uint
+                                            const_value: Int(2)
+                                            kind: Lit: Int(2)
                             return_type_span: [0-0]
+                            return_ty_exprs: <empty>
                             body: Block [119-146]:
                                 Stmt [129-140]:
                                     annotations: <empty>
@@ -354,10 +511,41 @@ fn multidimensional_array_concatenation_with_different_types_errors() {
                             symbol_id: 8
                             has_qubit_params: false
                             parameters:
-                                9
-                                10
-                                11
+                                DefParameter [44-45]:
+                                    symbol_id: 9
+                                    ty_exprs:
+                                        Expr [30-31]:
+                                            ty: const uint
+                                            const_value: Int(8)
+                                            kind: Lit: Int(8)
+                                        Expr [41-42]:
+                                            ty: const uint
+                                            const_value: Int(2)
+                                            kind: Lit: Int(2)
+                                DefParameter [81-82]:
+                                    symbol_id: 10
+                                    ty_exprs:
+                                        Expr [67-68]:
+                                            ty: const uint
+                                            const_value: Int(8)
+                                            kind: Lit: Int(8)
+                                        Expr [78-79]:
+                                            ty: const uint
+                                            const_value: Int(2)
+                                            kind: Lit: Int(2)
+                                DefParameter [116-117]:
+                                    symbol_id: 11
+                                    ty_exprs:
+                                        Expr [102-103]:
+                                            ty: const uint
+                                            const_value: Int(8)
+                                            kind: Lit: Int(8)
+                                        Expr [113-114]:
+                                            ty: const uint
+                                            const_value: Int(2)
+                                            kind: Lit: Int(2)
                             return_type_span: [0-0]
+                            return_ty_exprs: <empty>
                             body: Block [119-146]:
                                 Stmt [129-140]:
                                     annotations: <empty>
