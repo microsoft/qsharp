@@ -30,6 +30,7 @@ fn int_to_bool() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [9-15]:
                     ty: const int
                     kind: Lit: Int(0)
@@ -38,6 +39,7 @@ fn int_to_bool() {
                     ty: bool
                     kind: Cast [24-31]:
                         ty: bool
+                        ty_exprs: <empty>
                         expr: Expr [29-30]:
                             ty: int
                             kind: SymbolId(8)
@@ -58,6 +60,11 @@ fn sized_int_to_bool() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -66,6 +73,7 @@ fn sized_int_to_bool() {
                     ty: bool
                     kind: Cast [28-35]:
                         ty: bool
+                        ty_exprs: <empty>
                         expr: Expr [33-34]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -96,6 +104,7 @@ fn int_to_duration_fails() {
                         kind: ClassicalDeclarationStmt [9-15]:
                             symbol_id: 8
                             ty_span: [9-12]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-15]:
                                 ty: const int
                                 kind: Lit: Int(0)
@@ -137,6 +146,11 @@ fn sized_int_to_duration_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs:
+                                Expr [13-15]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-19]:
                                 ty: const int[32]
                                 kind: Lit: Int(0)
@@ -176,6 +190,7 @@ fn int_to_int() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [9-15]:
                     ty: const int
                     kind: Lit: Int(0)
@@ -199,6 +214,7 @@ fn int_to_sized_int() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [9-15]:
                     ty: const int
                     kind: Lit: Int(0)
@@ -207,6 +223,11 @@ fn int_to_sized_int() {
                     ty: int[32]
                     kind: Cast [24-34]:
                         ty: int[32]
+                        ty_exprs:
+                            Expr [28-30]:
+                                ty: const uint
+                                const_value: Int(32)
+                                kind: Lit: Int(32)
                         expr: Expr [32-33]:
                             ty: int
                             kind: SymbolId(8)
@@ -227,6 +248,11 @@ fn sized_int_to_int() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -235,6 +261,7 @@ fn sized_int_to_int() {
                     ty: int
                     kind: Cast [28-34]:
                         ty: int
+                        ty_exprs: <empty>
                         expr: Expr [32-33]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -255,6 +282,11 @@ fn sized_int_to_sized_int() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -278,6 +310,11 @@ fn sized_int_to_sized_int_truncating() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -286,6 +323,11 @@ fn sized_int_to_sized_int_truncating() {
                     ty: int[16]
                     kind: Cast [28-38]:
                         ty: int[16]
+                        ty_exprs:
+                            Expr [32-34]:
+                                ty: const uint
+                                const_value: Int(16)
+                                kind: Lit: Int(16)
                         expr: Expr [36-37]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -306,6 +348,11 @@ fn sized_int_to_sized_int_expanding() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -314,6 +361,11 @@ fn sized_int_to_sized_int_expanding() {
                     ty: int[64]
                     kind: Cast [28-38]:
                         ty: int[64]
+                        ty_exprs:
+                            Expr [32-34]:
+                                ty: const uint
+                                const_value: Int(64)
+                                kind: Lit: Int(64)
                         expr: Expr [36-37]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -338,6 +390,7 @@ fn int_to_uint() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [9-15]:
                     ty: const int
                     kind: Lit: Int(0)
@@ -346,6 +399,7 @@ fn int_to_uint() {
                     ty: uint
                     kind: Cast [24-31]:
                         ty: uint
+                        ty_exprs: <empty>
                         expr: Expr [29-30]:
                             ty: int
                             kind: SymbolId(8)
@@ -366,6 +420,7 @@ fn int_to_sized_uint() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [9-15]:
                     ty: const int
                     kind: Lit: Int(0)
@@ -374,6 +429,11 @@ fn int_to_sized_uint() {
                     ty: uint[32]
                     kind: Cast [24-35]:
                         ty: uint[32]
+                        ty_exprs:
+                            Expr [29-31]:
+                                ty: const uint
+                                const_value: Int(32)
+                                kind: Lit: Int(32)
                         expr: Expr [33-34]:
                             ty: int
                             kind: SymbolId(8)
@@ -394,6 +454,11 @@ fn sized_int_to_uint() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -402,6 +467,7 @@ fn sized_int_to_uint() {
                     ty: uint
                     kind: Cast [28-35]:
                         ty: uint
+                        ty_exprs: <empty>
                         expr: Expr [33-34]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -422,6 +488,11 @@ fn sized_int_to_sized_uint() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -430,6 +501,11 @@ fn sized_int_to_sized_uint() {
                     ty: uint[32]
                     kind: Cast [28-39]:
                         ty: uint[32]
+                        ty_exprs:
+                            Expr [33-35]:
+                                ty: const uint
+                                const_value: Int(32)
+                                kind: Lit: Int(32)
                         expr: Expr [37-38]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -450,6 +526,11 @@ fn sized_int_to_sized_uint_truncating() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -458,6 +539,11 @@ fn sized_int_to_sized_uint_truncating() {
                     ty: uint[16]
                     kind: Cast [28-39]:
                         ty: uint[16]
+                        ty_exprs:
+                            Expr [33-35]:
+                                ty: const uint
+                                const_value: Int(16)
+                                kind: Lit: Int(16)
                         expr: Expr [37-38]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -478,6 +564,11 @@ fn sized_int_to_sized_uint_expanding() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -486,6 +577,11 @@ fn sized_int_to_sized_uint_expanding() {
                     ty: uint[64]
                     kind: Cast [28-39]:
                         ty: uint[64]
+                        ty_exprs:
+                            Expr [33-35]:
+                                ty: const uint
+                                const_value: Int(64)
+                                kind: Lit: Int(64)
                         expr: Expr [37-38]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -510,6 +606,7 @@ fn int_to_float() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [9-15]:
                     ty: const int
                     kind: Lit: Int(0)
@@ -518,6 +615,7 @@ fn int_to_float() {
                     ty: float
                     kind: Cast [24-32]:
                         ty: float
+                        ty_exprs: <empty>
                         expr: Expr [30-31]:
                             ty: int
                             kind: SymbolId(8)
@@ -538,6 +636,7 @@ fn int_to_sized_float() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [9-15]:
                     ty: const int
                     kind: Lit: Int(0)
@@ -546,6 +645,11 @@ fn int_to_sized_float() {
                     ty: float[32]
                     kind: Cast [24-36]:
                         ty: float[32]
+                        ty_exprs:
+                            Expr [30-32]:
+                                ty: const uint
+                                const_value: Int(32)
+                                kind: Lit: Int(32)
                         expr: Expr [34-35]:
                             ty: int
                             kind: SymbolId(8)
@@ -566,6 +670,11 @@ fn sized_int_to_float() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -574,6 +683,7 @@ fn sized_int_to_float() {
                     ty: float
                     kind: Cast [28-36]:
                         ty: float
+                        ty_exprs: <empty>
                         expr: Expr [34-35]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -594,6 +704,11 @@ fn sized_int_to_sized_float() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -602,6 +717,11 @@ fn sized_int_to_sized_float() {
                     ty: float[32]
                     kind: Cast [28-40]:
                         ty: float[32]
+                        ty_exprs:
+                            Expr [34-36]:
+                                ty: const uint
+                                const_value: Int(32)
+                                kind: Lit: Int(32)
                         expr: Expr [38-39]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -622,6 +742,11 @@ fn sized_int_to_sized_float_truncating() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -630,6 +755,11 @@ fn sized_int_to_sized_float_truncating() {
                     ty: float[16]
                     kind: Cast [28-40]:
                         ty: float[16]
+                        ty_exprs:
+                            Expr [34-36]:
+                                ty: const uint
+                                const_value: Int(16)
+                                kind: Lit: Int(16)
                         expr: Expr [38-39]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -650,6 +780,11 @@ fn sized_int_to_sized_float_expanding() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -658,6 +793,11 @@ fn sized_int_to_sized_float_expanding() {
                     ty: float[64]
                     kind: Cast [28-40]:
                         ty: float[64]
+                        ty_exprs:
+                            Expr [34-36]:
+                                ty: const uint
+                                const_value: Int(64)
+                                kind: Lit: Int(64)
                         expr: Expr [38-39]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -688,6 +828,7 @@ fn int_to_angle_fails() {
                         kind: ClassicalDeclarationStmt [9-15]:
                             symbol_id: 8
                             ty_span: [9-12]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-15]:
                                 ty: const int
                                 kind: Lit: Int(0)
@@ -729,6 +870,7 @@ fn int_to_sized_angle_fails() {
                         kind: ClassicalDeclarationStmt [9-15]:
                             symbol_id: 8
                             ty_span: [9-12]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-15]:
                                 ty: const int
                                 kind: Lit: Int(0)
@@ -770,6 +912,11 @@ fn sized_int_to_angle_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs:
+                                Expr [13-15]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-19]:
                                 ty: const int[32]
                                 kind: Lit: Int(0)
@@ -811,6 +958,11 @@ fn sized_int_to_sized_angle_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs:
+                                Expr [13-15]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-19]:
                                 ty: const int[32]
                                 kind: Lit: Int(0)
@@ -852,6 +1004,11 @@ fn sized_int_to_sized_angle_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs:
+                                Expr [13-15]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-19]:
                                 ty: const int[32]
                                 kind: Lit: Int(0)
@@ -893,6 +1050,11 @@ fn sized_int_to_sized_angle_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs:
+                                Expr [13-15]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-19]:
                                 ty: const int[32]
                                 kind: Lit: Int(0)
@@ -932,6 +1094,7 @@ fn int_to_complex() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [9-15]:
                     ty: const int
                     kind: Lit: Int(0)
@@ -940,6 +1103,7 @@ fn int_to_complex() {
                     ty: complex[float]
                     kind: Cast [24-34]:
                         ty: complex[float]
+                        ty_exprs: <empty>
                         expr: Expr [32-33]:
                             ty: int
                             kind: SymbolId(8)
@@ -960,6 +1124,7 @@ fn int_to_sized_complex() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [9-15]:
                     ty: const int
                     kind: Lit: Int(0)
@@ -968,6 +1133,11 @@ fn int_to_sized_complex() {
                     ty: complex[float[32]]
                     kind: Cast [24-45]:
                         ty: complex[float[32]]
+                        ty_exprs:
+                            Expr [38-40]:
+                                ty: const uint
+                                const_value: Int(32)
+                                kind: Lit: Int(32)
                         expr: Expr [43-44]:
                             ty: int
                             kind: SymbolId(8)
@@ -988,6 +1158,11 @@ fn sized_int_to_complex() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -996,6 +1171,7 @@ fn sized_int_to_complex() {
                     ty: complex[float]
                     kind: Cast [28-38]:
                         ty: complex[float]
+                        ty_exprs: <empty>
                         expr: Expr [36-37]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -1016,6 +1192,11 @@ fn sized_int_to_sized_complex() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -1024,6 +1205,11 @@ fn sized_int_to_sized_complex() {
                     ty: complex[float[32]]
                     kind: Cast [28-49]:
                         ty: complex[float[32]]
+                        ty_exprs:
+                            Expr [42-44]:
+                                ty: const uint
+                                const_value: Int(32)
+                                kind: Lit: Int(32)
                         expr: Expr [47-48]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -1044,6 +1230,11 @@ fn sized_int_to_sized_complex_truncating() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -1052,6 +1243,11 @@ fn sized_int_to_sized_complex_truncating() {
                     ty: complex[float[16]]
                     kind: Cast [28-49]:
                         ty: complex[float[16]]
+                        ty_exprs:
+                            Expr [42-44]:
+                                ty: const uint
+                                const_value: Int(16)
+                                kind: Lit: Int(16)
                         expr: Expr [47-48]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -1072,6 +1268,11 @@ fn sized_int_to_sized_complex_expanding() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -1080,6 +1281,11 @@ fn sized_int_to_sized_complex_expanding() {
                     ty: complex[float[64]]
                     kind: Cast [28-49]:
                         ty: complex[float[64]]
+                        ty_exprs:
+                            Expr [42-44]:
+                                ty: const uint
+                                const_value: Int(64)
+                                kind: Lit: Int(64)
                         expr: Expr [47-48]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -1104,6 +1310,7 @@ fn int_to_bit() {
             ClassicalDeclarationStmt [9-15]:
                 symbol_id: 8
                 ty_span: [9-12]
+                ty_exprs: <empty>
                 init_expr: Expr [9-15]:
                     ty: const int
                     kind: Lit: Int(0)
@@ -1112,6 +1319,7 @@ fn int_to_bit() {
                     ty: bit
                     kind: Cast [24-30]:
                         ty: bit
+                        ty_exprs: <empty>
                         expr: Expr [28-29]:
                             ty: int
                             kind: SymbolId(8)
@@ -1138,6 +1346,7 @@ fn int_to_bitarray_fails() {
                         kind: ClassicalDeclarationStmt [9-15]:
                             symbol_id: 8
                             ty_span: [9-12]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-15]:
                                 ty: const int
                                 kind: Lit: Int(0)
@@ -1173,6 +1382,11 @@ fn sized_int_to_bit() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -1181,6 +1395,7 @@ fn sized_int_to_bit() {
                     ty: bit
                     kind: Cast [28-34]:
                         ty: bit
+                        ty_exprs: <empty>
                         expr: Expr [32-33]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -1201,6 +1416,11 @@ fn sized_int_to_bitarray() {
             ClassicalDeclarationStmt [9-19]:
                 symbol_id: 8
                 ty_span: [9-16]
+                ty_exprs:
+                    Expr [13-15]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-19]:
                     ty: const int[32]
                     kind: Lit: Int(0)
@@ -1209,6 +1429,11 @@ fn sized_int_to_bitarray() {
                     ty: bit[32]
                     kind: Cast [28-38]:
                         ty: bit[32]
+                        ty_exprs:
+                            Expr [32-34]:
+                                ty: const uint
+                                const_value: Int(32)
+                                kind: Lit: Int(32)
                         expr: Expr [36-37]:
                             ty: int[32]
                             kind: SymbolId(8)
@@ -1235,6 +1460,11 @@ fn sized_int_to_bitarray_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs:
+                                Expr [13-15]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-19]:
                                 ty: const int[32]
                                 kind: Lit: Int(0)
@@ -1276,6 +1506,11 @@ fn sized_int_to_bitarray_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-19]:
                             symbol_id: 8
                             ty_span: [9-16]
+                            ty_exprs:
+                                Expr [13-15]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-19]:
                                 ty: const int[32]
                                 kind: Lit: Int(0)

@@ -65,6 +65,7 @@ fn box_cannot_have_a_negative_duration() {
                         kind: ClassicalDeclarationStmt [13-43]:
                             symbol_id: 8
                             ty_span: [19-27]
+                            ty_exprs: <empty>
                             init_expr: Expr [32-42]:
                                 ty: const duration
                                 const_value: Duration(-5.0 ns)
@@ -120,6 +121,7 @@ fn box_can_contain_delay() {
             ClassicalDeclarationStmt [70-95]:
                 symbol_id: 41
                 ty_span: [76-84]
+                ty_exprs: <empty>
                 init_expr: Expr [89-94]:
                     ty: const duration
                     const_value: Duration(300.0 ns)
@@ -127,6 +129,7 @@ fn box_can_contain_delay() {
             ClassicalDeclarationStmt [108-126]:
                 symbol_id: 42
                 ty_span: [108-115]
+                ty_exprs: <empty>
                 init_expr: Expr [120-125]:
                     ty: stretch
                     const_value: Duration(600.0 ns)
@@ -246,6 +249,7 @@ fn box_can_contain_gphase() {
                                     ty: angle
                                     kind: Cast [40-42]:
                                         ty: angle
+                                        ty_exprs: <empty>
                                         expr: Expr [40-42]:
                                             ty: const float
                                             kind: SymbolId(2)

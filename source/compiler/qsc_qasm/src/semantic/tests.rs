@@ -127,6 +127,30 @@ fn check_map<S: Into<Arc<str>>>(
     }
 }
 
+pub(super) fn check_err<S: Into<Arc<str>>>(input: S, expect: &Expect) {
+    let input = input.into();
+    let mut resolver = InMemorySourceResolver::from_iter([("test".into(), input.clone())]);
+    let res = parse_source(input, "test", &mut resolver);
+
+    let errors = res.all_errors();
+
+    assert!(
+        !res.has_syntax_errors(),
+        "syntax errors: {:?}",
+        res.sytax_errors()
+    );
+
+    assert!(res.has_errors(), "no errors");
+
+    expect.assert_eq(&format!(
+        "{:?}",
+        errors
+            .iter()
+            .map(|e| Report::new(e.clone()))
+            .collect::<Vec<_>>()
+    ));
+}
+
 pub(super) fn check_all<P: Into<Arc<str>>>(
     path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
@@ -204,6 +228,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                         kind: ClassicalDeclarationStmt [196-206]:
                             symbol_id: 40
                             ty_span: [196-199]
+                            ty_exprs: <empty>
                             init_expr: Expr [204-205]:
                                 ty: const bit
                                 kind: Lit: Bit(1)
@@ -212,6 +237,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                         kind: ClassicalDeclarationStmt [211-227]:
                             symbol_id: 40
                             ty_span: [211-215]
+                            ty_exprs: <empty>
                             init_expr: Expr [220-226]:
                                 ty: bool
                                 kind: BinaryOpExpr:
@@ -223,6 +249,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                                         ty: bool
                                         kind: Cast [225-226]:
                                             ty: bool
+                                            ty_exprs: <empty>
                                             expr: Expr [225-226]:
                                                 ty: bit
                                                 kind: SymbolId(40)
@@ -232,6 +259,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                         kind: ClassicalDeclarationStmt [140-154]:
                             symbol_id: 42
                             ty_span: [140-145]
+                            ty_exprs: <empty>
                             init_expr: Expr [150-153]:
                                 ty: const angle
                                 kind: Lit: Angle(0.7168146928204138)
@@ -240,6 +268,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                         kind: ClassicalDeclarationStmt [159-179]:
                             symbol_id: 43
                             ty_span: [159-164]
+                            ty_exprs: <empty>
                             init_expr: Expr [169-178]:
                                 ty: float
                                 kind: BinaryOpExpr:
@@ -251,6 +280,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                                         ty: float
                                         kind: Cast [173-178]:
                                             ty: float
+                                            ty_exprs: <empty>
                                             expr: Expr [173-178]:
                                                 ty: const bool
                                                 kind: Lit: Bool(false)
@@ -260,6 +290,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                         kind: ClassicalDeclarationStmt [74-84]:
                             symbol_id: 45
                             ty_span: [74-77]
+                            ty_exprs: <empty>
                             init_expr: Expr [82-83]:
                                 ty: unknown
                                 kind: SymbolId(44)

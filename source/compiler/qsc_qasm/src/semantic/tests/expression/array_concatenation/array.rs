@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::semantic::tests::check_stmt_kinds as check;
+use crate::semantic::tests::{check_err, check_stmt_kinds as check};
 use expect_test::expect;
 
 #[test]
@@ -12,62 +12,9 @@ fn array_concatenation_in_alias_fails() {
     let c = a ++ b;
     ";
 
-    check(
+    check_err(
         source,
         &expect![[r#"
-            Program:
-                version: <none>
-                pragmas: <empty>
-                statements:
-                    Stmt [5-21]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [5-21]:
-                            symbol_id: 8
-                            ty_span: [5-18]
-                            init_expr: Expr [5-21]:
-                                ty: array[int, 3]
-                                kind: Lit:     array:
-                                        Expr [5-21]:
-                                            ty: const int
-                                            kind: Lit: Int(0)
-                                        Expr [5-21]:
-                                            ty: const int
-                                            kind: Lit: Int(0)
-                                        Expr [5-21]:
-                                            ty: const int
-                                            kind: Lit: Int(0)
-                    Stmt [26-42]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [26-42]:
-                            symbol_id: 9
-                            ty_span: [26-39]
-                            init_expr: Expr [26-42]:
-                                ty: array[int, 4]
-                                kind: Lit:     array:
-                                        Expr [26-42]:
-                                            ty: const int
-                                            kind: Lit: Int(0)
-                                        Expr [26-42]:
-                                            ty: const int
-                                            kind: Lit: Int(0)
-                                        Expr [26-42]:
-                                            ty: const int
-                                            kind: Lit: Int(0)
-                                        Expr [26-42]:
-                                            ty: const int
-                                            kind: Lit: Int(0)
-                    Stmt [47-62]:
-                        annotations: <empty>
-                        kind: AliasDeclStmt [47-62]:
-                            symbol_id: 10
-                            exprs:
-                                Expr [55-56]:
-                                    ty: array[int, 3]
-                                    kind: SymbolId(8)
-                                Expr [60-61]:
-                                    ty: array[int, 4]
-                                    kind: SymbolId(9)
-
             [Qasm.Lowerer.InvalidTypeInAlias
 
               x invalid type in alias expression: array[int, 3]
@@ -103,53 +50,68 @@ fn array_concatenation_has_the_right_type() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [5-21]:
-            symbol_id: 8
-            ty_span: [5-18]
-            init_expr: Expr [5-21]:
-                ty: array[int, 3]
-                kind: Lit:     array:
-                        Expr [5-21]:
-                            ty: const int
-                            kind: Lit: Int(0)
-                        Expr [5-21]:
-                            ty: const int
-                            kind: Lit: Int(0)
-                        Expr [5-21]:
-                            ty: const int
-                            kind: Lit: Int(0)
-        ClassicalDeclarationStmt [26-42]:
-            symbol_id: 9
-            ty_span: [26-39]
-            init_expr: Expr [26-42]:
-                ty: array[int, 4]
-                kind: Lit:     array:
-                        Expr [26-42]:
-                            ty: const int
-                            kind: Lit: Int(0)
-                        Expr [26-42]:
-                            ty: const int
-                            kind: Lit: Int(0)
-                        Expr [26-42]:
-                            ty: const int
-                            kind: Lit: Int(0)
-                        Expr [26-42]:
-                            ty: const int
-                            kind: Lit: Int(0)
-        ClassicalDeclarationStmt [47-72]:
-            symbol_id: 10
-            ty_span: [47-60]
-            init_expr: Expr [65-71]:
-                ty: array[int, 7]
-                kind: ConcatExpr [65-71]:
-                    operands:
-                        Expr [65-66]:
-                            ty: array[int, 3]
-                            kind: SymbolId(8)
-                        Expr [70-71]:
-                            ty: array[int, 4]
-                            kind: SymbolId(9)
-    "#]],
+            ClassicalDeclarationStmt [5-21]:
+                symbol_id: 8
+                ty_span: [5-18]
+                ty_exprs:
+                    Expr [16-17]:
+                        ty: const uint
+                        const_value: Int(3)
+                        kind: Lit: Int(3)
+                init_expr: Expr [5-21]:
+                    ty: array[int, 3]
+                    kind: Lit:     array:
+                            Expr [5-21]:
+                                ty: const int
+                                kind: Lit: Int(0)
+                            Expr [5-21]:
+                                ty: const int
+                                kind: Lit: Int(0)
+                            Expr [5-21]:
+                                ty: const int
+                                kind: Lit: Int(0)
+            ClassicalDeclarationStmt [26-42]:
+                symbol_id: 9
+                ty_span: [26-39]
+                ty_exprs:
+                    Expr [37-38]:
+                        ty: const uint
+                        const_value: Int(4)
+                        kind: Lit: Int(4)
+                init_expr: Expr [26-42]:
+                    ty: array[int, 4]
+                    kind: Lit:     array:
+                            Expr [26-42]:
+                                ty: const int
+                                kind: Lit: Int(0)
+                            Expr [26-42]:
+                                ty: const int
+                                kind: Lit: Int(0)
+                            Expr [26-42]:
+                                ty: const int
+                                kind: Lit: Int(0)
+                            Expr [26-42]:
+                                ty: const int
+                                kind: Lit: Int(0)
+            ClassicalDeclarationStmt [47-72]:
+                symbol_id: 10
+                ty_span: [47-60]
+                ty_exprs:
+                    Expr [58-59]:
+                        ty: const uint
+                        const_value: Int(7)
+                        kind: Lit: Int(7)
+                init_expr: Expr [65-71]:
+                    ty: array[int, 7]
+                    kind: ConcatExpr [65-71]:
+                        operands:
+                            Expr [65-66]:
+                                ty: array[int, 3]
+                                kind: SymbolId(8)
+                            Expr [70-71]:
+                                ty: array[int, 4]
+                                kind: SymbolId(9)
+        "#]],
     );
 }
 
@@ -166,6 +128,15 @@ fn array_can_be_concatenated_with_itself() {
             ClassicalDeclarationStmt [5-24]:
                 symbol_id: 8
                 ty_span: [5-21]
+                ty_exprs:
+                    Expr [15-16]:
+                        ty: const uint
+                        const_value: Int(8)
+                        kind: Lit: Int(8)
+                    Expr [19-20]:
+                        ty: const uint
+                        const_value: Int(3)
+                        kind: Lit: Int(3)
                 init_expr: Expr [5-24]:
                     ty: array[int[8], 3]
                     kind: Lit:     array:
@@ -181,6 +152,15 @@ fn array_can_be_concatenated_with_itself() {
             ClassicalDeclarationStmt [29-57]:
                 symbol_id: 9
                 ty_span: [29-45]
+                ty_exprs:
+                    Expr [39-40]:
+                        ty: const uint
+                        const_value: Int(8)
+                        kind: Lit: Int(8)
+                    Expr [43-44]:
+                        ty: const uint
+                        const_value: Int(6)
+                        kind: Lit: Int(6)
                 init_expr: Expr [50-56]:
                     ty: array[int[8], 6]
                     kind: ConcatExpr [50-56]:
@@ -203,66 +183,9 @@ fn array_concatenation_with_different_widths_errors() {
     array[int[8], 7] c = a ++ b;
     ";
 
-    check(
+    check_err(
         source,
         &expect![[r#"
-            Program:
-                version: <none>
-                pragmas: <empty>
-                statements:
-                    Stmt [5-24]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [5-24]:
-                            symbol_id: 8
-                            ty_span: [5-21]
-                            init_expr: Expr [5-24]:
-                                ty: array[int[8], 3]
-                                kind: Lit:     array:
-                                        Expr [5-24]:
-                                            ty: const int[8]
-                                            kind: Lit: Int(0)
-                                        Expr [5-24]:
-                                            ty: const int[8]
-                                            kind: Lit: Int(0)
-                                        Expr [5-24]:
-                                            ty: const int[8]
-                                            kind: Lit: Int(0)
-                    Stmt [29-49]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [29-49]:
-                            symbol_id: 9
-                            ty_span: [29-46]
-                            init_expr: Expr [29-49]:
-                                ty: array[int[16], 4]
-                                kind: Lit:     array:
-                                        Expr [29-49]:
-                                            ty: const int[16]
-                                            kind: Lit: Int(0)
-                                        Expr [29-49]:
-                                            ty: const int[16]
-                                            kind: Lit: Int(0)
-                                        Expr [29-49]:
-                                            ty: const int[16]
-                                            kind: Lit: Int(0)
-                                        Expr [29-49]:
-                                            ty: const int[16]
-                                            kind: Lit: Int(0)
-                    Stmt [54-82]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [54-82]:
-                            symbol_id: 10
-                            ty_span: [54-70]
-                            init_expr: Expr [75-81]:
-                                ty: unknown
-                                kind: ConcatExpr [75-81]:
-                                    operands:
-                                        Expr [75-76]:
-                                            ty: array[int[8], 3]
-                                            kind: SymbolId(8)
-                                        Expr [80-81]:
-                                            ty: array[int[16], 4]
-                                            kind: SymbolId(9)
-
             [Qasm.Lowerer.InconsistentTypesInArrayConcatenation
 
               x inconsistent types in array concatenation expression: array[int[8], 3],
@@ -285,66 +208,9 @@ fn array_concatenation_with_different_types_errors() {
     array[int[8], 7] c = a ++ b;
     ";
 
-    check(
+    check_err(
         source,
         &expect![[r#"
-            Program:
-                version: <none>
-                pragmas: <empty>
-                statements:
-                    Stmt [5-24]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [5-24]:
-                            symbol_id: 8
-                            ty_span: [5-21]
-                            init_expr: Expr [5-24]:
-                                ty: array[int[8], 3]
-                                kind: Lit:     array:
-                                        Expr [5-24]:
-                                            ty: const int[8]
-                                            kind: Lit: Int(0)
-                                        Expr [5-24]:
-                                            ty: const int[8]
-                                            kind: Lit: Int(0)
-                                        Expr [5-24]:
-                                            ty: const int[8]
-                                            kind: Lit: Int(0)
-                    Stmt [29-49]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [29-49]:
-                            symbol_id: 9
-                            ty_span: [29-46]
-                            init_expr: Expr [29-49]:
-                                ty: array[uint[8], 4]
-                                kind: Lit:     array:
-                                        Expr [29-49]:
-                                            ty: const uint[8]
-                                            kind: Lit: Int(0)
-                                        Expr [29-49]:
-                                            ty: const uint[8]
-                                            kind: Lit: Int(0)
-                                        Expr [29-49]:
-                                            ty: const uint[8]
-                                            kind: Lit: Int(0)
-                                        Expr [29-49]:
-                                            ty: const uint[8]
-                                            kind: Lit: Int(0)
-                    Stmt [54-82]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [54-82]:
-                            symbol_id: 10
-                            ty_span: [54-70]
-                            init_expr: Expr [75-81]:
-                                ty: unknown
-                                kind: ConcatExpr [75-81]:
-                                    operands:
-                                        Expr [75-76]:
-                                            ty: array[int[8], 3]
-                                            kind: SymbolId(8)
-                                        Expr [80-81]:
-                                            ty: array[uint[8], 4]
-                                            kind: SymbolId(9)
-
             [Qasm.Lowerer.InconsistentTypesInArrayConcatenation
 
               x inconsistent types in array concatenation expression: array[int[8], 3],
@@ -374,6 +240,15 @@ fn multidimensional_array_concatenation_has_the_right_type() {
             ClassicalDeclarationStmt [5-24]:
                 symbol_id: 8
                 ty_span: [5-21]
+                ty_exprs:
+                    Expr [16-17]:
+                        ty: const uint
+                        const_value: Int(4)
+                        kind: Lit: Int(4)
+                    Expr [19-20]:
+                        ty: const uint
+                        const_value: Int(2)
+                        kind: Lit: Int(2)
                 init_expr: Expr [5-24]:
                     ty: array[int, 4, 2]
                     kind: Lit:     array:
@@ -416,6 +291,15 @@ fn multidimensional_array_concatenation_has_the_right_type() {
             ClassicalDeclarationStmt [29-48]:
                 symbol_id: 9
                 ty_span: [29-45]
+                ty_exprs:
+                    Expr [40-41]:
+                        ty: const uint
+                        const_value: Int(5)
+                        kind: Lit: Int(5)
+                    Expr [43-44]:
+                        ty: const uint
+                        const_value: Int(2)
+                        kind: Lit: Int(2)
                 init_expr: Expr [29-48]:
                     ty: array[int, 5, 2]
                     kind: Lit:     array:
@@ -467,6 +351,15 @@ fn multidimensional_array_concatenation_has_the_right_type() {
             ClassicalDeclarationStmt [53-81]:
                 symbol_id: 10
                 ty_span: [53-69]
+                ty_exprs:
+                    Expr [64-65]:
+                        ty: const uint
+                        const_value: Int(9)
+                        kind: Lit: Int(9)
+                    Expr [67-68]:
+                        ty: const uint
+                        const_value: Int(2)
+                        kind: Lit: Int(2)
                 init_expr: Expr [74-80]:
                     ty: array[int, 9, 2]
                     kind: ConcatExpr [74-80]:
@@ -494,6 +387,19 @@ fn multidimensional_array_can_be_concatenated_with_itself() {
             ClassicalDeclarationStmt [5-27]:
                 symbol_id: 8
                 ty_span: [5-24]
+                ty_exprs:
+                    Expr [15-16]:
+                        ty: const uint
+                        const_value: Int(8)
+                        kind: Lit: Int(8)
+                    Expr [19-20]:
+                        ty: const uint
+                        const_value: Int(4)
+                        kind: Lit: Int(4)
+                    Expr [22-23]:
+                        ty: const uint
+                        const_value: Int(2)
+                        kind: Lit: Int(2)
                 init_expr: Expr [5-27]:
                     ty: array[int[8], 4, 2]
                     kind: Lit:     array:
@@ -536,6 +442,19 @@ fn multidimensional_array_can_be_concatenated_with_itself() {
             ClassicalDeclarationStmt [32-63]:
                 symbol_id: 9
                 ty_span: [32-51]
+                ty_exprs:
+                    Expr [42-43]:
+                        ty: const uint
+                        const_value: Int(8)
+                        kind: Lit: Int(8)
+                    Expr [46-47]:
+                        ty: const uint
+                        const_value: Int(8)
+                        kind: Lit: Int(8)
+                    Expr [49-50]:
+                        ty: const uint
+                        const_value: Int(2)
+                        kind: Lit: Int(2)
                 init_expr: Expr [56-62]:
                     ty: array[int[8], 8, 2]
                     kind: ConcatExpr [56-62]:
@@ -571,6 +490,19 @@ fn multidimensional_array_concatenation_with_different_widths_errors() {
                         kind: ClassicalDeclarationStmt [5-27]:
                             symbol_id: 8
                             ty_span: [5-24]
+                            ty_exprs:
+                                Expr [15-16]:
+                                    ty: const uint
+                                    const_value: Int(8)
+                                    kind: Lit: Int(8)
+                                Expr [19-20]:
+                                    ty: const uint
+                                    const_value: Int(4)
+                                    kind: Lit: Int(4)
+                                Expr [22-23]:
+                                    ty: const uint
+                                    const_value: Int(2)
+                                    kind: Lit: Int(2)
                             init_expr: Expr [5-27]:
                                 ty: array[int[8], 4, 2]
                                 kind: Lit:     array:
@@ -615,6 +547,19 @@ fn multidimensional_array_concatenation_with_different_widths_errors() {
                         kind: ClassicalDeclarationStmt [32-55]:
                             symbol_id: 9
                             ty_span: [32-52]
+                            ty_exprs:
+                                Expr [42-44]:
+                                    ty: const uint
+                                    const_value: Int(16)
+                                    kind: Lit: Int(16)
+                                Expr [47-48]:
+                                    ty: const uint
+                                    const_value: Int(5)
+                                    kind: Lit: Int(5)
+                                Expr [50-51]:
+                                    ty: const uint
+                                    const_value: Int(2)
+                                    kind: Lit: Int(2)
                             init_expr: Expr [32-55]:
                                 ty: array[int[16], 5, 2]
                                 kind: Lit:     array:
@@ -668,6 +613,19 @@ fn multidimensional_array_concatenation_with_different_widths_errors() {
                         kind: ClassicalDeclarationStmt [60-91]:
                             symbol_id: 10
                             ty_span: [60-79]
+                            ty_exprs:
+                                Expr [70-71]:
+                                    ty: const uint
+                                    const_value: Int(8)
+                                    kind: Lit: Int(8)
+                                Expr [74-75]:
+                                    ty: const uint
+                                    const_value: Int(9)
+                                    kind: Lit: Int(9)
+                                Expr [77-78]:
+                                    ty: const uint
+                                    const_value: Int(2)
+                                    kind: Lit: Int(2)
                             init_expr: Expr [84-90]:
                                 ty: unknown
                                 kind: ConcatExpr [84-90]:
@@ -714,6 +672,19 @@ fn multidimensional_array_concatenation_with_different_types_errors() {
                         kind: ClassicalDeclarationStmt [5-27]:
                             symbol_id: 8
                             ty_span: [5-24]
+                            ty_exprs:
+                                Expr [15-16]:
+                                    ty: const uint
+                                    const_value: Int(8)
+                                    kind: Lit: Int(8)
+                                Expr [19-20]:
+                                    ty: const uint
+                                    const_value: Int(4)
+                                    kind: Lit: Int(4)
+                                Expr [22-23]:
+                                    ty: const uint
+                                    const_value: Int(2)
+                                    kind: Lit: Int(2)
                             init_expr: Expr [5-27]:
                                 ty: array[int[8], 4, 2]
                                 kind: Lit:     array:
@@ -758,6 +729,19 @@ fn multidimensional_array_concatenation_with_different_types_errors() {
                         kind: ClassicalDeclarationStmt [32-55]:
                             symbol_id: 9
                             ty_span: [32-52]
+                            ty_exprs:
+                                Expr [43-44]:
+                                    ty: const uint
+                                    const_value: Int(8)
+                                    kind: Lit: Int(8)
+                                Expr [47-48]:
+                                    ty: const uint
+                                    const_value: Int(5)
+                                    kind: Lit: Int(5)
+                                Expr [50-51]:
+                                    ty: const uint
+                                    const_value: Int(2)
+                                    kind: Lit: Int(2)
                             init_expr: Expr [32-55]:
                                 ty: array[uint[8], 5, 2]
                                 kind: Lit:     array:
@@ -811,6 +795,19 @@ fn multidimensional_array_concatenation_with_different_types_errors() {
                         kind: ClassicalDeclarationStmt [60-91]:
                             symbol_id: 10
                             ty_span: [60-79]
+                            ty_exprs:
+                                Expr [70-71]:
+                                    ty: const uint
+                                    const_value: Int(8)
+                                    kind: Lit: Int(8)
+                                Expr [74-75]:
+                                    ty: const uint
+                                    const_value: Int(9)
+                                    kind: Lit: Int(9)
+                                Expr [77-78]:
+                                    ty: const uint
+                                    const_value: Int(2)
+                                    kind: Lit: Int(2)
                             init_expr: Expr [84-90]:
                                 ty: unknown
                                 kind: ConcatExpr [84-90]:

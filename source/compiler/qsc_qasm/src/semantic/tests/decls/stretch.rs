@@ -13,6 +13,7 @@ fn with_no_init_expr_has_generated_lit_expr() {
             ClassicalDeclarationStmt [0-10]:
                 symbol_id: 8
                 ty_span: [0-7]
+                ty_exprs: <empty>
                 init_expr: Expr [0-10]:
                     ty: stretch
                     const_value: Duration(0.0 s)
@@ -43,6 +44,7 @@ fn spec_sample() {
             ClassicalDeclarationStmt [49-73]:
                 symbol_id: 40
                 ty_span: [55-63]
+                ty_exprs: <empty>
                 init_expr: Expr [68-72]:
                     ty: const duration
                     const_value: Duration(10.0 ns)
@@ -55,6 +57,7 @@ fn spec_sample() {
             ClassicalDeclarationStmt [86-133]:
                 symbol_id: 41
                 ty_span: [92-100]
+                ty_exprs: <empty>
                 init_expr: Expr [105-132]:
                     ty: const duration
                     const_value: Duration(100.0 ns)
@@ -86,6 +89,7 @@ fn spec_sample() {
             ClassicalDeclarationStmt [146-156]:
                 symbol_id: 42
                 ty_span: [146-153]
+                ty_exprs: <empty>
                 init_expr: Expr [146-156]:
                     ty: stretch
                     const_value: Duration(0.0 s)
@@ -98,6 +102,7 @@ fn spec_sample() {
             ClassicalDeclarationStmt [217-239]:
                 symbol_id: 43
                 ty_span: [217-224]
+                ty_exprs: <empty>
                 init_expr: Expr [229-238]:
                     ty: stretch
                     const_value: Duration(10.0 ns)
@@ -125,6 +130,7 @@ fn spec_sample() {
             ClassicalDeclarationStmt [319-344]:
                 symbol_id: 44
                 ty_span: [319-326]
+                ty_exprs: <empty>
                 init_expr: Expr [331-343]:
                     ty: stretch
                     const_value: Duration(-50.0 ns)
@@ -173,6 +179,7 @@ fn spec_sample_2() {
             ClassicalDeclarationStmt [49-59]:
                 symbol_id: 40
                 ty_span: [49-56]
+                ty_exprs: <empty>
                 init_expr: Expr [49-59]:
                     ty: stretch
                     const_value: Duration(0.0 s)
@@ -185,6 +192,7 @@ fn spec_sample_2() {
             ClassicalDeclarationStmt [72-82]:
                 symbol_id: 41
                 ty_span: [72-79]
+                ty_exprs: <empty>
                 init_expr: Expr [72-82]:
                     ty: stretch
                     const_value: Duration(0.0 s)
@@ -197,6 +205,7 @@ fn spec_sample_2() {
             ClassicalDeclarationStmt [95-156]:
                 symbol_id: 42
                 ty_span: [95-103]
+                ty_exprs: <empty>
                 init_expr: Expr [120-155]:
                     ty: const duration
                     const_value: Duration(-5.0 ns)
@@ -243,6 +252,7 @@ fn spec_sample_2() {
             ClassicalDeclarationStmt [169-266]:
                 symbol_id: 43
                 ty_span: [169-177]
+                ty_exprs: <empty>
                 init_expr: Expr [195-265]:
                     ty: const duration
                     const_value: Duration(-55.0 ns)
@@ -324,6 +334,7 @@ fn spec_sample_2() {
             ClassicalDeclarationStmt [279-340]:
                 symbol_id: 44
                 ty_span: [279-287]
+                ty_exprs: <empty>
                 init_expr: Expr [302-339]:
                     ty: const duration
                     const_value: Duration(-500.0 ns)

@@ -13,6 +13,7 @@ fn with_no_init_expr_has_generated_lit_expr() {
             ClassicalDeclarationStmt [0-6]:
                 symbol_id: 8
                 ty_span: [0-3]
+                ty_exprs: <empty>
                 init_expr: Expr [0-6]:
                     ty: const bit
                     kind: Lit: Bit(0)
@@ -32,6 +33,11 @@ fn array_with_no_init_expr_has_generated_lit_expr() {
             ClassicalDeclarationStmt [0-9]:
                 symbol_id: 8
                 ty_span: [0-6]
+                ty_exprs:
+                    Expr [4-5]:
+                        ty: const uint
+                        const_value: Int(4)
+                        kind: Lit: Int(4)
                 init_expr: Expr [0-9]:
                     ty: const bit[4]
                     kind: Lit: Bitstring("0000")
@@ -51,6 +57,7 @@ fn decl_with_lit_0_init_expr() {
             ClassicalDeclarationStmt [0-10]:
                 symbol_id: 8
                 ty_span: [0-3]
+                ty_exprs: <empty>
                 init_expr: Expr [8-9]:
                     ty: const bit
                     kind: Lit: Bit(0)
@@ -70,6 +77,7 @@ fn decl_with_lit_1_init_expr() {
             ClassicalDeclarationStmt [0-10]:
                 symbol_id: 8
                 ty_span: [0-3]
+                ty_exprs: <empty>
                 init_expr: Expr [8-9]:
                     ty: const bit
                     kind: Lit: Bit(1)
@@ -89,6 +97,7 @@ fn const_decl_with_lit_0_init_expr() {
             ClassicalDeclarationStmt [0-16]:
                 symbol_id: 8
                 ty_span: [6-9]
+                ty_exprs: <empty>
                 init_expr: Expr [14-15]:
                     ty: const bit
                     const_value: Bit(0)
@@ -109,6 +118,7 @@ fn const_decl_with_lit_1_init_expr() {
             ClassicalDeclarationStmt [0-16]:
                 symbol_id: 8
                 ty_span: [6-9]
+                ty_exprs: <empty>
                 init_expr: Expr [14-15]:
                     ty: const bit
                     const_value: Bit(1)

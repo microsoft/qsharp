@@ -30,6 +30,7 @@ fn angle_to_bool() {
             ClassicalDeclarationStmt [9-17]:
                 symbol_id: 8
                 ty_span: [9-14]
+                ty_exprs: <empty>
                 init_expr: Expr [9-17]:
                     ty: const angle
                     kind: Lit: Angle(0)
@@ -38,6 +39,7 @@ fn angle_to_bool() {
                     ty: bool
                     kind: Cast [26-33]:
                         ty: bool
+                        ty_exprs: <empty>
                         expr: Expr [31-32]:
                             ty: angle
                             kind: SymbolId(8)
@@ -58,6 +60,11 @@ fn sized_angle_to_bool() {
             ClassicalDeclarationStmt [9-21]:
                 symbol_id: 8
                 ty_span: [9-18]
+                ty_exprs:
+                    Expr [15-17]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-21]:
                     ty: const angle[32]
                     kind: Lit: Angle(0)
@@ -66,6 +73,7 @@ fn sized_angle_to_bool() {
                     ty: bool
                     kind: Cast [30-37]:
                         ty: bool
+                        ty_exprs: <empty>
                         expr: Expr [35-36]:
                             ty: angle[32]
                             kind: SymbolId(8)
@@ -96,6 +104,7 @@ fn angle_to_duration_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
@@ -137,6 +146,11 @@ fn sized_angle_to_duration_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -182,6 +196,7 @@ fn angle_to_int_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
@@ -223,6 +238,7 @@ fn angle_to_sized_int_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
@@ -264,6 +280,11 @@ fn sized_angle_to_int_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -305,6 +326,11 @@ fn sized_angle_to_sized_int_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -346,6 +372,11 @@ fn sized_angle_to_sized_int_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -387,6 +418,11 @@ fn sized_angle_to_sized_int_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -432,6 +468,7 @@ fn angle_to_uint_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
@@ -473,6 +510,7 @@ fn angle_to_sized_uint_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
@@ -514,6 +552,11 @@ fn sized_angle_to_uint_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -555,6 +598,11 @@ fn sized_angle_to_sized_uint_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -596,6 +644,11 @@ fn sized_angle_to_sized_uint_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -637,6 +690,11 @@ fn sized_angle_to_sized_uint_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -682,6 +740,7 @@ fn angle_to_float_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
@@ -723,6 +782,7 @@ fn angle_to_sized_float_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
@@ -764,6 +824,11 @@ fn sized_angle_to_float_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -805,6 +870,11 @@ fn sized_angle_to_sized_float_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -846,6 +916,11 @@ fn sized_angle_to_sized_float_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -887,6 +962,11 @@ fn sized_angle_to_sized_float_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -926,6 +1006,7 @@ fn angle_to_angle() {
             ClassicalDeclarationStmt [9-17]:
                 symbol_id: 8
                 ty_span: [9-14]
+                ty_exprs: <empty>
                 init_expr: Expr [9-17]:
                     ty: const angle
                     kind: Lit: Angle(0)
@@ -949,6 +1030,7 @@ fn angle_to_sized_angle() {
             ClassicalDeclarationStmt [9-17]:
                 symbol_id: 8
                 ty_span: [9-14]
+                ty_exprs: <empty>
                 init_expr: Expr [9-17]:
                     ty: const angle
                     kind: Lit: Angle(0)
@@ -957,6 +1039,11 @@ fn angle_to_sized_angle() {
                     ty: angle[32]
                     kind: Cast [26-38]:
                         ty: angle[32]
+                        ty_exprs:
+                            Expr [32-34]:
+                                ty: const uint
+                                const_value: Int(32)
+                                kind: Lit: Int(32)
                         expr: Expr [36-37]:
                             ty: angle
                             kind: SymbolId(8)
@@ -977,6 +1064,11 @@ fn sized_angle_to_angle() {
             ClassicalDeclarationStmt [9-21]:
                 symbol_id: 8
                 ty_span: [9-18]
+                ty_exprs:
+                    Expr [15-17]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-21]:
                     ty: const angle[32]
                     kind: Lit: Angle(0)
@@ -985,6 +1077,7 @@ fn sized_angle_to_angle() {
                     ty: angle
                     kind: Cast [30-38]:
                         ty: angle
+                        ty_exprs: <empty>
                         expr: Expr [36-37]:
                             ty: angle[32]
                             kind: SymbolId(8)
@@ -1005,6 +1098,11 @@ fn sized_angle_to_sized_angle() {
             ClassicalDeclarationStmt [9-21]:
                 symbol_id: 8
                 ty_span: [9-18]
+                ty_exprs:
+                    Expr [15-17]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-21]:
                     ty: const angle[32]
                     kind: Lit: Angle(0)
@@ -1028,6 +1126,11 @@ fn sized_angle_to_sized_angle_truncating() {
             ClassicalDeclarationStmt [9-21]:
                 symbol_id: 8
                 ty_span: [9-18]
+                ty_exprs:
+                    Expr [15-17]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-21]:
                     ty: const angle[32]
                     kind: Lit: Angle(0)
@@ -1036,6 +1139,11 @@ fn sized_angle_to_sized_angle_truncating() {
                     ty: angle[16]
                     kind: Cast [30-42]:
                         ty: angle[16]
+                        ty_exprs:
+                            Expr [36-38]:
+                                ty: const uint
+                                const_value: Int(16)
+                                kind: Lit: Int(16)
                         expr: Expr [40-41]:
                             ty: angle[32]
                             kind: SymbolId(8)
@@ -1056,6 +1164,11 @@ fn sized_angle_to_sized_angle_expanding() {
             ClassicalDeclarationStmt [9-21]:
                 symbol_id: 8
                 ty_span: [9-18]
+                ty_exprs:
+                    Expr [15-17]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-21]:
                     ty: const angle[32]
                     kind: Lit: Angle(0)
@@ -1064,6 +1177,11 @@ fn sized_angle_to_sized_angle_expanding() {
                     ty: angle[64]
                     kind: Cast [30-42]:
                         ty: angle[64]
+                        ty_exprs:
+                            Expr [36-38]:
+                                ty: const uint
+                                const_value: Int(64)
+                                kind: Lit: Int(64)
                         expr: Expr [40-41]:
                             ty: angle[32]
                             kind: SymbolId(8)
@@ -1094,6 +1212,7 @@ fn angle_to_complex_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
@@ -1135,6 +1254,7 @@ fn angle_to_sized_complex_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
@@ -1176,6 +1296,11 @@ fn sized_angle_to_complex_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -1217,6 +1342,11 @@ fn sized_angle_to_sized_complex_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -1258,6 +1388,11 @@ fn sized_angle_to_sized_complex_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -1299,6 +1434,11 @@ fn sized_angle_to_sized_complex_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -1338,6 +1478,7 @@ fn angle_to_bit() {
             ClassicalDeclarationStmt [9-17]:
                 symbol_id: 8
                 ty_span: [9-14]
+                ty_exprs: <empty>
                 init_expr: Expr [9-17]:
                     ty: const angle
                     kind: Lit: Angle(0)
@@ -1346,6 +1487,7 @@ fn angle_to_bit() {
                     ty: bit
                     kind: Cast [26-32]:
                         ty: bit
+                        ty_exprs: <empty>
                         expr: Expr [30-31]:
                             ty: angle
                             kind: SymbolId(8)
@@ -1372,6 +1514,7 @@ fn angle_to_bitarray_fails() {
                         kind: ClassicalDeclarationStmt [9-17]:
                             symbol_id: 8
                             ty_span: [9-14]
+                            ty_exprs: <empty>
                             init_expr: Expr [9-17]:
                                 ty: const angle
                                 kind: Lit: Angle(0)
@@ -1407,6 +1550,11 @@ fn sized_angle_to_bit() {
             ClassicalDeclarationStmt [9-21]:
                 symbol_id: 8
                 ty_span: [9-18]
+                ty_exprs:
+                    Expr [15-17]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-21]:
                     ty: const angle[32]
                     kind: Lit: Angle(0)
@@ -1415,6 +1563,7 @@ fn sized_angle_to_bit() {
                     ty: bit
                     kind: Cast [30-36]:
                         ty: bit
+                        ty_exprs: <empty>
                         expr: Expr [34-35]:
                             ty: angle[32]
                             kind: SymbolId(8)
@@ -1435,6 +1584,11 @@ fn sized_angle_to_bitarray() {
             ClassicalDeclarationStmt [9-21]:
                 symbol_id: 8
                 ty_span: [9-18]
+                ty_exprs:
+                    Expr [15-17]:
+                        ty: const uint
+                        const_value: Int(32)
+                        kind: Lit: Int(32)
                 init_expr: Expr [9-21]:
                     ty: const angle[32]
                     kind: Lit: Angle(0)
@@ -1443,6 +1597,11 @@ fn sized_angle_to_bitarray() {
                     ty: bit[32]
                     kind: Cast [30-40]:
                         ty: bit[32]
+                        ty_exprs:
+                            Expr [34-36]:
+                                ty: const uint
+                                const_value: Int(32)
+                                kind: Lit: Int(32)
                         expr: Expr [38-39]:
                             ty: angle[32]
                             kind: SymbolId(8)
@@ -1469,6 +1628,11 @@ fn sized_angle_to_bitarray_truncating_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)
@@ -1510,6 +1674,11 @@ fn sized_angle_to_bitarray_expanding_fails() {
                         kind: ClassicalDeclarationStmt [9-21]:
                             symbol_id: 8
                             ty_span: [9-18]
+                            ty_exprs:
+                                Expr [15-17]:
+                                    ty: const uint
+                                    const_value: Int(32)
+                                    kind: Lit: Int(32)
                             init_expr: Expr [9-21]:
                                 ty: const angle[32]
                                 kind: Lit: Angle(0)

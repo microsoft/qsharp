@@ -46,6 +46,7 @@ fn cannot_have_a_negative_duration() {
                         kind: ClassicalDeclarationStmt [17-44]:
                             symbol_id: 9
                             ty_span: [23-31]
+                            ty_exprs: <empty>
                             init_expr: Expr [36-43]:
                                 ty: const duration
                                 const_value: Duration(-3.0 s)
@@ -95,6 +96,7 @@ fn on_a_single_qubit_with_variables() {
             ClassicalDeclarationStmt [17-45]:
                 symbol_id: 9
                 ty_span: [23-31]
+                ty_exprs: <empty>
                 init_expr: Expr [41-44]:
                     ty: const duration
                     const_value: Duration(5.0 ns)
@@ -102,6 +104,7 @@ fn on_a_single_qubit_with_variables() {
             ClassicalDeclarationStmt [54-70]:
                 symbol_id: 10
                 ty_span: [60-63]
+                ty_exprs: <empty>
                 init_expr: Expr [68-69]:
                     ty: const int
                     const_value: Int(2)

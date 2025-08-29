@@ -13,6 +13,7 @@ fn with_no_init_expr_has_generated_lit_expr() {
             ClassicalDeclarationStmt [0-7]:
                 symbol_id: 8
                 ty_span: [0-7]
+                ty_exprs: <empty>
                 init_expr: Expr [0-7]:
                     ty: const bit
                     kind: Lit: Bit(0)
@@ -32,6 +33,11 @@ fn array_with_no_init_expr_has_generated_lit_expr() {
             ClassicalDeclarationStmt [0-10]:
                 symbol_id: 8
                 ty_span: [0-10]
+                ty_exprs:
+                    Expr [7-8]:
+                        ty: const uint
+                        const_value: Int(4)
+                        kind: Lit: Int(4)
                 init_expr: Expr [0-10]:
                     ty: const bit[4]
                     kind: Lit: Bitstring("0000")

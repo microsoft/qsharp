@@ -10,7 +10,9 @@ fn void_no_args() {
         "extern f();",
         &expect![[r#"
             ExternDecl [0-11]:
-                symbol_id: 8"#]],
+                symbol_id: 8
+                ty_exprs: <empty>
+                return_ty_exprs: <empty>"#]],
     );
 }
 
@@ -20,7 +22,9 @@ fn void_one_arg() {
         "extern f(int);",
         &expect![[r#"
             ExternDecl [0-14]:
-                symbol_id: 8"#]],
+                symbol_id: 8
+                ty_exprs: <empty>
+                return_ty_exprs: <empty>"#]],
     );
 }
 
@@ -30,7 +34,9 @@ fn void_multiple_args() {
         "extern f(uint, int, float, bit, bool);",
         &expect![[r#"
             ExternDecl [0-38]:
-                symbol_id: 8"#]],
+                symbol_id: 8
+                ty_exprs: <empty>
+                return_ty_exprs: <empty>"#]],
     );
 }
 
@@ -40,7 +46,9 @@ fn return_type() {
         "extern f() -> int;",
         &expect![[r#"
             ExternDecl [0-18]:
-                symbol_id: 8"#]],
+                symbol_id: 8
+                ty_exprs: <empty>
+                return_ty_exprs: <empty>"#]],
     );
 }
 
@@ -50,7 +58,9 @@ fn return_type_can_be_duration() {
         "extern f() -> duration;",
         &expect![[r#"
             ExternDecl [0-23]:
-                symbol_id: 8"#]],
+                symbol_id: 8
+                ty_exprs: <empty>
+                return_ty_exprs: <empty>"#]],
     );
 }
 
@@ -67,6 +77,8 @@ fn return_type_cannot_be_stretch() {
                         annotations: <empty>
                         kind: ExternDecl [0-22]:
                             symbol_id: 8
+                            ty_exprs: <empty>
+                            return_ty_exprs: <empty>
 
             [Qasm.Lowerer.ExternDeclarationCannotReturnStretch
 
@@ -95,6 +107,8 @@ fn not_allowed_in_non_global_scope() {
                                 annotations: <empty>
                                 kind: ExternDecl [2-13]:
                                     symbol_id: 8
+                                    ty_exprs: <empty>
+                                    return_ty_exprs: <empty>
 
             [Qasm.Lowerer.ExternDeclarationInNonGlobalScope
 
