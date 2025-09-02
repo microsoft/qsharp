@@ -10,12 +10,14 @@ import { updateCopilotInstructions } from "./instructions";
 import {
   qdkCircuitMimeType,
   qdkCircuitViewType,
+  qdkHistogramMimeType,
+  qdkResourceEstimatorMimeType,
   QSharpTools,
   richToolResult,
 } from "./qsharpTools";
-import { CopilotToolError } from "./types";
+import { CopilotToolError, HistogramData } from "./types";
 import { ToolState } from "./azureQuantumTools";
-import { _getWebviewContent } from "../webviewPanel";
+import { getWebviewContent } from "../webviewPanel";
 
 // state
 const workspaceState: ToolState = {};
@@ -24,7 +26,7 @@ let qsharpTools: QSharpTools | undefined;
 const toolDefinitions: {
   name: string;
   tool: (input: any) => Promise<any>;
-  confirm?: (input: any) => vscode.PreparedToolInvocation;
+  prepare?: (input: any) => vscode.PreparedToolInvocation;
 }[] = [
   // match these to the "languageModelTools" entries in package.json
   {
@@ -61,7 +63,7 @@ const toolDefinitions: {
     }) =>
       (await azqTools.submitToTarget(workspaceState, qsharpTools!, input))
         .result,
-    confirm: (input: {
+    prepare: (input: {
       jobName: string;
       targetId: string;
       shots: number;
@@ -94,14 +96,31 @@ const toolDefinitions: {
   {
     name: "qdk-run-program",
     tool: async (input) => await qsharpTools!.runProgram(input),
+    prepare: (input: { filePath: string; shots?: number }) => ({
+      invocationMessage: `Running program in ${input.filePath} for ${
+        input.shots ?? 1
+      } shot(s)`,
+    }),
   },
   {
     name: "qdk-generate-circuit",
     tool: async (input) => await qsharpTools!.generateCircuit(input),
+    prepare: (input: { filePath: string; entryPoint: string }) => ({
+      invocationMessage: `Generating circuit for ${input.entryPoint} in ${input.filePath}`,
+    }),
   },
   {
     name: "qdk-run-resource-estimator",
     tool: async (input) => await qsharpTools!.runResourceEstimator(input),
+    prepare: (input: {
+      filePath: string;
+      qubitTypes?: string[];
+      errorBudget?: number;
+    }) => ({
+      invocationMessage: `Running resource estimator on ${input.filePath} for qubit types: ${(
+        input.qubitTypes ?? ["qubit_gate_ns_e3"]
+      ).join(", ")}, error budget: ${input.errorBudget || 0.001}`,
+    }),
   },
   {
     name: "qdk-test",
@@ -155,43 +174,66 @@ const toolDefinitions: {
 
 export function registerLanguageModelTools(context: vscode.ExtensionContext) {
   vscode.chat.registerChatOutputRenderer(qdkCircuitViewType, {
-    async renderChatOutput({ value }, webview) {
-      const circuitJSON = new TextDecoder().decode(value);
-      const circuit = JSON.parse(circuitJSON) as CircuitData;
-      const content = _getWebviewContent(webview);
+    async renderChatOutput({ value, mime }, webview) {
+      const content = getWebviewContent(webview);
 
-      log.info(content);
       webview.html = content;
 
       webview.options = {
         enableScripts: true,
       };
+      if (mime === qdkCircuitMimeType) {
+        const circuitJSON = new TextDecoder().decode(value);
+        const circuit = JSON.parse(circuitJSON) as CircuitData;
 
-      const title = "hi title";
-      const target = `hi target`;
+        const props = {
+          title: "hi title",
+          targetProfile: `hi target`,
+          simulated: false,
+          calculating: false,
+          circuit,
+          errorHtml: undefined,
+        };
 
-      const props = {
-        title,
-        targetProfile: target,
-        simulated: false,
-        calculating: false,
-        circuit,
-        errorHtml: undefined,
-      };
+        const message = {
+          command: "circuit-slim",
+          props,
+        };
 
-      const message = {
-        command: "circuit-slim",
-        props,
-      };
+        setTimeout(() => webview.postMessage(message), 0);
+      } else if (mime === qdkHistogramMimeType) {
+        const histogramJSON = new TextDecoder().decode(value);
+        const histogram = JSON.parse(histogramJSON) as HistogramData;
 
-      setTimeout(() => webview.postMessage(message), 0);
+        const message = {
+          command: "histogram",
+          buckets: histogram.buckets,
+          shotCount: histogram.shotCount,
+          suppressSettings: true,
+        };
+
+        setTimeout(() => webview.postMessage(message), 0);
+      } else if (mime === qdkResourceEstimatorMimeType) {
+        const resourceEstimatorJSON = new TextDecoder().decode(value);
+        const estimates = JSON.parse(resourceEstimatorJSON) as object[];
+
+        const message = {
+          command: "estimates",
+          estimatesData: {
+            calculating: false,
+            estimates,
+          },
+        };
+
+        setTimeout(() => webview.postMessage(message), 0);
+      }
     },
   });
 
   qsharpTools = new QSharpTools(context.extensionUri);
-  for (const { name, tool: fn, confirm: confirmFn } of toolDefinitions) {
+  for (const { name, tool: fn, prepare: prepareFn } of toolDefinitions) {
     context.subscriptions.push(
-      vscode.lm.registerTool(name, tool(context, name, fn, confirmFn)),
+      vscode.lm.registerTool(name, tool(context, name, fn, prepareFn)),
     );
   }
 }
@@ -200,15 +242,15 @@ function tool<T>(
   context: vscode.ExtensionContext,
   toolName: string,
   toolFn: (input: T) => Promise<any>,
-  confirmFn?: (input: T) => vscode.PreparedToolInvocation,
+  prepareFn?: (input: T) => vscode.PreparedToolInvocation,
 ): vscode.LanguageModelTool<any> {
   return {
     invoke: (options: vscode.LanguageModelToolInvocationOptions<T>) =>
       invokeTool(context, toolName, options, toolFn),
     prepareInvocation:
-      confirmFn &&
+      prepareFn &&
       ((options: vscode.LanguageModelToolInvocationPrepareOptions<T>) =>
-        confirmFn(options.input)),
+        prepareFn(options.input)),
   };
 }
 

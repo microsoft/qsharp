@@ -480,6 +480,9 @@
         "extensions": [
           ".qsc"
         ],
+        "mimetypes": [
+          "application/x.qdk-circuit"
+        ],
         "icon": {
           "light": "./resources/file-icon-light.svg",
           "dark": "./resources/file-icon-dark.svg"
@@ -1009,9 +1012,11 @@
     ],
     "chatOutputRenderers": [
       {
-        "viewType": "qdk-circuit-chat-renderer",
+        "viewType": "qdk-chat-renderer",
         "mimeTypes": [
-          "application/x.qdk-circuit"
+          "application/x.qdk-circuit",
+          "application/x.qdk-histogram",
+          "application/x.qdk-estimates"
         ]
       }
     ]

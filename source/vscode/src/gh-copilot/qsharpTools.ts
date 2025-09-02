@@ -16,7 +16,6 @@ import {
   UserTaskInvocationType,
 } from "../telemetry";
 import { getRandomGuid } from "../utils";
-import { sendMessageToPanel } from "../webviewPanel.js";
 import { CopilotToolError, HistogramData } from "./types";
 
 /**
@@ -54,7 +53,7 @@ export class QSharpTools {
   async runProgram(input: {
     filePath: string;
     shots?: number;
-  }): Promise<RunProgramResult> {
+  }): Promise<RunProgramResult | vscode.LanguageModelToolResult> {
     const shots = input.shots ?? 1;
 
     const program = await this.getProgram(input.filePath);
@@ -63,7 +62,6 @@ export class QSharpTools {
     const output: string[] = [];
     let finalHistogram: HistogramData | undefined;
     let sampleFailures: vscode.Diagnostic[] = [];
-    const panelId = programConfig.projectName;
 
     const start = performance.now();
     const associationId = getRandomGuid();
@@ -100,18 +98,6 @@ export class QSharpTools {
             break;
           }
         }
-        if (
-          shots > 1 &&
-          histogram.buckets.filter((b) => b[0] !== "ERROR").length > 0
-        ) {
-          // Display the histogram panel only if we're running multiple shots,
-          // and we have at least one successful result.
-          sendMessageToPanel(
-            { panelType: "histogram", id: panelId },
-            true, // reveal the panel
-            histogram,
-          );
-        }
       },
     );
 
@@ -134,13 +120,19 @@ export class QSharpTools {
             : (finalHistogram?.buckets[0][0] as string),
       };
     } else {
-      // No output, return the histogram
-      return {
+      // No output, return the histogram.
+      const result = {
         ...program.additionalContextForModel,
         sampleFailures,
         histogram: finalHistogram!,
         message: `Results are displayed in the Histogram panel.`,
       };
+      return richToolResult(
+        "The histogram was rendered and displayed to the user. Here is the raw data: " +
+          JSON.stringify(result),
+        qdkHistogramMimeType,
+        JSON.stringify(finalHistogram!),
+      );
     }
   }
 
@@ -219,10 +211,11 @@ export class QSharpTools {
     qubitTypes?: string[];
     errorBudget?: number;
   }): Promise<
-    ProjectInfo & {
-      estimates?: object[];
-      message: string;
-    }
+    | (ProjectInfo & {
+        estimates?: object[];
+        message: string;
+      })
+    | vscode.LanguageModelToolResult
   > {
     const program = await this.getProgram(input.filePath);
     const programConfig = program.config;
@@ -239,11 +232,18 @@ export class QSharpTools {
         errorBudget,
       );
 
-      return {
+      const result = {
         ...program.additionalContextForModel,
         estimates,
         message: "Results are displayed in the resource estimator panel.",
       };
+
+      return richToolResult(
+        "The resource estimates were rendered and displayed to the user. Here is the raw data:" +
+          JSON.stringify(result),
+        qdkResourceEstimatorMimeType,
+        JSON.stringify(estimates),
+      );
     } catch (e) {
       throw new CopilotToolError(
         "Failed to run resource estimator: " +
@@ -374,8 +374,10 @@ export class QSharpTools {
   }
 }
 
+export const qdkCircuitViewType = "qdk-chat-renderer";
 export const qdkCircuitMimeType = "application/x.qdk-circuit";
-export const qdkCircuitViewType = "qdk-circuit-chat-renderer";
+export const qdkHistogramMimeType = "application/x.qdk-histogram";
+export const qdkResourceEstimatorMimeType = "application/x.qdk-estimates";
 
 export function richToolResult(
   outputText: string,

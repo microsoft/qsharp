@@ -342,9 +342,14 @@ modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for 
 
 /* Histogram */
 
-.histogram {
+/* .histogram {
   max-height: calc(100vh - 40px);
   max-width: 600px;
+  border: 1px solid var(--border-color);
+  background-color: var(--vscode-sideBar-background, white);
+} */
+
+.histogram {
   border: 1px solid var(--border-color);
   background-color: var(--vscode-sideBar-background, white);
 }

@@ -321,7 +321,7 @@ export class QSharpWebViewPanel {
     log.info(`Creating webview panel of type ${type} and id ${id}`);
     this.panel.onDidDispose(() => this.dispose());
 
-    this.panel.webview.html = _getWebviewContent(this.panel.webview);
+    this.panel.webview.html = getWebviewContent(this.panel.webview);
     this._setWebviewMessageListener(this.panel.webview);
   }
 
@@ -406,7 +406,7 @@ export class QSharpViewViewPanelSerializer implements WebviewPanelSerializer {
   }
 }
 
-export function _getWebviewContent(webview: Webview) {
+export function getWebviewContent(webview: Webview) {
   const extensionUri = QSharpWebViewPanel.extensionUri;
 
   function getUri(pathList: string[]) {
