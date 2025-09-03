@@ -25,6 +25,9 @@ pub enum Error {
         "controlled invocations are not currently supported. consider wrapping the invocation in a lambda expression"
     ))]
     ControlledUnsupported,
+    #[error("cannot generate circuit for program with result comparison")]
+    #[diagnostic(code("Qsc.Circuit.ResultComparisonUnsupported"))]
+    ResultComparisonUnsupported,
 }
 
 /// If the item is a callable, returns the information that would

@@ -6,7 +6,10 @@ mod circuit;
 pub mod operations;
 
 pub use builder::Builder;
-pub use circuit::{CURRENT_VERSION, Circuit, CircuitGroup, Config, Operation};
+pub use circuit::{
+    CURRENT_VERSION, Circuit, CircuitGroup, Component, ComponentColumn, ComponentGrid, Config, Ket,
+    Measurement, Operation, Qubit, Register, Unitary, operation_list_to_grid,
+};
 pub use operations::Error;
 pub mod circuit_to_qsharp;
 pub mod json_to_circuit;

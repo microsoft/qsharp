@@ -13,29 +13,11 @@ mod tests;
 
 use std::{cell::RefCell, rc::Rc};
 
-pub use qsc_eval::{
-    StepAction, StepResult,
-    debug::Frame,
-    noise::PauliNoise,
-    output::{self, GenericReceiver},
-    val::Closure,
-    val::Range as ValueRange,
-    val::Result,
-    val::Value,
-};
-use qsc_hir::{global, ty};
-use qsc_linter::{HirLint, Lint, LintKind, LintLevel};
-use qsc_lowerer::{
-    map_fir_local_item_to_hir, map_fir_package_to_hir, map_hir_local_item_to_fir,
-    map_hir_package_to_fir,
-};
-use qsc_partial_eval::ProgramEntry;
-use qsc_rca::PackageStoreComputeProperties;
-
 use crate::{
     error::{self, WithStack},
     incremental::Compiler,
     location::Location,
+    rir_to_circuit::make_circuit,
 };
 use debug::format_call_stack;
 use miette::Diagnostic;
@@ -45,7 +27,7 @@ use qsc_circuit::{
     Builder as CircuitBuilder, Circuit, Config as CircuitConfig,
     operations::entry_expr_for_qubit_operation,
 };
-use qsc_codegen::qir::{fir_to_qir, fir_to_qir_from_callable};
+use qsc_codegen::qir::{fir_to_qir, fir_to_qir_from_callable, fir_to_rir};
 use qsc_data_structures::{
     functors::FunctorApp,
     language_features::LanguageFeatures,
@@ -59,6 +41,16 @@ use qsc_eval::{
     output::Receiver,
     val,
 };
+pub use qsc_eval::{
+    StepAction, StepResult,
+    debug::Frame,
+    noise::PauliNoise,
+    output::{self, GenericReceiver},
+    val::Closure,
+    val::Range as ValueRange,
+    val::Result,
+    val::Value,
+};
 use qsc_fir::fir::{self, ExecGraph, Global, PackageStoreLookup};
 use qsc_fir::{
     fir::{Block, BlockId, Expr, ExprId, Package, PackageId, Pat, PatId, Stmt, StmtId},
@@ -69,7 +61,15 @@ use qsc_frontend::{
     error::WithSource,
     incremental::Increment,
 };
+use qsc_hir::{global, ty};
+use qsc_linter::{HirLint, Lint, LintKind, LintLevel};
+use qsc_lowerer::{
+    map_fir_local_item_to_hir, map_fir_package_to_hir, map_hir_local_item_to_fir,
+    map_hir_package_to_fir,
+};
+use qsc_partial_eval::ProgramEntry;
 use qsc_passes::{PackageType, PassContext};
+use qsc_rca::PackageStoreComputeProperties;
 use rustc_hash::FxHashSet;
 use thiserror::Error;
 
@@ -121,6 +121,8 @@ pub struct Interpreter {
     compiler: Compiler,
     /// The target capabilities used for compilation.
     capabilities: TargetCapabilityFlags,
+    /// The computed properties for the package store, if any, used for code generation.
+    compute_properties: Option<PackageStoreComputeProperties>,
     /// The number of lines that have so far been compiled.
     /// This field is used to generate a unique label
     /// for each line evaluated with `eval_fragments`.
@@ -253,29 +255,36 @@ impl Interpreter {
         let package_id = compiler.package_id();
 
         let package = map_hir_package_to_fir(package_id);
-        if capabilities != TargetCapabilityFlags::all() {
-            let _ = PassContext::run_fir_passes_on_fir(
-                &fir_store,
-                map_hir_package_to_fir(source_package_id),
-                capabilities,
-            )
-            .map_err(|caps_errors| {
-                let source_package = compiler
-                    .package_store()
-                    .get(source_package_id)
-                    .expect("package should exist in the package store");
+        let compute_properties = if capabilities == TargetCapabilityFlags::all() {
+            None
+        } else {
+            Some(
+                PassContext::run_fir_passes_on_fir(
+                    &fir_store,
+                    map_hir_package_to_fir(source_package_id),
+                    capabilities,
+                )
+                .map_err(|caps_errors| {
+                    let source_package = compiler
+                        .package_store()
+                        .get(source_package_id)
+                        .expect("package should exist in the package store");
 
-                caps_errors
-                    .into_iter()
-                    .map(|error| Error::Pass(WithSource::from_map(&source_package.sources, error)))
-                    .collect::<Vec<_>>()
-            })?;
-        }
+                    caps_errors
+                        .into_iter()
+                        .map(|error| {
+                            Error::Pass(WithSource::from_map(&source_package.sources, error))
+                        })
+                        .collect::<Vec<_>>()
+                })?,
+            )
+        };
 
         Ok(Self {
             compiler,
             lines: 0,
             capabilities,
+            compute_properties,
             fir_store,
             lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
             expr_graph: None,
@@ -318,29 +327,37 @@ impl Interpreter {
         let package_id = compiler.package_id();
 
         let package = map_hir_package_to_fir(package_id);
-        if capabilities != TargetCapabilityFlags::all() {
-            let _ = PassContext::run_fir_passes_on_fir(
-                &fir_store,
-                map_hir_package_to_fir(source_package_id),
-                capabilities,
-            )
-            .map_err(|caps_errors| {
-                let source_package = compiler
-                    .package_store()
-                    .get(source_package_id)
-                    .expect("package should exist in the package store");
 
-                caps_errors
-                    .into_iter()
-                    .map(|error| Error::Pass(WithSource::from_map(&source_package.sources, error)))
-                    .collect::<Vec<_>>()
-            })?;
-        }
+        let compute_properties = if capabilities == TargetCapabilityFlags::all() {
+            None
+        } else {
+            Some(
+                PassContext::run_fir_passes_on_fir(
+                    &fir_store,
+                    map_hir_package_to_fir(source_package_id),
+                    capabilities,
+                )
+                .map_err(|caps_errors| {
+                    let source_package = compiler
+                        .package_store()
+                        .get(source_package_id)
+                        .expect("package should exist in the package store");
+
+                    caps_errors
+                        .into_iter()
+                        .map(|error| {
+                            Error::Pass(WithSource::from_map(&source_package.sources, error))
+                        })
+                        .collect::<Vec<_>>()
+                })?,
+            )
+        };
 
         Ok(Self {
             compiler,
             lines: 0,
             capabilities,
+            compute_properties,
             fir_store,
             lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
             expr_graph: None,
@@ -980,7 +997,7 @@ impl Interpreter {
             }
 
             sim.chained.finish()
-        } else {
+        } else if self.capabilities == TargetCapabilityFlags::all() {
             let mut sim = CircuitBuilder::new(CircuitConfig {
                 max_operations: CircuitConfig::DEFAULT_MAX_OPERATIONS,
             });
@@ -996,9 +1013,109 @@ impl Interpreter {
             }
 
             sim.finish()
+        } else {
+            self.static_circuit(entry_expr.as_deref(), invoke_params)?
         };
 
         Ok(circuit)
+    }
+
+    fn static_circuit(
+        &mut self,
+        entry_expr: Option<&str>,
+        invoke_params: Option<(Value, Value)>,
+    ) -> std::result::Result<Circuit, Vec<Error>> {
+        if let Some((callable, args)) = invoke_params {
+            let mut sim = CircuitBuilder::new(CircuitConfig {
+                max_operations: CircuitConfig::DEFAULT_MAX_OPERATIONS,
+            });
+            let mut sink = std::io::sink();
+            let mut out = GenericReceiver::new(&mut sink);
+
+            self.invoke_with_sim(&mut sim, &mut out, callable, args)?;
+            Ok(sim.finish())
+        } else {
+            self.static_circuit_entrypoint(entry_expr)
+        }
+    }
+
+    fn static_circuit_entrypoint(
+        &mut self,
+        entry_expr: Option<&str>,
+    ) -> std::result::Result<Circuit, Vec<Error>> {
+        let program = self.compile_to_rir(entry_expr)?;
+        make_circuit(&program).map_err(|e| vec![e.into()])
+    }
+
+    fn compile_to_rir(
+        &mut self,
+        entry_expr: Option<&str>,
+    ) -> std::result::Result<qsc_partial_eval::Program, Vec<Error>> {
+        let (entry, compute_properties) = if let Some(entry_expr) = &entry_expr {
+            // Compile the expression. This operation will set the expression as
+            // the entry-point in the FIR store.
+            let (graph, compute_properties) = self.compile_entry_expr(entry_expr)?;
+
+            let Some(compute_properties) = compute_properties else {
+                // This can only happen if capability analysis was not run. This would be a bug
+                // and we are in a bad state and can't proceed.
+                panic!(
+                    "internal error: compute properties not set after lowering entry expression"
+                );
+            };
+            let package = self.fir_store.get(self.package);
+            let entry = ProgramEntry {
+                exec_graph: graph,
+                expr: (
+                    self.package,
+                    package
+                        .entry
+                        .expect("package must have an entry expression"),
+                )
+                    .into(),
+            };
+            (entry, compute_properties)
+        } else {
+            let package = self.fir_store.get(self.source_package);
+            let entry = ProgramEntry {
+                exec_graph: package.entry_exec_graph.clone(),
+                expr: (
+                    self.source_package,
+                    package
+                        .entry
+                        .expect("package must have an entry expression"),
+                )
+                    .into(),
+            };
+            (
+                entry,
+                self.compute_properties.clone().expect(
+                    "compute properties should be set if target profile isn't unrestricted",
+                ),
+            )
+        };
+        let (_original, transformed) = fir_to_rir(
+            &self.fir_store,
+            self.capabilities,
+            Some(compute_properties),
+            &entry,
+        )
+        .map_err(|e| {
+            let hir_package_id = match e.span() {
+                Some(span) => span.package,
+                None => map_fir_package_to_hir(self.package),
+            };
+            let source_package = self
+                .compiler
+                .package_store()
+                .get(hir_package_id)
+                .expect("package should exist in the package store");
+            vec![Error::PartialEvaluation(WithSource::from_map(
+                &source_package.sources,
+                e,
+            ))]
+        })?;
+        Ok(transformed)
     }
 
     /// Sets the entry expression for the interpreter.

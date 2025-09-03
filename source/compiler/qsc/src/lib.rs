@@ -8,6 +8,7 @@ pub mod incremental;
 pub mod interpret;
 pub mod location;
 pub mod packages;
+mod rir_to_circuit;
 
 pub use qsc_formatter::formatter;
 
@@ -68,8 +69,8 @@ pub use qsc_doc_gen::{display, generate_docs};
 
 pub mod circuit {
     pub use qsc_circuit::{
-        CURRENT_VERSION, Circuit, CircuitGroup, Operation, circuit_to_qsharp::circuits_to_qsharp,
-        json_to_circuit::json_to_circuits, operations::*,
+        CURRENT_VERSION, Circuit, CircuitGroup, ComponentColumn, ComponentGrid, Operation,
+        circuit_to_qsharp::circuits_to_qsharp, json_to_circuit::json_to_circuits, operations::*,
     };
 }
 

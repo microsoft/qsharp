@@ -174,6 +174,7 @@ pub struct Register {
 }
 
 impl Register {
+    #[must_use]
     pub fn quantum(qubit_id: usize) -> Self {
         Self {
             qubit: qubit_id,
@@ -181,6 +182,7 @@ impl Register {
         }
     }
 
+    #[must_use]
     pub fn classical(qubit_id: usize, result_id: usize) -> Self {
         Self {
             qubit: qubit_id,
@@ -188,6 +190,7 @@ impl Register {
         }
     }
 
+    #[must_use]
     pub fn is_classical(&self) -> bool {
         self.result.is_some()
     }
@@ -696,6 +699,7 @@ fn get_row_indexes(
 /// # Returns
 ///
 /// A component grid representing the operations.
+#[must_use]
 pub fn operation_list_to_grid(mut operations: Vec<Operation>, num_qubits: usize) -> ComponentGrid {
     for op in &mut operations {
         // The children data structure is a grid, so checking if it is

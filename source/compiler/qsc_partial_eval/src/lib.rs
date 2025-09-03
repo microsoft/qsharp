@@ -45,7 +45,7 @@ use qsc_rca::{
         get_missing_runtime_features,
     },
 };
-use qsc_rir::{
+pub use qsc_rir::{
     builder,
     rir::{
         self, Callable, CallableId, CallableType, ConditionCode, FcmpConditionCode, Instruction,

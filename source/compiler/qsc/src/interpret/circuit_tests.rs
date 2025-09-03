@@ -48,6 +48,27 @@ fn empty() {
 }
 
 #[test]
+fn empty_adaptive() {
+    let mut interpreter = interpreter(
+        r#"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    Message("hi");
+                }
+            }
+        "#,
+        Profile::AdaptiveRIF,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![].assert_eq(&circ.to_string());
+}
+
+#[test]
 fn one_gate() {
     let mut interpreter = interpreter(
         r"
@@ -60,6 +81,31 @@ fn one_gate() {
             }
         ",
         Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ── H ──
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn one_gate_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q = Qubit();
+                    H(q);
+                }
+            }
+        ",
+        Profile::AdaptiveRIF,
     );
 
     let circ = interpreter
@@ -103,6 +149,36 @@ fn measure_same_qubit_twice() {
 }
 
 #[test]
+fn measure_same_qubit_twice_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Result[] {
+                    use q = Qubit();
+                    H(q);
+                    let r1 = M(q);
+                    let r2 = M(q);
+                    [r1, r2]
+                }
+            }
+        ",
+        Profile::AdaptiveRIF,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![["
+        q_0    ── H ──── M ──── M ──
+                         ╘══════╪═══
+                                ╘═══
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
 fn toffoli() {
     let mut interpreter = interpreter(
         r"
@@ -115,6 +191,33 @@ fn toffoli() {
             }
         ",
         Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ── ● ──
+        q_1    ── ● ──
+        q_2    ── X ──
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn toffoli_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q = Qubit[3];
+                    CCNOT(q[0], q[1], q[2]);
+                }
+            }
+        ",
+        Profile::AdaptiveRIF,
     );
 
     let circ = interpreter
@@ -155,6 +258,31 @@ fn rotation_gate() {
 }
 
 #[test]
+fn rotation_gate_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q = Qubit();
+                    Rx(Microsoft.Quantum.Math.PI()/2.0, q);
+                }
+            }
+        ",
+        Profile::AdaptiveRIF,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ─ Rx(1.5708) ──
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
 fn classical_for_loop() {
     let mut interpreter = interpreter(
         r"
@@ -169,6 +297,33 @@ fn classical_for_loop() {
             }
         ",
         Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ── X ──── X ──── X ──── X ──── X ──── X ──
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn classical_for_loop_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q = Qubit();
+                    for i in 0..5 {
+                        X(q);
+                    }
+                }
+            }
+        ",
+        Profile::AdaptiveRIF,
     );
 
     let circ = interpreter
@@ -286,9 +441,10 @@ fn mresetz_base_profile() {
         .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
+    // code gen in Base turns the MResetZ into an M
     expect![[r#"
-        q_0    ── H ──── M ──── |0〉 ──
-                         ╘════════════
+        q_0    ── H ──── M ──
+                         ╘═══
     "#]]
     .assert_eq(&circ.to_string());
 }
@@ -372,6 +528,84 @@ fn unrestricted_profile_result_comparison() {
 }
 
 #[test]
+fn adaptive_profile_result_comparison() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+                @EntryPoint()
+                operation Main() : Result[] {
+                    use q1 = Qubit();
+                    use q2 = Qubit();
+                    H(q1);
+                    H(q2);
+                    let r1 = M(q1);
+                    let r2 = M(q2);
+                    if (r1 == r2) {
+                        X(q1);
+                    }
+                    ResetAll([q1, q2]);
+                    [r1, r2]
+                }
+            }
+        ",
+        Profile::AdaptiveRIF,
+    );
+
+    interpreter.set_quantum_seed(Some(2));
+
+    let circuit_err = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect_err("circuit should return error")
+        .pop()
+        .expect("error should exist");
+
+    expect!["Qsc.Circuit.ResultComparisonUnsupported"].assert_eq(
+        &circuit_err
+            .code()
+            .expect("error code should exist")
+            .to_string(),
+    );
+
+    let circuit = interpreter.get_circuit();
+    expect![""].assert_eq(&circuit.to_string());
+
+    let mut out = std::io::sink();
+    let mut r = GenericReceiver::new(&mut out);
+
+    // Result comparisons are okay when tracing
+    // circuit with the simulator.
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, true)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ── H ──── M ───── X ───── |0〉 ──
+                         ╘═════════════════════
+        q_1    ── H ──── M ──── |0〉 ───────────
+                         ╘═════════════════════
+    "]]
+    .assert_eq(&circ.to_string());
+
+    // Result comparisons are also okay if calling
+    // get_circuit() after incremental evaluation,
+    // because we're using the current simulator
+    // state.
+    interpreter
+        .eval_fragments(&mut r, "Test.Main();")
+        .expect("eval should succeed");
+
+    let circuit = interpreter.get_circuit();
+    expect![[r"
+        q_0    ── H ──── M ───── X ───── |0〉 ──
+                         ╘═════════════════════
+        q_1    ── H ──── M ──── |0〉 ───────────
+                         ╘═════════════════════
+    "]]
+    .assert_eq(&circuit.to_string());
+}
+
+#[test]
 fn custom_intrinsic() {
     let mut interpreter = interpreter(
         r"
@@ -387,6 +621,34 @@ fn custom_intrinsic() {
         }
     }",
         Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ─ foo ─
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn custom_intrinsic_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+    namespace Test {
+        operation foo(q: Qubit): Unit {
+            body intrinsic;
+        }
+
+        @EntryPoint()
+        operation Main() : Unit {
+            use q = Qubit();
+            foo(q);
+        }
+    }",
+        Profile::AdaptiveRIF,
     );
 
     let circ = interpreter
@@ -431,6 +693,37 @@ fn custom_intrinsic_classical_arg() {
 }
 
 #[test]
+fn custom_intrinsic_classical_arg_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+    namespace Test {
+        operation foo(n: Int): Unit {
+            body intrinsic;
+        }
+
+        @EntryPoint()
+        operation Main() : Unit {
+            use q = Qubit();
+            X(q);
+            foo(4);
+        }
+    }",
+        Profile::AdaptiveRIF,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    // A custom intrinsic that doesn't take qubits just doesn't
+    // show up on the circuit.
+    expect![[r"
+        q_0    ── X ──
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
 fn custom_intrinsic_one_classical_arg() {
     let mut interpreter = interpreter(
         r"
@@ -460,7 +753,7 @@ fn custom_intrinsic_one_classical_arg() {
 }
 
 #[test]
-fn custom_intrinsic_mixed_args() {
+fn custom_intrinsic_mixed_args_unrestricted() {
     let mut interpreter = interpreter(
         r"
     namespace Test {
@@ -489,7 +782,10 @@ fn custom_intrinsic_mixed_args() {
         .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
-    expect![[r"
+    // This intrinsic never gets codegenned, so it's missing from the
+    // circuit too.
+
+    expect![[r#"
         q_0    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
                                                          ┆
         q_1    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
@@ -509,15 +805,60 @@ fn custom_intrinsic_mixed_args() {
         q_8    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
                                                          ┆
         q_9    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
-    "]]
+    "#]]
     .assert_eq(&circ.to_string());
-
-    assert_eq!(circ.component_grid.len(), 1);
-    assert_eq!(circ.component_grid[0].components.len(), 1);
 }
 
 #[test]
-fn custom_intrinsic_apply_idle_noise() {
+fn custom_intrinsic_mixed_args_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+    namespace Test {
+        import Std.ResourceEstimation.*;
+
+        @EntryPoint()
+        operation Main() : Unit {
+            use qs = Qubit[10];
+            AccountForEstimates(
+                [
+                    AuxQubitCount(1),
+                    TCount(2),
+                    RotationCount(3),
+                    RotationDepth(4),
+                    CczCount(5),
+                    MeasurementCount(6),
+                ],
+                PSSPCLayout(),
+                qs);
+        }
+    }",
+        Profile::AdaptiveRIF,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    // This intrinsic never gets codegenned, so it's missing from the
+    // circuit too.
+
+    expect![[r#"
+        q_0
+        q_1
+        q_2
+        q_3
+        q_4
+        q_5
+        q_6
+        q_7
+        q_8
+        q_9
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn custom_intrinsic_apply_idle_noise_unrestricted() {
     let mut interpreter = interpreter(
         r"
     namespace Test {
@@ -536,10 +877,38 @@ fn custom_intrinsic_apply_idle_noise() {
         .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
-    // ConfigurePauliNoise has no qubit arguments so it shouldn't show up.
-    // ApplyIdleNoise is a quantum operation so it shows up.
+    // These intrinsics never get codegenned, so they're missing from the
+    // circuit too.
     expect![[r#"
         q_0    ─ ApplyIdleNoise ──
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn custom_intrinsic_apply_idle_noise_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+    namespace Test {
+        import Std.Diagnostics.*;
+        @EntryPoint()
+        operation Main() : Unit {
+            ConfigurePauliNoise(BitFlipNoise(1.0));
+            use q = Qubit();
+            ApplyIdleNoise(q);
+        }
+    }",
+        Profile::AdaptiveRIF,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    // These intrinsics never get codegenned, so they're missing from the
+    // circuit too.
+    expect![[r#"
+        q_0
     "#]]
     .assert_eq(&circ.to_string());
 }
@@ -560,6 +929,37 @@ fn operation_with_qubits() {
 
         }",
         Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ── H ──── ● ──── M ──
+                         │      ╘═══
+        q_1    ───────── X ──── M ──
+                                ╘═══
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn operation_with_qubits_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] { [] }
+
+            operation Test(q1: Qubit, q2: Qubit) : Result[] {
+                H(q1);
+                CNOT(q1, q2);
+                [M(q1), M(q2)]
+            }
+
+        }",
+        Profile::AdaptiveRIF,
     );
 
     let circ = interpreter
@@ -665,6 +1065,64 @@ fn operation_with_qubit_arrays() {
 }
 
 #[test]
+fn operation_with_qubit_arrays_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] { [] }
+
+            import Std.Measurement.*;
+            operation Test(q1: Qubit[], q2: Qubit[][], q3: Qubit[][][], q: Qubit) : Result[] {
+                for q in q1 {
+                    H(q);
+                }
+                for qs in q2 {
+                    for q in qs {
+                        X(q);
+                    }
+                }
+                for qss in q3 {
+                    for qs in qss {
+                        for q in qs {
+                            Y(q);
+                        }
+                    }
+                }
+                X(q);
+                MeasureEachZ(q1)
+            }
+        }",
+        Profile::AdaptiveRIF,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ── H ──── M ──
+                         ╘═══
+        q_1    ── H ──── M ──
+                         ╘═══
+        q_2    ── X ─────────
+        q_3    ── X ─────────
+        q_4    ── X ─────────
+        q_5    ── X ─────────
+        q_6    ── Y ─────────
+        q_7    ── Y ─────────
+        q_8    ── Y ─────────
+        q_9    ── Y ─────────
+        q_10   ── Y ─────────
+        q_11   ── Y ─────────
+        q_12   ── Y ─────────
+        q_13   ── Y ─────────
+        q_14   ── X ─────────
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
 fn adjoint_operation() {
     let mut interpreter = interpreter(
         r"
@@ -705,6 +1163,46 @@ fn adjoint_operation() {
 }
 
 #[test]
+fn adjoint_operation_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] { [] }
+
+            operation Foo (q : Qubit) : Unit
+                is Adj + Ctl {
+
+                body (...) {
+                    X(q);
+                }
+
+                adjoint (...) {
+                    Y(q);
+                }
+
+                controlled (cs, ...) {
+                }
+            }
+
+        }",
+        Profile::AdaptiveRIF,
+    );
+
+    let circ = interpreter
+        .circuit(
+            CircuitEntryPoint::Operation("Adjoint Test.Foo".into()),
+            false,
+        )
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ── Y ──
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
 fn lambda() {
     let mut interpreter = interpreter(
         r"
@@ -726,7 +1224,79 @@ fn lambda() {
 }
 
 #[test]
+fn lambda_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] { [] }
+        }",
+        Profile::AdaptiveRIF,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::Operation("q => H(q)".into()), false)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ── H ──
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
 fn controlled_operation() {
+    let mut interpreter = interpreter(
+        r"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] { [] }
+
+            operation SWAP (q1 : Qubit, q2 : Qubit) : Unit
+                is Adj + Ctl {
+
+                body (...) {
+                    CNOT(q1, q2);
+                    CNOT(q2, q1);
+                    CNOT(q1, q2);
+                }
+
+                adjoint (...) {
+                    SWAP(q1, q2);
+                }
+
+                controlled (cs, ...) {
+                    CNOT(q1, q2);
+                    Controlled CNOT(cs, (q2, q1));
+                    CNOT(q1, q2);
+                }
+            }
+
+        }",
+        Profile::Unrestricted,
+    );
+
+    let circ_err = interpreter
+        .circuit(
+            CircuitEntryPoint::Operation("Controlled Test.SWAP".into()),
+            false,
+        )
+        .expect_err("circuit generation should fail");
+
+    // Controlled operations are not supported at the moment.
+    // We don't generate an accurate call signature with the tuple arguments.
+    expect![[r"
+        [
+            Circuit(
+                ControlledUnsupported,
+            ),
+        ]
+    "]]
+    .assert_debug_eq(&circ_err);
+}
+
+#[test]
+fn controlled_operation_adaptive() {
     let mut interpreter = interpreter(
         r"
         namespace Test {
@@ -807,6 +1377,36 @@ fn internal_operation() {
 }
 
 #[test]
+fn internal_operation_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] { [] }
+
+            internal operation Test(q1: Qubit, q2: Qubit) : Result[] {
+                H(q1);
+                CNOT(q1, q2);
+                [M(q1), M(q2)]
+            }
+        }",
+        Profile::AdaptiveRIF,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
+        .expect("circuit generation should not fail");
+
+    expect![[r#"
+        q_0    ── H ──── ● ──── M ──
+                         │      ╘═══
+        q_1    ───────── X ──── M ──
+                                ╘═══
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
 fn operation_with_non_qubit_args() {
     let mut interpreter = interpreter(
         r"
@@ -836,7 +1436,93 @@ fn operation_with_non_qubit_args() {
 }
 
 #[test]
+fn operation_with_non_qubit_args_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] { [] }
+
+            operation Test(q1: Qubit, q2: Qubit, i: Int) : Unit {
+            }
+
+        }",
+        Profile::AdaptiveRIF,
+    );
+
+    let circ_err = interpreter
+        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
+        .expect_err("circuit generation should fail");
+
+    expect![[r"
+        [
+            Circuit(
+                NoQubitParameters,
+            ),
+        ]
+    "]]
+    .assert_debug_eq(&circ_err);
+}
+
+#[test]
 fn operation_with_long_gates_properly_aligned() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+
+                @EntryPoint()
+                operation Main() : Result[] {
+                    use q0 = Qubit();
+                    use q1 = Qubit();
+
+                    H(q0);
+                    H(q1);
+                    X(q1);
+                    Ry(1.0, q1);
+                    CNOT(q0, q1);
+                    M(q0);
+
+                    use q2 = Qubit();
+
+                    H(q2);
+                    Rx(1.0, q2);
+                    H(q2);
+                    Rx(1.0, q2);
+                    H(q2);
+                    Rx(1.0, q2);
+
+                    use q3 = Qubit();
+
+                    Rxx(1.0, q1, q3);
+
+                    CNOT(q0, q3);
+
+                    [M(q1), M(q3)]
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ── H ────────────────────────────────────── ● ──────── M ────────────────────────────────── ● ─────────
+                                                           │          ╘════════════════════════════════════╪══════════
+        q_1    ── H ──────── X ─────── Ry(1.0000) ──────── X ───────────────────────────── Rxx(1.0000) ────┼───── M ──
+                                                                                                ┆          │      ╘═══
+        q_2    ── H ─── Rx(1.0000) ──────── H ─────── Rx(1.0000) ──── H ─── Rx(1.0000) ─────────┆──────────┼──────────
+        q_3    ─────────────────────────────────────────────────────────────────────────── Rxx(1.0000) ─── X ──── M ──
+                                                                                                                  ╘═══
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn operation_with_long_gates_properly_aligned_adaptive() {
     let mut interpreter = interpreter(
         r"
             namespace Test {
@@ -930,6 +1616,43 @@ fn operation_with_subsequent_qubits_gets_horizontal_lines() {
 }
 
 #[test]
+fn operation_with_subsequent_qubits_gets_horizontal_lines_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q0 = Qubit();
+                    use q1 = Qubit();
+                    Rxx(1.0, q0, q1);
+
+                    use q2 = Qubit();
+                    use q3 = Qubit();
+                    Rxx(1.0, q2, q3);
+                }
+            }
+        ",
+        Profile::AdaptiveRIF,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ─ Rxx(1.0000) ─
+                      ┆
+        q_1    ─ Rxx(1.0000) ─
+        q_2    ─ Rxx(1.0000) ─
+                      ┆
+        q_3    ─ Rxx(1.0000) ─
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
 fn operation_with_subsequent_qubits_no_double_rows() {
     let mut interpreter = interpreter(
         r"
@@ -946,6 +1669,37 @@ fn operation_with_subsequent_qubits_no_double_rows() {
             }
         ",
         Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ─ Rxx(1.0000) ── Rxx(1.0000) ─
+                      ┆              ┆
+        q_1    ─ Rxx(1.0000) ── Rxx(1.0000) ─
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn operation_with_subsequent_qubits_no_double_rows_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q0 = Qubit();
+                    use q1 = Qubit();
+                    Rxx(1.0, q0, q1);
+                    Rxx(1.0, q0, q1);
+                }
+            }
+        ",
+        Profile::AdaptiveRIF,
     );
 
     let circ = interpreter
@@ -982,6 +1736,45 @@ fn operation_with_subsequent_qubits_no_added_rows() {
             }
         ",
         Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ─ Rxx(1.0000) ─── M ──
+                      ┆          ╘═══
+        q_1    ─ Rxx(1.0000) ────────
+        q_2    ─ Rxx(1.0000) ─── M ──
+                      ┆          ╘═══
+        q_3    ─ Rxx(1.0000) ────────
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn operation_with_subsequent_qubits_no_added_rows_adaptive() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+
+                @EntryPoint()
+                operation Main() : Result[] {
+                    use q0 = Qubit();
+                    use q1 = Qubit();
+                    Rxx(1.0, q0, q1);
+
+                    use q2 = Qubit();
+                    use q3 = Qubit();
+                    Rxx(1.0, q2, q3);
+
+                    [M(q0), M(q2)]
+                }
+            }
+        ",
+        Profile::AdaptiveRIF,
     );
 
     let circ = interpreter
