@@ -751,11 +751,6 @@ impl<'a> Context<'a> {
         let rhs = self.infer_expr(rhs);
         let diverges = lhs.diverges || rhs.diverges;
 
-        // Capture operand types prior to entering operator-specific logic so promotion helpers
-        // (which may allocate deferred placeholders) can reference original ty handles.
-        let lhs_ty = lhs.ty.clone();
-        let rhs_ty = rhs.ty.clone();
-
         let ty = match op {
             BinOp::AndL | BinOp::OrL => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
@@ -769,8 +764,14 @@ impl<'a> Context<'a> {
                 converge(Ty::Prim(Prim::Bool))
             }
             BinOp::Add => {
-                use super::promotion::{PromotionDecision, apply_arith, record_deferred_arith};
+                use super::promotion::{PromotionDecision, apply_arith};
                 use crate::typeck::infer::ArithOp;
+
+                // If either operand is an error type, return error immediately
+                if matches!(lhs.ty, Ty::Err) || matches!(rhs.ty, Ty::Err) {
+                    return converge(Ty::Err);
+                }
+
                 let outcome = apply_arith(
                     self.inferrer,
                     ArithOp::Add,
@@ -780,10 +781,6 @@ impl<'a> Context<'a> {
                     &lhs.ty,
                     &rhs.ty,
                 );
-                if outcome.needs_interop {
-                    self.inferrer
-                        .interoperable(rhs_span, lhs.ty.clone(), rhs.ty.clone());
-                }
                 // Constrain lhs for Add as usual.
                 self.inferrer.class(lhs_span, Class::Add(lhs.ty.clone()));
                 // If both operands are inference variables, also constrain rhs independently so
@@ -791,69 +788,23 @@ impl<'a> Context<'a> {
                 if matches!(lhs.ty, Ty::Infer(_)) && matches!(rhs.ty, Ty::Infer(_)) {
                     self.inferrer.class(rhs_span, Class::Add(rhs.ty.clone()));
                 }
-                match outcome.decision {
-                    PromotionDecision::Eager(t) => converge(t),
-                    PromotionDecision::ReuseLhsInfer => {
-                        // Special case: both sides are still inference vars. Reusing the lhs
-                        // variable collapses their future possibilities (e.g., one side later
-                        // becoming Complex while the other remains Double). Allocate a fresh
-                        // placeholder and defer the final result decision until after solving
-                        // so each operand can independently evolve.
-                        let lhs_is_infer = matches!(lhs_ty, Ty::Infer(_));
-                        let rhs_is_infer = matches!(rhs_ty, Ty::Infer(_));
-                        if lhs_is_infer && rhs_is_infer {
-                            let placeholder = self.inferrer.fresh_ty(TySource::not_divergent(span));
-                            record_deferred_arith(
-                                self.inferrer,
-                                ArithOp::Add,
-                                &placeholder,
-                                &lhs_ty,
-                                &rhs_ty,
-                            );
-                            converge(placeholder)
-                        } else {
-                            converge(lhs.ty.clone())
-                        }
-                    }
+
+                // Determine the result type for the interoperability constraint
+                let result_ty = match outcome.decision {
+                    PromotionDecision::Eager(ref t) => t.clone(),
+                    PromotionDecision::ReuseLhsInfer => lhs.ty.clone(),
                     PromotionDecision::Deferred => {
-                        let placeholder = self.inferrer.fresh_ty(TySource::not_divergent(span));
-                        // Also constrain the placeholder itself so downstream uses of the
-                        // arithmetic result retain the relevant numeric class capability
-                        // (Add/Sub/Mul/Div) even before deferred finalization selects a
-                        // concrete numeric type. Previously this was only done for Add which
-                        // meant deferred placeholders for -, *, / missed their class
-                        // constraint and could lead to ambiguous or missing-class diagnostics
-                        // in downstream uses (see tests `bar` / `bar2`).
-                        let arith_op = match op {
-                            BinOp::Add => {
-                                self.inferrer.class(span, Class::Add(placeholder.clone()));
-                                ArithOp::Add
-                            }
-                            BinOp::Sub => {
-                                self.inferrer.class(span, Class::Sub(placeholder.clone()));
-                                ArithOp::Sub
-                            }
-                            BinOp::Mul => {
-                                self.inferrer.class(span, Class::Mul(placeholder.clone()));
-                                ArithOp::Mul
-                            }
-                            BinOp::Div => {
-                                self.inferrer.class(span, Class::Div(placeholder.clone()));
-                                ArithOp::Div
-                            }
-                            // Should not reach here for non-arithmetic ops using promotion.
-                            _ => unreachable!("deferred arithmetic placeholder for non arith op"),
-                        };
-                        record_deferred_arith(
-                            self.inferrer,
-                            arith_op,
-                            &placeholder,
-                            &lhs_ty,
-                            &rhs_ty,
-                        );
-                        converge(placeholder)
+                        // For deferred case, we'll use a fresh inference variable
+                        self.inferrer.fresh_ty(TySource::not_divergent(span))
                     }
-                }
+                };
+                self.inferrer.interoperable(
+                    rhs_span,
+                    lhs.ty.clone(),
+                    rhs.ty.clone(),
+                    result_ty.clone(),
+                );
+                converge(result_ty)
             }
             BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
@@ -867,8 +818,14 @@ impl<'a> Context<'a> {
                 lhs
             }
             BinOp::Div | BinOp::Mul | BinOp::Sub => {
-                use super::promotion::{PromotionDecision, apply_arith, record_deferred_arith};
+                use super::promotion::{PromotionDecision, apply_arith};
                 use crate::typeck::infer::ArithOp;
+
+                // If either operand is an error type, return error immediately
+                if matches!(lhs.ty, Ty::Err) || matches!(rhs.ty, Ty::Err) {
+                    return converge(Ty::Err);
+                }
+
                 let class = match op {
                     BinOp::Div => Class::Div(lhs.ty.clone()),
                     BinOp::Mul => Class::Mul(lhs.ty.clone()),
@@ -890,26 +847,37 @@ impl<'a> Context<'a> {
                     &lhs.ty,
                     &rhs.ty,
                 );
-                if outcome.needs_interop {
-                    self.inferrer
-                        .interoperable(rhs_span, lhs.ty.clone(), rhs.ty.clone());
-                }
+                // Constrain lhs for the operation as usual.
                 self.inferrer.class(lhs_span, class);
-                match outcome.decision {
-                    PromotionDecision::Eager(t) => converge(t),
-                    PromotionDecision::ReuseLhsInfer => converge(lhs.ty.clone()),
-                    PromotionDecision::Deferred => {
-                        let placeholder = self.inferrer.fresh_ty(TySource::not_divergent(span));
-                        record_deferred_arith(
-                            self.inferrer,
-                            arith_op,
-                            &placeholder,
-                            &lhs_ty,
-                            &rhs_ty,
-                        );
-                        converge(placeholder)
-                    }
+                // If both operands are inference variables, also constrain rhs independently so
+                // they remain distinct inference vars rather than collapsing early.
+                if matches!(lhs.ty, Ty::Infer(_)) && matches!(rhs.ty, Ty::Infer(_)) {
+                    let rhs_class = match op {
+                        BinOp::Div => Class::Div(rhs.ty.clone()),
+                        BinOp::Mul => Class::Mul(rhs.ty.clone()),
+                        BinOp::Sub => Class::Sub(rhs.ty.clone()),
+                        _ => unreachable!(),
+                    };
+                    self.inferrer.class(rhs_span, rhs_class);
                 }
+
+                // Determine the result type for the interoperability constraint
+                let result_ty = match outcome.decision {
+                    PromotionDecision::Eager(ref t) => t.clone(),
+                    PromotionDecision::ReuseLhsInfer => lhs.ty.clone(),
+                    PromotionDecision::Deferred => {
+                        // For deferred case, we'll use a fresh inference variable
+                        self.inferrer.fresh_ty(TySource::not_divergent(span))
+                    }
+                };
+
+                self.inferrer.interoperable(
+                    rhs_span,
+                    lhs.ty.clone(),
+                    rhs.ty.clone(),
+                    result_ty.clone(),
+                );
+                converge(result_ty)
             }
             BinOp::Mod => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);

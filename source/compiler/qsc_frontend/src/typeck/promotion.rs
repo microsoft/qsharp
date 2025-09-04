@@ -336,17 +336,6 @@ pub fn apply_arith(
 
 // (Helper predicates moved to numeric.rs)
 
-/// Hook used by the caller when a deferred placeholder is created, so we can record it
-/// for post-solve adjustment.
-pub fn record_deferred_arith(
-    inferrer: &mut Inferrer,
-    op: ArithOp,
-    placeholder: &Ty,
-    lhs: &Ty,
-    rhs: &Ty,
-) {
-    inferrer.record_arith_result(op, placeholder, lhs, rhs);
-}
 
 // -------------------------------------------------------------------------------------------------
 // Post‑solve helpers (centralized here to keep Double/Complex knowledge localized)

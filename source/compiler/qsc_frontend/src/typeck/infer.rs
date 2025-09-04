@@ -427,7 +427,7 @@ struct App {
     errors: Vec<Error>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(super) enum Constraint {
     // Constraint that says a type must satisfy a class
     Class(Class, Span),
@@ -449,9 +449,11 @@ pub(super) enum Constraint {
         span: Span,
     },
     // Constraint that is satisfied if the two types are equal OR form a (Double, Complex) mix.
+    // The third parameter represents the result type that should be used when the two types interoperate.
     Interoperable {
         a: Ty,
         b: Ty,
+        result: Ty,
         span: Span,
     },
     Superset {
@@ -477,10 +479,6 @@ pub(super) struct Inferrer {
     ty_metadata: IndexMap<InferTyId, TySource>,
     next_ty: InferTyId,
     next_functor: InferFunctorId,
-    /// Records of (`result_infer`, `lhs_ty_snapshot`, `rhs_ty_snapshot`) for '+' so we can adjust
-    /// result type post solving for Double/Complex mixes without forcing Double==Complex.
-    // Deferred arithmetic promotions: (result infer id, lhs, rhs, op code)
-    arith_result_adjustments: Vec<(InferTyId, Ty, Ty, ArithOp)>,
 }
 
 // ArithOp enum moved above for earlier visibility
@@ -493,7 +491,6 @@ impl Inferrer {
             next_ty: InferTyId::default(),
             next_functor: InferFunctorId::default(),
             ty_metadata: IndexMap::default(),
-            arith_result_adjustments: Vec::new(),
         }
     }
 
@@ -507,9 +504,10 @@ impl Inferrer {
     }
 
     /// Introduces an interoperability constraint (equal OR Double/Complex mix)
-    pub(super) fn interoperable(&mut self, span: Span, a: Ty, b: Ty) {
+    /// The result parameter specifies what type should result from the interoperation
+    pub(super) fn interoperable(&mut self, span: Span, a: Ty, b: Ty, result: Ty) {
         self.constraints
-            .push_back(Constraint::Interoperable { a, b, span });
+            .push_back(Constraint::Interoperable { a, b, result, span });
     }
 
     /// Introduces a class constraint.
@@ -580,60 +578,11 @@ impl Inferrer {
         (ty, args)
     }
 
-    /// Record an arithmetic result triple for later adjustment.
-    pub(super) fn record_arith_result(&mut self, op: ArithOp, result: &Ty, lhs: &Ty, rhs: &Ty) {
-        if let Ty::Infer(infer) = result {
-            self.arith_result_adjustments
-                .push((*infer, lhs.clone(), rhs.clone(), op));
-        }
-    }
-
     /// Solves for all variables given the accumulated constraints.
     pub(super) fn solve(&mut self, udts: &FxHashMap<ItemId, Udt>) -> Vec<Error> {
         while let Some(constraint) = self.constraints.pop_front() {
             for constraint in self.solver.constrain(udts, constraint).into_iter().rev() {
                 self.constraints.push_front(constraint);
-            }
-        }
-        // Post-process deferred arithmetic results via centralized promotion logic.
-        for (res_infer, mut lhs, mut rhs, _op) in self.arith_result_adjustments.drain(..) {
-            substitute_ty(&self.solver.solution, &mut lhs);
-            substitute_ty(&self.solver.solution, &mut rhs);
-            if !self.solver.solution.tys.contains_key(res_infer) {
-                if let Some(final_ty) = promotion::finalize_deferred_arith(&lhs, &rhs) {
-                    self.solver.solution.tys.insert(res_infer, final_ty);
-                } else {
-                    // Fallback (Option 1): ensure the placeholder does not remain floating.
-                    // Previous logic skipped assigning when both operands were still inference
-                    // vars, which left result types of expressions like `i + j` unresolved in
-                    // contexts that require a concrete primitive (e.g., array indices). Here we
-                    // always adopt a concrete operand if one exists; if both are still inference
-                    // variables we conservatively adopt lhs (restoring prior determinism while
-                    // still allowing earlier divergence before solve).
-                    // If the result inference variable already resolved to a concrete (non-infer)
-                    // type (e.g., due to contextual requirements like array indexing demanding Int),
-                    // preserve that binding. Only adopt when still unset or still pointing at an
-                    // inference variable.
-                    let already = self.solver.solution.tys.get(res_infer).cloned();
-                    let should_adopt = match &already {
-                        None => true,
-                        Some(t) => matches!(t, Ty::Infer(_)),
-                    };
-                    if should_adopt {
-                        let lhs_infer = matches!(lhs, Ty::Infer(_));
-                        let rhs_infer = matches!(rhs, Ty::Infer(_));
-                        let adopt = if !lhs_infer {
-                            lhs.clone()
-                        } else if !rhs_infer {
-                            rhs.clone()
-                        } else {
-                            lhs.clone()
-                        };
-                        self.solver.solution.tys.insert(res_infer, adopt);
-                    }
-                    // Option 4 note: we could instead link result to both operands for a second
-                    // pass if future numeric kinds require richer late promotion.
-                }
             }
         }
         let unresolved_ty_errs = self.find_unresolved_types();
@@ -650,6 +599,41 @@ impl Inferrer {
             .drain()
             .filter_map(|(id, meta)| {
                 if self.solver.solution.tys.get(id).is_none() {
+                    // Check if this unresolved inference variable has pending interoperable constraints
+                    // that can now be resolved due to operands being concrete
+                    if let Some(pending_constraints) = self.solver.pending_interoperable.get(&id) {
+                        for constraint in pending_constraints {
+                            if let Constraint::Interoperable { a, b, result, .. } = constraint {
+                                // Substitute types to get current state
+                                let mut a_subst = a.clone();
+                                let mut b_subst = b.clone();
+                                let mut result_subst = result.clone();
+                                substitute_ty(&self.solver.solution, &mut a_subst);
+                                substitute_ty(&self.solver.solution, &mut b_subst);
+                                substitute_ty(&self.solver.solution, &mut result_subst);
+
+                                // Check if we have concrete operands that can determine the result type
+                                let resolved_type = if !matches!(a_subst, Ty::Infer(_))
+                                    && !matches!(b_subst, Ty::Infer(_))
+                                {
+                                    // Both operands are concrete, use finalize_deferred_arith
+                                    promotion::finalize_deferred_arith(&a_subst, &b_subst)
+                                        .or_else(|| Some(a_subst.clone())) // fallback to left operand
+                                } else {
+                                    // One or both operands are still inference variables,
+                                    // can't resolve the result yet - it stays ambiguous
+                                    None
+                                };
+
+                                if let Some(resolved) = resolved_type {
+                                    // We can resolve this inference variable
+                                    self.solver.solution.tys.insert(id, resolved);
+                                    return None; // No error, we resolved it
+                                }
+                            }
+                        }
+                    }
+
                     match meta {
                         TySource::Divergent => {
                             // here, we are resolving all divergent types to the unit type.
@@ -685,6 +669,7 @@ struct Solver {
     solution: Solution,
     pending_tys: FxHashMap<InferTyId, Vec<Class>>,
     pending_functors: FxHashMap<InferFunctorId, FunctorSetValue>,
+    pending_interoperable: FxHashMap<InferTyId, Vec<Constraint>>,
     errors: Vec<Error>,
 }
 
@@ -694,6 +679,7 @@ impl Solver {
             solution: Solution::default(),
             pending_tys: FxHashMap::default(),
             pending_functors: FxHashMap::default(),
+            pending_interoperable: FxHashMap::default(),
             errors: Vec::new(),
         }
     }
@@ -701,6 +687,7 @@ impl Solver {
     /// Given a constraint, attempts to narrow the constraint by either
     /// generating more specific constraints, or, if it cannot be narrowed further,
     /// returns an empty vector.
+    #[allow(clippy::too_many_lines)]
     fn constrain(
         &mut self,
         udts: &FxHashMap<ItemId, Udt>,
@@ -726,9 +713,15 @@ impl Solver {
                 substitute_ty(&self.solution, &mut actual_subst);
                 self.unify(&expected_subst, &actual_subst, span)
             }
-            Constraint::Interoperable { mut a, mut b, span } => {
+            Constraint::Interoperable {
+                mut a,
+                mut b,
+                mut result,
+                span,
+            } => {
                 let a_sub = substitute_ty(&self.solution, &mut a);
                 let b_sub = substitute_ty(&self.solution, &mut b);
+                let _result_sub = substitute_ty(&self.solution, &mut result);
                 // If either side is still an inference variable we normally reduce
                 // interoperability to equality. However, for mixes involving a Double
                 // and an inference variable, OR two inference variables, we defer equality until
@@ -739,25 +732,154 @@ impl Solver {
                     (Ty::Infer(_), Ty::Prim(Prim::Double)) | (Ty::Prim(Prim::Double), Ty::Infer(_))
                 );
                 let both_infer = matches!((&a, &b), (Ty::Infer(_), Ty::Infer(_)));
-                if (!infer_double_mix)
-                    && !both_infer
-                    && (matches!(a, Ty::Infer(_)) || matches!(b, Ty::Infer(_)) || !a_sub || !b_sub)
-                {
-                    return vec![Constraint::Eq {
-                        expected: a,
-                        actual: b,
-                        span,
-                    }];
+
+                // For cases where we have inference variables but it's not a special deferred case,
+                // fall back to equality constraints
+                if (!infer_double_mix && !both_infer) && (!a_sub || !b_sub) {
+                    // Types couldn't be substituted, fall back to equality
+                    return vec![
+                        Constraint::Eq {
+                            expected: a.clone(),
+                            actual: b.clone(),
+                            span,
+                        },
+                        Constraint::Eq {
+                            expected: result,
+                            actual: a,
+                            span,
+                        },
+                    ];
                 }
+
+                // For Double-Infer or Infer-Infer cases, defer constraints and use result type
                 if (infer_double_mix || both_infer)
                     && (matches!(a, Ty::Infer(_)) || matches!(b, Ty::Infer(_)))
                 {
-                    return Vec::new();
+                    // Don't force equality yet, but ensure result type is constrained appropriately
+                    let mut constraints = Vec::new();
+
+                    // If result is inference but we have concrete operands, constrain result immediately
+                    if matches!(result, Ty::Infer(_)) {
+                        // Check if we have concrete operands that can determine the result type
+                        let concrete_operand = if !matches!(a, Ty::Infer(_)) {
+                            Some(a.clone())
+                        } else if !matches!(b, Ty::Infer(_)) {
+                            Some(b.clone())
+                        } else {
+                            None
+                        };
+
+                        if let Some(concrete_ty) = concrete_operand {
+                            // We have a concrete operand, so constrain the result to that type
+                            constraints.push(Constraint::Eq {
+                                expected: concrete_ty.clone(),
+                                actual: result.clone(),
+                                span,
+                            });
+                            // Also constrain the inference operand(s)
+                            if matches!(a, Ty::Infer(_)) {
+                                constraints.push(Constraint::Eq {
+                                    expected: concrete_ty.clone(),
+                                    actual: a.clone(),
+                                    span,
+                                });
+                            }
+                            if matches!(b, Ty::Infer(_)) {
+                                constraints.push(Constraint::Eq {
+                                    expected: concrete_ty,
+                                    actual: b.clone(),
+                                    span,
+                                });
+                            }
+                            return constraints;
+                        } else {
+                            // All three types are inference variables, defer the constraint
+                            // until at least one gets resolved by storing it for each inference variable
+                            let interop_constraint = Constraint::Interoperable {
+                                a: a.clone(),
+                                b: b.clone(),
+                                result: result.clone(),
+                                span,
+                            };
+
+                            if let Ty::Infer(infer_a) = &a {
+                                self.pending_interoperable
+                                    .entry(*infer_a)
+                                    .or_default()
+                                    .push(interop_constraint.clone());
+                            }
+                            if let Ty::Infer(infer_b) = &b {
+                                self.pending_interoperable
+                                    .entry(*infer_b)
+                                    .or_default()
+                                    .push(interop_constraint.clone());
+                            }
+                            if let Ty::Infer(infer_result) = &result {
+                                self.pending_interoperable
+                                    .entry(*infer_result)
+                                    .or_default()
+                                    .push(interop_constraint);
+                            }
+                            return Vec::new();
+                        }
+                    }
+                    // Result type is concrete, constrain it appropriately based on operands
+                    if matches!(a, Ty::Infer(_)) {
+                        constraints.push(Constraint::Eq {
+                            expected: result.clone(),
+                            actual: a.clone(),
+                            span,
+                        });
+                    }
+                    if matches!(b, Ty::Infer(_)) && b != a {
+                        constraints.push(Constraint::Eq {
+                            expected: result,
+                            actual: b,
+                            span,
+                        });
+                    }
+                    return constraints;
                 }
-                if a == b || promotion::interoperable_without_eq(&a, &b) {
-                    return Vec::new();
+
+                // For concrete types, check interoperability and constrain result
+                // Types are equal or interoperable
+                if a == b {
+                    // Same types, result should be the same type
+                    vec![Constraint::Eq {
+                        expected: result,
+                        actual: a,
+                        span,
+                    }]
+                } else if promotion::interoperable_without_eq(&a, &b) {
+                    // Interoperable types (e.g., Double and Complex)
+                    // Use the promotion system to determine the result type
+                    use super::promotion;
+                    let result_ty =
+                        if let Some(promoted) = promotion::finalize_deferred_arith(&a, &b) {
+                            promoted
+                        } else {
+                            // Fallback logic for basic interoperability
+                            if crate::typeck::numeric::is_complex(&a) {
+                                a
+                            } else if crate::typeck::numeric::is_complex(&b) {
+                                b
+                            } else if crate::typeck::numeric::is_double(&a) {
+                                a
+                            } else if crate::typeck::numeric::is_double(&b) {
+                                b
+                            } else {
+                                a // fallback
+                            }
+                        };
+                    vec![Constraint::Eq {
+                        expected: result,
+                        actual: result_ty,
+                        span,
+                    }]
+                } else {
+                    // Types are not interoperable, fall back to regular equality constraint
+                    self.eq(a, b, span)
                 }
-                self.eq(a, b, span)
             }
             Constraint::Superset {
                 expected,
@@ -1002,6 +1124,13 @@ impl Solver {
                         .map(|class| Constraint::Class(class, span))
                         .collect()
                 }),
+        );
+        // Also re-emit any pending interoperable constraints
+        constraint.append(
+            &mut self
+                .pending_interoperable
+                .remove(&infer)
+                .unwrap_or_default(),
         );
         constraint
     }

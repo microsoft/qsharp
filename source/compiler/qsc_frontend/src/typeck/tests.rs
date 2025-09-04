@@ -1294,19 +1294,17 @@ fn ternop_update_array_index_expr_with_ambiguous_lambda_params() {
             #10 52-54 "xs" : Int[]
             #12 57-60 "[2]" : Int[]
             #13 58-59 "2" : Int
-            #15 74-75 "f" : ((?2, ?3) -> Int[])
-            #17 78-104 "(i, j) -> xs w/ i + j <- 3" : ((?2, ?3) -> Int[])
-            #18 78-84 "(i, j)" : (?2, ?3)
-            #19 79-80 "i" : ?2
-            #21 82-83 "j" : ?3
+            #15 74-75 "f" : ((Int, Int) -> Int[])
+            #17 78-104 "(i, j) -> xs w/ i + j <- 3" : ((Int, Int) -> Int[])
+            #18 78-84 "(i, j)" : (Int, Int)
+            #19 79-80 "i" : Int
+            #21 82-83 "j" : Int
             #23 88-104 "xs w/ i + j <- 3" : Int[]
             #24 88-90 "xs" : Int[]
             #27 94-99 "i + j" : Int
-            #28 94-95 "i" : ?2
-            #31 98-99 "j" : ?3
+            #28 94-95 "i" : Int
+            #31 98-99 "j" : Int
             #34 103-104 "3" : Int
-            Error(Type(Error(AmbiguousTy(Span { lo: 79, hi: 80 }))))
-            Error(Type(Error(AmbiguousTy(Span { lo: 82, hi: 83 }))))
         "##]],
     );
 }
@@ -3473,7 +3471,45 @@ fn lambda_implicit_return_with_call_complex() {
             #82 314-325 "(1.0, 2.0i)" : (Double, UDT<"Complex": Item 3 (Package 0)>)
             #83 315-318 "1.0" : Double
             #84 320-324 "2.0i" : UDT<"Complex": Item 3 (Package 0)>
-            
+        "##]],
+    );
+}
+
+#[test]
+fn foo2() {
+    check(
+        indoc! {"
+            namespace Std.Core {
+                function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
+                function Other<'T>(xs : 'T[]) : Int { body intrinsic; }
+                struct Complex { Real : Double, Imag : Double }
+            }
+            namespace A {
+                import Std.Core.*;
+                function Foo() : Unit {
+                    let f = (a, b) -> a + b;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #22 104-115 "(xs : 'T[])" : ?
+            #23 105-114 "xs : 'T[]" : ?
+            #54 249-251 "()" : Unit
+            #58 259-299 "{\n        let f = (a, b) -> a + b;\n    }" : Unit
+            #60 273-274 "f" : ((?1, ?2) -> ?3)
+            #62 277-292 "(a, b) -> a + b" : ((?1, ?2) -> ?3)
+            #63 277-283 "(a, b)" : (?1, ?2)
+            #64 278-279 "a" : ?1
+            #66 281-282 "b" : ?2
+            #68 287-292 "a + b" : ?3
+            #69 287-288 "a" : ?1
+            #72 291-292 "b" : ?2
+            Error(Type(Error(AmbiguousTy(Span { lo: 278, hi: 279 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 281, hi: 282 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 287, hi: 292 }))))
         "##]],
     );
 }
@@ -5412,6 +5448,46 @@ fn bar2() {
             #32 130-135 "y + z" : Int
             #33 130-131 "y" : Int
             #36 134-135 "z" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn bar3() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Unit {
+                    let x = [1.0, 2.0];
+                    let y = 0;
+                    let z = 0;
+
+                    let temp = x[y] - x[y + z];
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 30-32 "()" : Unit
+            #10 40-150 "{\n        let x = [1.0, 2.0];\n        let y = 0;\n        let z = 0;\n\n        let temp = x[y] - x[y + z];\n    }" : Unit
+            #12 54-55 "x" : Double[]
+            #14 58-68 "[1.0, 2.0]" : Double[]
+            #15 59-62 "1.0" : Double
+            #16 64-67 "2.0" : Double
+            #18 82-83 "y" : Int
+            #20 86-87 "0" : Int
+            #22 101-102 "z" : Int
+            #24 105-106 "0" : Int
+            #26 121-125 "temp" : Double
+            #28 128-143 "x[y] - x[y + z]" : Double
+            #29 128-132 "x[y]" : Double
+            #30 128-129 "x" : Double[]
+            #33 130-131 "y" : Int
+            #36 135-143 "x[y + z]" : Double
+            #37 135-136 "x" : Double[]
+            #40 137-142 "y + z" : Int
+            #41 137-138 "y" : Int
+            #44 141-142 "z" : Int
         "##]],
     );
 }
