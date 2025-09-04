@@ -14,7 +14,6 @@ pub(crate) fn make_circuit(program: &Program) -> std::result::Result<Circuit, ci
     let mut state = ProgramMap::new(program.num_qubits);
     let callables = &program.callables;
 
-    // eprintln!("{program}");
     for (id, block) in &program.blocks {
         let block_operations = operations_in_block(&mut state, callables, block)?;
         state.blocks.insert(id, block_operations);
@@ -30,7 +29,7 @@ pub(crate) fn make_circuit(program: &Program) -> std::result::Result<Circuit, ci
                 .expect("block should exist")
                 .clone();
             for operation in &mut circuit_block.operations {
-                if expand_branch_children(&state, operation) {
+                if expand_branch_children(&state, operation)? {
                     more_work = true;
                 }
             }
@@ -50,10 +49,11 @@ pub(crate) fn make_circuit(program: &Program) -> std::result::Result<Circuit, ci
         .get(entry_block)
         .expect("entry block should have been processed");
 
-    assert!(
-        entry_block.successor.is_none(),
-        "entry block should not have a successor"
-    );
+    if entry_block.successor.is_some() {
+        return Err(circuit::Error::UnsupportedFeature(
+            "entry block should not have a successor".to_owned(),
+        ));
+    }
 
     let mut operations = vec![];
 
@@ -67,7 +67,6 @@ pub(crate) fn make_circuit(program: &Program) -> std::result::Result<Circuit, ci
                     BlockId(unitary.args[0].parse().expect("block id should parse"));
                 unitary.args.remove(0);
                 unitary.gate = "if ".into();
-                // TODO:  gate name & args are bogus
                 let successor_block = state
                     .blocks
                     .get(successor_block_id)
@@ -95,25 +94,28 @@ pub(crate) fn make_circuit(program: &Program) -> std::result::Result<Circuit, ci
     Ok(circuit)
 }
 
-#[must_use]
-fn expand_branch_children(state: &ProgramMap, operation: &mut Operation) -> bool {
+fn expand_branch_children(
+    state: &ProgramMap,
+    operation: &mut Operation,
+) -> Result<bool, qsc_circuit::Error> {
     if let Component::Unitary(unitary) = operation {
         if unitary.gate == "branch" {
             let block_id_1 = BlockId(unitary.args[0].parse().expect("block id should parse"));
             let block_id_2 = BlockId(unitary.args[1].parse().expect("block id should parse"));
             let cond_str = unitary.args[2].clone();
             if let Some((branch_operations, targets)) =
-                operations_from_branch(state, block_id_1, block_id_2)
+                operations_from_branch(state, block_id_1, block_id_2)?
             {
                 unitary.targets = targets;
                 unitary.children = branch_operations;
                 unitary.args = vec![block_id_2.0.to_string(), cond_str];
                 unitary.gate = "successor".to_string();
+            } else {
+                return Ok(true); // more work needed to fill in the branch children
             }
-            return true; // more work needed to fill in the branch children
         }
     }
-    false
+    Ok(false)
 }
 
 #[derive(Clone)]
@@ -131,7 +133,11 @@ fn operations_in_block(
     let mut operations = vec![];
     let mut done = false;
     for instruction in &block.0 {
-        assert!(!done, "instructions after return or jump in block");
+        if done {
+            return Err(qsc_circuit::Error::UnsupportedFeature(
+                "instructions after return or jump in block".to_owned(),
+            ));
+        }
         match instruction {
             Instruction::Call(callable_id, operands, var) => {
                 operations.extend(map_callable_to_operations(
@@ -139,32 +145,34 @@ fn operations_in_block(
                     callables.get(*callable_id).expect("callable should exist"),
                     operands,
                     var.as_ref(),
-                ));
+                )?);
             }
             Instruction::Icmp(condition_code, operand, operand1, variable) => {
                 match condition_code {
                     ConditionCode::Eq => {
-                        let expr_left = expr_from_operand(&*state, operand);
-                        let expr_right = expr_from_operand(&*state, operand1);
-                        let expr = eq_expr(expr_left, expr_right);
+                        let expr_left = expr_from_operand(&*state, operand)?;
+                        let expr_right = expr_from_operand(&*state, operand1)?;
+                        let expr = eq_expr(expr_left, expr_right)?;
                         state.store_expr_in_variable(variable.variable_id, expr);
                     }
-                    ConditionCode::Ne => todo!(),
-                    ConditionCode::Slt => todo!(),
-                    ConditionCode::Sle => todo!(),
-                    ConditionCode::Sgt => todo!(),
-                    ConditionCode::Sge => todo!(),
+                    condition_code => {
+                        return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                            "unsupported condition code in icmp: {condition_code:?}"
+                        )));
+                    }
                 }
             }
             Instruction::Return => {
                 done = true;
             }
             Instruction::Branch(variable, block_id_1, block_id_2) => {
-                let (results, cond_str) = state.condition_for_variable(variable.variable_id);
-                assert!(
-                    !results.is_empty(),
-                    "branch variable should have at least one result"
-                );
+                let (results, cond_str) = state.condition_for_variable(variable.variable_id)?;
+                if results.is_empty() {
+                    return Err(qsc_circuit::Error::UnsupportedFeature(
+                        "branching on a condition that doesn't involve at least one result"
+                            .to_owned(),
+                    ));
+                }
                 let controls = results
                     .into_iter()
                     .map(|r| state.result_register(r))
@@ -189,11 +197,17 @@ fn operations_in_block(
             }
             Instruction::Jump(block_id) => {
                 let old = successor.replace(*block_id);
-                assert!(old.is_none(), "block should not already have a successor");
+                if old.is_some() {
+                    return Err(qsc_circuit::Error::UnsupportedFeature(
+                        "block contains more than one jump".to_owned(),
+                    ));
+                }
                 done = true;
             }
             instruction => {
-                todo!("unsupported instruction in circuit generation: {instruction:?}");
+                return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                    "unsupported instruction in block: {instruction:?}"
+                )));
             }
         }
     }
@@ -203,8 +217,11 @@ fn operations_in_block(
     })
 }
 
-fn eq_expr(expr_left: ConditionExpr, expr_right: ConditionExpr) -> ConditionExpr {
-    match (expr_left, expr_right) {
+fn eq_expr(
+    expr_left: ConditionExpr,
+    expr_right: ConditionExpr,
+) -> Result<ConditionExpr, qsc_circuit::Error> {
+    Ok(match (expr_left, expr_right) {
         (ConditionExpr::LiteralBool(b1), ConditionExpr::LiteralBool(b2)) => {
             ConditionExpr::LiteralBool(b1 == b2)
         }
@@ -223,9 +240,11 @@ fn eq_expr(expr_left: ConditionExpr, expr_right: ConditionExpr) -> ConditionExpr
             })
         }
         (left, right) => {
-            todo!("unsupported equality expression combination: left={left:?}, right={right:?}")
+            return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                "unsupported equality expression combination: left={left:?}, right={right:?}"
+            )));
         }
-    }
+    })
 }
 
 /// Can only handle basic branches, if x { ... } without an else
@@ -233,7 +252,7 @@ fn operations_from_branch(
     state: &ProgramMap,
     branch_block: BlockId,
     merge_block: BlockId,
-) -> Option<(ComponentGrid, Vec<Register>)> {
+) -> Result<Option<(ComponentGrid, Vec<Register>)>, qsc_circuit::Error> {
     let CircuitBlock {
         operations: branch_operations,
         successor: branch_successor,
@@ -242,52 +261,61 @@ fn operations_from_branch(
         operations: _,
         successor: merge_successor,
     } = state.blocks.get(merge_block).expect("block should exist");
-    assert!(
-        branch_successor.is_some_and(|c| c == merge_block),
-        "successor for branch block should be the merge block"
-    );
-    assert!(
-        merge_successor.is_none(),
-        "did not expect a successor for the merge block"
-    );
+    if branch_successor.is_none_or(|c| c != merge_block) {
+        return Err(qsc_circuit::Error::UnsupportedFeature(
+            "branch block does not lead to merge block".to_owned(),
+        ));
+    }
+    if merge_successor.is_some() {
+        return Err(qsc_circuit::Error::UnsupportedFeature(
+            "merge block should not have a successor".to_owned(),
+        ));
+    }
 
     let mut seen = FxHashSet::default();
+    let mut max_qubit_id = 0;
     for op in branch_operations {
         match op {
             Operation::Measurement(measurement) => {
                 for q in &measurement.qubits {
+                    max_qubit_id = max_qubit_id.max(q.qubit);
                     seen.insert((q.qubit, q.result));
                 }
                 for r in &measurement.results {
+                    max_qubit_id = max_qubit_id.max(r.qubit);
                     seen.insert((r.qubit, r.result));
                 }
             }
             Operation::Unitary(unitary) => {
                 if unitary.gate == "branch" {
                     // Skip this one for now, the branch block itself has an unexpanded branch
-                    return None;
+                    return Ok(None);
                 }
                 for q in &unitary.targets {
+                    max_qubit_id = max_qubit_id.max(q.qubit);
                     seen.insert((q.qubit, q.result));
                 }
                 for q in &unitary.controls {
+                    max_qubit_id = max_qubit_id.max(q.qubit);
                     seen.insert((q.qubit, q.result));
                 }
             }
             Operation::Ket(ket) => {
                 for q in &ket.targets {
+                    max_qubit_id = max_qubit_id.max(q.qubit);
                     seen.insert((q.qubit, q.result));
                 }
             }
         }
     }
 
-    assert!(
-        !seen.iter().any(|(_, r)| r.is_some()),
-        "grouped operations in a branch should only touch qubit registers"
-    );
+    if seen.iter().any(|(_, r)| r.is_some()) {
+        return Err(qsc_circuit::Error::UnsupportedFeature(
+            "measurement operation in a branch block".to_owned(),
+        ));
+    }
 
-    let component_grid_1 = operation_list_to_grid(branch_operations.clone(), seen.len());
+    let component_grid = operation_list_to_grid(branch_operations.clone(), max_qubit_id + 1);
 
     // TODO: everything is a target. Don't know how else we would do this.
 
@@ -298,18 +326,25 @@ fn operations_from_branch(
             result: r,
         })
         .collect();
-    Some((component_grid_1, targets))
+    Ok(Some((component_grid, targets)))
 }
 
-fn expr_from_operand(state: &ProgramMap, operand: &Operand) -> ConditionExpr {
-    match operand {
+fn expr_from_operand(
+    state: &ProgramMap,
+    operand: &Operand,
+) -> Result<ConditionExpr, qsc_circuit::Error> {
+    Ok(match operand {
         Operand::Literal(literal) => match literal {
             Literal::Result(r) => ConditionExpr::Result(*r),
             Literal::Bool(b) => ConditionExpr::LiteralBool(*b),
-            _ => panic!("unsupported literal operand for expression: {literal:?}"),
+            _ => {
+                return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                    "unsupported literal operand in condition: {literal:?}"
+                )));
+            }
         },
         Operand::Variable(variable) => state.expr_for_variable(variable.variable_id),
-    }
+    })
 }
 
 struct ProgramMap {
@@ -390,7 +425,10 @@ impl ProgramMap {
             .expect("variable should be linked to a result")
     }
 
-    fn condition_for_variable(&self, variable_id: VariableId) -> (Vec<u32>, String) {
+    fn condition_for_variable(
+        &self,
+        variable_id: VariableId,
+    ) -> Result<(Vec<u32>, String), qsc_circuit::Error> {
         let var_expr = *self
             .variables
             .get(variable_id)
@@ -408,7 +446,11 @@ impl ProgramMap {
         let str = match var_expr {
             ConditionExpr::Result(_) => "a = |1〉".to_string(),
             ConditionExpr::NotResult(_) => "a = |0〉".to_string(),
-            ConditionExpr::LiteralBool(_) => todo!("did not expect a literal bool condition"),
+            ConditionExpr::LiteralBool(_) => {
+                return Err(qsc_circuit::Error::UnsupportedFeature(
+                    "constant condition in branch".to_owned(),
+                ));
+            }
             ConditionExpr::TwoResultCondition(two_result_cond) => {
                 let (f00, f01, f10, f11) = two_result_cond.filter;
                 let mut conditions = vec![];
@@ -428,7 +470,7 @@ impl ProgramMap {
             }
         };
 
-        (results, str)
+        Ok((results, str))
     }
 
     fn link_result_to_qubit(&mut self, qubit_id: u32, result_id: u32) -> usize {
@@ -475,16 +517,16 @@ fn map_callable_to_operations(
     callable: &Callable,
     operands: &Vec<Operand>,
     var: Option<&Variable>,
-) -> Vec<qsc_circuit::Operation> {
-    match callable.call_type {
+) -> Result<Vec<qsc_circuit::Operation>, qsc_circuit::Error> {
+    Ok(match callable.call_type {
         CallableType::Measurement => {
             let gate = match callable.name.as_str() {
                 "__quantum__qis__m__body" => "M",
                 "__quantum__qis__mresetz__body" => "MResetZ",
-                _ => panic!("unsupported measurement {callable:?}"),
+                name => name,
             };
 
-            let (this_qubits, this_results) = gather_measurement_operands(state, operands);
+            let (this_qubits, this_results) = gather_measurement_operands(state, operands)?;
 
             if gate == "MResetZ" {
                 vec![
@@ -515,7 +557,7 @@ fn map_callable_to_operations(
         CallableType::Reset => match callable.name.as_str() {
             "__quantum__qis__reset__body" => {
                 let operand_types = vec![QubitOperandType::Target];
-                let (targets, _, _) = gather_operands(&operand_types, operands);
+                let (targets, _, _) = gather_operands(&operand_types, operands)?;
 
                 vec![Component::Ket(Ket {
                     gate: "0".to_string(),
@@ -524,38 +566,43 @@ fn map_callable_to_operations(
                     targets,
                 })]
             }
-            _ => {
-                panic!("unsupported reset {callable:?}")
+            name => {
+                return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                    "unknown reset callable: {name}"
+                )));
             }
         },
         CallableType::Readout => match callable.name.as_str() {
             "__quantum__qis__read_result__body" => {
                 for operand in operands {
                     match operand {
-                        Operand::Literal(literal) => match literal {
-                            Literal::Result(r) => {
-                                let var = var
-                                    .expect("read_result must have a variable to store the result");
-                                state.store_result_in_variable(var.variable_id, *r);
-                            }
-                            _ => todo!(),
-                        },
-                        Operand::Variable(_variable) => todo!(),
+                        Operand::Literal(Literal::Result(r)) => {
+                            let var =
+                                var.expect("read_result must have a variable to store the result");
+                            state.store_result_in_variable(var.variable_id, *r);
+                        }
+                        operand => {
+                            return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                                "operand for result readout is not a result: {operand:?}"
+                            )));
+                        }
                     }
                 }
                 vec![]
             }
-            _ => {
-                panic!("unsupported readout {callable:?}")
+            name => {
+                return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                    "unknown readout callable: {name}"
+                )));
             }
         },
         CallableType::OutputRecording => {
             vec![]
         }
         CallableType::Regular => {
-            let (gate, operand_types) = callable_spec(callable, operands);
+            let (gate, operand_types) = callable_spec(callable, operands)?;
 
-            let (targets, controls, args) = gather_operands(&operand_types, operands);
+            let (targets, controls, args) = gather_operands(&operand_types, operands)?;
 
             if targets.is_empty() && controls.is_empty() {
                 // Skip operations without targets or controls.
@@ -573,17 +620,18 @@ fn map_callable_to_operations(
                 })]
             }
         }
-    }
+    })
 }
 
 fn callable_spec<'a>(
     callable: &'a Callable,
     operands: &[Operand],
-) -> (&'a str, Vec<QubitOperandType>) {
-    match callable.name.as_str() {
+) -> Result<(&'a str, Vec<QubitOperandType>), qsc_circuit::Error> {
+    Ok(match callable.name.as_str() {
         // single-qubit gates
         "__quantum__qis__x__body" => ("X", vec![QubitOperandType::Target]),
         "__quantum__qis__y__body" => ("Y", vec![QubitOperandType::Target]),
+        "__quantum__qis__z__body" => ("Z", vec![QubitOperandType::Target]),
         "__quantum__qis__h__body" => ("H", vec![QubitOperandType::Target]),
         "__quantum__qis__rx__body" => ("Rx", vec![QubitOperandType::Arg, QubitOperandType::Target]),
         "__quantum__qis__ry__body" => ("Ry", vec![QubitOperandType::Arg, QubitOperandType::Target]),
@@ -609,62 +657,63 @@ fn callable_spec<'a>(
             ],
         ),
         custom => {
-            (
-                custom,
-                operands
-                    .iter()
-                    .map(|o| match o {
-                        Operand::Literal(literal) => match literal {
-                            Literal::Qubit(_) => QubitOperandType::Target, // assume all qubit operands are targets for custom gates
-                            Literal::Result(_) => todo!(),
-                            Literal::Bool(_) => todo!(),
-                            Literal::Integer(_) | Literal::Double(_) => QubitOperandType::Arg,
-                            Literal::Pointer => todo!(),
-                        },
-                        Operand::Variable(_variable) => todo!(),
-                    })
-                    .collect::<Vec<_>>(),
-            )
+            let mut operand_types = vec![];
+            for o in operands {
+                match o {
+                    Operand::Literal(Literal::Qubit(_)) => {
+                        operand_types.push(QubitOperandType::Target);
+                    } // assume all qubit operands are targets for custom gates
+                    Operand::Literal(Literal::Integer(_) | Literal::Double(_)) => {
+                        operand_types.push(QubitOperandType::Arg);
+                    }
+                    o => {
+                        return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                            "unsupported operand for custom gate {custom}: {o:?}"
+                        )));
+                    }
+                }
+            }
+
+            (custom, operand_types)
         }
-    }
+    })
 }
 
 fn gather_measurement_operands(
     state: &mut ProgramMap,
     operands: &Vec<Operand>,
-) -> (Vec<Register>, Vec<Register>) {
+) -> Result<(Vec<Register>, Vec<Register>), qsc_circuit::Error> {
     let mut qubit_registers = vec![];
     let mut result_registers = vec![];
     let mut qubit_id = None;
     for operand in operands {
         match operand {
-            Operand::Literal(literal) => match literal {
-                Literal::Qubit(q) => {
-                    let old = qubit_id.replace(q);
-                    assert!(
-                        old.is_none(),
+            Operand::Literal(Literal::Qubit(q)) => {
+                let old = qubit_id.replace(q);
+                if old.is_some() {
+                    return Err(qsc_circuit::Error::UnsupportedFeature(format!(
                         "measurement should only have one qubit operand, found {old:?} and {q}"
-                    );
-                    qubit_registers.push(Register {
-                        qubit: usize::try_from(*q).expect("qubit id should fit in usize"),
-                        result: None,
-                    });
+                    )));
                 }
-                Literal::Result(r) => {
-                    let q = *qubit_id.expect("measurement should have a qubit operand");
-                    state.link_result_to_qubit(q, *r);
-                    let result_register = state.result_register(*r);
-                    result_registers.push(result_register);
-                }
-                Literal::Bool(_) => todo!(),
-                Literal::Integer(i) => todo!("integer {i}"),
-                Literal::Double(_) => todo!(),
-                Literal::Pointer => todo!(),
-            },
-            Operand::Variable(variable) => todo!("variable {variable:?}"),
+                qubit_registers.push(Register {
+                    qubit: usize::try_from(*q).expect("qubit id should fit in usize"),
+                    result: None,
+                });
+            }
+            Operand::Literal(Literal::Result(r)) => {
+                let q = *qubit_id.expect("measurement should have a qubit operand");
+                state.link_result_to_qubit(q, *r);
+                let result_register = state.result_register(*r);
+                result_registers.push(result_register);
+            }
+            o => {
+                return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                    "unsupported operand for measurement: {o:?}"
+                )));
+            }
         }
     }
-    (qubit_registers, result_registers)
+    Ok((qubit_registers, result_registers))
 }
 
 enum QubitOperandType {
@@ -673,17 +722,20 @@ enum QubitOperandType {
     Arg,
 }
 
+type TargetsControlsArgs = (Vec<Register>, Vec<Register>, Vec<String>);
+
 fn gather_operands(
     operand_types: &[QubitOperandType],
     operands: &[Operand],
-) -> (Vec<Register>, Vec<Register>, Vec<String>) {
+) -> Result<TargetsControlsArgs, qsc_circuit::Error> {
     let mut targets = vec![];
     let mut controls = vec![];
     let mut args = vec![];
-    assert!(
-        operand_types.len() == operands.len(),
-        "operand types and operands must have the same length"
-    );
+    if operand_types.len() != operands.len() {
+        return Err(qsc_circuit::Error::UnsupportedFeature(
+            "unexpected number of operands for known operation".to_owned(),
+        ));
+    }
     for (operand, operand_type) in operands.iter().zip(operand_types) {
         match operand {
             Operand::Literal(literal) => match literal {
@@ -692,7 +744,9 @@ fn gather_operands(
                         QubitOperandType::Control => &mut controls,
                         QubitOperandType::Target => &mut targets,
                         QubitOperandType::Arg => {
-                            panic!("expected qubit operand")
+                            return Err(qsc_circuit::Error::UnsupportedFeature(
+                                "qubit operand cannot be an argument".to_owned(),
+                            ));
                         }
                     };
                     operands_array.push(Register {
@@ -700,26 +754,43 @@ fn gather_operands(
                         result: None,
                     });
                 }
-                Literal::Result(r) => {
-                    panic!("result {r} cannot be a target of a unitary operation")
+                Literal::Result(_r) => {
+                    return Err(qsc_circuit::Error::UnsupportedFeature(
+                        "result operand cannot be a target of a unitary operation".to_owned(),
+                    ));
                 }
-                Literal::Bool(_) => todo!(),
                 Literal::Integer(i) => match operand_type {
                     QubitOperandType::Arg => {
                         args.push(i.to_string());
                     }
-                    _ => panic!("expected argument operand"),
+                    _ => {
+                        return Err(qsc_circuit::Error::UnsupportedFeature(
+                            "integer operand where qubit was expected".to_owned(),
+                        ));
+                    }
                 },
                 Literal::Double(d) => match operand_type {
                     QubitOperandType::Arg => {
                         args.push(format!("{d:.4}"));
                     }
-                    _ => panic!("expected argument operand"),
+                    _ => {
+                        return Err(qsc_circuit::Error::UnsupportedFeature(
+                            "double operand where qubit was expected".to_owned(),
+                        ));
+                    }
                 },
-                Literal::Pointer => todo!(),
+                l => {
+                    return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                        "unsupported literal operand for unitary operation: {l:?}"
+                    )));
+                }
             },
-            Operand::Variable(variable) => todo!("variable {variable:?}"),
+            o @ Operand::Variable(_) => {
+                return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                    "unsupported operand for unitary operation: {o:?}"
+                )));
+            }
         }
     }
-    (targets, controls, args)
+    Ok((targets, controls, args))
 }

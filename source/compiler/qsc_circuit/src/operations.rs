@@ -28,6 +28,9 @@ pub enum Error {
     #[error("cannot generate circuit for program with result comparison")]
     #[diagnostic(code("Qsc.Circuit.ResultComparisonUnsupported"))]
     ResultComparisonUnsupported,
+    #[error("program has features that are unsupported for circuit diagrams: {0}")]
+    #[diagnostic(code("Qsc.Circuit.UnsupportedFeature"))]
+    UnsupportedFeature(String),
 }
 
 /// If the item is a callable, returns the information that would

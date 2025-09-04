@@ -1824,6 +1824,72 @@ fn operation_with_subsequent_qubits_no_added_rows_adaptive() {
     .assert_eq(&circ.to_string());
 }
 
+#[test]
+fn teleportation() {
+    let mut interpreter = interpreter(
+        r#"
+            operation Main() : Bool {
+                // Allocate `qAlice`, `qBob` qubits
+                use (qAlice, qBob) = (Qubit(), Qubit());
+
+                // Entangle `qAlice`, `qBob` qubits
+                H(qAlice);
+                CNOT(qAlice, qBob);
+
+                // From now on qubits `qAlice` and `qBob` will not interact directly.
+
+                // Allocate `qToTeleport` qubit and prepare it to be |𝜓⟩≈0.9394|0⟩−0.3429𝑖|1⟩
+                use qToTeleport = Qubit();
+                Rx(0.7, qToTeleport);
+
+                // Prepare the message by entangling `qToTeleport` and `qAlice` qubits
+                CNOT(qToTeleport, qAlice);
+                H(qToTeleport);
+
+                // Obtain classical measurement results b1 and b2 at Alice's site.
+                let b1 = M(qToTeleport) == One;
+                let b2 = M(qAlice) == One;
+
+                // At this point classical bits b1 and b2 are "sent" to the Bob's site.
+
+                // Decode the message by applying adjustments based on classical data b1 and b2.
+                if b1 {
+                    Z(qBob);
+                }
+                if b2 {
+                    X(qBob);
+                }
+
+                // Make sure that the obtained message is |𝜓⟩≈0.9394|0⟩−0.3429𝑖|1⟩
+                Rx(-0.7, qBob);
+                // let correct = Std.Diagnostics.CheckZero(qBob);
+                // Message($"Teleportation successful: {correct}.");
+
+                // Reset all qubits to |0⟩ state.
+                ResetAll([qAlice, qBob, qToTeleport]);
+
+                // Return indication if the measurement of the state was correct
+                // correct
+                true
+            }
+        "#,
+        Profile::AdaptiveRIF,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ────── H ──────── ● ──── X ──── M ────────────────────────────────────────────────────────────────────────────────────────────────── |0〉 ──────────────
+                                 │      │      ╘════════════════════════════════════════════════════════════════════ ● ═══════════════════════════════════════════════
+        q_1    ───────────────── X ─────┼────────────────── [[ ──── [if (a = |1〉)] ───── Z ─── ]] ─── [[ ──── [if (a = |1〉)] ───── X ─── ]] ─── Rx(-0.7000) ─── |0〉 ──
+        q_2    ─ Rx(0.7000) ─────────── ● ──── H ──── M ───────────────────┼─────────────────────────────────────────────────────────────────────── |0〉 ──────────────
+                                                      ╘═══════════════════ ● ═════════════════════════════════════════════════════════════════════════════════════════
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
 /// Tests that invoke circuit generation throught the debugger.
 mod debugger_stepping {
     use super::Debugger;
