@@ -1,0 +1,23 @@
+[package]
+name = "qdk_simulators"
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rand = { workspace = true }
+num-complex = { workspace = true }
+num-traits = { workspace = true }
+num-bigint = { workspace = true }
+ndarray = { workspace = true }
+rustc-hash = { workspace = true }
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false

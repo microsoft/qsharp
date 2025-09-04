@@ -982,6 +982,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdk_simulators"
+version = "0.0.0"
+dependencies = [
+ "ndarray",
+ "num-bigint",
+ "num-complex",
+ "num-traits",
+ "rand",
+ "rustc-hash",
+]
+
+[[package]]
 name = "qsc"
 version = "0.0.0"
 dependencies = [
@@ -1109,13 +1121,13 @@ dependencies = [
  "num-bigint",
  "num-complex",
  "num-traits",
+ "qdk_simulators",
  "qsc_data_structures",
  "qsc_fir",
  "qsc_frontend",
  "qsc_hir",
  "qsc_lowerer",
  "qsc_passes",
- "quantum-sparse-sim",
  "rand",
  "rustc-hash",
  "thiserror",
@@ -1396,19 +1408,6 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
-]
-
-[[package]]
-name = "quantum-sparse-sim"
-version = "0.8.2"
-source = "git+https://github.com/qir-alliance/qir-runner?rev=e1930df15ef02b3bf273a6f536f46bf6871448c5#e1930df15ef02b3bf273a6f536f46bf6871448c5"
-dependencies = [
- "ndarray",
- "num-bigint",
- "num-complex",
- "num-traits",
- "rand",
- "rustc-hash",
 ]
 
 [[package]]
