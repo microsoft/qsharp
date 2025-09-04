@@ -7,7 +7,6 @@
 //! This libary implements sparse state simulation, based on the design from
 //! <a href="https://arxiv.org/abs/2105.01533">Leveraging state sparsity for more efficient quantum simulations</a>.
 
-pub mod exp;
 mod index_map;
 mod nearly_zero;
 
