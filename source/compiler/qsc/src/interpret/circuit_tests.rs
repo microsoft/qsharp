@@ -528,7 +528,77 @@ fn unrestricted_profile_result_comparison() {
 }
 
 #[test]
-fn adaptive_profile_result_comparison() {
+fn result_comparison_to_literal() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+                @EntryPoint()
+                operation Main() : Result[] {
+                    use q1 = Qubit();
+                    H(q1);
+                    let r1 = M(q1);
+                    if (r1 == One) {
+                        X(q1);
+                    }
+                    Reset(q1);
+                    [r1]
+                }
+            }
+        ",
+        Profile::AdaptiveRIF,
+    );
+
+    interpreter.set_quantum_seed(Some(2));
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ── H ──── M ─── [[ ──── [if (a = |1〉)] ───── X ─── ]] ──── |0〉 ──
+                         ╘═══════════════════ ● ════════════════════════════════
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn result_comparison_to_literal_zero() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+                @EntryPoint()
+                operation Main() : Result[] {
+                    use q1 = Qubit();
+                    H(q1);
+                    let r1 = M(q1);
+                    if (r1 == Zero) {
+                        X(q1);
+                    }
+                    Reset(q1);
+                    [r1]
+                }
+            }
+        ",
+        Profile::AdaptiveRIF,
+    );
+
+    interpreter.set_quantum_seed(Some(2));
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ── H ──── M ─── [[ ──── [if (a = |0〉)] ───── X ─── ]] ──── |0〉 ──
+                         ╘═══════════════════ ● ════════════════════════════════
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn result_comparison_to_result_adaptive() {
     let mut interpreter = interpreter(
         r"
             namespace Test {
@@ -554,55 +624,17 @@ fn adaptive_profile_result_comparison() {
 
     interpreter.set_quantum_seed(Some(2));
 
-    let circuit_err = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
-        .expect_err("circuit should return error")
-        .pop()
-        .expect("error should exist");
-
-    expect!["Qsc.Circuit.ResultComparisonUnsupported"].assert_eq(
-        &circuit_err
-            .code()
-            .expect("error code should exist")
-            .to_string(),
-    );
-
-    let circuit = interpreter.get_circuit();
-    expect![""].assert_eq(&circuit.to_string());
-
-    let mut out = std::io::sink();
-    let mut r = GenericReceiver::new(&mut out);
-
-    // Result comparisons are okay when tracing
-    // circuit with the simulator.
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, true)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
-    expect![[r"
-        q_0    ── H ──── M ───── X ───── |0〉 ──
-                         ╘═════════════════════
-        q_1    ── H ──── M ──── |0〉 ───────────
-                         ╘═════════════════════
-    "]]
+    expect![[r#"
+        q_0    ── H ──── M ─── [[ ───── [if (ab = |00〉 or ab = |11〉)] ───── X ─── ]] ──── |0〉 ──
+                         ╘═══════════════════════════ ● ════════════════════════════════════════
+        q_1    ── H ──── M ───────────────────────────┼────────────────────────────────── |0〉 ──
+                         ╘═══════════════════════════ ● ════════════════════════════════════════
+    "#]]
     .assert_eq(&circ.to_string());
-
-    // Result comparisons are also okay if calling
-    // get_circuit() after incremental evaluation,
-    // because we're using the current simulator
-    // state.
-    interpreter
-        .eval_fragments(&mut r, "Test.Main();")
-        .expect("eval should succeed");
-
-    let circuit = interpreter.get_circuit();
-    expect![[r"
-        q_0    ── H ──── M ───── X ───── |0〉 ──
-                         ╘═════════════════════
-        q_1    ── H ──── M ──── |0〉 ───────────
-                         ╘═════════════════════
-    "]]
-    .assert_eq(&circuit.to_string());
 }
 
 #[test]

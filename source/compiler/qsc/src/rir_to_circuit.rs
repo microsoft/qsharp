@@ -1,87 +1,344 @@
 use crate::circuit;
 use qsc_circuit::{
-    Circuit, Component, Ket, Measurement, Qubit, Register, Unitary, operation_list_to_grid,
+    Circuit, Component, ComponentColumn, ComponentGrid, Ket, Measurement, Operation, Qubit,
+    Register, Unitary, operation_list_to_grid,
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_partial_eval::{
-    Callable, CallableType, ConditionCode, Instruction, Literal, Operand, VariableId, rir::Program,
-    rir::Variable,
+    Callable, CallableType, ConditionCode, Instruction, Literal, Operand, VariableId,
+    rir::{Block, BlockId, Program, Variable},
 };
+use rustc_hash::FxHashSet;
 
 pub(crate) fn make_circuit(program: &Program) -> std::result::Result<Circuit, circuit::Error> {
+    let mut state = ProgramMap::new(program.num_qubits);
+    let callables = &program.callables;
+
+    // eprintln!("{program}");
+    for (id, block) in &program.blocks {
+        let block_operations = operations_in_block(&mut state, callables, block)?;
+        state.blocks.insert(id, block_operations);
+    }
+
+    let mut more_work = true;
+    while more_work {
+        more_work = false;
+        for block in &program.blocks {
+            let mut circuit_block = state
+                .blocks
+                .get(block.0)
+                .expect("block should exist")
+                .clone();
+            for operation in &mut circuit_block.operations {
+                if expand_branch_children(&state, operation) {
+                    more_work = true;
+                }
+            }
+            state.blocks.insert(block.0, circuit_block);
+        }
+    }
+
+    let entry_block = program
+        .callables
+        .get(program.entry)
+        .expect("entry callable should exist")
+        .body
+        .expect("entry callable should have a body");
+
+    let entry_block = state
+        .blocks
+        .get(entry_block)
+        .expect("entry block should have been processed");
+
+    assert!(
+        entry_block.successor.is_none(),
+        "entry block should not have a successor"
+    );
+
     let mut operations = vec![];
 
-    let mut state = QubitMap::new(program.num_qubits);
+    let mut operations_stack = entry_block.operations.clone();
+    operations_stack.reverse();
 
-    for (id, block) in &program.blocks {
-        let mut done = false;
-        for instruction in &block.0 {
-            assert!(!done, "instructions after return in block {id:?}");
-            match instruction {
-                Instruction::Call(callable_id, operands, var) => {
-                    let callable = program
-                        .callables
-                        .get(*callable_id)
-                        .expect("callable should exist");
-
-                    let this_operations =
-                        map_callable_to_operations(&mut state, callable, operands, var.as_ref());
-
-                    operations.extend(this_operations);
+    while let Some(mut operation) = operations_stack.pop() {
+        if let Component::Unitary(unitary) = &mut operation {
+            if unitary.gate == "successor" {
+                let successor_block_id =
+                    BlockId(unitary.args[0].parse().expect("block id should parse"));
+                unitary.args.remove(0);
+                unitary.gate = "if ".into();
+                // TODO:  gate name & args are bogus
+                let successor_block = state
+                    .blocks
+                    .get(successor_block_id)
+                    .expect("successor block should exist");
+                for successor_operation in successor_block.operations.iter().rev() {
+                    operations_stack.push(successor_operation.clone());
                 }
-                Instruction::Icmp(condition_code, operand, operand1, _variable) => {
-                    match condition_code {
-                        ConditionCode::Eq => {
-                            let _result = result_from_operand(&state, operand);
-                            let _result1 = result_from_operand(&state, operand1);
-                            // state.link_variable_to_condition(_variable.variable_id);
-                            return Err(circuit::Error::ResultComparisonUnsupported);
-                        }
-                        ConditionCode::Ne => todo!(),
-                        ConditionCode::Slt => todo!(),
-                        ConditionCode::Sle => todo!(),
-                        ConditionCode::Sgt => todo!(),
-                        ConditionCode::Sge => todo!(),
+            }
+        }
+        operations.push(operation.clone());
+    }
+
+    let component_grid = operation_list_to_grid(
+        operations,
+        program
+            .num_qubits
+            .try_into()
+            .expect("num_qubits should fit in usize"),
+    );
+
+    let circuit = Circuit {
+        qubits: state.into_qubits(),
+        component_grid,
+    };
+    Ok(circuit)
+}
+
+#[must_use]
+fn expand_branch_children(state: &ProgramMap, operation: &mut Operation) -> bool {
+    if let Component::Unitary(unitary) = operation {
+        if unitary.gate == "branch" {
+            let block_id_1 = BlockId(unitary.args[0].parse().expect("block id should parse"));
+            let block_id_2 = BlockId(unitary.args[1].parse().expect("block id should parse"));
+            let cond_str = unitary.args[2].clone();
+            if let Some((branch_operations, targets)) =
+                operations_from_branch(state, block_id_1, block_id_2)
+            {
+                unitary.targets = targets;
+                unitary.children = branch_operations;
+                unitary.args = vec![block_id_2.0.to_string(), cond_str];
+                unitary.gate = "successor".to_string();
+            }
+            return true; // more work needed to fill in the branch children
+        }
+    }
+    false
+}
+
+#[derive(Clone)]
+struct CircuitBlock {
+    operations: Vec<Operation>,
+    successor: Option<BlockId>,
+}
+
+fn operations_in_block(
+    state: &mut ProgramMap,
+    callables: &IndexMap<qsc_partial_eval::CallableId, Callable>,
+    block: &Block,
+) -> Result<CircuitBlock, qsc_circuit::Error> {
+    let mut successor = None;
+    let mut operations = vec![];
+    let mut done = false;
+    for instruction in &block.0 {
+        assert!(!done, "instructions after return or jump in block");
+        match instruction {
+            Instruction::Call(callable_id, operands, var) => {
+                operations.extend(map_callable_to_operations(
+                    state,
+                    callables.get(*callable_id).expect("callable should exist"),
+                    operands,
+                    var.as_ref(),
+                ));
+            }
+            Instruction::Icmp(condition_code, operand, operand1, variable) => {
+                match condition_code {
+                    ConditionCode::Eq => {
+                        let expr_left = expr_from_operand(&*state, operand);
+                        let expr_right = expr_from_operand(&*state, operand1);
+                        let expr = eq_expr(expr_left, expr_right);
+                        state.store_expr_in_variable(variable.variable_id, expr);
                     }
+                    ConditionCode::Ne => todo!(),
+                    ConditionCode::Slt => todo!(),
+                    ConditionCode::Sle => todo!(),
+                    ConditionCode::Sgt => todo!(),
+                    ConditionCode::Sge => todo!(),
                 }
-                Instruction::Return => {
-                    done = true;
+            }
+            Instruction::Return => {
+                done = true;
+            }
+            Instruction::Branch(variable, block_id_1, block_id_2) => {
+                let (results, cond_str) = state.condition_for_variable(variable.variable_id);
+                assert!(
+                    !results.is_empty(),
+                    "branch variable should have at least one result"
+                );
+                let controls = results
+                    .into_iter()
+                    .map(|r| state.result_register(r))
+                    .collect();
+                operations.push(Component::Unitary(Unitary {
+                    gate: "branch".to_string(),
+                    args: vec![block_id_1.0.to_string(), block_id_2.0.to_string(), cond_str],
+                    children: vec![ComponentColumn {
+                        components: vec![Component::Unitary(Unitary {
+                            gate: "block_placeholder".to_string(),
+                            args: vec![],
+                            children: vec![],
+                            targets: vec![],
+                            controls: vec![],
+                            is_adjoint: false,
+                        })],
+                    }],
+                    targets: vec![],
+                    controls,
+                    is_adjoint: false,
+                }));
+            }
+            Instruction::Jump(block_id) => {
+                let old = successor.replace(*block_id);
+                assert!(old.is_none(), "block should not already have a successor");
+                done = true;
+            }
+            instruction => {
+                todo!("unsupported instruction in circuit generation: {instruction:?}");
+            }
+        }
+    }
+    Ok(CircuitBlock {
+        operations,
+        successor,
+    })
+}
+
+fn eq_expr(expr_left: ConditionExpr, expr_right: ConditionExpr) -> ConditionExpr {
+    match (expr_left, expr_right) {
+        (ConditionExpr::LiteralBool(b1), ConditionExpr::LiteralBool(b2)) => {
+            ConditionExpr::LiteralBool(b1 == b2)
+        }
+        (ConditionExpr::Result(r), ConditionExpr::LiteralBool(b))
+        | (ConditionExpr::LiteralBool(b), ConditionExpr::Result(r)) => {
+            if b {
+                ConditionExpr::Result(r)
+            } else {
+                ConditionExpr::NotResult(r)
+            }
+        }
+        (ConditionExpr::Result(left), ConditionExpr::Result(right)) => {
+            ConditionExpr::TwoResultCondition(TwoResultCondition {
+                results: (left, right),
+                filter: (true, false, false, true), // 00 and 11
+            })
+        }
+        (left, right) => {
+            todo!("unsupported equality expression combination: left={left:?}, right={right:?}")
+        }
+    }
+}
+
+/// Can only handle basic branches, if x { ... } without an else
+fn operations_from_branch(
+    state: &ProgramMap,
+    branch_block: BlockId,
+    merge_block: BlockId,
+) -> Option<(ComponentGrid, Vec<Register>)> {
+    let CircuitBlock {
+        operations: branch_operations,
+        successor: branch_successor,
+    } = state.blocks.get(branch_block).expect("block should exist");
+    let CircuitBlock {
+        operations: _,
+        successor: merge_successor,
+    } = state.blocks.get(merge_block).expect("block should exist");
+    assert!(
+        branch_successor.is_some_and(|c| c == merge_block),
+        "successor for branch block should be the merge block"
+    );
+    assert!(
+        merge_successor.is_none(),
+        "did not expect a successor for the merge block"
+    );
+
+    let mut seen = FxHashSet::default();
+    for op in branch_operations {
+        match op {
+            Operation::Measurement(measurement) => {
+                for q in &measurement.qubits {
+                    seen.insert((q.qubit, q.result));
                 }
-                instruction => {
-                    todo!("unsupported instruction in circuit generation: {instruction:?}");
+                for r in &measurement.results {
+                    seen.insert((r.qubit, r.result));
+                }
+            }
+            Operation::Unitary(unitary) => {
+                if unitary.gate == "branch" {
+                    // Skip this one for now, the branch block itself has an unexpanded branch
+                    return None;
+                }
+                for q in &unitary.targets {
+                    seen.insert((q.qubit, q.result));
+                }
+                for q in &unitary.controls {
+                    seen.insert((q.qubit, q.result));
+                }
+            }
+            Operation::Ket(ket) => {
+                for q in &ket.targets {
+                    seen.insert((q.qubit, q.result));
                 }
             }
         }
     }
 
-    let circuit = Circuit {
-        qubits: state.into_qubits(),
-        component_grid: operation_list_to_grid(
-            operations,
-            program
-                .num_qubits
-                .try_into()
-                .expect("num_qubits should fit in usize"),
-        ),
-    };
-    Ok(dbg!(circuit))
+    assert!(
+        !seen.iter().any(|(_, r)| r.is_some()),
+        "grouped operations in a branch should only touch qubit registers"
+    );
+
+    let component_grid_1 = operation_list_to_grid(branch_operations.clone(), seen.len());
+
+    // TODO: everything is a target. Don't know how else we would do this.
+
+    let targets = seen
+        .into_iter()
+        .map(|(q, r)| Register {
+            qubit: q,
+            result: r,
+        })
+        .collect();
+    Some((component_grid_1, targets))
 }
 
-fn result_from_operand(state: &QubitMap, operand: &Operand) -> u32 {
+fn expr_from_operand(state: &ProgramMap, operand: &Operand) -> ConditionExpr {
     match operand {
-        Operand::Literal(_literal) => todo!(),
-        Operand::Variable(variable) => state.result_for_variable(variable.variable_id),
+        Operand::Literal(literal) => match literal {
+            Literal::Result(r) => ConditionExpr::Result(*r),
+            Literal::Bool(b) => ConditionExpr::LiteralBool(*b),
+            _ => panic!("unsupported literal operand for expression: {literal:?}"),
+        },
+        Operand::Variable(variable) => state.expr_for_variable(variable.variable_id),
     }
 }
 
-struct QubitMap {
+struct ProgramMap {
     /// qubit decl, result idx -> result id
     qubits: Vec<(Qubit, Vec<u32>)>,
+    /// result id -> qubit id
+    results: IndexMap<usize, u32>,
     /// variable id -> result id
-    variables: IndexMap<VariableId, u32>,
+    variables: IndexMap<VariableId, ConditionExpr>,
+    /// block id -> (operations, successor)
+    blocks: IndexMap<BlockId, CircuitBlock>,
 }
 
-impl QubitMap {
+#[derive(Debug, Clone, Copy)]
+struct TwoResultCondition {
+    results: (u32, u32),
+    // 00, 01, 10, 11
+    filter: (bool, bool, bool, bool),
+}
+
+#[derive(Debug, Clone, Copy)]
+enum ConditionExpr {
+    Result(u32),
+    NotResult(u32),
+    TwoResultCondition(TwoResultCondition),
+    LiteralBool(bool),
+}
+
+impl ProgramMap {
     fn into_qubits(self) -> Vec<Qubit> {
         self.qubits
             .into_iter()
@@ -106,10 +363,18 @@ impl QubitMap {
                 })
                 .collect::<Vec<_>>(),
             variables: IndexMap::new(),
+            blocks: IndexMap::new(),
+            results: IndexMap::new(),
         }
     }
 
-    fn result_register(&mut self, qubit_id: u32, result_id: u32) -> Register {
+    fn result_register(&mut self, result_id: u32) -> Register {
+        let qubit_id = self
+            .results
+            .get(usize::try_from(result_id).expect("result id should fit into usize"))
+            .copied()
+            .expect("result should be linked to a qubit");
+
         let qubit_result_idx = self.link_result_to_qubit(qubit_id, result_id);
 
         Register {
@@ -118,14 +383,61 @@ impl QubitMap {
         }
     }
 
-    fn result_for_variable(&self, variable_id: VariableId) -> u32 {
+    fn expr_for_variable(&self, variable_id: VariableId) -> ConditionExpr {
         *self
             .variables
             .get(variable_id)
             .expect("variable should be linked to a result")
     }
 
+    fn condition_for_variable(&self, variable_id: VariableId) -> (Vec<u32>, String) {
+        let var_expr = *self
+            .variables
+            .get(variable_id)
+            .unwrap_or_else(|| panic!("variable {variable_id:?} should be linked to a result"));
+        let results = match var_expr {
+            ConditionExpr::Result(result_id) | ConditionExpr::NotResult(result_id) => {
+                vec![result_id]
+            }
+            ConditionExpr::TwoResultCondition(two_result_cond) => {
+                vec![two_result_cond.results.0, two_result_cond.results.1]
+            }
+            ConditionExpr::LiteralBool(_) => vec![],
+        };
+
+        let str = match var_expr {
+            ConditionExpr::Result(_) => "a = |1〉".to_string(),
+            ConditionExpr::NotResult(_) => "a = |0〉".to_string(),
+            ConditionExpr::LiteralBool(_) => todo!("did not expect a literal bool condition"),
+            ConditionExpr::TwoResultCondition(two_result_cond) => {
+                let (f00, f01, f10, f11) = two_result_cond.filter;
+                let mut conditions = vec![];
+                if f00 {
+                    conditions.push("ab = |00〉".to_string());
+                }
+                if f01 {
+                    conditions.push("ab = |01〉".to_string());
+                }
+                if f10 {
+                    conditions.push("ab = |10〉".to_string());
+                }
+                if f11 {
+                    conditions.push("ab = |11〉".to_string());
+                }
+                conditions.join(" or ")
+            }
+        };
+
+        (results, str)
+    }
+
     fn link_result_to_qubit(&mut self, qubit_id: u32, result_id: u32) -> usize {
+        self.results.insert(
+            result_id
+                .try_into()
+                .expect("result id should fit into usize"),
+            qubit_id,
+        );
         let result_ids_for_qubit =
             &mut self.qubits[usize::try_from(qubit_id).expect("qubit id should fit in usize")].1;
         let qubit_result_idx = result_ids_for_qubit
@@ -140,24 +452,26 @@ impl QubitMap {
         })
     }
 
-    fn link_variable_to_result(&mut self, result_id: u32, variable_id: VariableId) {
-        if let Some(old_result_id) = self.variables.get(variable_id) {
-            assert_eq!(
-                *old_result_id, result_id,
-                "variable {variable_id:?} already linked to result {old_result_id}, cannot link to {result_id}"
+    fn store_result_in_variable(&mut self, variable_id: VariableId, result_id: u32) {
+        if let Some(old_value) = self.variables.get(variable_id) {
+            panic!(
+                "variable {variable_id:?} already stored {old_value:?}, cannot store {result_id}"
             );
         }
-        self.variables.insert(variable_id, result_id);
+        self.variables
+            .insert(variable_id, ConditionExpr::Result(result_id));
     }
 
-    // fn link_variable_to_condition(&mut self, variable_id: VariableId) {
-    //     eprintln!("linking variable {variable_id:?} to condition");
-    //     // For now, we don't have a way to represent condition results in the circuit
-    // }
+    fn store_expr_in_variable(&mut self, variable_id: VariableId, expr: ConditionExpr) {
+        if let Some(old_value) = self.variables.get(variable_id) {
+            panic!("variable {variable_id:?} already stored {old_value:?}, cannot store {expr:?}");
+        }
+        self.variables.insert(variable_id, expr);
+    }
 }
 
 fn map_callable_to_operations(
-    state: &mut QubitMap,
+    state: &mut ProgramMap,
     callable: &Callable,
     operands: &Vec<Operand>,
     var: Option<&Variable>,
@@ -222,7 +536,7 @@ fn map_callable_to_operations(
                             Literal::Result(r) => {
                                 let var = var
                                     .expect("read_result must have a variable to store the result");
-                                state.link_variable_to_result(*r, var.variable_id);
+                                state.store_result_in_variable(var.variable_id, *r);
                             }
                             _ => todo!(),
                         },
@@ -316,7 +630,7 @@ fn callable_spec<'a>(
 }
 
 fn gather_measurement_operands(
-    state: &mut QubitMap,
+    state: &mut ProgramMap,
     operands: &Vec<Operand>,
 ) -> (Vec<Register>, Vec<Register>) {
     let mut qubit_registers = vec![];
@@ -338,7 +652,8 @@ fn gather_measurement_operands(
                 }
                 Literal::Result(r) => {
                     let q = *qubit_id.expect("measurement should have a qubit operand");
-                    let result_register = state.result_register(q, *r);
+                    state.link_result_to_qubit(q, *r);
+                    let result_register = state.result_register(*r);
                     result_registers.push(result_register);
                 }
                 Literal::Bool(_) => todo!(),

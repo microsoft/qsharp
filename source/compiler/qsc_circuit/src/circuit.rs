@@ -6,7 +6,12 @@ mod tests;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
-use std::{cmp, fmt::Display, fmt::Write, ops::Not, vec};
+use std::{
+    cmp::{self, max},
+    fmt::{Display, Write},
+    ops::Not,
+    vec,
+};
 
 /// Current format version.
 pub const CURRENT_VERSION: usize = 1;
@@ -458,7 +463,7 @@ impl Display for Circuit {
         self.initialize_rows(&mut rows, &mut register_to_row, &qubits_with_gap_row_below);
 
         // Add operations to the diagram
-        self.add_operations_to_diagram(&mut rows, &register_to_row);
+        Self::add_operations_to_diagram(1, &self.component_grid, &mut rows, &register_to_row);
 
         // Finalize the diagram by extending wires and formatting columns
         let columns = finalize_columns(&rows);
@@ -539,11 +544,14 @@ impl Circuit {
 
     /// Adds operations to the diagram.
     fn add_operations_to_diagram(
-        &self,
+        start_column: usize,
+        component_grid: &ComponentGrid,
         rows: &mut [Row],
         register_to_row: &FxHashMap<(usize, Option<usize>), usize>,
     ) {
-        for (col_index, col) in self.component_grid.iter().enumerate() {
+        let mut column = start_column;
+        let mut next_column = start_column;
+        for col in component_grid {
             for op in &col.components {
                 let targets = get_row_indexes(op, register_to_row, true);
                 let controls = get_row_indexes(op, register_to_row, false);
@@ -559,15 +567,39 @@ impl Circuit {
                     (*first, tail.last().unwrap_or(first) + 1)
                 });
 
-                let column = col_index + 1;
-
-                add_operation_to_rows(op, rows, &targets, &controls, column, begin, end);
+                let children = op.children();
+                if children.is_empty() {
+                    add_operation_to_rows(op, rows, &targets, &controls, column, begin, end);
+                    next_column = max(next_column, column + 1);
+                } else {
+                    let mut offset = 0;
+                    add_operation_box_start_to_rows(
+                        op,
+                        rows,
+                        &targets,
+                        &controls,
+                        column + offset,
+                        begin,
+                        end,
+                    );
+                    offset += 2;
+                    Self::add_operations_to_diagram(
+                        column + offset,
+                        children,
+                        rows,
+                        register_to_row,
+                    );
+                    offset += children.len();
+                    add_operation_box_end_to_rows(op, rows, &targets, column + offset);
+                    offset += 1;
+                    next_column = max(next_column, column + offset);
+                }
             }
+            column = next_column;
         }
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 /// Adds a single operation to the rows.
 fn add_operation_to_rows(
     operation: &Operation,
@@ -617,6 +649,81 @@ fn add_operation_to_rows(
         for row in &mut rows[begin..end] {
             row.add_dashed_vertical(column);
         }
+    }
+}
+
+fn add_operation_box_start_to_rows(
+    operation: &Operation,
+    rows: &mut [Row],
+    targets: &[usize],
+    controls: &[usize],
+    column: usize,
+    begin: usize,
+    end: usize,
+) {
+    assert!(
+        !operation.children().is_empty(),
+        "must only be called for an operation with children"
+    );
+    for i in targets {
+        let row = &mut rows[*i];
+        row.add_object(column, "[[");
+
+        let mut gate_label = String::new();
+        gate_label.push('[');
+        gate_label.push_str(&operation.gate());
+        if operation.is_adjoint() {
+            gate_label.push('\'');
+        }
+        let args = operation.args();
+        if !args.is_empty() {
+            let args = args.join(", ");
+            let _ = write!(&mut gate_label, "({args})");
+        }
+        gate_label.push(']');
+
+        row.add_object(column + 1, gate_label.as_str());
+    }
+
+    if operation.is_controlled() || operation.is_measurement() {
+        for i in controls {
+            let row = &mut rows[*i];
+            if matches!(row.wire, Wire::Qubit { .. }) && operation.is_measurement() {
+                row.add_object(column + 1, "M");
+            } else {
+                row.add_object(column + 1, "●");
+            }
+        }
+
+        // If we have a control wire, draw vertical lines spanning all
+        // control and target wires and crossing any in between
+        // (vertical lines may overlap if there are multiple controls/targets,
+        // this is ok in practice)
+        for row in &mut rows[begin..end] {
+            row.add_vertical(column + 1);
+        }
+    } else {
+        // No control wire. Draw dashed vertical lines to connect
+        // target wires if there are multiple targets
+        for row in &mut rows[begin..end] {
+            row.add_dashed_vertical(column + 1);
+        }
+    }
+}
+
+fn add_operation_box_end_to_rows(
+    operation: &Operation,
+    rows: &mut [Row],
+    targets: &[usize],
+    column: usize,
+) {
+    assert!(
+        !operation.children().is_empty(),
+        "must only be called for an operation with children"
+    );
+    for i in targets {
+        let row = &mut rows[*i];
+        row.add_object(column, "]]");
     }
 }
 
