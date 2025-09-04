@@ -1,0 +1,18 @@
+[package]
+name = "qdk_simulators"
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "8cd6fa698521ecf96d459f88254e53dd6e5d6877" }
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
