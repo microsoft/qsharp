@@ -6,7 +6,7 @@ use qsc_circuit::{
 use qsc_data_structures::index_map::IndexMap;
 use qsc_partial_eval::{
     Callable, CallableType, ConditionCode, Instruction, Literal, Operand, VariableId,
-    rir::{Block, BlockId, Program, Variable},
+    rir::{Block, BlockId, Program, Ty, Variable},
 };
 use rustc_hash::FxHashSet;
 
@@ -74,6 +74,10 @@ pub(crate) fn make_circuit(program: &Program) -> std::result::Result<Circuit, ci
                 for successor_operation in successor_block.operations.iter().rev() {
                     operations_stack.push(successor_operation.clone());
                 }
+                if unitary.children.is_empty() {
+                    // empty block, skip adding
+                    continue;
+                }
             }
         }
         operations.push(operation.clone());
@@ -120,6 +124,7 @@ fn expand_branch_children(
 
 #[derive(Clone)]
 struct CircuitBlock {
+    predecessors: Vec<BlockId>,
     operations: Vec<Operation>,
     successor: Option<BlockId>,
 }
@@ -130,6 +135,7 @@ fn operations_in_block(
     block: &Block,
 ) -> Result<CircuitBlock, qsc_circuit::Error> {
     let mut successor = None;
+    let mut predecessors = vec![];
     let mut operations = vec![];
     let mut done = false;
     for instruction in &block.0 {
@@ -204,6 +210,13 @@ fn operations_in_block(
                 }
                 done = true;
             }
+            Instruction::Phi(pre, _) => {
+                // leave the variable unassigned, we  don't know how to handle predecessors yet
+                predecessors.extend(pre.iter().map(|p| p.1));
+            }
+            Instruction::Add(_, _, _) => {
+                // Just leave the variable unassigned, we don't need to represent arithmetic in the circuit
+            }
             instruction => {
                 return Err(qsc_circuit::Error::UnsupportedFeature(format!(
                     "unsupported instruction in block: {instruction:?}"
@@ -212,6 +225,7 @@ fn operations_in_block(
         }
     }
     Ok(CircuitBlock {
+        predecessors,
         operations,
         successor,
     })
@@ -247,19 +261,22 @@ fn eq_expr(
     })
 }
 
+type BranchOperations = (ComponentGrid, Vec<Register>);
+
 /// Can only handle basic branches, if x { ... } without an else
 fn operations_from_branch(
     state: &ProgramMap,
     branch_block: BlockId,
     merge_block: BlockId,
-) -> Result<Option<(ComponentGrid, Vec<Register>)>, qsc_circuit::Error> {
+) -> Result<Option<BranchOperations>, qsc_circuit::Error> {
     let CircuitBlock {
         operations: branch_operations,
         successor: branch_successor,
+        ..
     } = state.blocks.get(branch_block).expect("block should exist");
     let CircuitBlock {
-        operations: _,
         successor: merge_successor,
+        ..
     } = state.blocks.get(merge_block).expect("block should exist");
     if branch_successor.is_none_or(|c| c != merge_block) {
         return Err(qsc_circuit::Error::UnsupportedFeature(
@@ -632,12 +649,23 @@ fn callable_spec<'a>(
         "__quantum__qis__x__body" => ("X", vec![QubitOperandType::Target]),
         "__quantum__qis__y__body" => ("Y", vec![QubitOperandType::Target]),
         "__quantum__qis__z__body" => ("Z", vec![QubitOperandType::Target]),
+        "__quantum__qis__s__body" => ("S", vec![QubitOperandType::Target]),
+        "__quantum__qis__s__adj" => ("S'", vec![QubitOperandType::Target]),
         "__quantum__qis__h__body" => ("H", vec![QubitOperandType::Target]),
         "__quantum__qis__rx__body" => ("Rx", vec![QubitOperandType::Arg, QubitOperandType::Target]),
         "__quantum__qis__ry__body" => ("Ry", vec![QubitOperandType::Arg, QubitOperandType::Target]),
+        "__quantum__qis__rz__body" => ("Rz", vec![QubitOperandType::Arg, QubitOperandType::Target]),
         // multi-qubit gates
         "__quantum__qis__cx__body" => (
             "X",
+            vec![QubitOperandType::Control, QubitOperandType::Target],
+        ),
+        "__quantum__qis__cy__body" => (
+            "Y",
+            vec![QubitOperandType::Control, QubitOperandType::Target],
+        ),
+        "__quantum__qis__cz__body" => (
+            "Z",
             vec![QubitOperandType::Control, QubitOperandType::Target],
         ),
         "__quantum__qis__ccx__body" => (
