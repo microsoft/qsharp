@@ -475,8 +475,14 @@ impl QuantumSim {
             .id_map
             .get(qubit2)
             .unwrap_or_else(|| panic!("Unable to find qubit with id {qubit2}"));
-        *self.id_map.get_mut(qubit1).unwrap() = qubit2_mapped;
-        *self.id_map.get_mut(qubit2).unwrap() = qubit1_mapped;
+        *self
+            .id_map
+            .get_mut(qubit1)
+            .expect("failed to find qubit1 in id_map") = qubit2_mapped;
+        *self
+            .id_map
+            .get_mut(qubit2)
+            .expect("failed to find qubit2 in id_map") = qubit1_mapped;
     }
 
     /// Swaps the states of two qubits throughout the sparse state map.
@@ -1194,7 +1200,13 @@ impl QuantumSim {
                 .for_each(|(index, &element)| targets.insert(index, element));
 
             // Extend the provided unitary by inserting it into an identity matrix.
-            unitary = controlled(&unitary, ctrls.len().try_into().unwrap());
+            unitary = controlled(
+                &unitary,
+                ctrls
+                    .len()
+                    .try_into()
+                    .expect("failed to convert the number of controls to u32"),
+            );
         }
         Self::check_for_duplicates(&targets);
 
@@ -1213,11 +1225,17 @@ impl QuantumSim {
                     .id_map
                     .iter()
                     .find(|&(_, &value)| value == target_loc)
-                    .unwrap()
+                    .expect("failed to find a swap ID for the given target location")
                     .0;
                 self.swap_qubit_state(loc, target_loc);
-                *(self.id_map.get_mut(swap_id).unwrap()) = loc;
-                *(self.id_map.get_mut(*target).unwrap()) = target_loc;
+                *(self
+                    .id_map
+                    .get_mut(swap_id)
+                    .expect("failed to find swap_id in id_map")) = loc;
+                *(self
+                    .id_map
+                    .get_mut(*target)
+                    .expect("failed to find target in id_map")) = target_loc;
             });
 
         let op_size = unitary.nrows();
@@ -1986,7 +2004,9 @@ mod tests {
         let (state, count) = sim.get_state();
         assert_eq!(count, 1);
         assert_eq!(state.len(), 1);
-        let (index, value) = state.first().unwrap();
+        let (index, value) = state
+            .first()
+            .expect("state vector is empty, expected at least one entry.");
         assert_eq!(index, &BigUint::zero());
         assert_eq!(value, &Complex64::one());
     }

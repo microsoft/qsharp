@@ -309,7 +309,10 @@ mod tests {
         // Sparse state vector should have one entry for |0⟩.
         assert_eq!(sim.state.len(), 1);
         // If the operations are equal including the phase, the entry should be 1.
-        assert!((sim.state.first().unwrap().1 - Complex64::one()).is_nearly_zero());
+        assert!(
+            (sim.state.first().expect("state vector is empty").1 - Complex64::one())
+                .is_nearly_zero()
+        );
     }
 
     #[test]
