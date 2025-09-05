@@ -41,15 +41,15 @@ fn unitary_call_within_a_for_loop() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Variable(0, Integer) = Store Integer(1)
-                Call id(1), args( Qubit(0), )
-                Variable(0, Integer) = Store Integer(2)
-                Call id(1), args( Qubit(0), )
-                Variable(0, Integer) = Store Integer(3)
-                Call id(1), args( Qubit(0), )
-                Variable(0, Integer) = Store Integer(4)
-                Call id(2), args( Integer(0), Pointer, )
-                Return"#]],
+                Variable(0, Integer) = Store Integer(1) !dbg package_id=2 span=[163-167]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[182-184]
+                Variable(0, Integer) = Store Integer(2) !dbg package_id=2 span=[163-167]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[182-184]
+                Variable(0, Integer) = Store Integer(3) !dbg package_id=2 span=[163-167]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[182-184]
+                Variable(0, Integer) = Store Integer(4) !dbg package_id=2 span=[163-167]
+                Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[105-109]
+                Return !dbg package_id=2 span=[105-109]"#]],
     );
 }
 
@@ -90,15 +90,15 @@ fn unitary_call_within_a_while_loop() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Variable(0, Integer) = Store Integer(0)
-                Call id(1), args( Qubit(0), )
-                Variable(0, Integer) = Store Integer(1)
-                Call id(1), args( Qubit(0), )
-                Variable(0, Integer) = Store Integer(2)
-                Call id(1), args( Qubit(0), )
-                Variable(0, Integer) = Store Integer(3)
-                Call id(2), args( Integer(0), Pointer, )
-                Return"#]],
+                Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[162-165]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[207-209]
+                Variable(0, Integer) = Store Integer(1) !dbg package_id=2 span=[230-233]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[207-209]
+                Variable(0, Integer) = Store Integer(2) !dbg package_id=2 span=[230-233]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[207-209]
+                Variable(0, Integer) = Store Integer(3) !dbg package_id=2 span=[230-233]
+                Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[105-109]
+                Return !dbg package_id=2 span=[105-109]"#]],
     );
 }
 
@@ -139,19 +139,19 @@ fn unitary_call_within_a_repeat_until_loop() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Variable(0, Integer) = Store Integer(0)
-                Variable(1, Boolean) = Store Bool(true)
-                Call id(1), args( Qubit(0), )
-                Variable(0, Integer) = Store Integer(1)
-                Variable(1, Boolean) = Store Bool(true)
-                Call id(1), args( Qubit(0), )
-                Variable(0, Integer) = Store Integer(2)
-                Variable(1, Boolean) = Store Bool(true)
-                Call id(1), args( Qubit(0), )
-                Variable(0, Integer) = Store Integer(3)
-                Variable(1, Boolean) = Store Bool(false)
-                Call id(2), args( Integer(0), Pointer, )
-                Return"#]],
+                Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[162-165]
+                Variable(1, Boolean) = Store Bool(true) !dbg package_id=2 span=[249-257]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[200-202]
+                Variable(0, Integer) = Store Integer(1) !dbg package_id=2 span=[223-226]
+                Variable(1, Boolean) = Store Bool(true) !dbg package_id=2 span=[249-257]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[200-202]
+                Variable(0, Integer) = Store Integer(2) !dbg package_id=2 span=[223-226]
+                Variable(1, Boolean) = Store Bool(true) !dbg package_id=2 span=[249-257]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[200-202]
+                Variable(0, Integer) = Store Integer(3) !dbg package_id=2 span=[223-226]
+                Variable(1, Boolean) = Store Bool(false) !dbg package_id=2 span=[249-257]
+                Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[105-109]
+                Return !dbg package_id=2 span=[105-109]"#]],
     );
 }
 
@@ -191,15 +191,15 @@ fn rotation_call_within_a_for_loop() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Variable(0, Integer) = Store Integer(0)
-                Call id(1), args( Double(0), Qubit(0), )
-                Variable(0, Integer) = Store Integer(1)
-                Call id(1), args( Double(1), Qubit(0), )
-                Variable(0, Integer) = Store Integer(2)
-                Call id(1), args( Double(2), Qubit(0), )
-                Variable(0, Integer) = Store Integer(3)
-                Call id(2), args( Integer(0), Pointer, )
-                Return"#]],
+                Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[189-204]
+                Call id(1), args( Double(0), Qubit(0), ) !dbg package_id=2 span=[219-227]
+                Variable(0, Integer) = Store Integer(1) !dbg package_id=2 span=[189-204]
+                Call id(1), args( Double(1), Qubit(0), ) !dbg package_id=2 span=[219-227]
+                Variable(0, Integer) = Store Integer(2) !dbg package_id=2 span=[189-204]
+                Call id(1), args( Double(2), Qubit(0), ) !dbg package_id=2 span=[219-227]
+                Variable(0, Integer) = Store Integer(3) !dbg package_id=2 span=[189-204]
+                Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[127-131]
+                Return !dbg package_id=2 span=[127-131]"#]],
     );
 }
 
@@ -242,15 +242,15 @@ fn rotation_call_within_a_while_loop() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Variable(0, Integer) = Store Integer(0)
-                Call id(1), args( Double(0), Qubit(0), )
-                Variable(0, Integer) = Store Integer(1)
-                Call id(1), args( Double(1), Qubit(0), )
-                Variable(0, Integer) = Store Integer(2)
-                Call id(1), args( Double(2), Qubit(0), )
-                Variable(0, Integer) = Store Integer(3)
-                Call id(2), args( Integer(0), Pointer, )
-                Return"#]],
+                Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[222-225]
+                Call id(1), args( Double(0), Qubit(0), ) !dbg package_id=2 span=[267-275]
+                Variable(0, Integer) = Store Integer(1) !dbg package_id=2 span=[309-312]
+                Call id(1), args( Double(1), Qubit(0), ) !dbg package_id=2 span=[267-275]
+                Variable(0, Integer) = Store Integer(2) !dbg package_id=2 span=[309-312]
+                Call id(1), args( Double(2), Qubit(0), ) !dbg package_id=2 span=[267-275]
+                Variable(0, Integer) = Store Integer(3) !dbg package_id=2 span=[309-312]
+                Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[127-131]
+                Return !dbg package_id=2 span=[127-131]"#]],
     );
 }
 
@@ -293,19 +293,19 @@ fn rotation_call_within_a_repeat_until_loop() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Variable(0, Integer) = Store Integer(0)
-                Variable(1, Boolean) = Store Bool(true)
-                Call id(1), args( Double(0), Qubit(0), )
-                Variable(0, Integer) = Store Integer(1)
-                Variable(1, Boolean) = Store Bool(true)
-                Call id(1), args( Double(1), Qubit(0), )
-                Variable(0, Integer) = Store Integer(2)
-                Variable(1, Boolean) = Store Bool(true)
-                Call id(1), args( Double(2), Qubit(0), )
-                Variable(0, Integer) = Store Integer(3)
-                Variable(1, Boolean) = Store Bool(false)
-                Call id(2), args( Integer(0), Pointer, )
-                Return"#]],
+                Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[222-225]
+                Variable(1, Boolean) = Store Bool(true) !dbg package_id=2 span=[328-336]
+                Call id(1), args( Double(0), Qubit(0), ) !dbg package_id=2 span=[260-268]
+                Variable(0, Integer) = Store Integer(1) !dbg package_id=2 span=[302-305]
+                Variable(1, Boolean) = Store Bool(true) !dbg package_id=2 span=[328-336]
+                Call id(1), args( Double(1), Qubit(0), ) !dbg package_id=2 span=[260-268]
+                Variable(0, Integer) = Store Integer(2) !dbg package_id=2 span=[302-305]
+                Variable(1, Boolean) = Store Bool(true) !dbg package_id=2 span=[328-336]
+                Call id(1), args( Double(2), Qubit(0), ) !dbg package_id=2 span=[260-268]
+                Variable(0, Integer) = Store Integer(3) !dbg package_id=2 span=[302-305]
+                Variable(1, Boolean) = Store Bool(false) !dbg package_id=2 span=[328-336]
+                Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[127-131]
+                Return !dbg package_id=2 span=[127-131]"#]],
     );
 }
 
@@ -333,15 +333,15 @@ fn mutable_bool_updated_in_loop() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Variable(0, Boolean) = Store Bool(false)
-                Variable(1, Integer) = Store Integer(1)
-                Call id(1), args( Qubit(0), Result(0), )
-                Variable(2, Boolean) = Call id(2), args( Result(0), )
-                Variable(3, Boolean) = Store Variable(2, Boolean)
-                Variable(0, Boolean) = Store Variable(3, Boolean)
-                Variable(1, Integer) = Store Integer(2)
-                Variable(4, Boolean) = LogicalNot Variable(0, Boolean)
-                Branch Variable(4, Boolean), 2, 1"#]],
+                Variable(0, Boolean) = Store Bool(false) !dbg package_id=2 span=[107-111]
+                Variable(1, Integer) = Store Integer(1) !dbg package_id=2 span=[138-142]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Variable(2, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[198-215]
+                Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[198-215]
+                Variable(0, Boolean) = Store Variable(3, Boolean) !dbg package_id=2 span=[191-195]
+                Variable(1, Integer) = Store Integer(2) !dbg package_id=2 span=[138-142]
+                Variable(4, Boolean) = LogicalNot Variable(0, Boolean) !dbg package_id=2 span=[160-168]
+                Branch Variable(4, Boolean), 2, 1 !dbg package_id=2 span=[160-168]"#]],
     );
 }
 
@@ -369,12 +369,12 @@ fn mutable_int_updated_in_loop() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Variable(0, Integer) = Store Integer(1)
-                Variable(1, Integer) = Store Integer(1)
-                Call id(1), args( Qubit(0), Result(0), )
-                Variable(2, Boolean) = Call id(2), args( Result(0), )
-                Variable(3, Boolean) = Store Variable(2, Boolean)
-                Branch Variable(3, Boolean), 2, 1"#]],
+                Variable(0, Integer) = Store Integer(1) !dbg package_id=2 span=[107-112]
+                Variable(1, Integer) = Store Integer(1) !dbg package_id=2 span=[135-139]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Variable(2, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[171-188]
+                Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[171-188]
+                Branch Variable(3, Boolean), 2, 1 !dbg package_id=2 span=[157-188]"#]],
     );
 }
 
@@ -403,52 +403,52 @@ fn mutable_double_updated_in_loop() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Variable(0, Double) = Store Double(1.1)
-                Variable(1, Integer) = Store Integer(1)
-                Call id(1), args( Qubit(0), Result(0), )
-                Variable(2, Boolean) = Call id(2), args( Result(0), )
-                Variable(3, Boolean) = Store Variable(2, Boolean)
-                Branch Variable(3, Boolean), 2, 1
+                Variable(0, Double) = Store Double(1.1) !dbg package_id=2 span=[107-112]
+                Variable(1, Integer) = Store Integer(1) !dbg package_id=2 span=[137-141]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Variable(2, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[175-192]
+                Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[175-192]
+                Branch Variable(3, Boolean), 2, 1 !dbg package_id=2 span=[159-192]
             Block 1:Block:
-                Variable(1, Integer) = Store Integer(2)
-                Variable(4, Boolean) = Fcmp Ogt, Variable(0, Double), Double(0.1)
-                Variable(5, Boolean) = Store Bool(false)
-                Branch Variable(4, Boolean), 4, 3
+                Variable(1, Integer) = Store Integer(2) !dbg package_id=2 span=[137-141]
+                Variable(4, Boolean) = Fcmp Ogt, Variable(0, Double), Double(0.1) !dbg package_id=2 span=[159-170]
+                Variable(5, Boolean) = Store Bool(false) !dbg package_id=2 span=[175-192]
+                Branch Variable(4, Boolean), 4, 3 !dbg package_id=2 span=[175-192]
             Block 2:Block:
-                Variable(0, Double) = Store Double(-1.1)
-                Jump(1)
+                Variable(0, Double) = Store Double(-1.1) !dbg package_id=2 span=[215-220]
+                Jump(1) !dbg package_id=2 span=[193-244]
             Block 3:Block:
-                Branch Variable(5, Boolean), 6, 5
+                Branch Variable(5, Boolean), 6, 5 !dbg package_id=2 span=[159-192]
             Block 4:Block:
-                Call id(1), args( Qubit(0), Result(1), )
-                Variable(6, Boolean) = Call id(2), args( Result(1), )
-                Variable(7, Boolean) = Store Variable(6, Boolean)
-                Variable(5, Boolean) = Store Variable(7, Boolean)
-                Jump(3)
+                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Variable(6, Boolean) = Call id(2), args( Result(1), ) !dbg package_id=2 span=[175-192]
+                Variable(7, Boolean) = Store Variable(6, Boolean) !dbg package_id=2 span=[175-192]
+                Variable(5, Boolean) = Store Variable(7, Boolean) !dbg package_id=2 span=[175-192]
+                Jump(3) !dbg package_id=2 span=[175-192]
             Block 5:Block:
-                Variable(1, Integer) = Store Integer(3)
-                Variable(9, Boolean) = Fcmp Ogt, Variable(0, Double), Double(0.1)
-                Variable(10, Boolean) = Store Bool(false)
-                Branch Variable(9, Boolean), 8, 7
+                Variable(1, Integer) = Store Integer(3) !dbg package_id=2 span=[137-141]
+                Variable(9, Boolean) = Fcmp Ogt, Variable(0, Double), Double(0.1) !dbg package_id=2 span=[159-170]
+                Variable(10, Boolean) = Store Bool(false) !dbg package_id=2 span=[175-192]
+                Branch Variable(9, Boolean), 8, 7 !dbg package_id=2 span=[175-192]
             Block 6:Block:
-                Variable(8, Double) = Fmul Double(-1), Variable(0, Double)
-                Variable(0, Double) = Store Variable(8, Double)
-                Jump(5)
+                Variable(8, Double) = Fmul Double(-1), Variable(0, Double) !dbg package_id=2 span=[223-229]
+                Variable(0, Double) = Store Variable(8, Double) !dbg package_id=2 span=[215-220]
+                Jump(5) !dbg package_id=2 span=[193-244]
             Block 7:Block:
-                Branch Variable(10, Boolean), 10, 9
+                Branch Variable(10, Boolean), 10, 9 !dbg package_id=2 span=[159-192]
             Block 8:Block:
-                Call id(1), args( Qubit(0), Result(2), )
-                Variable(11, Boolean) = Call id(2), args( Result(2), )
-                Variable(12, Boolean) = Store Variable(11, Boolean)
-                Variable(10, Boolean) = Store Variable(12, Boolean)
-                Jump(7)
+                Call id(1), args( Qubit(0), Result(2), ) !dbg package_id=1 span=[182985-183014]
+                Variable(11, Boolean) = Call id(2), args( Result(2), ) !dbg package_id=2 span=[175-192]
+                Variable(12, Boolean) = Store Variable(11, Boolean) !dbg package_id=2 span=[175-192]
+                Variable(10, Boolean) = Store Variable(12, Boolean) !dbg package_id=2 span=[175-192]
+                Jump(7) !dbg package_id=2 span=[175-192]
             Block 9:Block:
-                Variable(1, Integer) = Store Integer(4)
-                Call id(3), args( Integer(0), Pointer, )
-                Return
+                Variable(1, Integer) = Store Integer(4) !dbg package_id=2 span=[137-141]
+                Call id(3), args( Integer(0), Pointer, ) !dbg package_id=2 span=[50-54]
+                Return !dbg package_id=2 span=[50-54]
             Block 10:Block:
-                Variable(13, Double) = Fmul Double(-1), Variable(0, Double)
-                Variable(0, Double) = Store Variable(13, Double)
-                Jump(9)"#]],
+                Variable(13, Double) = Fmul Double(-1), Variable(0, Double) !dbg package_id=2 span=[223-229]
+                Variable(0, Double) = Store Variable(13, Double) !dbg package_id=2 span=[215-220]
+                Jump(9) !dbg package_id=2 span=[193-244]"#]],
     );
 }

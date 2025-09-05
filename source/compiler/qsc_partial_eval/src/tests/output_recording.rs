@@ -71,13 +71,13 @@ fn output_recording_for_tuple_of_different_types() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Qubit(0), Result(0), )
-                    Variable(0, Boolean) = Call id(2), args( Result(0), )
-                    Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
-                    Call id(3), args( Integer(2), Pointer, )
-                    Call id(4), args( Result(0), Pointer, )
-                    Call id(5), args( Variable(1, Boolean), Pointer, )
-                    Return
+                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[117-160]
+                    Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[177-186]
+                    Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[177-186]
+                    Call id(3), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(4), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(5), args( Variable(1, Boolean), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Return !dbg package_id=2 span=[50-54]
             config: Config:
                 capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 1
@@ -151,19 +151,19 @@ fn output_recording_for_nested_tuples() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Qubit(0), Result(0), )
-                    Variable(0, Boolean) = Call id(2), args( Result(0), )
-                    Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
-                    Variable(2, Boolean) = Call id(2), args( Result(0), )
-                    Variable(3, Boolean) = Store Variable(2, Boolean)
-                    Call id(3), args( Integer(3), Pointer, )
-                    Call id(4), args( Result(0), Pointer, )
-                    Call id(3), args( Integer(2), Pointer, )
-                    Call id(5), args( Variable(1, Boolean), Pointer, )
-                    Call id(4), args( Result(0), Pointer, )
-                    Call id(3), args( Integer(1), Pointer, )
-                    Call id(5), args( Variable(3, Boolean), Pointer, )
-                    Return
+                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[136-179]
+                    Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[197-206]
+                    Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[197-206]
+                    Variable(2, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[213-221]
+                    Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[213-221]
+                    Call id(3), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(4), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(3), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(5), args( Variable(1, Boolean), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(4), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(3), args( Integer(1), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(5), args( Variable(3, Boolean), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Return !dbg package_id=2 span=[50-54]
             config: Config:
                 capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 1
@@ -247,17 +247,17 @@ fn output_recording_for_tuple_of_arrays() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Qubit(0), Result(0), )
-                    Variable(0, Boolean) = Call id(2), args( Result(0), )
-                    Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
-                    Variable(2, Boolean) = Call id(2), args( Result(0), )
-                    Variable(3, Boolean) = Store Variable(2, Boolean)
-                    Call id(3), args( Integer(2), Pointer, )
-                    Call id(4), args( Result(0), Pointer, )
-                    Call id(5), args( Integer(2), Pointer, )
-                    Call id(6), args( Variable(1, Boolean), Pointer, )
-                    Call id(6), args( Variable(3, Boolean), Pointer, )
-                    Return
+                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[119-162]
+                    Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[180-189]
+                    Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[180-189]
+                    Variable(2, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[191-199]
+                    Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[191-199]
+                    Call id(3), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(4), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(5), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(6), args( Variable(1, Boolean), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(6), args( Variable(3, Boolean), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Return !dbg package_id=2 span=[50-54]
             config: Config:
                 capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 1
@@ -339,19 +339,19 @@ fn output_recording_for_array_of_tuples() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Qubit(0), Result(0), )
-                    Variable(0, Boolean) = Call id(2), args( Result(0), )
-                    Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
-                    Variable(2, Boolean) = Call id(2), args( Result(0), )
-                    Variable(3, Boolean) = Store Variable(2, Boolean)
-                    Call id(3), args( Integer(2), Pointer, )
-                    Call id(4), args( Integer(2), Pointer, )
-                    Call id(5), args( Result(0), Pointer, )
-                    Call id(6), args( Variable(1, Boolean), Pointer, )
-                    Call id(4), args( Integer(2), Pointer, )
-                    Call id(5), args( Result(0), Pointer, )
-                    Call id(6), args( Variable(3, Boolean), Pointer, )
-                    Return
+                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[119-162]
+                    Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[180-189]
+                    Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[180-189]
+                    Variable(2, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[196-204]
+                    Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[196-204]
+                    Call id(3), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(4), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(5), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(6), args( Variable(1, Boolean), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(4), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(5), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(6), args( Variable(3, Boolean), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Return !dbg package_id=2 span=[50-54]
             config: Config:
                 capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 1
@@ -392,8 +392,8 @@ fn output_recording_for_literal_bool() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Bool(true), Pointer, )
-                    Return
+                    Call id(1), args( Bool(true), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Return !dbg package_id=2 span=[50-54]
             config: Config:
                 capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 0
@@ -434,8 +434,8 @@ fn output_recording_for_literal_double() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Double(42.1), Pointer, )
-                    Return
+                    Call id(1), args( Double(42.1), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Return !dbg package_id=2 span=[50-54]
             config: Config:
                 capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 0
@@ -476,8 +476,8 @@ fn output_recording_for_literal_int() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Integer(42), Pointer, )
-                    Return
+                    Call id(1), args( Integer(42), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Return !dbg package_id=2 span=[50-54]
             config: Config:
                 capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 0
@@ -544,11 +544,11 @@ fn output_recording_for_mix_of_literal_and_variable() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Qubit(0), Result(0), )
-                    Call id(2), args( Integer(2), Pointer, )
-                    Call id(3), args( Result(0), Pointer, )
-                    Call id(4), args( Bool(true), Pointer, )
-                    Return
+                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[117-160]
+                    Call id(2), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Call id(4), args( Bool(true), Pointer, ) !dbg package_id=2 span=[50-54]
+                    Return !dbg package_id=2 span=[50-54]
             config: Config:
                 capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 1

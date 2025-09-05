@@ -35,9 +35,9 @@ fn call_to_intrinsic_operation_using_double_literal() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Double(1), )
-                Call id(2), args( Integer(0), Pointer, )
-                Return"#]],
+                Call id(1), args( Double(1), ) !dbg package_id=2 span=[130-132]
+                Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[106-110]
+                Return !dbg package_id=2 span=[106-110]"#]],
     );
 }
 
@@ -73,11 +73,11 @@ fn calls_to_intrinsic_operation_using_inline_expressions() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Double(0), )
-                Call id(1), args( Double(1), )
-                Call id(1), args( Double(1), )
-                Call id(2), args( Integer(0), Pointer, )
-                Return"#]],
+                Call id(1), args( Double(0), ) !dbg package_id=2 span=[169-171]
+                Call id(1), args( Double(1), ) !dbg package_id=2 span=[196-198]
+                Call id(1), args( Double(1), ) !dbg package_id=2 span=[221-223]
+                Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[145-149]
+                Return !dbg package_id=2 span=[145-149]"#]],
     );
 }
 
@@ -116,12 +116,12 @@ fn calls_to_intrinsic_operation_using_variables() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Double(2), )
-                Variable(0, Double) = Store Double(4)
-                Call id(1), args( Double(4), )
-                Variable(0, Double) = Store Double(8)
-                Call id(1), args( Double(8), )
-                Call id(2), args( Integer(0), Pointer, )
-                Return"#]],
+                Call id(1), args( Double(2), ) !dbg package_id=2 span=[188-190]
+                Variable(0, Double) = Store Double(4) !dbg package_id=2 span=[221-225]
+                Call id(1), args( Double(4), ) !dbg package_id=2 span=[246-248]
+                Variable(0, Double) = Store Double(8) !dbg package_id=2 span=[268-272]
+                Call id(1), args( Double(8), ) !dbg package_id=2 span=[293-295]
+                Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[106-110]
+                Return !dbg package_id=2 span=[106-110]"#]],
     );
 }

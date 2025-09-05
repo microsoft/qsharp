@@ -72,13 +72,13 @@ fn array_with_dynamic_content() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Call id(1), args( Qubit(1), Result(1), )
-            Call id(2), args( Integer(2), Pointer, )
-            Call id(3), args( Result(0), Pointer, )
-            Call id(3), args( Result(1), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(2), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
+                Return !dbg package_id=2 span=[50-54]"#]],
     );
 }
 
@@ -140,13 +140,13 @@ fn array_with_hybrid_content() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Store Variable(0, Boolean)
-                Call id(3), args( Integer(2), Pointer, )
-                Call id(4), args( Bool(true), Pointer, )
-                Call id(4), args( Variable(1, Boolean), Pointer, )
-                Return"#]],
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[136-144]
+                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[136-144]
+                Call id(3), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(4), args( Bool(true), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(4), args( Variable(1, Boolean), Pointer, ) !dbg package_id=2 span=[50-54]
+                Return !dbg package_id=2 span=[50-54]"#]],
     );
 }
 
@@ -207,12 +207,12 @@ fn array_repeat_with_dynamic_content() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Call id(2), args( Integer(2), Pointer, )
-            Call id(3), args( Result(0), Pointer, )
-            Call id(3), args( Result(0), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(2), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
+                Return !dbg package_id=2 span=[50-54]"#]],
     );
 }
 
@@ -261,10 +261,10 @@ fn result_array_value_at_index() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(2), args( Result(1), Pointer, )
-                Return"#]],
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(2), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
+                Return !dbg package_id=2 span=[50-54]"#]],
     );
 }
 
@@ -285,10 +285,10 @@ fn result_array_value_at_negative_index_works() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(2), args( Result(1), Pointer, )
-                Return"#]],
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(2), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
+                Return !dbg package_id=2 span=[50-54]"#]],
     );
 }
 
@@ -371,16 +371,16 @@ fn result_array_slice_with_explicit_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(1), args( Qubit(3), Result(3), )
-                Call id(1), args( Qubit(4), Result(4), )
-                Call id(2), args( Integer(3), Pointer, )
-                Call id(3), args( Result(0), Pointer, )
-                Call id(3), args( Result(2), Pointer, )
-                Call id(3), args( Result(4), Pointer, )
-                Return"#]],
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=1 span=[182985-183014]
+                Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(4), Pointer, ) !dbg package_id=2 span=[50-54]
+                Return !dbg package_id=2 span=[50-54]"#]],
     );
 }
 
@@ -443,13 +443,13 @@ fn result_array_slice_with_open_start_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(2), args( Integer(2), Pointer, )
-                Call id(3), args( Result(0), Pointer, )
-                Call id(3), args( Result(1), Pointer, )
-                Return"#]],
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=1 span=[182985-183014]
+                Call id(2), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
+                Return !dbg package_id=2 span=[50-54]"#]],
     );
 }
 
@@ -512,13 +512,13 @@ fn result_array_slice_with_open_ended_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(2), args( Integer(2), Pointer, )
-                Call id(3), args( Result(1), Pointer, )
-                Call id(3), args( Result(2), Pointer, )
-                Return"#]],
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=1 span=[182985-183014]
+                Call id(2), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                Return !dbg package_id=2 span=[50-54]"#]],
     );
 }
 
@@ -581,16 +581,16 @@ fn result_array_slice_with_open_two_step_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(1), args( Qubit(3), Result(3), )
-                Call id(1), args( Qubit(4), Result(4), )
-                Call id(2), args( Integer(3), Pointer, )
-                Call id(3), args( Result(0), Pointer, )
-                Call id(3), args( Result(2), Pointer, )
-                Call id(3), args( Result(4), Pointer, )
-                Return"#]],
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=1 span=[182985-183014]
+                Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(4), Pointer, ) !dbg package_id=2 span=[50-54]
+                Return !dbg package_id=2 span=[50-54]"#]],
     );
 }
 
@@ -673,15 +673,15 @@ fn result_array_copy_and_update_with_single_index() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(1), args( Qubit(3), Result(3), )
-                Call id(2), args( Integer(3), Pointer, )
-                Call id(3), args( Result(0), Pointer, )
-                Call id(3), args( Result(3), Pointer, )
-                Call id(3), args( Result(2), Pointer, )
-                Return"#]],
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=1 span=[182985-183014]
+                Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(3), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                Return !dbg package_id=2 span=[50-54]"#]],
     );
 }
 
@@ -785,21 +785,21 @@ fn result_array_copy_and_update_with_explicit_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(1), args( Qubit(3), Result(3), )
-                Call id(1), args( Qubit(4), Result(4), )
-                Call id(1), args( Qubit(5), Result(5), )
-                Call id(1), args( Qubit(6), Result(6), )
-                Call id(1), args( Qubit(7), Result(7), )
-                Call id(2), args( Integer(5), Pointer, )
-                Call id(3), args( Result(5), Pointer, )
-                Call id(3), args( Result(1), Pointer, )
-                Call id(3), args( Result(6), Pointer, )
-                Call id(3), args( Result(3), Pointer, )
-                Call id(3), args( Result(7), Pointer, )
-                Return"#]],
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(5), Result(5), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(6), Result(6), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(7), Result(7), ) !dbg package_id=1 span=[182985-183014]
+                Call id(2), args( Integer(5), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(5), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(6), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(3), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(7), Pointer, ) !dbg package_id=2 span=[50-54]
+                Return !dbg package_id=2 span=[50-54]"#]],
     );
 }
 
@@ -862,16 +862,16 @@ fn result_array_copy_and_update_with_open_start_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(1), args( Qubit(3), Result(3), )
-                Call id(1), args( Qubit(4), Result(4), )
-                Call id(2), args( Integer(3), Pointer, )
-                Call id(3), args( Result(3), Pointer, )
-                Call id(3), args( Result(4), Pointer, )
-                Call id(3), args( Result(2), Pointer, )
-                Return"#]],
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=1 span=[182985-183014]
+                Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(3), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(4), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(2), Pointer, ) !dbg package_id=2 span=[50-54]
+                Return !dbg package_id=2 span=[50-54]"#]],
     );
 }
 
@@ -934,16 +934,16 @@ fn result_array_copy_and_update_with_open_ended_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(1), args( Qubit(3), Result(3), )
-                Call id(1), args( Qubit(4), Result(4), )
-                Call id(2), args( Integer(3), Pointer, )
-                Call id(3), args( Result(0), Pointer, )
-                Call id(3), args( Result(3), Pointer, )
-                Call id(3), args( Result(4), Pointer, )
-                Return"#]],
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=1 span=[182985-183014]
+                Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(3), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(4), Pointer, ) !dbg package_id=2 span=[50-54]
+                Return !dbg package_id=2 span=[50-54]"#]],
     );
 }
 
@@ -1006,16 +1006,16 @@ fn result_array_copy_and_update_with_open_two_step_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), )
-                Call id(1), args( Qubit(1), Result(1), )
-                Call id(1), args( Qubit(2), Result(2), )
-                Call id(1), args( Qubit(3), Result(3), )
-                Call id(1), args( Qubit(4), Result(4), )
-                Call id(2), args( Integer(3), Pointer, )
-                Call id(3), args( Result(3), Pointer, )
-                Call id(3), args( Result(1), Pointer, )
-                Call id(3), args( Result(4), Pointer, )
-                Return"#]],
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=1 span=[182985-183014]
+                Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(3), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
+                Call id(3), args( Result(4), Pointer, ) !dbg package_id=2 span=[50-54]
+                Return !dbg package_id=2 span=[50-54]"#]],
     );
 }
 
