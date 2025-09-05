@@ -8,7 +8,9 @@ use qsc_frontend::{compile::PackageStore, location::Location};
 use qsc_hir::hir::PackageId;
 use qsc_partial_eval::{
     Callable, CallableType, ConditionCode, Instruction, Literal, Operand, VariableId,
-    rir::{BlockId, BlockWithMetadata, InstructionMetadata, Program, Variable},
+    rir::{
+        BlockId, BlockWithMetadata, InstructionMetadata, InstructionWithMetadata, Program, Variable,
+    },
 };
 use rustc_hash::FxHashSet;
 
@@ -129,11 +131,7 @@ fn fill_in_dbg_metadata(
 
             // if last arg starts with metadata=, pop it
             let metadata_str = if let Some(last_arg) = args.last() {
-                if let Some(metadata_str) = last_arg.strip_prefix("metadata=") {
-                    Some(metadata_str.to_owned())
-                } else {
-                    None
-                }
+                last_arg.strip_prefix("metadata=").map(ToOwned::to_owned)
             } else {
                 None
             };
@@ -290,38 +288,13 @@ fn operations_in_block(
                 done = true;
             }
             Instruction::Branch(variable, block_id_1, block_id_2) => {
-                let (results, cond_str) = state.condition_for_variable(variable.variable_id)?;
-                if results.is_empty() {
-                    return Err(qsc_circuit::Error::UnsupportedFeature(
-                        "branching on a condition that doesn't involve at least one result"
-                            .to_owned(),
-                    ));
-                }
-                let controls = results
-                    .into_iter()
-                    .map(|r| state.result_register(r))
-                    .collect();
-                let mut args = vec![block_id_1.0.to_string(), block_id_2.0.to_string(), cond_str];
-                if let Some(metadata) = instruction.metadata.as_ref() {
-                    args.push(metadata_arg(metadata));
-                }
-                operations.push(Component::Unitary(Unitary {
-                    gate: "branch".to_string(),
-                    args,
-                    children: vec![ComponentColumn {
-                        components: vec![Component::Unitary(Unitary {
-                            gate: "block_placeholder".to_string(),
-                            args: vec![],
-                            children: vec![],
-                            targets: vec![],
-                            controls: vec![],
-                            is_adjoint: false,
-                        })],
-                    }],
-                    targets: vec![],
-                    controls,
-                    is_adjoint: false,
-                }));
+                operations.push(operation_for_branch(
+                    state,
+                    instruction,
+                    *variable,
+                    *block_id_1,
+                    *block_id_2,
+                )?);
             }
             Instruction::Jump(block_id) => {
                 let old = successor.replace(*block_id);
@@ -357,7 +330,7 @@ fn operations_in_block(
             | Instruction::BitwiseXor(..) => {
                 // Leave the variable unassigned, if it's used in anything that's going to be shown in the circuit, we'll raise an error then
             }
-            instruction => {
+            instruction @ Instruction::Store(..) => {
                 return Err(qsc_circuit::Error::UnsupportedFeature(format!(
                     "unsupported instruction in block: {instruction:?}"
                 )));
@@ -369,6 +342,47 @@ fn operations_in_block(
         operations,
         successor,
     })
+}
+
+fn operation_for_branch(
+    state: &mut ProgramMap,
+    instruction: &InstructionWithMetadata,
+    variable: Variable,
+    block_id_1: BlockId,
+    block_id_2: BlockId,
+) -> Result<Operation, qsc_circuit::Error> {
+    let (results, cond_str) = state.condition_for_variable(variable.variable_id)?;
+    if results.is_empty() {
+        return Err(qsc_circuit::Error::UnsupportedFeature(
+            "branching on a condition that doesn't involve at least one result".to_owned(),
+        ));
+    }
+    let controls = results
+        .into_iter()
+        .map(|r| state.result_register(r))
+        .collect();
+    let mut args = vec![block_id_1.0.to_string(), block_id_2.0.to_string(), cond_str];
+    if let Some(metadata) = instruction.metadata.as_ref() {
+        args.push(metadata_arg(metadata));
+    }
+    let op = Component::Unitary(Unitary {
+        gate: "branch".to_string(),
+        args,
+        children: vec![ComponentColumn {
+            components: vec![Component::Unitary(Unitary {
+                gate: "block_placeholder".to_string(),
+                args: vec![],
+                children: vec![],
+                targets: vec![],
+                controls: vec![],
+                is_adjoint: false,
+            })],
+        }],
+        targets: vec![],
+        controls,
+        is_adjoint: false,
+    });
+    Ok(op)
 }
 
 fn eq_expr(
