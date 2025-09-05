@@ -219,7 +219,7 @@ impl Display for InstructionWithMetadata {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}", self.instruction)?;
         if let Some(metadata) = &self.metadata {
-            write!(f, "{}", metadata.str)?;
+            write!(f, " {}", metadata.str)?;
         }
         Ok(())
     }
