@@ -261,8 +261,13 @@ impl Row {
             gate_label.push('\'');
         }
 
-        if !args.is_empty() {
-            let args = args.join(", ");
+        let args_without_metadata = args
+            .iter()
+            .filter(|arg| !arg.starts_with("metadata="))
+            .cloned()
+            .collect::<Vec<_>>();
+        if !args_without_metadata.is_empty() {
+            let args = args_without_metadata.join(", ");
             let _ = write!(&mut gate_label, "({args})");
         }
 
@@ -676,8 +681,13 @@ fn add_operation_box_start_to_rows(
             gate_label.push('\'');
         }
         let args = operation.args();
-        if !args.is_empty() {
-            let args = args.join(", ");
+        let args_without_metadata = args
+            .iter()
+            .filter(|arg| !arg.starts_with("metadata="))
+            .cloned()
+            .collect::<Vec<_>>();
+        if !args_without_metadata.is_empty() {
+            let args = args_without_metadata.join(", ");
             let _ = write!(&mut gate_label, "({args})");
         }
         gate_label.push(']');

@@ -330,9 +330,9 @@ fn classical_for_loop_adaptive() {
         .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
-    expect![[r"
+    expect![[r#"
         q_0    ── X ──── X ──── X ──── X ──── X ──── X ──
-    "]]
+    "#]]
     .assert_eq(&circ.to_string());
 }
 

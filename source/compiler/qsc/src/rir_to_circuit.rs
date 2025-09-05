@@ -6,7 +6,7 @@ use qsc_circuit::{
 use qsc_data_structures::index_map::IndexMap;
 use qsc_partial_eval::{
     Callable, CallableType, ConditionCode, Instruction, Literal, Operand, VariableId,
-    rir::{BlockId, BlockWithMetadata, Program, Variable},
+    rir::{BlockId, BlockWithMetadata, InstructionMetadata, Program, Variable},
 };
 use rustc_hash::FxHashSet;
 
@@ -104,15 +104,26 @@ fn expand_branch_children(
 ) -> Result<bool, qsc_circuit::Error> {
     if let Component::Unitary(unitary) = operation {
         if unitary.gate == "branch" {
-            let block_id_1 = BlockId(unitary.args[0].parse().expect("block id should parse"));
-            let block_id_2 = BlockId(unitary.args[1].parse().expect("block id should parse"));
-            let cond_str = unitary.args[2].clone();
+            let block_id_1 = BlockId(
+                unitary
+                    .args
+                    .remove(0)
+                    .parse()
+                    .expect("block id should parse"),
+            );
+            let block_id_2 = BlockId(
+                unitary
+                    .args
+                    .remove(0)
+                    .parse()
+                    .expect("block id should parse"),
+            );
             if let Some((branch_operations, targets)) =
                 operations_from_branch(state, block_id_1, block_id_2)?
             {
                 unitary.targets = targets;
                 unitary.children = branch_operations;
-                unitary.args = vec![block_id_2.0.to_string(), cond_str];
+                unitary.args.insert(0, block_id_2.0.to_string());
                 unitary.gate = "successor".to_string();
             } else {
                 return Ok(true); // more work needed to fill in the branch children
@@ -152,6 +163,7 @@ fn operations_in_block(
                     callables.get(*callable_id).expect("callable should exist"),
                     operands,
                     var.as_ref(),
+                    instruction.metadata.as_ref(),
                 )?);
             }
             Instruction::Icmp(condition_code, operand, operand1, variable) => {
@@ -184,9 +196,13 @@ fn operations_in_block(
                     .into_iter()
                     .map(|r| state.result_register(r))
                     .collect();
+                let mut args = vec![block_id_1.0.to_string(), block_id_2.0.to_string(), cond_str];
+                if let Some(metadata) = instruction.metadata.as_ref() {
+                    args.push(metadata_arg(metadata));
+                }
                 operations.push(Component::Unitary(Unitary {
                     gate: "branch".to_string(),
-                    args: vec![block_id_1.0.to_string(), block_id_2.0.to_string(), cond_str],
+                    args,
                     children: vec![ComponentColumn {
                         components: vec![Component::Unitary(Unitary {
                             gate: "block_placeholder".to_string(),
@@ -535,6 +551,7 @@ fn map_callable_to_operations(
     callable: &Callable,
     operands: &Vec<Operand>,
     var: Option<&Variable>,
+    metadata: Option<&InstructionMetadata>,
 ) -> Result<Vec<qsc_circuit::Operation>, qsc_circuit::Error> {
     Ok(match callable.call_type {
         CallableType::Measurement => {
@@ -550,14 +567,14 @@ fn map_callable_to_operations(
                 vec![
                     Component::Measurement(Measurement {
                         gate: gate.to_string(),
-                        args: vec![],
+                        args: arg_vec_with_only_metadata(metadata),
                         children: vec![],
                         qubits: this_qubits.clone(),
                         results: this_results,
                     }),
                     Component::Ket(Ket {
                         gate: "0".to_string(),
-                        args: vec![],
+                        args: arg_vec_with_only_metadata(metadata),
                         children: vec![],
                         targets: this_qubits,
                     }),
@@ -565,7 +582,7 @@ fn map_callable_to_operations(
             } else {
                 vec![Component::Measurement(Measurement {
                     gate: gate.to_string(),
-                    args: vec![],
+                    args: arg_vec_with_only_metadata(metadata),
                     children: vec![],
                     qubits: this_qubits,
                     results: this_results,
@@ -579,7 +596,7 @@ fn map_callable_to_operations(
 
                 vec![Component::Ket(Ket {
                     gate: "0".to_string(),
-                    args: vec![],
+                    args: arg_vec_with_only_metadata(metadata),
                     children: vec![],
                     targets,
                 })]
@@ -620,7 +637,10 @@ fn map_callable_to_operations(
         CallableType::Regular => {
             let (gate, operand_types) = callable_spec(callable, operands)?;
 
-            let (targets, controls, args) = gather_operands(&operand_types, operands)?;
+            let (targets, controls, mut args) = gather_operands(&operand_types, operands)?;
+            if let Some(metadata) = metadata {
+                args.push(metadata_arg(metadata));
+            }
 
             if targets.is_empty() && controls.is_empty() {
                 // Skip operations without targets or controls.
@@ -639,6 +659,14 @@ fn map_callable_to_operations(
             }
         }
     })
+}
+
+fn metadata_arg(m: &InstructionMetadata) -> String {
+    format!("metadata={}", m.str)
+}
+
+fn arg_vec_with_only_metadata(m: Option<&InstructionMetadata>) -> Vec<String> {
+    m.map_or(vec![], |m| vec![metadata_arg(m)])
 }
 
 fn callable_spec<'a>(
