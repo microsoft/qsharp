@@ -215,15 +215,6 @@ pub struct InstructionWithMetadata {
     pub metadata: Option<InstructionMetadata>,
 }
 
-// impl From<Instruction> for InstructionWithMetadata {
-//     fn from(instruction: Instruction) -> Self {
-//         Self {
-//             instruction,
-//             metadata: None,
-//         }
-//     }
-// }
-
 impl Display for InstructionWithMetadata {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}", self.instruction)?;
