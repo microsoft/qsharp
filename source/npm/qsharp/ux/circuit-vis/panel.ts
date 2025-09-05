@@ -291,8 +291,21 @@ const toRenderData = (
       break;
   }
 
-  if (operation.args !== undefined && operation.args.length > 0)
-    renderData.displayArgs = operation.args[0];
+  if (operation.args !== undefined && operation.args.length > 0) {
+    const location_arg = operation.args.find((arg) =>
+      arg.startsWith("<a href"),
+    );
+    const real_args = operation.args.filter(
+      (arg) => !arg.startsWith("<a href"),
+    );
+    if (real_args.length > 0) {
+      renderData.displayArgs = real_args[0];
+    }
+
+    if (location_arg !== undefined) {
+      renderData.dataAttributes = { sourceLocation: location_arg };
+    }
+  }
 
   renderData.width = getGateWidth(renderData);
   renderData.x = x + 1 + renderData.width / 2; // offset by 1 for left padding

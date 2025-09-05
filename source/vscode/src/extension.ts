@@ -3,6 +3,7 @@
 
 import {
   getLibrarySourceContent,
+  IRange,
   log,
   qsharpGithubUriScheme,
   qsharpLibraryUriScheme,
@@ -34,6 +35,7 @@ import {
   maybeShowChangelogPrompt,
   registerChangelogCommand,
 } from "./changelog.js";
+import { toVsCodeRange } from "./common.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -90,6 +92,25 @@ export async function activate(
 
   // Show prompt after update if not suppressed
   maybeShowChangelogPrompt(context);
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "qsharp-vscode.gotoLocation",
+      async (uri: vscode.Uri, range: IRange) => {
+        const document = await vscode.workspace.openTextDocument(uri);
+        const editor = await vscode.window.showTextDocument(
+          document,
+          vscode.ViewColumn.One,
+        );
+        const vscodeRange = toVsCodeRange(range);
+        editor.selection = new vscode.Selection(
+          vscodeRange.start,
+          vscodeRange.end,
+        );
+        editor.revealRange(vscodeRange, vscode.TextEditorRevealType.InCenter);
+      },
+    ),
+  );
 
   log.info("Q# extension activated.");
 

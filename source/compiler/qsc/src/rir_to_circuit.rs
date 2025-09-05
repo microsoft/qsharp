@@ -171,19 +171,19 @@ fn fill_in_dbg_metadata(
                                                 position_encoding,
                                             );
                                             args.push(format!(
-                                                "{{
-    source: {},
-    span: {{
-        start: {{
-            line: {},
-            character: {}
+                                                r#"{{
+    "source": {:?},
+    "span": {{
+        "start": {{
+            "line": {},
+            "character": {}
         }},
-        end: {{
-            line: {},
-            character: {}
+        "end": {{
+            "line": {},
+            "character": {}
         }}
     }}
-}}",
+}}"#,
                                                 location.source,
                                                 location.range.start.line,
                                                 location.range.start.column,

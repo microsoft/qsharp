@@ -65,7 +65,16 @@ const formatGate = (
       return _createGate([_measure(x, controlsY[0])], renderData, nestedDepth);
     case GateType.Unitary:
       return _createGate(
-        [_unitary(label, x, targetsY as number[][], width, displayArgs)],
+        [
+          _unitary(
+            label,
+            x,
+            targetsY as number[][],
+            width,
+            renderData.dataAttributes?.sourceLocation,
+            displayArgs,
+          ),
+        ],
         renderData,
         nestedDepth,
       );
@@ -280,6 +289,7 @@ const _unitary = (
   x: number,
   y: number[][],
   width: number,
+  location?: string,
   displayArgs?: string,
   renderDashedLine = true,
   cssClass?: string,
@@ -294,7 +304,16 @@ const _unitary = (
     const maxY: number = group[group.length - 1],
       minY: number = group[0];
     const height: number = maxY - minY + gateHeight;
-    return _unitaryBox(label, x, minY, width, height, displayArgs, cssClass);
+    return _unitaryBox(
+      label,
+      x,
+      minY,
+      width,
+      height,
+      location,
+      displayArgs,
+      cssClass,
+    );
   });
 
   // Draw dashed line between disconnected unitaries
@@ -329,6 +348,7 @@ const _unitaryBox = (
   y: number,
   width: number,
   height: number = gateHeight,
+  location?: string,
   displayArgs?: string,
   cssClass?: string,
 ): SVGElement => {
@@ -349,6 +369,19 @@ const _unitaryBox = (
     _style_gate_text(argButton);
     argButton.setAttribute("class", "arg-button");
     elems.push(argButton);
+  }
+
+  if (location) {
+    // location is a string iwth a full HTML text like "<a href='...' target='_blank'>...</a>"
+    // construct an element to put inside elems
+    const locationEl: SVGElement = createSvgElement("foreignObject", {
+      x: (x - width / 2) as any,
+      y: (y + height + 2) as any,
+      width: width as any,
+      height: 20 as any,
+    });
+    locationEl.innerHTML = location;
+    elems.push(locationEl);
   }
   return group(elems);
 };
@@ -403,6 +436,7 @@ const _ket = (label: string, renderData: GateRenderData): SVGElement => {
     x,
     targetsY as number[][],
     width,
+    renderData.dataAttributes?.sourceLocation,
     undefined,
     false,
     "gate-ket",
@@ -463,7 +497,15 @@ const _controlledGate = (
       {
         const groupedTargetsY: number[][] = targetsY as number[][];
         targetGateSvgs.push(
-          _unitary(label, x, groupedTargetsY, width, displayArgs, false),
+          _unitary(
+            label,
+            x,
+            groupedTargetsY,
+            width,
+            renderData.dataAttributes?.sourceLocation,
+            displayArgs,
+            false,
+          ),
         );
         targetsY = targetsY.flat();
       }

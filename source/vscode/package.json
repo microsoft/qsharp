@@ -311,6 +311,11 @@
     ],
     "commands": [
       {
+        "command": "qsharp-vscode.gotoLocation",
+        "title": "Go to source location",
+        "category": "QDK"
+      },
+      {
         "command": "qsharp-vscode.createProject",
         "title": "Create Q# project",
         "category": "QDK"
