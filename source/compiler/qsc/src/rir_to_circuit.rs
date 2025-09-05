@@ -231,8 +231,26 @@ fn operations_in_block(
                 // leave the variable unassigned, we  don't know how to handle predecessors yet
                 predecessors.extend(pre.iter().map(|p| p.1));
             }
-            Instruction::Add(_, _, _) => {
-                // Just leave the variable unassigned, we don't need to represent arithmetic in the circuit
+            Instruction::Add(..)
+            | Instruction::Sub(..)
+            | Instruction::Mul(..)
+            | Instruction::Sdiv(..)
+            | Instruction::Srem(..)
+            | Instruction::Shl(..)
+            | Instruction::Ashr(..)
+            | Instruction::Fadd(..)
+            | Instruction::Fsub(..)
+            | Instruction::Fmul(..)
+            | Instruction::Fdiv(..)
+            | Instruction::Fcmp(..)
+            | Instruction::LogicalNot(..)
+            | Instruction::LogicalAnd(..)
+            | Instruction::LogicalOr(..)
+            | Instruction::BitwiseNot(..)
+            | Instruction::BitwiseAnd(..)
+            | Instruction::BitwiseOr(..)
+            | Instruction::BitwiseXor(..) => {
+                // Leave the variable unassigned, if it's used in anything that's going to be shown in the circuit, we'll raise an error then
             }
             instruction => {
                 return Err(qsc_circuit::Error::UnsupportedFeature(format!(
