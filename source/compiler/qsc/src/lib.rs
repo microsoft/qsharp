@@ -6,9 +6,10 @@ pub mod compile;
 pub mod error;
 pub mod incremental;
 pub mod interpret;
-pub mod location;
 pub mod packages;
 mod rir_to_circuit;
+
+pub use qsc_frontend::location;
 
 pub use qsc_formatter::formatter;
 

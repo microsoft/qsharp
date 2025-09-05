@@ -16,7 +16,6 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{
     error::{self, WithStack},
     incremental::Compiler,
-    location::Location,
     rir_to_circuit::make_circuit,
 };
 use debug::format_call_stack;
@@ -60,6 +59,7 @@ use qsc_frontend::{
     compile::{CompileUnit, Dependencies, PackageStore, Source, SourceMap},
     error::WithSource,
     incremental::Increment,
+    location::Location,
 };
 use qsc_hir::{global, ty};
 use qsc_linter::{HirLint, Lint, LintKind, LintLevel};

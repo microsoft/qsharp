@@ -11,7 +11,10 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     builder,
-    rir::{Block, BlockId, CallableId, CallableType, Instruction, Literal, Operand, Program},
+    rir::{
+        BlockId, BlockWithMetadata, CallableId, CallableType, Instruction, Literal, Operand,
+        Program,
+    },
     utils::build_predecessors_map,
 };
 
@@ -150,14 +153,14 @@ impl ReindexQubitPass {
     fn reindex_qubits_in_block(
         &mut self,
         program: &Program,
-        block: &mut Block,
+        block: &mut BlockWithMetadata,
         qubit_map: &mut BlockQubitMap,
     ) {
         let instrs = std::mem::take(&mut block.0);
         for i in 0..instrs.len() {
             // Assume qubits only appear in void call instructions.
             let instr = &instrs[i];
-            match instr {
+            match &instr.instruction {
                 Instruction::Call(call_id, args, _)
                     if program.get_callable(*call_id).call_type == CallableType::Reset =>
                 {
@@ -196,27 +199,33 @@ impl ReindexQubitPass {
                             *ids_used
                                 .first()
                                 .expect("measurement call should have at least one argument"),
-                            instrs.iter().skip(i + 1),
+                            instrs.iter().skip(i + 1).map(|i| &i.instruction),
                         ) {
                             // Since the call was to mz and the qubit is reused later in the block,
                             // the new qubit replacing this one must be conditionally flipped.
                             // Achieve this by adding a CNOT gate before the mz call.
                             self.used_cx = true;
-                            block.0.push(Instruction::Call(
-                                self.cx_id,
-                                vec![
-                                    new_args[0],
-                                    Operand::Literal(Literal::Qubit(qubit_map.next_qubit_id)),
-                                ],
-                                None,
-                            ));
+                            block.0.push(
+                                Instruction::Call(
+                                    self.cx_id,
+                                    vec![
+                                        new_args[0],
+                                        Operand::Literal(Literal::Qubit(qubit_map.next_qubit_id)),
+                                    ],
+                                    None,
+                                )
+                                .with_metadata(instr.metadata.clone()),
+                            );
                             self.highest_used_id =
                                 self.highest_used_id.max(qubit_map.next_qubit_id);
                         } else {
                             // The call was to mz and the qubit is not reused later in the block, so
                             // there is no need to remap it at all as this is the last operation. Skip
                             // the rest of the logic.
-                            block.0.push(Instruction::Call(*call_id, new_args, None));
+                            block.0.push(
+                                Instruction::Call(*call_id, new_args, None)
+                                    .with_metadata(instr.metadata.clone()),
+                            );
                             continue;
                         }
                     }
@@ -229,7 +238,10 @@ impl ReindexQubitPass {
                         *call_id
                     };
 
-                    block.0.push(Instruction::Call(call_id, new_args, None));
+                    block.0.push(
+                        Instruction::Call(call_id, new_args, None)
+                            .with_metadata(instr.metadata.clone()),
+                    );
 
                     if program.get_callable(call_id).call_type == CallableType::Measurement {
                         // Generate any new qubit ids after a measurement.

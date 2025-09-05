@@ -10,10 +10,91 @@ use std::fmt::{self, Display, Formatter, Write};
 pub struct Program {
     pub entry: CallableId,
     pub callables: IndexMap<CallableId, Callable>,
-    pub blocks: IndexMap<BlockId, Block>,
+    pub blocks: Blocks,
     pub config: Config,
     pub num_qubits: u32,
     pub num_results: u32,
+}
+
+#[derive(Default, Clone)]
+pub struct Blocks(
+    IndexMap<BlockId, BlockWithMetadata>,
+    IndexMap<BlockId, Block>,
+);
+
+impl Blocks {
+    pub fn insert(&mut self, id: BlockId, block: Block) {
+        self.0.insert(
+            id,
+            BlockWithMetadata(
+                block
+                    .0
+                    .iter()
+                    .cloned()
+                    .map(|i| i.with_metadata(None))
+                    .collect(),
+            ),
+        );
+        self.1.insert(id, block);
+    }
+
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn insert_with_metadata(&mut self, id: BlockId, block: BlockWithMetadata) {
+        self.0.insert(id, block.clone());
+        self.1.insert(
+            id,
+            Block(block.0.iter().map(|im| im.instruction.clone()).collect()),
+        );
+    }
+
+    #[must_use]
+    pub fn get(&self, id: BlockId) -> Option<&BlockWithMetadata> {
+        self.0.get(id)
+    }
+
+    pub fn get_mut(&mut self, id: BlockId) -> Option<&mut BlockWithMetadata> {
+        self.0.get_mut(id)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (BlockId, &BlockWithMetadata)> {
+        self.0.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (BlockId, &mut BlockWithMetadata)> {
+        self.0.iter_mut()
+    }
+
+    pub fn drain(&mut self) -> impl Iterator<Item = (BlockId, BlockWithMetadata)> {
+        self.0.drain()
+    }
+
+    pub fn remove(&mut self, block_id: BlockId) {
+        self.0.remove(block_id);
+    }
+}
+
+impl FromIterator<(BlockId, Block)> for Blocks {
+    fn from_iter<T: IntoIterator<Item = (BlockId, Block)>>(iter: T) -> Self {
+        let mut blocks = Blocks::default();
+        for (id, block) in iter {
+            blocks.insert(id, block);
+        }
+        blocks
+    }
+}
+
+impl FromIterator<(BlockId, BlockWithMetadata)> for Blocks {
+    fn from_iter<T: IntoIterator<Item = (BlockId, BlockWithMetadata)>>(iter: T) -> Self {
+        let mut blocks = Blocks::default();
+        for (id, block) in iter {
+            blocks.0.insert(id, block.clone());
+            blocks.1.insert(
+                id,
+                Block(block.0.iter().map(|im| im.instruction.clone()).collect()),
+            );
+        }
+        blocks
+    }
 }
 
 impl Display for Program {
@@ -53,12 +134,12 @@ impl Program {
     }
 
     #[must_use]
-    pub fn get_block(&self, id: BlockId) -> &Block {
+    pub fn get_block(&self, id: BlockId) -> &BlockWithMetadata {
         self.blocks.get(id).expect("block should be present")
     }
 
     #[must_use]
-    pub fn get_block_mut(&mut self, id: BlockId) -> &mut Block {
+    pub fn get_block_mut(&mut self, id: BlockId) -> &mut BlockWithMetadata {
         self.blocks.get_mut(id).expect("block should be present")
     }
 }
@@ -125,6 +206,56 @@ impl BlockId {
     #[must_use]
     pub fn successor(self) -> Self {
         Self(self.0 + 1)
+    }
+}
+
+#[derive(Clone)]
+pub struct InstructionWithMetadata {
+    pub instruction: Instruction,
+    pub metadata: Option<InstructionMetadata>,
+}
+
+// impl From<Instruction> for InstructionWithMetadata {
+//     fn from(instruction: Instruction) -> Self {
+//         Self {
+//             instruction,
+//             metadata: None,
+//         }
+//     }
+// }
+
+impl Display for InstructionWithMetadata {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.instruction)?;
+        if let Some(metadata) = &self.metadata {
+            write!(f, "{}", metadata.str)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
+pub struct InstructionMetadata {
+    pub str: String,
+}
+
+/// A block is a collection of instructions.
+#[derive(Default, Clone)]
+pub struct BlockWithMetadata(pub Vec<InstructionWithMetadata>);
+
+impl Display for BlockWithMetadata {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "Block:",)?;
+        if self.0.is_empty() {
+            write!(indent, " <EMPTY>")?;
+        } else {
+            indent = set_indentation(indent, 1);
+            for instruction in &self.0 {
+                write!(indent, "\n{instruction}")?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -323,6 +454,16 @@ pub enum Instruction {
     BitwiseXor(Operand, Operand, Variable),
     Phi(Vec<(Operand, BlockId)>, Variable),
     Return,
+}
+
+impl Instruction {
+    #[must_use]
+    pub fn with_metadata(self, metadata: Option<InstructionMetadata>) -> InstructionWithMetadata {
+        InstructionWithMetadata {
+            instruction: self,
+            metadata,
+        }
+    }
 }
 
 impl Display for Instruction {

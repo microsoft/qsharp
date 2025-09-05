@@ -6,7 +6,7 @@ use qsc_circuit::{
 use qsc_data_structures::index_map::IndexMap;
 use qsc_partial_eval::{
     Callable, CallableType, ConditionCode, Instruction, Literal, Operand, VariableId,
-    rir::{Block, BlockId, Program, Ty, Variable},
+    rir::{BlockId, BlockWithMetadata, Program, Variable},
 };
 use rustc_hash::FxHashSet;
 
@@ -14,7 +14,7 @@ pub(crate) fn make_circuit(program: &Program) -> std::result::Result<Circuit, ci
     let mut state = ProgramMap::new(program.num_qubits);
     let callables = &program.callables;
 
-    for (id, block) in &program.blocks {
+    for (id, block) in program.blocks.iter() {
         let block_operations = operations_in_block(&mut state, callables, block)?;
         state.blocks.insert(id, block_operations);
     }
@@ -22,7 +22,7 @@ pub(crate) fn make_circuit(program: &Program) -> std::result::Result<Circuit, ci
     let mut more_work = true;
     while more_work {
         more_work = false;
-        for block in &program.blocks {
+        for block in program.blocks.iter() {
             let mut circuit_block = state
                 .blocks
                 .get(block.0)
@@ -124,7 +124,7 @@ fn expand_branch_children(
 
 #[derive(Clone)]
 struct CircuitBlock {
-    predecessors: Vec<BlockId>,
+    _predecessors: Vec<BlockId>,
     operations: Vec<Operation>,
     successor: Option<BlockId>,
 }
@@ -132,8 +132,9 @@ struct CircuitBlock {
 fn operations_in_block(
     state: &mut ProgramMap,
     callables: &IndexMap<qsc_partial_eval::CallableId, Callable>,
-    block: &Block,
+    block: &BlockWithMetadata,
 ) -> Result<CircuitBlock, qsc_circuit::Error> {
+    // TODO: use get_block_successors from utils
     let mut successor = None;
     let mut predecessors = vec![];
     let mut operations = vec![];
@@ -144,7 +145,7 @@ fn operations_in_block(
                 "instructions after return or jump in block".to_owned(),
             ));
         }
-        match instruction {
+        match &instruction.instruction {
             Instruction::Call(callable_id, operands, var) => {
                 operations.extend(map_callable_to_operations(
                     state,
@@ -225,7 +226,7 @@ fn operations_in_block(
         }
     }
     Ok(CircuitBlock {
-        predecessors,
+        _predecessors: predecessors,
         operations,
         successor,
     })
