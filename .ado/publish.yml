@@ -241,7 +241,7 @@ extends:
             name: ${{ target.poolName }}
             image: ${{ target.imageName }}
             os: ${{ target.os }}
-            ${{ if eq(target.arch, 'aarch64') }}:
+            ${{ if and(eq(target.arch, 'aarch64'), eq(target.os, 'linux')) }}:
               hostArchitecture: Arm64
           variables:
             arch: ${{ target.arch }}
