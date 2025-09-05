@@ -1044,7 +1044,9 @@ impl Interpreter {
         entry_expr: Option<&str>,
     ) -> std::result::Result<Circuit, Vec<Error>> {
         let program = self.compile_to_rir(entry_expr)?;
-        make_circuit(&program).map_err(|e| vec![e.into()])
+        // TODO: encoding!!
+        make_circuit(&program, self.compiler.package_store(), Encoding::Utf16)
+            .map_err(|e| vec![e.into()])
     }
 
     fn compile_to_rir(

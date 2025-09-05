@@ -3,14 +3,20 @@ use qsc_circuit::{
     Circuit, Component, ComponentColumn, ComponentGrid, Ket, Measurement, Operation, Qubit,
     Register, Unitary, operation_list_to_grid,
 };
-use qsc_data_structures::index_map::IndexMap;
+use qsc_data_structures::{index_map::IndexMap, line_column::Encoding, span::Span};
+use qsc_frontend::{compile::PackageStore, location::Location};
+use qsc_hir::hir::PackageId;
 use qsc_partial_eval::{
     Callable, CallableType, ConditionCode, Instruction, Literal, Operand, VariableId,
     rir::{BlockId, BlockWithMetadata, InstructionMetadata, Program, Variable},
 };
 use rustc_hash::FxHashSet;
 
-pub(crate) fn make_circuit(program: &Program) -> std::result::Result<Circuit, circuit::Error> {
+pub(crate) fn make_circuit(
+    program: &Program,
+    package_store: &PackageStore,
+    position_encoding: Encoding,
+) -> std::result::Result<Circuit, circuit::Error> {
     let mut state = ProgramMap::new(program.num_qubits);
     let callables = &program.callables;
 
@@ -83,7 +89,7 @@ pub(crate) fn make_circuit(program: &Program) -> std::result::Result<Circuit, ci
         operations.push(operation.clone());
     }
 
-    let component_grid = operation_list_to_grid(
+    let mut component_grid = operation_list_to_grid(
         operations,
         program
             .num_qubits
@@ -91,11 +97,110 @@ pub(crate) fn make_circuit(program: &Program) -> std::result::Result<Circuit, ci
             .expect("num_qubits should fit in usize"),
     );
 
+    fill_in_dbg_metadata(&mut component_grid, package_store, position_encoding)?;
+
     let circuit = Circuit {
         qubits: state.into_qubits(),
         component_grid,
     };
     Ok(circuit)
+}
+
+fn fill_in_dbg_metadata(
+    component_grid: &mut ComponentGrid,
+    package_store: &PackageStore,
+    position_encoding: Encoding,
+) -> Result<(), qsc_circuit::Error> {
+    for column in component_grid {
+        for component in &mut column.components {
+            let children = match component {
+                Component::Unitary(unitary) => &mut unitary.children,
+                Component::Measurement(measurement) => &mut measurement.children,
+                Component::Ket(ket) => &mut ket.children,
+            };
+
+            fill_in_dbg_metadata(children, package_store, position_encoding)?;
+
+            let args = match component {
+                Component::Unitary(unitary) => &mut unitary.args,
+                Component::Measurement(measurement) => &mut measurement.args,
+                Component::Ket(ket) => &mut ket.args,
+            };
+
+            // if last arg starts with metadata=, pop it
+            let metadata_str = if let Some(last_arg) = args.last() {
+                if let Some(metadata_str) = last_arg.strip_prefix("metadata=") {
+                    Some(metadata_str.to_owned())
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            if let Some(metadata_str) = metadata_str {
+                args.pop();
+                // metadata is of the format "!dbg package_id=0 span=[2161-2172]"
+                // parse it out manually
+                let parts: Vec<&str> = metadata_str.split_whitespace().collect();
+                if parts.len() == 3 {
+                    let dbg_part = parts[0];
+                    if dbg_part != "!dbg" {
+                        return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                            "unexpected metadata format, expected !dbg but got: {metadata_str}"
+                        )));
+                    }
+                    let package_id_part = parts[1];
+                    let span_part = parts[2];
+                    if let Some(package_id_str) = package_id_part.strip_prefix("package_id=") {
+                        if let Ok(package_id) = package_id_str.parse::<usize>() {
+                            if let Some(span_str) = span_part.strip_prefix("span=[") {
+                                if let Some(span_str) = span_str.strip_suffix("]") {
+                                    let span_parts: Vec<&str> = span_str.split('-').collect();
+                                    if span_parts.len() == 2 {
+                                        if let (Ok(start), Ok(end)) = (
+                                            span_parts[0].parse::<u32>(),
+                                            span_parts[1].parse::<u32>(),
+                                        ) {
+                                            let span = Span { lo: start, hi: end };
+                                            let package_id: PackageId = package_id.into();
+                                            let location = Location::from(
+                                                span,
+                                                package_id,
+                                                package_store,
+                                                position_encoding,
+                                            );
+                                            args.push(format!(
+                                                "{{
+    source: {},
+    span: {{
+        start: {{
+            line: {},
+            character: {}
+        }},
+        end: {{
+            line: {},
+            character: {}
+        }}
+    }}
+}}",
+                                                location.source,
+                                                location.range.start.line,
+                                                location.range.start.column,
+                                                location.range.end.line,
+                                                location.range.end.column
+                                            ));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 fn expand_branch_children(
