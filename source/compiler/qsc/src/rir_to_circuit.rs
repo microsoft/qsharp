@@ -169,7 +169,7 @@ fn fill_in_dbg_metadata(
                                                 position_encoding,
                                             );
                                             args.push(format!(
-                                                r#"{{
+                                                r#"metadata={{
     "source": {:?},
     "span": {{
         "start": {{

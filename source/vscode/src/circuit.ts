@@ -316,20 +316,23 @@ function mapComponentLocationsToHtml(componentGrid: ComponentGrid) {
 
       component.args = component.args?.map((arg) => {
         try {
-          const location = JSON.parse(arg);
-          log.debug("Parsed location from component argument: ", location);
-          if (
-            typeof location === "object" &&
-            typeof location.source === "string" &&
-            typeof location.span === "object" &&
-            typeof location.span.start === "object" &&
-            typeof location.span.start.line === "number" &&
-            typeof location.span.start.character === "number" &&
-            typeof location.span.end === "object" &&
-            typeof location.span.end.line === "number" &&
-            typeof location.span.end.character === "number"
-          ) {
-            return documentHtml(true, location.source, location.span);
+          if (arg.startsWith("metadata=")) {
+            const rest = arg.substring("metadata=".length);
+            const location = JSON.parse(rest);
+            log.debug("Parsed location from component argument: ", location);
+            if (
+              typeof location === "object" &&
+              typeof location.source === "string" &&
+              typeof location.span === "object" &&
+              typeof location.span.start === "object" &&
+              typeof location.span.start.line === "number" &&
+              typeof location.span.start.character === "number" &&
+              typeof location.span.end === "object" &&
+              typeof location.span.end.line === "number" &&
+              typeof location.span.end.character === "number"
+            ) {
+              return documentHtml(true, location.source, location.span);
+            }
           }
           return arg;
         } catch {
