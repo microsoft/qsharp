@@ -57,7 +57,7 @@ fn immutable_result_binding_does_not_generate_store_instruction() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[109-119]
                 Call id(2), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]"#]],
     );
@@ -108,7 +108,7 @@ fn mutable_result_binding_does_not_generate_store_instruction() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[113-123]
                 Call id(2), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]"#]],
     );
@@ -172,7 +172,7 @@ fn immutable_bool_binding_does_not_generate_store_instruction() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[107-117]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[107-124]
                 Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[107-124]
                 Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[103-104]
@@ -240,7 +240,7 @@ fn mutable_bool_binding_generates_store_instruction() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[111-121]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[111-128]
                 Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[111-128]
                 Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[107-108]
@@ -308,7 +308,7 @@ fn immutable_int_binding_does_not_generate_store_instruction() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[106-116]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[106-123]
                 Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[106-123]
                 Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[106-123]
@@ -384,7 +384,7 @@ fn mutable_int_binding_does_generate_store_instruction() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[110-120]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[110-127]
                 Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[110-127]
                 Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[110-127]
@@ -471,7 +471,7 @@ fn mutable_variable_in_outer_scope_set_to_mutable_from_inner_scope() {
             Blocks:
             Block 0:Block:
                 Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[106-107]
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[124-134]
                 Variable(1, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[124-141]
                 Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[124-141]
                 Branch Variable(2, Boolean), 2, 3 !dbg package_id=2 span=[124-141]
@@ -547,7 +547,7 @@ fn mutable_double_binding_does_generate_store_instruction() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[113-123]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[113-130]
                 Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[113-130]
                 Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[113-130]

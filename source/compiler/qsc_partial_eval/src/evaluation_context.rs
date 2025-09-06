@@ -3,10 +3,11 @@
 
 use qsc_data_structures::functors::FunctorApp;
 use qsc_eval::{
-    Env, Variable,
+    Env, PackageSpan, Variable,
     val::{Result, Value},
 };
 use qsc_fir::fir::{LocalItemId, LocalVarId, PackageId};
+use qsc_lowerer::map_fir_package_to_hir;
 use qsc_rca::{RuntimeKind, ValueKind};
 use qsc_rir::rir::{BlockId, Literal, VariableId};
 use rustc_hash::FxHashMap;
@@ -22,7 +23,7 @@ pub struct EvaluationContext {
 impl EvaluationContext {
     /// Creates a new evaluation context.
     pub fn new(package_id: PackageId, initial_block: BlockId) -> Self {
-        let entry_callable_scope = Scope::new(package_id, None, Vec::new(), None);
+        let entry_callable_scope = Scope::new(package_id, None, Vec::new(), None, None);
         Self {
             active_blocks: vec![BlockNode {
                 id: initial_block,
@@ -83,6 +84,16 @@ impl EvaluationContext {
             .iter()
             .any(Scope::is_currently_evaluating_branch)
     }
+
+    pub fn get_current_user_caller(&self) -> Option<PackageSpan> {
+        // Yeah, stdlib id is hardcoded that's terrible etc.
+        self.scopes.iter().rev().find_map(|scope| {
+            scope.caller_expr_span.filter(|s| {
+                s.package != map_fir_package_to_hir(PackageId::CORE)
+                    && s.package != map_fir_package_to_hir(PackageId::from(1))
+            })
+        })
+    }
 }
 
 /// Struct that represents a block node when we intepret an RIR program as a graph.
@@ -109,6 +120,7 @@ pub struct Scope {
     static_vars: FxHashMap<VariableId, Literal>,
     /// Number of currently active blocks (starting from where this scope was created).
     active_block_count: usize,
+    caller_expr_span: Option<PackageSpan>,
 }
 
 impl Scope {
@@ -118,6 +130,7 @@ impl Scope {
         callable: Option<(LocalItemId, FunctorApp)>,
         args: Vec<Arg>,
         ctls_arg: Option<Arg>,
+        caller_expr_span: Option<PackageSpan>,
     ) -> Self {
         // Create the environment for the classical evaluator.
         // A default classical evaluator environment is created with one scope. However, we need to push an additional
@@ -167,6 +180,7 @@ impl Scope {
             active_block_count: 1,
             hybrid_vars,
             static_vars: FxHashMap::default(),
+            caller_expr_span,
         }
     }
 

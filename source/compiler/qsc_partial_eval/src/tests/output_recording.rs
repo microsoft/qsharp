@@ -71,7 +71,7 @@ fn output_recording_for_tuple_of_different_types() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[117-160]
+                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0]
                     Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[177-186]
                     Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[177-186]
                     Call id(3), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -151,7 +151,7 @@ fn output_recording_for_nested_tuples() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[136-179]
+                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0]
                     Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[197-206]
                     Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[197-206]
                     Variable(2, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[213-221]
@@ -247,7 +247,7 @@ fn output_recording_for_tuple_of_arrays() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[119-162]
+                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0]
                     Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[180-189]
                     Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[180-189]
                     Variable(2, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[191-199]
@@ -339,7 +339,7 @@ fn output_recording_for_array_of_tuples() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[119-162]
+                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0]
                     Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[180-189]
                     Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[180-189]
                     Variable(2, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[196-204]
@@ -544,7 +544,7 @@ fn output_recording_for_mix_of_literal_and_variable() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[117-160]
+                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0]
                     Call id(2), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
                     Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                     Call id(4), args( Bool(true), Pointer, ) !dbg package_id=2 span=[50-54]

@@ -45,7 +45,7 @@ fn qubit_ids_are_correct_for_allocate_use_release_one_qubit() {
     .assert_eq(&program.get_callable(CallableId(2)).to_string());
     expect![[r#"
         Block:
-            Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[190-192]
+            Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
             Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[105-109]
             Return !dbg package_id=2 span=[105-109]"#]]
     .assert_eq(&program.get_block(BlockId(0)).to_string());
@@ -104,9 +104,9 @@ fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[315-317]
-                Call id(1), args( Qubit(1), ) !dbg package_id=2 span=[331-333]
-                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[347-349]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
+                Call id(1), args( Qubit(1), ) !dbg package_id=2 span=[0-0]
+                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[0-0]
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[105-109]
                 Return !dbg package_id=2 span=[105-109]"#]],
     );
@@ -167,9 +167,9 @@ fn qubit_ids_are_correct_for_allocate_use_release_one_qubit_multiple_times() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[191-193]
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[323-325]
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[455-457]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[105-109]
                 Return !dbg package_id=2 span=[105-109]"#]],
     );
@@ -236,11 +236,11 @@ fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits_interleaved() 
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[191-193]
-                Call id(1), args( Qubit(1), ) !dbg package_id=2 span=[269-271]
-                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[347-349]
-                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[541-543]
-                Call id(1), args( Qubit(3), ) !dbg package_id=2 span=[557-559]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
+                Call id(1), args( Qubit(1), ) !dbg package_id=2 span=[0-0]
+                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[0-0]
+                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[0-0]
+                Call id(1), args( Qubit(3), ) !dbg package_id=2 span=[0-0]
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[105-109]
                 Return !dbg package_id=2 span=[105-109]"#]],
     );
@@ -300,9 +300,9 @@ fn qubit_array_allocation_and_access() {
                 Variable(0, Integer) = Store Integer(1) !dbg package_id=0 span=[2161-2172]
                 Variable(0, Integer) = Store Integer(2) !dbg package_id=0 span=[2161-2172]
                 Variable(0, Integer) = Store Integer(3) !dbg package_id=0 span=[2161-2172]
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[156-158]
-                Call id(1), args( Qubit(1), ) !dbg package_id=2 span=[175-177]
-                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[194-196]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
+                Call id(1), args( Qubit(1), ) !dbg package_id=2 span=[0-0]
+                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[0-0]
                 Variable(1, Integer) = Store Integer(0) !dbg package_id=0 span=[2332-2334]
                 Variable(1, Integer) = Store Integer(1) !dbg package_id=0 span=[2332-2334]
                 Variable(1, Integer) = Store Integer(2) !dbg package_id=0 span=[2332-2334]

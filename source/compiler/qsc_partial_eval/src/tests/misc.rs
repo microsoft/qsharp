@@ -49,13 +49,13 @@ fn unitary_call_within_an_if_with_classical_condition_within_a_for_loop() {
         &expect![[r#"
             Block:
                 Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[165-169]
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[218-220]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
                 Variable(0, Integer) = Store Integer(1) !dbg package_id=2 span=[165-169]
                 Variable(0, Integer) = Store Integer(2) !dbg package_id=2 span=[165-169]
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[218-220]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
                 Variable(0, Integer) = Store Integer(3) !dbg package_id=2 span=[165-169]
                 Variable(0, Integer) = Store Integer(4) !dbg package_id=2 span=[165-169]
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[218-220]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
                 Variable(0, Integer) = Store Integer(5) !dbg package_id=2 span=[165-169]
                 Variable(0, Integer) = Store Integer(6) !dbg package_id=2 span=[165-169]
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[105-109]
@@ -103,13 +103,13 @@ fn unitary_call_within_an_if_with_classical_condition_within_a_while_loop() {
         &expect![[r#"
             Block:
                 Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[162-165]
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[242-244]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
                 Variable(0, Integer) = Store Integer(1) !dbg package_id=2 span=[279-282]
                 Variable(0, Integer) = Store Integer(2) !dbg package_id=2 span=[279-282]
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[242-244]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
                 Variable(0, Integer) = Store Integer(3) !dbg package_id=2 span=[279-282]
                 Variable(0, Integer) = Store Integer(4) !dbg package_id=2 span=[279-282]
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[242-244]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
                 Variable(0, Integer) = Store Integer(5) !dbg package_id=2 span=[279-282]
                 Variable(0, Integer) = Store Integer(6) !dbg package_id=2 span=[279-282]
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[105-109]
@@ -158,17 +158,17 @@ fn unitary_call_within_an_if_with_classical_condition_within_a_repeat_until_loop
             Block:
                 Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[162-165]
                 Variable(1, Boolean) = Store Bool(true) !dbg package_id=2 span=[297-304]
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[234-236]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
                 Variable(0, Integer) = Store Integer(1) !dbg package_id=2 span=[271-274]
                 Variable(1, Boolean) = Store Bool(true) !dbg package_id=2 span=[297-304]
                 Variable(0, Integer) = Store Integer(2) !dbg package_id=2 span=[271-274]
                 Variable(1, Boolean) = Store Bool(true) !dbg package_id=2 span=[297-304]
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[234-236]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
                 Variable(0, Integer) = Store Integer(3) !dbg package_id=2 span=[271-274]
                 Variable(1, Boolean) = Store Bool(true) !dbg package_id=2 span=[297-304]
                 Variable(0, Integer) = Store Integer(4) !dbg package_id=2 span=[271-274]
                 Variable(1, Boolean) = Store Bool(true) !dbg package_id=2 span=[297-304]
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[234-236]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
                 Variable(0, Integer) = Store Integer(5) !dbg package_id=2 span=[271-274]
                 Variable(1, Boolean) = Store Bool(true) !dbg package_id=2 span=[297-304]
                 Variable(0, Integer) = Store Integer(6) !dbg package_id=2 span=[271-274]
@@ -201,7 +201,7 @@ fn boolean_assign_and_update_with_classical_value_within_an_if_with_dynamic_cond
             Blocks:
             Block 0:Block:
                 Variable(0, Boolean) = Store Bool(true) !dbg package_id=2 span=[111-112]
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[132-146]
                 Variable(1, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[132-153]
                 Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[132-153]
                 Branch Variable(2, Boolean), 2, 1 !dbg package_id=2 span=[132-153]
@@ -238,7 +238,7 @@ fn integer_assign_and_update_with_classical_value_within_an_if_with_dynamic_cond
             Blocks:
             Block 0:Block:
                 Variable(0, Integer) = Store Integer(1) !dbg package_id=2 span=[110-111]
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[128-142]
                 Variable(1, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[128-149]
                 Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[128-149]
                 Branch Variable(2, Boolean), 2, 1 !dbg package_id=2 span=[128-149]
@@ -319,13 +319,13 @@ fn integer_assign_with_hybrid_value_within_an_if_with_dynamic_condition() {
             Block 0:Block:
                 Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[110-111]
                 Variable(1, Integer) = Store Integer(0) !dbg package_id=2 span=[139-143]
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[161-175]
                 Variable(2, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[161-182]
                 Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[161-182]
                 Branch Variable(3, Boolean), 2, 1 !dbg package_id=2 span=[161-182]
             Block 1:Block:
                 Variable(1, Integer) = Store Integer(1) !dbg package_id=2 span=[139-143]
-                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=2 span=[161-175]
                 Variable(4, Boolean) = Call id(2), args( Result(1), ) !dbg package_id=2 span=[161-182]
                 Variable(5, Boolean) = Store Variable(4, Boolean) !dbg package_id=2 span=[161-182]
                 Branch Variable(5, Boolean), 4, 3 !dbg package_id=2 span=[161-182]
@@ -461,7 +461,7 @@ fn if_else_expression_with_dynamic_logical_and_condition() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[245-256]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[245-263]
                 Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[245-263]
                 Variable(2, Boolean) = Store Bool(false) !dbg package_id=2 span=[268-286]
@@ -469,7 +469,7 @@ fn if_else_expression_with_dynamic_logical_and_condition() {
             Block 1:Block:
                 Branch Variable(2, Boolean), 4, 5 !dbg package_id=2 span=[245-286]
             Block 2:Block:
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[268-279]
                 Variable(3, Boolean) = Call id(2), args( Result(1), ) !dbg package_id=2 span=[268-286]
                 Variable(4, Boolean) = Store Variable(3, Boolean) !dbg package_id=2 span=[268-286]
                 Variable(2, Boolean) = Store Variable(4, Boolean) !dbg package_id=2 span=[268-286]
@@ -478,10 +478,10 @@ fn if_else_expression_with_dynamic_logical_and_condition() {
                 Call id(5), args( Integer(0), Pointer, ) !dbg package_id=2 span=[162-166]
                 Return !dbg package_id=2 span=[162-166]
             Block 4:Block:
-                Call id(3), args( Qubit(2), ) !dbg package_id=2 span=[301-304]
+                Call id(3), args( Qubit(2), ) !dbg package_id=2 span=[0-0]
                 Jump(3) !dbg package_id=2 span=[287-319]
             Block 5:Block:
-                Call id(4), args( Qubit(2), ) !dbg package_id=2 span=[339-342]
+                Call id(4), args( Qubit(2), ) !dbg package_id=2 span=[0-0]
                 Jump(3) !dbg package_id=2 span=[320-357]"#]],
     );
 }
@@ -566,7 +566,7 @@ fn if_else_expression_with_dynamic_logical_or_condition() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[245-256]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[245-263]
                 Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[245-263]
                 Variable(2, Boolean) = Store Bool(true) !dbg package_id=2 span=[267-285]
@@ -574,7 +574,7 @@ fn if_else_expression_with_dynamic_logical_or_condition() {
             Block 1:Block:
                 Branch Variable(2, Boolean), 4, 5 !dbg package_id=2 span=[245-285]
             Block 2:Block:
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[267-278]
                 Variable(3, Boolean) = Call id(2), args( Result(1), ) !dbg package_id=2 span=[267-285]
                 Variable(4, Boolean) = Store Variable(3, Boolean) !dbg package_id=2 span=[267-285]
                 Variable(2, Boolean) = Store Variable(4, Boolean) !dbg package_id=2 span=[267-285]
@@ -583,10 +583,10 @@ fn if_else_expression_with_dynamic_logical_or_condition() {
                 Call id(5), args( Integer(0), Pointer, ) !dbg package_id=2 span=[162-166]
                 Return !dbg package_id=2 span=[162-166]
             Block 4:Block:
-                Call id(3), args( Qubit(2), ) !dbg package_id=2 span=[300-303]
+                Call id(3), args( Qubit(2), ) !dbg package_id=2 span=[0-0]
                 Jump(3) !dbg package_id=2 span=[286-318]
             Block 5:Block:
-                Call id(4), args( Qubit(2), ) !dbg package_id=2 span=[338-341]
+                Call id(4), args( Qubit(2), ) !dbg package_id=2 span=[0-0]
                 Jump(3) !dbg package_id=2 span=[319-356]"#]],
     );
 }

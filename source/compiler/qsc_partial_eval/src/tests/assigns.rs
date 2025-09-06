@@ -84,7 +84,7 @@ fn assigning_result_register_updates_value() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[135-145]
                 Call id(2), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]"#]],
     );
@@ -189,7 +189,7 @@ fn assigning_dynamic_bool_updates_value_and_adds_store_instructions() {
         &expect![[r#"
             Block:
                 Variable(0, Boolean) = Store Bool(false) !dbg package_id=2 span=[107-108]
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[134-144]
                 Variable(1, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[134-151]
                 Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[134-151]
                 Variable(0, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[130-131]
@@ -298,7 +298,7 @@ fn assigning_dynamic_int_updates_value_and_adds_store_instructions() {
             Blocks:
             Block 0:Block:
                 Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[106-107]
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[129-139]
                 Variable(1, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[129-146]
                 Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[129-146]
                 Branch Variable(2, Boolean), 2, 3 !dbg package_id=2 span=[129-146]
@@ -378,7 +378,7 @@ fn assigning_classical_bool_within_dynamic_if_expression_adds_store_instruction(
             Blocks:
             Block 0:Block:
                 Variable(0, Boolean) = Store Bool(false) !dbg package_id=2 span=[107-108]
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[129-139]
                 Variable(1, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[129-146]
                 Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[129-146]
                 Branch Variable(2, Boolean), 2, 1 !dbg package_id=2 span=[129-146]
@@ -456,7 +456,7 @@ fn assigning_classical_int_within_dynamic_if_else_expression_adds_store_instruct
             Blocks:
             Block 0:Block:
                 Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[106-107]
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[124-134]
                 Variable(1, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[124-142]
                 Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(false) !dbg package_id=2 span=[124-142]
                 Branch Variable(2, Boolean), 2, 3 !dbg package_id=2 span=[124-142]
@@ -556,8 +556,8 @@ fn array_of_results_update_element_at_index_with_dynamic_content() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[136-147]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[181-192]
                 Call id(2), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -638,10 +638,10 @@ fn array_of_bools_update_element_at_index_with_dynamic_content() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[134-145]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[134-153]
                 Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[134-153]
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[187-198]
                 Variable(2, Boolean) = Call id(2), args( Result(1), ) !dbg package_id=2 span=[187-205]
                 Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[187-205]
                 Call id(3), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -754,14 +754,14 @@ fn array_of_results_update_slice_with_explicit_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(5), Result(5), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(6), Result(6), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(7), Result(7), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[235-246]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[248-259]
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[261-272]
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[274-285]
+                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=2 span=[287-298]
+                Call id(1), args( Qubit(5), Result(5), ) !dbg package_id=2 span=[331-344]
+                Call id(1), args( Qubit(6), Result(6), ) !dbg package_id=2 span=[346-359]
+                Call id(1), args( Qubit(7), Result(7), ) !dbg package_id=2 span=[361-374]
                 Call id(2), args( Integer(5), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(5), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -832,11 +832,11 @@ fn array_of_results_update_slice_with_open_start_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[173-184]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[186-197]
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[199-210]
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[240-251]
+                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=2 span=[253-264]
                 Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(3), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(4), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -905,11 +905,11 @@ fn array_of_results_update_slice_with_open_ended_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[173-184]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[186-197]
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[199-210]
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[240-251]
+                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=2 span=[253-264]
                 Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(3), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -978,11 +978,11 @@ fn array_of_results_update_slice_with_open_two_step_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[173-184]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[186-197]
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[199-210]
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[243-254]
+                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=2 span=[256-267]
                 Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(3), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -1073,8 +1073,8 @@ fn empty_array_of_results_in_place_concatenation() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[167-178]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[205-216]
                 Call id(2), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -1142,8 +1142,8 @@ fn non_empty_array_of_results_in_place_concatenation() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[140-151]
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[178-189]
                 Call id(2), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -1213,7 +1213,7 @@ fn logical_and_assign_with_lhs_classical_true_is_optimized_as_store() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[107-117]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[107-124]
                 Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[107-124]
                 Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[103-104]
@@ -1287,7 +1287,7 @@ fn logical_and_assign_with_lhs_classical_false_short_circuits_evaluation() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[107-117]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[107-124]
                 Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[107-124]
                 Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[103-104]
@@ -1359,7 +1359,7 @@ fn logical_and_assign_with_dynamic_lhs_and_dynamic_rhs_short_circuits_when_rhs_i
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[111-121]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[111-128]
                 Variable(1, Boolean) = Icmp Ne, Variable(0, Boolean), Bool(true) !dbg package_id=2 span=[111-128]
                 Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[107-108]
@@ -1371,7 +1371,7 @@ fn logical_and_assign_with_dynamic_lhs_and_dynamic_rhs_short_circuits_when_rhs_i
                 Call id(3), args( Variable(6, Boolean), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]
             Block 2:Block:
-                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=2 span=[149-159]
                 Variable(4, Boolean) = Call id(2), args( Result(1), ) !dbg package_id=2 span=[149-166]
                 Variable(5, Boolean) = Icmp Ne, Variable(4, Boolean), Bool(true) !dbg package_id=2 span=[149-166]
                 Variable(3, Boolean) = Store Variable(5, Boolean) !dbg package_id=2 span=[149-166]
@@ -1441,7 +1441,7 @@ fn logical_or_assign_with_lhs_classical_true_short_circuits_evaluation() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[107-117]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[107-124]
                 Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[107-124]
                 Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[103-104]
@@ -1514,7 +1514,7 @@ fn logical_or_assign_with_lhs_classical_false_is_optimized_as_store() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[107-117]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[107-124]
                 Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[107-124]
                 Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[103-104]
@@ -1587,7 +1587,7 @@ fn logical_or_assign_with_dynamic_lhs_and_dynamic_rhs_short_circuits_when_rhs_is
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[111-121]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[111-128]
                 Variable(1, Boolean) = Icmp Ne, Variable(0, Boolean), Bool(true) !dbg package_id=2 span=[111-128]
                 Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[107-108]
@@ -1599,7 +1599,7 @@ fn logical_or_assign_with_dynamic_lhs_and_dynamic_rhs_short_circuits_when_rhs_is
                 Call id(3), args( Variable(6, Boolean), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]
             Block 2:Block:
-                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=2 span=[148-158]
                 Variable(4, Boolean) = Call id(2), args( Result(1), ) !dbg package_id=2 span=[148-165]
                 Variable(5, Boolean) = Icmp Ne, Variable(4, Boolean), Bool(true) !dbg package_id=2 span=[148-165]
                 Variable(3, Boolean) = Store Variable(5, Boolean) !dbg package_id=2 span=[148-165]
@@ -1669,7 +1669,7 @@ fn integer_assign_add_with_lhs_classical_integer_and_rhs_dynamic_integer() {
             Blocks:
             Block 0:Block:
                 Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[106-107]
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[130-140]
                 Variable(1, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[130-148]
                 Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(false) !dbg package_id=2 span=[130-148]
                 Branch Variable(2, Boolean), 2, 3 !dbg package_id=2 span=[130-148]
@@ -1749,7 +1749,7 @@ fn integer_assign_sub_with_lhs_dynamic_integer_and_rhs_classical_integer() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[110-120]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[110-128]
                 Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[110-128]
                 Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[110-128]
@@ -1830,13 +1830,13 @@ fn integer_assign_mul_with_lhs_dynamic_integer_and_rhs_dynamic_integer() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[110-120]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[110-128]
                 Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[110-128]
                 Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[110-128]
             Block 1:Block:
                 Variable(3, Integer) = Store Variable(2, Integer) !dbg package_id=2 span=[106-107]
-                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=2 span=[155-165]
                 Variable(4, Boolean) = Call id(2), args( Result(1), ) !dbg package_id=2 span=[155-173]
                 Variable(5, Boolean) = Icmp Eq, Variable(4, Boolean), Bool(false) !dbg package_id=2 span=[155-173]
                 Branch Variable(5, Boolean), 5, 6 !dbg package_id=2 span=[155-173]
@@ -1923,7 +1923,7 @@ fn integer_assign_div_with_lhs_classical_integer_and_rhs_dynamic_integer() {
             Blocks:
             Block 0:Block:
                 Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[106-107]
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[130-140]
                 Variable(1, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[130-148]
                 Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(false) !dbg package_id=2 span=[130-148]
                 Branch Variable(2, Boolean), 2, 3 !dbg package_id=2 span=[130-148]
@@ -2003,7 +2003,7 @@ fn integer_assign_mod_with_lhs_dynamic_integer_and_rhs_classical_integer() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[110-120]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[110-128]
                 Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[110-128]
                 Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[110-128]
@@ -2130,7 +2130,7 @@ fn integer_assign_exp_with_lhs_dynamic_integer_and_rhs_classical_zero_integer() 
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[110-120]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[110-128]
                 Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[110-128]
                 Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[110-128]
@@ -2211,7 +2211,7 @@ fn integer_assign_exp_with_lhs_dynamic_integer_and_rhs_classical_positive_intege
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[110-120]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[110-128]
                 Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[110-128]
                 Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[110-128]
@@ -2318,13 +2318,13 @@ fn integer_assign_bitwise_and_with_lhs_dynamic_integer_and_rhs_dynamic_integer()
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[110-120]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[110-128]
                 Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[110-128]
                 Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[110-128]
             Block 1:Block:
                 Variable(3, Integer) = Store Variable(2, Integer) !dbg package_id=2 span=[106-107]
-                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=2 span=[157-167]
                 Variable(4, Boolean) = Call id(2), args( Result(1), ) !dbg package_id=2 span=[157-175]
                 Variable(5, Boolean) = Icmp Eq, Variable(4, Boolean), Bool(false) !dbg package_id=2 span=[157-175]
                 Branch Variable(5, Boolean), 5, 6 !dbg package_id=2 span=[157-175]
@@ -2411,7 +2411,7 @@ fn integer_assign_bitwise_or_with_lhs_classical_integer_and_rhs_dynamic_integer(
             Blocks:
             Block 0:Block:
                 Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[106-107]
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[132-142]
                 Variable(1, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[132-150]
                 Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(false) !dbg package_id=2 span=[132-150]
                 Branch Variable(2, Boolean), 2, 3 !dbg package_id=2 span=[132-150]
@@ -2491,7 +2491,7 @@ fn integer_bitwise_xor_with_lhs_dynamic_integer_and_rhs_classical_integer() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[110-120]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[110-128]
                 Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[110-128]
                 Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[110-128]
@@ -2572,13 +2572,13 @@ fn integer_assign_bitwise_left_shift_with_lhs_dynamic_integer_and_rhs_dynamic_in
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[110-120]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[110-128]
                 Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[110-128]
                 Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[110-128]
             Block 1:Block:
                 Variable(3, Integer) = Store Variable(2, Integer) !dbg package_id=2 span=[106-107]
-                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=2 span=[157-167]
                 Variable(4, Boolean) = Call id(2), args( Result(1), ) !dbg package_id=2 span=[157-175]
                 Variable(5, Boolean) = Icmp Eq, Variable(4, Boolean), Bool(false) !dbg package_id=2 span=[157-175]
                 Branch Variable(5, Boolean), 5, 6 !dbg package_id=2 span=[157-175]
@@ -2665,7 +2665,7 @@ fn integer_assign_bitwise_right_shift_with_lhs_classical_integer_and_rhs_dynamic
             Blocks:
             Block 0:Block:
                 Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[106-107]
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[132-142]
                 Variable(1, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[132-150]
                 Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(false) !dbg package_id=2 span=[132-150]
                 Branch Variable(2, Boolean), 2, 3 !dbg package_id=2 span=[132-150]
@@ -2746,7 +2746,7 @@ fn double_assign_add_with_lhs_classical_double_and_rhs_dynamic_double() {
             Blocks:
             Block 0:Block:
                 Variable(0, Double) = Store Double(0) !dbg package_id=2 span=[109-110]
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[135-145]
                 Variable(1, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[135-153]
                 Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(false) !dbg package_id=2 span=[135-153]
                 Branch Variable(2, Boolean), 2, 3 !dbg package_id=2 span=[135-153]
@@ -2826,7 +2826,7 @@ fn double_assign_sub_with_lhs_dynamic_double_and_rhs_classical_double() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[113-123]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[113-131]
                 Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[113-131]
                 Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[113-131]
@@ -2907,13 +2907,13 @@ fn double_assign_mul_with_lhs_dynamic_double_and_rhs_dynamic_double() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[113-123]
                 Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[113-131]
                 Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[113-131]
                 Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[113-131]
             Block 1:Block:
                 Variable(3, Double) = Store Variable(2, Double) !dbg package_id=2 span=[109-110]
-                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=2 span=[162-172]
                 Variable(4, Boolean) = Call id(2), args( Result(1), ) !dbg package_id=2 span=[162-180]
                 Variable(5, Boolean) = Icmp Eq, Variable(4, Boolean), Bool(false) !dbg package_id=2 span=[162-180]
                 Branch Variable(5, Boolean), 5, 6 !dbg package_id=2 span=[162-180]
@@ -3000,7 +3000,7 @@ fn double_assign_div_with_lhs_classical_double_and_rhs_dynamic_double() {
             Blocks:
             Block 0:Block:
                 Variable(0, Double) = Store Double(0) !dbg package_id=2 span=[109-110]
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=1 span=[182985-183014]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[135-145]
                 Variable(1, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[135-153]
                 Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(false) !dbg package_id=2 span=[135-153]
                 Branch Variable(2, Boolean), 2, 3 !dbg package_id=2 span=[135-153]

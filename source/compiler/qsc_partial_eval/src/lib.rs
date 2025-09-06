@@ -1469,6 +1469,7 @@ impl<'a> PartialEvaluator<'a> {
             Some((store_item_id.item, functor_app)),
             args,
             ctls_arg,
+            Some(self.get_expr_package_span(call_expr_id)),
         );
 
         self.check_unresolved_call_capabilities(call_expr_id, callee_expr_id, &call_scope)?;
@@ -1593,6 +1594,7 @@ impl<'a> PartialEvaluator<'a> {
             Some((store_item_id.item, FunctorApp::default())),
             args,
             ctls_arg,
+            None,
         );
 
         // We generate instructions differently depending on whether we are calling an intrinsic or a specialization
@@ -1654,7 +1656,7 @@ impl<'a> PartialEvaluator<'a> {
         }
 
         if callable_decl.attrs.contains(&fir::Attr::Measurement) {
-            return Ok(self.measure_qubits(callable_decl, args_value, callee_expr_span));
+            return Ok(self.measure_qubits(callable_decl, args_value));
         }
         if callable_decl.attrs.contains(&fir::Attr::Reset) {
             return self.eval_expr_call_to_intrinsic_qis(
@@ -1684,11 +1686,9 @@ impl<'a> PartialEvaluator<'a> {
                 })
             }
             .map_err(std::convert::Into::into),
-            "__quantum__qis__m__body" => {
-                Ok(self.measure_qubit(builder::m_decl(), args_value, callee_expr_span))
-            }
+            "__quantum__qis__m__body" => Ok(self.measure_qubit(builder::m_decl(), args_value)),
             "__quantum__qis__mresetz__body" => {
-                Ok(self.measure_qubit(builder::mresetz_decl(), args_value, callee_expr_span))
+                Ok(self.measure_qubit(builder::mresetz_decl(), args_value))
             }
             // The following intrinsic operations and functions are no-ops.
             "BeginEstimateCaching" => Ok(Value::Bool(true)),
@@ -1764,10 +1764,11 @@ impl<'a> PartialEvaluator<'a> {
             .collect();
 
         let instruction = Instruction::Call(callable_id, args_operands, output_var);
+        let last_user_span = self.eval_context.get_current_user_caller();
         let current_block = self.get_current_rir_block_mut();
         current_block
             .0
-            .push(instruction.with_metadata(Some(dbg_metadata(callee_expr_span))));
+            .push(instruction.with_metadata(last_user_span.map(dbg_metadata)));
         let ret_val = match output_var {
             None => Value::unit(),
             Some(output_var) => {
@@ -2788,12 +2789,7 @@ impl<'a> PartialEvaluator<'a> {
         Value::Qubit(qubit)
     }
 
-    fn measure_qubits(
-        &mut self,
-        callable_decl: &CallableDecl,
-        args_value: Value,
-        callee_expr_span: PackageSpan,
-    ) -> Value {
+    fn measure_qubits(&mut self, callable_decl: &CallableDecl, args_value: Value) -> Value {
         let mut input_type = Vec::new();
         let mut operands = Vec::new();
         let mut results_values = Vec::new();
@@ -2859,10 +2855,11 @@ impl<'a> PartialEvaluator<'a> {
         // Check if the callable has already been added to the program and if not do so now.
         let measure_callable_id = self.get_or_insert_callable(measurement_callable);
         let instruction = Instruction::Call(measure_callable_id, operands, None);
+        let user_span = self.eval_context.get_current_user_caller();
         let current_block = self.get_current_rir_block_mut();
         current_block
             .0
-            .push(instruction.with_metadata(Some(dbg_metadata(callee_expr_span))));
+            .push(instruction.with_metadata(user_span.map(dbg_metadata)));
 
         match results_values.len() {
             0 => panic!("unexpected unitary measurement"),
@@ -2871,12 +2868,7 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
-    fn measure_qubit(
-        &mut self,
-        measure_callable: Callable,
-        args_value: Value,
-        callee_expr_span: PackageSpan,
-    ) -> Value {
+    fn measure_qubit(&mut self, measure_callable: Callable, args_value: Value) -> Value {
         // Get the qubit and result IDs to use in the qubit measure instruction.
         let qubit = args_value.unwrap_qubit();
         let qubit_value = Value::Qubit(qubit);
@@ -2888,10 +2880,11 @@ impl<'a> PartialEvaluator<'a> {
         let measure_callable_id = self.get_or_insert_callable(measure_callable);
         let args = vec![qubit_operand, result_operand];
         let instruction = Instruction::Call(measure_callable_id, args, None);
+        let user_span = self.eval_context.get_current_user_caller();
         let current_block = self.get_current_rir_block_mut();
         current_block
             .0
-            .push(instruction.with_metadata(Some(dbg_metadata(callee_expr_span))));
+            .push(instruction.with_metadata(user_span.map(dbg_metadata)));
 
         // Return the result value.
         result_value
