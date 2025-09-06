@@ -1,9 +1,28 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { log, TargetProfile } from "qsharp-lang";
 import * as vscode from "vscode";
-import { log } from "qsharp-lang";
-
+import { qsharpExtensionId } from "../common";
+import { FullProgramConfig, getActiveProgram } from "../programConfig";
+import { getQirForProgram, QirGenerationError } from "../qirGeneration";
+import {
+  EventType,
+  getActiveDocumentType,
+  QsharpDocumentType,
+  sendTelemetryEvent,
+  UserFlowStatus,
+  UserTaskInvocationType,
+} from "../telemetry";
+import { getRandomGuid } from "../utils";
+import { sendMessageToPanel } from "../webviewPanel";
+import { getTokenForWorkspace } from "./auth";
+import { QuantumUris } from "./networkRequests";
+import {
+  getPreferredTargetProfile,
+  targetSupportQir,
+} from "./providerProperties";
+import { startRefreshCycle } from "./treeRefresher";
 import {
   Job,
   Target,
@@ -18,16 +37,6 @@ import {
   queryWorkspaces,
   submitJob,
 } from "./workspaceActions";
-import { QuantumUris } from "./networkRequests";
-import { getQirForActiveWindow } from "../qirGeneration";
-import {
-  getPreferredTargetProfile,
-  targetSupportQir,
-} from "./providerProperties";
-import { startRefreshCycle } from "./treeRefresher";
-import { getTokenForWorkspace } from "./auth";
-import { qsharpExtensionId } from "../common";
-import { sendMessageToPanel } from "../webviewPanel";
 
 const workspacesSecret = `${qsharpExtensionId}.workspaces`;
 
@@ -112,42 +121,33 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
 
         const target = treeItem.itemData as Target;
 
-        let qir = "";
         try {
-          qir = await getQirForActiveWindow(
-            getPreferredTargetProfile(target.id),
+          const preferredTargetProfile = getPreferredTargetProfile(target.id);
+          const program = await getActiveProgram({
+            showModalError: true,
+            targetProfileFallback: preferredTargetProfile,
+          });
+
+          if (!program.success) {
+            throw new QirGenerationError(program.errorMsg);
+          }
+
+          await compileAndSubmit(
+            program.programConfig,
+            preferredTargetProfile,
+            getActiveDocumentType(),
+            UserTaskInvocationType.Command,
+            workspaceTreeProvider,
+            treeItem.workspace,
+            target,
           );
-        } catch (e: any) {
-          if (e?.name === "QirGenerationError") {
+        } catch (e: unknown) {
+          log.warn("Failed to submit job. ", e);
+
+          if (e instanceof QirGenerationError) {
             vscode.window.showErrorMessage(e.message, { modal: true });
             return;
           }
-        }
-        if (!qir) return;
-
-        const quantumUris = new QuantumUris(
-          treeItem.workspace.endpointUri,
-          treeItem.workspace.id,
-        );
-
-        try {
-          const token = await getTokenForWorkspace(treeItem.workspace);
-          if (!token) return;
-
-          const jobId = await submitJob(
-            token,
-            quantumUris,
-            qir,
-            target.providerId,
-            target.id,
-          );
-          if (jobId) {
-            // The job submitted fine. Refresh the workspace until it shows up
-            // and all jobs are finished. Don't await on this, just let it run
-            startRefreshCycle(workspaceTreeProvider, treeItem.workspace, jobId);
-          }
-        } catch (e: any) {
-          log.error("Failed to submit job. ", e);
 
           vscode.window.showErrorMessage("Failed to submit the job to Azure.", {
             modal: true,
@@ -400,4 +400,105 @@ function getHistogramBucketsFromData(
     log.debug("Failed to parse job results as histogram data.", file, e);
   }
   return undefined;
+}
+
+export async function compileAndSubmit(
+  program: FullProgramConfig,
+  targetProfile: TargetProfile,
+  telemetryDocumentType: QsharpDocumentType,
+  telemetryInvocationType: UserTaskInvocationType,
+  workspaceTreeProvider: WorkspaceTreeProvider,
+  workspace: WorkspaceConnection,
+  target: Target,
+  parameters: { jobName: string; shots: number } | undefined = undefined,
+) {
+  const associationId = getRandomGuid();
+  const start = performance.now();
+  sendTelemetryEvent(
+    EventType.SubmitToAzureStart,
+    { associationId, invocationType: telemetryInvocationType },
+    {},
+  );
+
+  const qir = await getQirForProgram(
+    program,
+    targetProfile,
+    telemetryDocumentType,
+  );
+
+  if (!parameters) {
+    const result = await promptForJobParameters();
+    if (!result) {
+      sendTelemetryEvent(
+        EventType.SubmitToAzureEnd,
+        {
+          associationId,
+          reason: "user cancelled parameter input",
+          flowStatus: UserFlowStatus.Aborted,
+        },
+        { timeToCompleteMs: performance.now() - start },
+      );
+      return;
+    }
+    parameters = { jobName: result.jobName, shots: result.numberOfShots };
+  }
+
+  const { jobId } = await submitJob(
+    workspace,
+    associationId,
+    qir,
+    target.providerId,
+    target.id,
+    parameters.jobName,
+    parameters.shots,
+  );
+
+  sendTelemetryEvent(
+    EventType.SubmitToAzureEnd,
+    {
+      associationId,
+      reason: "job submitted",
+      flowStatus: UserFlowStatus.Succeeded,
+    },
+    { timeToCompleteMs: performance.now() - start },
+  );
+
+  // The job submitted fine. Refresh the workspace until it shows up
+  // and all jobs are finished. Don't await on this, just let it run
+  startRefreshCycle(workspaceTreeProvider, workspace, jobId);
+
+  return jobId;
+}
+
+async function promptForJobParameters(): Promise<
+  { jobName: string; numberOfShots: number } | undefined
+> {
+  const jobName = await vscode.window.showInputBox({
+    prompt: "Job name",
+    value: new Date().toISOString(),
+  });
+  if (!jobName) return;
+
+  // validator for the user-provided number of shots input
+  const validateShotsInput = (input: string) => {
+    const result = parseFloat(input);
+    if (isNaN(result) || Math.floor(result) !== result) {
+      return "Number of shots must be an integer";
+    }
+  };
+
+  // prompt the user for the number of shots
+  const numberOfShotsPrompted = await vscode.window.showInputBox({
+    value: "100",
+    prompt: "Number of shots",
+    validateInput: validateShotsInput,
+  });
+
+  // abort if the user hits <Esc> during shots entry
+  if (numberOfShotsPrompted === undefined) {
+    return;
+  }
+
+  const numberOfShots = parseInt(numberOfShotsPrompted);
+  return { jobName, numberOfShots };
 }
