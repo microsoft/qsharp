@@ -52,7 +52,7 @@ fn result_ids_are_correct_for_measuring_and_resetting_one_qubit() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=0
                 Call id(2), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]"#]],
     );
@@ -106,7 +106,7 @@ fn result_ids_are_correct_for_measuring_one_qubit() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=0
                 Call id(2), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]"#]],
     );
@@ -176,9 +176,9 @@ fn result_ids_are_correct_for_measuring_one_qubit_multiple_times() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0]
-                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=2 span=[0-0]
-                Call id(1), args( Qubit(0), Result(2), ) !dbg package_id=2 span=[0-0]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=0
+                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=2 span=[0-0] scope=0
+                Call id(1), args( Qubit(0), Result(2), ) !dbg package_id=2 span=[0-0] scope=0
                 Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -249,9 +249,9 @@ fn result_ids_are_correct_for_measuring_one_qubit_multiple_times_into_array() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0]
-                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=2 span=[0-0]
-                Call id(1), args( Qubit(0), Result(2), ) !dbg package_id=2 span=[0-0]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=0
+                Call id(1), args( Qubit(0), Result(1), ) !dbg package_id=2 span=[0-0] scope=0
+                Call id(1), args( Qubit(0), Result(2), ) !dbg package_id=2 span=[0-0] scope=0
                 Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -324,9 +324,9 @@ fn result_ids_are_correct_for_measuring_multiple_qubits() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0]
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[0-0]
-                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[0-0]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=0
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[0-0] scope=0
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[0-0] scope=0
                 Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]

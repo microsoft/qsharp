@@ -51,8 +51,8 @@ fn call_to_single_qubit_unitary_with_two_calls_to_the_same_intrinsic() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[234-246]
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[234-246]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[234-246] scope=0
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[234-246] scope=0
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[185-189]
                 Return !dbg package_id=2 span=[185-189]"#]],
     );
@@ -106,8 +106,8 @@ fn call_to_single_qubit_unitary_with_calls_to_different_intrinsics() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[292-303]
-                Call id(2), args( Qubit(0), ) !dbg package_id=2 span=[292-303]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[292-303] scope=0
+                Call id(2), args( Qubit(0), ) !dbg package_id=2 span=[292-303] scope=0
                 Call id(3), args( Integer(0), Pointer, ) !dbg package_id=2 span=[243-247]
                 Return !dbg package_id=2 span=[243-247]"#]],
     );
@@ -148,8 +148,8 @@ fn call_to_two_qubit_unitary() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Qubit(1), ) !dbg package_id=2 span=[298-325]
-                Call id(1), args( Qubit(1), Qubit(0), ) !dbg package_id=2 span=[298-325]
+                Call id(1), args( Qubit(0), Qubit(1), ) !dbg package_id=2 span=[298-325] scope=0
+                Call id(1), args( Qubit(1), Qubit(0), ) !dbg package_id=2 span=[298-325] scope=0
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[231-235]
                 Return !dbg package_id=2 span=[231-235]"#]],
     );
@@ -205,8 +205,8 @@ fn call_to_unitary_that_receives_double_and_qubit() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Double(1), Qubit(0), ) !dbg package_id=2 span=[358-368]
-                Call id(2), args( Qubit(0), Double(1), ) !dbg package_id=2 span=[358-368]
+                Call id(1), args( Double(1), Qubit(0), ) !dbg package_id=2 span=[358-368] scope=0
+                Call id(2), args( Qubit(0), Double(1), ) !dbg package_id=2 span=[358-368] scope=0
                 Call id(3), args( Integer(0), Pointer, ) !dbg package_id=2 span=[309-313]
                 Return !dbg package_id=2 span=[309-313]"#]],
     );
@@ -278,8 +278,8 @@ fn calls_to_unitary_that_conditionally_calls_intrinsic_with_classical_bool() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[363-391]
-                Call id(2), args( Qubit(0), ) !dbg package_id=2 span=[401-430]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[363-391] scope=1
+                Call id(2), args( Qubit(0), ) !dbg package_id=2 span=[401-430] scope=2
                 Call id(3), args( Integer(0), Pointer, ) !dbg package_id=2 span=[314-318]
                 Return !dbg package_id=2 span=[314-318]"#]],
     );
@@ -378,19 +378,19 @@ fn calls_to_unitary_that_conditionally_calls_intrinsic_with_dynamic_bool() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0]
-                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[460-468]
-                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[460-468]
-                Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[205-206]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=3
+                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[460-468] scope=3
+                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[460-468] scope=3
+                Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[205-206] scope=0
             Block 1:Block:
                 Call id(5), args( Integer(0), Pointer, ) !dbg package_id=2 span=[314-318]
                 Return !dbg package_id=2 span=[314-318]
             Block 2:Block:
-                Call id(3), args( Qubit(1), ) !dbg package_id=2 span=[440-473]
-                Jump(1) !dbg package_id=2 span=[207-238]
+                Call id(3), args( Qubit(1), ) !dbg package_id=2 span=[440-473] scope=1
+                Jump(1) !dbg package_id=2 span=[207-238] scope=0
             Block 3:Block:
-                Call id(4), args( Qubit(1), ) !dbg package_id=2 span=[440-473]
-                Jump(1) !dbg package_id=2 span=[239-275]"#]],
+                Call id(4), args( Qubit(1), ) !dbg package_id=2 span=[440-473] scope=2
+                Jump(1) !dbg package_id=2 span=[239-275] scope=0"#]],
     );
 }
 
@@ -429,8 +429,8 @@ fn call_to_unitary_rotation_unitary_with_computation() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Double(4), Qubit(0), ) !dbg package_id=2 span=[278-309]
-                Call id(1), args( Double(6), Qubit(0), ) !dbg package_id=2 span=[319-350]
+                Call id(1), args( Double(4), Qubit(0), ) !dbg package_id=2 span=[278-309] scope=0
+                Call id(1), args( Double(6), Qubit(0), ) !dbg package_id=2 span=[319-350] scope=0
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[229-233]
                 Return !dbg package_id=2 span=[229-233]"#]],
     );
@@ -483,7 +483,7 @@ fn call_to_operation_that_returns_measurement_result() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[195-200]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[195-200] scope=0
                 Call id(2), args( Result(0), Pointer, ) !dbg package_id=2 span=[144-148]
                 Return !dbg package_id=2 span=[144-148]"#]],
     );
@@ -550,10 +550,10 @@ fn call_to_operation_that_returns_dynamic_bool() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[218-223]
-                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[121-130]
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[121-130]
-                Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[218-223]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[218-223] scope=0
+                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[121-130] scope=0
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[121-130] scope=0
+                Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[218-223] scope=1
                 Call id(3), args( Variable(2, Boolean), Pointer, ) !dbg package_id=2 span=[169-173]
                 Return !dbg package_id=2 span=[169-173]"#]],
     );
@@ -612,7 +612,7 @@ fn call_to_boolean_function_using_result_literal_as_argument_yields_constant() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0] scope=3
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[175-179]
                 Return !dbg package_id=2 span=[175-179]"#]],
     );
@@ -697,16 +697,16 @@ fn call_to_boolean_function_using_dynamic_result_as_argument_generates_branches(
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0]
-                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[152-160]
-                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[152-160]
-                Branch Variable(1, Boolean), 2, 1 !dbg package_id=2 span=[368-383]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=1
+                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[152-160] scope=0
+                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[152-160] scope=0
+                Branch Variable(1, Boolean), 2, 1 !dbg package_id=2 span=[368-383] scope=1
             Block 1:Block:
                 Call id(4), args( Integer(0), Pointer, ) !dbg package_id=2 span=[199-203]
                 Return !dbg package_id=2 span=[199-203]
             Block 2:Block:
-                Call id(3), args( Qubit(1), ) !dbg package_id=2 span=[0-0]
-                Jump(1) !dbg package_id=2 span=[384-415]"#]],
+                Call id(3), args( Qubit(1), ) !dbg package_id=2 span=[0-0] scope=2
+                Jump(1) !dbg package_id=2 span=[384-415] scope=1"#]],
     );
 }
 
@@ -778,8 +778,8 @@ fn call_to_unitary_operation_with_one_qubit_argument_using_one_control_qubit() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(1), ) !dbg package_id=2 span=[454-464]
-                Call id(2), args( Qubit(0), Qubit(1), ) !dbg package_id=2 span=[474-502]
+                Call id(1), args( Qubit(1), ) !dbg package_id=2 span=[454-464] scope=0
+                Call id(2), args( Qubit(0), Qubit(1), ) !dbg package_id=2 span=[474-502] scope=1
                 Call id(3), args( Integer(0), Pointer, ) !dbg package_id=2 span=[382-386]
                 Return !dbg package_id=2 span=[382-386]"#]],
     );
@@ -854,8 +854,8 @@ fn call_to_unitary_operation_with_one_qubit_argument_using_mutiple_control_qubit
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[497-507]
-                Call id(2), args( Qubit(0), Qubit(1), Qubit(2), ) !dbg package_id=2 span=[517-552]
+                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[497-507] scope=0
+                Call id(2), args( Qubit(0), Qubit(1), Qubit(2), ) !dbg package_id=2 span=[517-552] scope=1
                 Call id(3), args( Integer(0), Pointer, ) !dbg package_id=2 span=[409-413]
                 Return !dbg package_id=2 span=[409-413]"#]],
     );
@@ -931,8 +931,8 @@ fn call_to_unitary_operation_with_two_qubit_arguments_using_one_control_qubit() 
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(1), Qubit(2), ) !dbg package_id=2 span=[526-546]
-                Call id(2), args( Qubit(0), Qubit(1), Qubit(2), ) !dbg package_id=2 span=[556-596]
+                Call id(1), args( Qubit(1), Qubit(2), ) !dbg package_id=2 span=[526-546] scope=0
+                Call id(2), args( Qubit(0), Qubit(1), Qubit(2), ) !dbg package_id=2 span=[556-596] scope=1
                 Call id(3), args( Integer(0), Pointer, ) !dbg package_id=2 span=[435-439]
                 Return !dbg package_id=2 span=[435-439]"#]],
     );
@@ -1045,10 +1045,10 @@ fn call_to_unitary_operation_using_multiple_controlled_functors() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[872-882]
-                Call id(2), args( Qubit(1), Qubit(0), ) !dbg package_id=2 span=[892-921]
-                Call id(3), args( Qubit(1), Qubit(2), Qubit(0), ) !dbg package_id=2 span=[931-981]
-                Call id(4), args( Qubit(3), ) !dbg package_id=2 span=[991-1062]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[872-882] scope=0
+                Call id(2), args( Qubit(1), Qubit(0), ) !dbg package_id=2 span=[892-921] scope=2
+                Call id(3), args( Qubit(1), Qubit(2), Qubit(0), ) !dbg package_id=2 span=[931-981] scope=3
+                Call id(4), args( Qubit(3), ) !dbg package_id=2 span=[991-1062] scope=4
                 Call id(5), args( Integer(0), Pointer, ) !dbg package_id=2 span=[768-772]
                 Return !dbg package_id=2 span=[768-772]"#]],
     );
@@ -1085,7 +1085,7 @@ fn call_to_closue_with_no_bound_locals() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[65-69]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[65-69] scope=925
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[108-112]
                 Return !dbg package_id=2 span=[108-112]"#]],
     );
@@ -1123,7 +1123,7 @@ fn call_to_closue_with_one_bound_local() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Double(1), Qubit(0), ) !dbg package_id=2 span=[65-75]
+                Call id(1), args( Double(1), Qubit(0), ) !dbg package_id=2 span=[65-75] scope=763
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[114-118]
                 Return !dbg package_id=2 span=[114-118]"#]],
     );
@@ -1161,7 +1161,7 @@ fn call_to_closue_with_two_bound_locals() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Double(1), Qubit(0), ) !dbg package_id=2 span=[65-82]
+                Call id(1), args( Double(1), Qubit(0), ) !dbg package_id=2 span=[65-82] scope=763
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[121-125]
                 Return !dbg package_id=2 span=[121-125]"#]],
     );
@@ -1199,7 +1199,7 @@ fn call_to_closue_with_one_bound_local_two_unbound() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Double(1), Qubit(0), ) !dbg package_id=2 span=[75-90]
+                Call id(1), args( Double(1), Qubit(0), ) !dbg package_id=2 span=[75-90] scope=763
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[129-133]
                 Return !dbg package_id=2 span=[129-133]"#]],
     );
@@ -1229,7 +1229,7 @@ fn call_to_unresolved_callee_with_classical_arg_allowed() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Double(1), Qubit(0), ) !dbg package_id=2 span=[98-119]
+                Call id(1), args( Double(1), Qubit(0), ) !dbg package_id=2 span=[98-119] scope=763
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[159-163]
                 Return !dbg package_id=2 span=[159-163]"#]],
     );
@@ -1341,8 +1341,8 @@ fn call_to_unresolved_callee_with_static_arg_and_entry_return_value_succeeds() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Double(1), Qubit(0), ) !dbg package_id=2 span=[98-119]
-                Call id(2), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[252-262]
+                Call id(1), args( Double(1), Qubit(0), ) !dbg package_id=2 span=[98-119] scope=763
+                Call id(2), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[252-262] scope=1142
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[159-163]
                 Return !dbg package_id=2 span=[159-163]"#]],
     );
@@ -1373,10 +1373,10 @@ fn call_to_recursive_callable_succeeds() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[209-213]
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[209-213]
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[209-213]
-                Call id(2), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[108-118]
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[209-213] scope=683
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[209-213] scope=683
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[209-213] scope=683
+                Call id(2), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[108-118] scope=1141
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[32-36]
                 Return !dbg package_id=2 span=[32-36]"#]],
     );

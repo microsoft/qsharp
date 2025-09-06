@@ -18,6 +18,8 @@ use std::collections::hash_map::Entry;
 pub struct EvaluationContext {
     active_blocks: Vec<BlockNode>,
     scopes: Vec<Scope>,
+    pub current_source_block: Vec<qsc_fir::fir::BlockId>,
+    pub current_iteration: Option<usize>,
 }
 
 impl EvaluationContext {
@@ -30,6 +32,8 @@ impl EvaluationContext {
                 successor: None,
             }],
             scopes: vec![entry_callable_scope],
+            current_source_block: vec![],
+            current_iteration: None,
         }
     }
 
@@ -97,6 +101,7 @@ impl EvaluationContext {
 }
 
 /// Struct that represents a block node when we intepret an RIR program as a graph.
+#[derive(Debug)]
 pub struct BlockNode {
     /// The ID of the block.
     pub id: BlockId,

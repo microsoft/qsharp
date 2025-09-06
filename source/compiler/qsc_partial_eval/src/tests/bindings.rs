@@ -57,7 +57,7 @@ fn immutable_result_binding_does_not_generate_store_instruction() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[109-119]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[109-119] scope=1147
                 Call id(2), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]"#]],
     );
@@ -108,7 +108,7 @@ fn mutable_result_binding_does_not_generate_store_instruction() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[113-123]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[113-123] scope=1147
                 Call id(2), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]"#]],
     );
@@ -172,11 +172,11 @@ fn immutable_bool_binding_does_not_generate_store_instruction() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[107-117]
-                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[107-124]
-                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[107-124]
-                Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[103-104]
-                Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[134-135]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[107-117] scope=1147
+                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[107-124] scope=0
+                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[107-124] scope=0
+                Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[103-104] scope=0
+                Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[134-135] scope=0
                 Call id(3), args( Variable(3, Boolean), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]"#]],
     );
@@ -240,11 +240,11 @@ fn mutable_bool_binding_generates_store_instruction() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[111-121]
-                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[111-128]
-                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[111-128]
-                Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[107-108]
-                Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[138-139]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[111-121] scope=1147
+                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[111-128] scope=0
+                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[111-128] scope=0
+                Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[107-108] scope=0
+                Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[138-139] scope=0
                 Call id(3), args( Variable(3, Boolean), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]"#]],
     );
@@ -308,21 +308,21 @@ fn immutable_int_binding_does_not_generate_store_instruction() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[106-116]
-                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[106-123]
-                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[106-123]
-                Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[106-123]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[106-116] scope=1147
+                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[106-123] scope=0
+                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[106-123] scope=0
+                Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[106-123] scope=0
             Block 1:Block:
-                Variable(3, Integer) = Store Variable(2, Integer) !dbg package_id=2 span=[102-103]
-                Variable(4, Integer) = Store Variable(3, Integer) !dbg package_id=2 span=[141-142]
+                Variable(3, Integer) = Store Variable(2, Integer) !dbg package_id=2 span=[102-103] scope=0
+                Variable(4, Integer) = Store Variable(3, Integer) !dbg package_id=2 span=[141-142] scope=0
                 Call id(3), args( Variable(4, Integer), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]
             Block 2:Block:
-                Variable(2, Integer) = Store Integer(0) !dbg package_id=2 span=[126-127]
-                Jump(1) !dbg package_id=2 span=[126-127]
+                Variable(2, Integer) = Store Integer(0) !dbg package_id=2 span=[126-127] scope=0
+                Jump(1) !dbg package_id=2 span=[126-127] scope=0
             Block 3:Block:
-                Variable(2, Integer) = Store Integer(1) !dbg package_id=2 span=[130-131]
-                Jump(1) !dbg package_id=2 span=[130-131]"#]],
+                Variable(2, Integer) = Store Integer(1) !dbg package_id=2 span=[130-131] scope=0
+                Jump(1) !dbg package_id=2 span=[130-131] scope=0"#]],
     );
 }
 
@@ -384,21 +384,21 @@ fn mutable_int_binding_does_generate_store_instruction() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[110-120]
-                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[110-127]
-                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[110-127]
-                Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[110-127]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[110-120] scope=1147
+                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[110-127] scope=0
+                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[110-127] scope=0
+                Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[110-127] scope=0
             Block 1:Block:
-                Variable(3, Integer) = Store Variable(2, Integer) !dbg package_id=2 span=[106-107]
-                Variable(4, Integer) = Store Variable(3, Integer) !dbg package_id=2 span=[145-146]
+                Variable(3, Integer) = Store Variable(2, Integer) !dbg package_id=2 span=[106-107] scope=0
+                Variable(4, Integer) = Store Variable(3, Integer) !dbg package_id=2 span=[145-146] scope=0
                 Call id(3), args( Variable(4, Integer), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]
             Block 2:Block:
-                Variable(2, Integer) = Store Integer(0) !dbg package_id=2 span=[130-131]
-                Jump(1) !dbg package_id=2 span=[130-131]
+                Variable(2, Integer) = Store Integer(0) !dbg package_id=2 span=[130-131] scope=0
+                Jump(1) !dbg package_id=2 span=[130-131] scope=0
             Block 3:Block:
-                Variable(2, Integer) = Store Integer(1) !dbg package_id=2 span=[134-135]
-                Jump(1) !dbg package_id=2 span=[134-135]"#]],
+                Variable(2, Integer) = Store Integer(1) !dbg package_id=2 span=[134-135] scope=0
+                Jump(1) !dbg package_id=2 span=[134-135] scope=0"#]],
     );
 }
 
@@ -470,22 +470,22 @@ fn mutable_variable_in_outer_scope_set_to_mutable_from_inner_scope() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[106-107]
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[124-134]
-                Variable(1, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[124-141]
-                Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[124-141]
-                Branch Variable(2, Boolean), 2, 3 !dbg package_id=2 span=[124-141]
+                Variable(0, Integer) = Store Integer(0) !dbg package_id=2 span=[106-107] scope=0
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[124-134] scope=1147
+                Variable(1, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[124-141] scope=0
+                Variable(2, Boolean) = Store Variable(1, Boolean) !dbg package_id=2 span=[124-141] scope=0
+                Branch Variable(2, Boolean), 2, 3 !dbg package_id=2 span=[124-141] scope=0
             Block 1:Block:
-                Variable(4, Integer) = Store Variable(0, Integer) !dbg package_id=2 span=[267-268]
+                Variable(4, Integer) = Store Variable(0, Integer) !dbg package_id=2 span=[267-268] scope=3
                 Call id(3), args( Variable(4, Integer), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]
             Block 2:Block:
-                Variable(3, Integer) = Store Integer(1) !dbg package_id=2 span=[164-165]
-                Variable(0, Integer) = Store Integer(1) !dbg package_id=2 span=[187-188]
-                Jump(1) !dbg package_id=2 span=[142-203]
+                Variable(3, Integer) = Store Integer(1) !dbg package_id=2 span=[164-165] scope=1
+                Variable(0, Integer) = Store Integer(1) !dbg package_id=2 span=[187-188] scope=1
+                Jump(1) !dbg package_id=2 span=[142-203] scope=0
             Block 3:Block:
-                Variable(0, Integer) = Store Integer(2) !dbg package_id=2 span=[235-236]
-                Jump(1) !dbg package_id=2 span=[212-251]"#]],
+                Variable(0, Integer) = Store Integer(2) !dbg package_id=2 span=[235-236] scope=2
+                Jump(1) !dbg package_id=2 span=[212-251] scope=0"#]],
     );
 }
 
@@ -547,20 +547,20 @@ fn mutable_double_binding_does_generate_store_instruction() {
         &expect![[r#"
             Blocks:
             Block 0:Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[113-123]
-                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[113-130]
-                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[113-130]
-                Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[113-130]
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[113-123] scope=1147
+                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[113-130] scope=0
+                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[113-130] scope=0
+                Branch Variable(1, Boolean), 2, 3 !dbg package_id=2 span=[113-130] scope=0
             Block 1:Block:
-                Variable(3, Double) = Store Variable(2, Double) !dbg package_id=2 span=[109-110]
-                Variable(4, Double) = Store Variable(3, Double) !dbg package_id=2 span=[152-153]
+                Variable(3, Double) = Store Variable(2, Double) !dbg package_id=2 span=[109-110] scope=0
+                Variable(4, Double) = Store Variable(3, Double) !dbg package_id=2 span=[152-153] scope=0
                 Call id(3), args( Variable(4, Double), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]
             Block 2:Block:
-                Variable(2, Double) = Store Double(0.1) !dbg package_id=2 span=[133-136]
-                Jump(1) !dbg package_id=2 span=[133-136]
+                Variable(2, Double) = Store Double(0.1) !dbg package_id=2 span=[133-136] scope=0
+                Jump(1) !dbg package_id=2 span=[133-136] scope=0
             Block 3:Block:
-                Variable(2, Double) = Store Double(1.1) !dbg package_id=2 span=[139-142]
-                Jump(1) !dbg package_id=2 span=[139-142]"#]],
+                Variable(2, Double) = Store Double(1.1) !dbg package_id=2 span=[139-142] scope=0
+                Jump(1) !dbg package_id=2 span=[139-142] scope=0"#]],
     );
 }
