@@ -227,13 +227,13 @@ impl Builder {
     #[must_use]
     pub fn snapshot(&self) -> Circuit {
         let operations = self.operations.clone();
-        self.finish_circuit(operations)
+        self.finish_circuit(&operations)
     }
 
     #[must_use]
     pub fn finish(mut self) -> Circuit {
         let operations = take(&mut self.operations);
-        self.finish_circuit(operations)
+        self.finish_circuit(&operations)
     }
 
     fn map(&mut self, qubit: usize) -> WireId {
@@ -257,7 +257,7 @@ impl Builder {
             .unwrap_or_default()
     }
 
-    fn finish_circuit(&self, operations: Vec<Operation>) -> Circuit {
+    fn finish_circuit(&self, operations: &[Operation]) -> Circuit {
         let mut qubits = vec![];
 
         // add qubit declarations

@@ -142,7 +142,7 @@ fn bell() {
                 num_results: 1,
             },
         ],
-        component_grid: operation_list_to_grid(operations, 2),
+        component_grid: operation_list_to_grid(&operations, 2),
     };
 
     expect![[r"
@@ -170,7 +170,7 @@ fn control_classical() {
             qubit(1),
             qubit(2),
         ],
-        component_grid: operation_list_to_grid(operations, 3),
+        component_grid: operation_list_to_grid(&operations, 3),
     };
 
     expect![[r"
@@ -190,7 +190,7 @@ fn two_measurements() {
             id: 0,
             num_results: 2,
         }],
-        component_grid: operation_list_to_grid(operations, 1),
+        component_grid: operation_list_to_grid(&operations, 1),
     };
 
     expect![[r"

@@ -25,56 +25,57 @@ import Std.Convert.*;
 operation Main() : (Int, Int) {
     // The angles for inner product. Inner product is meeasured for vectors
     // (cos(Θ₁/2), sin(Θ₁/2)) and (cos(Θ₂/2), sin(Θ₂/2)).
-    let theta1 = PI() / 7.0;
-    let theta2 = PI() / 5.0;
     // Number of iterations
-    let n = 4;
     // Perform measurements
     Message("Computing inner product of vectors (cos(Θ₁/2), sin(Θ₁/2))⋅(cos(Θ₂/2), sin(Θ₂/2)) ≈ -cos(x𝝅/2ⁿ)");
-    let result = PerformMeasurements(theta1, theta2, n);
+    let result = PerformMeasurements();
     // Return result
-    return (result, n);
+    return (result, 4);
 }
 
 @Config(Adaptive)
 @Config(not HigherLevelConstructs)
 @Config(not FloatingPointComputations)
-operation PerformMeasurements(theta1 : Double, theta2 : Double, n : Int) : Int {
-    let measurementCount = n + 1;
-    return QuantumInnerProduct(theta1, theta2, measurementCount);
+operation PerformMeasurements() : Int {
+    // n = 4, so measurementCount = n + 1 = 5
+    return QuantumInnerProduct();
 }
 
 @Config(HigherLevelConstructs)
 @Config(FloatingPointComputations)
-operation PerformMeasurements(theta1 : Double, theta2 : Double, n : Int) : Int {
+operation PerformMeasurements() : Int {
+    let theta1 = PI() / 7.0;
+    let theta2 = PI() / 5.0;
     Message($"Θ₁={theta1}, Θ₂={theta2}.");
 
     // First compute quantum approximation
-    let measurementCount = n + 1;
-    let x = QuantumInnerProduct(theta1, theta2, measurementCount);
-    let angle = PI() * IntAsDouble(x) / IntAsDouble(2^n);
+    // n = 4 so measurementCount = 5 and 2^n = 16
+    let x = QuantumInnerProduct();
+    let angle = PI() * IntAsDouble(x) / 16.0;
     let computedInnerProduct = -Cos(angle);
-    Message($"x = {x}, n = {n}.");
+    Message($"x = {x}, n = 4.");
 
     // Now compute true inner product
-    let trueInnterProduct = ClassicalInnerProduct(theta1, theta2);
+    let trueInnterProduct = ClassicalInnerProduct();
 
     Message($"Computed value = {computedInnerProduct}, true value = {trueInnterProduct}");
 
     return x;
 }
 
-function ClassicalInnerProduct(theta1 : Double, theta2 : Double) : Double {
+function ClassicalInnerProduct() : Double {
+    let theta1 = PI() / 7.0;
+    let theta2 = PI() / 5.0;
     return Cos(theta1 / 2.0) * Cos(theta2 / 2.0) + Sin(theta1 / 2.0) * Sin(theta2 / 2.0);
 }
 
-operation QuantumInnerProduct(theta1 : Double, theta2 : Double, iterationCount : Int) : Int {
+operation QuantumInnerProduct() : Int {
     //Create target register
     use TargetReg = Qubit();
     //Create ancilla register
     use AncilReg = Qubit();
     //Run iterative phase estimation
-    let Results = IterativePhaseEstimation(TargetReg, AncilReg, theta1, theta2, iterationCount);
+    let Results = IterativePhaseEstimation(TargetReg, AncilReg);
     Reset(TargetReg);
     Reset(AncilReg);
     return Results;
@@ -82,17 +83,19 @@ operation QuantumInnerProduct(theta1 : Double, theta2 : Double, iterationCount :
 
 operation IterativePhaseEstimation(
     TargetReg : Qubit,
-    AncilReg : Qubit,
-    theta1 : Double,
-    theta2 : Double,
-    Measurements : Int
+    AncilReg : Qubit
 ) : Int {
+
+    let Measurements = 5; // previously iterationCount (n + 1) with n = 4
+
+    let theta1 = PI() / 7.0;
+    let theta2 = PI() / 5.0;
 
     use ControlReg = Qubit();
     mutable MeasureControlReg = [Zero, size = Measurements];
     mutable bitValue = 0;
     //Apply to initialise state, this is defined by the angles theta1 and theta2
-    StateInitialisation(TargetReg, AncilReg, theta1, theta2);
+    StateInitialisation(TargetReg, AncilReg);
     for index in 0..Measurements - 1 {
         H(ControlReg);
         //Don't apply rotation on first set of oracles
@@ -110,7 +113,7 @@ operation IterativePhaseEstimation(
         let powerIndex = (1 <<< (Measurements - 1 - index));
         //Apply a number of oracles equal to 2^index, where index is the number or measurements left
         for _ in 1..powerIndex {
-            Controlled GOracle([ControlReg], (TargetReg, AncilReg, theta1, theta2));
+            Controlled GOracle([ControlReg], (TargetReg, AncilReg));
         }
         H(ControlReg);
         //Make a measurement mid circuit
@@ -127,10 +130,11 @@ operation IterativePhaseEstimation(
 /// This is state preperation operator A for encoding the 2D vector (page 7)
 operation StateInitialisation(
     TargetReg : Qubit,
-    AncilReg : Qubit,
-    theta1 : Double,
-    theta2 : Double
+    AncilReg : Qubit
 ) : Unit is Adj + Ctl {
+
+    let theta1 = PI() / 7.0;
+    let theta2 = PI() / 5.0;
 
     H(AncilReg);
     // Arbitrary controlled rotation based on theta. This is vector v.
@@ -145,14 +149,14 @@ operation StateInitialisation(
 
 operation GOracle(
     TargetReg : Qubit,
-    AncilReg : Qubit,
-    theta1 : Double,
-    theta2 : Double
+    AncilReg : Qubit
 ) : Unit is Adj + Ctl {
+
+    // Angles inlined
 
     Z(AncilReg);
     within {
-        Adjoint StateInitialisation(TargetReg, AncilReg, theta1, theta2);
+        Adjoint StateInitialisation(TargetReg, AncilReg);
         X(AncilReg);
         X(TargetReg);
     } apply {
