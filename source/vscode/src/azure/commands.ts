@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log, TargetProfile } from "qsharp-lang";
+import { log, QdkDiagnostics, TargetProfile } from "qsharp-lang";
 import * as vscode from "vscode";
+import { getCircuitOrErrorWithTimeout } from "../circuit";
 import { qsharpExtensionId } from "../common";
+import { getUploadSupplementalData } from "../config";
 import { FullProgramConfig, getActiveProgram } from "../programConfig";
 import { getQirForProgram, QirGenerationError } from "../qirGeneration";
 import {
@@ -17,7 +19,7 @@ import {
 import { getRandomGuid } from "../utils";
 import { sendMessageToPanel } from "../webviewPanel";
 import { getTokenForWorkspace } from "./auth";
-import { QuantumUris } from "./networkRequests";
+import { QuantumUris, StorageUris } from "./networkRequests";
 import {
   getPreferredTargetProfile,
   targetSupportQir,
@@ -36,11 +38,14 @@ import {
   getPythonCodeForWorkspace,
   queryWorkspaces,
   submitJob,
+  uploadBlob,
 } from "./workspaceActions";
 
 const workspacesSecret = `${qsharpExtensionId}.workspaces`;
+let extensionUri: vscode.Uri;
 
 export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
+  extensionUri = context.extensionUri;
   const workspaceTreeProvider = new WorkspaceTreeProvider();
   WorkspaceTreeProvider.instance = workspaceTreeProvider;
 
@@ -443,7 +448,7 @@ export async function compileAndSubmit(
     parameters = { jobName: result.jobName, shots: result.numberOfShots };
   }
 
-  const { jobId } = await submitJob(
+  const { jobId, storageUris, quantumUris, token } = await submitJob(
     workspace,
     associationId,
     qir,
@@ -466,6 +471,20 @@ export async function compileAndSubmit(
   // The job submitted fine. Refresh the workspace until it shows up
   // and all jobs are finished. Don't await on this, just let it run
   startRefreshCycle(workspaceTreeProvider, workspace, jobId);
+
+  if (getUploadSupplementalData()) {
+    // Now generate and upload the supplemental data.
+    // Fire and forget - the supplemental data is best-effort .
+    uploadSupplementalData(
+      program,
+      storageUris,
+      quantumUris,
+      token,
+      associationId,
+    ).catch((e) => {
+      log.warn("Failed to upload supplemental job data", e);
+    });
+  }
 
   return jobId;
 }
@@ -501,4 +520,56 @@ async function promptForJobParameters(): Promise<
 
   const numberOfShots = parseInt(numberOfShotsPrompted);
   return { jobName, numberOfShots };
+}
+
+/**
+ * Uploads supplemental input data for the job, which is currently just
+ * the circuit diagram (if it can be generated).
+ *
+ * Throws an exception if any part of this process fails.
+ */
+async function uploadSupplementalData(
+  program: FullProgramConfig,
+  storageUris: StorageUris,
+  quantumUris: QuantumUris,
+  token: string,
+  associationId: string,
+) {
+  const circuitDiagram = await getCircuitJson(program);
+
+  await uploadBlob(
+    storageUris,
+    quantumUris,
+    token,
+    "circuitDiagram",
+    circuitDiagram,
+    "application/json",
+    associationId,
+  );
+}
+
+/**
+ * Generates a circuit diagram for the program, or throws if it can't be generated.
+ */
+async function getCircuitJson(program: FullProgramConfig): Promise<string> {
+  const circuit = await getCircuitOrErrorWithTimeout(
+    extensionUri,
+    {
+      program,
+    },
+    false,
+    5000, // If we can't generate in 5 seconds, give up - something's wrong or program is way too complex
+  );
+
+  if (circuit.result === "success") {
+    return JSON.stringify(circuit.circuit);
+  } else {
+    if (circuit.errors?.length > 0) {
+      throw new QdkDiagnostics(circuit.errors);
+    }
+    if (circuit.timeout) {
+      throw new Error(`Timed out generating circuit`);
+    }
+    throw new Error("Unknown error generating circuit diagram");
+  }
 }
