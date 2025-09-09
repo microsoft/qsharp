@@ -10,7 +10,6 @@
 ///
 /// # References
 /// - [Bell state](https://en.wikipedia.org/wiki/Bell_state)
-@EntryPoint(Adaptive_RIF)
 operation Main() : (Result, Result)[] {
     // Prepare and measure each pair. Return an array of these results.
     [
@@ -71,3 +70,4 @@ operation PreparePsiMinus(register : Qubit[]) : Unit {
     X(register[1]);                 // |-1〉
     CNOT(register[0], register[1]); // (|01〉 - |10〉)/sqrt(2)
 }
+ 

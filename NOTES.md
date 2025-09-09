@@ -8,3 +8,4 @@
 - qubit/argument names
 - simulated dynamic circuits with ghost paths
 - LLVM debug info
+- symbolic arguments via debug metadata

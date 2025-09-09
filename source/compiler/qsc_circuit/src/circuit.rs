@@ -17,7 +17,7 @@ use std::{
 pub const CURRENT_VERSION: usize = 1;
 
 /// Representation of a quantum circuit group.
-#[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Default, Debug)]
 pub struct CircuitGroup {
     pub circuits: Vec<Circuit>,
     pub version: usize,
@@ -33,7 +33,7 @@ impl Display for CircuitGroup {
 }
 
 /// Representation of a quantum circuit.
-#[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Default, Debug)]
 pub struct Circuit {
     pub qubits: Vec<Qubit>,
     #[serde(rename = "componentGrid")]
@@ -44,7 +44,7 @@ pub struct Circuit {
 pub type ComponentGrid = Vec<ComponentColumn>;
 
 /// Representation of a column in the component grid.
-#[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Default, Debug)]
 pub struct ComponentColumn {
     pub components: Vec<Component>,
 }
@@ -53,7 +53,7 @@ pub struct ComponentColumn {
 pub type Component = Operation;
 
 /// Union type for operations.
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(tag = "kind")]
 pub enum Operation {
     #[serde(rename = "measurement")]
@@ -125,7 +125,7 @@ impl Operation {
 }
 
 /// Representation of a measurement operation.
-#[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Default, Debug)]
 pub struct Measurement {
     pub gate: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -139,7 +139,7 @@ pub struct Measurement {
 }
 
 /// Representation of a unitary operation.
-#[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Default, Debug)]
 pub struct Unitary {
     pub gate: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -159,7 +159,7 @@ pub struct Unitary {
 }
 
 /// Representation of a gate that will set the target to a specific state.
-#[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Default, Debug)]
 pub struct Ket {
     pub gate: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -932,7 +932,7 @@ fn collapse_repetition(operations: &[Operation]) -> Vec<Operation> {
                     break;
                 }
                 for k in 0..motif_len {
-                    if operations[i + k] != operations[start_next + k] {
+                    if is_different_operation(&operations[i + k], &operations[start_next + k]) {
                         break 'outer;
                     }
                 }
@@ -1033,6 +1033,57 @@ fn collapse_repetition(operations: &[Operation]) -> Vec<Operation> {
     }
 
     result
+}
+
+fn is_different_operation(left: &Operation, right: &Operation) -> bool {
+    if left.gate() != right.gate()
+        || left.is_adjoint() != right.is_adjoint()
+        || left.is_controlled() != right.is_controlled()
+        || left.is_measurement() != right.is_measurement()
+    {
+        return true;
+    }
+
+    let left_args = left.args();
+    let non_metadata_args_1 = left_args
+        .iter()
+        .filter(|arg| !arg.starts_with("metadata="))
+        .collect::<Vec<_>>();
+    let right_args = right.args();
+    let non_metadata_args_2 = right_args
+        .iter()
+        .filter(|arg| !arg.starts_with("metadata="))
+        .collect::<Vec<_>>();
+
+    // compare children using this function as equality
+    let are_children_equal = left.children().len() == right.children().len()
+        && left
+            .children()
+            .iter()
+            .zip(right.children().iter())
+            .all(|(col1, col2)| {
+                col1.components.len() == col2.components.len()
+                    && col1
+                        .components
+                        .iter()
+                        .zip(col2.components.iter())
+                        .all(|(op1, op2)| !is_different_operation(op1, op2))
+            });
+
+    if !are_children_equal || non_metadata_args_1 != non_metadata_args_2 {
+        return true;
+    }
+
+    match (left, right) {
+        (Operation::Measurement(m1), Operation::Measurement(m2)) => {
+            m1.qubits != m2.qubits || m1.results != m2.results
+        }
+        (Operation::Unitary(u1), Operation::Unitary(u2)) => {
+            u1.controls != u2.controls || u1.targets != u2.targets
+        }
+        (Operation::Ket(k1), Operation::Ket(k2)) => k1.targets != k2.targets,
+        _ => true,
+    }
 }
 
 /// Converts a list of operations into a padded 2D array of operations.

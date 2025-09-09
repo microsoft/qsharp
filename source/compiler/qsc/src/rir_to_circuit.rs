@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::circuit;
 use log::debug;
 use qsc_circuit::{
@@ -11,7 +13,8 @@ use qsc_partial_eval::{
     Callable, CallableType, ConditionCode, FcmpConditionCode, Instruction, Literal, Operand,
     VariableId,
     rir::{
-        BlockId, BlockWithMetadata, InstructionMetadata, InstructionWithMetadata, Program, Variable,
+        BlockId, BlockWithMetadata, InstructionMetadata, InstructionWithMetadata, Program, Ty,
+        Variable,
     },
 };
 use rustc_hash::FxHashSet;
@@ -274,104 +277,131 @@ fn operations_in_block(
                 "instructions after return or jump in block".to_owned(),
             ));
         }
-        match &instruction.instruction {
-            Instruction::Call(callable_id, operands, var) => {
-                operations.extend(map_callable_to_operations(
-                    state,
-                    callables.get(*callable_id).expect("callable should exist"),
-                    operands,
-                    var.as_ref(),
-                    instruction.metadata.as_ref(),
-                )?);
-            }
-            Instruction::Fcmp(condition_code, operand, operand1, variable) => {
-                let expr_left = expr_from_operand(&*state, operand)?;
-                let expr_right = expr_from_operand(&*state, operand1)?;
-                let expr = match condition_code {
-                    FcmpConditionCode::False => ConditionExpr::LiteralBool(false),
-                    FcmpConditionCode::True => ConditionExpr::LiteralBool(true),
-                    cmp => ConditionExpr::FancyBinOp(
-                        expr_left.into(),
-                        expr_right.into(),
-                        cmp.to_string(),
-                    ),
-                };
-
-                state.store_expr_in_variable(variable.variable_id, expr);
-            }
-            Instruction::Icmp(condition_code, operand, operand1, variable) => {
-                match condition_code {
-                    ConditionCode::Eq => {
-                        let expr_left = expr_from_operand(&*state, operand)?;
-                        let expr_right = expr_from_operand(&*state, operand1)?;
-                        let expr = eq_expr(expr_left, expr_right)?;
-                        state.store_expr_in_variable(variable.variable_id, expr);
-                    }
-                    condition_code => {
-                        return Err(qsc_circuit::Error::UnsupportedFeature(format!(
-                            "unsupported condition code in icmp: {condition_code:?}"
-                        )));
-                    }
-                }
-            }
-
-            Instruction::Return => {
-                done = true;
-            }
-            Instruction::Branch(variable, block_id_1, block_id_2) => {
-                operations.push(operation_for_branch(
-                    state,
-                    instruction,
-                    *variable,
-                    *block_id_1,
-                    *block_id_2,
-                )?);
-            }
-            Instruction::Jump(block_id) => {
-                let old = successor.replace(*block_id);
-                if old.is_some() {
-                    return Err(qsc_circuit::Error::UnsupportedFeature(
-                        "block contains more than one jump".to_owned(),
-                    ));
-                }
-                done = true;
-            }
-            Instruction::Phi(pre, _) => {
-                // leave the variable unassigned, we  don't know how to handle predecessors yet
-                predecessors.extend(pre.iter().map(|p| p.1));
-            }
-            Instruction::Add(..)
-            | Instruction::Sub(..)
-            | Instruction::Mul(..)
-            | Instruction::Sdiv(..)
-            | Instruction::Srem(..)
-            | Instruction::Shl(..)
-            | Instruction::Ashr(..)
-            | Instruction::Fadd(..)
-            | Instruction::Fsub(..)
-            | Instruction::Fmul(..)
-            | Instruction::Fdiv(..)
-            | Instruction::LogicalNot(..)
-            | Instruction::LogicalAnd(..)
-            | Instruction::LogicalOr(..)
-            | Instruction::BitwiseNot(..)
-            | Instruction::BitwiseAnd(..)
-            | Instruction::BitwiseOr(..)
-            | Instruction::BitwiseXor(..) => {
-                // Leave the variable unassigned, if it's used in anything that's going to be shown in the circuit, we'll raise an error then
-            }
-            instruction @ Instruction::Store(..) => {
-                return Err(qsc_circuit::Error::UnsupportedFeature(format!(
-                    "unsupported instruction in block: {instruction:?}"
-                )));
-            }
-        }
+        extend_with_instruction(
+            state,
+            callables,
+            &mut successor,
+            &mut predecessors,
+            &mut operations,
+            &mut done,
+            instruction,
+        )?;
     }
     Ok(CircuitBlock {
         _predecessors: predecessors,
         operations,
         successor,
     })
+}
+
+fn extend_with_instruction(
+    state: &mut ProgramMap,
+    callables: &IndexMap<qsc_partial_eval::CallableId, Callable>,
+    successor: &mut Option<BlockId>,
+    predecessors: &mut Vec<BlockId>,
+    operations: &mut Vec<Operation>,
+    done: &mut bool,
+    instruction: &InstructionWithMetadata,
+) -> Result<(), qsc_circuit::Error> {
+    match &instruction.instruction {
+        Instruction::Call(callable_id, operands, var) => {
+            operations.extend(map_callable_to_operations(
+                state,
+                callables.get(*callable_id).expect("callable should exist"),
+                operands,
+                var.as_ref(),
+                instruction.metadata.as_ref(),
+            )?);
+        }
+        Instruction::Fcmp(condition_code, operand, operand1, variable) => {
+            let expr_left = expr_from_operand(state, operand)?;
+            let expr_right = expr_from_operand(state, operand1)?;
+            let expr = match condition_code {
+                FcmpConditionCode::False => BoolExpr::LiteralBool(false),
+                FcmpConditionCode::True => BoolExpr::LiteralBool(true),
+                cmp => BoolExpr::FancyBinOp(expr_left.into(), expr_right.into(), cmp.to_string()),
+            };
+
+            state.store_expr_in_variable(*variable, Expr::BoolExpr(expr))?;
+        }
+        Instruction::Icmp(condition_code, operand, operand1, variable) => match condition_code {
+            ConditionCode::Eq => {
+                let expr_left = expr_from_operand(state, operand)?;
+                let expr_right = expr_from_operand(state, operand1)?;
+                let expr = eq_expr(expr_left, expr_right)?;
+                state.store_expr_in_variable(*variable, Expr::BoolExpr(expr))?;
+            }
+            condition_code => {
+                return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                    "unsupported condition code in icmp: {condition_code:?}"
+                )));
+            }
+        },
+
+        Instruction::Return => {
+            *done = true;
+        }
+        Instruction::Branch(variable, block_id_1, block_id_2) => {
+            operations.push(operation_for_branch(
+                state,
+                instruction,
+                *variable,
+                *block_id_1,
+                *block_id_2,
+            )?);
+        }
+        Instruction::Jump(block_id) => {
+            let old = successor.replace(*block_id);
+            if old.is_some() {
+                return Err(qsc_circuit::Error::UnsupportedFeature(
+                    "block contains more than one jump".to_owned(),
+                ));
+            }
+            *done = true;
+        }
+        Instruction::Phi(pres, variable) => {
+            let mut exprs = vec![];
+            for pre in pres {
+                exprs.push(expr_from_operand(state, &pre.0)?);
+            }
+            state.store_expr_in_variable(*variable, Expr::RichExpr(RichExpr::Options(exprs)))?;
+            predecessors.extend(pres.iter().map(|p| p.1));
+        }
+        Instruction::Add(operand, operand1, variable)
+        | Instruction::Sub(operand, operand1, variable)
+        | Instruction::Mul(operand, operand1, variable)
+        | Instruction::Sdiv(operand, operand1, variable)
+        | Instruction::Srem(operand, operand1, variable)
+        | Instruction::Shl(operand, operand1, variable)
+        | Instruction::Ashr(operand, operand1, variable)
+        | Instruction::Fadd(operand, operand1, variable)
+        | Instruction::Fsub(operand, operand1, variable)
+        | Instruction::Fmul(operand, operand1, variable)
+        | Instruction::Fdiv(operand, operand1, variable)
+        | Instruction::LogicalAnd(operand, operand1, variable)
+        | Instruction::LogicalOr(operand, operand1, variable)
+        | Instruction::BitwiseAnd(operand, operand1, variable)
+        | Instruction::BitwiseOr(operand, operand1, variable)
+        | Instruction::BitwiseXor(operand, operand1, variable) => {
+            let expr_left = expr_from_operand(state, operand)?;
+            let expr_right = expr_from_operand(state, operand1)?;
+            let expr = Expr::RichExpr(RichExpr::BinOp(
+                expr_left.into(),
+                expr_right.into(),
+                "***".into(),
+            ));
+            state.store_expr_in_variable(*variable, expr)?;
+        }
+        Instruction::LogicalNot(..) | Instruction::BitwiseNot(..) => {
+            // Leave the variable unassigned, if it's used in anything that's going to be shown in the circuit, we'll raise an error then
+        }
+        instruction @ Instruction::Store(..) => {
+            return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                "unsupported instruction in block: {instruction:?}"
+            )));
+        }
+    }
+    Ok(())
 }
 
 fn operation_for_branch(
@@ -415,24 +445,21 @@ fn operation_for_branch(
     Ok(op)
 }
 
-fn eq_expr(
-    expr_left: ConditionExpr,
-    expr_right: ConditionExpr,
-) -> Result<ConditionExpr, qsc_circuit::Error> {
+fn eq_expr(expr_left: Expr, expr_right: Expr) -> Result<BoolExpr, qsc_circuit::Error> {
     Ok(match (expr_left, expr_right) {
-        (ConditionExpr::LiteralBool(b1), ConditionExpr::LiteralBool(b2)) => {
-            ConditionExpr::LiteralBool(b1 == b2)
+        (Expr::BoolExpr(BoolExpr::LiteralBool(b1)), Expr::BoolExpr(BoolExpr::LiteralBool(b2))) => {
+            BoolExpr::LiteralBool(b1 == b2)
         }
-        (ConditionExpr::Result(r), ConditionExpr::LiteralBool(b))
-        | (ConditionExpr::LiteralBool(b), ConditionExpr::Result(r)) => {
+        (Expr::BoolExpr(BoolExpr::Result(r)), Expr::BoolExpr(BoolExpr::LiteralBool(b)))
+        | (Expr::BoolExpr(BoolExpr::LiteralBool(b)), Expr::BoolExpr(BoolExpr::Result(r))) => {
             if b {
-                ConditionExpr::Result(r)
+                BoolExpr::Result(r)
             } else {
-                ConditionExpr::NotResult(r)
+                BoolExpr::NotResult(r)
             }
         }
-        (ConditionExpr::Result(left), ConditionExpr::Result(right)) => {
-            ConditionExpr::TwoResultCondition(TwoResultCondition {
+        (Expr::BoolExpr(BoolExpr::Result(left)), Expr::BoolExpr(BoolExpr::Result(right))) => {
+            BoolExpr::TwoResultCondition(TwoResultCondition {
                 results: (left, right),
                 filter: (true, false, false, true), // 00 and 11
             })
@@ -530,16 +557,15 @@ fn operations_from_branch(
     Ok(Some((component_grid, targets)))
 }
 
-fn expr_from_operand(
-    state: &ProgramMap,
-    operand: &Operand,
-) -> Result<ConditionExpr, qsc_circuit::Error> {
+fn expr_from_operand(state: &ProgramMap, operand: &Operand) -> Result<Expr, qsc_circuit::Error> {
     match operand {
         Operand::Literal(literal) => match literal {
-            Literal::Result(r) => Ok(ConditionExpr::Result(*r)),
-            Literal::Bool(b) => Ok(ConditionExpr::LiteralBool(*b)),
+            Literal::Result(r) => Ok(Expr::BoolExpr(BoolExpr::Result(*r))),
+            Literal::Bool(b) => Ok(Expr::BoolExpr(BoolExpr::LiteralBool(*b))),
+            Literal::Integer(i) => Ok(Expr::RichExpr(RichExpr::Literal(i.to_string()))),
+            Literal::Double(d) => Ok(Expr::RichExpr(RichExpr::Literal(d.to_string()))),
             _ => Err(qsc_circuit::Error::UnsupportedFeature(format!(
-                "unsupported literal operand in condition: {literal:?}"
+                "unsupported literal operand: {literal:?}"
             ))),
         },
         Operand::Variable(variable) => state.expr_for_variable(variable.variable_id),
@@ -552,7 +578,7 @@ struct ProgramMap {
     /// result id -> qubit id
     results: IndexMap<usize, u32>,
     /// variable id -> result id
-    variables: IndexMap<VariableId, ConditionExpr>,
+    variables: IndexMap<VariableId, Expr>,
     /// block id -> (operations, successor)
     blocks: IndexMap<BlockId, CircuitBlock>,
 }
@@ -565,12 +591,102 @@ struct TwoResultCondition {
 }
 
 #[derive(Debug, Clone)]
-enum ConditionExpr {
+enum Expr {
+    RichExpr(RichExpr),
+    BoolExpr(BoolExpr),
+}
+
+#[derive(Debug, Clone)]
+enum BoolExpr {
     Result(u32),
     NotResult(u32),
     TwoResultCondition(TwoResultCondition),
     LiteralBool(bool),
-    FancyBinOp(Box<ConditionExpr>, Box<ConditionExpr>, String),
+    FancyBinOp(Box<Expr>, Box<Expr>, String),
+}
+
+#[derive(Debug, Clone)]
+enum RichExpr {
+    Literal(String),
+    Options(Vec<Expr>),
+    BinOp(Box<Expr>, Box<Expr>, String),
+}
+
+impl Expr {
+    fn linked_results(&self) -> Vec<u32> {
+        match self {
+            Expr::RichExpr(rich_expr) => match rich_expr {
+                RichExpr::Options(exprs) => exprs.iter().flat_map(Expr::linked_results).collect(),
+                RichExpr::Literal(_) => vec![],
+                RichExpr::BinOp(expr, expr1, _) => expr
+                    .linked_results()
+                    .into_iter()
+                    .chain(expr1.linked_results())
+                    .collect(),
+            },
+            Expr::BoolExpr(condition_expr) => match condition_expr {
+                BoolExpr::Result(result_id) | BoolExpr::NotResult(result_id) => {
+                    vec![*result_id]
+                }
+                BoolExpr::TwoResultCondition(two_result_cond) => {
+                    vec![two_result_cond.results.0, two_result_cond.results.1]
+                }
+                BoolExpr::LiteralBool(_) => vec![],
+                BoolExpr::FancyBinOp(condition_expr, condition_expr1, _) => condition_expr
+                    .linked_results()
+                    .into_iter()
+                    .chain(condition_expr1.linked_results())
+                    .collect(),
+            },
+        }
+    }
+}
+
+impl Display for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Expr::RichExpr(complicated_expr) => match complicated_expr {
+                RichExpr::Options(exprs) => {
+                    let exprs_str: Vec<String> = exprs.iter().map(ToString::to_string).collect();
+                    write!(f, "one of: ({})", exprs_str.join(", "))
+                }
+                RichExpr::Literal(literal_str) => write!(f, "{literal_str}"),
+                RichExpr::BinOp(expr, expr1, op) => write!(f, "({expr}) {op} ({expr1})"),
+            },
+            Expr::BoolExpr(condition_expr) => write!(f, "{condition_expr}"),
+        }
+    }
+}
+
+impl Display for BoolExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BoolExpr::Result(_) => write!(f, "a = |1〉"),
+            BoolExpr::NotResult(_) => write!(f, "a = |0〉"),
+            BoolExpr::LiteralBool(true) => write!(f, "true"),
+            BoolExpr::LiteralBool(false) => write!(f, "false"),
+            BoolExpr::TwoResultCondition(two_result_cond) => {
+                let (f00, f01, f10, f11) = two_result_cond.filter;
+                let mut conditions = vec![];
+                if f00 {
+                    conditions.push("ab = |00〉".to_string());
+                }
+                if f01 {
+                    conditions.push("ab = |01〉".to_string());
+                }
+                if f10 {
+                    conditions.push("ab = |10〉".to_string());
+                }
+                if f11 {
+                    conditions.push("ab = |11〉".to_string());
+                }
+                write!(f, "{}", conditions.join(" or "))
+            }
+            BoolExpr::FancyBinOp(condition_expr, condition_expr1, op) => {
+                write!(f, "({condition_expr} {op} {condition_expr1})")
+            }
+        }
+    }
 }
 
 impl ProgramMap {
@@ -618,12 +734,9 @@ impl ProgramMap {
         }
     }
 
-    fn expr_for_variable(
-        &self,
-        variable_id: VariableId,
-    ) -> Result<ConditionExpr, qsc_circuit::Error> {
+    fn expr_for_variable(&self, variable_id: VariableId) -> Result<Expr, qsc_circuit::Error> {
         let expr = self.variables.get(variable_id);
-        expr.copied().ok_or_else(|| {
+        expr.cloned().ok_or_else(|| {
             qsc_circuit::Error::UnsupportedFeature(format!(
                 "variable {variable_id:?} is not linked to a result or expression"
             ))
@@ -640,46 +753,21 @@ impl ProgramMap {
                 "variable {variable_id:?} is not linked to a result or expression"
             ))
         })?;
-        let results = match *var_expr {
-            ConditionExpr::Result(result_id) | ConditionExpr::NotResult(result_id) => {
-                vec![result_id]
-            }
-            ConditionExpr::TwoResultCondition(two_result_cond) => {
-                vec![two_result_cond.results.0, two_result_cond.results.1]
-            }
-            ConditionExpr::LiteralBool(_) => vec![],
-            ConditionExpr::FancyBinOp(condition_expr, condition_expr1, _) => todo!(),
-        };
+        let results = var_expr.linked_results();
 
-        let str = match var_expr {
-            ConditionExpr::Result(_) => "a = |1〉".to_string(),
-            ConditionExpr::NotResult(_) => "a = |0〉".to_string(),
-            ConditionExpr::LiteralBool(_) => {
+        if let Expr::BoolExpr(var_expr) = var_expr {
+            if let BoolExpr::LiteralBool(_) = var_expr {
                 return Err(qsc_circuit::Error::UnsupportedFeature(
                     "constant condition in branch".to_owned(),
                 ));
             }
-            ConditionExpr::TwoResultCondition(two_result_cond) => {
-                let (f00, f01, f10, f11) = two_result_cond.filter;
-                let mut conditions = vec![];
-                if f00 {
-                    conditions.push("ab = |00〉".to_string());
-                }
-                if f01 {
-                    conditions.push("ab = |01〉".to_string());
-                }
-                if f10 {
-                    conditions.push("ab = |10〉".to_string());
-                }
-                if f11 {
-                    conditions.push("ab = |11〉".to_string());
-                }
-                conditions.join(" or ")
-            }
-            ConditionExpr::FancyBinOp(condition_expr, condition_expr1, op) => {
-                format!("({} {} {})", condition_expr, op, condition_expr1)
-            }
-        };
+        } else {
+            return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                "variable {variable_id:?} is not a condition expression, cannot branch on it: {var_expr:?}"
+            )));
+        }
+
+        let str = var_expr.to_string();
 
         Ok((results, str))
     }
@@ -705,21 +793,27 @@ impl ProgramMap {
         })
     }
 
-    fn store_result_in_variable(&mut self, variable_id: VariableId, result_id: u32) {
-        if let Some(old_value) = self.variables.get(variable_id) {
-            panic!(
-                "variable {variable_id:?} already stored {old_value:?}, cannot store {result_id}"
-            );
-        }
-        self.variables
-            .insert(variable_id, ConditionExpr::Result(result_id));
-    }
-
-    fn store_expr_in_variable(&mut self, variable_id: VariableId, expr: ConditionExpr) {
+    fn store_expr_in_variable(
+        &mut self,
+        var: Variable,
+        expr: Expr,
+    ) -> Result<(), qsc_circuit::Error> {
+        let variable_id = var.variable_id;
         if let Some(old_value) = self.variables.get(variable_id) {
             panic!("variable {variable_id:?} already stored {old_value:?}, cannot store {expr:?}");
         }
+        if let Expr::BoolExpr(condition_expr) = &expr {
+            if let Ty::Boolean = var.ty {
+            } else {
+                return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                    "variable {variable_id:?} has type {var_ty:?} but is being assigned a condition expression: {condition_expr:?}",
+                    var_ty = var.ty,
+                )));
+            }
+        }
+
         self.variables.insert(variable_id, expr);
+        Ok(())
     }
 }
 
@@ -732,66 +826,20 @@ fn map_callable_to_operations(
 ) -> Result<Vec<qsc_circuit::Operation>, qsc_circuit::Error> {
     Ok(match callable.call_type {
         CallableType::Measurement => {
-            let gate = match callable.name.as_str() {
-                "__quantum__qis__m__body" => "M",
-                "__quantum__qis__mresetz__body" => "MResetZ",
-                name => name,
-            };
-
-            let (this_qubits, this_results) = gather_measurement_operands(state, operands)?;
-
-            if gate == "MResetZ" {
-                vec![
-                    Component::Measurement(Measurement {
-                        gate: gate.to_string(),
-                        args: arg_vec_with_only_metadata(metadata),
-                        children: vec![],
-                        qubits: this_qubits.clone(),
-                        results: this_results,
-                    }),
-                    Component::Ket(Ket {
-                        gate: "0".to_string(),
-                        args: arg_vec_with_only_metadata(metadata),
-                        children: vec![],
-                        targets: this_qubits,
-                    }),
-                ]
-            } else {
-                vec![Component::Measurement(Measurement {
-                    gate: gate.to_string(),
-                    args: arg_vec_with_only_metadata(metadata),
-                    children: vec![],
-                    qubits: this_qubits,
-                    results: this_results,
-                })]
-            }
+            map_measurement_call_to_operations(state, callable, operands, metadata)?
         }
-        CallableType::Reset => match callable.name.as_str() {
-            "__quantum__qis__reset__body" => {
-                let operand_types = vec![QubitOperandType::Target];
-                let (targets, _, _) = gather_operands(&operand_types, operands)?;
-
-                vec![Component::Ket(Ket {
-                    gate: "0".to_string(),
-                    args: arg_vec_with_only_metadata(metadata),
-                    children: vec![],
-                    targets,
-                })]
-            }
-            name => {
-                return Err(qsc_circuit::Error::UnsupportedFeature(format!(
-                    "unknown reset callable: {name}"
-                )));
-            }
-        },
+        CallableType::Reset => map_reset_call_into_operations(callable, operands, metadata)?,
         CallableType::Readout => match callable.name.as_str() {
             "__quantum__qis__read_result__body" => {
                 for operand in operands {
                     match operand {
                         Operand::Literal(Literal::Result(r)) => {
                             let var =
-                                var.expect("read_result must have a variable to store the result");
-                            state.store_result_in_variable(var.variable_id, *r);
+                                *var.expect("read_result must have a variable to store the result");
+                            state.store_expr_in_variable(
+                                var,
+                                Expr::BoolExpr(BoolExpr::Result(*r)),
+                            )?;
                         }
                         operand => {
                             return Err(qsc_circuit::Error::UnsupportedFeature(format!(
@@ -835,6 +883,70 @@ fn map_callable_to_operations(
                 })]
             }
         }
+    })
+}
+
+fn map_reset_call_into_operations(
+    callable: &Callable,
+    operands: &[Operand],
+    metadata: Option<&InstructionMetadata>,
+) -> Result<Vec<Operation>, qsc_circuit::Error> {
+    Ok(match callable.name.as_str() {
+        "__quantum__qis__reset__body" => {
+            let operand_types = vec![QubitOperandType::Target];
+            let (targets, _, _) = gather_operands(&operand_types, operands)?;
+
+            vec![Component::Ket(Ket {
+                gate: "0".to_string(),
+                args: arg_vec_with_only_metadata(metadata),
+                children: vec![],
+                targets,
+            })]
+        }
+        name => {
+            return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                "unknown reset callable: {name}"
+            )));
+        }
+    })
+}
+
+fn map_measurement_call_to_operations(
+    state: &mut ProgramMap,
+    callable: &Callable,
+    operands: &Vec<Operand>,
+    metadata: Option<&InstructionMetadata>,
+) -> Result<Vec<Operation>, qsc_circuit::Error> {
+    let gate = match callable.name.as_str() {
+        "__quantum__qis__m__body" => "M",
+        "__quantum__qis__mresetz__body" => "MResetZ",
+        name => name,
+    };
+    let (this_qubits, this_results) = gather_measurement_operands(state, operands)?;
+    Ok(if gate == "MResetZ" {
+        vec![
+            Component::Measurement(Measurement {
+                gate: gate.to_string(),
+                args: arg_vec_with_only_metadata(metadata),
+                children: vec![],
+                qubits: this_qubits.clone(),
+                results: this_results,
+            }),
+            Component::Ket(Ket {
+                gate: "0".to_string(),
+                args: arg_vec_with_only_metadata(metadata),
+                children: vec![],
+                targets: this_qubits,
+            }),
+        ]
+    } else {
+        vec![Component::Measurement(Measurement {
+            gate: gate.to_string(),
+            args: arg_vec_with_only_metadata(metadata),
+            children: vec![],
+            qubits: this_qubits,
+            results: this_results,
+        })]
     })
 }
 
