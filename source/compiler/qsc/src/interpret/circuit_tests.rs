@@ -303,9 +303,9 @@ fn classical_for_loop() {
         .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
-    expect![[r"
-        q_0    ── X ──── X ──── X ──── X ──── X ──── X ──
-    "]]
+    expect![[r#"
+        q_0    ── X ──
+    "#]]
     .assert_eq(&circ.to_string());
 }
 
@@ -1748,9 +1748,9 @@ fn operation_with_subsequent_qubits_no_double_rows() {
         .expect("circuit generation should succeed");
 
     expect![[r#"
-        q_0    ─ Rxx(1.0000) ── Rxx(1.0000) ─
-                      ┆              ┆
-        q_1    ─ Rxx(1.0000) ── Rxx(1.0000) ─
+        q_0    ─ Rxx(2)(1.0000) ──
+                        ┆
+        q_1    ─ Rxx(2)(1.0000) ──
     "#]]
     .assert_eq(&circ.to_string());
 }
