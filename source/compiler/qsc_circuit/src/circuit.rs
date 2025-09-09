@@ -817,8 +817,8 @@ fn get_row_indexes(
 ///
 /// A component grid representing the operations.
 #[must_use]
-pub fn operation_list_to_grid(mut operations: Vec<Operation>, num_qubits: usize) -> ComponentGrid {
-    let mut operations = collapse_repetition(&operations);
+pub fn operation_list_to_grid(operations: &[Operation], num_qubits: usize) -> ComponentGrid {
+    let mut operations = collapse_repetition(operations);
     for op in &mut operations {
         // The children data structure is a grid, so checking if it is
         // length 1 is actually checking if it has a single column,

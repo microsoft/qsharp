@@ -1,4 +1,5 @@
 use crate::circuit;
+use log::debug;
 use qsc_circuit::{
     Circuit, Component, ComponentColumn, ComponentGrid, Ket, Measurement, Operation, Qubit,
     Register, Unitary, operation_list_to_grid,
@@ -7,7 +8,8 @@ use qsc_data_structures::{index_map::IndexMap, line_column::Encoding, span::Span
 use qsc_frontend::{compile::PackageStore, location::Location};
 use qsc_hir::hir::PackageId;
 use qsc_partial_eval::{
-    Callable, CallableType, ConditionCode, Instruction, Literal, Operand, VariableId,
+    Callable, CallableType, ConditionCode, FcmpConditionCode, Instruction, Literal, Operand,
+    VariableId,
     rir::{
         BlockId, BlockWithMetadata, InstructionMetadata, InstructionWithMetadata, Program, Variable,
     },
@@ -19,6 +21,7 @@ pub(crate) fn make_circuit(
     package_store: &PackageStore,
     position_encoding: Encoding,
 ) -> std::result::Result<Circuit, circuit::Error> {
+    debug!("make_circuit: program={}", program);
     let mut state = ProgramMap::new(program.num_qubits);
     let callables = &program.callables;
 
@@ -92,7 +95,7 @@ pub(crate) fn make_circuit(
     }
 
     let mut component_grid = operation_list_to_grid(
-        operations,
+        &operations,
         program
             .num_qubits
             .try_into()
@@ -138,10 +141,10 @@ fn fill_in_dbg_metadata(
 
             if let Some(metadata_str) = metadata_str {
                 args.pop();
-                // metadata is of the format "!dbg package_id=0 span=[2161-2172]"
+                // metadata is of the format "!dbg package_id=0 span=[2161-2172] scope=0 discriminator=1"
                 // parse it out manually
                 let parts: Vec<&str> = metadata_str.split_whitespace().collect();
-                if parts.len() == 3 {
+                if parts.len() >= 3 {
                     let dbg_part = parts[0];
                     if dbg_part != "!dbg" {
                         return Err(qsc_circuit::Error::UnsupportedFeature(format!(
@@ -150,6 +153,14 @@ fn fill_in_dbg_metadata(
                     }
                     let package_id_part = parts[1];
                     let span_part = parts[2];
+                    let scope = parts
+                        .get(3)
+                        .and_then(|s| s.strip_prefix("scope="))
+                        .unwrap_or("-1");
+                    let discriminator = parts
+                        .get(4)
+                        .and_then(|s| s.strip_prefix("discriminator="))
+                        .unwrap_or("-1");
                     if let Some(package_id_str) = package_id_part.strip_prefix("package_id=") {
                         if let Ok(package_id) = package_id_str.parse::<usize>() {
                             if let Some(span_str) = span_part.strip_prefix("span=[") {
@@ -180,13 +191,17 @@ fn fill_in_dbg_metadata(
             "line": {},
             "character": {}
         }}
-    }}
+    }},
+    "scope": {},
+    "discriminator": {}
 }}"#,
                                                 location.source,
                                                 location.range.start.line,
                                                 location.range.start.column,
                                                 location.range.end.line,
-                                                location.range.end.column
+                                                location.range.end.column,
+                                                scope,
+                                                discriminator
                                             ));
                                         }
                                     }
@@ -269,6 +284,21 @@ fn operations_in_block(
                     instruction.metadata.as_ref(),
                 )?);
             }
+            Instruction::Fcmp(condition_code, operand, operand1, variable) => {
+                let expr_left = expr_from_operand(&*state, operand)?;
+                let expr_right = expr_from_operand(&*state, operand1)?;
+                let expr = match condition_code {
+                    FcmpConditionCode::False => ConditionExpr::LiteralBool(false),
+                    FcmpConditionCode::True => ConditionExpr::LiteralBool(true),
+                    cmp => ConditionExpr::FancyBinOp(
+                        expr_left.into(),
+                        expr_right.into(),
+                        cmp.to_string(),
+                    ),
+                };
+
+                state.store_expr_in_variable(variable.variable_id, expr);
+            }
             Instruction::Icmp(condition_code, operand, operand1, variable) => {
                 match condition_code {
                     ConditionCode::Eq => {
@@ -284,6 +314,7 @@ fn operations_in_block(
                     }
                 }
             }
+
             Instruction::Return => {
                 done = true;
             }
@@ -320,7 +351,6 @@ fn operations_in_block(
             | Instruction::Fsub(..)
             | Instruction::Fmul(..)
             | Instruction::Fdiv(..)
-            | Instruction::Fcmp(..)
             | Instruction::LogicalNot(..)
             | Instruction::LogicalAnd(..)
             | Instruction::LogicalOr(..)
@@ -486,7 +516,7 @@ fn operations_from_branch(
         ));
     }
 
-    let component_grid = operation_list_to_grid(branch_operations.clone(), max_qubit_id + 1);
+    let component_grid = operation_list_to_grid(branch_operations, max_qubit_id + 1);
 
     // TODO: everything is a target. Don't know how else we would do this.
 
@@ -504,18 +534,16 @@ fn expr_from_operand(
     state: &ProgramMap,
     operand: &Operand,
 ) -> Result<ConditionExpr, qsc_circuit::Error> {
-    Ok(match operand {
+    match operand {
         Operand::Literal(literal) => match literal {
-            Literal::Result(r) => ConditionExpr::Result(*r),
-            Literal::Bool(b) => ConditionExpr::LiteralBool(*b),
-            _ => {
-                return Err(qsc_circuit::Error::UnsupportedFeature(format!(
-                    "unsupported literal operand in condition: {literal:?}"
-                )));
-            }
+            Literal::Result(r) => Ok(ConditionExpr::Result(*r)),
+            Literal::Bool(b) => Ok(ConditionExpr::LiteralBool(*b)),
+            _ => Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                "unsupported literal operand in condition: {literal:?}"
+            ))),
         },
         Operand::Variable(variable) => state.expr_for_variable(variable.variable_id),
-    })
+    }
 }
 
 struct ProgramMap {
@@ -536,12 +564,13 @@ struct TwoResultCondition {
     filter: (bool, bool, bool, bool),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum ConditionExpr {
     Result(u32),
     NotResult(u32),
     TwoResultCondition(TwoResultCondition),
     LiteralBool(bool),
+    FancyBinOp(Box<ConditionExpr>, Box<ConditionExpr>, String),
 }
 
 impl ProgramMap {
@@ -589,22 +618,29 @@ impl ProgramMap {
         }
     }
 
-    fn expr_for_variable(&self, variable_id: VariableId) -> ConditionExpr {
-        *self
-            .variables
-            .get(variable_id)
-            .expect("variable should be linked to a result")
+    fn expr_for_variable(
+        &self,
+        variable_id: VariableId,
+    ) -> Result<ConditionExpr, qsc_circuit::Error> {
+        let expr = self.variables.get(variable_id);
+        expr.copied().ok_or_else(|| {
+            qsc_circuit::Error::UnsupportedFeature(format!(
+                "variable {variable_id:?} is not linked to a result or expression"
+            ))
+        })
     }
 
     fn condition_for_variable(
         &self,
         variable_id: VariableId,
     ) -> Result<(Vec<u32>, String), qsc_circuit::Error> {
-        let var_expr = *self
-            .variables
-            .get(variable_id)
-            .unwrap_or_else(|| panic!("variable {variable_id:?} should be linked to a result"));
-        let results = match var_expr {
+        let var_expr = self.variables.get(variable_id);
+        let var_expr = var_expr.ok_or_else(|| {
+            qsc_circuit::Error::UnsupportedFeature(format!(
+                "variable {variable_id:?} is not linked to a result or expression"
+            ))
+        })?;
+        let results = match *var_expr {
             ConditionExpr::Result(result_id) | ConditionExpr::NotResult(result_id) => {
                 vec![result_id]
             }
@@ -612,6 +648,7 @@ impl ProgramMap {
                 vec![two_result_cond.results.0, two_result_cond.results.1]
             }
             ConditionExpr::LiteralBool(_) => vec![],
+            ConditionExpr::FancyBinOp(condition_expr, condition_expr1, _) => todo!(),
         };
 
         let str = match var_expr {
@@ -638,6 +675,9 @@ impl ProgramMap {
                     conditions.push("ab = |11〉".to_string());
                 }
                 conditions.join(" or ")
+            }
+            ConditionExpr::FancyBinOp(condition_expr, condition_expr1, op) => {
+                format!("({} {} {})", condition_expr, op, condition_expr1)
             }
         };
 

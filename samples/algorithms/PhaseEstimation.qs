@@ -12,6 +12,7 @@ import Std.Math.*;
 /// # Summary
 /// Estimate the the eigenvalue of a specific unitary U for its eigenvector |010⟩
 /// using `ApplyQPE`. The result is returned as a complex polar value.
+@EntryPoint(Adaptive_RIF)
 operation Main() : ComplexPolar {
     // Allocate qubits to be used in phase estimation
     use state = Qubit[3];

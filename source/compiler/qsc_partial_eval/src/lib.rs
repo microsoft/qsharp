@@ -3016,7 +3016,7 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn try_eval_block(&mut self, block_id: BlockId) -> Result<EvalControlFlow, Error> {
-        eprintln!("try_eval_block: {:?}", block_id);
+        eprintln!("try_eval_block: {block_id:?}");
         self.eval_context.current_source_block.push(block_id);
         let block = self.get_block(block_id);
         let mut return_stmt_id = None;
@@ -3049,7 +3049,7 @@ impl<'a> PartialEvaluator<'a> {
                 return_stmt_package_span,
             ))
         } else {
-            eprintln!("try_eval_block: done {:?}", block_id);
+            eprintln!("try_eval_block: done {block_id:?}");
             self.eval_context.current_source_block.pop();
             Ok(last_control_flow)
         }
@@ -3529,10 +3529,10 @@ fn fmt_dbg_metadata(
         package_span.package, package_span.span
     );
     if let Some(source_block) = source_block {
-        let _ = write!(str, " scope={}", source_block);
+        let _ = write!(str, " scope={source_block}");
     }
     if let Some(current_iteration) = current_iteration {
-        let _ = write!(str, " discriminator={}", current_iteration);
+        let _ = write!(str, " discriminator={current_iteration}");
     }
     InstructionMetadata { str }
 }

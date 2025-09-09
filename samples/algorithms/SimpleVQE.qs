@@ -24,6 +24,7 @@ import Std.Math.PI;
 
 /// # Summary
 /// Find the approximation to the minimum eigenvalue of a Hamiltonian by applying VQE
+@EntryPoint(Adaptive_RIF)
 operation Main() : Double {
 
     // Find the approximation to the minimum eigenvalue of a Hamiltonian

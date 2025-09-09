@@ -10,6 +10,7 @@
 ///
 /// # References
 /// - [Bell state](https://en.wikipedia.org/wiki/Bell_state)
+@EntryPoint(Adaptive_RIF)
 operation Main() : (Result, Result)[] {
     // Prepare and measure each pair. Return an array of these results.
     [

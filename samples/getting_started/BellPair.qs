@@ -8,6 +8,8 @@
 ///
 /// # References
 /// - [Bell state](https://en.wikipedia.org/wiki/Bell_state)
+
+@EntryPoint(Adaptive_RIF)
 operation Main() : (Result, Result) {
     // Allocate the two qubits that will be used to create a Bell pair.
     use (q1, q2) = (Qubit(), Qubit());

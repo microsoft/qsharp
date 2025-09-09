@@ -11,6 +11,7 @@ import Std.Diagnostics.*;
 import Std.Math.*;
 import Std.Measurement.*;
 
+@EntryPoint(Adaptive_RI)
 operation Main() : (String, Bool)[] {
     // A Boolean function is a function that maps bitstrings to a bit:
     //     𝑓 : {0, 1}^n → {0, 1}.

@@ -16,6 +16,7 @@ import Std.Arrays.*;
 import Std.Measurement.*;
 import Std.Diagnostics.*;
 
+@EntryPoint(Adaptive_RIF)
 operation Main() : Result[] {
     let nQubits = 5;
 

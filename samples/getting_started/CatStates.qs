@@ -16,6 +16,7 @@
 /// # References
 /// - [Greenberger–Horne–Zeilinger state](https://en.wikipedia.org/wiki/Greenberger%E2%80%93Horne%E2%80%93Zeilinger_state)
 /// - [Cat state](https://en.wikipedia.org/wiki/Cat_state)
+@EntryPoint(Adaptive_RIF)
 operation Main() : Result[] {
     // Allocate 5 qubits for Cat₅ state.
     use cat5 = Qubit[5];

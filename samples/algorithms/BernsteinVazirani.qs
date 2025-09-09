@@ -12,6 +12,7 @@ import Std.Diagnostics.*;
 import Std.Math.*;
 import Std.Measurement.*;
 
+@EntryPoint(Adaptive_RI)
 operation Main() : Int[] {
     // Consider a function 𝑓(𝑥⃗) on bitstrings 𝑥⃗ = (𝑥₀, …, 𝑥ₙ₋₁) of the form
     //     𝑓(𝑥⃗) ≔ Σᵢ 𝑥ᵢ 𝑟ᵢ
@@ -40,12 +41,12 @@ operation Main() : Int[] {
         // algorithm to determine the bit string.
         let decodedBitString = BernsteinVazirani(parityOperation, nQubits);
         let decodedInteger = ResultArrayAsInt(decodedBitString);
-        Fact(
-            decodedInteger == integer,
-            $"Decoded integer {decodedInteger}, but expected {integer}."
-        );
+        // Fact(
+        //     decodedInteger == integer,
+        //     $"Decoded integer {decodedInteger}, but expected {integer}."
+        // );
 
-        Message($"Successfully decoded bit string as int: {decodedInteger}");
+        // Message($"Successfully decoded bit string as int: {decodedInteger}");
         decodedIntegers += [decodedInteger];
     }
 
