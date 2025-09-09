@@ -319,7 +319,7 @@ fn extend_with_instruction(
             let expr = match condition_code {
                 FcmpConditionCode::False => BoolExpr::LiteralBool(false),
                 FcmpConditionCode::True => BoolExpr::LiteralBool(true),
-                cmp => BoolExpr::FancyBinOp(expr_left.into(), expr_right.into(), cmp.to_string()),
+                cmp => BoolExpr::BinOp(expr_left.into(), expr_right.into(), cmp.to_string()),
             };
 
             state.store_expr_in_variable(*variable, Expr::BoolExpr(expr))?;
@@ -364,7 +364,22 @@ fn extend_with_instruction(
             for pre in pres {
                 exprs.push(expr_from_operand(state, &pre.0)?);
             }
-            state.store_expr_in_variable(*variable, Expr::RichExpr(RichExpr::Options(exprs)))?;
+            let expr = if exprs.iter().all(|e| matches!(e, Expr::BoolExpr(_))) {
+                // fold into pairs of FancyBinOp
+                exprs
+                    .into_iter()
+                    .reduce(|left, right| {
+                        Expr::BoolExpr(BoolExpr::BinOp(
+                            left.into(),
+                            right.into(),
+                            "or maybe".into(),
+                        ))
+                    })
+                    .expect("there should be at least one expression")
+            } else {
+                Expr::RichExpr(NotBoolExpr::Options(exprs))
+            };
+            state.store_expr_in_variable(*variable, expr)?;
             predecessors.extend(pres.iter().map(|p| p.1));
         }
         Instruction::Add(operand, operand1, variable)
@@ -385,7 +400,7 @@ fn extend_with_instruction(
         | Instruction::BitwiseXor(operand, operand1, variable) => {
             let expr_left = expr_from_operand(state, operand)?;
             let expr_right = expr_from_operand(state, operand1)?;
-            let expr = Expr::RichExpr(RichExpr::BinOp(
+            let expr = Expr::RichExpr(NotBoolExpr::BinOp(
                 expr_left.into(),
                 expr_right.into(),
                 "***".into(),
@@ -408,20 +423,25 @@ fn operation_for_branch(
     state: &mut ProgramMap,
     instruction: &InstructionWithMetadata,
     variable: Variable,
-    block_id_1: BlockId,
-    block_id_2: BlockId,
+    true_block: BlockId,
+    false_block: BlockId,
 ) -> Result<Operation, qsc_circuit::Error> {
     let (results, cond_str) = state.condition_for_variable(variable.variable_id)?;
-    if results.is_empty() {
-        return Err(qsc_circuit::Error::UnsupportedFeature(
-            "branching on a condition that doesn't involve at least one result".to_owned(),
-        ));
-    }
+    // TODO: let's allow this for now, though it's weird (see phi nodes)
+    // if results.is_empty() {
+    //     return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+    //         "branching on a condition that doesn't involve at least one result: {cond_str}"
+    //     )));
+    // }
     let controls = results
         .into_iter()
         .map(|r| state.result_register(r))
         .collect();
-    let mut args = vec![block_id_1.0.to_string(), block_id_2.0.to_string(), cond_str];
+    let mut args = vec![
+        true_block.0.to_string(),
+        false_block.0.to_string(),
+        cond_str,
+    ];
     if let Some(metadata) = instruction.metadata.as_ref() {
         args.push(metadata_arg(metadata));
     }
@@ -490,9 +510,10 @@ fn operations_from_branch(
         ..
     } = state.blocks.get(merge_block).expect("block should exist");
     if branch_successor.is_none_or(|c| c != merge_block) {
-        return Err(qsc_circuit::Error::UnsupportedFeature(
-            "branch block does not lead to merge block".to_owned(),
-        ));
+        return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+            "branch block {} does not lead to merge block {}",
+            branch_block.0, merge_block.0
+        )));
     }
     if merge_successor.is_some() {
         return Err(qsc_circuit::Error::UnsupportedFeature(
@@ -562,8 +583,8 @@ fn expr_from_operand(state: &ProgramMap, operand: &Operand) -> Result<Expr, qsc_
         Operand::Literal(literal) => match literal {
             Literal::Result(r) => Ok(Expr::BoolExpr(BoolExpr::Result(*r))),
             Literal::Bool(b) => Ok(Expr::BoolExpr(BoolExpr::LiteralBool(*b))),
-            Literal::Integer(i) => Ok(Expr::RichExpr(RichExpr::Literal(i.to_string()))),
-            Literal::Double(d) => Ok(Expr::RichExpr(RichExpr::Literal(d.to_string()))),
+            Literal::Integer(i) => Ok(Expr::RichExpr(NotBoolExpr::Literal(i.to_string()))),
+            Literal::Double(d) => Ok(Expr::RichExpr(NotBoolExpr::Literal(d.to_string()))),
             _ => Err(qsc_circuit::Error::UnsupportedFeature(format!(
                 "unsupported literal operand: {literal:?}"
             ))),
@@ -592,7 +613,7 @@ struct TwoResultCondition {
 
 #[derive(Debug, Clone)]
 enum Expr {
-    RichExpr(RichExpr),
+    RichExpr(NotBoolExpr),
     BoolExpr(BoolExpr),
 }
 
@@ -602,11 +623,11 @@ enum BoolExpr {
     NotResult(u32),
     TwoResultCondition(TwoResultCondition),
     LiteralBool(bool),
-    FancyBinOp(Box<Expr>, Box<Expr>, String),
+    BinOp(Box<Expr>, Box<Expr>, String),
 }
 
 #[derive(Debug, Clone)]
-enum RichExpr {
+enum NotBoolExpr {
     Literal(String),
     Options(Vec<Expr>),
     BinOp(Box<Expr>, Box<Expr>, String),
@@ -616,9 +637,11 @@ impl Expr {
     fn linked_results(&self) -> Vec<u32> {
         match self {
             Expr::RichExpr(rich_expr) => match rich_expr {
-                RichExpr::Options(exprs) => exprs.iter().flat_map(Expr::linked_results).collect(),
-                RichExpr::Literal(_) => vec![],
-                RichExpr::BinOp(expr, expr1, _) => expr
+                NotBoolExpr::Options(exprs) => {
+                    exprs.iter().flat_map(Expr::linked_results).collect()
+                }
+                NotBoolExpr::Literal(_) => vec![],
+                NotBoolExpr::BinOp(expr, expr1, _) => expr
                     .linked_results()
                     .into_iter()
                     .chain(expr1.linked_results())
@@ -632,7 +655,7 @@ impl Expr {
                     vec![two_result_cond.results.0, two_result_cond.results.1]
                 }
                 BoolExpr::LiteralBool(_) => vec![],
-                BoolExpr::FancyBinOp(condition_expr, condition_expr1, _) => condition_expr
+                BoolExpr::BinOp(condition_expr, condition_expr1, _) => condition_expr
                     .linked_results()
                     .into_iter()
                     .chain(condition_expr1.linked_results())
@@ -646,12 +669,12 @@ impl Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Expr::RichExpr(complicated_expr) => match complicated_expr {
-                RichExpr::Options(exprs) => {
+                NotBoolExpr::Options(exprs) => {
                     let exprs_str: Vec<String> = exprs.iter().map(ToString::to_string).collect();
                     write!(f, "one of: ({})", exprs_str.join(", "))
                 }
-                RichExpr::Literal(literal_str) => write!(f, "{literal_str}"),
-                RichExpr::BinOp(expr, expr1, op) => write!(f, "({expr}) {op} ({expr1})"),
+                NotBoolExpr::Literal(literal_str) => write!(f, "{literal_str}"),
+                NotBoolExpr::BinOp(expr, expr1, op) => write!(f, "({expr}) {op} ({expr1})"),
             },
             Expr::BoolExpr(condition_expr) => write!(f, "{condition_expr}"),
         }
@@ -682,7 +705,7 @@ impl Display for BoolExpr {
                 }
                 write!(f, "{}", conditions.join(" or "))
             }
-            BoolExpr::FancyBinOp(condition_expr, condition_expr1, op) => {
+            BoolExpr::BinOp(condition_expr, condition_expr1, op) => {
                 write!(f, "({condition_expr} {op} {condition_expr1})")
             }
         }
@@ -763,7 +786,7 @@ impl ProgramMap {
             }
         } else {
             return Err(qsc_circuit::Error::UnsupportedFeature(format!(
-                "variable {variable_id:?} is not a condition expression, cannot branch on it: {var_expr:?}"
+                "variable {variable_id:?} is not a condition expression, cannot branch on it: {var_expr}"
             )));
         }
 
@@ -828,7 +851,7 @@ fn map_callable_to_operations(
         CallableType::Measurement => {
             map_measurement_call_to_operations(state, callable, operands, metadata)?
         }
-        CallableType::Reset => map_reset_call_into_operations(callable, operands, metadata)?,
+        CallableType::Reset => map_reset_call_into_operations(state, callable, operands, metadata)?,
         CallableType::Readout => match callable.name.as_str() {
             "__quantum__qis__read_result__body" => {
                 for operand in operands {
@@ -862,7 +885,7 @@ fn map_callable_to_operations(
         CallableType::Regular => {
             let (gate, operand_types) = callable_spec(callable, operands)?;
 
-            let (targets, controls, mut args) = gather_operands(&operand_types, operands)?;
+            let (targets, controls, mut args) = gather_operands(state, &operand_types, operands)?;
             if let Some(metadata) = metadata {
                 args.push(metadata_arg(metadata));
             }
@@ -887,6 +910,7 @@ fn map_callable_to_operations(
 }
 
 fn map_reset_call_into_operations(
+    state: &mut ProgramMap,
     callable: &Callable,
     operands: &[Operand],
     metadata: Option<&InstructionMetadata>,
@@ -894,7 +918,7 @@ fn map_reset_call_into_operations(
     Ok(match callable.name.as_str() {
         "__quantum__qis__reset__body" => {
             let operand_types = vec![QubitOperandType::Target];
-            let (targets, _, _) = gather_operands(&operand_types, operands)?;
+            let (targets, _, _) = gather_operands(state, &operand_types, operands)?;
 
             vec![Component::Ket(Ket {
                 gate: "0".to_string(),
@@ -1071,6 +1095,7 @@ enum QubitOperandType {
 type TargetsControlsArgs = (Vec<Register>, Vec<Register>, Vec<String>);
 
 fn gather_operands(
+    state: &mut ProgramMap,
     operand_types: &[QubitOperandType],
     operands: &[Operand],
 ) -> Result<TargetsControlsArgs, qsc_circuit::Error> {
@@ -1131,10 +1156,14 @@ fn gather_operands(
                     )));
                 }
             },
-            o @ Operand::Variable(_) => {
-                return Err(qsc_circuit::Error::UnsupportedFeature(format!(
-                    "unsupported operand for unitary operation: {o:?}"
-                )));
+            o @ Operand::Variable(var) => {
+                if let &QubitOperandType::Arg = operand_type {
+                    args.push(state.expr_for_variable(var.variable_id)?.to_string());
+                } else {
+                    return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                        "variable operand cannot be a target or control of a unitary operation: {o:?}"
+                    )));
+                }
             }
         }
     }

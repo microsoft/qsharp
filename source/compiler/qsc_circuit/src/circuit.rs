@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     cmp::{self, max},
     fmt::{Display, Write},
+    hash::{Hash, Hasher},
     ops::Not,
     vec,
 };
@@ -896,6 +897,7 @@ fn collapse_repetition(operations: &[Operation]) -> Vec<Operation> {
     // repeats (>1) of a motif whose operations are all the same variant type. Prefer the match
     // with the greatest total collapsed length; tie-breaker smaller motif length.
     let len = operations.len();
+    let hashes = operations.iter().map(hash_operation).collect::<Vec<u64>>();
     let mut i = 0;
     let mut result: Vec<Operation> = Vec::new();
 
@@ -913,15 +915,15 @@ fn collapse_repetition(operations: &[Operation]) -> Vec<Operation> {
             }
 
             // Candidate motif slice
-            let motif = &operations[i..i + motif_len];
+            // let motif = &hashes[i..i + motif_len];
             // Restrict to same variant type for all ops in motif
-            let first_discriminant = std::mem::discriminant(&motif[0]);
-            if motif
-                .iter()
-                .any(|op| std::mem::discriminant(op) != first_discriminant)
-            {
-                continue;
-            }
+            // let first_discriminant = std::mem::discriminant(&motif[0]);
+            // if motif
+            //     .iter()
+            //     .any(|op| std::mem::discriminant(op) != first_discriminant)
+            // {
+            //     continue;
+            // }
 
             // Count repeats
             let mut repeats = 1usize;
@@ -932,7 +934,7 @@ fn collapse_repetition(operations: &[Operation]) -> Vec<Operation> {
                     break;
                 }
                 for k in 0..motif_len {
-                    if is_different_operation(&operations[i + k], &operations[start_next + k]) {
+                    if hashes[i + k] != hashes[start_next + k] {
                         break 'outer;
                     }
                 }
@@ -940,6 +942,9 @@ fn collapse_repetition(operations: &[Operation]) -> Vec<Operation> {
             }
 
             if repeats > 1 {
+                eprintln!(
+                    "found candidate motif of length {motif_len} repeated {repeats} times at index {i}"
+                );
                 let total = repeats * motif_len;
                 let best_total = best_repeats * best_motif_len;
                 if total > best_total || (total == best_total && motif_len < best_motif_len) {
@@ -950,6 +955,9 @@ fn collapse_repetition(operations: &[Operation]) -> Vec<Operation> {
         }
 
         if best_repeats > 1 {
+            eprintln!(
+                "found repeated motif of length {best_motif_len} repeated {best_repeats} times at index {i}"
+            );
             // Build parent from first operation in motif.
             let base = &operations[i];
             if best_motif_len == 1 {
@@ -1035,55 +1043,42 @@ fn collapse_repetition(operations: &[Operation]) -> Vec<Operation> {
     result
 }
 
-fn is_different_operation(left: &Operation, right: &Operation) -> bool {
-    if left.gate() != right.gate()
-        || left.is_adjoint() != right.is_adjoint()
-        || left.is_controlled() != right.is_controlled()
-        || left.is_measurement() != right.is_measurement()
-    {
-        return true;
-    }
-
-    let left_args = left.args();
-    let non_metadata_args_1 = left_args
-        .iter()
-        .filter(|arg| !arg.starts_with("metadata="))
-        .collect::<Vec<_>>();
-    let right_args = right.args();
-    let non_metadata_args_2 = right_args
+fn hash_operation(op: &Operation) -> u64 {
+    let args = op.args();
+    let non_metadata_args = args
         .iter()
         .filter(|arg| !arg.starts_with("metadata="))
         .collect::<Vec<_>>();
 
-    // compare children using this function as equality
-    let are_children_equal = left.children().len() == right.children().len()
-        && left
-            .children()
+    let more = match op {
+        Operation::Measurement(measurement) => {
+            ("m", measurement.qubits.clone(), measurement.results.clone())
+        }
+        Operation::Unitary(unitary) => ("u", unitary.controls.clone(), unitary.targets.clone()),
+        Operation::Ket(ket) => ("k", vec![], ket.targets.clone()),
+    };
+    let data = (
+        op.gate(),
+        op.is_adjoint(),
+        op.is_controlled(),
+        op.is_measurement(),
+        non_metadata_args,
+        op.children()
             .iter()
-            .zip(right.children().iter())
-            .all(|(col1, col2)| {
-                col1.components.len() == col2.components.len()
-                    && col1
-                        .components
-                        .iter()
-                        .zip(col2.components.iter())
-                        .all(|(op1, op2)| !is_different_operation(op1, op2))
-            });
-
-    if !are_children_equal || non_metadata_args_1 != non_metadata_args_2 {
-        return true;
-    }
-
-    match (left, right) {
-        (Operation::Measurement(m1), Operation::Measurement(m2)) => {
-            m1.qubits != m2.qubits || m1.results != m2.results
-        }
-        (Operation::Unitary(u1), Operation::Unitary(u2)) => {
-            u1.controls != u2.controls || u1.targets != u2.targets
-        }
-        (Operation::Ket(k1), Operation::Ket(k2)) => k1.targets != k2.targets,
-        _ => true,
-    }
+            .map(|child| {
+                child
+                    .components
+                    .iter()
+                    .map(hash_operation)
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>(),
+        more,
+    );
+    // standard hash
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    data.hash(&mut hasher);
+    hasher.finish()
 }
 
 /// Converts a list of operations into a padded 2D array of operations.
