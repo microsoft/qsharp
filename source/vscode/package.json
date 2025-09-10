@@ -96,6 +96,15 @@
     "configuration": {
       "title": "Q#",
       "properties": {
+        "Q#.circuits.config": {
+          "markdownDescription": "Circuit diagram options",
+          "type": "object",
+          "additionalProperties": true,
+          "default": {
+            "maxOperations": 10001,
+            "loopDetection": true
+          }
+        },
         "Q#.simulation.pauliNoise": {
           "markdownDescription": "The Pauli noise to apply when running multiple shots via the Histogram command. This is applied for every gate or measurement on all qubits referenced.\n\nProbability values are in the range [0, 1].",
           "type": "object",

@@ -594,7 +594,11 @@ pub(crate) fn circuit_qasm_program(
         .set_entry_expr(&entry_expr)
         .map_err(|errors| map_entry_compilation_errors(errors, &signature))?;
 
-    match interpreter.circuit(CircuitEntryPoint::EntryExpr(entry_expr), false) {
+    match interpreter.circuit(
+        CircuitEntryPoint::EntryExpr(entry_expr),
+        false,
+        qsc::circuit::Config::default(),
+    ) {
         Ok(circuit) => crate::interpreter::Circuit(circuit).into_py_any(py),
         Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
     }

@@ -12,7 +12,7 @@ import {
   getCompilerWorker,
   log,
 } from "qsharp-lang";
-import { Uri } from "vscode";
+import { Uri, workspace } from "vscode";
 import { ComponentGrid } from "../../npm/qsharp/dist/data-structures/circuit";
 import { getTargetFriendlyName } from "./config";
 import { clearCommandDiagnostics } from "./diagnostics";
@@ -268,14 +268,38 @@ async function getCircuitOrError(
   simulate: boolean,
 ): Promise<CircuitOrError> {
   try {
+    const defaultConfig = {
+      maxOperations: 10001,
+      loopDetection: true,
+    };
+
+    const config = workspace
+      .getConfiguration("Q#")
+      .get<object>("circuits.config", defaultConfig);
+
+    const configObject = {
+      maxOperations:
+        "maxOperations" in config && typeof config.maxOperations === "number"
+          ? config.maxOperations
+          : defaultConfig.maxOperations,
+      loopDetection:
+        "loopDetection" in config && typeof config.loopDetection === "boolean"
+          ? config.loopDetection
+          : defaultConfig.loopDetection,
+    };
+
+    log.debug("Using circuit config: ", configObject);
+
     const circuit = await worker.getCircuit(
       params.program,
       simulate,
       params.operation,
+      configObject,
     );
     transformLocations(circuit);
     return { result: "success", simulated: simulate, circuit: circuit };
   } catch (e: any) {
+    log.error("Error generating circuit: ", e);
     let errors: IQSharpError[] = [];
     let resultCompError = false;
     if (e instanceof QdkDiagnostics) {

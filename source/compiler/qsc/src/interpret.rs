@@ -291,7 +291,7 @@ impl Interpreter {
             angle_ty_cache: None.into(),
             complex_ty_cache: None.into(),
             env: Env::default(),
-            sim: sim_circuit_backend(),
+            sim: sim_circuit_backend(CircuitConfig::default()),
             quantum_seed: None,
             classical_seed: None,
             package,
@@ -364,7 +364,7 @@ impl Interpreter {
             angle_ty_cache: None.into(),
             complex_ty_cache: None.into(),
             env: Env::default(),
-            sim: sim_circuit_backend(),
+            sim: sim_circuit_backend(CircuitConfig::default()),
             quantum_seed: None,
             classical_seed: None,
             package,
@@ -970,6 +970,7 @@ impl Interpreter {
         &mut self,
         entry: CircuitEntryPoint,
         simulate: bool,
+        config: CircuitConfig,
     ) -> std::result::Result<Circuit, Vec<Error>> {
         let (entry_expr, invoke_params) = match entry {
             CircuitEntryPoint::Operation(operation_expr) => {
@@ -984,7 +985,7 @@ impl Interpreter {
         };
 
         let circuit = if simulate {
-            let mut sim = sim_circuit_backend();
+            let mut sim = sim_circuit_backend(config);
 
             match invoke_params {
                 Some((callable, args)) => {
@@ -998,9 +999,7 @@ impl Interpreter {
 
             sim.chained.finish()
         } else if self.capabilities == TargetCapabilityFlags::all() {
-            let mut sim = CircuitBuilder::new(CircuitConfig {
-                max_operations: CircuitConfig::DEFAULT_MAX_OPERATIONS,
-            });
+            let mut sim = CircuitBuilder::new(config);
 
             match invoke_params {
                 Some((callable, args)) => {
@@ -1014,7 +1013,7 @@ impl Interpreter {
 
             sim.finish()
         } else {
-            self.static_circuit(entry_expr.as_deref(), invoke_params)?
+            self.static_circuit(entry_expr.as_deref(), invoke_params, config)?
         };
 
         Ok(circuit)
@@ -1024,29 +1023,35 @@ impl Interpreter {
         &mut self,
         entry_expr: Option<&str>,
         invoke_params: Option<(Value, Value)>,
+        config: CircuitConfig,
     ) -> std::result::Result<Circuit, Vec<Error>> {
         if let Some((callable, args)) = invoke_params {
-            let mut sim = CircuitBuilder::new(CircuitConfig {
-                max_operations: CircuitConfig::DEFAULT_MAX_OPERATIONS,
-            });
+            let mut sim = CircuitBuilder::new(config);
             let mut sink = std::io::sink();
             let mut out = GenericReceiver::new(&mut sink);
 
             self.invoke_with_sim(&mut sim, &mut out, callable, args)?;
             Ok(sim.finish())
         } else {
-            self.static_circuit_entrypoint(entry_expr)
+            self.static_circuit_entrypoint(entry_expr, config.loop_detection)
         }
     }
 
     fn static_circuit_entrypoint(
         &mut self,
         entry_expr: Option<&str>,
+        loop_detection: bool,
     ) -> std::result::Result<Circuit, Vec<Error>> {
         let program = self.compile_to_rir(entry_expr)?;
         // TODO: encoding!!
-        make_circuit(&program, self.compiler.package_store(), Encoding::Utf16)
-            .map_err(|e| vec![e.into()])
+        // TODO: max gates
+        make_circuit(
+            &program,
+            self.compiler.package_store(),
+            Encoding::Utf16,
+            loop_detection,
+        )
+        .map_err(|e| vec![e.into()])
     }
 
     fn compile_to_rir(
@@ -1343,13 +1348,8 @@ impl Interpreter {
     }
 }
 
-fn sim_circuit_backend() -> BackendChain<SparseSim, CircuitBuilder> {
-    BackendChain::new(
-        SparseSim::new(),
-        CircuitBuilder::new(CircuitConfig {
-            max_operations: CircuitConfig::DEFAULT_MAX_OPERATIONS,
-        }),
-    )
+fn sim_circuit_backend(config: CircuitConfig) -> BackendChain<SparseSim, CircuitBuilder> {
+    BackendChain::new(SparseSim::new(), CircuitBuilder::new(config))
 }
 
 /// Describes the entry point for circuit generation.

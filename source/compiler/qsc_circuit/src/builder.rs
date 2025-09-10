@@ -270,7 +270,11 @@ impl Builder {
         }
 
         Circuit {
-            component_grid: operation_list_to_grid(operations, qubits.len()),
+            component_grid: operation_list_to_grid(
+                operations,
+                qubits.len(),
+                self.config.loop_detection,
+            ),
             qubits,
         }
     }

@@ -8,6 +8,7 @@ import {
 import {
   IDocFile,
   IOperationInfo,
+  ICircuitConfig,
   IPackageGraphSources,
   IProgramConfig as wasmIProgramConfig,
   TargetProfile,
@@ -72,6 +73,7 @@ export interface ICompiler {
     program: ProgramConfig,
     simulate: boolean,
     operation?: IOperationInfo,
+    config?: ICircuitConfig,
   ): Promise<CircuitData>;
 
   getDocumentation(additionalProgram?: ProgramConfig): Promise<IDocFile[]>;
@@ -225,12 +227,15 @@ export class Compiler implements ICompiler {
     program: ProgramConfig,
     simulate: boolean,
     operation?: IOperationInfo,
+    config?: ICircuitConfig,
   ): Promise<CircuitData> {
+    log.debug("config passed to getCircuit: ", config);
     const circuit = await callAndTransformExceptions(async () =>
       this.wasm.get_circuit(
         toWasmProgramConfig(program, "unrestricted"),
         simulate,
         operation,
+        config,
       ),
     );
     return {

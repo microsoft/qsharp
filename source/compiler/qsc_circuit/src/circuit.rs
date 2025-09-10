@@ -210,10 +210,12 @@ pub struct Qubit {
     pub num_results: usize,
 }
 
-#[derive(Clone, Debug, Copy, Default)]
+#[derive(Clone, Debug, Copy)]
 pub struct Config {
     /// Maximum number of operations the builder will add to the circuit
     pub max_operations: usize,
+    /// Detect repeated motifs in the circuit and group them into sub-circuits
+    pub loop_detection: bool,
 }
 
 impl Config {
@@ -223,7 +225,16 @@ impl Config {
     ///
     /// A more refined way to do this might be to communicate the
     /// "limit exceeded" state up to the UI somehow.
-    pub const DEFAULT_MAX_OPERATIONS: usize = 10001;
+    const DEFAULT_MAX_OPERATIONS: usize = 10001;
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            max_operations: Self::DEFAULT_MAX_OPERATIONS,
+            loop_detection: true,
+        }
+    }
 }
 
 type ObjectsByColumn = FxHashMap<usize, CircuitObject>;
@@ -819,8 +830,16 @@ fn get_row_indexes(
 ///
 /// A component grid representing the operations.
 #[must_use]
-pub fn operation_list_to_grid(operations: &[Operation], num_qubits: usize) -> ComponentGrid {
-    let mut operations = collapse_repetition(operations);
+pub fn operation_list_to_grid(
+    operations: &[Operation],
+    num_qubits: usize,
+    loop_detection: bool,
+) -> ComponentGrid {
+    let mut operations = if loop_detection {
+        collapse_repetition(operations)
+    } else {
+        operations.to_vec()
+    };
     for op in &mut operations {
         // The children data structure is a grid, so checking if it is
         // length 1 is actually checking if it has a single column,
@@ -832,15 +851,15 @@ pub fn operation_list_to_grid(operations: &[Operation], num_qubits: usize) -> Co
             match op {
                 Operation::Measurement(m) => {
                     let child_vec = m.children.remove(0).components; // owns
-                    m.children = operation_list_to_grid(&child_vec, num_qubits);
+                    m.children = operation_list_to_grid(&child_vec, num_qubits, loop_detection);
                 }
                 Operation::Unitary(u) => {
                     let child_vec = u.children.remove(0).components;
-                    u.children = operation_list_to_grid(&child_vec, num_qubits);
+                    u.children = operation_list_to_grid(&child_vec, num_qubits, loop_detection);
                 }
                 Operation::Ket(k) => {
                     let child_vec = k.children.remove(0).components;
-                    k.children = operation_list_to_grid(&child_vec, num_qubits);
+                    k.children = operation_list_to_grid(&child_vec, num_qubits, loop_detection);
                 }
             }
         }

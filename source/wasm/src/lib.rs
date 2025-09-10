@@ -141,17 +141,39 @@ pub(crate) fn get_estimates_from_openqasm(
     })
 }
 
+serializable_type! {
+    CircuitConfig,
+    {
+        max_operations: usize,
+        loop_detection: bool,
+    },
+    r#"export interface ICircuitConfig {
+        maxOperations: number;
+        loopDetection: boolean;
+    }"#,
+    ICircuitConfig
+}
+
 #[wasm_bindgen]
 pub fn get_circuit(
     program: ProgramConfig,
     simulate: bool,
     operation: Option<IOperationInfo>,
+    config: Option<ICircuitConfig>,
 ) -> Result<JsValue, String> {
+    let config = config.map_or(qsc::circuit::Config::default(), |c| {
+        let c: CircuitConfig = c.into();
+        qsc::circuit::Config {
+            max_operations: c.max_operations,
+            loop_detection: c.loop_detection,
+        }
+    });
     if is_openqasm_program(&program) {
         let (sources, capabilities) = into_openqasm_arg(program);
         let (_, mut interpreter) = get_interpreter_from_openqasm(&sources, capabilities)?;
+
         let circuit = interpreter
-            .circuit(CircuitEntryPoint::EntryPoint, simulate)
+            .circuit(CircuitEntryPoint::EntryPoint, simulate, config)
             .map_err(interpret_errors_into_qsharp_errors_json)?;
         serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())
     } else {
@@ -181,7 +203,7 @@ pub fn get_circuit(
         .map_err(interpret_errors_into_qsharp_errors_json)?;
 
         let circuit = interpreter
-            .circuit(entry_point, simulate)
+            .circuit(entry_point, simulate, config)
             .map_err(interpret_errors_into_qsharp_errors_json)?;
 
         serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())

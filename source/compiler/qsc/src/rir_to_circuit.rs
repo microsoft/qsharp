@@ -23,6 +23,7 @@ pub(crate) fn make_circuit(
     program: &Program,
     package_store: &PackageStore,
     position_encoding: Encoding,
+    loop_detection: bool,
 ) -> std::result::Result<Circuit, circuit::Error> {
     debug!("make_circuit: program={}", program);
     let mut state = ProgramMap::new(program.num_qubits);
@@ -43,7 +44,7 @@ pub(crate) fn make_circuit(
                 .expect("block should exist")
                 .clone();
             for operation in &mut circuit_block.operations {
-                if expand_branch_children(&state, operation)? {
+                if expand_branch_children(&state, operation, loop_detection)? {
                     more_work = true;
                 }
             }
@@ -75,7 +76,8 @@ pub(crate) fn make_circuit(
         .try_into()
         .expect("num_qubits should fit in usize");
 
-    let mut component_grid = expand_successors(&state, entry_operations, num_qubits);
+    let mut component_grid =
+        expand_successors(&state, entry_operations, num_qubits, loop_detection);
 
     fill_in_dbg_metadata(&mut component_grid, package_store, position_encoding)?;
 
@@ -90,6 +92,7 @@ fn expand_successors(
     state: &ProgramMap,
     block_operations: Vec<Operation>,
     num_qubits: usize,
+    loop_detection: bool,
 ) -> Vec<ComponentColumn> {
     let mut operations = vec![];
     let mut operations_stack = block_operations;
@@ -125,14 +128,15 @@ fn expand_successors(
                 );
                 assert!(unitary.children.len() == 1);
                 let next_column = unitary.children.remove(0);
-                let next_column = expand_successors(state, next_column.components, num_qubits);
+                let next_column =
+                    expand_successors(state, next_column.components, num_qubits, loop_detection);
                 unitary.children = next_column;
             }
         }
         operations.push(operation.clone());
     }
 
-    operation_list_to_grid(&operations, num_qubits)
+    operation_list_to_grid(&operations, num_qubits, loop_detection)
 }
 
 fn fill_in_dbg_metadata(
@@ -243,6 +247,7 @@ fn fill_in_dbg_metadata(
 fn expand_branch_children(
     state: &ProgramMap,
     operation: &mut Operation,
+    loop_detection: bool,
 ) -> Result<bool, qsc_circuit::Error> {
     if let Component::Unitary(unitary) = operation {
         if unitary.gate == "branch" {
@@ -264,7 +269,8 @@ fn expand_branch_children(
                 "branching on expr: {:?}, true_block: {:?}, false_block: {:?}",
                 unitary.args[2], true_block, false_block
             );
-            if let Some(branch_operations) = operations_from_branch(state, true_block, false_block)?
+            if let Some(branch_operations) =
+                operations_from_branch(state, true_block, false_block, loop_detection)?
             {
                 let (true_operations, true_targets) = branch_operations.true_block;
                 let true_container = Some(Component::Unitary(Unitary {
@@ -592,6 +598,7 @@ fn operations_from_branch(
     state: &ProgramMap,
     true_block: BlockId,
     false_block: BlockId,
+    loop_detection: bool,
 ) -> Result<Option<BranchOperations>, qsc_circuit::Error> {
     let CircuitBlock {
         operations: true_operations,
@@ -649,7 +656,8 @@ fn operations_from_branch(
             ));
         }
 
-        let component_grid = operation_list_to_grid(true_operations, max_qubit_id + 1);
+        let component_grid =
+            operation_list_to_grid(true_operations, max_qubit_id + 1, loop_detection);
 
         // TODO: everything is a target. Don't know how else we would do this.
 
@@ -711,7 +719,8 @@ fn operations_from_branch(
             ));
         }
 
-        let component_grid = operation_list_to_grid(true_operations, max_qubit_id + 1);
+        let component_grid =
+            operation_list_to_grid(true_operations, max_qubit_id + 1, loop_detection);
 
         // TODO: everything is a target. Don't know how else we would do this.
 
@@ -776,7 +785,8 @@ fn operations_from_branch(
             ));
         }
 
-        let component_grid = operation_list_to_grid(true_operations, max_qubit_id + 1);
+        let component_grid =
+            operation_list_to_grid(true_operations, max_qubit_id + 1, loop_detection);
 
         // TODO: everything is a target. Don't know how else we would do this.
 
@@ -833,7 +843,8 @@ fn operations_from_branch(
             ));
         }
 
-        let component_grid = operation_list_to_grid(true_operations, max_qubit_id + 1);
+        let component_grid =
+            operation_list_to_grid(true_operations, max_qubit_id + 1, loop_detection);
 
         // TODO: everything is a target. Don't know how else we would do this.
 
@@ -903,7 +914,8 @@ fn operations_from_branch(
             ));
         }
 
-        let component_grid = operation_list_to_grid(true_operations, max_qubit_id + 1);
+        let component_grid =
+            operation_list_to_grid(true_operations, max_qubit_id + 1, loop_detection);
 
         // TODO: everything is a target. Don't know how else we would do this.
 
@@ -960,7 +972,8 @@ fn operations_from_branch(
             ));
         }
 
-        let component_grid = operation_list_to_grid(true_operations, max_qubit_id + 1);
+        let component_grid =
+            operation_list_to_grid(true_operations, max_qubit_id + 1, loop_detection);
 
         // TODO: everything is a target. Don't know how else we would do this.
 

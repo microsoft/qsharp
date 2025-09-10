@@ -6,7 +6,10 @@ use expect_test::expect;
 
 #[test]
 fn exceed_max_operations() {
-    let mut builder = Builder::new(Config { max_operations: 2 });
+    let mut builder = Builder::new(Config {
+        max_operations: 2,
+        loop_detection: false,
+    });
 
     let q = builder.qubit_allocate();
 
@@ -28,7 +31,10 @@ fn exceed_max_operations() {
 
 #[test]
 fn exceed_max_operations_deferred_measurements() {
-    let mut builder = Builder::new(Config { max_operations: 2 });
+    let mut builder = Builder::new(Config {
+        max_operations: 2,
+        loop_detection: false,
+    });
 
     let q = builder.qubit_allocate();
 

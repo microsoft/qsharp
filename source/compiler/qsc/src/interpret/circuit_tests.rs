@@ -7,6 +7,7 @@ use super::{CircuitEntryPoint, Debugger, Interpreter};
 use crate::target::Profile;
 use expect_test::expect;
 use miette::Diagnostic;
+use qsc_circuit::Config;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_eval::output::GenericReceiver;
 use qsc_frontend::compile::SourceMap;
@@ -41,7 +42,7 @@ fn empty() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![].assert_eq(&circ.to_string());
@@ -62,7 +63,7 @@ fn empty_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![].assert_eq(&circ.to_string());
@@ -84,7 +85,7 @@ fn one_gate() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -109,7 +110,7 @@ fn one_gate_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -137,7 +138,7 @@ fn measure_same_qubit_twice() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![["
@@ -167,7 +168,7 @@ fn measure_same_qubit_twice_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![["
@@ -194,7 +195,7 @@ fn toffoli() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -221,7 +222,7 @@ fn toffoli_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -248,7 +249,7 @@ fn rotation_gate() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -273,7 +274,7 @@ fn rotation_gate_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -300,7 +301,7 @@ fn classical_for_loop() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -327,7 +328,7 @@ fn classical_for_loop_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -354,7 +355,7 @@ fn m_base_profile() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -382,7 +383,7 @@ fn m_unrestricted_profile() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -410,7 +411,7 @@ fn mresetz_unrestricted_profile() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -438,7 +439,7 @@ fn mresetz_base_profile() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     // code gen in Base turns the MResetZ into an M
@@ -477,7 +478,7 @@ fn unrestricted_profile_result_comparison() {
     interpreter.set_quantum_seed(Some(2));
 
     let circuit_err = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect_err("circuit should return error")
         .pop()
         .expect("error should exist");
@@ -498,7 +499,7 @@ fn unrestricted_profile_result_comparison() {
     // Result comparisons are okay when tracing
     // circuit with the simulator.
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, true)
+        .circuit(CircuitEntryPoint::EntryPoint, true, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -552,7 +553,7 @@ fn result_comparison_to_literal() {
     interpreter.set_quantum_seed(Some(2));
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -587,7 +588,7 @@ fn result_comparison_to_literal_zero() {
     interpreter.set_quantum_seed(Some(2));
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -625,7 +626,7 @@ fn result_comparison_to_result_adaptive() {
     interpreter.set_quantum_seed(Some(2));
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -666,7 +667,7 @@ fn result_comparison_empty_block() {
     interpreter.set_quantum_seed(Some(2));
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -696,7 +697,7 @@ fn custom_intrinsic() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -724,7 +725,7 @@ fn custom_intrinsic_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -753,7 +754,7 @@ fn custom_intrinsic_classical_arg() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     // A custom intrinsic that doesn't take qubits just doesn't
@@ -784,7 +785,7 @@ fn custom_intrinsic_classical_arg_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     // A custom intrinsic that doesn't take qubits just doesn't
@@ -815,7 +816,7 @@ fn custom_intrinsic_one_classical_arg() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -851,7 +852,7 @@ fn custom_intrinsic_mixed_args_unrestricted() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     // This intrinsic never gets codegenned, so it's missing from the
@@ -908,7 +909,7 @@ fn custom_intrinsic_mixed_args_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     // This intrinsic never gets codegenned, so it's missing from the
@@ -946,7 +947,7 @@ fn custom_intrinsic_apply_idle_noise_unrestricted() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     // These intrinsics never get codegenned, so they're missing from the
@@ -974,7 +975,7 @@ fn custom_intrinsic_apply_idle_noise_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     // These intrinsics never get codegenned, so they're missing from the
@@ -1004,7 +1005,11 @@ fn operation_with_qubits() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
+        .circuit(
+            CircuitEntryPoint::Operation("Test.Test".into()),
+            false,
+            Config::default(),
+        )
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -1035,7 +1040,11 @@ fn operation_with_qubits_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
+        .circuit(
+            CircuitEntryPoint::Operation("Test.Test".into()),
+            false,
+            Config::default(),
+        )
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -1066,7 +1075,11 @@ fn operation_with_qubits_base_profile() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
+        .circuit(
+            CircuitEntryPoint::Operation("Test.Test".into()),
+            false,
+            Config::default(),
+        )
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -1111,7 +1124,11 @@ fn operation_with_qubit_arrays() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
+        .circuit(
+            CircuitEntryPoint::Operation("Test.Test".into()),
+            false,
+            Config::default(),
+        )
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -1169,7 +1186,11 @@ fn operation_with_qubit_arrays_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
+        .circuit(
+            CircuitEntryPoint::Operation("Test.Test".into()),
+            false,
+            Config::default(),
+        )
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -1225,6 +1246,7 @@ fn adjoint_operation() {
         .circuit(
             CircuitEntryPoint::Operation("Adjoint Test.Foo".into()),
             false,
+            Config::default(),
         )
         .expect("circuit generation should succeed");
 
@@ -1265,6 +1287,7 @@ fn adjoint_operation_adaptive() {
         .circuit(
             CircuitEntryPoint::Operation("Adjoint Test.Foo".into()),
             false,
+            Config::default(),
         )
         .expect("circuit generation should succeed");
 
@@ -1286,7 +1309,11 @@ fn lambda() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("q => H(q)".into()), false)
+        .circuit(
+            CircuitEntryPoint::Operation("q => H(q)".into()),
+            false,
+            Config::default(),
+        )
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -1307,7 +1334,11 @@ fn lambda_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("q => H(q)".into()), false)
+        .circuit(
+            CircuitEntryPoint::Operation("q => H(q)".into()),
+            false,
+            Config::default(),
+        )
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -1352,6 +1383,7 @@ fn controlled_operation() {
         .circuit(
             CircuitEntryPoint::Operation("Controlled Test.SWAP".into()),
             false,
+            Config::default(),
         )
         .expect_err("circuit generation should fail");
 
@@ -1403,6 +1435,7 @@ fn controlled_operation_adaptive() {
         .circuit(
             CircuitEntryPoint::Operation("Controlled Test.SWAP".into()),
             false,
+            Config::default(),
         )
         .expect_err("circuit generation should fail");
 
@@ -1436,7 +1469,11 @@ fn internal_operation() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
+        .circuit(
+            CircuitEntryPoint::Operation("Test.Test".into()),
+            false,
+            Config::default(),
+        )
         .expect("circuit generation should not fail");
 
     expect![[r#"
@@ -1466,7 +1503,11 @@ fn internal_operation_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
+        .circuit(
+            CircuitEntryPoint::Operation("Test.Test".into()),
+            false,
+            Config::default(),
+        )
         .expect("circuit generation should not fail");
 
     expect![[r#"
@@ -1494,7 +1535,11 @@ fn operation_with_non_qubit_args() {
     );
 
     let circ_err = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
+        .circuit(
+            CircuitEntryPoint::Operation("Test.Test".into()),
+            false,
+            Config::default(),
+        )
         .expect_err("circuit generation should fail");
 
     expect![[r"
@@ -1523,7 +1568,11 @@ fn operation_with_non_qubit_args_adaptive() {
     );
 
     let circ_err = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
+        .circuit(
+            CircuitEntryPoint::Operation("Test.Test".into()),
+            false,
+            Config::default(),
+        )
         .expect_err("circuit generation should fail");
 
     expect![[r"
@@ -1578,7 +1627,7 @@ fn operation_with_long_gates_properly_aligned() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -1635,7 +1684,7 @@ fn operation_with_long_gates_properly_aligned_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -1673,7 +1722,7 @@ fn operation_with_subsequent_qubits_gets_horizontal_lines() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -1710,7 +1759,7 @@ fn operation_with_subsequent_qubits_gets_horizontal_lines_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -1744,7 +1793,7 @@ fn operation_with_subsequent_qubits_no_double_rows() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -1775,7 +1824,7 @@ fn operation_with_subsequent_qubits_no_double_rows_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -1811,7 +1860,7 @@ fn operation_with_subsequent_qubits_no_added_rows() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -1850,7 +1899,7 @@ fn operation_with_subsequent_qubits_no_added_rows_adaptive() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -1891,7 +1940,7 @@ fn if_else() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -1930,7 +1979,7 @@ fn multiple_possible_float_values_in_unitary_arg() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -1995,7 +2044,7 @@ fn teleportation() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
 
     expect![[r#"
@@ -2014,7 +2063,7 @@ fn dot_product_phase_estimation() {
     let mut interpreter = interpreter(DOT_PRODUCT_PHASE_ESTIMATION, Profile::AdaptiveRI);
     eprintln!("Interpreter created for dot product phase estimation test.");
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .circuit(CircuitEntryPoint::EntryPoint, false, Config::default())
         .expect("circuit generation should succeed");
     expect![[r#"
         q_0    ─ S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ─── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ─── [[ ─── [Z H X...(16)] ──────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ───────────────── ]] ────────────────────────────────────────────────────────────────────────────────────────────────────────────── [[ ─── [Z H X...(8)] ─────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ───────────────── ]] ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [[ ─── [Z H X...(4)] ─────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ───────────────── ]] ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [[ ─── [Z H X...(2)] ─────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ────────── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ────────────────── X ──── H ──── X ──── H ──── X ───────────────── S' ──── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ────────── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ───────────────── ]] ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── S' ──── H ─── Rz(-0.3142) ─── X ─── Rz(0.3142) ──── X ──── H ──── S ─── S' ──── H ─── Rz(-0.2244) ─── X ─── Rz(0.2244) ──── X ──── H ──── S ──── X ──── H ──── X ──── H ──── X ──── S' ───── H ─── Rz(0.2244) ──── X ─── Rz(-0.2244) ─── X ──── H ──── S ─── S' ──── H ─── Rz(0.3142) ──── X ─── Rz(-0.3142) ─── X ──── H ──── S ──── |0〉 ──
