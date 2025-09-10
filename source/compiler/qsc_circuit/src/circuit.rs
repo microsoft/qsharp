@@ -554,7 +554,7 @@ impl Circuit {
         component_grid: &ComponentGrid,
         rows: &mut [Row],
         register_to_row: &FxHashMap<(usize, Option<usize>), usize>,
-    ) {
+    ) -> usize {
         let mut column = start_column;
         let mut next_column = start_column;
         for col in component_grid {
@@ -579,6 +579,7 @@ impl Circuit {
                     next_column = max(next_column, column + 1);
                 } else {
                     let mut offset = 0;
+                    eprintln!("Adding operation with children at column {column}, offset {offset}");
                     add_operation_box_start_to_rows(
                         op,
                         rows,
@@ -589,13 +590,12 @@ impl Circuit {
                         end,
                     );
                     offset += 2;
-                    Self::add_operations_to_diagram(
+                    offset += Self::add_operations_to_diagram(
                         column + offset,
                         children,
                         rows,
                         register_to_row,
                     );
-                    offset += children.len();
                     add_operation_box_end_to_rows(op, rows, &targets, column + offset);
                     offset += 1;
                     next_column = max(next_column, column + offset);
@@ -603,6 +603,7 @@ impl Circuit {
             }
             column = next_column;
         }
+        next_column - start_column
     }
 }
 

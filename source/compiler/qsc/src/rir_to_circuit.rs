@@ -68,42 +68,14 @@ pub(crate) fn make_circuit(
             "entry block should not have a successor".to_owned(),
         ));
     }
+    let entry_operations = entry_block.operations.clone();
 
-    let mut operations = vec![];
+    let num_qubits = program
+        .num_qubits
+        .try_into()
+        .expect("num_qubits should fit in usize");
 
-    let mut operations_stack = entry_block.operations.clone();
-    operations_stack.reverse();
-
-    while let Some(mut operation) = operations_stack.pop() {
-        if let Component::Unitary(unitary) = &mut operation {
-            if unitary.gate == "successor" {
-                let successor_block_id =
-                    BlockId(unitary.args[0].parse().expect("block id should parse"));
-                unitary.args.remove(0);
-                unitary.gate = "if ".into();
-                let successor_block = state
-                    .blocks
-                    .get(successor_block_id)
-                    .expect("successor block should exist");
-                for successor_operation in successor_block.operations.iter().rev() {
-                    operations_stack.push(successor_operation.clone());
-                }
-                if unitary.children.is_empty() {
-                    // empty block, skip adding
-                    continue;
-                }
-            }
-        }
-        operations.push(operation.clone());
-    }
-
-    let mut component_grid = operation_list_to_grid(
-        &operations,
-        program
-            .num_qubits
-            .try_into()
-            .expect("num_qubits should fit in usize"),
-    );
+    let mut component_grid = expand_successors(&state, entry_operations, num_qubits);
 
     fill_in_dbg_metadata(&mut component_grid, package_store, position_encoding)?;
 
@@ -112,6 +84,55 @@ pub(crate) fn make_circuit(
         component_grid,
     };
     Ok(circuit)
+}
+
+fn expand_successors(
+    state: &ProgramMap,
+    block_operations: Vec<Operation>,
+    num_qubits: usize,
+) -> Vec<ComponentColumn> {
+    let mut operations = vec![];
+    let mut operations_stack = block_operations;
+    operations_stack.reverse();
+
+    while let Some(mut operation) = operations_stack.pop() {
+        if let Component::Unitary(unitary) = &mut operation {
+            if unitary.gate == "successor" {
+                let successor_block_id = BlockId(unitary.args[0].parse().unwrap_or_else(|_| {
+                    panic!("successor block id should parse: {}", unitary.args[0])
+                }));
+                unitary.args.remove(0);
+                unitary.gate = "check ".into();
+                let successor_block = state
+                    .blocks
+                    .get(successor_block_id)
+                    .expect("successor block should exist");
+                for successor_operation in successor_block.operations.iter().rev() {
+                    operations_stack.push(successor_operation.clone());
+                }
+                if unitary.children.is_empty()
+                    || unitary.children.iter().all(|col| col.components.is_empty())
+                {
+                    // empty block, skip adding
+                    continue;
+                }
+            }
+
+            if !unitary.children.is_empty() {
+                dbg!(
+                    "expanding successors for unitary with children: {:?}",
+                    &unitary
+                );
+                assert!(unitary.children.len() == 1);
+                let next_column = unitary.children.remove(0);
+                let next_column = expand_successors(state, next_column.components, num_qubits);
+                unitary.children = next_column;
+            }
+        }
+        operations.push(operation.clone());
+    }
+
+    operation_list_to_grid(&operations, num_qubits)
 }
 
 fn fill_in_dbg_metadata(
@@ -225,26 +246,93 @@ fn expand_branch_children(
 ) -> Result<bool, qsc_circuit::Error> {
     if let Component::Unitary(unitary) = operation {
         if unitary.gate == "branch" {
-            let block_id_1 = BlockId(
-                unitary
-                    .args
-                    .remove(0)
+            debug!("found a branch with args: {:?}", unitary.args);
+            let true_arg = &unitary.args[0];
+            let true_block = BlockId(
+                true_arg
                     .parse()
-                    .expect("block id should parse"),
+                    .unwrap_or_else(|_| panic!("block id should parse: {true_arg}")),
             );
-            let block_id_2 = BlockId(
-                unitary
-                    .args
-                    .remove(0)
+            let false_arg = &unitary.args[1];
+            let false_block = BlockId(
+                false_arg
                     .parse()
-                    .expect("block id should parse"),
+                    .unwrap_or_else(|_| panic!("block id should parse: {false_arg}")),
             );
-            if let Some((branch_operations, targets)) =
-                operations_from_branch(state, block_id_1, block_id_2)?
+
+            debug!(
+                "branching on expr: {:?}, true_block: {:?}, false_block: {:?}",
+                unitary.args[2], true_block, false_block
+            );
+            if let Some(branch_operations) = operations_from_branch(state, true_block, false_block)?
             {
-                unitary.targets = targets;
-                unitary.children = branch_operations;
-                unitary.args.insert(0, block_id_2.0.to_string());
+                let (true_operations, true_targets) = branch_operations.true_block;
+                let true_container = Some(Component::Unitary(Unitary {
+                    gate: "true".into(),
+                    args: vec![],
+                    children: true_operations,
+                    targets: true_targets.clone(),
+                    controls: unitary.controls.clone(),
+                    is_adjoint: unitary.is_adjoint,
+                }));
+
+                let false_container =
+                    branch_operations
+                        .false_block
+                        .map(|(false_operations, false_targets)| {
+                            (
+                                Component::Unitary(Unitary {
+                                    gate: "false".into(),
+                                    args: vec![],
+                                    children: false_operations,
+                                    targets: false_targets.clone(),
+                                    controls: unitary.controls.clone(),
+                                    is_adjoint: unitary.is_adjoint,
+                                }),
+                                false_targets,
+                            )
+                        });
+
+                let true_container = true_container.and_then(|t| {
+                    if t.children().iter().any(|col| !col.components.is_empty()) {
+                        Some(t)
+                    } else {
+                        None
+                    }
+                });
+                let false_container = false_container.and_then(|f| {
+                    if f.0.children().iter().any(|col| !col.components.is_empty()) {
+                        Some(f)
+                    } else {
+                        None
+                    }
+                });
+
+                let mut children = vec![];
+
+                if let Some(true_container) = true_container {
+                    children.push(true_container);
+                    unitary.targets.extend(true_targets);
+                }
+
+                if let Some((false_container, false_targets)) = false_container {
+                    children.push(false_container);
+                    unitary.targets.extend(false_targets);
+                }
+
+                unitary.children = vec![ComponentColumn {
+                    components: children,
+                }];
+
+                // dedup targets
+                unitary.targets.sort_by_key(|r| (r.qubit, r.result));
+                unitary.targets.dedup_by_key(|r| (r.qubit, r.result));
+
+                unitary.args.remove(0);
+                unitary.args.remove(0);
+                unitary
+                    .args
+                    .insert(0, branch_operations.successor.0.to_string());
                 unitary.gate = "successor".to_string();
             } else {
                 return Ok(true); // more work needed to fill in the branch children
@@ -462,6 +550,7 @@ fn operation_for_branch(
         controls,
         is_adjoint: false,
     });
+    debug!("pushed a branch with args: {:?}", op.args());
     Ok(op)
 }
 
@@ -492,90 +581,409 @@ fn eq_expr(expr_left: Expr, expr_right: Expr) -> Result<BoolExpr, qsc_circuit::E
     })
 }
 
-type BranchOperations = (ComponentGrid, Vec<Register>);
+struct BranchOperations {
+    true_block: (ComponentGrid, Vec<Register>),
+    false_block: Option<(ComponentGrid, Vec<Register>)>,
+    successor: BlockId,
+}
 
-/// Can only handle basic branches, if x { ... } without an else
+/// Can only handle basic branches
 fn operations_from_branch(
     state: &ProgramMap,
-    branch_block: BlockId,
-    merge_block: BlockId,
+    true_block: BlockId,
+    false_block: BlockId,
 ) -> Result<Option<BranchOperations>, qsc_circuit::Error> {
     let CircuitBlock {
-        operations: branch_operations,
-        successor: branch_successor,
+        operations: true_operations,
+        successor: true_successor,
         ..
-    } = state.blocks.get(branch_block).expect("block should exist");
+    } = state.blocks.get(true_block).expect("block should exist");
     let CircuitBlock {
-        successor: merge_successor,
+        operations: false_operations,
+        successor: false_successor,
         ..
-    } = state.blocks.get(merge_block).expect("block should exist");
-    if branch_successor.is_none_or(|c| c != merge_block) {
-        return Err(qsc_circuit::Error::UnsupportedFeature(format!(
-            "branch block {} does not lead to merge block {}",
-            branch_block.0, merge_block.0
-        )));
-    }
-    if merge_successor.is_some() {
-        return Err(qsc_circuit::Error::UnsupportedFeature(
-            "merge block should not have a successor".to_owned(),
-        ));
-    }
+    } = state.blocks.get(false_block).expect("block should exist");
 
-    let mut seen = FxHashSet::default();
-    let mut max_qubit_id = 0;
-    for op in branch_operations {
-        match op {
-            Operation::Measurement(measurement) => {
-                for q in &measurement.qubits {
-                    max_qubit_id = max_qubit_id.max(q.qubit);
-                    seen.insert((q.qubit, q.result));
+    if true_successor.is_some_and(|c| c == false_block) && false_successor.is_none() {
+        // simple if
+        let mut seen = FxHashSet::default();
+        let mut max_qubit_id = 0;
+        for op in true_operations {
+            match op {
+                Operation::Measurement(measurement) => {
+                    for q in &measurement.qubits {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                    for r in &measurement.results {
+                        max_qubit_id = max_qubit_id.max(r.qubit);
+                        seen.insert((r.qubit, r.result));
+                    }
                 }
-                for r in &measurement.results {
-                    max_qubit_id = max_qubit_id.max(r.qubit);
-                    seen.insert((r.qubit, r.result));
+                Operation::Unitary(unitary) => {
+                    if unitary.gate == "branch" {
+                        // Skip this one for now, the branch block itself has an unexpanded branch
+                        return Ok(None);
+                    }
+                    for q in &unitary.targets {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                    for q in &unitary.controls {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
                 }
-            }
-            Operation::Unitary(unitary) => {
-                if unitary.gate == "branch" {
-                    // Skip this one for now, the branch block itself has an unexpanded branch
-                    return Ok(None);
-                }
-                for q in &unitary.targets {
-                    max_qubit_id = max_qubit_id.max(q.qubit);
-                    seen.insert((q.qubit, q.result));
-                }
-                for q in &unitary.controls {
-                    max_qubit_id = max_qubit_id.max(q.qubit);
-                    seen.insert((q.qubit, q.result));
-                }
-            }
-            Operation::Ket(ket) => {
-                for q in &ket.targets {
-                    max_qubit_id = max_qubit_id.max(q.qubit);
-                    seen.insert((q.qubit, q.result));
+                Operation::Ket(ket) => {
+                    for q in &ket.targets {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
                 }
             }
         }
-    }
 
-    if seen.iter().any(|(_, r)| r.is_some()) {
-        return Err(qsc_circuit::Error::UnsupportedFeature(
-            "measurement operation in a branch block".to_owned(),
-        ));
-    }
+        if seen.iter().any(|(_, r)| r.is_some()) {
+            return Err(qsc_circuit::Error::UnsupportedFeature(
+                "measurement operation in a branch block".to_owned(),
+            ));
+        }
 
-    let component_grid = operation_list_to_grid(branch_operations, max_qubit_id + 1);
+        let component_grid = operation_list_to_grid(true_operations, max_qubit_id + 1);
 
-    // TODO: everything is a target. Don't know how else we would do this.
+        // TODO: everything is a target. Don't know how else we would do this.
 
-    let targets = seen
-        .into_iter()
-        .map(|(q, r)| Register {
-            qubit: q,
-            result: r,
+        let targets = seen
+            .into_iter()
+            .map(|(q, r)| Register {
+                qubit: q,
+                result: r,
+            })
+            .collect();
+        Ok(Some(BranchOperations {
+            true_block: (component_grid, targets),
+            false_block: None,
+            successor: false_block,
+        }))
+    } else if false_successor.is_some_and(|c| c == true_block) && true_successor.is_none() {
+        // simple if, but flipped
+        // TODO: we need to flip the condition!!
+        let mut seen = FxHashSet::default();
+        let mut max_qubit_id = 0;
+        for op in true_operations {
+            match op {
+                Operation::Measurement(measurement) => {
+                    for q in &measurement.qubits {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                    for r in &measurement.results {
+                        max_qubit_id = max_qubit_id.max(r.qubit);
+                        seen.insert((r.qubit, r.result));
+                    }
+                }
+                Operation::Unitary(unitary) => {
+                    if unitary.gate == "branch" {
+                        // Skip this one for now, the branch block itself has an unexpanded branch
+                        return Ok(None);
+                    }
+                    for q in &unitary.targets {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                    for q in &unitary.controls {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                }
+                Operation::Ket(ket) => {
+                    for q in &ket.targets {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                }
+            }
+        }
+
+        if seen.iter().any(|(_, r)| r.is_some()) {
+            return Err(qsc_circuit::Error::UnsupportedFeature(
+                "measurement operation in a branch block".to_owned(),
+            ));
+        }
+
+        let component_grid = operation_list_to_grid(true_operations, max_qubit_id + 1);
+
+        // TODO: everything is a target. Don't know how else we would do this.
+
+        let targets = seen
+            .into_iter()
+            .map(|(q, r)| Register {
+                qubit: q,
+                result: r,
+            })
+            .collect();
+        Ok(Some(BranchOperations {
+            true_block: (component_grid, targets),
+            false_block: None,
+            successor: false_block,
+        }))
+    } else if true_successor
+        .and_then(|true_successor| {
+            false_successor.map(|false_successor| (true_successor, false_successor))
         })
-        .collect();
-    Ok(Some((component_grid, targets)))
+        .is_some_and(|(true_successor, false_successor)| true_successor == false_successor)
+    {
+        let mut seen = FxHashSet::default();
+        let mut max_qubit_id = 0;
+        for op in true_operations {
+            match op {
+                Operation::Measurement(measurement) => {
+                    for q in &measurement.qubits {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                    for r in &measurement.results {
+                        max_qubit_id = max_qubit_id.max(r.qubit);
+                        seen.insert((r.qubit, r.result));
+                    }
+                }
+                Operation::Unitary(unitary) => {
+                    if unitary.gate == "branch" {
+                        // Skip this one for now, the branch block itself has an unexpanded branch
+                        return Ok(None);
+                    }
+                    for q in &unitary.targets {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                    for q in &unitary.controls {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                }
+                Operation::Ket(ket) => {
+                    for q in &ket.targets {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                }
+            }
+        }
+
+        if seen.iter().any(|(_, r)| r.is_some()) {
+            return Err(qsc_circuit::Error::UnsupportedFeature(
+                "measurement operation in a branch block".to_owned(),
+            ));
+        }
+
+        let component_grid = operation_list_to_grid(true_operations, max_qubit_id + 1);
+
+        // TODO: everything is a target. Don't know how else we would do this.
+
+        let targets = seen
+            .into_iter()
+            .map(|(q, r)| Register {
+                qubit: q,
+                result: r,
+            })
+            .collect();
+
+        let true_block = (component_grid, targets);
+
+        let mut seen = FxHashSet::default();
+        let mut max_qubit_id = 0;
+        for op in false_operations {
+            match op {
+                Operation::Measurement(measurement) => {
+                    for q in &measurement.qubits {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                    for r in &measurement.results {
+                        max_qubit_id = max_qubit_id.max(r.qubit);
+                        seen.insert((r.qubit, r.result));
+                    }
+                }
+                Operation::Unitary(unitary) => {
+                    if unitary.gate == "branch" {
+                        // Skip this one for now, the branch block itself has an unexpanded branch
+                        return Ok(None);
+                    }
+                    for q in &unitary.targets {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                    for q in &unitary.controls {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                }
+                Operation::Ket(ket) => {
+                    for q in &ket.targets {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                }
+            }
+        }
+
+        if seen.iter().any(|(_, r)| r.is_some()) {
+            return Err(qsc_circuit::Error::UnsupportedFeature(
+                "measurement operation in a branch block".to_owned(),
+            ));
+        }
+
+        let component_grid = operation_list_to_grid(true_operations, max_qubit_id + 1);
+
+        // TODO: everything is a target. Don't know how else we would do this.
+
+        let targets = seen
+            .into_iter()
+            .map(|(q, r)| Register {
+                qubit: q,
+                result: r,
+            })
+            .collect();
+
+        let false_block = (component_grid, targets);
+
+        Ok(Some(BranchOperations {
+            true_block,
+            false_block: Some(false_block),
+            successor: true_successor.expect("true_successor should exist"),
+        }))
+    } else if false_successor
+        .and_then(|false_successor| {
+            true_successor.map(|true_successor| (true_successor, false_successor))
+        })
+        .is_some_and(|(true_successor, false_successor)| true_successor == false_successor)
+    {
+        // if/else, but flipped
+
+        let mut seen = FxHashSet::default();
+        let mut max_qubit_id = 0;
+        for op in true_operations {
+            match op {
+                Operation::Measurement(measurement) => {
+                    for q in &measurement.qubits {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                    for r in &measurement.results {
+                        max_qubit_id = max_qubit_id.max(r.qubit);
+                        seen.insert((r.qubit, r.result));
+                    }
+                }
+                Operation::Unitary(unitary) => {
+                    if unitary.gate == "branch" {
+                        // Skip this one for now, the branch block itself has an unexpanded branch
+                        return Ok(None);
+                    }
+                    for q in &unitary.targets {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                    for q in &unitary.controls {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                }
+                Operation::Ket(ket) => {
+                    for q in &ket.targets {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                }
+            }
+        }
+
+        if seen.iter().any(|(_, r)| r.is_some()) {
+            return Err(qsc_circuit::Error::UnsupportedFeature(
+                "measurement operation in a branch block".to_owned(),
+            ));
+        }
+
+        let component_grid = operation_list_to_grid(true_operations, max_qubit_id + 1);
+
+        // TODO: everything is a target. Don't know how else we would do this.
+
+        let targets = seen
+            .into_iter()
+            .map(|(q, r)| Register {
+                qubit: q,
+                result: r,
+            })
+            .collect();
+
+        let true_block = (component_grid, targets);
+
+        let mut seen = FxHashSet::default();
+        let mut max_qubit_id = 0;
+        for op in false_operations {
+            match op {
+                Operation::Measurement(measurement) => {
+                    for q in &measurement.qubits {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                    for r in &measurement.results {
+                        max_qubit_id = max_qubit_id.max(r.qubit);
+                        seen.insert((r.qubit, r.result));
+                    }
+                }
+                Operation::Unitary(unitary) => {
+                    if unitary.gate == "branch" {
+                        // Skip this one for now, the branch block itself has an unexpanded branch
+                        return Ok(None);
+                    }
+                    for q in &unitary.targets {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                    for q in &unitary.controls {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                }
+                Operation::Ket(ket) => {
+                    for q in &ket.targets {
+                        max_qubit_id = max_qubit_id.max(q.qubit);
+                        seen.insert((q.qubit, q.result));
+                    }
+                }
+            }
+        }
+
+        if seen.iter().any(|(_, r)| r.is_some()) {
+            return Err(qsc_circuit::Error::UnsupportedFeature(
+                "measurement operation in a branch block".to_owned(),
+            ));
+        }
+
+        let component_grid = operation_list_to_grid(true_operations, max_qubit_id + 1);
+
+        // TODO: everything is a target. Don't know how else we would do this.
+
+        let targets = seen
+            .into_iter()
+            .map(|(q, r)| Register {
+                qubit: q,
+                result: r,
+            })
+            .collect();
+
+        let false_block = (component_grid, targets);
+
+        Ok(Some(BranchOperations {
+            true_block: false_block,
+            false_block: Some(true_block),
+            successor: true_successor.expect("true_successor should exist"),
+        }))
+    } else {
+        Err(qsc_circuit::Error::UnsupportedFeature(format!(
+            "complex branch: true_block={true_block:?} successor={true_successor:?}, false_block={false_block:?} successor={false_successor:?}"
+        )))
+    }
 }
 
 fn expr_from_operand(state: &ProgramMap, operand: &Operand) -> Result<Expr, qsc_circuit::Error> {
