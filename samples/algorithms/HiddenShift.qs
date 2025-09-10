@@ -13,7 +13,6 @@ import Std.Convert.*;
 import Std.Diagnostics.*;
 import Std.Measurement.*;
 
-@EntryPoint(Adaptive_RI)
 operation Main() : Int[] {
     let nQubits = 10;
 

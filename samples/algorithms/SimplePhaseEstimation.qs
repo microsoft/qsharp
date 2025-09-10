@@ -15,7 +15,6 @@
 /// The result is returned as an array of `Result` values
 /// representing the binary fraction of the phase in big-endian order.
 /// This is used to display the histogram of the results.
-@EntryPoint(Adaptive_RIF)
 operation Main() : Result[] {
     // Allocate qubits to be used in phase estimation
     use state = Qubit();

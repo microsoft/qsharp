@@ -8,7 +8,6 @@
 ///
 /// This Q# program implements superdense coding to send two classical bits of
 /// information.
-@EntryPoint(Adaptive_RIF)
 operation Main() : ((Bool, Bool), (Bool, Bool)) {
     use (aliceQubit, bobQubit) = (Qubit(), Qubit());
 

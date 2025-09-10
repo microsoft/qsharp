@@ -13,7 +13,6 @@ import Std.Math.*;
 import Std.Arithmetic.*;
 import Std.Arrays.*;
 
-@EntryPoint(Adaptive_RIF)
 operation Main() : (Int, Int) {
     let n = 187; // 11*17;
     // You can try these other examples for a lengthier computation.
@@ -50,7 +49,7 @@ operation FactorSemiprimeInteger(number : Int) : (Int, Int) {
         Message($"*** Factorizing {number}, attempt {attempt}.");
         // Try to guess a number co-prime to `number` by getting a random
         // integer in the interval [1, number-1]
-        let generator = 1;
+        let generator = DrawRandomInt(1, number - 1);
 
         // Check if the random integer is indeed co-prime.
         // If true use Quantum algorithm for Period finding.

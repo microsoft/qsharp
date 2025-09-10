@@ -12,7 +12,6 @@ import Std.Diagnostics.*;
 import Std.Math.*;
 import Std.Measurement.*;
 
-@EntryPoint(Adaptive_RI)
 operation Main() : Result[] {
     // Consider a function 𝑓(𝑥⃗) on bitstrings 𝑥⃗ = (𝑥₀, …, 𝑥ₙ₋₁) of the form
     //     𝑓(𝑥⃗) ≔ Σᵢ 𝑥ᵢ 𝑟ᵢ

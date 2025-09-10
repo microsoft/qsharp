@@ -3,7 +3,6 @@
 import Std.Math.*;
 import Std.Diagnostics.*;
 
-@EntryPoint(Adaptive_RIF)
 operation Main() : (Bool, Int) {
     // A qubit register that will be used for encoding.
     use encodedRegister = Qubit[3];

@@ -5,7 +5,6 @@
 /// This program implements a quantum random number generator by setting qubits
 /// into superposition and then using the measurement results as random bits.
 /// This is equivalent to generating a random number in the range of 0..2ᴺ-1.
-@EntryPoint(Adaptive_RIF)
 operation Main() : Result[] {
     // Generate a 5-bit random number.
     GenerateNRandomBits(5)

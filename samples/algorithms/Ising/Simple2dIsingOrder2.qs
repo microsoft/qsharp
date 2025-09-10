@@ -11,8 +11,8 @@
 /// post-process results or perform eigenvalue estimation.
 operation Main() : Result[] {
     // Dimensions of a 2D grid is N1 x N2
-    let N1 : Int = 7;
-    let N2 : Int = 7;
+    let N1 : Int = 3;
+    let N2 : Int = 3;
 
     // Total evolution time
     let evolutionTime : Double = 4.0;

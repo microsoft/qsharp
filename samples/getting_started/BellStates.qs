@@ -70,4 +70,3 @@ operation PreparePsiMinus(register : Qubit[]) : Unit {
     X(register[1]);                 // |-1〉
     CNOT(register[0], register[1]); // (|01〉 - |10〉)/sqrt(2)
 }
- 
