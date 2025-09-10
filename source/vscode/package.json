@@ -102,7 +102,31 @@
           "additionalProperties": true,
           "default": {
             "maxOperations": 10001,
-            "loopDetection": true
+            "loopDetection": true,
+            "generationMethod": "static"
+          },
+          "properties": {
+            "maxOperations": {
+              "type": "number",
+              "default": 10001,
+              "minimum": 1,
+              "description": "The maximum number of operations to include in the circuit diagram."
+            },
+            "loopDetection": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether to attempt to detect loops in the program and group them in the circuit diagram."
+            },
+            "generationMethod": {
+              "type": "string",
+              "default": "static",
+              "enum": [
+                "static",
+                "classicalEval",
+                "simulate"
+              ],
+              "description": "The method to use for generating the circuit diagram. 'static' uses static analysis, 'classicalEval' uses only classical evaluation, and 'simulate' uses quantum simulation."
+            }
           }
         },
         "Q#.simulation.pauliNoise": {

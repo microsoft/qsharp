@@ -371,7 +371,7 @@ fn operations_in_block(
                 "instructions after return or jump in block".to_owned(),
             ));
         }
-        extend_with_instruction(
+        extend_block_with_instruction(
             state,
             callables,
             &mut successor,
@@ -388,7 +388,7 @@ fn operations_in_block(
     })
 }
 
-fn extend_with_instruction(
+fn extend_block_with_instruction(
     state: &mut ProgramMap,
     callables: &IndexMap<qsc_partial_eval::CallableId, Callable>,
     successor: &mut Option<BlockId>,
@@ -399,82 +399,53 @@ fn extend_with_instruction(
 ) -> Result<(), qsc_circuit::Error> {
     match &instruction.instruction {
         Instruction::Call(callable_id, operands, var) => {
-            operations.extend(map_callable_to_operations(
+            extend_block_with_call_instruction(
                 state,
-                callables.get(*callable_id).expect("callable should exist"),
+                callables,
+                operations,
+                instruction,
+                *callable_id,
                 operands,
-                var.as_ref(),
-                instruction.metadata.as_ref(),
-            )?);
+                *var,
+            )?;
         }
         Instruction::Fcmp(condition_code, operand, operand1, variable) => {
-            let expr_left = expr_from_operand(state, operand)?;
-            let expr_right = expr_from_operand(state, operand1)?;
-            let expr = match condition_code {
-                FcmpConditionCode::False => BoolExpr::LiteralBool(false),
-                FcmpConditionCode::True => BoolExpr::LiteralBool(true),
-                cmp => BoolExpr::BinOp(expr_left.into(), expr_right.into(), cmp.to_string()),
-            };
-
-            state.store_expr_in_variable(*variable, Expr::BoolExpr(expr))?;
+            extend_block_with_fcmp_instruction(
+                state,
+                *condition_code,
+                operand,
+                operand1,
+                *variable,
+            )?;
         }
-        Instruction::Icmp(condition_code, operand, operand1, variable) => match condition_code {
-            ConditionCode::Eq => {
-                let expr_left = expr_from_operand(state, operand)?;
-                let expr_right = expr_from_operand(state, operand1)?;
-                let expr = eq_expr(expr_left, expr_right)?;
-                state.store_expr_in_variable(*variable, Expr::BoolExpr(expr))?;
-            }
-            condition_code => {
-                return Err(qsc_circuit::Error::UnsupportedFeature(format!(
-                    "unsupported condition code in icmp: {condition_code:?}"
-                )));
-            }
-        },
-
+        Instruction::Icmp(condition_code, operand, operand1, variable) => {
+            extend_block_with_icmp_instruction(
+                state,
+                *condition_code,
+                operand,
+                operand1,
+                *variable,
+            )?;
+        }
         Instruction::Return => {
             *done = true;
         }
         Instruction::Branch(variable, block_id_1, block_id_2) => {
-            operations.push(operation_for_branch(
+            extend_block_with_branch_instruction(
                 state,
+                operations,
                 instruction,
                 *variable,
                 *block_id_1,
                 *block_id_2,
-            )?);
+            )?;
         }
         Instruction::Jump(block_id) => {
-            let old = successor.replace(*block_id);
-            if old.is_some() {
-                return Err(qsc_circuit::Error::UnsupportedFeature(
-                    "block contains more than one jump".to_owned(),
-                ));
-            }
+            extend_block_with_jump_instruction(successor, *block_id)?;
             *done = true;
         }
         Instruction::Phi(pres, variable) => {
-            let mut exprs = vec![];
-            for pre in pres {
-                exprs.push(expr_from_operand(state, &pre.0)?);
-            }
-            let expr = if exprs.iter().all(|e| matches!(e, Expr::BoolExpr(_))) {
-                // fold into pairs of FancyBinOp
-                exprs
-                    .into_iter()
-                    .reduce(|left, right| {
-                        Expr::BoolExpr(BoolExpr::BinOp(
-                            left.into(),
-                            right.into(),
-                            "or maybe".into(),
-                        ))
-                    })
-                    .expect("there should be at least one expression")
-            } else {
-                Expr::RichExpr(NotBoolExpr::Options(exprs))
-            };
-            state.store_expr_in_variable(*variable, expr)?;
-            predecessors.extend(pres.iter().map(|p| p.1));
+            extend_block_with_phi_instruction(state, predecessors, pres, *variable)?;
         }
         Instruction::Add(operand, operand1, variable)
         | Instruction::Sub(operand, operand1, variable)
@@ -492,17 +463,11 @@ fn extend_with_instruction(
         | Instruction::BitwiseAnd(operand, operand1, variable)
         | Instruction::BitwiseOr(operand, operand1, variable)
         | Instruction::BitwiseXor(operand, operand1, variable) => {
-            let expr_left = expr_from_operand(state, operand)?;
-            let expr_right = expr_from_operand(state, operand1)?;
-            let expr = Expr::RichExpr(NotBoolExpr::BinOp(
-                expr_left.into(),
-                expr_right.into(),
-                "***".into(),
-            ));
-            state.store_expr_in_variable(*variable, expr)?;
+            extend_block_with_binop_instruction(state, operand, operand1, *variable)?;
         }
-        Instruction::LogicalNot(..) | Instruction::BitwiseNot(..) => {
+        instruction @ (Instruction::LogicalNot(..) | Instruction::BitwiseNot(..)) => {
             // Leave the variable unassigned, if it's used in anything that's going to be shown in the circuit, we'll raise an error then
+            debug!("ignoring not instruction: {instruction:?}");
         }
         instruction @ Instruction::Store(..) => {
             return Err(qsc_circuit::Error::UnsupportedFeature(format!(
@@ -510,6 +475,144 @@ fn extend_with_instruction(
             )));
         }
     }
+    Ok(())
+}
+
+fn extend_block_with_binop_instruction(
+    state: &mut ProgramMap,
+    operand: &Operand,
+    operand1: &Operand,
+    variable: Variable,
+) -> Result<(), qsc_circuit::Error> {
+    let expr_left = expr_from_operand(state, operand)?;
+    let expr_right = expr_from_operand(state, operand1)?;
+    let expr = Expr::RichExpr(NotBoolExpr::BinOp(
+        expr_left.into(),
+        expr_right.into(),
+        "***".into(),
+    ));
+    state.store_expr_in_variable(variable, expr)?;
+    Ok(())
+}
+
+fn extend_block_with_phi_instruction(
+    state: &mut ProgramMap,
+    predecessors: &mut Vec<BlockId>,
+    pres: &Vec<(Operand, BlockId)>,
+    variable: Variable,
+) -> Result<(), qsc_circuit::Error> {
+    let mut exprs = vec![];
+    for pre in pres {
+        exprs.push(expr_from_operand(state, &pre.0)?);
+    }
+    let expr = if exprs.iter().all(|e| matches!(e, Expr::BoolExpr(_))) {
+        // fold into pairs of FancyBinOp
+        exprs
+            .into_iter()
+            .reduce(|left, right| {
+                Expr::BoolExpr(BoolExpr::BinOp(
+                    left.into(),
+                    right.into(),
+                    "or maybe".into(),
+                ))
+            })
+            .expect("there should be at least one expression")
+    } else {
+        Expr::RichExpr(NotBoolExpr::Options(exprs))
+    };
+    state.store_expr_in_variable(variable, expr)?;
+    predecessors.extend(pres.iter().map(|p| p.1));
+    Ok(())
+}
+
+fn extend_block_with_jump_instruction(
+    successor: &mut Option<BlockId>,
+    block_id: BlockId,
+) -> Result<(), qsc_circuit::Error> {
+    let old = successor.replace(block_id);
+    let r = if old.is_some() {
+        Err(qsc_circuit::Error::UnsupportedFeature(
+            "block contains more than one jump".to_owned(),
+        ))
+    } else {
+        Ok(())
+    };
+    r?;
+    Ok(())
+}
+
+fn extend_block_with_branch_instruction(
+    state: &mut ProgramMap,
+    operations: &mut Vec<Operation>,
+    instruction: &InstructionWithMetadata,
+    variable: Variable,
+    block_id_1: BlockId,
+    block_id_2: BlockId,
+) -> Result<(), qsc_circuit::Error> {
+    operations.push(operation_for_branch(
+        state,
+        instruction,
+        variable,
+        block_id_1,
+        block_id_2,
+    )?);
+    Ok(())
+}
+
+fn extend_block_with_icmp_instruction(
+    state: &mut ProgramMap,
+    condition_code: ConditionCode,
+    operand: &Operand,
+    operand1: &Operand,
+    variable: Variable,
+) -> Result<(), qsc_circuit::Error> {
+    match condition_code {
+        ConditionCode::Eq => {
+            let expr_left = expr_from_operand(state, operand)?;
+            let expr_right = expr_from_operand(state, operand1)?;
+            let expr = eq_expr(expr_left, expr_right)?;
+            state.store_expr_in_variable(variable, Expr::BoolExpr(expr))
+        }
+        condition_code => Err(qsc_circuit::Error::UnsupportedFeature(format!(
+            "unsupported condition code in icmp: {condition_code:?}"
+        ))),
+    }
+}
+
+fn extend_block_with_fcmp_instruction(
+    state: &mut ProgramMap,
+    condition_code: FcmpConditionCode,
+    operand: &Operand,
+    operand1: &Operand,
+    variable: Variable,
+) -> Result<(), qsc_circuit::Error> {
+    let expr_left = expr_from_operand(state, operand)?;
+    let expr_right = expr_from_operand(state, operand1)?;
+    let expr = match condition_code {
+        FcmpConditionCode::False => BoolExpr::LiteralBool(false),
+        FcmpConditionCode::True => BoolExpr::LiteralBool(true),
+        cmp => BoolExpr::BinOp(expr_left.into(), expr_right.into(), cmp.to_string()),
+    };
+    state.store_expr_in_variable(variable, Expr::BoolExpr(expr))?;
+    Ok(())
+}
+
+fn extend_block_with_call_instruction(
+    state: &mut ProgramMap,
+    callables: &IndexMap<qsc_partial_eval::CallableId, Callable>,
+    operations: &mut Vec<Operation>,
+    instruction: &InstructionWithMetadata,
+    callable_id: qsc_partial_eval::CallableId,
+    operands: &Vec<Operand>,
+    var: Option<Variable>,
+) -> Result<(), qsc_circuit::Error> {
+    operations.extend(map_callable_to_operations(
+        state,
+        callables.get(callable_id).expect("callable should exist"),
+        operands,
+        var,
+        instruction.metadata.as_ref(),
+    )?);
     Ok(())
 }
 
@@ -1265,7 +1368,7 @@ fn map_callable_to_operations(
     state: &mut ProgramMap,
     callable: &Callable,
     operands: &Vec<Operand>,
-    var: Option<&Variable>,
+    var: Option<Variable>,
     metadata: Option<&InstructionMetadata>,
 ) -> Result<Vec<qsc_circuit::Operation>, qsc_circuit::Error> {
     Ok(match callable.call_type {
@@ -1279,7 +1382,7 @@ fn map_callable_to_operations(
                     match operand {
                         Operand::Literal(Literal::Result(r)) => {
                             let var =
-                                *var.expect("read_result must have a variable to store the result");
+                                var.expect("read_result must have a variable to store the result");
                             state.store_expr_in_variable(
                                 var,
                                 Expr::BoolExpr(BoolExpr::Result(*r)),

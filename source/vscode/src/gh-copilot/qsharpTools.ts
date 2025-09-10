@@ -3,7 +3,11 @@
 
 import { TargetProfile, VSDiagnostic } from "qsharp-lang";
 import vscode from "vscode";
-import { CircuitOrError, showCircuitCommand } from "../circuit";
+import {
+  CircuitOrError,
+  showCircuitCommand,
+  getConfig as getCircuitConfig,
+} from "../circuit";
 import { loadCompilerWorker, toVsCodeDiagnostic } from "../common";
 import { createDebugConsoleEventTarget } from "../debugger/output";
 import { resourceEstimateTool } from "../estimate";
@@ -153,7 +157,12 @@ export class QSharpTools {
         message?: string;
       }
   > {
-    const program = await this.getProgram(input.filePath);
+    const circuitConfig = getCircuitConfig();
+    const targetProfileFallback =
+      circuitConfig.generationMethod === "static" ? "adaptive_rif" : undefined;
+    const program = await this.getProgram(input.filePath, {
+      targetProfileFallback,
+    });
     const programConfig = program.config;
 
     const circuitOrError = await showCircuitCommand(

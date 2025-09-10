@@ -146,10 +146,12 @@ serializable_type! {
     {
         max_operations: usize,
         loop_detection: bool,
+        generation_method: String,
     },
     r#"export interface ICircuitConfig {
         maxOperations: number;
         loopDetection: boolean;
+        generationMethod: "simulate" | "classicalEval" | "static";
     }"#,
     ICircuitConfig
 }
@@ -157,7 +159,6 @@ serializable_type! {
 #[wasm_bindgen]
 pub fn get_circuit(
     program: ProgramConfig,
-    simulate: bool,
     operation: Option<IOperationInfo>,
     config: Option<ICircuitConfig>,
 ) -> Result<JsValue, String> {
@@ -166,6 +167,14 @@ pub fn get_circuit(
         qsc::circuit::Config {
             max_operations: c.max_operations,
             loop_detection: c.loop_detection,
+            generation_method: match c.generation_method.as_str() {
+                "simulate" => qsc::circuit::GenerationMethod::Simulate,
+                "classicalEval" => qsc::circuit::GenerationMethod::ClassicalEval,
+                "static" => qsc::circuit::GenerationMethod::Static,
+                _ => {
+                    return qsc::circuit::Config::default();
+                }
+            },
         }
     });
     if is_openqasm_program(&program) {
@@ -173,7 +182,7 @@ pub fn get_circuit(
         let (_, mut interpreter) = get_interpreter_from_openqasm(&sources, capabilities)?;
 
         let circuit = interpreter
-            .circuit(CircuitEntryPoint::EntryPoint, simulate, config)
+            .circuit(CircuitEntryPoint::EntryPoint, config)
             .map_err(interpret_errors_into_qsharp_errors_json)?;
         serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())
     } else {
@@ -203,7 +212,7 @@ pub fn get_circuit(
         .map_err(interpret_errors_into_qsharp_errors_json)?;
 
         let circuit = interpreter
-            .circuit(entry_point, simulate, config)
+            .circuit(entry_point, config)
             .map_err(interpret_errors_into_qsharp_errors_json)?;
 
         serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())

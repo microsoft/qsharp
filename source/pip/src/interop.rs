@@ -596,7 +596,6 @@ pub(crate) fn circuit_qasm_program(
 
     match interpreter.circuit(
         CircuitEntryPoint::EntryExpr(entry_expr),
-        false,
         qsc::circuit::Config::default(),
     ) {
         Ok(circuit) => crate::interpreter::Circuit(circuit).into_py_any(py),

@@ -216,6 +216,19 @@ pub struct Config {
     pub max_operations: usize,
     /// Detect repeated motifs in the circuit and group them into sub-circuits
     pub loop_detection: bool,
+    /// How the circuit is generated
+    pub generation_method: GenerationMethod,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum GenerationMethod {
+    /// Simulate the program and trace the actual gate calls. Nondeterministic
+    Simulate,
+    /// Evaluate the classical parts. Will fail if branching on measurement occurs
+    ClassicalEval,
+    /// Compile the program and transform to a circuit without any evaluation.
+    /// Only works for `AdaptiveRIF` compliant programs.
+    Static,
 }
 
 impl Config {
@@ -233,6 +246,7 @@ impl Default for Config {
         Self {
             max_operations: Self::DEFAULT_MAX_OPERATIONS,
             loop_detection: true,
+            generation_method: GenerationMethod::Static,
         }
     }
 }

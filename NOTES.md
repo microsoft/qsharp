@@ -3,9 +3,11 @@
 - zoom out operation grouping
 - block / function folding
 - conditionals and loops
-- state annotations (simulation)
 - qir->rir parsing
 - qubit/argument names
-- simulated dynamic circuits with ghost paths
 - LLVM debug info
+- links to source code on the diagram itself
 - symbolic arguments via debug metadata
+- For simulated circuits only:
+  - state annotations
+  - dynamic circuits with ghost paths

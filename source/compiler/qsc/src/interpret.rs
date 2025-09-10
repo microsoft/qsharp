@@ -23,7 +23,7 @@ use miette::Diagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex;
 use qsc_circuit::{
-    Builder as CircuitBuilder, Circuit, Config as CircuitConfig,
+    Builder as CircuitBuilder, Circuit, Config as CircuitConfig, GenerationMethod,
     operations::entry_expr_for_qubit_operation,
 };
 use qsc_codegen::qir::{fir_to_qir, fir_to_qir_from_callable, fir_to_rir};
@@ -969,7 +969,6 @@ impl Interpreter {
     pub fn circuit(
         &mut self,
         entry: CircuitEntryPoint,
-        simulate: bool,
         config: CircuitConfig,
     ) -> std::result::Result<Circuit, Vec<Error>> {
         let (entry_expr, invoke_params) = match entry {
@@ -984,7 +983,7 @@ impl Interpreter {
             CircuitEntryPoint::EntryPoint => (None, None),
         };
 
-        let circuit = if simulate {
+        let circuit = if config.generation_method == GenerationMethod::Simulate {
             let mut sim = sim_circuit_backend(config);
 
             match invoke_params {
@@ -998,7 +997,7 @@ impl Interpreter {
             }
 
             sim.chained.finish()
-        } else if self.capabilities == TargetCapabilityFlags::all() {
+        } else if config.generation_method == GenerationMethod::ClassicalEval {
             let mut sim = CircuitBuilder::new(config);
 
             match invoke_params {
@@ -1025,6 +1024,10 @@ impl Interpreter {
         invoke_params: Option<(Value, Value)>,
         config: CircuitConfig,
     ) -> std::result::Result<Circuit, Vec<Error>> {
+        if self.capabilities == TargetCapabilityFlags::all() {
+            return Err(vec![Error::UnsupportedRuntimeCapabilities]);
+        }
+
         if let Some((callable, args)) = invoke_params {
             let mut sim = CircuitBuilder::new(config);
             let mut sink = std::io::sink();

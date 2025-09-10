@@ -764,7 +764,7 @@ impl Interpreter {
 
         match self
             .interpreter
-            .circuit(entrypoint, false, qsc::circuit::Config::default())
+            .circuit(entrypoint, qsc::circuit::Config::default())
         {
             Ok(circuit) => Circuit(circuit).into_py_any(py),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
