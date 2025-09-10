@@ -44,7 +44,7 @@ pub(crate) fn make_circuit(
                 .expect("block should exist")
                 .clone();
             for operation in &mut circuit_block.operations {
-                if expand_branch_children(&state, operation, loop_detection)? {
+                if expand_branch_children(&state, operation)? {
                     more_work = true;
                 }
             }
@@ -76,8 +76,9 @@ pub(crate) fn make_circuit(
         .try_into()
         .expect("num_qubits should fit in usize");
 
-    let mut component_grid =
-        expand_successors(&state, entry_operations, num_qubits, loop_detection);
+    let operations = expand_successors(&state, entry_operations);
+
+    let mut component_grid = operation_list_to_grid(operations, num_qubits, loop_detection);
 
     fill_in_dbg_metadata(&mut component_grid, package_store, position_encoding)?;
 
@@ -88,12 +89,7 @@ pub(crate) fn make_circuit(
     Ok(circuit)
 }
 
-fn expand_successors(
-    state: &ProgramMap,
-    block_operations: Vec<Operation>,
-    num_qubits: usize,
-    loop_detection: bool,
-) -> Vec<ComponentColumn> {
+fn expand_successors(state: &ProgramMap, block_operations: Vec<Operation>) -> Vec<Component> {
     let mut operations = vec![];
     let mut operations_stack = block_operations;
     operations_stack.reverse();
@@ -128,15 +124,15 @@ fn expand_successors(
                 );
                 assert!(unitary.children.len() == 1);
                 let next_column = unitary.children.remove(0);
-                let next_column =
-                    expand_successors(state, next_column.components, num_qubits, loop_detection);
-                unitary.children = next_column;
+                let next_column = expand_successors(state, next_column.components);
+                unitary.children = vec![ComponentColumn {
+                    components: next_column,
+                }];
             }
         }
         operations.push(operation.clone());
     }
-
-    operation_list_to_grid(&operations, num_qubits, loop_detection)
+    operations
 }
 
 fn fill_in_dbg_metadata(
@@ -247,7 +243,6 @@ fn fill_in_dbg_metadata(
 fn expand_branch_children(
     state: &ProgramMap,
     operation: &mut Operation,
-    loop_detection: bool,
 ) -> Result<bool, qsc_circuit::Error> {
     if let Component::Unitary(unitary) = operation {
         if unitary.gate == "branch" {
@@ -269,14 +264,15 @@ fn expand_branch_children(
                 "branching on expr: {:?}, true_block: {:?}, false_block: {:?}",
                 unitary.args[2], true_block, false_block
             );
-            if let Some(branch_operations) =
-                operations_from_branch(state, true_block, false_block, loop_detection)?
+            if let Some(branch_operations) = operations_from_branch(state, true_block, false_block)?
             {
                 let (true_operations, true_targets) = branch_operations.true_block;
                 let true_container = Some(Component::Unitary(Unitary {
                     gate: "true".into(),
                     args: vec![],
-                    children: true_operations,
+                    children: vec![ComponentColumn {
+                        components: true_operations,
+                    }],
                     targets: true_targets.clone(),
                     controls: unitary.controls.clone(),
                     is_adjoint: unitary.is_adjoint,
@@ -290,7 +286,9 @@ fn expand_branch_children(
                                 Component::Unitary(Unitary {
                                     gate: "false".into(),
                                     args: vec![],
-                                    children: false_operations,
+                                    children: vec![ComponentColumn {
+                                        components: false_operations,
+                                    }],
                                     targets: false_targets.clone(),
                                     controls: unitary.controls.clone(),
                                     is_adjoint: unitary.is_adjoint,
@@ -691,8 +689,8 @@ fn eq_expr(expr_left: Expr, expr_right: Expr) -> Result<BoolExpr, qsc_circuit::E
 }
 
 struct BranchOperations {
-    true_block: (ComponentGrid, Vec<Register>),
-    false_block: Option<(ComponentGrid, Vec<Register>)>,
+    true_block: (Vec<Component>, Vec<Register>),
+    false_block: Option<(Vec<Component>, Vec<Register>)>,
     successor: BlockId,
 }
 
@@ -701,7 +699,6 @@ fn operations_from_branch(
     state: &ProgramMap,
     true_block: BlockId,
     false_block: BlockId,
-    loop_detection: bool,
 ) -> Result<Option<BranchOperations>, qsc_circuit::Error> {
     let CircuitBlock {
         operations: true_operations,
@@ -759,9 +756,6 @@ fn operations_from_branch(
             ));
         }
 
-        let component_grid =
-            operation_list_to_grid(true_operations, max_qubit_id + 1, loop_detection);
-
         // TODO: everything is a target. Don't know how else we would do this.
 
         let targets = seen
@@ -772,7 +766,7 @@ fn operations_from_branch(
             })
             .collect();
         Ok(Some(BranchOperations {
-            true_block: (component_grid, targets),
+            true_block: (true_operations.clone(), targets),
             false_block: None,
             successor: false_block,
         }))
@@ -822,8 +816,7 @@ fn operations_from_branch(
             ));
         }
 
-        let component_grid =
-            operation_list_to_grid(true_operations, max_qubit_id + 1, loop_detection);
+        let component_grid = true_operations.clone();
 
         // TODO: everything is a target. Don't know how else we would do this.
 
@@ -888,9 +881,6 @@ fn operations_from_branch(
             ));
         }
 
-        let component_grid =
-            operation_list_to_grid(true_operations, max_qubit_id + 1, loop_detection);
-
         // TODO: everything is a target. Don't know how else we would do this.
 
         let targets = seen
@@ -901,7 +891,7 @@ fn operations_from_branch(
             })
             .collect();
 
-        let true_block = (component_grid, targets);
+        let true_block = (true_operations.clone(), targets);
 
         let mut seen = FxHashSet::default();
         let mut max_qubit_id = 0;
@@ -946,9 +936,6 @@ fn operations_from_branch(
             ));
         }
 
-        let component_grid =
-            operation_list_to_grid(true_operations, max_qubit_id + 1, loop_detection);
-
         // TODO: everything is a target. Don't know how else we would do this.
 
         let targets = seen
@@ -959,7 +946,7 @@ fn operations_from_branch(
             })
             .collect();
 
-        let false_block = (component_grid, targets);
+        let false_block = (false_operations.clone(), targets);
 
         Ok(Some(BranchOperations {
             true_block,
@@ -1017,9 +1004,6 @@ fn operations_from_branch(
             ));
         }
 
-        let component_grid =
-            operation_list_to_grid(true_operations, max_qubit_id + 1, loop_detection);
-
         // TODO: everything is a target. Don't know how else we would do this.
 
         let targets = seen
@@ -1030,7 +1014,7 @@ fn operations_from_branch(
             })
             .collect();
 
-        let true_block = (component_grid, targets);
+        let true_block = (true_operations.clone(), targets);
 
         let mut seen = FxHashSet::default();
         let mut max_qubit_id = 0;
@@ -1075,9 +1059,6 @@ fn operations_from_branch(
             ));
         }
 
-        let component_grid =
-            operation_list_to_grid(true_operations, max_qubit_id + 1, loop_detection);
-
         // TODO: everything is a target. Don't know how else we would do this.
 
         let targets = seen
@@ -1088,7 +1069,7 @@ fn operations_from_branch(
             })
             .collect();
 
-        let false_block = (component_grid, targets);
+        let false_block = (false_operations.clone(), targets);
 
         Ok(Some(BranchOperations {
             true_block: false_block,
@@ -1544,6 +1525,22 @@ fn callable_spec<'a>(
         ),
         "__quantum__qis__rxx__body" => (
             "Rxx",
+            vec![
+                QubitOperandType::Arg,
+                QubitOperandType::Target,
+                QubitOperandType::Target,
+            ],
+        ),
+        "__quantum__qis__ryy__body" => (
+            "Ryy",
+            vec![
+                QubitOperandType::Arg,
+                QubitOperandType::Target,
+                QubitOperandType::Target,
+            ],
+        ),
+        "__quantum__qis__rzz__body" => (
+            "Rzz",
             vec![
                 QubitOperandType::Arg,
                 QubitOperandType::Target,

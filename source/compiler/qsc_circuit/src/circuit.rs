@@ -97,6 +97,16 @@ impl Operation {
         }
     }
 
+    /// Returns the children for the operation.
+    #[must_use]
+    pub fn children_mut(&mut self) -> &mut ComponentGrid {
+        match self {
+            Operation::Measurement(m) => &mut m.children,
+            Operation::Unitary(u) => &mut u.children,
+            Operation::Ket(k) => &mut k.children,
+        }
+    }
+
     /// Returns if the operation is a controlled operation.
     #[must_use]
     pub fn is_controlled(&self) -> bool {
@@ -845,15 +855,35 @@ fn get_row_indexes(
 /// A component grid representing the operations.
 #[must_use]
 pub fn operation_list_to_grid(
-    operations: &[Operation],
+    mut operations: Vec<Operation>,
     num_qubits: usize,
     loop_detection: bool,
 ) -> ComponentGrid {
-    let mut operations = if loop_detection {
+    let operations = if loop_detection {
+        for op in &mut operations {
+            if !op.children().is_empty() {
+                assert_eq!(
+                    op.children().len(),
+                    1,
+                    "children should be a single list at this point"
+                );
+                let mut first = op.children_mut().remove(0);
+                first.components = collapse_repetition(first.components);
+                op.children_mut().push(first);
+            }
+        }
         collapse_repetition(operations)
     } else {
-        operations.to_vec()
+        operations
     };
+
+    operation_list_to_grid_inner(operations, num_qubits)
+}
+
+fn operation_list_to_grid_inner(
+    mut operations: Vec<Operation>,
+    num_qubits: usize,
+) -> Vec<ComponentColumn> {
     for op in &mut operations {
         // The children data structure is a grid, so checking if it is
         // length 1 is actually checking if it has a single column,
@@ -865,15 +895,15 @@ pub fn operation_list_to_grid(
             match op {
                 Operation::Measurement(m) => {
                     let child_vec = m.children.remove(0).components; // owns
-                    m.children = operation_list_to_grid(&child_vec, num_qubits, loop_detection);
+                    m.children = operation_list_to_grid_inner(child_vec, num_qubits);
                 }
                 Operation::Unitary(u) => {
                     let child_vec = u.children.remove(0).components;
-                    u.children = operation_list_to_grid(&child_vec, num_qubits, loop_detection);
+                    u.children = operation_list_to_grid_inner(child_vec, num_qubits);
                 }
                 Operation::Ket(k) => {
                     let child_vec = k.children.remove(0).components;
-                    k.children = operation_list_to_grid(&child_vec, num_qubits, loop_detection);
+                    k.children = operation_list_to_grid_inner(child_vec, num_qubits);
                 }
             }
         }
@@ -891,11 +921,9 @@ pub fn operation_list_to_grid(
 fn make_repeated_parent(base: &Operation, count: usize) -> Operation {
     debug_assert!(count > 1);
     let mut parent = base.clone();
-    let child_columns: ComponentGrid = (0..count)
-        .map(|_| ComponentColumn {
-            components: vec![base.clone()],
-        })
-        .collect();
+    let child_columns: ComponentGrid = vec![ComponentColumn {
+        components: (0..count).map(|_| base.clone()).collect(),
+    }];
     match &mut parent {
         Operation::Measurement(m) => {
             m.children = child_columns;
@@ -925,7 +953,8 @@ fn make_repeated_parent(base: &Operation, count: usize) -> Operation {
 }
 
 #[allow(clippy::too_many_lines)]
-fn collapse_repetition(operations: &[Operation]) -> Vec<Operation> {
+#[allow(clippy::needless_pass_by_value)]
+fn collapse_repetition(operations: Vec<Operation>) -> Vec<Operation> {
     // Extended: detect repeating motifs of length > 1 as well (e.g. A B A B A B -> (A B)(3)).
     // Strategy: scan list; for each start index find longest total repeated sequence comprising
     // repeats (>1) of a motif whose operations are all the same variant type. Prefer the match
@@ -1014,20 +1043,22 @@ fn collapse_repetition(operations: &[Operation]) -> Vec<Operation> {
                     let truncated: String = label_prefix.chars().take(5).collect();
                     label_prefix = format!("{truncated}...");
                 }
-                let mut child_columns: ComponentGrid =
+                let mut child_columns: Vec<Component> =
                     Vec::with_capacity(best_repeats * best_motif_len);
                 for op in repeated_slice {
-                    child_columns.push(ComponentColumn {
-                        components: vec![op.clone()],
-                    });
+                    child_columns.push(op.clone());
                 }
                 match &mut parent {
                     Operation::Measurement(m) => {
-                        m.children = child_columns;
+                        m.children = vec![ComponentColumn {
+                            components: child_columns,
+                        }];
                         m.gate = format!("{label_prefix}({best_repeats})");
                     }
                     Operation::Unitary(u) => {
-                        u.children = child_columns;
+                        u.children = vec![ComponentColumn {
+                            components: child_columns,
+                        }];
                         u.gate = format!("{label_prefix}({best_repeats})");
                         // Union of targets and controls across all repeated operations into targets only
                         let mut seen: FxHashSet<(usize, Option<usize>)> = FxHashSet::default();
@@ -1046,7 +1077,9 @@ fn collapse_repetition(operations: &[Operation]) -> Vec<Operation> {
                         u.controls.clear();
                     }
                     Operation::Ket(k) => {
-                        k.children = child_columns;
+                        k.children = vec![ComponentColumn {
+                            components: child_columns,
+                        }];
                         k.gate = format!("{label_prefix}({best_repeats})");
                         // Union of targets across all repeated operations
                         let mut tgt_seen: FxHashSet<(usize, Option<usize>)> = FxHashSet::default();
