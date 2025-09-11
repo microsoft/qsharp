@@ -9,7 +9,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "8cd6fa698521ecf96d459f88254e53dd6e5d6877" }
+quantum-sparse-sim = { workspace = true }
 
 [lints]
 workspace = true
