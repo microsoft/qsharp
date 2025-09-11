@@ -17,7 +17,7 @@ use qsc_ast::ast::{
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{self, ItemId},
-    ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, Prim, Scheme, Ty},
+    ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, Prim, Scheme, Ty, Udt},
 };
 use rustc_hash::FxHashMap;
 use std::{cell::RefCell, convert::identity, rc::Rc};
@@ -411,6 +411,7 @@ impl<'a> Context<'a> {
                 Lit::BigInt(_) => converge(Ty::Prim(Prim::BigInt)),
                 Lit::Bool(_) => converge(Ty::Prim(Prim::Bool)),
                 Lit::Double(_) => converge(Ty::Prim(Prim::Double)),
+                Lit::Imaginary(_) => self.converge_complex_ty(),
                 Lit::Int(_) => converge(Ty::Prim(Prim::Int)),
                 Lit::Pauli(_) => converge(Ty::Prim(Prim::Pauli)),
                 Lit::Result(_) => converge(Ty::Prim(Prim::Result)),
@@ -928,6 +929,26 @@ impl<'a> Context<'a> {
 
         self.record(init.id, ty.ty.clone());
         ty
+    }
+
+    fn converge_complex_ty(&mut self) -> Partial<Ty> {
+        let complex_item_id = ItemId::complex();
+        let complex_def = self.table.udts.get(&complex_item_id);
+        match complex_def {
+            None => converge(Ty::Err),
+            Some(Udt {
+                span: _,
+                name,
+                definition: _,
+            }) => {
+                assert_eq!(
+                    name.as_ref(),
+                    "Complex",
+                    "Complex type should be defined and well-known"
+                );
+                converge(Ty::Udt(Rc::clone(name), hir::Res::Item(complex_item_id)))
+            }
+        }
     }
 
     fn diverge(&mut self) -> Partial<Ty> {
