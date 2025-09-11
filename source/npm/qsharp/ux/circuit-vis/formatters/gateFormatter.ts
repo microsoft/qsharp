@@ -294,6 +294,9 @@ const _unitary = (
   renderDashedLine = true,
   cssClass?: string,
 ): SVGElement => {
+  console.log(
+    `Rendering unitary gate ${label}, renderDashedLine=${renderDashedLine}`,
+  );
   if (y.length === 0)
     throw new Error(
       `Failed to render unitary gate (${label}): has no y-values`,
@@ -318,6 +321,7 @@ const _unitary = (
 
   // Draw dashed line between disconnected unitaries
   if (renderDashedLine && unitaryBoxes.length > 1) {
+    console.log("Rendering dashed line between unitary boxes");
     const lastBox: number[] = y[y.length - 1];
     const firstBox: number[] = y[0];
     const maxY: number = lastBox[lastBox.length - 1],

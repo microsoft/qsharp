@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests;
 
+use log::warn;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -74,6 +75,14 @@ impl Operation {
             Operation::Unitary(u) => u.gate.clone(),
             #[allow(clippy::unicode_not_nfc)]
             Operation::Ket(k) => format!("|{}〉", k.gate),
+        }
+    }
+
+    fn gate_mut(&mut self) -> &mut String {
+        match self {
+            Self::Measurement(measurement) => &mut measurement.gate,
+            Self::Unitary(unitary) => &mut unitary.gate,
+            Self::Ket(ket) => &mut ket.gate,
         }
     }
 
@@ -921,17 +930,46 @@ fn operation_list_to_grid_inner(
 fn make_repeated_parent(base: &Operation, count: usize) -> Operation {
     debug_assert!(count > 1);
     let mut parent = base.clone();
+    let mut children = vec![];
+    let mut tail_children = vec![];
+
+    for i in 0..count {
+        if i == 0 {
+            children.push(base.clone());
+        } else {
+            tail_children.push(base.clone());
+        }
+    }
+
+    if !tail_children.is_empty() {
+        let mut tail = base.clone();
+        *tail.children_mut() = vec![ComponentColumn {
+            components: tail_children,
+        }];
+        *tail.gate_mut() = format!("{}(×{})", tail.gate(), count - 1);
+        if let Operation::Unitary(u) = &mut tail {
+            // Merge targets and controls into targets; clear controls
+            u.targets = merge_unitary_registers(&[base.clone()]);
+            u.controls.clear();
+        } else {
+            warn!("merging targets/controls is only implemented for unitaries");
+        }
+
+        children.push(tail);
+    }
+
     let child_columns: ComponentGrid = vec![ComponentColumn {
-        components: (0..count).map(|_| base.clone()).collect(),
+        components: children,
     }];
     match &mut parent {
         Operation::Measurement(m) => {
+            warn!("collapsing repeated measurements may not be correct");
             m.children = child_columns;
-            m.gate = format!("{}({})", m.gate, count);
+            m.gate = format!("{}(×{})", m.gate, count);
         }
         Operation::Unitary(u) => {
             u.children = child_columns;
-            u.gate = format!("{}({})", u.gate, count);
+            u.gate = format!("{}(×{})", u.gate, count);
             // Merge targets and controls into targets; clear controls
             let mut seen: FxHashSet<(usize, Option<usize>)> = FxHashSet::default();
             let mut merged: Vec<Register> = Vec::new();
@@ -945,14 +983,188 @@ fn make_repeated_parent(base: &Operation, count: usize) -> Operation {
             u.controls.clear();
         }
         Operation::Ket(k) => {
+            warn!("collapsing repeated kets may not be correct");
             k.children = child_columns;
-            k.gate = format!("{}({})", k.gate, count);
+            k.gate = format!("{}(×{})", k.gate, count);
         }
     }
     parent
 }
 
-#[allow(clippy::too_many_lines)]
+/// Counts how many times a motif repeats starting at a given position.
+fn count_motif_repeats(hashes: &[u64], start_pos: usize, motif_len: usize) -> usize {
+    let len = hashes.len();
+    let mut repeats = 1usize;
+
+    'outer: loop {
+        let start_next = start_pos + repeats * motif_len;
+        let end_next = start_next + motif_len;
+        if end_next > len {
+            break;
+        }
+        for k in 0..motif_len {
+            if hashes[start_pos + k] != hashes[start_next + k] {
+                break 'outer;
+            }
+        }
+        repeats += 1;
+    }
+
+    repeats
+}
+
+/// Finds the best repeating motif starting at a given position.
+fn find_best_motif(hashes: &[u64], start_pos: usize) -> (usize, usize) {
+    let len = hashes.len();
+    let remaining = len - start_pos;
+    let mut best_motif_len = 1usize;
+    let mut best_repeats = 1usize;
+    let max_motif_len = (remaining / 2).max(1);
+
+    for motif_len in 1..=max_motif_len {
+        if motif_len * 2 > remaining {
+            break;
+        }
+
+        let repeats = count_motif_repeats(hashes, start_pos, motif_len);
+
+        if repeats > 1 {
+            eprintln!(
+                "found candidate motif of length {motif_len} repeated {repeats} times at index {start_pos}"
+            );
+            let total = repeats * motif_len;
+            let best_total = best_repeats * best_motif_len;
+            if total > best_total || (total == best_total && motif_len < best_motif_len) {
+                best_motif_len = motif_len;
+                best_repeats = repeats;
+            }
+        }
+    }
+
+    (best_motif_len, best_repeats)
+}
+
+/// Creates a label for a complex motif by joining gate names and truncating if necessary.
+fn create_motif_label(operations: &[Operation], motif_len: usize) -> String {
+    let motif_gates: Vec<String> = operations[..motif_len]
+        .iter()
+        .map(|op| match op {
+            Operation::Measurement(m) => m.gate.clone(),
+            Operation::Unitary(u) => u.gate.clone(),
+            Operation::Ket(k) => k.gate.clone(),
+        })
+        .collect();
+
+    let mut label_prefix = motif_gates.join(" ");
+    if label_prefix.chars().count() > 5 {
+        let truncated: String = label_prefix.chars().take(5).collect();
+        label_prefix = format!("{truncated}...");
+    }
+    label_prefix
+}
+
+/// Merges targets and controls from repeated unitary operations.
+fn merge_unitary_registers(repeated_slice: &[Operation]) -> Vec<Register> {
+    let mut seen: FxHashSet<(usize, Option<usize>)> = FxHashSet::default();
+    let mut merged = Vec::new();
+
+    for op in repeated_slice {
+        if let Operation::Unitary(child) = op {
+            for r in child.targets.iter().chain(child.controls.iter()) {
+                let key = (r.qubit, r.result);
+                if seen.insert(key) {
+                    merged.push(r.clone());
+                }
+            }
+        }
+    }
+
+    merged
+}
+
+/// Merges targets from repeated ket operations.
+fn merge_ket_targets(repeated_slice: &[Operation]) -> Vec<Register> {
+    let mut tgt_seen: FxHashSet<(usize, Option<usize>)> = FxHashSet::default();
+    let mut new_targets = Vec::new();
+
+    for op in repeated_slice {
+        if let Operation::Ket(child) = op {
+            for r in &child.targets {
+                let key = (r.qubit, r.result);
+                if tgt_seen.insert(key) {
+                    new_targets.push(r.clone());
+                }
+            }
+        }
+    }
+
+    new_targets
+}
+
+/// Creates a parent operation for a complex motif (length > 1).
+fn make_complex_motif_parent(
+    base: &Operation,
+    repeated_slice: &[Operation],
+    motif_len: usize,
+    repeats: usize,
+) -> Operation {
+    let label_prefix = create_motif_label(repeated_slice, motif_len);
+    let mut children = Vec::with_capacity(repeats * motif_len);
+    let mut tail_children = vec![];
+
+    for (i, op) in repeated_slice.iter().enumerate() {
+        if i > motif_len {
+            children.push(op.clone());
+        } else {
+            tail_children.push(op.clone());
+        }
+    }
+
+    if !tail_children.is_empty() {
+        let mut tail = base.clone();
+        *tail.children_mut() = vec![ComponentColumn {
+            components: tail_children,
+        }];
+        *tail.gate_mut() = format!("{}(×{})", tail.gate(), repeats - 1);
+        if let Operation::Unitary(u) = &mut tail {
+            // Merge targets and controls into targets; clear controls
+            u.targets = merge_unitary_registers(repeated_slice);
+            u.controls.clear();
+        } else {
+            warn!("collapsing repeated measurements/kets may not be correct");
+        }
+
+        children.push(tail);
+    }
+
+    let mut parent = base.clone();
+    match &mut parent {
+        Operation::Measurement(m) => {
+            m.children = vec![ComponentColumn {
+                components: children,
+            }];
+            m.gate = format!("{label_prefix}(×{repeats})");
+        }
+        Operation::Unitary(u) => {
+            u.children = vec![ComponentColumn {
+                components: children,
+            }];
+            u.gate = format!("{label_prefix}(×{repeats})");
+            u.targets = merge_unitary_registers(repeated_slice);
+            u.controls.clear();
+        }
+        Operation::Ket(k) => {
+            k.children = vec![ComponentColumn {
+                components: children,
+            }];
+            k.gate = format!("{label_prefix}(×{repeats})");
+            k.targets = merge_ket_targets(repeated_slice);
+        }
+    }
+
+    parent
+}
+
 #[allow(clippy::needless_pass_by_value)]
 fn collapse_repetition(operations: Vec<Operation>) -> Vec<Operation> {
     // Extended: detect repeating motifs of length > 1 as well (e.g. A B A B A B -> (A B)(3)).
@@ -965,140 +1177,22 @@ fn collapse_repetition(operations: Vec<Operation>) -> Vec<Operation> {
     let mut result: Vec<Operation> = Vec::new();
 
     while i < len {
-        // Determine best motif at position i.
-        let remaining = len - i;
-        let mut best_motif_len = 1usize; // at least single op repetition handled
-        let mut best_repeats = 1usize;
-        let max_motif_len = (remaining / 2).max(1); // need at least 2 motifs to repeat
-
-        for motif_len in 1..=max_motif_len {
-            // Quick break: if motif_len already larger than remaining/ best potential *2
-            if motif_len * 2 > remaining {
-                break;
-            }
-
-            // Candidate motif slice
-            // let motif = &hashes[i..i + motif_len];
-            // Restrict to same variant type for all ops in motif
-            // let first_discriminant = std::mem::discriminant(&motif[0]);
-            // if motif
-            //     .iter()
-            //     .any(|op| std::mem::discriminant(op) != first_discriminant)
-            // {
-            //     continue;
-            // }
-
-            // Count repeats
-            let mut repeats = 1usize;
-            'outer: loop {
-                let start_next = i + repeats * motif_len;
-                let end_next = start_next + motif_len;
-                if end_next > len {
-                    break;
-                }
-                for k in 0..motif_len {
-                    if hashes[i + k] != hashes[start_next + k] {
-                        break 'outer;
-                    }
-                }
-                repeats += 1;
-            }
-
-            if repeats > 1 {
-                eprintln!(
-                    "found candidate motif of length {motif_len} repeated {repeats} times at index {i}"
-                );
-                let total = repeats * motif_len;
-                let best_total = best_repeats * best_motif_len;
-                if total > best_total || (total == best_total && motif_len < best_motif_len) {
-                    best_motif_len = motif_len;
-                    best_repeats = repeats;
-                }
-            }
-        }
+        let (best_motif_len, best_repeats) = find_best_motif(&hashes, i);
 
         if best_repeats > 1 {
             eprintln!(
                 "found repeated motif of length {best_motif_len} repeated {best_repeats} times at index {i}"
             );
-            // Build parent from first operation in motif.
+
             let base = &operations[i];
-            if best_motif_len == 1 {
-                result.push(make_repeated_parent(base, best_repeats));
+            let parent = if best_motif_len == 1 {
+                make_repeated_parent(base, best_repeats)
             } else {
-                // Build child grid: replicate the whole repeated sequence (motif * repeats)
                 let repeated_slice = &operations[i..i + best_repeats * best_motif_len];
-                let mut parent = base.clone();
-                // Gather motif gates for label
-                let motif_gates: Vec<String> = operations[i..i + best_motif_len]
-                    .iter()
-                    .map(|op| match op {
-                        Operation::Measurement(m) => m.gate.clone(),
-                        Operation::Unitary(u) => u.gate.clone(),
-                        Operation::Ket(k) => k.gate.clone(),
-                    })
-                    .collect();
-                let mut label_prefix = motif_gates.join(" ");
-                if label_prefix.chars().count() > 5 {
-                    let truncated: String = label_prefix.chars().take(5).collect();
-                    label_prefix = format!("{truncated}...");
-                }
-                let mut child_columns: Vec<Component> =
-                    Vec::with_capacity(best_repeats * best_motif_len);
-                for op in repeated_slice {
-                    child_columns.push(op.clone());
-                }
-                match &mut parent {
-                    Operation::Measurement(m) => {
-                        m.children = vec![ComponentColumn {
-                            components: child_columns,
-                        }];
-                        m.gate = format!("{label_prefix}({best_repeats})");
-                    }
-                    Operation::Unitary(u) => {
-                        u.children = vec![ComponentColumn {
-                            components: child_columns,
-                        }];
-                        u.gate = format!("{label_prefix}({best_repeats})");
-                        // Union of targets and controls across all repeated operations into targets only
-                        let mut seen: FxHashSet<(usize, Option<usize>)> = FxHashSet::default();
-                        let mut merged = Vec::new();
-                        for op in repeated_slice {
-                            if let Operation::Unitary(child) = op {
-                                for r in child.targets.iter().chain(child.controls.iter()) {
-                                    let key = (r.qubit, r.result);
-                                    if seen.insert(key) {
-                                        merged.push(r.clone());
-                                    }
-                                }
-                            }
-                        }
-                        u.targets = merged;
-                        u.controls.clear();
-                    }
-                    Operation::Ket(k) => {
-                        k.children = vec![ComponentColumn {
-                            components: child_columns,
-                        }];
-                        k.gate = format!("{label_prefix}({best_repeats})");
-                        // Union of targets across all repeated operations
-                        let mut tgt_seen: FxHashSet<(usize, Option<usize>)> = FxHashSet::default();
-                        let mut new_targets = Vec::new();
-                        for op in repeated_slice {
-                            if let Operation::Ket(child) = op {
-                                for r in &child.targets {
-                                    let key = (r.qubit, r.result);
-                                    if tgt_seen.insert(key) {
-                                        new_targets.push(r.clone());
-                                    }
-                                }
-                            }
-                        }
-                        k.targets = new_targets;
-                    }
-                }
-                result.push(parent);
-            }
+                make_complex_motif_parent(base, repeated_slice, best_motif_len, best_repeats)
+            };
+
+            result.push(parent);
             i += best_repeats * best_motif_len;
         } else {
             // No pattern; push single op
