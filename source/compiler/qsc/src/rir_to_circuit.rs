@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Display, Write};
 
 use crate::circuit;
 use log::debug;
@@ -167,77 +167,82 @@ fn fill_in_dbg_metadata(
                 args.pop();
                 // metadata is of the format "!dbg package_id=0 span=[2161-2172] scope=0 discriminator=1"
                 // parse it out manually
-                let parts: Vec<&str> = metadata_str.split_whitespace().collect();
-                if parts.len() >= 3 {
-                    let dbg_part = parts[0];
-                    if dbg_part != "!dbg" {
-                        return Err(qsc_circuit::Error::UnsupportedFeature(format!(
-                            "unexpected metadata format, expected !dbg but got: {metadata_str}"
-                        )));
+                let dbg_metadata = parse_dbg_metadata(&metadata_str);
+                if let Some(((package_id, span), scope, discriminator)) = dbg_metadata {
+                    let location =
+                        Location::from(span, package_id, package_store, position_encoding);
+                    let mut json = String::new();
+                    writeln!(&mut json, "metadata={{").expect("writing to string should work");
+                    writeln!(&mut json, r#""source": {:?},"#, location.source)
+                        .expect("writing to string should work");
+                    writeln!(
+                        &mut json,
+                        r#""span": {{"start": {{"line": {}, "character": {}}}, "end": {{"line": {}, "character": {}}}}},"#,
+                        location.range.start.line,
+                        location.range.start.column,
+                        location.range.end.line,
+                        location.range.end.column
+                    )
+                    .expect("writing to string should work");
+                    if let Some(BlockId(scope)) = scope {
+                        writeln!(&mut json, r#""scope": {scope},"#)
+                            .expect("writing to string should work");
                     }
-                    let package_id_part = parts[1];
-                    let span_part = parts[2];
-                    let scope = parts
-                        .get(3)
-                        .and_then(|s| s.strip_prefix("scope="))
-                        .unwrap_or("-1");
-                    let discriminator = parts
-                        .get(4)
-                        .and_then(|s| s.strip_prefix("discriminator="))
-                        .unwrap_or("-1");
-                    if let Some(package_id_str) = package_id_part.strip_prefix("package_id=") {
-                        if let Ok(package_id) = package_id_str.parse::<usize>() {
-                            if let Some(span_str) = span_part.strip_prefix("span=[") {
-                                if let Some(span_str) = span_str.strip_suffix("]") {
-                                    let span_parts: Vec<&str> = span_str.split('-').collect();
-                                    if span_parts.len() == 2 {
-                                        if let (Ok(start), Ok(end)) = (
-                                            span_parts[0].parse::<u32>(),
-                                            span_parts[1].parse::<u32>(),
-                                        ) {
-                                            let span = Span { lo: start, hi: end };
-                                            let package_id: PackageId = package_id.into();
-                                            let location = Location::from(
-                                                span,
-                                                package_id,
-                                                package_store,
-                                                position_encoding,
-                                            );
-                                            args.push(format!(
-                                                r#"metadata={{
-    "source": {:?},
-    "span": {{
-        "start": {{
-            "line": {},
-            "character": {}
-        }},
-        "end": {{
-            "line": {},
-            "character": {}
-        }}
-    }},
-    "scope": {},
-    "discriminator": {}
-}}"#,
-                                                location.source,
-                                                location.range.start.line,
-                                                location.range.start.column,
-                                                location.range.end.line,
-                                                location.range.end.column,
-                                                scope,
-                                                discriminator
-                                            ));
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    if let Some(discriminator) = discriminator {
+                        writeln!(&mut json, r#""discriminator": {discriminator}"#)
+                            .expect("writing to string should work");
                     }
+                    write!(&mut json, "}}").expect("writing to string should work");
+                    args.push(json);
                 }
             }
         }
     }
     Ok(())
+}
+
+type DbgMetadata = ((PackageId, Span), Option<BlockId>, Option<usize>);
+
+fn parse_dbg_metadata(metadata_str: &str) -> Option<DbgMetadata> {
+    if let Some(rest) = metadata_str.strip_prefix("!dbg ") {
+        let mut package_id: Option<usize> = None;
+        let mut span = None;
+        let mut scope: Option<usize> = None;
+        let mut discriminator = None;
+
+        for token in rest.split_whitespace() {
+            if let Some(rest) = token.strip_prefix("package_id=") {
+                package_id = rest.parse().ok();
+            } else if let Some(rest) = token.strip_prefix("span=") {
+                if let Some(span_str) = rest.strip_prefix("[") {
+                    if let Some(span_str) = span_str.strip_suffix("]") {
+                        let span_parts: Vec<&str> = span_str.split('-').collect();
+                        if span_parts.len() == 2 {
+                            if let (Ok(start), Ok(end)) =
+                                (span_parts[0].parse::<u32>(), span_parts[1].parse::<u32>())
+                            {
+                                span = Some(Span { lo: start, hi: end });
+                            }
+                        }
+                    }
+                }
+            } else if let Some(rest) = token.strip_prefix("scope=") {
+                scope = rest.parse().ok();
+            } else if let Some(rest) = token.strip_prefix("discriminator=") {
+                discriminator = rest.parse().ok();
+            }
+        }
+
+        return match (package_id, span) {
+            (Some(package_id), Some(span)) => Some((
+                (package_id.into(), span),
+                scope.map(Into::into),
+                discriminator,
+            )),
+            _ => None,
+        };
+    }
+    None
 }
 
 fn expand_branch_children(
@@ -361,7 +366,7 @@ fn operations_in_block(
     // TODO: use get_block_successors from utils
     let mut successor = None;
     let mut predecessors = vec![];
-    let mut operations = vec![];
+    let mut operations: Vec<Component> = vec![];
     let mut done = false;
     for instruction in &block.0 {
         if done {
@@ -369,15 +374,15 @@ fn operations_in_block(
                 "instructions after return or jump in block".to_owned(),
             ));
         }
-        extend_block_with_instruction(
+        let new_operations = extend_block_with_instruction(
             state,
             callables,
             &mut successor,
             &mut predecessors,
-            &mut operations,
             &mut done,
             instruction,
         )?;
+        operations.extend(new_operations);
     }
     Ok(CircuitBlock {
         _predecessors: predecessors,
@@ -391,22 +396,18 @@ fn extend_block_with_instruction(
     callables: &IndexMap<qsc_partial_eval::CallableId, Callable>,
     successor: &mut Option<BlockId>,
     predecessors: &mut Vec<BlockId>,
-    operations: &mut Vec<Operation>,
     done: &mut bool,
     instruction: &InstructionWithMetadata,
-) -> Result<(), qsc_circuit::Error> {
-    match &instruction.instruction {
-        Instruction::Call(callable_id, operands, var) => {
-            extend_block_with_call_instruction(
-                state,
-                callables,
-                operations,
-                instruction,
-                *callable_id,
-                operands,
-                *var,
-            )?;
-        }
+) -> Result<Vec<Operation>, qsc_circuit::Error> {
+    let operations = match &instruction.instruction {
+        Instruction::Call(callable_id, operands, var) => extend_block_with_call_instruction(
+            state,
+            callables,
+            instruction,
+            *callable_id,
+            operands,
+            *var,
+        )?,
         Instruction::Fcmp(condition_code, operand, operand1, variable) => {
             extend_block_with_fcmp_instruction(
                 state,
@@ -415,6 +416,7 @@ fn extend_block_with_instruction(
                 operand1,
                 *variable,
             )?;
+            vec![]
         }
         Instruction::Icmp(condition_code, operand, operand1, variable) => {
             extend_block_with_icmp_instruction(
@@ -424,26 +426,29 @@ fn extend_block_with_instruction(
                 operand1,
                 *variable,
             )?;
+            vec![]
         }
         Instruction::Return => {
             *done = true;
+            vec![]
         }
         Instruction::Branch(variable, block_id_1, block_id_2) => {
             extend_block_with_branch_instruction(
                 state,
-                operations,
                 instruction,
                 *variable,
                 *block_id_1,
                 *block_id_2,
-            )?;
+            )?
         }
         Instruction::Jump(block_id) => {
             extend_block_with_jump_instruction(successor, *block_id)?;
             *done = true;
+            vec![]
         }
         Instruction::Phi(pres, variable) => {
             extend_block_with_phi_instruction(state, predecessors, pres, *variable)?;
+            vec![]
         }
         Instruction::Add(operand, operand1, variable)
         | Instruction::Sub(operand, operand1, variable)
@@ -462,18 +467,20 @@ fn extend_block_with_instruction(
         | Instruction::BitwiseOr(operand, operand1, variable)
         | Instruction::BitwiseXor(operand, operand1, variable) => {
             extend_block_with_binop_instruction(state, operand, operand1, *variable)?;
+            vec![]
         }
         instruction @ (Instruction::LogicalNot(..) | Instruction::BitwiseNot(..)) => {
             // Leave the variable unassigned, if it's used in anything that's going to be shown in the circuit, we'll raise an error then
             debug!("ignoring not instruction: {instruction:?}");
+            vec![]
         }
         instruction @ Instruction::Store(..) => {
             return Err(qsc_circuit::Error::UnsupportedFeature(format!(
                 "unsupported instruction in block: {instruction:?}"
             )));
         }
-    }
-    Ok(())
+    };
+    Ok(operations)
 }
 
 fn extend_block_with_binop_instruction(
@@ -541,20 +548,18 @@ fn extend_block_with_jump_instruction(
 
 fn extend_block_with_branch_instruction(
     state: &mut ProgramMap,
-    operations: &mut Vec<Operation>,
     instruction: &InstructionWithMetadata,
     variable: Variable,
     block_id_1: BlockId,
     block_id_2: BlockId,
-) -> Result<(), qsc_circuit::Error> {
-    operations.push(operation_for_branch(
+) -> Result<Vec<Operation>, qsc_circuit::Error> {
+    Ok(vec![operation_for_branch(
         state,
         instruction,
         variable,
         block_id_1,
         block_id_2,
-    )?);
-    Ok(())
+    )?])
 }
 
 fn extend_block_with_icmp_instruction(
@@ -598,20 +603,18 @@ fn extend_block_with_fcmp_instruction(
 fn extend_block_with_call_instruction(
     state: &mut ProgramMap,
     callables: &IndexMap<qsc_partial_eval::CallableId, Callable>,
-    operations: &mut Vec<Operation>,
     instruction: &InstructionWithMetadata,
     callable_id: qsc_partial_eval::CallableId,
     operands: &Vec<Operand>,
     var: Option<Variable>,
-) -> Result<(), qsc_circuit::Error> {
-    operations.extend(map_callable_to_operations(
+) -> Result<Vec<Operation>, qsc_circuit::Error> {
+    map_callable_to_operations(
         state,
         callables.get(callable_id).expect("callable should exist"),
         operands,
         var,
         instruction.metadata.as_ref(),
-    )?);
-    Ok(())
+    )
 }
 
 fn operation_for_branch(
@@ -695,6 +698,7 @@ struct BranchOperations {
 }
 
 /// Can only handle basic branches
+#[allow(clippy::too_many_lines)]
 fn operations_from_branch(
     state: &ProgramMap,
     true_block: BlockId,
