@@ -744,6 +744,12 @@ impl<'a> Context<'a> {
     }
 
     fn infer_binop(&mut self, span: Span, op: BinOp, lhs: &Expr, rhs: &Expr) -> Partial<Ty> {
+        let is_complex_literal = if op == BinOp::Add || op == BinOp::Sub {
+            is_complex_literal(lhs, rhs)
+        } else {
+            false
+        };
+
         let lhs_span = lhs.span;
         let lhs = self.infer_expr(lhs);
         let rhs_span = rhs.span;
@@ -763,9 +769,14 @@ impl<'a> Context<'a> {
                 converge(Ty::Prim(Prim::Bool))
             }
             BinOp::Add => {
-                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
-                self.inferrer.class(lhs_span, Class::Add(lhs.ty.clone()));
-                lhs
+                if is_complex_literal {
+                    // Special case for complex literals. The output type is complex.
+                    self.converge_complex_ty()
+                } else {
+                    self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
+                    self.inferrer.class(lhs_span, Class::Add(lhs.ty.clone()));
+                    lhs
+                }
             }
             BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
@@ -789,9 +800,14 @@ impl<'a> Context<'a> {
                 lhs
             }
             BinOp::Sub => {
-                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
-                self.inferrer.class(lhs_span, Class::Sub(lhs.ty.clone()));
-                lhs
+                if is_complex_literal {
+                    // Special case for complex literals. The output type is complex.
+                    self.converge_complex_ty()
+                } else {
+                    self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
+                    self.inferrer.class(lhs_span, Class::Sub(lhs.ty.clone()));
+                    lhs
+                }
             }
             BinOp::Mod => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
@@ -1005,6 +1021,30 @@ impl<'a> Context<'a> {
         }
 
         errs
+    }
+}
+
+fn is_complex_literal(lhs: &Expr, rhs: &Expr) -> bool {
+    let (lhs_kind, rhs_kind) = (lhs.kind.as_ref(), rhs.kind.as_ref());
+    match (lhs_kind, rhs_kind) {
+        (ExprKind::Lit(lhs_lit), ExprKind::Lit(rhs_lit)) => {
+            matches!(
+                (lhs_lit.as_ref(), rhs_lit.as_ref()),
+                (Lit::Double(_), Lit::Imaginary(_)) | (Lit::Imaginary(_), Lit::Double(_))
+            )
+        }
+        (ExprKind::UnOp(UnOp::Pos | UnOp::Neg, lhs), ExprKind::Lit(rhs_lit)) => {
+            match (lhs.kind.as_ref(), rhs_lit.as_ref()) {
+                (ExprKind::Lit(lhs_lit), Lit::Imaginary(_)) => {
+                    matches!(lhs_lit.as_ref(), Lit::Double(_))
+                }
+                (ExprKind::Lit(lhs_lit), Lit::Double(_)) => {
+                    matches!(lhs_lit.as_ref(), Lit::Imaginary(_))
+                }
+                _ => false,
+            }
+        }
+        _ => false,
     }
 }
 
