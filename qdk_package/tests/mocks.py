@@ -75,6 +75,16 @@ def mock_qiskit() -> List[str]:
     return created
 
 
+def mock_jupyterlab() -> List[str]:
+    created: List[str] = []
+    if "qsharp_jupyterlab" not in sys.modules:
+        jl = types.ModuleType("qsharp_jupyterlab")
+        jl.__version__ = "1.20.0-mock"
+        sys.modules["qsharp_jupyterlab"] = jl
+        created.append("qsharp_jupyterlab")
+    return created
+
+
 def cleanup_modules(created: List[str]) -> None:
     """Remove synthetic modules created during a test if still present."""
     for name in created:

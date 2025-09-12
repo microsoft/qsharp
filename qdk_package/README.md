@@ -25,6 +25,12 @@ Azure Quantum extra (adds `azure-quantum`):
 pip install qdk[azure]
 ```
 
+JupyterLab extension extra (adds `qsharp-jupyterlab`):
+
+```bash
+pip install qdk[jupyterlab]
+```
+
 Qiskit extra (adds `qiskit`):
 
 ```bash
@@ -79,13 +85,14 @@ if azure_available():
 
 Root-level symbols (kept intentionally small):
 
-| Symbol                | Description                                                                 |
-| --------------------- | --------------------------------------------------------------------------- |
-| `qsharp`              | Submodule re-export of the upstream `qsharp` package.                       |
-| `widgets_available()` | Boolean: is the widgets extra installed?                                    |
-| `azure_available()`   | Boolean: is the azure extra installed?                                      |
-| `qiskit_available()`  | Boolean: is the qiskit extra installed?                                     |
-| `require(name)`       | Retrieve a feature module (`"qsharp"`, `"widgets"`, `"azure"`, `"qiskit"`). |
+| Symbol                   | Description                                                                 |
+| ------------------------ | --------------------------------------------------------------------------- |
+| `qsharp`                 | Submodule re-export of the upstream `qsharp` package.                       |
+| `widgets_available()`    | Boolean: is the widgets extra installed?                                    |
+| `azure_available()`      | Boolean: is the azure extra installed?                                      |
+| `qiskit_available()`     | Boolean: is the qiskit extra installed?                                     |
+| `jupyterlab_available()` | Boolean: is the jupyterlab extra installed?                                 |
+| `require(name)`          | Retrieve a feature module (`"qsharp"`, `"widgets"`, `"azure"`, `"qiskit"`). |
 
 Submodules:
 
@@ -93,6 +100,7 @@ Submodules:
 - `qdk.widgets` – only if `qsharp-widgets` installed.
 - `qdk.azure` – only if `azure-quantum` installed.
 - `qdk.qiskit` – only if `qiskit` installed.
+- `qdk.jupyterlab` – only if `qsharp-jupyterlab` installed.
 
 ## `require()` Helper
 
@@ -126,6 +134,7 @@ Current approach (kept intentionally lean):
    - `mock_widgets()` creates a lightweight `qsharp_widgets` module (with a version attribute). Tests assert the `qdk.widgets` shim imports (doc presence).
    - `mock_azure()` creates the nested namespace `azure.quantum` (with a version attribute). Tests assert the `qdk.azure` shim imports (doc presence).
    - `mock_qiskit()` creates a `qiskit` module exposing a callable `transpile()` so tests can assert a functional symbol survives re-export.
+   - `mock_jupyterlab()` creates a lightweight `qsharp_jupyterlab` module (with a version attribute). Tests assert the `qdk.jupyterlab` shim imports (doc presence).
 4. No network or cloud interactions are performed; all tests operate purely on import mechanics and mocks.
 
 ### Running the tests
