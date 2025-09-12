@@ -328,7 +328,7 @@ extends:
           - script: |
               python build.py --pip --no-check-prereqs --integration-tests --manylinux
             displayName: Build Platform-Dependent Py Packages
-            condition: and(ne(variables['Agent.OS'], 'Windows_NT'), ne(variables['arch'], 'aarch64'))
+            condition: not(and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['arch'], 'aarch64')))
 
           # On Windows aarch64 we need to set the cargo build target to cross-compile properly
           - script: |
