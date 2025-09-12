@@ -8,7 +8,7 @@ The design is intentionally minimal: submodules plus import-time detection of op
 ## Rationale
 
 - Provide a future-facing namespace (`qdk`) without forcing an immediate rename or massive re-export surface.
-- Encourage explicit submodule usage (`qdk.qsharp`, `qdk.widgets`, `qdk.azure`) rather than star imports into the root.
+- Encourage explicit submodule usage (`qdk.qsharp`, `qdk.widgets`, `qdk.azure`, `qdk.qiskit`) rather than star imports into the root.
 - Make optional features invisible unless their dependency is installed.
 
 ## Install
@@ -29,6 +29,12 @@ Azure Quantum extra (adds `azure-quantum`):
 
 ```bash
 pip install qdk[azure]
+```
+
+Qiskit extra (adds `qiskit`):
+
+```bash
+pip install qdk[qiskit]
 ```
 
 All extras:
@@ -57,6 +63,15 @@ if widgets_available():
 ```
 
 Azure Quantum (if installed):
+Qiskit (if installed):
+
+```python
+from qdk import qiskit_available, require
+
+if qiskit_available():
+    qk = require("qiskit")
+    # Example: qk.transpile(...)
+```
 
 ```python
 from qdk import azure_available, require
@@ -70,18 +85,20 @@ if azure_available():
 
 Root-level symbols (kept intentionally small):
 
-| Symbol                | Description                                                     |
-| --------------------- | --------------------------------------------------------------- |
-| `qsharp`              | Submodule re-export of the upstream `qsharp` package.           |
-| `widgets_available()` | Boolean: is the widgets extra installed?                        |
-| `azure_available()`   | Boolean: is the azure extra installed?                          |
-| `require(name)`       | Retrieve a feature module (`"qsharp"`, `"widgets"`, `"azure"`). |
+| Symbol                | Description                                                                 |
+| --------------------- | --------------------------------------------------------------------------- |
+| `qsharp`              | Submodule re-export of the upstream `qsharp` package.                       |
+| `widgets_available()` | Boolean: is the widgets extra installed?                                    |
+| `azure_available()`   | Boolean: is the azure extra installed?                                      |
+| `qiskit_available()`  | Boolean: is the qiskit extra installed?                                     |
+| `require(name)`       | Retrieve a feature module (`"qsharp"`, `"widgets"`, `"azure"`, `"qiskit"`). |
 
 Submodules:
 
 - `qdk.qsharp` – direct passthrough to `qsharp` APIs.
 - `qdk.widgets` – only if `qsharp-widgets` installed.
 - `qdk.azure` – only if `azure-quantum` installed.
+- `qdk.qiskit` – only if `qiskit` installed.
 
 ## `require()` Helper
 
@@ -111,9 +128,9 @@ all optional dependencies to be installed:
    if the real package is absent (see `tests/conftest.py`). This allows running tests
    quickly while developing the meta-package itself.
 3. Optional extras are validated in two modes:
-   - Absence path: asserting `require("widgets")` / `require("azure")` raises `ImportError`.
-   - Presence path: synthetic modules are inserted into `sys.modules` (e.g. a mock
-     `azure.quantum`) so `require("azure")` succeeds without the actual dependency.
+   - Absence path: asserting `require("widgets")` / `require("azure")` / `require("qiskit")` raises `ImportError`.
+   - Presence path: synthetic modules are inserted into `sys.modules` (e.g. mock
+     `azure.quantum`, mock `qiskit`) so those features succeed without the real dependency.
 4. No network calls or cloud resources are touched; Azure functionality is not
    exercised beyond import and basic attribute existence.
 

@@ -8,6 +8,7 @@ Design goals:
 Optional extras:
     widgets -> installs `qsharp-widgets`, available as `qdk.widgets`.
     azure   -> installs `azure-quantum`, available as `qdk.azure`.
+    qiskit  -> installs `qiskit`, available as `qdk.qiskit`.
 
 """
 
@@ -31,7 +32,13 @@ except Exception as _ex:  # pragma: no cover
     raise
 
 # Public API surface (kept intentionally small)
-__all__ = ["qsharp", "widgets_available", "azure_available", "require"]
+__all__ = [
+    "qsharp",
+    "widgets_available",
+    "azure_available",
+    "qiskit_available",
+    "require",
+]
 
 
 def widgets_available() -> bool:
@@ -54,6 +61,15 @@ def azure_available() -> bool:
         return False
 
 
+def qiskit_available() -> bool:
+    """Return True if the qiskit extra is installed."""
+    try:  # pragma: no cover
+        import_module("qiskit")
+        return True
+    except Exception:
+        return False
+
+
 def require(feature: str):
     """Return the module backing a named feature or raise ImportError.
 
@@ -61,6 +77,7 @@ def require(feature: str):
         * 'qsharp'  -> qdk.qsharp
         * 'widgets' -> qdk.widgets (requires widgets extra)
         * 'azure'   -> qdk.azure  (requires azure extra)
+        * 'qiskit'  -> qdk.qiskit (requires qiskit extra)
     """
     if feature == "qsharp":
         return qsharp
@@ -76,6 +93,12 @@ def require(feature: str):
                 "Feature 'azure' unavailable. Install with 'pip install qdk[azure]'."
             )
         return import_module("qdk.azure")
+    if feature == "qiskit":
+        if not qiskit_available():
+            raise ImportError(
+                "Feature 'qiskit' unavailable. Install with 'pip install qdk[qiskit]'."
+            )
+        return import_module("qdk.qiskit")
     raise ImportError(
-        f"Feature '{feature}' is not recognized. Available: qsharp, widgets, azure (if installed)."
+        f"Feature '{feature}' is not recognized. Available: qsharp, widgets, azure, qiskit (if installed)."
     )

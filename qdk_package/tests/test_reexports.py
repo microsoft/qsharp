@@ -39,3 +39,17 @@ def test_azure_require_missing():
     if not installed:
         with pytest.raises(ImportError):
             qdk.require("azure")
+
+
+def test_qiskit_require_missing():
+    qdk = importlib.import_module("qdk")
+    import pytest, importlib as _il
+
+    try:
+        _il.import_module("qiskit")
+        installed = True
+    except Exception:
+        installed = False
+    if not installed:
+        with pytest.raises(ImportError):
+            qdk.require("qiskit")

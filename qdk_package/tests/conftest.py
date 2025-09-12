@@ -1,24 +1,14 @@
-# Ensure the local 'src' directory is on sys.path so 'qdk' can be imported without installation.
 import sys
 from pathlib import Path
-import types
 
-# Ensure local src on path for importing 'qdk'.
-_src = Path(__file__).resolve().parents[1] / "src"
-if str(_src) not in sys.path:
-    sys.path.insert(0, str(_src))
+# Add local 'src' so 'qdk' can be imported without installation and add tests dir so 'mocks' is importable.
+_root = Path(__file__).resolve().parent
+_src = _root.parent / "src"
+for p in (_src, _root):
+    if str(p) not in sys.path:
+        sys.path.insert(0, str(p))
 
-# Provide a lightweight stub for 'qsharp' if it is not installed in the env.
-try:  # pragma: no cover - only runs if real package present
-    import qsharp  # type: ignore
-except Exception:  # pragma: no cover - create stub
-    stub = types.ModuleType("qsharp")
+# Ensure a qsharp stub (if real package absent) via centralized mocks helper.
+import mocks  # type: ignore
 
-    def _not_impl(*a, **k):  # minimal placeholder functions
-        raise NotImplementedError("qsharp stub: real 'qsharp' package not installed")
-
-    # Minimal API surface referenced by tests / features list
-    stub.run = _not_impl
-    stub.estimate = _not_impl
-    stub.__all__ = ["run", "estimate"]
-    sys.modules["qsharp"] = stub
+mocks.mock_qsharp()
