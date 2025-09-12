@@ -1,4 +1,4 @@
-import importlib
+import pytest, importlib
 
 
 def test_qdk_qsharp_submodule_available():
@@ -18,7 +18,6 @@ def test_require_helper():
     qdk = importlib.import_module("qdk")
     mod = qdk.require("qsharp")
     assert hasattr(mod, "run")
-    import pytest
 
     with pytest.raises(ImportError):
         qdk.require("__definitely_missing_feature__")
@@ -26,7 +25,6 @@ def test_require_helper():
 
 def test_azure_require_missing():
     qdk = importlib.import_module("qdk")
-    import pytest
 
     # Should raise if azure extra not installed
     import importlib as _il
@@ -43,10 +41,9 @@ def test_azure_require_missing():
 
 def test_qiskit_require_missing():
     qdk = importlib.import_module("qdk")
-    import pytest, importlib as _il
 
     try:
-        _il.import_module("qiskit")
+        importlib.import_module("qiskit")
         installed = True
     except Exception:
         installed = False

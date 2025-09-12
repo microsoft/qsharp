@@ -1,7 +1,7 @@
-"""Re-export of `qsharp_widgets` as `qdk.widgets`.
+"""Re-export shim for the optional widgets package as qdk.widgets.
 
-If `qsharp_widgets` is not installed, importing this module raises an
-ImportError instructing how to enable the extra.
+If widgets is not installed (with the qdk[widgets] extra), importing this
+module raises an ImportError describing how to enable it.
 """
 
 from __future__ import annotations

@@ -1,7 +1,7 @@
-"""Re-export convenience shim for the optional azure-quantum package as qdk.azure.
+"""Re-export shim for the optional azure-quantum package as qdk.azure.
 
-If azure-quantum (version pinned via extra) is not installed, importing this
-module raises an ImportError instructing how to enable the extra.
+If azure is not installed (with the qdk[azure] extra), importing this
+module raises an ImportError describing how to enable it.
 """
 
 from __future__ import annotations

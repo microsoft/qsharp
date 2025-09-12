@@ -2,7 +2,7 @@
 
 Design goals:
     * Provide a single import root `qdk` that exposes bundled quantum tooling as
-        submodules (`qdk.qsharp`, `qdk.widgets`, future optional extras similarly).
+        submodules (`qdk.qsharp`, `qdk.widgets`, etc.).
     * Keep direct symbol re-export minimal; users import submodules instead of symbols.
 
 Optional extras:
@@ -16,7 +16,6 @@ Optional extras:
 from __future__ import annotations
 
 from importlib import import_module
-from typing import Dict, List
 
 # Always make the underlying qsharp package available as submodule `qdk.qsharp`.
 try:  # pragma: no cover

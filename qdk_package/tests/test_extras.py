@@ -1,7 +1,4 @@
-import importlib
-import types
-
-import pytest
+import pytest, importlib
 
 from mocks import (
     mock_widgets,
