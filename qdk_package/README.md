@@ -5,12 +5,6 @@ Experimental meta-package for the Quantum Development Kit (QDK) that bundles the
 
 The design is intentionally minimal: submodules plus import-time detection of optional components.
 
-## Rationale
-
-- Provide a future-facing namespace (`qdk`) without forcing an immediate rename or massive re-export surface.
-- Encourage explicit submodule usage (`qdk.qsharp`, `qdk.widgets`, `qdk.azure`, `qdk.qiskit`) rather than star imports into the root.
-- Make optional features invisible unless their dependency is installed.
-
 ## Install
 
 Base (always includes `qsharp`):
@@ -119,43 +113,29 @@ except ImportError:
 
 ## Testing
 
-Local test strategy focuses on exercising the meta-package logic without requiring
-all optional dependencies to be installed:
+The test suite validates packaging & import contract without requiring the real
+optional dependencies to be installed.
 
-1. Core tests import `qdk` and verify that only submodules (not individual functions)
-   appear at the root.
-2. A lightweight stub of the upstream `qsharp` package is injected in test environments
-   if the real package is absent (see `tests/conftest.py`). This allows running tests
-   quickly while developing the meta-package itself.
-3. Optional extras are validated in two modes:
-   - Absence path: asserting `require("widgets")` / `require("azure")` / `require("qiskit")` raises `ImportError`.
-   - Presence path: synthetic modules are inserted into `sys.modules` (e.g. mock
-     `azure.quantum`, mock `qiskit`) so those features succeed without the real dependency.
-4. No network calls or cloud resources are touched; Azure functionality is not
-   exercised beyond import and basic attribute existence.
+Current approach (kept intentionally lean):
+
+1. Core behavior: ensure the root package exposes only the minimal public API and that
+   `require()` returns the expected submodules.
+2. A lightweight stub for the upstream `qsharp` package is injected (see `tests/conftest.py`)
+   if the true package is not present, enabling fast iteration when working only on this meta-package.
+3. Optional extras (widgets, azure, qiskit) are tested using synthetic modules created in `tests/mocks.py`:
+   - `mock_widgets()` creates a lightweight `qsharp_widgets` module (with a version attribute). Tests assert the `qdk.widgets` shim imports (doc presence).
+   - `mock_azure()` creates the nested namespace `azure.quantum` (with a version attribute). Tests assert the `qdk.azure` shim imports (doc presence).
+   - `mock_qiskit()` creates a `qiskit` module exposing a callable `transpile()` so tests can assert a functional symbol survives re-export.
+4. No network or cloud interactions are performed; all tests operate purely on import mechanics and mocks.
 
 ### Running the tests
 
-Install dev tooling (if you add a `dev` extra you could do `pip install qdk[dev]`):
+Install test tooling:
 
 ```bash
-python -m pip install -r requirements.txt  # if you later add one
 python -m pip install pytest
 python -m pytest -q qdk_package/tests
 ```
 
 Because mocks are used, failures generally indicate packaging / import logic regressions
-rather than upstream functional issues.
-
-## Roadmap / Possible Extensions
-
-- Additional extras (interop, advanced visualization) as they stabilize.
-- Potential environment introspection helper (e.g. an `info` command) later.
-
-## Status
-
-Prototype; expect adjustments before any stable (1.0) release.
-
-## License
-
-See `LICENSE.txt`.
+rather than upstream functional issues with the real dependencies.
