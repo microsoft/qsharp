@@ -114,9 +114,20 @@ export class Sqore {
       renderDepth,
     );
 
-    const componentGrid = _circuit.componentGrid;
     // If only one top-level operation, expand automatically:
-    this.expandSingleOperations(componentGrid);
+    if (
+      _circuit.componentGrid.length == 1 &&
+      _circuit.componentGrid[0].components.length == 1 &&
+      _circuit.componentGrid[0].components[0].dataAttributes != null &&
+      Object.prototype.hasOwnProperty.call(
+        _circuit.componentGrid[0].components[0].dataAttributes,
+        "location",
+      )
+    ) {
+      const location: string =
+        _circuit.componentGrid[0].components[0].dataAttributes["location"];
+      this.expandOperation(_circuit.componentGrid, location);
+    }
 
     // Create visualization components
     const composedSqore: ComposedSqore = this.compose(_circuit);
@@ -145,32 +156,6 @@ export class Sqore {
       enableEvents(container, this, () => this.renderCircuit(container));
       if (this.editCallback != undefined) {
         this.editCallback(this.minimizeCircuits(this.circuitGroup));
-      }
-    }
-  }
-
-  private expandSingleOperations(componentGrid: ComponentGrid) {
-    if (componentGrid.length == 1) {
-      const onlyColumn = componentGrid[0];
-      if (
-        onlyColumn.components.length == 1 &&
-        onlyColumn.components[0].dataAttributes != null &&
-        Object.prototype.hasOwnProperty.call(
-          onlyColumn.components[0].dataAttributes,
-          "location",
-        )
-      ) {
-        const location: string =
-          onlyColumn.components[0].dataAttributes["location"];
-        this.expandOperation(componentGrid, location);
-      }
-    }
-    // recurse
-    for (const col of componentGrid) {
-      for (const op of col.components) {
-        if (op.children != null) {
-          this.expandSingleOperations(op.children);
-        }
       }
     }
   }

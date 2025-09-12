@@ -1968,12 +1968,45 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn dbg_metadata(&mut self, span: PackageSpan) -> Option<InstructionMetadata> {
-        let current_source_block = self.eval_context.current_source_block.last();
+        let current_source_block = self.eval_context.current_user_source_block.last();
+        let current_source_block_span = current_source_block.and_then(|block| {
+            self.eval_context
+                .get_current_user_scope()
+                .map(|s| s.package_id)
+                .and_then(|package_id| {
+                    self.package_store
+                        .get(package_id)
+                        .blocks
+                        .get(*block)
+                        .map(|b| PackageSpan {
+                            package: map_fir_package_to_hir(package_id),
+                            span: b.span,
+                        })
+                })
+        });
         let current_iteration = self.eval_context.current_iteration;
+        let current_runtime_scope = self.eval_context.get_current_user_scope();
+        let current_callable =
+            current_runtime_scope.and_then(|s| s.callable.map(|(id, _)| (s.package_id, id)));
+
+        let current_callable_name = current_callable.and_then(|(package_id, callable_id)| {
+            self.package_store
+                .get(package_id)
+                .items
+                .get(callable_id)
+                .map(|i| match &i.kind {
+                    fir::ItemKind::Callable(callable_decl) => callable_decl.name.name.to_owned(),
+                    fir::ItemKind::Namespace(_, _) | fir::ItemKind::Ty(_, _) => "_".into(),
+                    fir::ItemKind::Export(_, _) => "_".into(),
+                })
+        });
+
         Some(fmt_dbg_metadata(
             span,
             current_source_block.copied(),
+            current_source_block_span,
             current_iteration,
+            current_callable_name,
         ))
     }
 
@@ -3017,7 +3050,9 @@ impl<'a> PartialEvaluator<'a> {
 
     fn try_eval_block(&mut self, block_id: BlockId) -> Result<EvalControlFlow, Error> {
         // eprintln!("try_eval_block: {block_id:?}");
-        self.eval_context.current_source_block.push(block_id);
+        if self.eval_context.is_current_scope_user_scope() {
+            self.eval_context.current_user_source_block.push(block_id);
+        }
         let block = self.get_block(block_id);
         let mut return_stmt_id = None;
         let mut last_control_flow = EvalControlFlow::Continue(Value::unit());
@@ -3050,7 +3085,9 @@ impl<'a> PartialEvaluator<'a> {
             ))
         } else {
             // eprintln!("try_eval_block: done {block_id:?}");
-            self.eval_context.current_source_block.pop();
+            if self.eval_context.is_current_scope_user_scope() {
+                self.eval_context.current_user_source_block.pop();
+            }
             Ok(last_control_flow)
         }
     }
@@ -3519,7 +3556,9 @@ impl<'a> PartialEvaluator<'a> {
 fn fmt_dbg_metadata(
     package_span: PackageSpan,
     source_block: Option<BlockId>,
+    source_block_span: Option<PackageSpan>,
     current_iteration: Option<usize>,
+    current_callable_name: Option<Rc<str>>,
 ) -> InstructionMetadata {
     use std::fmt::Write;
     let mut str = String::new();
@@ -3531,8 +3570,18 @@ fn fmt_dbg_metadata(
     if let Some(source_block) = source_block {
         let _ = write!(str, " scope={source_block}");
     }
+    if let Some(source_block_span) = source_block_span {
+        let _ = write!(
+            str,
+            " scope_package_id={} scope_span={}",
+            source_block_span.package, source_block_span.span
+        );
+    }
     if let Some(current_iteration) = current_iteration {
         let _ = write!(str, " discriminator={current_iteration}");
+    }
+    if let Some(current_callable_name) = current_callable_name {
+        let _ = write!(str, " callable={current_callable_name}");
     }
     InstructionMetadata { str }
 }

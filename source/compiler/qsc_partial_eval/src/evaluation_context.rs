@@ -18,7 +18,7 @@ use std::collections::hash_map::Entry;
 pub struct EvaluationContext {
     active_blocks: Vec<BlockNode>,
     scopes: Vec<Scope>,
-    pub current_source_block: Vec<qsc_fir::fir::BlockId>,
+    pub current_user_source_block: Vec<qsc_fir::fir::BlockId>,
     pub current_iteration: Option<usize>,
 }
 
@@ -32,7 +32,7 @@ impl EvaluationContext {
                 successor: None,
             }],
             scopes: vec![entry_callable_scope],
-            current_source_block: vec![],
+            current_user_source_block: vec![],
             current_iteration: None,
         }
     }
@@ -97,6 +97,17 @@ impl EvaluationContext {
                     && s.package != map_fir_package_to_hir(PackageId::from(1))
             })
         })
+    }
+
+    pub fn get_current_user_scope(&self) -> Option<&Scope> {
+        self.scopes.iter().rev().find(|scope| {
+            scope.package_id != PackageId::CORE && scope.package_id != PackageId::from(1)
+        })
+    }
+
+    pub fn is_current_scope_user_scope(&self) -> bool {
+        let scope = self.get_current_scope();
+        scope.package_id != PackageId::CORE && scope.package_id != PackageId::from(1)
     }
 }
 

@@ -103,6 +103,7 @@
           "default": {
             "maxOperations": 10001,
             "loopDetection": true,
+            "groupScopes": true,
             "generationMethod": "static"
           },
           "properties": {
@@ -116,6 +117,11 @@
               "type": "boolean",
               "default": true,
               "description": "Whether to attempt to detect loops in the program and group them in the circuit diagram."
+            },
+            "groupScopes": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether to group operations into scopes based on the original source code."
             },
             "generationMethod": {
               "type": "string",

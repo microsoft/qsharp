@@ -109,11 +109,11 @@ fn measure_same_qubit_twice() {
     )
     .expect("circuit generation should succeed");
 
-    expect![["
+    expect![[r#"
         q_0    ── H ──── M ──── M ──
                          ╘══════╪═══
                                 ╘═══
-    "]]
+    "#]]
     .assert_eq(&circ.to_string());
 }
 
@@ -185,7 +185,7 @@ fn classical_for_loop() {
     .expect("circuit generation should succeed");
 
     expect![[r#"
-        q_0    ─ [[ ──── [X(×6)] ──── X ─── [[ ──── [X(×5)] ──── X ──── X ──── X ──── X ──── X ─── ]] ─── ]] ──
+        q_0    ─ [[ ─── [Main_925] ─── [[ ──── [X(×6)] ──── X ─── [[ ──── [X(×5)] ──── X ──── X ──── X ──── X ──── X ─── ]] ─── ]] ─── ]] ──
     "#]]
     .assert_eq(&circ.to_string());
 }
@@ -481,6 +481,60 @@ fn result_comparison_to_result() {
                          ╘═════════════════════════════ ● ══════════════════════════════ ● ══════════════════════════════════
         q_1    ── H ──── M ─────────────────────────────┼────────────────────────────────┼──────────────────────────── |0〉 ──
                          ╘═════════════════════════════ ● ══════════════════════════════ ● ══════════════════════════════════
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn loop_what() {
+    let circ = circuit(
+        r"
+            namespace Test {
+            operation Main() : Unit {
+                use qs = Qubit[2];
+
+                PrepareSomething(qs);
+                DoSomethingElse(qs);
+                DoSomethingDifferent(qs);
+
+                ResetAll(qs);
+            }
+
+            operation PrepareSomething(qs : Qubit[]) : Unit {
+                for iteration in 1..10 {
+                    // H(qs[0]);
+                    X(qs[0]);
+                    // CNOT(qs[0], qs[1]);
+                }
+            }
+
+            operation DoSomethingElse(qs : Qubit[]) : Unit {
+                for iteration in 1..10 {
+                    // H(qs[1]);
+                    X(qs[0]);
+                    X(qs[1]);
+                    // CNOT(qs[1], qs[0]);
+                }
+            }
+
+            operation DoSomethingDifferent(qs : Qubit[]) : Unit {
+                for iteration in 1..10 {
+                    // H(qs[0]);
+                    Z(qs[0]);
+                    // CNOT(qs[0], qs[1]);
+                }
+            }
+    }
+    ",
+        CircuitEntryPoint::Operation("Test.Main".into()),
+        Config::default(),
+    )
+    .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ─ [[ ─── [PrepareSomething_3] ─── [[ ─── [X(×10)] ──── X ─── [[ ──── [X(×9)] ──── X ──── X ──── X ──── X ──── X ──── X ──── X ──── X ──── X ─── ]] ─── ]] ─── ]] ─── [[ ─── [DoSomethingElse_6] ── [[ ─── [X X(×10)] ──── X ─── [[ ──── [X(×9)] ──── X ──── X ──── X ──── X ──── X ──── X ──── X ──── X ──── X ─── ]] ─── ]] ─── ]] ──── [[ ──── [DoSomethingDifferent_9] ─── [[ ─── [Z(×10)] ──── Z ─── [[ ──── [Z(×9)] ──── Z ──── Z ──── Z ──── Z ──── Z ──── Z ──── Z ──── Z ──── Z ─── ]] ─── ]] ─── ]] ──── |0〉 ──
+                                                                                                                                                                                                    ┆                         ┆                           ┆
+        q_1    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [[ ─── [DoSomethingElse_6] ── [[ ─── [X X(×10)] ──── X ─── [[ ──── [X(×9)] ──── X ──── X ──── X ──── X ──── X ──── X ──── X ──── X ──── X ─── ]] ─── ]] ─── ]] ──── |0〉 ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
     "#]]
     .assert_eq(&circ.to_string());
 }

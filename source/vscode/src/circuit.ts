@@ -316,6 +316,7 @@ export function getConfig() {
   const defaultConfig = {
     maxOperations: 10001,
     loopDetection: true,
+    groupScopes: true,
     generationMethod: "static" as const,
   };
 
@@ -332,6 +333,10 @@ export function getConfig() {
       "loopDetection" in config && typeof config.loopDetection === "boolean"
         ? config.loopDetection
         : defaultConfig.loopDetection,
+    groupScopes:
+      "groupScopes" in config && typeof config.groupScopes === "boolean"
+        ? config.groupScopes
+        : defaultConfig.groupScopes,
     generationMethod:
       "generationMethod" in config &&
       typeof config.generationMethod === "string" &&

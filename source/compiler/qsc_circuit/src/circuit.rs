@@ -235,6 +235,7 @@ pub struct Config {
     pub max_operations: usize,
     /// Detect repeated motifs in the circuit and group them into sub-circuits
     pub loop_detection: bool,
+    pub group_scopes: bool,
     /// How the circuit is generated
     pub generation_method: GenerationMethod,
 }
@@ -265,6 +266,7 @@ impl Default for Config {
         Self {
             max_operations: Self::DEFAULT_MAX_OPERATIONS,
             loop_detection: true,
+            group_scopes: true,
             generation_method: GenerationMethod::Static,
         }
     }
@@ -1113,7 +1115,7 @@ fn make_complex_motif_parent(
     let mut tail_children = vec![];
 
     for (i, op) in repeated_slice.iter().enumerate() {
-        if i > motif_len {
+        if i < motif_len {
             children.push(op.clone());
         } else {
             tail_children.push(op.clone());

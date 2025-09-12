@@ -1036,7 +1036,7 @@ impl Interpreter {
             self.invoke_with_sim(&mut sim, &mut out, callable, args)?;
             Ok(sim.finish())
         } else {
-            self.static_circuit_entrypoint(entry_expr, config.loop_detection)
+            self.static_circuit_entrypoint(entry_expr, config.loop_detection, config.group_scopes)
         }
     }
 
@@ -1044,6 +1044,7 @@ impl Interpreter {
         &mut self,
         entry_expr: Option<&str>,
         loop_detection: bool,
+        group_scopes: bool,
     ) -> std::result::Result<Circuit, Vec<Error>> {
         let program = self.compile_to_rir(entry_expr)?;
         // TODO: encoding!!
@@ -1053,6 +1054,7 @@ impl Interpreter {
             self.compiler.package_store(),
             Encoding::Utf16,
             loop_detection,
+            group_scopes,
         )
         .map_err(|e| vec![e.into()])
     }

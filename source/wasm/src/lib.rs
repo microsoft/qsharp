@@ -146,11 +146,13 @@ serializable_type! {
     {
         max_operations: usize,
         loop_detection: bool,
+        group_scopes: bool,
         generation_method: String,
     },
     r#"export interface ICircuitConfig {
         maxOperations: number;
         loopDetection: boolean;
+        groupScopes: boolean;
         generationMethod: "simulate" | "classicalEval" | "static";
     }"#,
     ICircuitConfig
@@ -167,6 +169,7 @@ pub fn get_circuit(
         qsc::circuit::Config {
             max_operations: c.max_operations,
             loop_detection: c.loop_detection,
+            group_scopes: c.group_scopes,
             generation_method: match c.generation_method.as_str() {
                 "simulate" => qsc::circuit::GenerationMethod::Simulate,
                 "classicalEval" => qsc::circuit::GenerationMethod::ClassicalEval,
