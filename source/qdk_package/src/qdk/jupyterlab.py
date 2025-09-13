@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Re-export shim for the optional qsharp-jupyterlab package as qdk.jupyterlab.
 
 If qsharp-jupyterlab is not installed (with the qdk[jupyterlab] extra), importing this

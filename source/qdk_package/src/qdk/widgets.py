@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Re-export shim for the optional widgets package as qdk.widgets.
 
 If widgets is not installed (with the qdk[widgets] extra), importing this

@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Re-export shim for the optional azure-quantum package as qdk.azure.
 
 If azure is not installed (with the qdk[azure] extra), importing this

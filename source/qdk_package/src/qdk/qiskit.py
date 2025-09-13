@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Re-export shim for the optional qiskit package as qdk.qiskit.
 
 If qiskit is not installed (with the qdk[qiskit] extra), importing this

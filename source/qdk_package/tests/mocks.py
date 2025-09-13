@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Centralized mock helpers for tests.
 
 Provides lightweight stand-ins for optional (and required during tests) dependencies.
