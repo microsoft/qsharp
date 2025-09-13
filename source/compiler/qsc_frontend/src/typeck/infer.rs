@@ -1162,6 +1162,14 @@ fn check_exp(base: Ty, given_power: Ty, span: Span) -> (Vec<Constraint>, Vec<Err
             }],
             Vec::new(),
         ),
+        Ty::Udt(name, Res::Item(id)) if id == ItemId::complex() => (
+            vec![Constraint::Eq {
+                expected: Ty::Udt(name, Res::Item(id)),
+                actual: given_power,
+                span,
+            }],
+            Vec::new(),
+        ),
         Ty::Param { ref bounds, .. } => {
             // check if the bounds contain Exp
 

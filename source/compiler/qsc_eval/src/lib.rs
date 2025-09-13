@@ -2079,6 +2079,34 @@ fn eval_binop_exp(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Resu
                 Ok(Value::Int(result))
             }
         }
+        Value::Tuple(v, Some(id)) if *id.as_ref() == StoreItemId::complex() => {
+            let [real, imag] = array::from_fn(|i| v[i].clone());
+            let real = real.unwrap_double();
+            let imag = imag.unwrap_double();
+            match rhs_val {
+                Value::Tuple(v, Some(id)) if *id.as_ref() == StoreItemId::complex() => {
+                    let [rhs_real, rhs_imag] = array::from_fn(|i| v[i].clone());
+                    let rhs_real = rhs_real.unwrap_double();
+                    let rhs_imag = rhs_imag.unwrap_double();
+                    // (a + bi)^(c + di) = exp((c + di) * log(a + bi))
+                    // TODO: ln() uses unspecified precision, switch to hard-coded approximation?
+                    let log_re = 0.5 * (real * real + imag * imag).ln();
+                    let log_im = imag.atan2(real);
+                    // TODO: exp() uses unspecified precision, switch to hard-coded approximation?
+                    let exp_re = (rhs_real * log_re - rhs_imag * log_im).exp();
+                    let exp_im = rhs_real * log_im + rhs_imag * log_re;
+                    Ok(Value::Tuple(
+                        vec![
+                            Value::Double(exp_re * exp_im.cos()),
+                            Value::Double(exp_re * exp_im.sin()),
+                        ]
+                        .into(),
+                        Some(Rc::clone(&id)),
+                    ))
+                }
+                _ => panic!("value should support exp"),
+            }
+        }
         _ => panic!("value should support exp"),
     }
 }
