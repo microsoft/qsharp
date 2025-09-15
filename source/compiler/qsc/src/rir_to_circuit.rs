@@ -77,7 +77,7 @@ pub(crate) fn make_circuit(
         .try_into()
         .expect("num_qubits should fit in usize");
 
-    let operations = expand_successors(&state, entry_operations, group_scopes);
+    let operations = expand_successors(&state, entry_operations);
 
     let mut component_grid = operation_list_to_grid(operations, num_qubits, loop_detection);
 
@@ -90,11 +90,7 @@ pub(crate) fn make_circuit(
     Ok(circuit)
 }
 
-fn expand_successors(
-    state: &ProgramMap,
-    block_operations: Vec<Operation>,
-    group_scopes: bool,
-) -> Vec<Component> {
+fn expand_successors(state: &ProgramMap, block_operations: Vec<Operation>) -> Vec<Component> {
     let mut operations = vec![];
     let mut operations_stack = block_operations;
     operations_stack.reverse();
@@ -129,7 +125,7 @@ fn expand_successors(
                 );
                 assert!(unitary.children.len() == 1);
                 let next_column = unitary.children.remove(0);
-                let next_column = expand_successors(state, next_column.components, group_scopes);
+                let next_column = expand_successors(state, next_column.components);
                 unitary.children = vec![ComponentColumn {
                     components: next_column,
                 }];
@@ -162,49 +158,44 @@ fn fill_in_dbg_metadata(
             };
 
             // if last arg starts with metadata=, pop it
-            let metadata_str = args
-                .last()
-                .and_then(|last_arg| last_arg.strip_prefix("metadata="))
-                .map(ToOwned::to_owned);
+            let metadata_str = if let Some(last_arg) = args.last() {
+                last_arg.strip_prefix("metadata=").map(ToOwned::to_owned)
+            } else {
+                None
+            };
 
             if let Some(metadata_str) = metadata_str {
                 args.pop();
+                // metadata is of the format "!dbg package_id=0 span=[2161-2172] scope=0 discriminator=1"
+                // parse it out manually
                 let dbg_metadata = parse_dbg_metadata(&metadata_str);
-                if let Some(((package_id, span), scope, discriminator, _)) = dbg_metadata {
+                if let Some(DbgMetadata {
+                    source_location: (package_id, span),
+                    scope_id: scope,
+                    discriminator,
+                }) = dbg_metadata
+                {
                     let location =
                         Location::from(span, package_id, package_store, position_encoding);
                     let mut json = String::new();
                     writeln!(&mut json, "metadata={{").expect("writing to string should work");
                     writeln!(&mut json, r#""source": {:?},"#, location.source)
                         .expect("writing to string should work");
-                    write!(
+                    writeln!(
                         &mut json,
-                        r#""span": {{"start": {{"line": {}, "character": {}}}, "end": {{"line": {}, "character": {}}}}}"#,
+                        r#""span": {{"start": {{"line": {}, "character": {}}}, "end": {{"line": {}, "character": {}}}}},"#,
                         location.range.start.line,
                         location.range.start.column,
                         location.range.end.line,
                         location.range.end.column
                     )
                     .expect("writing to string should work");
-                    if let Some((block_id, package_id, span)) = scope {
-                        writeln!(&mut json, ",").expect("writing to string should work");
-                        let scope_location =
-                            Location::from(span, package_id, package_store, position_encoding);
-                        write!(&mut json, "\"scope\": {},", block_id.0)
+                    if let Some(BlockId(scope)) = scope {
+                        writeln!(&mut json, r#""scope": {scope},"#)
                             .expect("writing to string should work");
-                        write!(
-                            &mut json,
-                            r#""scope_location": {{"start": {{"line": {}, "character": {}}}, "end": {{"line": {}, "character": {}}}}}"#,
-                            scope_location.range.start.line,
-                            scope_location.range.start.column,
-                            scope_location.range.end.line,
-                            scope_location.range.end.column
-                        )
-                        .expect("writing to string should work");
                     }
                     if let Some(discriminator) = discriminator {
-                        writeln!(&mut json, ",").expect("writing to string should work");
-                        write!(&mut json, "\"discriminator\": {discriminator}")
+                        writeln!(&mut json, r#""discriminator": {discriminator}"#)
                             .expect("writing to string should work");
                     }
                     write!(&mut json, "}}").expect("writing to string should work");
@@ -216,68 +207,50 @@ fn fill_in_dbg_metadata(
     Ok(())
 }
 
-type DbgMetadata = (
-    (PackageId, Span),                  // source location
-    Option<(BlockId, PackageId, Span)>, // scope id and location
-    Option<usize>,                      // discriminator
-    Option<String>,                     // callable name
-);
+struct DbgMetadata {
+    source_location: (PackageId, Span),
+    scope_id: Option<BlockId>,
+    discriminator: Option<usize>,
+}
 
 fn parse_dbg_metadata(metadata_str: &str) -> Option<DbgMetadata> {
-    // metadata is of the format "!dbg package_id=0 span=[2161-2172] scope=0 scope_package_id=1 scope_span=[123-345] discriminator=1 callable=foo"
     if let Some(rest) = metadata_str.strip_prefix("!dbg ") {
         let mut package_id: Option<usize> = None;
         let mut span = None;
         let mut scope: Option<usize> = None;
         let mut discriminator = None;
-        let mut callable = None;
-        let mut scope_package_id: Option<usize> = None;
-        let mut scope_span: Option<Span> = None;
 
         for token in rest.split_whitespace() {
             if let Some(rest) = token.strip_prefix("package_id=") {
                 package_id = rest.parse().ok();
             } else if let Some(rest) = token.strip_prefix("span=") {
-                span = parse_span(rest);
+                if let Some(span_str) = rest.strip_prefix("[") {
+                    if let Some(span_str) = span_str.strip_suffix("]") {
+                        let span_parts: Vec<&str> = span_str.split('-').collect();
+                        if span_parts.len() == 2 {
+                            if let (Ok(start), Ok(end)) =
+                                (span_parts[0].parse::<u32>(), span_parts[1].parse::<u32>())
+                            {
+                                span = Some(Span { lo: start, hi: end });
+                            }
+                        }
+                    }
+                }
             } else if let Some(rest) = token.strip_prefix("scope=") {
                 scope = rest.parse().ok();
-            } else if let Some(rest) = token.strip_prefix("scope_package_id=") {
-                scope_package_id = rest.parse().ok();
-            } else if let Some(rest) = token.strip_prefix("scope_span=") {
-                scope_span = parse_span(rest);
             } else if let Some(rest) = token.strip_prefix("discriminator=") {
                 discriminator = rest.parse().ok();
-            } else if let Some(rest) = token.strip_prefix("callable=") {
-                callable = Some(rest.to_string());
             }
         }
 
-        if let (Some(package_id), Some(span)) = (package_id, span) {
-            let package_id = package_id.into();
-            let scope: Option<BlockId> = scope.map(Into::into);
-            let scope_package_id: Option<PackageId> = scope_package_id.map(Into::into);
-            let scope = match (scope, scope_package_id, scope_span) {
-                (Some(s), Some(p), Some(sp)) => Some((s, p, sp)),
-                _ => None,
-            };
-            return Some(((package_id, span), scope, discriminator, callable));
-        }
-    }
-    None
-}
-
-fn parse_span(rest: &str) -> Option<Span> {
-    if let Some(span_str) = rest.strip_prefix("[") {
-        if let Some(span_str) = span_str.strip_suffix("]") {
-            let span_parts: Vec<&str> = span_str.split('-').collect();
-            if span_parts.len() == 2 {
-                if let (Ok(start), Ok(end)) =
-                    (span_parts[0].parse::<u32>(), span_parts[1].parse::<u32>())
-                {
-                    return Some(Span { lo: start, hi: end });
-                }
-            }
-        }
+        return match (package_id, span) {
+            (Some(package_id), Some(span)) => Some(DbgMetadata {
+                source_location: (package_id.into(), span),
+                scope_id: scope.map(Into::into),
+                discriminator,
+            }),
+            _ => None,
+        };
     }
     None
 }
@@ -286,9 +259,16 @@ fn expand_branch_children(
     state: &ProgramMap,
     operation: &mut Operation,
 ) -> Result<bool, qsc_circuit::Error> {
+    for child_column in operation.children_mut() {
+        for child_component in &mut child_column.components {
+            if expand_branch_children(state, child_component)? {
+                return Ok(true); // more work needed to fill in the branch children
+            }
+        }
+    }
     if let Component::Unitary(unitary) = operation {
         if unitary.gate == "branch" {
-            debug!("found a branch with args: {:?}", unitary.args);
+            eprintln!("found a branch with args: {:?}", unitary.args);
             let true_arg = &unitary.args[0];
             let true_block = BlockId(
                 true_arg
@@ -302,7 +282,7 @@ fn expand_branch_children(
                     .unwrap_or_else(|_| panic!("block id should parse: {false_arg}")),
             );
 
-            debug!(
+            eprintln!(
                 "branching on expr: {:?}, true_block: {:?}, false_block: {:?}",
                 unitary.args[2], true_block, false_block
             );
@@ -463,35 +443,34 @@ fn extend_operations(
             .last()
             .and_then(|last_arg| last_arg.strip_prefix("metadata="))
             .map(ToOwned::to_owned);
-        if let Some(metadata_str) = metadata_str {
-            let dbg_metadata = parse_dbg_metadata(&metadata_str);
+        if !op.is_measurement() {
+            // don't group measurements yet, too confusing
+            if let Some(metadata_str) = metadata_str {
+                let dbg_metadata = parse_dbg_metadata(&metadata_str);
+                if let Some(BlockId(block_id)) = dbg_metadata.and_then(|s| s.scope_id) {
+                    let scope_label = format!("scope_{block_id}");
+                    if last_scope
+                        .as_ref()
+                        .is_some_and(|last_scope| last_scope == &scope_label)
+                        && matches!(&op, Operation::Unitary(_))
+                    // only group unitaries
+                    {
+                        eprintln!("grouping op in scope: {scope_label:?}");
+                        // Add to current group
+                        current_scope.push(op);
+                    } else {
+                        eprintln!("starting new scope: {scope_label:?}");
+                        // flush group
+                        if !current_scope.is_empty() {
+                            flush_scope(operations, current_scope, last_scope, group_scopes);
+                        }
 
-            if let Some((callable, (block_id, _, _))) = dbg_metadata
-                .and_then(|(_, s, _, callable)| s.map(|s| (callable, s)))
-                .and_then(|(callable, s)| callable.map(|c| (c, s)))
-            {
-                let scope = format!("{}_{}", callable, block_id.0);
-                if last_scope
-                    .as_ref()
-                    .is_some_and(|last_scope| last_scope == &scope)
-                    && matches!(&op, Operation::Unitary(_))
-                // only group unitaries
-                {
-                    eprintln!("grouping op in scope: {scope:?}");
-                    // Add to current group
-                    current_scope.push(op);
-                } else {
-                    eprintln!("starting new scope: {scope:?}");
-                    // flush group
-                    if !current_scope.is_empty() {
-                        flush_scope(operations, current_scope, last_scope, group_scopes);
+                        current_scope.push(op);
                     }
+                    *last_scope = Some(scope_label);
 
-                    current_scope.push(op);
+                    continue;
                 }
-                *last_scope = Some(scope);
-
-                continue;
             }
         }
         // no scope grouping, flush current scope if any, then add this one right away
@@ -553,8 +532,8 @@ fn flush_scope(
     }
 
     if should_group {
-        let mut args = current_scope[0].args().clone();
-        debug!("will copy args from first op: {:?}", args);
+        let args = current_scope[0].args().clone();
+        eprintln!("will copy args from first op: {:?}", args);
         // let old_metadata_arg = args
         //     .iter()
         //     .find(|s| s.starts_with("metadata="))
