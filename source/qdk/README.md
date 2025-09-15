@@ -1,9 +1,7 @@
 # qdk
 
 Experimental meta-package for the Quantum Development Kit (QDK) that bundles the existing
-`qsharp` Python package together with optional extras under a single, stable import root: `import qdk`.
-
-The design is intentionally minimal: submodules plus import-time detection of optional components.
+`qsharp` Python package together with optional extras.
 
 ## Install
 

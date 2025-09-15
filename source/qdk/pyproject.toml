@@ -5,13 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "qdk"
 version = "0.0.0"
-description = "Unified Quantum Development Kit Python meta-package (wraps qsharp and optional extras)"
+description = "Microsoft Azure Quantum Development Kit Python package"
 readme = "README.md"
 authors = [ { name = "Microsoft" } ]
 license = { file = "LICENSE.txt" }
 requires-python = ">=3.9"
 dependencies = [
-  "qsharp==1.20.0",  # rely on existing package
+  "qsharp==1.20.0",  # TODO: Should update to match 'qsharp' version on build
 ]
 
 [project.optional-dependencies]
@@ -25,10 +25,3 @@ all = [
   "qiskit>=1.2.2,<2.0.0",
   "qsharp-jupyterlab==1.20.0",
 ]
-
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.setuptools]
-package-dir = {"" = "src"}
-
