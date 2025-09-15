@@ -77,7 +77,7 @@ pub(crate) fn make_circuit(
         .try_into()
         .expect("num_qubits should fit in usize");
 
-    let operations = expand_successors(&state, entry_operations);
+    let operations = expand_successors(&state, entry_operations, group_scopes);
 
     let mut component_grid = operation_list_to_grid(operations, num_qubits, loop_detection);
 
@@ -90,7 +90,11 @@ pub(crate) fn make_circuit(
     Ok(circuit)
 }
 
-fn expand_successors(state: &ProgramMap, block_operations: Vec<Operation>) -> Vec<Component> {
+fn expand_successors(
+    state: &ProgramMap,
+    block_operations: Vec<Operation>,
+    group_scopes: bool,
+) -> Vec<Component> {
     let mut operations = vec![];
     let mut operations_stack = block_operations;
     operations_stack.reverse();
@@ -125,7 +129,7 @@ fn expand_successors(state: &ProgramMap, block_operations: Vec<Operation>) -> Ve
                 );
                 assert!(unitary.children.len() == 1);
                 let next_column = unitary.children.remove(0);
-                let next_column = expand_successors(state, next_column.components);
+                let next_column = expand_successors(state, next_column.components, group_scopes);
                 unitary.children = vec![ComponentColumn {
                     components: next_column,
                 }];
