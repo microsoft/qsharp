@@ -2,8 +2,11 @@
 // Licensed under the MIT License.
 
 use indenter::{Indented, indented};
-use qsc_data_structures::{index_map::IndexMap, target::TargetCapabilityFlags};
-use std::fmt::{self, Display, Formatter, Write};
+use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
+use std::{
+    fmt::{self, Display, Formatter, Write},
+    rc::Rc,
+};
 
 /// The root of the RIR.
 #[derive(Default, Clone)]
@@ -219,15 +222,52 @@ impl Display for InstructionWithMetadata {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}", self.instruction)?;
         if let Some(metadata) = &self.metadata {
-            write!(f, " {}", metadata.str)?;
+            write!(f, " {metadata}")?;
         }
         Ok(())
     }
 }
 
 #[derive(Clone)]
+pub struct MetadataPackageSpan {
+    pub package: u32,
+    pub span: Span,
+}
+
+#[derive(Clone)]
 pub struct InstructionMetadata {
-    pub str: String,
+    pub location: MetadataPackageSpan,
+    pub scope_id: Option<u32>,
+    pub scope_block_location: Option<MetadataPackageSpan>,
+    pub scope_block_discriminator: Option<usize>,
+    pub current_callable_name: Option<Rc<str>>,
+}
+
+impl Display for InstructionMetadata {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "!dbg package_id={} span={}",
+            self.location.package, self.location.span
+        )?;
+        if let Some(source_block) = self.scope_id {
+            write!(f, " scope={source_block}")?;
+        }
+        if let Some(source_block_span) = &self.scope_block_location {
+            write!(
+                f,
+                " scope_package_id={} scope_span={}",
+                source_block_span.package, source_block_span.span
+            )?;
+        }
+        if let Some(current_iteration) = self.scope_block_discriminator {
+            write!(f, " discriminator={current_iteration}")?;
+        }
+        if let Some(current_callable_name) = &self.current_callable_name {
+            write!(f, " callable={current_callable_name}")?;
+        }
+        Ok(())
+    }
 }
 
 /// A block is a collection of instructions.

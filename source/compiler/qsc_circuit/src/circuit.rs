@@ -625,7 +625,6 @@ impl Circuit {
                     next_column = max(next_column, column + 1);
                 } else {
                     let mut offset = 0;
-                    eprintln!("Adding operation with children at column {column}, offset {offset}");
                     add_operation_box_start_to_rows(
                         op,
                         rows,
@@ -1031,9 +1030,6 @@ fn find_best_motif(hashes: &[u64], start_pos: usize) -> (usize, usize) {
         let repeats = count_motif_repeats(hashes, start_pos, motif_len);
 
         if repeats > 1 {
-            eprintln!(
-                "found candidate motif of length {motif_len} repeated {repeats} times at index {start_pos}"
-            );
             let total = repeats * motif_len;
             let best_total = best_repeats * best_motif_len;
             if total > best_total || (total == best_total && motif_len < best_motif_len) {
@@ -1182,10 +1178,6 @@ fn collapse_repetition(operations: Vec<Operation>) -> Vec<Operation> {
         let (best_motif_len, best_repeats) = find_best_motif(&hashes, i);
 
         if best_repeats > 1 {
-            eprintln!(
-                "found repeated motif of length {best_motif_len} repeated {best_repeats} times at index {i}"
-            );
-
             let base = &operations[i];
             let parent = if best_motif_len == 1 {
                 make_repeated_parent(base, best_repeats)
