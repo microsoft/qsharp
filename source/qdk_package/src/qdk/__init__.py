@@ -6,7 +6,6 @@
 Design goals:
     * Provide a single import root `qdk` that exposes bundled quantum tooling as
         submodules (`qdk.qsharp`, `qdk.widgets`, etc.).
-    * Keep direct symbol re-export minimal; users import submodules instead of symbols.
 
 Optional extras:
     widgets -> installs `qsharp-widgets`, available as `qdk.widgets`.
@@ -20,7 +19,7 @@ from __future__ import annotations
 
 from importlib import import_module
 
-# Always make the underlying qsharp package available as submodule `qdk.qsharp`.
+# Eagerly check for qsharp presence to provide a clear error message.
 try:  # pragma: no cover
     import_module("qsharp")
 except ModuleNotFoundError as _ex:  # pragma: no cover
@@ -28,13 +27,29 @@ except ModuleNotFoundError as _ex:  # pragma: no cover
         "qdk requires the 'qsharp' package. Install with 'pip install qsharp'."
     ) from _ex
 
-# Import our local re-export shim (created separately) so `qdk.qsharp` works.
+# Eagerly import qdk.qsharp to ensure qdk.qsharp is always available if qdk is.
 try:  # pragma: no cover
     from . import qsharp as qsharp  # type: ignore  # noqa: F401
 except Exception as _ex:  # pragma: no cover
     raise
 
-# Public API surface (kept intentionally small)
+# Some common utilities are lifted to the qdk root.
+from qsharp import code  # type: ignore  # noqa: F401
+from qsharp import (
+    set_quantum_seed,
+    set_classical_seed,
+    dump_machine,
+    dump_circuit,
+    Result,
+    TargetProfile,
+    StateDump,
+    ShotResult,
+    PauliNoise,
+    DepolarizingNoise,
+    BitFlipNoise,
+    PhaseFlipNoise,
+)
+
 __all__ = [
     "qsharp",
     "widgets_available",
@@ -42,6 +57,19 @@ __all__ = [
     "qiskit_available",
     "jupyterlab_available",
     "require",
+    "code",
+    "set_quantum_seed",
+    "set_classical_seed",
+    "dump_machine",
+    "dump_circuit",
+    "Result",
+    "TargetProfile",
+    "StateDump",
+    "ShotResult",
+    "PauliNoise",
+    "DepolarizingNoise",
+    "BitFlipNoise",
+    "PhaseFlipNoise",
 ]
 
 
