@@ -68,7 +68,19 @@ def mock_qsharp() -> List[str]:
             "DepolarizingNoise",
             "BitFlipNoise",
             "PhaseFlipNoise",
+            "estimator",
+            "openqasm",
         ]
+        # Minimal submodules to back lifted shims
+        est = types.ModuleType("qsharp.estimator")
+        est.__doc__ = "mock estimator"
+        sys.modules["qsharp.estimator"] = est
+        stub.estimator = est  # type: ignore[attr-defined]
+        oq = types.ModuleType("qsharp.openqasm")
+        oq.__doc__ = "mock openqasm"
+        sys.modules["qsharp.openqasm"] = oq
+        stub.openqasm = oq  # type: ignore[attr-defined]
+
         sys.modules["qsharp"] = stub
         created.append("qsharp")
     return created

@@ -11,6 +11,13 @@ def test_qdk_qsharp_submodule_available():
     assert hasattr(qdk.qsharp, "run"), "qsharp.run missing in submodule"
 
 
+def test_estimator_and_openqasm_shims():
+    est = importlib.import_module("qdk.estimator")
+    oq = importlib.import_module("qdk.openqasm")
+    assert hasattr(est, "__doc__")
+    assert hasattr(oq, "__doc__")
+
+
 def test_no_direct_run_or_estimate_exports():
     qdk = importlib.import_module("qdk")
     assert not hasattr(qdk, "run"), "'run' should not be directly exported"

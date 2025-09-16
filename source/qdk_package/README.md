@@ -93,21 +93,43 @@ Submodules:
 - `qdk.widgets` – only if `qsharp-widgets` installed (through `qdk[jupyter]`).
 - `qdk.azure` – only if `azure-quantum` installed.
 - `qdk.qiskit` – only if `qiskit` installed.
+- `qdk.estimator` – shim re-export of `qsharp.estimator` (always present if underlying `qsharp` provides it).
+- `qdk.openqasm` – shim re-export of `qsharp.openqasm` for OpenQASM integration.
 
 ## `require()` Helper
 
 ```python
 from qdk import require
+
+# Core always available (raises only if qsharp itself missing):
 core = require("qsharp")
+
+# Widgets / jupyter (alias) extra
+try:
+    widgets = require("widgets")  # or require("jupyter")
+except ImportError:
+    widgets = None
+
+# Azure extra
 try:
     azure = require("azure")
 except ImportError:
     azure = None
+
+# Qiskit extra
+try:
+    qk = require("qiskit")
+except ImportError:
+    qk = None
+
+# Estimator & OpenQASM shims (will ImportError only if that part of qsharp missing)
+from qdk import estimator, openqasm
 ```
 
 ## Design Notes
 
 - Root re-exports selected utility symbols from `qsharp` (e.g. `code`, `set_quantum_seed`, types) for convenience; algorithm APIs still live under `qdk.qsharp`.
+- Additional shims (`qdk.estimator`, `qdk.openqasm`) are thin pass-throughs to the corresponding `qsharp` submodules for discoverability.
 - Optional extras are thin pass-through modules; failure messages instruct how to install.
 - Tests may stub dependencies in isolation environments.
 

@@ -51,6 +51,8 @@ from qsharp import (  # type: ignore  # noqa: F401
 
 __all__ = [
     "qsharp",
+    "estimator",
+    "openqasm",
     "widgets_available",
     "azure_available",
     "qiskit_available",
