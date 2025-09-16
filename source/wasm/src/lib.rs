@@ -148,12 +148,14 @@ serializable_type! {
         loop_detection: bool,
         group_scopes: bool,
         generation_method: String,
+        collapse_qubit_registers: bool,
     },
     r#"export interface ICircuitConfig {
         maxOperations: number;
         loopDetection: boolean;
         groupScopes: boolean;
         generationMethod: "simulate" | "classicalEval" | "static";
+        collapseQubitRegisters: boolean;
     }"#,
     ICircuitConfig
 }
@@ -178,6 +180,7 @@ pub fn get_circuit(
                     return qsc::circuit::Config::default();
                 }
             },
+            collapse_qubit_registers: c.collapse_qubit_registers,
         }
     });
     if is_openqasm_program(&program) {

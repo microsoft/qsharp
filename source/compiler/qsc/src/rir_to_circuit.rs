@@ -6,8 +6,8 @@ use std::{
 use crate::circuit;
 use log::debug;
 use qsc_circuit::{
-    Circuit, Component, ComponentColumn, ComponentGrid, Ket, Measurement, Operation, Qubit,
-    Register, Unitary, operation_list_to_grid,
+    Circuit, Component, ComponentColumn, ComponentGrid, Config, GenerationMethod, Ket, Measurement,
+    Operation, Qubit, Register, Unitary, group_qubits, operation_list_to_grid,
 };
 use qsc_data_structures::{index_map::IndexMap, line_column::Encoding, span::Span};
 use qsc_frontend::{compile::PackageStore, location::Location};
@@ -111,15 +111,16 @@ pub(crate) fn make_circuit(
     program: &Program,
     package_store: &PackageStore,
     position_encoding: Encoding,
-    loop_detection: bool,
-    group_scopes: bool,
+    config: Config,
 ) -> std::result::Result<Circuit, circuit::Error> {
+    assert!(config.generation_method == GenerationMethod::Static);
     debug!("make_circuit: program={}", program);
     let mut state = ProgramMap::new(program.num_qubits);
     let callables = &program.callables;
 
     for (id, block) in program.blocks.iter() {
-        let block_operations = operations_in_block(&mut state, callables, block, group_scopes)?;
+        let block_operations =
+            operations_in_block(&mut state, callables, block, config.group_scopes)?;
         state.blocks.insert(id, block_operations);
     }
 
@@ -163,11 +164,16 @@ pub(crate) fn make_circuit(
     let operations = expand_successors(&state, entry_operations);
 
     let qubits = state.into_qubits();
-    let mut component_grid = operation_list_to_grid(
-        operations.into_iter().map(Into::into).collect(),
-        &qubits,
-        loop_detection,
-    );
+    let operations = operations.into_iter().map(Into::into).collect();
+
+    let (operations, qubits) = if config.collapse_qubit_registers && qubits.len() > 2 {
+        // TODO: dummy values for now
+        group_qubits(operations, qubits, &[0, 1])
+    } else {
+        (operations, qubits)
+    };
+
+    let mut component_grid = operation_list_to_grid(operations, &qubits, config.loop_detection);
 
     fill_in_dbg_metadata(&mut component_grid, package_store, position_encoding)?;
 

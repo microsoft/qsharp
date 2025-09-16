@@ -238,6 +238,8 @@ pub struct Config {
     pub group_scopes: bool,
     /// How the circuit is generated
     pub generation_method: GenerationMethod,
+    /// Collapse qubit registers into single qubits
+    pub collapse_qubit_registers: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -268,6 +270,7 @@ impl Default for Config {
             loop_detection: true,
             group_scopes: true,
             generation_method: GenerationMethod::Static,
+            collapse_qubit_registers: true,
         }
     }
 }
@@ -1305,4 +1308,148 @@ fn hash_operation(op: &Operation) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     data.hash(&mut hasher);
     hasher.finish()
+}
+
+/// Groups qubits into a single register. Collapses operations accordingly.
+#[must_use]
+pub fn group_qubits(
+    operations: Vec<Operation>,
+    qubits: Vec<Qubit>,
+    qubit_ids_to_group: &[usize],
+) -> (Vec<Operation>, Vec<Qubit>) {
+    let (qubit_map, new_qubits) = get_qubit_map(qubits, qubit_ids_to_group);
+
+    assert!(qubit_map.values().collect::<FxHashSet<_>>().len() == 1);
+
+    let new_operations = operations
+        .into_iter()
+        .map(|op| map_operation(qubit_ids_to_group, &qubit_map, op))
+        .collect::<Vec<_>>();
+
+    (new_operations, new_qubits)
+}
+
+fn map_operation(
+    qubit_ids_to_group: &[usize],
+    qubit_map: &FxHashMap<usize, usize>,
+    mut op: Operation,
+) -> Operation {
+    let mut remapped_controls = vec![];
+    let mut remapped_targets = vec![];
+    let gate = match &mut op {
+        Operation::Measurement(m) => {
+            m.qubits = m
+                .qubits
+                .iter()
+                .map(|r| {
+                    let new_id = qubit_map.get(&r.qubit);
+                    if let Some(new_id) = new_id {
+                        remapped_controls.push(r.qubit);
+                        Register {
+                            qubit: *new_id,
+                            result: r.result,
+                        }
+                    } else {
+                        r.clone()
+                    }
+                })
+                .collect();
+            m.results = map_to_group(qubit_map, &mut remapped_targets, &m.results);
+            &mut m.gate
+        }
+        Operation::Unitary(u) => {
+            u.targets = map_to_group(qubit_map, &mut remapped_targets, &u.targets);
+            u.controls = map_to_group(qubit_map, &mut remapped_controls, &u.controls);
+
+            if !remapped_controls.is_empty() && !remapped_targets.is_empty() {
+                let new_id = qubit_map
+                    .values()
+                    .next()
+                    .copied()
+                    .expect("should be present");
+                // remove from controls if it is also a target
+                u.controls.retain(|r| r.qubit != new_id);
+                u.gate = format!("C{}", u.gate);
+            }
+            &mut u.gate
+        }
+        Operation::Ket(k) => {
+            k.targets = map_to_group(qubit_map, &mut remapped_targets, &k.targets);
+            &mut k.gate
+        }
+    };
+
+    if !remapped_controls.is_empty() || !remapped_targets.is_empty() {
+        let remapped_qubit_idxs =
+            remapped_qubit_indices(qubit_ids_to_group, &remapped_controls, &remapped_targets);
+        *gate = format!("{gate} (q{remapped_qubit_idxs:?})");
+    }
+
+    op
+}
+
+fn map_to_group(
+    qubit_map: &FxHashMap<usize, usize>,
+    remapped_qubits: &mut Vec<usize>,
+    registers: &[Register],
+) -> Vec<Register> {
+    registers
+        .iter()
+        .map(|r| {
+            let new_id = qubit_map.get(&r.qubit);
+            if let Some(new_id) = new_id {
+                remapped_qubits.push(r.qubit);
+                Register {
+                    qubit: *new_id,
+                    result: r.result,
+                }
+            } else {
+                r.clone()
+            }
+        })
+        .collect()
+}
+
+fn get_qubit_map(
+    qubits: Vec<Qubit>,
+    qubit_ids_to_group: &[usize],
+) -> (FxHashMap<usize, usize>, Vec<Qubit>) {
+    let mut qubit_map = FxHashMap::default();
+    let mut group_idx: Option<usize> = None;
+    let mut new_qubits: Vec<Qubit> = vec![];
+    for q in qubits {
+        if qubit_ids_to_group.contains(&q.id) {
+            if let Some(group_idx) = group_idx {
+                qubit_map.insert(q.id, group_idx);
+                new_qubits[group_idx].num_results += q.num_results;
+            } else {
+                group_idx = Some(new_qubits.len());
+                qubit_map.insert(q.id, new_qubits.len());
+                new_qubits.push(Qubit {
+                    id: q.id, // Use the first qubit's ID as the group ID
+                    num_results: q.num_results,
+                });
+            }
+        } else {
+            new_qubits.push(q.clone());
+        }
+    }
+    (qubit_map, new_qubits)
+}
+
+fn remapped_qubit_indices(
+    qubit_ids_to_group: &[usize],
+    remapped_controls: &[usize],
+    remapped_targets: &[usize],
+) -> Vec<usize> {
+    remapped_controls
+        .iter()
+        .chain(remapped_targets.iter())
+        .map(|id| {
+            qubit_ids_to_group
+                .iter()
+                .position(|&x| x == *id)
+                .expect("should be present")
+        })
+        .collect::<Vec<_>>()
 }
