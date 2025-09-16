@@ -131,18 +131,20 @@ fn bell() {
         measurement(0, 0),
         measurement(1, 0),
     ];
+    let qubits = vec![
+        Qubit {
+            id: 0,
+            num_results: 1,
+        },
+        Qubit {
+            id: 1,
+            num_results: 1,
+        },
+    ];
+    let component_grid = operation_list_to_grid(operations, &qubits, true);
     let c = Circuit {
-        qubits: vec![
-            Qubit {
-                id: 0,
-                num_results: 1,
-            },
-            Qubit {
-                id: 1,
-                num_results: 1,
-            },
-        ],
-        component_grid: operation_list_to_grid(operations, 2, true),
+        qubits,
+        component_grid,
     };
 
     expect![[r"
@@ -161,16 +163,18 @@ fn control_classical() {
         ctl_unitary("X", vec![q_reg(2)], vec![c_reg(0, 0)]),
         ctl_unitary("X", vec![q_reg(2)], vec![q_reg(0)]),
     ];
+    let qubits = vec![
+        Qubit {
+            id: 0,
+            num_results: 1,
+        },
+        qubit(1),
+        qubit(2),
+    ];
+    let component_grid = operation_list_to_grid(operations, &qubits, true);
     let c = Circuit {
-        qubits: vec![
-            Qubit {
-                id: 0,
-                num_results: 1,
-            },
-            qubit(1),
-            qubit(2),
-        ],
-        component_grid: operation_list_to_grid(operations, 3, true),
+        qubits,
+        component_grid,
     };
 
     expect![[r"
@@ -185,12 +189,14 @@ fn control_classical() {
 #[test]
 fn two_measurements() {
     let operations = vec![measurement(0, 0), measurement(0, 1)];
+    let qubits = vec![Qubit {
+        id: 0,
+        num_results: 2,
+    }];
+    let component_grid = operation_list_to_grid(operations, &qubits, true);
     let c = Circuit {
-        qubits: vec![Qubit {
-            id: 0,
-            num_results: 2,
-        }],
-        component_grid: operation_list_to_grid(operations, 1, true),
+        qubits,
+        component_grid,
     };
 
     expect![[r"
@@ -198,6 +204,40 @@ fn two_measurements() {
                   ╘══════╪═══
                          ╘═══
     "]]
+    .assert_eq(&c.to_string());
+}
+
+#[test]
+fn left_align_operations() {
+    let qubits = vec![
+        Qubit {
+            id: 0,
+            num_results: 1,
+        },
+        qubit(1),
+        qubit(2),
+    ];
+    let operations = vec![
+        measurement(0, 0),
+        ctl_unitary("X", vec![q_reg(0)], vec![]),
+        ctl_unitary("X", vec![q_reg(2)], vec![]),
+        ctl_unitary("X", vec![q_reg(1)], vec![]),
+        ctl_unitary("X", vec![q_reg(1)], vec![q_reg(0)]),
+        ctl_unitary("X", vec![q_reg(1)], vec![q_reg(0)]),
+    ];
+    // let component_grid = operation_list_to_grid(operations, &qubits, false);
+    let component_grid = operation_list_to_grid(operations, &qubits, false);
+    let c = Circuit {
+        qubits,
+        component_grid,
+    };
+
+    expect![[r#"
+        q_0    ── M ──── X ──── ● ──── ● ──
+                  ╘═════════════╪══════╪═══
+        q_1    ── X ─────────── X ──── X ──
+        q_2    ── X ───────────────────────
+    "#]]
     .assert_eq(&c.to_string());
 }
 

@@ -160,23 +160,19 @@ pub(crate) fn make_circuit(
     }
     let entry_operations = entry_block.operations.clone();
 
-    let num_qubits = program
-        .num_qubits
-        .try_into()
-        .expect("num_qubits should fit in usize");
-
     let operations = expand_successors(&state, entry_operations);
 
+    let qubits = state.into_qubits();
     let mut component_grid = operation_list_to_grid(
         operations.into_iter().map(Into::into).collect(),
-        num_qubits,
+        &qubits,
         loop_detection,
     );
 
     fill_in_dbg_metadata(&mut component_grid, package_store, position_encoding)?;
 
     let circuit = Circuit {
-        qubits: state.into_qubits(),
+        qubits,
         component_grid,
     };
     Ok(circuit)
