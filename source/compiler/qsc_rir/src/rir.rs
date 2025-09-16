@@ -2,8 +2,11 @@
 // Licensed under the MIT License.
 
 use indenter::{Indented, indented};
-use qsc_data_structures::{index_map::IndexMap, target::TargetCapabilityFlags};
-use std::fmt::{self, Display, Formatter, Write};
+use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
+use std::{
+    fmt::{self, Display, Formatter, Write},
+    rc::Rc,
+};
 
 /// The root of the RIR.
 #[derive(Default, Clone)]
@@ -219,15 +222,56 @@ impl Display for InstructionWithMetadata {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}", self.instruction)?;
         if let Some(metadata) = &self.metadata {
-            write!(f, " {}", metadata.str)?;
+            write!(f, " {metadata}")?;
         }
         Ok(())
     }
 }
 
-#[derive(Clone)]
+/// Needs to be decoded with `Location::from`
+#[derive(Clone, Debug)]
+pub struct MetadataPackageSpan {
+    /// The package ID this span comes from
+    pub package_id: u32,
+    /// Package based span
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
 pub struct InstructionMetadata {
-    pub str: String,
+    pub source_location: MetadataPackageSpan,
+    /// FIR block id
+    pub source_block: Option<u32>,
+    pub source_block_span: Option<MetadataPackageSpan>,
+    pub current_iteration: Option<usize>,
+    pub current_callable_name: Option<Rc<str>>,
+}
+
+impl Display for InstructionMetadata {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "!dbg package_id={} span={}",
+            self.source_location.package_id, self.source_location.span
+        )?;
+        if let Some(source_block) = self.source_block {
+            write!(f, " scope={source_block}")?;
+        }
+        if let Some(source_block_span) = &self.source_block_span {
+            write!(
+                f,
+                " scope_package_id={} scope_span={}",
+                source_block_span.package_id, source_block_span.span
+            )?;
+        }
+        if let Some(current_iteration) = self.current_iteration {
+            write!(f, " discriminator={current_iteration}")?;
+        }
+        if let Some(current_callable_name) = &self.current_callable_name {
+            write!(f, " callable={current_callable_name}")?;
+        }
+        Ok(())
+    }
 }
 
 /// A block is a collection of instructions.

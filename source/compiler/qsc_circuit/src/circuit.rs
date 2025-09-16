@@ -96,6 +96,14 @@ impl Operation {
         }
     }
 
+    pub fn args_mut(&mut self) -> &mut Vec<String> {
+        match self {
+            Self::Measurement(measurement) => &mut measurement.args,
+            Self::Unitary(unitary) => &mut unitary.args,
+            Self::Ket(ket) => &mut ket.args,
+        }
+    }
+
     /// Returns the children for the operation.
     #[must_use]
     pub fn children(&self) -> &ComponentGrid {

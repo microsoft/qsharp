@@ -45,7 +45,7 @@ use qsc_rca::{
         get_missing_runtime_features,
     },
 };
-use qsc_rir::rir::InstructionMetadata;
+use qsc_rir::rir::{InstructionMetadata, MetadataPackageSpan};
 pub use qsc_rir::{
     builder,
     rir::{
@@ -1995,9 +1995,10 @@ impl<'a> PartialEvaluator<'a> {
                 .items
                 .get(callable_id)
                 .map(|i| match &i.kind {
-                    fir::ItemKind::Callable(callable_decl) => callable_decl.name.name.to_owned(),
-                    fir::ItemKind::Namespace(_, _) | fir::ItemKind::Ty(_, _) => "_".into(),
-                    fir::ItemKind::Export(_, _) => "_".into(),
+                    fir::ItemKind::Callable(callable_decl) => callable_decl.name.name.clone(),
+                    fir::ItemKind::Namespace(_, _)
+                    | fir::ItemKind::Ty(_, _)
+                    | fir::ItemKind::Export(_, _) => "_".into(),
                 })
         });
 
@@ -3560,30 +3561,21 @@ fn fmt_dbg_metadata(
     current_iteration: Option<usize>,
     current_callable_name: Option<Rc<str>>,
 ) -> InstructionMetadata {
-    use std::fmt::Write;
-    let mut str = String::new();
-    let _ = write!(
-        str,
-        "!dbg package_id={} span={}",
-        package_span.package, package_span.span
-    );
-    if let Some(source_block) = source_block {
-        let _ = write!(str, " scope={source_block}");
+    InstructionMetadata {
+        source_location: MetadataPackageSpan {
+            package_id: u32::try_from(usize::from(package_span.package))
+                .expect("package ID should fit into u32"),
+            span: package_span.span,
+        },
+        source_block: source_block.map(|b| b.0),
+        source_block_span: source_block_span.map(|s| MetadataPackageSpan {
+            package_id: u32::try_from(usize::from(s.package))
+                .expect("package ID should fit into u32"),
+            span: s.span,
+        }),
+        current_iteration,
+        current_callable_name,
     }
-    if let Some(source_block_span) = source_block_span {
-        let _ = write!(
-            str,
-            " scope_package_id={} scope_span={}",
-            source_block_span.package, source_block_span.span
-        );
-    }
-    if let Some(current_iteration) = current_iteration {
-        let _ = write!(str, " discriminator={current_iteration}");
-    }
-    if let Some(current_callable_name) = current_callable_name {
-        let _ = write!(str, " callable={current_callable_name}");
-    }
-    InstructionMetadata { str }
 }
 
 fn eval_un_op_with_literals(un_op: UnOp, value: Value) -> Value {

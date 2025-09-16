@@ -1,10 +1,13 @@
-use std::fmt::{Display, Write};
+use std::{
+    fmt::{Display, Write},
+    mem::take,
+};
 
 use crate::circuit;
 use log::debug;
 use qsc_circuit::{
-    Circuit, Component, ComponentColumn, ComponentGrid, Ket, Measurement, Operation, Qubit,
-    Register, Unitary, operation_list_to_grid,
+    Circuit, Component, ComponentColumn, Ket, Measurement, Operation, Qubit, Register, Unitary,
+    operation_list_to_grid,
 };
 use qsc_data_structures::{index_map::IndexMap, line_column::Encoding, span::Span};
 use qsc_frontend::{compile::PackageStore, location::Location};
@@ -18,6 +21,20 @@ use qsc_partial_eval::{
     },
 };
 use rustc_hash::FxHashSet;
+
+#[derive(Debug, Clone)]
+struct OperationWithMetadata {
+    operation: Operation,
+    metadata: Option<InstructionMetadata>,
+    children: Vec<OperationWithMetadata>,
+}
+
+#[derive(Clone)]
+struct CircuitBlock {
+    _predecessors: Vec<BlockId>,
+    operations: Vec<OperationWithMetadata>,
+    successor: Option<BlockId>,
+}
 
 pub(crate) fn make_circuit(
     program: &Program,
@@ -79,9 +96,17 @@ pub(crate) fn make_circuit(
 
     let operations = expand_successors(&state, entry_operations);
 
-    let mut component_grid = operation_list_to_grid(operations, num_qubits, loop_detection);
-
-    fill_in_dbg_metadata(&mut component_grid, package_store, position_encoding)?;
+    let component_grid = operation_list_to_grid(
+        operations
+            .into_iter()
+            .map(|mut o| {
+                let _ = fill_in_dbg_metadata(&mut o, package_store, position_encoding);
+                into_operation(o)
+            })
+            .collect::<Vec<_>>(),
+        num_qubits,
+        loop_detection,
+    );
 
     let circuit = Circuit {
         qubits: state.into_qubits(),
@@ -90,13 +115,21 @@ pub(crate) fn make_circuit(
     Ok(circuit)
 }
 
-fn expand_successors(state: &ProgramMap, block_operations: Vec<Operation>) -> Vec<Component> {
+fn expand_successors(
+    state: &ProgramMap,
+    block_operations: Vec<OperationWithMetadata>,
+) -> Vec<OperationWithMetadata> {
     let mut operations = vec![];
     let mut operations_stack = block_operations;
     operations_stack.reverse();
 
     while let Some(mut operation) = operations_stack.pop() {
-        if let Component::Unitary(unitary) = &mut operation {
+        if let OperationWithMetadata {
+            operation: Component::Unitary(unitary),
+            children,
+            ..
+        } = &mut operation
+        {
             if unitary.gate == "successor" {
                 let successor_block_id = BlockId(unitary.args[0].parse().unwrap_or_else(|_| {
                     panic!("successor block id should parse: {}", unitary.args[0])
@@ -110,25 +143,19 @@ fn expand_successors(state: &ProgramMap, block_operations: Vec<Operation>) -> Ve
                 for successor_operation in successor_block.operations.iter().rev() {
                     operations_stack.push(successor_operation.clone());
                 }
-                if unitary.children.is_empty()
-                    || unitary.children.iter().all(|col| col.components.is_empty())
-                {
+                if children.is_empty() {
                     // empty block, skip adding
                     continue;
                 }
             }
 
-            if !unitary.children.is_empty() {
-                dbg!(
-                    "expanding successors for unitary with children: {:?}",
+            if !children.is_empty() {
+                debug!(
+                    "expanding successors for operation with children: {:?}",
                     &unitary
                 );
-                assert!(unitary.children.len() == 1);
-                let next_column = unitary.children.remove(0);
-                let next_column = expand_successors(state, next_column.components);
-                unitary.children = vec![ComponentColumn {
-                    components: next_column,
-                }];
+                let new_children = expand_successors(state, take(children));
+                *children = new_children;
             }
         }
         operations.push(operation.clone());
@@ -136,81 +163,84 @@ fn expand_successors(state: &ProgramMap, block_operations: Vec<Operation>) -> Ve
     operations
 }
 
-fn fill_in_dbg_metadata(
-    component_grid: &mut ComponentGrid,
+fn fill_in_dbg_metadata_for_list(
+    operations: &mut Vec<OperationWithMetadata>,
     package_store: &PackageStore,
     position_encoding: Encoding,
 ) -> Result<(), qsc_circuit::Error> {
-    for column in component_grid {
-        for component in &mut column.components {
-            let children = match component {
-                Component::Unitary(unitary) => &mut unitary.children,
-                Component::Measurement(measurement) => &mut measurement.children,
-                Component::Ket(ket) => &mut ket.children,
-            };
-
-            fill_in_dbg_metadata(children, package_store, position_encoding)?;
-
-            let args = match component {
-                Component::Unitary(unitary) => &mut unitary.args,
-                Component::Measurement(measurement) => &mut measurement.args,
-                Component::Ket(ket) => &mut ket.args,
-            };
-
-            // if last arg starts with metadata=, pop it
-            let metadata_str = if let Some(last_arg) = args.last() {
-                last_arg.strip_prefix("metadata=").map(ToOwned::to_owned)
-            } else {
-                None
-            };
-
-            if let Some(metadata_str) = metadata_str {
-                args.pop();
-                // metadata is of the format "!dbg package_id=0 span=[2161-2172] scope=0 discriminator=1"
-                // parse it out manually
-                let dbg_metadata = parse_dbg_metadata(&metadata_str);
-                if let Some(DbgMetadata {
-                    source_location: (package_id, span),
-                    scope_id: scope,
-                    discriminator,
-                }) = dbg_metadata
-                {
-                    let location =
-                        Location::from(span, package_id, package_store, position_encoding);
-                    let mut json = String::new();
-                    writeln!(&mut json, "metadata={{").expect("writing to string should work");
-                    writeln!(&mut json, r#""source": {:?},"#, location.source)
-                        .expect("writing to string should work");
-                    writeln!(
-                        &mut json,
-                        r#""span": {{"start": {{"line": {}, "character": {}}}, "end": {{"line": {}, "character": {}}}}},"#,
-                        location.range.start.line,
-                        location.range.start.column,
-                        location.range.end.line,
-                        location.range.end.column
-                    )
-                    .expect("writing to string should work");
-                    if let Some(BlockId(scope)) = scope {
-                        writeln!(&mut json, r#""scope": {scope},"#)
-                            .expect("writing to string should work");
-                    }
-                    if let Some(discriminator) = discriminator {
-                        writeln!(&mut json, r#""discriminator": {discriminator}"#)
-                            .expect("writing to string should work");
-                    }
-                    write!(&mut json, "}}").expect("writing to string should work");
-                    args.push(json);
-                }
-            }
-        }
+    for op in operations {
+        fill_in_dbg_metadata(op, package_store, position_encoding)?;
     }
     Ok(())
+}
+
+fn fill_in_dbg_metadata(
+    op: &mut OperationWithMetadata,
+    package_store: &PackageStore,
+    position_encoding: Encoding,
+) -> Result<(), qsc_circuit::Error> {
+    let OperationWithMetadata {
+        operation,
+        metadata,
+        children,
+    } = op;
+    fill_in_dbg_metadata_for_list(children, package_store, position_encoding)?;
+    let args = match operation {
+        Component::Unitary(unitary) => &mut unitary.args,
+        Component::Measurement(measurement) => &mut measurement.args,
+        Component::Ket(ket) => &mut ket.args,
+    };
+    Ok(if let Some(metadata) = metadata {
+        let dbg_metadata = into_dbg_metadata(metadata);
+        let DbgMetadata {
+            source_location: (package_id, span),
+            scope_id: scope,
+            discriminator,
+        } = dbg_metadata;
+
+        let location = Location::from(span, package_id, package_store, position_encoding);
+        let mut json = String::new();
+        writeln!(&mut json, "metadata={{").expect("writing to string should work");
+        writeln!(&mut json, r#""source": {:?},"#, location.source)
+            .expect("writing to string should work");
+        writeln!(
+                    &mut json,
+                    r#""span": {{"start": {{"line": {}, "character": {}}}, "end": {{"line": {}, "character": {}}}}},"#,
+                    location.range.start.line,
+                    location.range.start.column,
+                    location.range.end.line,
+                    location.range.end.column
+                )
+                .expect("writing to string should work");
+        if let Some(BlockId(scope)) = scope {
+            writeln!(&mut json, r#""scope": {scope},"#).expect("writing to string should work");
+        }
+        if let Some(discriminator) = discriminator {
+            writeln!(&mut json, r#""discriminator": {discriminator}"#)
+                .expect("writing to string should work");
+        }
+        write!(&mut json, "}}").expect("writing to string should work");
+        args.push(json);
+    })
 }
 
 struct DbgMetadata {
     source_location: (PackageId, Span),
     scope_id: Option<BlockId>,
     discriminator: Option<usize>,
+}
+
+fn into_dbg_metadata(metadata: &InstructionMetadata) -> DbgMetadata {
+    DbgMetadata {
+        source_location: (
+            usize::try_from(metadata.source_location.package_id)
+                .expect("package id should fit in usize")
+                .into(),
+            metadata.source_location.span,
+        ),
+        scope_id: metadata.source_block.map(BlockId),
+        discriminator: metadata.current_iteration,
+    }
 }
 
 fn parse_dbg_metadata(metadata_str: &str) -> Option<DbgMetadata> {
@@ -257,18 +287,20 @@ fn parse_dbg_metadata(metadata_str: &str) -> Option<DbgMetadata> {
 
 fn expand_branch_children(
     state: &ProgramMap,
-    operation: &mut Operation,
+    operation: &mut OperationWithMetadata,
 ) -> Result<bool, qsc_circuit::Error> {
-    for child_column in operation.children_mut() {
-        for child_component in &mut child_column.components {
-            if expand_branch_children(state, child_component)? {
-                return Ok(true); // more work needed to fill in the branch children
-            }
+    for child in &mut operation.children {
+        if expand_branch_children(state, child)? {
+            return Ok(true); // more work needed to fill in the branch children
         }
     }
-    if let Component::Unitary(unitary) = operation {
+    if let OperationWithMetadata {
+        operation: Component::Unitary(unitary),
+        children: operation_children,
+        ..
+    } = operation
+    {
         if unitary.gate == "branch" {
-            eprintln!("found a branch with args: {:?}", unitary.args);
             let true_arg = &unitary.args[0];
             let true_block = BlockId(
                 true_arg
@@ -282,55 +314,50 @@ fn expand_branch_children(
                     .unwrap_or_else(|_| panic!("block id should parse: {false_arg}")),
             );
 
-            eprintln!(
-                "branching on expr: {:?}, true_block: {:?}, false_block: {:?}",
-                unitary.args[2], true_block, false_block
-            );
             if let Some(branch_operations) = operations_from_branch(state, true_block, false_block)?
             {
                 let (true_operations, true_targets) = branch_operations.true_block;
-                let true_container = Some(Component::Unitary(Unitary {
-                    gate: "true".into(),
-                    args: vec![],
-                    children: vec![ComponentColumn {
-                        components: true_operations,
-                    }],
-                    targets: true_targets.clone(),
-                    controls: unitary.controls.clone(),
-                    is_adjoint: unitary.is_adjoint,
-                }));
+                let true_container = Some(OperationWithMetadata {
+                    operation: Component::Unitary(Unitary {
+                        gate: "true".into(),
+                        args: vec![],
+                        children: vec![], // fill in later
+                        targets: true_targets.clone(),
+                        controls: unitary.controls.clone(),
+                        is_adjoint: unitary.is_adjoint,
+                    }),
+                    children: true_operations,
+                    metadata: None,
+                });
 
                 let false_container =
                     branch_operations
                         .false_block
                         .map(|(false_operations, false_targets)| {
                             (
-                                Component::Unitary(Unitary {
-                                    gate: "false".into(),
-                                    args: vec![],
-                                    children: vec![ComponentColumn {
-                                        components: false_operations,
-                                    }],
-                                    targets: false_targets.clone(),
-                                    controls: unitary.controls.clone(),
-                                    is_adjoint: unitary.is_adjoint,
-                                }),
+                                OperationWithMetadata {
+                                    operation: Component::Unitary(Unitary {
+                                        gate: "false".into(),
+                                        args: vec![],
+                                        children: vec![], // fill in later
+                                        targets: false_targets.clone(),
+                                        controls: unitary.controls.clone(),
+                                        is_adjoint: unitary.is_adjoint,
+                                    }),
+                                    children: false_operations,
+                                    metadata: None,
+                                },
                                 false_targets,
                             )
                         });
 
-                let true_container = true_container.and_then(|t| {
-                    if t.children().iter().any(|col| !col.components.is_empty()) {
-                        Some(t)
-                    } else {
-                        None
-                    }
-                });
+                let true_container =
+                    true_container.and_then(|t| if t.children.is_empty() { None } else { Some(t) });
                 let false_container = false_container.and_then(|f| {
-                    if f.0.children().iter().any(|col| !col.components.is_empty()) {
-                        Some(f)
-                    } else {
+                    if f.0.children.is_empty() {
                         None
+                    } else {
+                        Some(f)
                     }
                 });
 
@@ -346,9 +373,7 @@ fn expand_branch_children(
                     unitary.targets.extend(false_targets);
                 }
 
-                unitary.children = vec![ComponentColumn {
-                    components: children,
-                }];
+                *operation_children = children;
 
                 // dedup targets
                 unitary.targets.sort_by_key(|r| (r.qubit, r.result));
@@ -368,13 +393,6 @@ fn expand_branch_children(
     Ok(false)
 }
 
-#[derive(Clone)]
-struct CircuitBlock {
-    _predecessors: Vec<BlockId>,
-    operations: Vec<Operation>,
-    successor: Option<BlockId>,
-}
-
 fn operations_in_block(
     state: &mut ProgramMap,
     callables: &IndexMap<qsc_partial_eval::CallableId, Callable>,
@@ -384,10 +402,10 @@ fn operations_in_block(
     // TODO: use get_block_successors from utils
     let mut successor = None;
     let mut predecessors = vec![];
-    let mut operations: Vec<Component> = vec![];
+    let mut operations = vec![];
     let mut done = false;
 
-    let mut current_scope: Vec<Component> = vec![];
+    let mut current_scope = vec![];
     let mut last_scope = None;
     // let mut last_discriminator = None;
     for instruction in &block.0 {
@@ -430,20 +448,26 @@ fn operations_in_block(
     })
 }
 
+fn into_operation(mut o: OperationWithMetadata) -> Operation {
+    if let Some(metadata) = &o.metadata {
+        // fill in dbg metadata
+    }
+    *o.operation.children_mut() = vec![ComponentColumn {
+        components: o.children.into_iter().map(into_operation).collect(),
+    }];
+    o.operation
+}
+
 fn extend_operations(
-    operations: &mut Vec<Operation>,
-    current_scope: &mut Vec<Operation>,
+    operations: &mut Vec<OperationWithMetadata>,
+    current_scope: &mut Vec<OperationWithMetadata>,
     last_scope: &mut Option<String>,
-    new_operations: Vec<Operation>,
+    new_operations: Vec<OperationWithMetadata>,
     group_scopes: bool,
 ) {
     for op in new_operations {
-        let metadata_str = op
-            .args()
-            .last()
-            .and_then(|last_arg| last_arg.strip_prefix("metadata="))
-            .map(ToOwned::to_owned);
-        if !op.is_measurement() {
+        let metadata_str = op.metadata.as_ref().map(ToString::to_string);
+        if !op.operation.is_measurement() {
             // don't group measurements yet, too confusing
             if let Some(metadata_str) = metadata_str {
                 let dbg_metadata = parse_dbg_metadata(&metadata_str);
@@ -452,14 +476,12 @@ fn extend_operations(
                     if last_scope
                         .as_ref()
                         .is_some_and(|last_scope| last_scope == &scope_label)
-                        && matches!(&op, Operation::Unitary(_))
+                        && matches!(&op.operation, Operation::Unitary(_))
                     // only group unitaries
                     {
-                        eprintln!("grouping op in scope: {scope_label:?}");
                         // Add to current group
                         current_scope.push(op);
                     } else {
-                        eprintln!("starting new scope: {scope_label:?}");
                         // flush group
                         if !current_scope.is_empty() {
                             flush_scope(operations, current_scope, last_scope, group_scopes);
@@ -474,7 +496,6 @@ fn extend_operations(
             }
         }
         // no scope grouping, flush current scope if any, then add this one right away
-        eprintln!("no scope grouping for op: {op:?}");
 
         // flush group
         if !current_scope.is_empty() {
@@ -484,20 +505,17 @@ fn extend_operations(
         // reset last scope
         *last_scope = None;
 
-        eprintln!("adding op without grouping: {op:?}");
         // add this operation
         operations.push(op);
     }
 }
 
 fn flush_scope(
-    operations: &mut Vec<Operation>,
-    current_scope: &mut Vec<Operation>,
+    operations: &mut Vec<OperationWithMetadata>,
+    current_scope: &mut Vec<OperationWithMetadata>,
     last_scope: &mut Option<String>,
     group_scopes: bool,
 ) {
-    eprintln!("flushing scope: {last_scope:?}");
-
     let mut should_group = current_scope.len() > 1;
     if !group_scopes {
         should_group = false;
@@ -507,7 +525,7 @@ fn flush_scope(
         let mut some_overlap = false;
         let mut qubits: FxHashSet<usize> = FxHashSet::default();
         for op in current_scope.iter() {
-            let op_qubits: Vec<usize> = match op {
+            let op_qubits: Vec<usize> = match &op.operation {
                 Operation::Measurement(measurement) => {
                     measurement.qubits.iter().map(|r| r.qubit).collect()
                 }
@@ -532,8 +550,9 @@ fn flush_scope(
     }
 
     if should_group {
-        let args = current_scope[0].args().clone();
-        eprintln!("will copy args from first op: {:?}", args);
+        let args = current_scope[0].operation.args().clone();
+        let metadata = current_scope[0].metadata.clone();
+
         // let old_metadata_arg = args
         //     .iter()
         //     .find(|s| s.starts_with("metadata="))
@@ -564,7 +583,7 @@ fn flush_scope(
         let qubits: FxHashSet<usize> = current_scope
             .iter()
             .flat_map(|op| {
-                let qubits: Vec<usize> = match op {
+                let qubits: Vec<usize> = match &op.operation {
                     Operation::Measurement(measurement) => {
                         measurement.qubits.iter().map(|r| r.qubit).collect()
                     }
@@ -580,25 +599,27 @@ fn flush_scope(
             })
             .collect();
 
-        let group = Component::Unitary(Unitary {
-            gate: last_scope
-                .as_ref()
-                .expect("last scope should exist here")
-                .to_string(),
-            args,
-            children: vec![ComponentColumn {
-                components: current_scope.clone(),
-            }],
-            targets: qubits
-                .into_iter()
-                .map(|q| Register {
-                    qubit: q,
-                    result: None,
-                })
-                .collect(),
-            controls: vec![],
-            is_adjoint: false,
-        });
+        let group = OperationWithMetadata {
+            operation: Component::Unitary(Unitary {
+                gate: last_scope
+                    .as_ref()
+                    .expect("last scope should exist here")
+                    .to_string(),
+                args,
+                children: vec![], // filled in later
+                targets: qubits
+                    .into_iter()
+                    .map(|q| Register {
+                        qubit: q,
+                        result: None,
+                    })
+                    .collect(),
+                controls: vec![],
+                is_adjoint: false,
+            }),
+            metadata,
+            children: current_scope.clone(),
+        };
         operations.push(group);
         current_scope.clear();
     } else {
@@ -615,7 +636,7 @@ fn get_operations_for_instruction(
     predecessors: &mut Vec<BlockId>,
     done: &mut bool,
     instruction: &InstructionWithMetadata,
-) -> Result<Vec<Operation>, qsc_circuit::Error> {
+) -> Result<Vec<OperationWithMetadata>, qsc_circuit::Error> {
     let operations = match &instruction.instruction {
         Instruction::Call(callable_id, operands, var) => extend_block_with_call_instruction(
             state,
@@ -769,7 +790,7 @@ fn extend_block_with_branch_instruction(
     variable: Variable,
     block_id_1: BlockId,
     block_id_2: BlockId,
-) -> Result<Vec<Operation>, qsc_circuit::Error> {
+) -> Result<Vec<OperationWithMetadata>, qsc_circuit::Error> {
     Ok(vec![operation_for_branch(
         state,
         instruction,
@@ -824,7 +845,7 @@ fn extend_block_with_call_instruction(
     callable_id: qsc_partial_eval::CallableId,
     operands: &Vec<Operand>,
     var: Option<Variable>,
-) -> Result<Vec<Operation>, qsc_circuit::Error> {
+) -> Result<Vec<OperationWithMetadata>, qsc_circuit::Error> {
     map_callable_to_operations(
         state,
         callables.get(callable_id).expect("callable should exist"),
@@ -840,7 +861,7 @@ fn operation_for_branch(
     variable: Variable,
     true_block: BlockId,
     false_block: BlockId,
-) -> Result<Operation, qsc_circuit::Error> {
+) -> Result<OperationWithMetadata, qsc_circuit::Error> {
     let (results, cond_str) = state.condition_for_variable(variable.variable_id)?;
     // TODO: let's allow this for now, though it's weird (see phi nodes)
     // if results.is_empty() {
@@ -852,32 +873,34 @@ fn operation_for_branch(
         .into_iter()
         .map(|r| state.result_register(r))
         .collect();
-    let mut args = vec![
+    let args = vec![
         true_block.0.to_string(),
         false_block.0.to_string(),
         cond_str,
     ];
-    if let Some(metadata) = instruction.metadata.as_ref() {
-        args.push(metadata_arg(metadata));
-    }
-    let op = Component::Unitary(Unitary {
-        gate: "branch".to_string(),
-        args,
-        children: vec![ComponentColumn {
-            components: vec![Component::Unitary(Unitary {
+    let op = OperationWithMetadata {
+        operation: Component::Unitary(Unitary {
+            gate: "branch".to_string(),
+            args,
+            children: vec![],
+            targets: vec![],
+            controls,
+            is_adjoint: false,
+        }),
+        metadata: instruction.metadata.clone(),
+        children: vec![OperationWithMetadata {
+            operation: Component::Unitary(Unitary {
                 gate: "block_placeholder".to_string(),
                 args: vec![],
                 children: vec![],
                 targets: vec![],
                 controls: vec![],
                 is_adjoint: false,
-            })],
+            }),
+            metadata: None,
+            children: vec![],
         }],
-        targets: vec![],
-        controls,
-        is_adjoint: false,
-    });
-    debug!("pushed a branch with args: {:?}", op.args());
+    };
     Ok(op)
 }
 
@@ -909,8 +932,8 @@ fn eq_expr(expr_left: Expr, expr_right: Expr) -> Result<BoolExpr, qsc_circuit::E
 }
 
 struct BranchOperations {
-    true_block: (Vec<Component>, Vec<Register>),
-    false_block: Option<(Vec<Component>, Vec<Register>)>,
+    true_block: (Vec<OperationWithMetadata>, Vec<Register>),
+    false_block: Option<(Vec<OperationWithMetadata>, Vec<Register>)>,
     successor: BlockId,
 }
 
@@ -937,7 +960,7 @@ fn operations_from_branch(
         let mut seen = FxHashSet::default();
         let mut max_qubit_id = 0;
         for op in true_operations {
-            match op {
+            match &op.operation {
                 Operation::Measurement(measurement) => {
                     for q in &measurement.qubits {
                         max_qubit_id = max_qubit_id.max(q.qubit);
@@ -997,7 +1020,7 @@ fn operations_from_branch(
         let mut seen = FxHashSet::default();
         let mut max_qubit_id = 0;
         for op in true_operations {
-            match op {
+            match &op.operation {
                 Operation::Measurement(measurement) => {
                     for q in &measurement.qubits {
                         max_qubit_id = max_qubit_id.max(q.qubit);
@@ -1062,7 +1085,7 @@ fn operations_from_branch(
         let mut seen = FxHashSet::default();
         let mut max_qubit_id = 0;
         for op in true_operations {
-            match op {
+            match &op.operation {
                 Operation::Measurement(measurement) => {
                     for q in &measurement.qubits {
                         max_qubit_id = max_qubit_id.max(q.qubit);
@@ -1117,7 +1140,7 @@ fn operations_from_branch(
         let mut seen = FxHashSet::default();
         let mut max_qubit_id = 0;
         for op in false_operations {
-            match op {
+            match &op.operation {
                 Operation::Measurement(measurement) => {
                     for q in &measurement.qubits {
                         max_qubit_id = max_qubit_id.max(q.qubit);
@@ -1185,7 +1208,7 @@ fn operations_from_branch(
         let mut seen = FxHashSet::default();
         let mut max_qubit_id = 0;
         for op in true_operations {
-            match op {
+            match &op.operation {
                 Operation::Measurement(measurement) => {
                     for q in &measurement.qubits {
                         max_qubit_id = max_qubit_id.max(q.qubit);
@@ -1240,7 +1263,7 @@ fn operations_from_branch(
         let mut seen = FxHashSet::default();
         let mut max_qubit_id = 0;
         for op in false_operations {
-            match op {
+            match &op.operation {
                 Operation::Measurement(measurement) => {
                     for q in &measurement.qubits {
                         max_qubit_id = max_qubit_id.max(q.qubit);
@@ -1572,7 +1595,7 @@ fn map_callable_to_operations(
     operands: &Vec<Operand>,
     var: Option<Variable>,
     metadata: Option<&InstructionMetadata>,
-) -> Result<Vec<qsc_circuit::Operation>, qsc_circuit::Error> {
+) -> Result<Vec<OperationWithMetadata>, qsc_circuit::Error> {
     Ok(match callable.call_type {
         CallableType::Measurement => {
             map_measurement_call_to_operations(state, callable, operands, metadata)?
@@ -1611,10 +1634,7 @@ fn map_callable_to_operations(
         CallableType::Regular => {
             let (gate, operand_types) = callable_spec(callable, operands)?;
 
-            let (targets, controls, mut args) = gather_operands(state, &operand_types, operands)?;
-            if let Some(metadata) = metadata {
-                args.push(metadata_arg(metadata));
-            }
+            let (targets, controls, args) = gather_operands(state, &operand_types, operands)?;
 
             if targets.is_empty() && controls.is_empty() {
                 // Skip operations without targets or controls.
@@ -1622,14 +1642,18 @@ fn map_callable_to_operations(
                 // or annotated in the circuit in some way.
                 vec![]
             } else {
-                vec![Component::Unitary(Unitary {
-                    gate: gate.to_string(),
-                    args,
+                vec![OperationWithMetadata {
+                    operation: Component::Unitary(Unitary {
+                        gate: gate.to_string(),
+                        args,
+                        children: vec![],
+                        targets,
+                        controls,
+                        is_adjoint: false,
+                    }),
+                    metadata: metadata.cloned(),
                     children: vec![],
-                    targets,
-                    controls,
-                    is_adjoint: false,
-                })]
+                }]
             }
         }
     })
@@ -1640,18 +1664,21 @@ fn map_reset_call_into_operations(
     callable: &Callable,
     operands: &[Operand],
     metadata: Option<&InstructionMetadata>,
-) -> Result<Vec<Operation>, qsc_circuit::Error> {
+) -> Result<Vec<OperationWithMetadata>, qsc_circuit::Error> {
     Ok(match callable.name.as_str() {
         "__quantum__qis__reset__body" => {
             let operand_types = vec![QubitOperandType::Target];
             let (targets, _, _) = gather_operands(state, &operand_types, operands)?;
-
-            vec![Component::Ket(Ket {
-                gate: "0".to_string(),
-                args: arg_vec_with_only_metadata(metadata),
+            vec![OperationWithMetadata {
+                operation: Component::Ket(Ket {
+                    gate: "0".to_string(),
+                    args: vec![],
+                    children: vec![],
+                    targets,
+                }),
+                metadata: metadata.cloned(),
                 children: vec![],
-                targets,
-            })]
+            }]
         }
         name => {
             return Err(qsc_circuit::Error::UnsupportedFeature(format!(
@@ -1666,7 +1693,7 @@ fn map_measurement_call_to_operations(
     callable: &Callable,
     operands: &Vec<Operand>,
     metadata: Option<&InstructionMetadata>,
-) -> Result<Vec<Operation>, qsc_circuit::Error> {
+) -> Result<Vec<OperationWithMetadata>, qsc_circuit::Error> {
     let gate = match callable.name.as_str() {
         "__quantum__qis__m__body" => "M",
         "__quantum__qis__mresetz__body" => "MResetZ",
@@ -1677,35 +1704,38 @@ fn map_measurement_call_to_operations(
         vec![
             Component::Measurement(Measurement {
                 gate: gate.to_string(),
-                args: arg_vec_with_only_metadata(metadata),
+                args: vec![],
                 children: vec![],
                 qubits: this_qubits.clone(),
                 results: this_results,
             }),
             Component::Ket(Ket {
                 gate: "0".to_string(),
-                args: arg_vec_with_only_metadata(metadata),
+                args: vec![],
                 children: vec![],
                 targets: this_qubits,
             }),
         ]
-    } else {
-        vec![Component::Measurement(Measurement {
-            gate: gate.to_string(),
-            args: arg_vec_with_only_metadata(metadata),
+        .into_iter()
+        .map(|operation| OperationWithMetadata {
+            operation,
+            metadata: metadata.cloned(),
             children: vec![],
-            qubits: this_qubits,
-            results: this_results,
-        })]
+        })
+        .collect()
+    } else {
+        vec![OperationWithMetadata {
+            operation: Component::Measurement(Measurement {
+                gate: gate.to_string(),
+                args: vec![],
+                children: vec![],
+                qubits: this_qubits,
+                results: this_results,
+            }),
+            metadata: metadata.cloned(),
+            children: vec![],
+        }]
     })
-}
-
-fn metadata_arg(m: &InstructionMetadata) -> String {
-    format!("metadata={}", m.str)
-}
-
-fn arg_vec_with_only_metadata(m: Option<&InstructionMetadata>) -> Vec<String> {
-    m.map_or(vec![], |m| vec![metadata_arg(m)])
 }
 
 fn callable_spec<'a>(
