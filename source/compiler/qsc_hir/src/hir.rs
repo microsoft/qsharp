@@ -188,7 +188,7 @@ impl ItemId {
     pub fn complex() -> Self {
         Self {
             package: Some(PackageId::CORE),
-            item: LocalItemId(3), // ToDo: formalize this reference to the Complex type.
+            item: LocalItemId(3),
         }
     }
 }

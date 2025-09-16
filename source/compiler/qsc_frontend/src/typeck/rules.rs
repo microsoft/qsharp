@@ -951,7 +951,14 @@ impl<'a> Context<'a> {
         let complex_item_id = ItemId::complex();
         let complex_def = self.table.udts.get(&complex_item_id);
         match complex_def {
-            None => converge(Ty::Err),
+            None => {
+                // Manually construct the type for tests. Use a different name to identify this as
+                // test specific, since this should never occur in production.
+                converge(Ty::Udt(
+                    "Complex(Test)".into(),
+                    hir::Res::Item(complex_item_id),
+                ))
+            }
             Some(Udt {
                 span: _,
                 name,

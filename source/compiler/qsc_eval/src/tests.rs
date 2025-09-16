@@ -3709,6 +3709,21 @@ fn complex_literal_supports_division() {
 }
 
 #[test]
+fn complex_literal_supports_negation() {
+    check_expr("", "-(3.0 + 4.0i)", &expect!["(-3.0, -4.0)"]);
+}
+
+#[test]
+fn complex_literal_supports_unary_positive() {
+    check_expr("", "+(3.0 + 4.0i)", &expect!["(3.0, 4.0)"]);
+}
+
+#[test]
+fn complex_literal_supports_exponentiation() {
+    check_expr("", "(3.0 + 0.0i) ^ (0.0 + 0.0i)", &expect!["(1.0, 0.0)"]);
+}
+
+#[test]
 fn partial_eval_simple_stmt() {
     check_partial_eval_stmt(
         "",
