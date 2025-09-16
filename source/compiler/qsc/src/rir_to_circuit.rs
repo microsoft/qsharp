@@ -549,7 +549,7 @@ fn flush_scope(
     }
 
     if should_group {
-        let mut args = current_scope[0].args().clone();
+        let args = current_scope[0].args().clone();
         debug!("will copy args from first op: {:?}", args);
         // let old_metadata_arg = args
         //     .iter()

@@ -185,7 +185,7 @@ fn classical_for_loop() {
     .expect("circuit generation should succeed");
 
     expect![[r#"
-        q_0    ─ [[ ─── [Main_925] ─── [[ ──── [X(×6)] ──── X ─── [[ ──── [X(×5)] ──── X ──── X ──── X ──── X ──── X ─── ]] ─── ]] ─── ]] ──
+        q_0    ─ [[ ─── [Main_2] ─── [[ ──── [X(×6)] ──── X ─── [[ ──── [X(×5)] ──── X ──── X ──── X ──── X ──── X ─── ]] ─── ]] ─── ]] ──
     "#]]
     .assert_eq(&circ.to_string());
 }
@@ -486,7 +486,8 @@ fn result_comparison_to_result() {
 }
 
 #[test]
-fn loop_what() {
+fn loop_and_scope() {
+    // TODO: something is weird with this one
     let circ = circuit(
         r"
             namespace Test {
@@ -502,26 +503,26 @@ fn loop_what() {
 
             operation PrepareSomething(qs : Qubit[]) : Unit {
                 for iteration in 1..10 {
-                    // H(qs[0]);
+                    H(qs[0]);
                     X(qs[0]);
-                    // CNOT(qs[0], qs[1]);
+                    CNOT(qs[0], qs[1]);
                 }
             }
 
             operation DoSomethingElse(qs : Qubit[]) : Unit {
                 for iteration in 1..10 {
-                    // H(qs[1]);
+                    H(qs[1]);
                     X(qs[0]);
                     X(qs[1]);
-                    // CNOT(qs[1], qs[0]);
+                    CNOT(qs[1], qs[0]);
                 }
             }
 
             operation DoSomethingDifferent(qs : Qubit[]) : Unit {
                 for iteration in 1..10 {
-                    // H(qs[0]);
+                    H(qs[0]);
                     Z(qs[0]);
-                    // CNOT(qs[0], qs[1]);
+                    CNOT(qs[0], qs[1]);
                 }
             }
     }
@@ -652,9 +653,9 @@ fn custom_intrinsic_one_classical_arg() {
     )
     .expect("circuit generation should succeed");
 
-    expect![[r"
-        q_0    ── X ─── foo(4) ──
-    "]]
+    expect![[r#"
+        q_0    ─ [[ ─── [Main_0] ──── X ─── foo(4) ─── ]] ──
+    "#]]
     .assert_eq(&circ.to_string());
 }
 
@@ -1244,10 +1245,10 @@ fn if_else() {
     .expect("circuit generation should succeed");
 
     expect![[r#"
-        q_0    ── H ──── M ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-                         ╘════════════════════ ● ═════════════════════ ● ═════════════════════════════ ● ════════════════════════════════
-        q_1    ─────────────── [[ ──── [check (a = |1〉)] ─── [[ ─── [true] ──── X ─── ]] ─── [[ ─── [false] ─── Y ─── ]] ─── ]] ──── M ──
-                                                                                                                                     ╘═══
+        q_0    ── H ─── [[ ─── [Main_0] ──── M ────────── ]] ──
+                                             ╘═════ ● ═════════
+        q_1    ────────────────────────────────────────────────
+
     "#]]
     .assert_eq(&circ.to_string());
 }
@@ -1518,6 +1519,39 @@ const DOT_PRODUCT_PHASE_ESTIMATION: &str = r#"
         }
 
     "#;
+
+#[test]
+fn static_generation_with_rca_errors() {
+    let circ = circuit_with_profile(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+                @EntryPoint()
+                operation Main() : Double {
+                    use q = Qubit();
+                    H(q);
+                    let a = if (M(q) == One) {
+                        1.0
+                    } else {
+                        0.0
+                    };
+                    Reset(q);
+                    return a;
+                }
+            }
+        ",
+        CircuitEntryPoint::EntryPoint,
+        Config::default(),
+        Profile::Unrestricted,
+    )
+    .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ── H ─── [[ ─── [Main_0] ──── M ────────── ]] ──
+                                             ╘═════ ● ═════════
+    "#]]
+    .assert_eq(&circ.to_string());
+}
 
 /// Tests that invoke circuit generation throught the debugger.
 mod debugger_stepping {

@@ -3,7 +3,7 @@
 - [ ] zoom out operation grouping
 - [ ] block / function folding
 - [x] conditionals and loops
-- [ ] qir->rir parsing
+- [x] qir->rir parsing (pyqir)
 - [ ] qubit/argument names
 - [x] LLVM debug info
 - [x] links to source code on the diagram itself
@@ -11,3 +11,6 @@
 - [ ] For simulated circuits only:
   - [ ] state annotations
   - [ ] dynamic circuits with ghost paths
+- [ ] grouping vertically (qubit arrays)
+- [ ] row wrapping
+- [ ] unrestricted -> adaptive transformation (dead code elimination)
