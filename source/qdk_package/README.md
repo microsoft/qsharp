@@ -13,22 +13,16 @@ Base (always includes `qsharp`):
 pip install qdk
 ```
 
-Widgets extra (adds `qsharp-widgets`):
+Jupyter extra (bundles widgets + JupyterLab extension package — provides only the `qdk.widgets` Python surface):
 
 ```bash
-pip install qdk[widgets]
+pip install qdk[jupyter]
 ```
 
 Azure Quantum extra (adds `azure-quantum`):
 
 ```bash
 pip install qdk[azure]
-```
-
-JupyterLab extension extra (adds `qsharp-jupyterlab`):
-
-```bash
-pip install qdk[jupyterlab]
 ```
 
 Qiskit extra (adds `qiskit`):
@@ -52,7 +46,7 @@ result = qsharp.run("operation Hello() : Result { use q = Qubit(); H(q); return 
 print(result)
 ```
 
-Widgets (if installed):
+Widgets (installed via jupyter extra):
 
 ```python
 from qdk import widgets_available, require
@@ -85,22 +79,20 @@ if azure_available():
 
 Root-level symbols (kept intentionally small):
 
-| Symbol                   | Description                                                                 |
-| ------------------------ | --------------------------------------------------------------------------- |
-| `qsharp`                 | Submodule re-export of the upstream `qsharp` package.                       |
-| `widgets_available()`    | Boolean: is the widgets extra installed?                                    |
-| `azure_available()`      | Boolean: is the azure extra installed?                                      |
-| `qiskit_available()`     | Boolean: is the qiskit extra installed?                                     |
-| `jupyterlab_available()` | Boolean: is the jupyterlab extra installed?                                 |
-| `require(name)`          | Retrieve a feature module (`"qsharp"`, `"widgets"`, `"azure"`, `"qiskit"`). |
+| Symbol                | Description                                                                 |
+| --------------------- | --------------------------------------------------------------------------- |
+| `qsharp`              | Submodule re-export of the upstream `qsharp` package.                       |
+| `widgets_available()` | Boolean: is widget support (jupyter extra) installed?                       |
+| `azure_available()`   | Boolean: is the azure extra installed?                                      |
+| `qiskit_available()`  | Boolean: is the qiskit extra installed?                                     |
+| `require(name)`       | Retrieve a feature module (`"qsharp"`, `"widgets"`, `"azure"`, `"qiskit"`). |
 
 Submodules:
 
 - `qdk.qsharp` – direct passthrough to `qsharp` APIs.
-- `qdk.widgets` – only if `qsharp-widgets` installed.
+- `qdk.widgets` – only if `qsharp-widgets` installed (through `qdk[jupyter]`).
 - `qdk.azure` – only if `azure-quantum` installed.
 - `qdk.qiskit` – only if `qiskit` installed.
-- `qdk.jupyterlab` – only if `qsharp-jupyterlab` installed.
 
 ## `require()` Helper
 
@@ -115,7 +107,7 @@ except ImportError:
 
 ## Design Notes
 
-- No implicit re-export of individual functions (e.g. `run`) at the root.
+- Root re-exports selected utility symbols from `qsharp` (e.g. `code`, `set_quantum_seed`, types) for convenience; algorithm APIs still live under `qdk.qsharp`.
 - Optional extras are thin pass-through modules; failure messages instruct how to install.
 - Tests may stub dependencies in isolation environments.
 
@@ -134,7 +126,6 @@ Current approach (kept intentionally lean):
    - `mock_widgets()` creates a lightweight `qsharp_widgets` module (with a version attribute). Tests assert the `qdk.widgets` shim imports (doc presence).
    - `mock_azure()` creates the nested namespace `azure.quantum` (with a version attribute). Tests assert the `qdk.azure` shim imports (doc presence).
    - `mock_qiskit()` creates a `qiskit` module exposing a callable `transpile()` so tests can assert a functional symbol survives re-export.
-   - `mock_jupyterlab()` creates a lightweight `qsharp_jupyterlab` module (with a version attribute). Tests assert the `qdk.jupyterlab` shim imports (doc presence).
 4. No network or cloud interactions are performed; all tests operate purely on import mechanics and mocks.
 
 ### Running the tests

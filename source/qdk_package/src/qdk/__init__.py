@@ -8,10 +8,9 @@ Design goals:
         submodules (`qdk.qsharp`, `qdk.widgets`, etc.).
 
 Optional extras:
-    widgets -> installs `qsharp-widgets`, available as `qdk.widgets`.
     azure   -> installs `azure-quantum`, available as `qdk.azure`.
     qiskit  -> installs `qiskit`, available as `qdk.qiskit`.
-    jupyterlab -> installs `qsharp-jupyterlab`, available as `qdk.jupyterlab`.
+    jupyter -> installs `qsharp-widgets` + `qsharp-jupyterlab`; exposes `qdk.widgets`.
 
 """
 
@@ -35,7 +34,7 @@ except Exception as _ex:  # pragma: no cover
 
 # Some common utilities are lifted to the qdk root.
 from qsharp import code  # type: ignore  # noqa: F401
-from qsharp import (
+from qsharp import (  # type: ignore  # noqa: F401
     set_quantum_seed,
     set_classical_seed,
     dump_machine,
@@ -55,8 +54,8 @@ __all__ = [
     "widgets_available",
     "azure_available",
     "qiskit_available",
-    "jupyterlab_available",
     "require",
+    # utilities
     "code",
     "set_quantum_seed",
     "set_classical_seed",
@@ -74,7 +73,7 @@ __all__ = [
 
 
 def widgets_available() -> bool:
-    """Return True if the widgets extra is installed."""
+    """Return True if widget support (via the jupyter extra) is installed."""
     try:  # pragma: no cover
         import_module("qsharp_widgets")
         return True
@@ -102,31 +101,22 @@ def qiskit_available() -> bool:
         return False
 
 
-def jupyterlab_available() -> bool:
-    """Return True if the jupyterlab extra (qsharp-jupyterlab) is installed."""
-    try:  # pragma: no cover
-        import_module("qsharp_jupyterlab")
-        return True
-    except Exception:
-        return False
-
-
 def require(feature: str):
     """Return the module backing a named feature or raise ImportError.
 
     Recognized features:
-        * 'qsharp'  -> qdk.qsharp
-        * 'widgets' -> qdk.widgets (requires widgets extra)
-        * 'azure'   -> qdk.azure  (requires azure extra)
-        * 'qiskit'  -> qdk.qiskit (requires qiskit extra)
-        * 'jupyterlab' -> qdk.jupyterlab (requires jupyterlab extra)
+        * 'qsharp'    -> qdk.qsharp
+        * 'widgets'   -> qdk.widgets (requires jupyter extra)
+        * 'jupyter'   -> alias for widgets (requires jupyter extra)
+        * 'azure'     -> qdk.azure  (requires azure extra)
+        * 'qiskit'    -> qdk.qiskit (requires qiskit extra)
     """
     if feature == "qsharp":
         return qsharp
-    if feature == "widgets":
+    if feature in ("widgets", "jupyter"):
         if not widgets_available():
             raise ImportError(
-                "Feature 'widgets' unavailable. Install with 'pip install qdk[widgets]'."
+                "Feature 'widgets' (jupyter) unavailable. Install with 'pip install qdk[jupyter]'."
             )
         return import_module("qdk.widgets")
     if feature == "azure":
@@ -141,12 +131,6 @@ def require(feature: str):
                 "Feature 'qiskit' unavailable. Install with 'pip install qdk[qiskit]'."
             )
         return import_module("qdk.qiskit")
-    if feature == "jupyterlab":
-        if not jupyterlab_available():
-            raise ImportError(
-                "Feature 'jupyterlab' unavailable. Install with 'pip install qdk[jupyterlab]'."
-            )
-        return import_module("qdk.jupyterlab")
     raise ImportError(
-        f"Feature '{feature}' is not recognized. Available: qsharp, widgets, azure, qiskit, jupyterlab (if installed)."
+        f"Feature '{feature}' is not recognized. Available: qsharp, widgets, jupyter, azure, qiskit (if installed)."
     )

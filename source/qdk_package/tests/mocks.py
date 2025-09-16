@@ -34,7 +34,41 @@ def mock_qsharp() -> List[str]:
 
         stub.run = _not_impl  # type: ignore[attr-defined]
         stub.estimate = _not_impl  # type: ignore[attr-defined]
-        stub.__all__ = ["run", "estimate"]
+        # Provide utility symbols expected to re-export at root
+        stub.code = object()  # type: ignore[attr-defined]
+        stub.set_quantum_seed = lambda *_a, **_k: None  # type: ignore[attr-defined]
+        stub.set_classical_seed = lambda *_a, **_k: None  # type: ignore[attr-defined]
+        stub.dump_machine = lambda *_a, **_k: None  # type: ignore[attr-defined]
+        stub.dump_circuit = lambda *_a, **_k: None  # type: ignore[attr-defined]
+
+        class _T:  # placeholder types
+            pass
+
+        stub.Result = _T  # type: ignore[attr-defined]
+        stub.TargetProfile = _T  # type: ignore[attr-defined]
+        stub.StateDump = _T  # type: ignore[attr-defined]
+        stub.ShotResult = _T  # type: ignore[attr-defined]
+        stub.PauliNoise = _T  # type: ignore[attr-defined]
+        stub.DepolarizingNoise = _T  # type: ignore[attr-defined]
+        stub.BitFlipNoise = _T  # type: ignore[attr-defined]
+        stub.PhaseFlipNoise = _T  # type: ignore[attr-defined]
+        stub.__all__ = [
+            "run",
+            "estimate",
+            "code",
+            "set_quantum_seed",
+            "set_classical_seed",
+            "dump_machine",
+            "dump_circuit",
+            "Result",
+            "TargetProfile",
+            "StateDump",
+            "ShotResult",
+            "PauliNoise",
+            "DepolarizingNoise",
+            "BitFlipNoise",
+            "PhaseFlipNoise",
+        ]
         sys.modules["qsharp"] = stub
         created.append("qsharp")
     return created
@@ -75,16 +109,6 @@ def mock_qiskit() -> List[str]:
         qk.transpile = transpile  # type: ignore[attr-defined]
         sys.modules["qiskit"] = qk
         created.append("qiskit")
-    return created
-
-
-def mock_jupyterlab() -> List[str]:
-    created: List[str] = []
-    if "qsharp_jupyterlab" not in sys.modules:
-        jl = types.ModuleType("qsharp_jupyterlab")
-        jl.__version__ = "1.20.0-mock"
-        sys.modules["qsharp_jupyterlab"] = jl
-        created.append("qsharp_jupyterlab")
     return created
 
 

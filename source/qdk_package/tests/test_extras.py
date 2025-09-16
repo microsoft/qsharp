@@ -7,7 +7,6 @@ from mocks import (
     mock_widgets,
     mock_azure,
     mock_qiskit,
-    mock_jupyterlab,
     cleanup_modules,
 )
 
@@ -32,12 +31,6 @@ EXTRAS = {
         "require_name": "qiskit",
         "module": "qdk.qiskit",
         "post_assert": lambda mod: hasattr(mod, "transpile"),
-    },
-    "jupyterlab": {
-        "mock": mock_jupyterlab,
-        "require_name": "jupyterlab",
-        "module": "qdk.jupyterlab",
-        "post_assert": lambda mod: hasattr(mod, "__doc__"),
     },
 }
 
