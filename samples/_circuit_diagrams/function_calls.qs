@@ -11,7 +11,7 @@ operation Main() : Unit {
 }
 
 operation PrepareSomething(qs : Qubit[]) : Unit {
-    for iteration in 1..10 {
+    for iteration in 1..5 {
         H(qs[0]);
         X(qs[0]);
         CNOT(qs[0], qs[1]);
@@ -19,7 +19,7 @@ operation PrepareSomething(qs : Qubit[]) : Unit {
 }
 
 operation DoSomethingElse(qs : Qubit[]) : Unit {
-    for iteration in 1..10 {
+    for iteration in 1..5 {
         H(qs[1]);
         X(qs[0]);
         X(qs[1]);
@@ -28,7 +28,7 @@ operation DoSomethingElse(qs : Qubit[]) : Unit {
 }
 
 operation DoSomethingDifferent(qs : Qubit[]) : Unit {
-    for iteration in 1..10 {
+    for iteration in 1..5 {
         H(qs[0]);
         Z(qs[0]);
         CNOT(qs[0], qs[1]);

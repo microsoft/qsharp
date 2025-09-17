@@ -1,10 +1,10 @@
 ## To try out
 
-- [ ] zoom out operation grouping
+- [x] zoom out operation grouping
 - [x] block / function folding
 - [x] simple conditionals
-- [ ] detected loops
-- [x] loops from source
+- [x] detected loops
+- [ ] loops from source
 - [x] qir->rir parsing (pyqir)
 - [ ] qubit/argument names
 - [x] LLVM debug info

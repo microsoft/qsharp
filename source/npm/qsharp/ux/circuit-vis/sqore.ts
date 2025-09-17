@@ -109,10 +109,10 @@ export class Sqore {
     );
 
     // Render operations starting at given depth
-    _circuit.componentGrid = this.selectOpsAtDepth(
-      _circuit.componentGrid,
-      renderDepth,
-    );
+    // _circuit.componentGrid = this.selectOpsAtDepth(
+    //   _circuit.componentGrid,
+    //   renderDepth,
+    // );
 
     // If only one top-level operation, expand automatically:
     if (
@@ -128,6 +128,9 @@ export class Sqore {
         _circuit.componentGrid[0].components[0].dataAttributes["location"];
       this.expandOperation(_circuit.componentGrid, location);
     }
+
+    const grid = _circuit.componentGrid;
+    this.expandUntilDepth(grid, renderDepth);
 
     // Create visualization components
     const composedSqore: ComposedSqore = this.compose(_circuit);
@@ -156,6 +159,29 @@ export class Sqore {
       enableEvents(container, this, () => this.renderCircuit(container));
       if (this.editCallback != undefined) {
         this.editCallback(this.minimizeCircuits(this.circuitGroup));
+      }
+    }
+  }
+
+  private expandUntilDepth(grid: ComponentGrid, depth: number): void {
+    if (depth <= 0) return;
+
+    for (const col of grid) {
+      for (const op of col.components) {
+        if (
+          op.children &&
+          op.children.length > 0 &&
+          op.dataAttributes != null &&
+          Object.prototype.hasOwnProperty.call(op.dataAttributes, "location")
+        ) {
+          const location: string = op.dataAttributes["location"];
+          // this.expandOperation(op.children, location);
+
+          op.conditionalRender = ConditionalRender.AsGroup;
+          op.dataAttributes["expanded"] = "true";
+
+          this.expandUntilDepth(op.children, depth - 1);
+        }
       }
     }
   }
@@ -311,6 +337,7 @@ export class Sqore {
     componentGrid.forEach((col) => {
       const selectedCol: Operation[] = [];
       const extraCols: Column[] = [];
+
       col.components.forEach((op) => {
         if (op.children != null) {
           const selectedChildren = this.selectOpsAtDepth(
@@ -328,11 +355,11 @@ export class Sqore {
         } else {
           selectedCol.push(op);
         }
-        selectedOps.push({ components: selectedCol });
-        if (extraCols.length > 0) {
-          selectedOps.push(...extraCols);
-        }
       });
+      selectedOps.push({ components: selectedCol });
+      if (extraCols.length > 0) {
+        selectedOps.push(...extraCols);
+      }
     });
     return selectedOps;
   }
