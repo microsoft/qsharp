@@ -25,7 +25,22 @@ use rustc_hash::FxHashSet;
 type ResultId = (usize, usize);
 
 #[derive(Clone)]
-struct OperationWithMetadata {
+enum Op {
+    Real(RealOp),
+    UnexpandedBranch(UnexpandedBranch),
+}
+
+#[derive(Clone)]
+struct UnexpandedBranch {
+    cond_str: String,
+    true_block: BlockId,
+    false_block: BlockId,
+    control_results: Vec<ResultId>,
+    metadata: Option<InstructionMetadata>,
+}
+
+#[derive(Clone)]
+struct RealOp {
     kind: OperationKind,
     label: String,
     target_qubits: Vec<usize>,
@@ -33,9 +48,36 @@ struct OperationWithMetadata {
     target_results: Vec<ResultId>,
     control_results: Vec<ResultId>,
     is_adjoint: bool,
-    children: Vec<OperationWithMetadata>,
+    children: Vec<Op>,
     args: Vec<String>,
     metadata: Option<InstructionMetadata>,
+}
+
+impl Op {
+    fn control_qubits(&self) -> &[usize] {
+        match self {
+            Op::Real(r) => &r.control_qubits,
+            Op::UnexpandedBranch(_) => &[],
+        }
+    }
+    fn target_qubits(&self) -> &[usize] {
+        match self {
+            Op::Real(r) => &r.target_qubits,
+            Op::UnexpandedBranch(_u) => &[],
+        }
+    }
+    fn args(&self) -> &[String] {
+        match self {
+            Op::Real(r) => &r.args,
+            Op::UnexpandedBranch(_u) => &[],
+        }
+    }
+    fn metadata(&self) -> Option<&InstructionMetadata> {
+        match self {
+            Op::Real(r) => r.metadata.as_ref(),
+            Op::UnexpandedBranch(u) => u.metadata.as_ref(),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -45,8 +87,8 @@ enum OperationKind {
     Ket,
 }
 
-impl From<OperationWithMetadata> for Operation {
-    fn from(value: OperationWithMetadata) -> Self {
+impl From<RealOp> for Operation {
+    fn from(value: RealOp) -> Self {
         let args = value
             .args
             .into_iter()
@@ -54,7 +96,19 @@ impl From<OperationWithMetadata> for Operation {
             .collect();
 
         let children = vec![ComponentColumn {
-            components: value.children.into_iter().map(Operation::from).collect(),
+            components: value
+                .children
+                .into_iter()
+                .map(|o| {
+                    match o {
+                        Op::Real(real_op) => real_op,
+                        Op::UnexpandedBranch(_) => {
+                            panic!("branches shouldn't appear here")
+                        }
+                    }
+                    .into()
+                })
+                .collect(),
         }];
         let targets = value
             .target_qubits
@@ -143,7 +197,16 @@ pub(crate) fn make_circuit(
             "entry block should not have an unconditional successor".to_owned(),
         ));
     }
-    let entry_operations = entry_block.operations.clone();
+    let entry_operations = entry_block
+        .operations
+        .iter()
+        .map(|op| match op {
+            Op::Real(real_op) => real_op.clone(),
+            Op::UnexpandedBranch { .. } => {
+                panic!("entry block should not have unexpanded branches")
+            }
+        })
+        .collect();
 
     let operations = expand_successors(&state, entry_operations);
 
@@ -171,6 +234,7 @@ pub(crate) fn make_circuit(
 fn expand_branches(program: &Program, state: &mut ProgramMap) -> Result<(), qsc_circuit::Error> {
     let mut more_work = true;
     while more_work {
+        // TODO: stop if no progress to avoid infinite loop
         more_work = false;
         for block in program.blocks.iter() {
             let mut circuit_block = state
@@ -189,16 +253,13 @@ fn expand_branches(program: &Program, state: &mut ProgramMap) -> Result<(), qsc_
     Ok(())
 }
 
-fn expand_successors(
-    state: &ProgramMap,
-    block_operations: Vec<OperationWithMetadata>,
-) -> Vec<OperationWithMetadata> {
+fn expand_successors(state: &ProgramMap, block_operations: Vec<RealOp>) -> Vec<RealOp> {
     let mut operations = vec![];
     let mut operations_stack = block_operations;
     operations_stack.reverse();
 
     while let Some(mut operation) = operations_stack.pop() {
-        if let unitary @ OperationWithMetadata {
+        if let unitary @ RealOp {
             kind: OperationKind::Unitary,
             ..
         } = &mut operation
@@ -214,6 +275,12 @@ fn expand_successors(
                     .get(successor_block_id)
                     .expect("successor block should exist");
                 for successor_operation in successor_block.operations.iter().rev() {
+                    let successor_operation = match successor_operation {
+                        Op::Real(real_op) => real_op,
+                        Op::UnexpandedBranch { .. } => {
+                            panic!("successor block should not have unexpanded branches")
+                        }
+                    };
                     operations_stack.push(successor_operation.clone());
                 }
                 if unitary.children.is_empty() {
@@ -223,9 +290,17 @@ fn expand_successors(
             }
 
             if !unitary.children.is_empty() {
-                let children = take(&mut unitary.children);
+                let children = take(&mut unitary.children)
+                    .into_iter()
+                    .map(|o| match o {
+                        Op::Real(real_op) => real_op,
+                        Op::UnexpandedBranch(_) => {
+                            panic!("branches shouldn't appear here")
+                        }
+                    })
+                    .collect();
                 let children = expand_successors(state, children);
-                unitary.children = children;
+                unitary.children = children.into_iter().map(Op::Real).collect();
             }
         }
         operations.push(operation.clone());
@@ -377,59 +452,59 @@ fn parse_span(rest: &str) -> Option<Span> {
 
 fn expand_branch_children(
     state: &ProgramMap,
-    operation: &mut OperationWithMetadata,
+    operation: &mut Op,
 ) -> Result<bool, qsc_circuit::Error> {
-    if operation.label == "branch" {
-        let true_arg = &operation.args[0];
-        let true_block = BlockId(
-            true_arg
-                .parse()
-                .unwrap_or_else(|_| panic!("block id should parse: {true_arg}")),
-        );
-        let false_arg = &operation.args[1];
-        let false_block = BlockId(
-            false_arg
-                .parse()
-                .unwrap_or_else(|_| panic!("block id should parse: {false_arg}")),
-        );
+    if let Op::UnexpandedBranch(UnexpandedBranch {
+        cond_str,
+        true_block,
+        false_block,
+        control_results,
+        metadata,
+    }) = operation
+    {
+        let true_block = *true_block;
+        let false_block = *false_block;
         if let Some(branch_operations) = operations_from_branch(state, true_block, false_block)? {
             let (true_operations, true_targets) = branch_operations.true_block;
-            let true_container = Some(OperationWithMetadata {
+            let true_container = RealOp {
                 kind: OperationKind::Unitary,
                 label: "true".into(),
                 args: vec![],
-                children: true_operations,
+                children: true_operations.iter().cloned().map(Op::Real).collect(),
                 target_qubits: true_targets.clone(),
-                control_qubits: operation.control_qubits.clone(),
+                control_qubits: vec![],
                 target_results: vec![],
-                control_results: operation.control_results.clone(),
-                is_adjoint: operation.is_adjoint,
+                control_results: control_results.clone(),
+                is_adjoint: false,
                 metadata: None,
-            });
+            };
 
             let false_container =
                 branch_operations
                     .false_block
                     .map(|(false_operations, false_targets)| {
                         (
-                            OperationWithMetadata {
+                            RealOp {
                                 kind: OperationKind::Unitary,
                                 label: "false".into(),
                                 target_qubits: false_targets.clone(),
-                                control_qubits: operation.control_qubits.clone(),
+                                control_qubits: vec![],
                                 target_results: vec![],
-                                control_results: operation.control_results.clone(),
+                                control_results: control_results.clone(),
                                 args: vec![],
-                                is_adjoint: operation.is_adjoint,
-                                children: false_operations,
+                                is_adjoint: false,
+                                children: false_operations.iter().cloned().map(Op::Real).collect(),
                                 metadata: None,
                             },
                             false_targets,
                         )
                     });
 
-            let true_container =
-                true_container.and_then(|t| if t.children.is_empty() { None } else { Some(t) });
+            let true_container = if true_container.children.is_empty() {
+                None
+            } else {
+                Some(true_container)
+            };
             let false_container = false_container.and_then(|f| {
                 if f.0.children.is_empty() {
                     None
@@ -439,31 +514,37 @@ fn expand_branch_children(
             });
 
             let mut children = vec![];
+            let mut target_qubits = vec![];
 
             if let Some(true_container) = true_container {
                 children.push(true_container);
-                operation.target_qubits.extend(true_targets);
+                target_qubits.extend(true_targets);
             }
 
             if let Some((false_container, false_targets)) = false_container {
                 children.push(false_container);
-                operation.target_qubits.extend(false_targets);
+                target_qubits.extend(false_targets);
             }
 
-            operation.children = children;
-
             // dedup targets
-            operation.target_qubits.sort_unstable();
-            operation.target_qubits.dedup();
-            operation.target_results.sort_unstable();
-            operation.target_results.dedup();
+            target_qubits.sort_unstable();
+            target_qubits.dedup();
+            // TODO: target results for container? measurements in branches?
 
-            operation.args.remove(0);
-            operation.args.remove(0);
-            operation
-                .args
-                .insert(0, branch_operations.successor.0.to_string());
-            operation.label = "successor".to_string();
+            let args = vec![branch_operations.successor.0.to_string(), cond_str.clone()];
+            let label = "successor".to_string();
+            *operation = Op::Real(RealOp {
+                kind: OperationKind::Unitary,
+                label,
+                target_qubits,
+                control_qubits: vec![],
+                target_results: vec![],
+                control_results: control_results.clone(),
+                is_adjoint: false,
+                children: children.into_iter().map(Op::Real).collect(),
+                args,
+                metadata: metadata.clone(),
+            });
         } else {
             return Ok(true); // more work needed to fill in the branch children
         }
@@ -474,7 +555,7 @@ fn expand_branch_children(
 #[derive(Clone)]
 struct CircuitBlock {
     _predecessors: Vec<BlockId>,
-    operations: Vec<OperationWithMetadata>,
+    operations: Vec<Op>,
     terminator: Option<Terminator>,
 }
 
@@ -544,25 +625,32 @@ fn operations_in_block(
 }
 
 fn extend_operations(
-    operations: &mut Vec<OperationWithMetadata>,
-    current_scope: &mut Vec<OperationWithMetadata>,
+    operations: &mut Vec<Op>,
+    current_scope: &mut Vec<Op>,
     last_scope: &mut Option<String>,
-    new_operations: Vec<OperationWithMetadata>,
+    new_operations: Vec<Op>,
     group_scopes: bool,
 ) {
     for op in new_operations {
-        let metadata = &op.metadata;
+        let metadata = match &op {
+            Op::Real(r) => &r.metadata,
+            Op::UnexpandedBranch(u) => &u.metadata,
+        };
         if let Some(metadata) = metadata {
-            let dbg_metadata = metadata;
-
             if let (Some(callable), Some(block_id)) =
-                (&dbg_metadata.current_callable_name, dbg_metadata.scope_id)
+                (&metadata.current_callable_name, metadata.scope_id)
             {
                 let scope = format!("{callable}_{block_id}");
                 if last_scope
                     .as_ref()
                     .is_some_and(|last_scope| last_scope == &scope)
-                    && matches!(&op.kind, OperationKind::Unitary)
+                    && matches!(
+                        &op,
+                        Op::Real(RealOp {
+                            kind: OperationKind::Unitary,
+                            ..
+                        }) | Op::UnexpandedBranch { .. }
+                    )
                 // only group unitaries
                 {
                     // Add to current group
@@ -596,8 +684,8 @@ fn extend_operations(
 }
 
 fn flush_scope(
-    operations: &mut Vec<OperationWithMetadata>,
-    current_scope: &mut Vec<OperationWithMetadata>,
+    operations: &mut Vec<Op>,
+    current_scope: &mut Vec<Op>,
     last_scope: &mut Option<String>,
     group_scopes: bool,
 ) {
@@ -610,10 +698,11 @@ fn flush_scope(
         let mut some_overlap = false;
         let mut qubits: FxHashSet<usize> = FxHashSet::default();
         for op in current_scope.iter() {
+            // TODO: I feel like this breaks down if `op` is an unexpanded branch?
             let op_qubits: Vec<usize> = op
-                .control_qubits
+                .control_qubits()
                 .iter()
-                .chain(&op.target_qubits)
+                .chain(op.target_qubits())
                 .copied()
                 .collect();
             let initial_len = qubits.len();
@@ -629,14 +718,19 @@ fn flush_scope(
     }
 
     if should_group {
-        let args = current_scope[0].args.clone();
-        let metadata = current_scope[0].metadata.clone();
+        let args = current_scope[0].args().to_vec();
+        let metadata = current_scope[0].metadata().cloned();
         let qubits: FxHashSet<usize> = current_scope
             .iter()
-            .flat_map(|op| op.control_qubits.iter().chain(&op.target_qubits).copied())
+            .flat_map(|op| {
+                op.control_qubits()
+                    .iter()
+                    .chain(op.target_qubits())
+                    .copied()
+            })
             .collect();
 
-        let group = OperationWithMetadata {
+        let group = Op::Real(RealOp {
             kind: OperationKind::Unitary,
             label: last_scope
                 .as_ref()
@@ -650,7 +744,7 @@ fn flush_scope(
             children: current_scope.clone(),
             args,
             metadata,
-        };
+        });
         operations.push(group);
         current_scope.clear();
     } else {
@@ -661,7 +755,7 @@ fn flush_scope(
 }
 
 struct BlockUpdate {
-    operations: Vec<OperationWithMetadata>,
+    operations: Vec<Op>,
     terminator: Option<Terminator>,
 }
 
@@ -841,7 +935,7 @@ fn extend_block_with_branch_instruction(
     variable: Variable,
     block_id_1: BlockId,
     block_id_2: BlockId,
-) -> Result<Vec<OperationWithMetadata>, qsc_circuit::Error> {
+) -> Result<Vec<Op>, qsc_circuit::Error> {
     let old = conditional_successors.replace((variable, block_id_1, block_id_2));
     if old.is_some() {
         return Err(qsc_circuit::Error::UnsupportedFeature(
@@ -902,7 +996,7 @@ fn extend_block_with_call_instruction(
     callable_id: qsc_partial_eval::CallableId,
     operands: &Vec<Operand>,
     var: Option<Variable>,
-) -> Result<Vec<OperationWithMetadata>, qsc_circuit::Error> {
+) -> Result<Vec<Op>, qsc_circuit::Error> {
     map_callable_to_operations(
         state,
         callables.get(callable_id).expect("callable should exist"),
@@ -910,6 +1004,7 @@ fn extend_block_with_call_instruction(
         var,
         instruction.metadata.as_ref(),
     )
+    .map(|ops| ops.into_iter().map(Op::Real).collect())
 }
 
 fn operation_for_branch(
@@ -918,7 +1013,7 @@ fn operation_for_branch(
     variable: Variable,
     true_block: BlockId,
     false_block: BlockId,
-) -> Result<OperationWithMetadata, qsc_circuit::Error> {
+) -> Result<Op, qsc_circuit::Error> {
     let (results, cond_str) = state.condition_for_variable(variable.variable_id)?;
     // TODO: let's allow this for now, though it's weird (see phi nodes)
     if results.is_empty() {
@@ -927,18 +1022,11 @@ fn operation_for_branch(
         )));
     }
     let controls = results.into_iter().map(|r| state.result_register(r));
-    let args = vec![
-        true_block.0.to_string(),
-        false_block.0.to_string(),
-        cond_str,
-    ];
 
-    let op = OperationWithMetadata {
-        kind: OperationKind::Unitary,
-        label: "branch".to_string(),
-        target_qubits: vec![],
-        control_qubits: vec![],
-        target_results: vec![],
+    let op = Op::UnexpandedBranch(UnexpandedBranch {
+        cond_str,
+        true_block,
+        false_block,
         control_results: controls
             .into_iter()
             .map(|r| {
@@ -948,11 +1036,8 @@ fn operation_for_branch(
                 )
             })
             .collect(),
-        is_adjoint: false,
-        children: vec![],
-        args,
         metadata: instruction.metadata.clone(),
-    };
+    });
     Ok(op)
 }
 
@@ -984,13 +1069,12 @@ fn eq_expr(expr_left: Expr, expr_right: Expr) -> Result<BoolExpr, qsc_circuit::E
 }
 
 struct BranchOperations {
-    true_block: (Vec<OperationWithMetadata>, Vec<usize>),
-    false_block: Option<(Vec<OperationWithMetadata>, Vec<usize>)>,
+    true_block: (Vec<RealOp>, Vec<usize>),
+    false_block: Option<(Vec<RealOp>, Vec<usize>)>,
     successor: BlockId,
 }
 
 /// Can only handle basic branches
-#[allow(clippy::too_many_lines)]
 fn operations_from_branch(
     state: &ProgramMap,
     true_block: BlockId,
@@ -1018,63 +1102,28 @@ fn operations_from_branch(
 
     if true_successor.is_some_and(|c| c == false_block) && false_successor.is_none() {
         // simple if
-        let mut seen = FxHashSet::default();
-        for op in true_operations {
-            if op.label == "branch" {
-                // Skip this one for now, the branch block itself has an unexpanded branch
-                return Ok(None);
-            }
-            for q in op.target_qubits.iter().chain(&op.control_qubits) {
-                seen.insert((*q, None));
-            }
-            for r in op.target_results.iter().chain(&op.control_results) {
-                seen.insert((r.0, Some(r.1)));
-            }
+        let (early_return, target_qubits, true_operations) =
+            expand_real_branch_block(true_operations);
+        if let Some(e) = early_return {
+            return e.map(|_| None);
         }
-
-        if seen.iter().any(|(_, r)| r.is_some()) {
-            return Err(qsc_circuit::Error::UnsupportedFeature(
-                "measurement operation in a branch block".to_owned(),
-            ));
-        }
-
-        // TODO: everything is a target. Don't know how else we would do this.
-        let target_qubits = seen.into_iter().map(|(q, _)| q).collect();
 
         Ok(Some(BranchOperations {
-            true_block: (true_operations.clone(), target_qubits),
+            true_block: (true_operations, target_qubits),
             false_block: None,
             successor: false_block,
         }))
     } else if false_successor.is_some_and(|c| c == true_block) && true_successor.is_none() {
         // simple if, but flipped
         // TODO: we need to flip the condition!!
-        let mut seen = FxHashSet::default();
-        for op in true_operations {
-            if op.label == "branch" {
-                // Skip this one for now, the branch block itself has an unexpanded branch
-                return Ok(None);
-            }
-
-            for q in op.target_qubits.iter().chain(&op.control_qubits) {
-                seen.insert((*q, None));
-            }
-            for r in op.target_results.iter().chain(&op.control_results) {
-                seen.insert((r.0, Some(r.1)));
-            }
+        let (early_return, target_qubits, true_operations) =
+            expand_real_branch_block(true_operations);
+        if let Some(e) = early_return {
+            return e.map(|()| None);
         }
-
-        if seen.iter().any(|(_, r)| r.is_some()) {
-            return Err(qsc_circuit::Error::UnsupportedFeature(
-                "measurement operation in a branch block".to_owned(),
-            ));
-        }
-
-        // TODO: everything is a target. Don't know how else we would do this.
-        let targets = seen.into_iter().map(|(q, _)| q).collect();
 
         Ok(Some(BranchOperations {
-            true_block: (true_operations.clone(), targets),
+            true_block: (true_operations, target_qubits),
             false_block: None,
             successor: false_block,
         }))
@@ -1084,55 +1133,22 @@ fn operations_from_branch(
         })
         .is_some_and(|(true_successor, false_successor)| true_successor == false_successor)
     {
-        let mut seen = FxHashSet::default();
-        for op in true_operations {
-            if op.label == "branch" {
-                // Skip this one for now, the branch block itself has an unexpanded branch
-                return Ok(None);
-            }
-
-            for q in op.target_qubits.iter().chain(&op.control_qubits) {
-                seen.insert((*q, None));
-            }
-            for r in op.target_results.iter().chain(&op.control_results) {
-                seen.insert((r.0, Some(r.1)));
-            }
+        let (early_return, true_target_qubits, true_operations) =
+            expand_real_branch_block(true_operations);
+        if let Some(e) = early_return {
+            return e.map(|_| None);
         }
 
-        if seen.iter().any(|(_, r)| r.is_some()) {
-            return Err(qsc_circuit::Error::UnsupportedFeature(
-                "measurement operation in a branch block".to_owned(),
-            ));
+        let true_block = (true_operations, true_target_qubits);
+
+        let (early_return, false_target_qubits, false_operations) =
+            expand_real_branch_block(false_operations);
+
+        if let Some(e) = early_return {
+            return e.map(|_| None);
         }
 
-        // TODO: everything is a target. Don't know how else we would do this.
-        let true_target_qubits = seen.into_iter().map(|(q, _)| q).collect();
-        let true_block = (true_operations.clone(), true_target_qubits);
-
-        let mut seen = FxHashSet::default();
-        for op in false_operations {
-            if op.label == "branch" {
-                // Skip this one for now, the branch block itself has an unexpanded branch
-                return Ok(None);
-            }
-
-            for q in op.target_qubits.iter().chain(&op.control_qubits) {
-                seen.insert((*q, None));
-            }
-            for r in op.target_results.iter().chain(&op.control_results) {
-                seen.insert((r.0, Some(r.1)));
-            }
-        }
-
-        if seen.iter().any(|(_, r)| r.is_some()) {
-            return Err(qsc_circuit::Error::UnsupportedFeature(
-                "measurement operation in a branch block".to_owned(),
-            ));
-        }
-
-        // TODO: everything is a target. Don't know how else we would do this.
-        let false_target_qubits = seen.into_iter().map(|(q, _)| q).collect();
-        let false_block = (false_operations.clone(), false_target_qubits);
+        let false_block = (false_operations, false_target_qubits);
 
         Ok(Some(BranchOperations {
             true_block,
@@ -1147,55 +1163,22 @@ fn operations_from_branch(
     {
         // if/else, but flipped
 
-        let mut seen = FxHashSet::default();
-        for op in true_operations {
-            if op.label == "branch" {
-                // Skip this one for now, the branch block itself has an unexpanded branch
-                return Ok(None);
-            }
+        let (early_return, true_target_qubits, true_operations) =
+            expand_real_branch_block(true_operations);
 
-            for q in op.target_qubits.iter().chain(&op.control_qubits) {
-                seen.insert((*q, None));
-            }
-
-            for r in op.target_results.iter().chain(&op.control_results) {
-                seen.insert((r.0, Some(r.1)));
-            }
+        if let Some(e) = early_return {
+            return e.map(|_| None);
         }
 
-        if seen.iter().any(|(_, r)| r.is_some()) {
-            return Err(qsc_circuit::Error::UnsupportedFeature(
-                "measurement operation in a branch block".to_owned(),
-            ));
+        let true_block = (true_operations, true_target_qubits);
+
+        let (early_return, false_target_qubits, false_operations) =
+            expand_real_branch_block(false_operations);
+
+        if let Some(e) = early_return {
+            return e.map(|_| None);
         }
 
-        // TODO: everything is a target. Don't know how else we would do this.
-        let true_target_qubits = seen.into_iter().map(|(q, _)| q).collect();
-        let true_block = (true_operations.clone(), true_target_qubits);
-
-        let mut seen = FxHashSet::default();
-        for op in false_operations {
-            if op.label == "branch" {
-                // Skip this one for now, the branch block itself has an unexpanded branch
-                return Ok(None);
-            }
-
-            for q in op.target_qubits.iter().chain(&op.control_qubits) {
-                seen.insert((*q, None));
-            }
-            for r in op.target_results.iter().chain(&op.control_results) {
-                seen.insert((r.0, Some(r.1)));
-            }
-        }
-
-        if seen.iter().any(|(_, r)| r.is_some()) {
-            return Err(qsc_circuit::Error::UnsupportedFeature(
-                "measurement operation in a branch block".to_owned(),
-            ));
-        }
-
-        // TODO: everything is a target. Don't know how else we would do this.
-        let false_target_qubits = seen.into_iter().map(|(q, _)| q).collect();
         let false_block = (false_operations.clone(), false_target_qubits);
 
         Ok(Some(BranchOperations {
@@ -1208,6 +1191,43 @@ fn operations_from_branch(
             "complex branch: true_block={true_block:?} successor={true_successor:?}, false_block={false_block:?} successor={false_successor:?}"
         )))
     }
+}
+
+#[must_use]
+fn expand_real_branch_block(
+    operations: &Vec<Op>,
+) -> (
+    Option<Result<(), qsc_circuit::Error>>,
+    Vec<usize>,
+    Vec<RealOp>,
+) {
+    let mut seen = FxHashSet::default();
+    let mut early_return: Option<Result<(), qsc_circuit::Error>> = None;
+    let mut real_ops = vec![];
+    for op in operations {
+        let Op::Real(op) = op else {
+            // Skip this one for now, the branch block itself has an unexpanded branch
+            early_return = Some(Ok(()));
+            break;
+        };
+        real_ops.push(op.clone());
+        for q in op.target_qubits.iter().chain(&op.control_qubits) {
+            seen.insert((*q, None));
+        }
+        for r in op.target_results.iter().chain(&op.control_results) {
+            seen.insert((r.0, Some(r.1)));
+        }
+    }
+
+    if seen.iter().any(|(_, r)| r.is_some()) {
+        early_return = Some(Err(qsc_circuit::Error::UnsupportedFeature(
+            "measurement operation in a branch block".to_owned(),
+        )));
+    }
+
+    // TODO: everything is a target. Don't know how else we would do this.
+    let target_qubits = seen.into_iter().map(|(q, _)| q).collect();
+    (early_return, target_qubits, real_ops)
 }
 
 fn expr_from_operand(state: &ProgramMap, operand: &Operand) -> Result<Expr, qsc_circuit::Error> {
@@ -1477,7 +1497,7 @@ fn map_callable_to_operations(
     operands: &Vec<Operand>,
     var: Option<Variable>,
     metadata: Option<&InstructionMetadata>,
-) -> Result<Vec<OperationWithMetadata>, qsc_circuit::Error> {
+) -> Result<Vec<RealOp>, qsc_circuit::Error> {
     Ok(match callable.call_type {
         CallableType::Measurement => {
             map_measurement_call_to_operations(state, callable, operands, metadata)?
@@ -1534,7 +1554,7 @@ fn map_callable_to_operations(
                 // or annotated in the circuit in some way.
                 vec![]
             } else {
-                vec![OperationWithMetadata {
+                vec![RealOp {
                     kind: OperationKind::Unitary,
                     label: gate.to_string(),
                     target_qubits: targets
@@ -1580,13 +1600,13 @@ fn map_reset_call_into_operations(
     callable: &Callable,
     operands: &[Operand],
     metadata: Option<&InstructionMetadata>,
-) -> Result<Vec<OperationWithMetadata>, qsc_circuit::Error> {
+) -> Result<Vec<RealOp>, qsc_circuit::Error> {
     Ok(match callable.name.as_str() {
         "__quantum__qis__reset__body" => {
             let operand_types = vec![OperandType::Target];
             let (targets, _, _) = gather_operands(state, &operand_types, operands)?;
 
-            vec![OperationWithMetadata {
+            vec![RealOp {
                 kind: OperationKind::Ket,
                 label: "0".to_string(),
                 target_qubits: targets
@@ -1624,7 +1644,7 @@ fn map_measurement_call_to_operations(
     callable: &Callable,
     operands: &Vec<Operand>,
     metadata: Option<&InstructionMetadata>,
-) -> Result<Vec<OperationWithMetadata>, qsc_circuit::Error> {
+) -> Result<Vec<RealOp>, qsc_circuit::Error> {
     let gate = match callable.name.as_str() {
         "__quantum__qis__m__body" => "M",
         "__quantum__qis__mresetz__body" => "MResetZ",
@@ -1633,7 +1653,7 @@ fn map_measurement_call_to_operations(
     let (this_qubits, this_results) = gather_measurement_operands(state, operands)?;
     Ok(if gate == "MResetZ" {
         vec![
-            OperationWithMetadata {
+            RealOp {
                 kind: OperationKind::Measurement,
                 label: gate.to_string(),
                 target_qubits: vec![],
@@ -1662,7 +1682,7 @@ fn map_measurement_call_to_operations(
                 args: vec![],
                 metadata: metadata.cloned(),
             },
-            OperationWithMetadata {
+            RealOp {
                 kind: OperationKind::Ket,
                 label: "0".to_string(),
                 target_qubits: this_qubits
@@ -1685,7 +1705,7 @@ fn map_measurement_call_to_operations(
             },
         ]
     } else {
-        vec![OperationWithMetadata {
+        vec![RealOp {
             kind: OperationKind::Measurement,
             label: gate.to_string(),
             target_qubits: vec![],

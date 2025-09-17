@@ -1287,6 +1287,53 @@ fn if_else() {
 }
 
 #[test]
+fn nested_ifs() {
+    let circ_err = circuit(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+
+                @EntryPoint()
+                operation Main() : Result[] {
+                    use q0 = Qubit();
+                    use q1 = Qubit();
+                    use q2 = Qubit();
+                    H(q0);
+                    H(q1);
+                    let r0 = M(q0);
+                    let r1 = M(q1);
+                    if r0 == One {
+                        if r1 == One {
+                            X(q2);
+                        } else {
+                            Y(q2);
+                        }
+                    } else {
+                        Z(q2);
+                    }
+                    let r2 = M(q2);
+                    [r0, r1, r2]
+                }
+            }
+        ",
+        CircuitEntryPoint::EntryPoint,
+        Config::default(),
+    )
+    .expect_err("circuit generation should fail");
+
+    expect![[r#"
+        [
+            Circuit(
+                UnsupportedFeature(
+                    "complex branch: true_block=BlockId(1) successor=None, false_block=BlockId(2) successor=Some(BlockId(6))",
+                ),
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&circ_err);
+}
+
+#[test]
 fn multiple_possible_float_values_in_unitary_arg() {
     // TODO: this doesn't show classical control
     let circ = circuit(
