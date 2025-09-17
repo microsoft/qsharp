@@ -13,6 +13,7 @@ fn exceed_max_operations() {
         loop_detection: false,
         generation_method: GenerationMethod::ClassicalEval,
         group_scopes: false,
+        collapse_qubit_registers: false,
     });
 
     let q = builder.qubit_allocate();
@@ -40,6 +41,7 @@ fn exceed_max_operations_deferred_measurements() {
         loop_detection: false,
         generation_method: GenerationMethod::ClassicalEval,
         group_scopes: false,
+        collapse_qubit_registers: false,
     });
 
     let q = builder.qubit_allocate();

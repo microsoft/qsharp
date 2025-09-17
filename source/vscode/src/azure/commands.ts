@@ -562,6 +562,7 @@ async function getCircuitJson(program: FullProgramConfig): Promise<string> {
       maxOperations: 10000,
       loopDetection: false,
       groupScopes: false,
+      collapseQubitRegisters: false,
     },
     5000, // If we can't generate in 5 seconds, give up - something's wrong or program is way too complex
   );

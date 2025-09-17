@@ -3555,26 +3555,27 @@ impl<'a> PartialEvaluator<'a> {
 }
 
 fn fmt_dbg_metadata(
-    package_span: PackageSpan,
-    source_block: Option<BlockId>,
-    source_block_span: Option<PackageSpan>,
-    current_iteration: Option<usize>,
+    location: PackageSpan,
+    scope_id: Option<BlockId>,
+    scope_block_location: Option<PackageSpan>,
+    scope_block_discriminator: Option<usize>,
     current_callable_name: Option<Rc<str>>,
 ) -> InstructionMetadata {
     InstructionMetadata {
-        source_location: MetadataPackageSpan {
-            package_id: u32::try_from(usize::from(package_span.package))
-                .expect("package ID should fit into u32"),
-            span: package_span.span,
-        },
-        source_block: source_block.map(|b| b.0),
-        source_block_span: source_block_span.map(|s| MetadataPackageSpan {
-            package_id: u32::try_from(usize::from(s.package))
-                .expect("package ID should fit into u32"),
-            span: s.span,
-        }),
-        current_iteration,
+        location: into_metadata_package_span(location),
+        scope_id: scope_id.map(|id| id.0),
+        scope_block_location: scope_block_location.map(into_metadata_package_span),
+        scope_block_discriminator,
         current_callable_name,
+    }
+}
+
+fn into_metadata_package_span(location: PackageSpan) -> MetadataPackageSpan {
+    MetadataPackageSpan {
+        package: usize::from(location.package)
+            .try_into()
+            .expect("package ID should fit into u32"),
+        span: location.span,
     }
 }
 

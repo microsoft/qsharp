@@ -318,6 +318,7 @@ export function getConfig() {
     loopDetection: true,
     groupScopes: true,
     generationMethod: "static" as const,
+    collapseQubitRegisters: true,
   };
 
   const config = workspace
@@ -343,6 +344,11 @@ export function getConfig() {
       ["simulate", "classicalEval", "static"].includes(config.generationMethod)
         ? (config.generationMethod as "simulate" | "classicalEval" | "static")
         : defaultConfig.generationMethod,
+    collapseQubitRegisters:
+      "collapseQubitRegisters" in config &&
+      typeof config.collapseQubitRegisters === "boolean"
+        ? config.collapseQubitRegisters
+        : defaultConfig.collapseQubitRegisters,
   };
 
   log.debug("Using circuit config: ", configObject);

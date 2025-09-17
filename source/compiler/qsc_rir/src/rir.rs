@@ -228,22 +228,18 @@ impl Display for InstructionWithMetadata {
     }
 }
 
-/// Needs to be decoded with `Location::from`
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct MetadataPackageSpan {
-    /// The package ID this span comes from
-    pub package_id: u32,
-    /// Package based span
+    pub package: u32,
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct InstructionMetadata {
-    pub source_location: MetadataPackageSpan,
-    /// FIR block id
-    pub source_block: Option<u32>,
-    pub source_block_span: Option<MetadataPackageSpan>,
-    pub current_iteration: Option<usize>,
+    pub location: MetadataPackageSpan,
+    pub scope_id: Option<u32>,
+    pub scope_block_location: Option<MetadataPackageSpan>,
+    pub scope_block_discriminator: Option<usize>,
     pub current_callable_name: Option<Rc<str>>,
 }
 
@@ -252,19 +248,19 @@ impl Display for InstructionMetadata {
         write!(
             f,
             "!dbg package_id={} span={}",
-            self.source_location.package_id, self.source_location.span
+            self.location.package, self.location.span
         )?;
-        if let Some(source_block) = self.source_block {
+        if let Some(source_block) = self.scope_id {
             write!(f, " scope={source_block}")?;
         }
-        if let Some(source_block_span) = &self.source_block_span {
+        if let Some(source_block_span) = &self.scope_block_location {
             write!(
                 f,
                 " scope_package_id={} scope_span={}",
-                source_block_span.package_id, source_block_span.span
+                source_block_span.package, source_block_span.span
             )?;
         }
-        if let Some(current_iteration) = self.current_iteration {
+        if let Some(current_iteration) = self.scope_block_discriminator {
             write!(f, " discriminator={current_iteration}")?;
         }
         if let Some(current_callable_name) = &self.current_callable_name {

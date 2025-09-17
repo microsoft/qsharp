@@ -1,13 +1,20 @@
 ## To try out
 
 - [ ] zoom out operation grouping
-- [ ] block / function folding
-- [x] conditionals and loops
-- [ ] qir->rir parsing
+- [x] block / function folding
+- [x] simple conditionals
+- [ ] detected loops
+- [x] loops from source
+- [x] qir->rir parsing (pyqir)
 - [ ] qubit/argument names
 - [x] LLVM debug info
 - [x] links to source code on the diagram itself
 - [ ] symbolic arguments via debug metadata
+- [ ] grouping vertically (qubit arrays)
+- [ ] row wrapping
+- [ ] unrestricted -> adaptive transformation (dead code elimination)
+- [ ] fancy conditionals & cfg
 - [ ] For simulated circuits only:
   - [ ] state annotations
   - [ ] dynamic circuits with ghost paths
+- [x] fixed operation_list_to_grid
