@@ -3,7 +3,7 @@
 
 import { log, QdkDiagnostics, TargetProfile } from "qsharp-lang";
 import * as vscode from "vscode";
-import { getCircuitOrErrorWithTimeout } from "../circuit";
+import { getCircuitOrErrorWithTimeout, getConfig } from "../circuit";
 import { qsharpExtensionId } from "../common";
 import { getUploadSupplementalData } from "../config";
 import { FullProgramConfig, getActiveProgram } from "../programConfig";
@@ -557,13 +557,7 @@ async function getCircuitJson(program: FullProgramConfig): Promise<string> {
     {
       program,
     },
-    {
-      generationMethod: "static",
-      maxOperations: 10000,
-      loopDetection: false,
-      groupScopes: false,
-      collapseQubitRegisters: false,
-    },
+    getConfig(),
     5000, // If we can't generate in 5 seconds, give up - something's wrong or program is way too complex
   );
 

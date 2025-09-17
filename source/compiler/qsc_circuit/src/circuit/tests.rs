@@ -386,8 +386,6 @@ fn group_two_qubits() {
         component_grid,
     };
 
-    // TODO: group 0 and 1
-
     expect![[r#"
         q_0    ── X ──
         q_1    ── Y ──
@@ -420,8 +418,6 @@ fn group_two_qubits_both_control_and_target() {
         qubits: qubits.clone(),
         component_grid,
     };
-
-    // TODO: group 0 and 1
 
     expect![[r#"
         q_0    ── X ──── ● ──
@@ -520,7 +516,7 @@ fn group_two_qubits_measurements() {
         unitary("H", vec![q_reg(1)]),
         ctl_unitary("X", vec![q_reg(0)], vec![q_reg(1)]),
         ctl_unitary("X", vec![q_reg(2)], vec![q_reg(0)]),
-        measurement(1, 0),
+        measurement(0, 0),
     ];
     let component_grid = operation_list_to_grid(operations.clone(), &qubits, false);
     let c = Circuit {
@@ -531,9 +527,9 @@ fn group_two_qubits_measurements() {
     // TODO: group 0 and 1
 
     expect![[r#"
-        q_0    ───────── X ──── ● ─────────
-        q_1    ── H ──── ● ─────┼───── M ──
-                                │      ╘═══
+        q_0    ───────── X ──── ● ──── M ──
+                         │      │      ╘═══
+        q_1    ── H ──── ● ─────┼──────────
         q_2    ──────────────── X ─────────
     "#]]
     .assert_eq(&c.to_string());
@@ -548,6 +544,95 @@ fn group_two_qubits_measurements() {
         q_0    ─ H (q[1]) ─── CX (q[1, 0]) ─────── ● ─────── M ──
                                                    │         ╘═══
         q_2    ─────────────────────────────── X (q[0]) ─────────
+    "#]]
+    .assert_eq(&c.to_string());
+}
+
+#[test]
+fn group_two_qubits_grouped_operations() {
+    let qubits = vec![qubit_with_results(0, 1), qubit(1), qubit(2)];
+    let mut group_box = unitary("box", vec![q_reg(0), q_reg(1)]);
+    *group_box.children_mut() = vec![ComponentColumn {
+        components: vec![unitary("H", vec![q_reg(1)])],
+    }];
+    let operations = vec![
+        unitary("H", vec![q_reg(1)]),
+        ctl_unitary("X", vec![q_reg(0)], vec![q_reg(1)]),
+        ctl_unitary("X", vec![q_reg(2)], vec![q_reg(0)]),
+        group_box,
+        measurement(0, 0),
+    ];
+    let component_grid = operation_list_to_grid(operations.clone(), &qubits, false);
+    let c = Circuit {
+        qubits: qubits.clone(),
+        component_grid,
+    };
+
+    expect![[r#"
+        q_0    ───────── X ──── ● ─── [[ ─── [box] ───────── ]] ──── M ──
+                         │      │              ┆                     ╘═══
+        q_1    ── H ──── ● ─────┼──── [[ ─── [box] ─── H ─── ]] ─────────
+        q_2    ──────────────── X ───────────────────────────────────────
+    "#]]
+    .assert_eq(&c.to_string());
+
+    let (operations, qubits) = group_qubits(operations, qubits, &[0, 1]);
+    let component_grid = operation_list_to_grid(operations, &qubits, false);
+    let c = Circuit {
+        qubits,
+        component_grid,
+    };
+    expect![[r#"
+        q_0    ─ H (q[1]) ─── CX (q[1, 0]) ─────── ● ────── [[ ─── [box (q[0, 1])] ── H (q[1]) ─── ]] ──── M ──
+                                                   │                                                       ╘═══
+        q_2    ─────────────────────────────── X (q[0]) ───────────────────────────────────────────────────────
+    "#]]
+    .assert_eq(&c.to_string());
+}
+
+#[test]
+fn group_two_qubits_grouped_operations_exceeds_register() {
+    let qubits = vec![qubit_with_results(0, 1), qubit(1), qubit(2)];
+    let mut group_box = unitary("box", vec![q_reg(0), q_reg(1), q_reg(2)]);
+    *group_box.children_mut() = vec![ComponentColumn {
+        components: vec![
+            unitary("H", vec![q_reg(0)]),
+            unitary("H", vec![q_reg(1)]),
+            unitary("H", vec![q_reg(2)]),
+        ],
+    }];
+    let operations = vec![
+        unitary("H", vec![q_reg(1)]),
+        ctl_unitary("X", vec![q_reg(0)], vec![q_reg(1)]),
+        ctl_unitary("X", vec![q_reg(2)], vec![q_reg(0)]),
+        group_box,
+        measurement(0, 0),
+    ];
+    let component_grid = operation_list_to_grid(operations.clone(), &qubits, false);
+    let c = Circuit {
+        qubits: qubits.clone(),
+        component_grid,
+    };
+
+    expect![[r#"
+        q_0    ───────── X ──── ● ─── [[ ─── [box] ─── H ─── ]] ──── M ──
+                         │      │              ┆                     ╘═══
+        q_1    ── H ──── ● ─────┼──── [[ ─── [box] ─── H ─── ]] ─────────
+                                │              ┆
+        q_2    ──────────────── X ─── [[ ─── [box] ─── H ─── ]] ─────────
+    "#]]
+    .assert_eq(&c.to_string());
+
+    let (operations, qubits) = group_qubits(operations, qubits, &[0, 1]);
+    let component_grid = operation_list_to_grid(operations, &qubits, false);
+    let c = Circuit {
+        qubits,
+        component_grid,
+    };
+    expect![[r#"
+        q_0    ─ H (q[1]) ─── CX (q[1, 0]) ─────── ● ────── [[ ─── [box (q[0, 1])] ── H (q[0]) ─── H (q[1]) ─── ]] ──── M ──
+                                                   │                      ┆                                             ╘═══
+        q_2    ─────────────────────────────── X (q[0]) ─── [[ ─── [box (q[0, 1])] ────── H ─────────────────── ]] ─────────
     "#]]
     .assert_eq(&c.to_string());
 }

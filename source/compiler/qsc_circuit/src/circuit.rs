@@ -275,10 +275,10 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             max_operations: Self::DEFAULT_MAX_OPERATIONS,
-            loop_detection: true,
+            loop_detection: false,
             group_scopes: true,
             generation_method: GenerationMethod::Static,
-            collapse_qubit_registers: true,
+            collapse_qubit_registers: false,
         }
     }
 }
@@ -938,6 +938,7 @@ fn operation_list_to_grid_inner(
     operation_list_to_grid_base(operations, qubits)
 }
 
+#[derive(Debug)]
 struct RowInfo {
     register: Register,
     next_available_column: usize,
@@ -946,7 +947,7 @@ struct RowInfo {
 fn get_row_for_register(register: &Register, rows: &[RowInfo]) -> usize {
     rows.iter()
         .position(|r| r.register == *register)
-        .expect("row for register should exist")
+        .unwrap_or_else(|| panic!("register {register:?} not found in rows {rows:?}"))
 }
 
 fn operation_list_to_grid_base(
@@ -1342,26 +1343,18 @@ fn map_operation(
     qubit_map: &FxHashMap<usize, usize>,
     mut op: Operation,
 ) -> Operation {
+    for child_column in op.children_mut() {
+        let children = &mut child_column.components;
+        for child in children {
+            *child = map_operation(qubit_ids_to_group, qubit_map, child.clone());
+        }
+    }
+
     let mut remapped_controls = vec![];
     let mut remapped_targets = vec![];
     let gate = match &mut op {
         Operation::Measurement(m) => {
-            m.qubits = m
-                .qubits
-                .iter()
-                .map(|r| {
-                    let new_id = qubit_map.get(&r.qubit);
-                    if let Some(new_id) = new_id {
-                        remapped_controls.push(r.qubit);
-                        Register {
-                            qubit: *new_id,
-                            result: r.result,
-                        }
-                    } else {
-                        r.clone()
-                    }
-                })
-                .collect();
+            m.qubits = map_to_group(qubit_map, &mut remapped_controls, &m.qubits);
             m.results = map_to_group(qubit_map, &mut remapped_targets, &m.results);
             &mut m.gate
         }

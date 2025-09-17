@@ -315,10 +315,10 @@ async function getCircuitOrError(
 export function getConfig() {
   const defaultConfig = {
     maxOperations: 10001,
-    loopDetection: true,
+    loopDetection: false,
     groupScopes: true,
     generationMethod: "static" as const,
-    collapseQubitRegisters: true,
+    collapseQubitRegisters: false,
   };
 
   const config = workspace

@@ -228,124 +228,144 @@ fn expand_successors(
     operations
 }
 
-fn fill_in_dbg_metadata_for_list(
-    operations: &mut Vec<OperationWithMetadata>,
+fn fill_in_dbg_metadata(
+    component_grid: &mut ComponentGrid,
     package_store: &PackageStore,
     position_encoding: Encoding,
 ) -> Result<(), qsc_circuit::Error> {
-    for op in operations {
-        fill_in_dbg_metadata(op, package_store, position_encoding)?;
+    for column in component_grid {
+        for component in &mut column.components {
+            let children = match component {
+                Component::Unitary(unitary) => &mut unitary.children,
+                Component::Measurement(measurement) => &mut measurement.children,
+                Component::Ket(ket) => &mut ket.children,
+            };
+
+            fill_in_dbg_metadata(children, package_store, position_encoding)?;
+
+            let args = match component {
+                Component::Unitary(unitary) => &mut unitary.args,
+                Component::Measurement(measurement) => &mut measurement.args,
+                Component::Ket(ket) => &mut ket.args,
+            };
+
+            // if last arg starts with metadata=, pop it
+            let metadata_str = args
+                .last()
+                .and_then(|last_arg| last_arg.strip_prefix("metadata="))
+                .map(ToOwned::to_owned);
+
+            if let Some(metadata_str) = metadata_str {
+                args.pop();
+                let dbg_metadata = parse_dbg_metadata(&metadata_str);
+                if let Some(((package_id, span), scope, discriminator, _)) = dbg_metadata {
+                    let location =
+                        Location::from(span, package_id, package_store, position_encoding);
+                    let mut json = String::new();
+                    writeln!(&mut json, "metadata={{").expect("writing to string should work");
+                    writeln!(&mut json, r#""source": {:?},"#, location.source)
+                        .expect("writing to string should work");
+                    write!(
+                        &mut json,
+                        r#""span": {{"start": {{"line": {}, "character": {}}}, "end": {{"line": {}, "character": {}}}}}"#,
+                        location.range.start.line,
+                        location.range.start.column,
+                        location.range.end.line,
+                        location.range.end.column
+                    )
+                    .expect("writing to string should work");
+                    if let Some((block_id, package_id, span)) = scope {
+                        writeln!(&mut json, ",").expect("writing to string should work");
+                        let scope_location =
+                            Location::from(span, package_id, package_store, position_encoding);
+                        write!(&mut json, "\"scope\": {},", block_id.0)
+                            .expect("writing to string should work");
+                        write!(
+                            &mut json,
+                            r#""scope_location": {{"start": {{"line": {}, "character": {}}}, "end": {{"line": {}, "character": {}}}}}"#,
+                            scope_location.range.start.line,
+                            scope_location.range.start.column,
+                            scope_location.range.end.line,
+                            scope_location.range.end.column
+                        )
+                        .expect("writing to string should work");
+                    }
+                    if let Some(discriminator) = discriminator {
+                        writeln!(&mut json, ",").expect("writing to string should work");
+                        write!(&mut json, "\"discriminator\": {discriminator}")
+                            .expect("writing to string should work");
+                    }
+                    write!(&mut json, "}}").expect("writing to string should work");
+                    args.push(json);
+                }
+            }
+        }
     }
     Ok(())
 }
 
-fn fill_in_dbg_metadata(
-    op: &mut OperationWithMetadata,
-    package_store: &PackageStore,
-    position_encoding: Encoding,
-) -> Result<(), qsc_circuit::Error> {
-    let OperationWithMetadata {
-        operation,
-        metadata,
-        children,
-    } = op;
-    fill_in_dbg_metadata_for_list(children, package_store, position_encoding)?;
-    let args = match operation {
-        Component::Unitary(unitary) => &mut unitary.args,
-        Component::Measurement(measurement) => &mut measurement.args,
-        Component::Ket(ket) => &mut ket.args,
-    };
-    Ok(if let Some(metadata) = metadata {
-        let dbg_metadata = into_dbg_metadata(metadata);
-        let DbgMetadata {
-            source_location: (package_id, span),
-            scope_id: scope,
-            discriminator,
-        } = dbg_metadata;
-
-        let location = Location::from(span, package_id, package_store, position_encoding);
-        let mut json = String::new();
-        writeln!(&mut json, "metadata={{").expect("writing to string should work");
-        writeln!(&mut json, r#""source": {:?},"#, location.source)
-            .expect("writing to string should work");
-        writeln!(
-                    &mut json,
-                    r#""span": {{"start": {{"line": {}, "character": {}}}, "end": {{"line": {}, "character": {}}}}},"#,
-                    location.range.start.line,
-                    location.range.start.column,
-                    location.range.end.line,
-                    location.range.end.column
-                )
-                .expect("writing to string should work");
-        if let Some(BlockId(scope)) = scope {
-            writeln!(&mut json, r#""scope": {scope},"#).expect("writing to string should work");
-        }
-        if let Some(discriminator) = discriminator {
-            writeln!(&mut json, r#""discriminator": {discriminator}"#)
-                .expect("writing to string should work");
-        }
-        write!(&mut json, "}}").expect("writing to string should work");
-        args.push(json);
-    })
-}
-
-struct DbgMetadata {
-    source_location: (PackageId, Span),
-    scope_id: Option<BlockId>,
-    discriminator: Option<usize>,
-}
-
-fn into_dbg_metadata(metadata: &InstructionMetadata) -> DbgMetadata {
-    DbgMetadata {
-        source_location: (
-            usize::try_from(metadata.source_location.package_id)
-                .expect("package id should fit in usize")
-                .into(),
-            metadata.source_location.span,
-        ),
-        scope_id: metadata.source_block.map(BlockId),
-        discriminator: metadata.current_iteration,
-    }
-}
+type DbgMetadata = (
+    (PackageId, Span),                  // source location
+    Option<(BlockId, PackageId, Span)>, // scope id and location
+    Option<usize>,                      // discriminator
+    Option<String>,                     // callable name
+);
 
 fn parse_dbg_metadata(metadata_str: &str) -> Option<DbgMetadata> {
+    // metadata is of the format "!dbg package_id=0 span=[2161-2172] scope=0 scope_package_id=1 scope_span=[123-345] discriminator=1 callable=foo"
     if let Some(rest) = metadata_str.strip_prefix("!dbg ") {
         let mut package_id: Option<usize> = None;
         let mut span = None;
         let mut scope: Option<usize> = None;
         let mut discriminator = None;
+        let mut callable = None;
+        let mut scope_package_id: Option<usize> = None;
+        let mut scope_span: Option<Span> = None;
 
         for token in rest.split_whitespace() {
             if let Some(rest) = token.strip_prefix("package_id=") {
                 package_id = rest.parse().ok();
             } else if let Some(rest) = token.strip_prefix("span=") {
-                if let Some(span_str) = rest.strip_prefix("[") {
-                    if let Some(span_str) = span_str.strip_suffix("]") {
-                        let span_parts: Vec<&str> = span_str.split('-').collect();
-                        if span_parts.len() == 2 {
-                            if let (Ok(start), Ok(end)) =
-                                (span_parts[0].parse::<u32>(), span_parts[1].parse::<u32>())
-                            {
-                                span = Some(Span { lo: start, hi: end });
-                            }
-                        }
-                    }
-                }
+                span = parse_span(rest);
             } else if let Some(rest) = token.strip_prefix("scope=") {
                 scope = rest.parse().ok();
+            } else if let Some(rest) = token.strip_prefix("scope_package_id=") {
+                scope_package_id = rest.parse().ok();
+            } else if let Some(rest) = token.strip_prefix("scope_span=") {
+                scope_span = parse_span(rest);
             } else if let Some(rest) = token.strip_prefix("discriminator=") {
                 discriminator = rest.parse().ok();
+            } else if let Some(rest) = token.strip_prefix("callable=") {
+                callable = Some(rest.to_string());
             }
         }
 
-        return match (package_id, span) {
-            (Some(package_id), Some(span)) => Some(DbgMetadata {
-                source_location: (package_id.into(), span),
-                scope_id: scope.map(Into::into),
-                discriminator,
-            }),
-            _ => None,
-        };
+        if let (Some(package_id), Some(span)) = (package_id, span) {
+            let package_id = package_id.into();
+            let scope: Option<BlockId> = scope.map(Into::into);
+            let scope_package_id: Option<PackageId> = scope_package_id.map(Into::into);
+            let scope = match (scope, scope_package_id, scope_span) {
+                (Some(s), Some(p), Some(sp)) => Some((s, p, sp)),
+                _ => None,
+            };
+            return Some(((package_id, span), scope, discriminator, callable));
+        }
+    }
+    None
+}
+
+fn parse_span(rest: &str) -> Option<Span> {
+    if let Some(span_str) = rest.strip_prefix("[") {
+        if let Some(span_str) = span_str.strip_suffix("]") {
+            let span_parts: Vec<&str> = span_str.split('-').collect();
+            if span_parts.len() == 2 {
+                if let (Ok(start), Ok(end)) =
+                    (span_parts[0].parse::<u32>(), span_parts[1].parse::<u32>())
+                {
+                    return Some(Span { lo: start, hi: end });
+                }
+            }
+        }
     }
     None
 }
@@ -508,16 +528,6 @@ fn operations_in_block(
     })
 }
 
-fn into_operation(mut o: OperationWithMetadata) -> Operation {
-    if let Some(metadata) = &o.metadata {
-        // fill in dbg metadata
-    }
-    *o.operation.children_mut() = vec![ComponentColumn {
-        components: o.children.into_iter().map(into_operation).collect(),
-    }];
-    o.operation
-}
-
 fn extend_operations(
     operations: &mut Vec<OperationWithMetadata>,
     current_scope: &mut Vec<OperationWithMetadata>,
@@ -547,10 +557,12 @@ fn extend_operations(
                     if !current_scope.is_empty() {
                         flush_scope(operations, current_scope, last_scope, group_scopes);
                     }
-                    *last_scope = Some(scope_label);
 
-                    continue;
+                    current_scope.push(op);
                 }
+                *last_scope = Some(scope);
+
+                continue;
             }
         }
         // no scope grouping, flush current scope if any, then add this one right away

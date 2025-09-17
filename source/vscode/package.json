@@ -102,9 +102,10 @@
           "additionalProperties": true,
           "default": {
             "maxOperations": 10001,
-            "loopDetection": true,
+            "loopDetection": false,
             "groupScopes": true,
-            "generationMethod": "static"
+            "generationMethod": "static",
+            "collapseQubitRegisters": false
           },
           "properties": {
             "maxOperations": {
@@ -115,7 +116,7 @@
             },
             "loopDetection": {
               "type": "boolean",
-              "default": true,
+              "default": false,
               "description": "Whether to attempt to detect loops in the program and group them in the circuit diagram."
             },
             "groupScopes": {
@@ -132,6 +133,11 @@
                 "simulate"
               ],
               "description": "The method to use for generating the circuit diagram. 'static' uses static analysis, 'classicalEval' uses only classical evaluation, and 'simulate' uses quantum simulation."
+            },
+            "collapseQubitRegisters": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether to collapse qubit registers into single lines in the circuit diagram."
             }
           }
         },
