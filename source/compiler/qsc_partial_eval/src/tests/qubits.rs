@@ -45,7 +45,7 @@ fn qubit_ids_are_correct_for_allocate_use_release_one_qubit() {
     .assert_eq(&program.get_callable(CallableId(2)).to_string());
     expect![[r#"
         Block:
-            Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0] scope=0
+            Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[119-255] callable=Main
             Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[105-109]
             Return !dbg package_id=2 span=[105-109]"#]]
     .assert_eq(&program.get_block(BlockId(0)).to_string());
@@ -104,9 +104,9 @@ fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0] scope=0
-                Call id(1), args( Qubit(1), ) !dbg package_id=2 span=[0-0] scope=0
-                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[0-0] scope=0
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[119-522] callable=Main
+                Call id(1), args( Qubit(1), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[119-522] callable=Main
+                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[119-522] callable=Main
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[105-109]
                 Return !dbg package_id=2 span=[105-109]"#]],
     );
@@ -167,9 +167,9 @@ fn qubit_ids_are_correct_for_allocate_use_release_one_qubit_multiple_times() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0] scope=0
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0] scope=0
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0] scope=0
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[119-522] callable=Main
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[119-522] callable=Main
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[119-522] callable=Main
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[105-109]
                 Return !dbg package_id=2 span=[105-109]"#]],
     );
@@ -236,11 +236,11 @@ fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits_interleaved() 
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0] scope=0
-                Call id(1), args( Qubit(1), ) !dbg package_id=2 span=[0-0] scope=0
-                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[0-0] scope=0
-                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[0-0] scope=0
-                Call id(1), args( Qubit(3), ) !dbg package_id=2 span=[0-0] scope=0
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[119-786] callable=Main
+                Call id(1), args( Qubit(1), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[119-786] callable=Main
+                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[119-786] callable=Main
+                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[119-786] callable=Main
+                Call id(1), args( Qubit(3), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[119-786] callable=Main
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[105-109]
                 Return !dbg package_id=2 span=[105-109]"#]],
     );
@@ -296,17 +296,17 @@ fn qubit_array_allocation_and_access() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Variable(0, Integer) = Store Integer(0) !dbg package_id=0 span=[2161-2172] scope=6
-                Variable(0, Integer) = Store Integer(1) !dbg package_id=0 span=[2161-2172] scope=7 discriminator=1
-                Variable(0, Integer) = Store Integer(2) !dbg package_id=0 span=[2161-2172] scope=7 discriminator=2
-                Variable(0, Integer) = Store Integer(3) !dbg package_id=0 span=[2161-2172] scope=7 discriminator=3
-                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0] scope=0
-                Call id(1), args( Qubit(1), ) !dbg package_id=2 span=[0-0] scope=0
-                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[0-0] scope=0
-                Variable(1, Integer) = Store Integer(0) !dbg package_id=0 span=[2332-2334] scope=9
-                Variable(1, Integer) = Store Integer(1) !dbg package_id=0 span=[2332-2334] scope=10 discriminator=1
-                Variable(1, Integer) = Store Integer(2) !dbg package_id=0 span=[2332-2334] scope=10 discriminator=2
-                Variable(1, Integer) = Store Integer(3) !dbg package_id=0 span=[2332-2334] scope=10 discriminator=3
+                Variable(0, Integer) = Store Integer(0) !dbg package_id=0 span=[2161-2172] scope=0 scope_package_id=2 scope_span=[119-210] callable=Main
+                Variable(0, Integer) = Store Integer(1) !dbg package_id=0 span=[2161-2172] scope=0 scope_package_id=2 scope_span=[119-210] discriminator=1 callable=Main
+                Variable(0, Integer) = Store Integer(2) !dbg package_id=0 span=[2161-2172] scope=0 scope_package_id=2 scope_span=[119-210] discriminator=2 callable=Main
+                Variable(0, Integer) = Store Integer(3) !dbg package_id=0 span=[2161-2172] scope=0 scope_package_id=2 scope_span=[119-210] discriminator=3 callable=Main
+                Call id(1), args( Qubit(0), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[119-210] callable=Main
+                Call id(1), args( Qubit(1), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[119-210] callable=Main
+                Call id(1), args( Qubit(2), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[119-210] callable=Main
+                Variable(1, Integer) = Store Integer(0) !dbg package_id=0 span=[2332-2334] scope=0 scope_package_id=2 scope_span=[119-210] callable=Main
+                Variable(1, Integer) = Store Integer(1) !dbg package_id=0 span=[2332-2334] scope=0 scope_package_id=2 scope_span=[119-210] discriminator=1 callable=Main
+                Variable(1, Integer) = Store Integer(2) !dbg package_id=0 span=[2332-2334] scope=0 scope_package_id=2 scope_span=[119-210] discriminator=2 callable=Main
+                Variable(1, Integer) = Store Integer(3) !dbg package_id=0 span=[2332-2334] scope=0 scope_package_id=2 scope_span=[119-210] discriminator=3 callable=Main
                 Call id(2), args( Integer(0), Pointer, ) !dbg package_id=2 span=[105-109]
                 Return !dbg package_id=2 span=[105-109]"#]],
     );

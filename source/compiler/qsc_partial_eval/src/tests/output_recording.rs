@@ -71,9 +71,9 @@ fn output_recording_for_tuple_of_different_types() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=0
-                    Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[177-186] scope=0
-                    Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[177-186] scope=0
+                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[74-193] callable=Main
+                    Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[177-186] scope=0 scope_package_id=2 scope_span=[74-193] callable=Main
+                    Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[177-186] scope=0 scope_package_id=2 scope_span=[74-193] callable=Main
                     Call id(3), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
                     Call id(4), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                     Call id(5), args( Variable(1, Boolean), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -151,11 +151,11 @@ fn output_recording_for_nested_tuples() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=0
-                    Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[197-206] scope=0
-                    Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[197-206] scope=0
-                    Variable(2, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[213-221] scope=0
-                    Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[213-221] scope=0
+                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[93-230] callable=Main
+                    Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[197-206] scope=0 scope_package_id=2 scope_span=[93-230] callable=Main
+                    Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[197-206] scope=0 scope_package_id=2 scope_span=[93-230] callable=Main
+                    Variable(2, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[213-221] scope=0 scope_package_id=2 scope_span=[93-230] callable=Main
+                    Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[213-221] scope=0 scope_package_id=2 scope_span=[93-230] callable=Main
                     Call id(3), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
                     Call id(4), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                     Call id(3), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -247,11 +247,11 @@ fn output_recording_for_tuple_of_arrays() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=0
-                    Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[180-189] scope=0
-                    Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[180-189] scope=0
-                    Variable(2, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[191-199] scope=0
-                    Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[191-199] scope=0
+                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[76-207] callable=Main
+                    Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[180-189] scope=0 scope_package_id=2 scope_span=[76-207] callable=Main
+                    Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[180-189] scope=0 scope_package_id=2 scope_span=[76-207] callable=Main
+                    Variable(2, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[191-199] scope=0 scope_package_id=2 scope_span=[76-207] callable=Main
+                    Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[191-199] scope=0 scope_package_id=2 scope_span=[76-207] callable=Main
                     Call id(3), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
                     Call id(4), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                     Call id(5), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -339,11 +339,11 @@ fn output_recording_for_array_of_tuples() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=0
-                    Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[180-189] scope=0
-                    Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[180-189] scope=0
-                    Variable(2, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[196-204] scope=0
-                    Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[196-204] scope=0
+                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[76-212] callable=Main
+                    Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[180-189] scope=0 scope_package_id=2 scope_span=[76-212] callable=Main
+                    Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false) !dbg package_id=2 span=[180-189] scope=0 scope_package_id=2 scope_span=[76-212] callable=Main
+                    Variable(2, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[196-204] scope=0 scope_package_id=2 scope_span=[76-212] callable=Main
+                    Variable(3, Boolean) = Store Variable(2, Boolean) !dbg package_id=2 span=[196-204] scope=0 scope_package_id=2 scope_span=[76-212] callable=Main
                     Call id(3), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
                     Call id(4), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
                     Call id(5), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -544,7 +544,7 @@ fn output_recording_for_mix_of_literal_and_variable() {
                     body: <NONE>
             blocks:
                 Block 0: Block:
-                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=0
+                    Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[0-0] scope=0 scope_package_id=2 scope_span=[74-188] callable=Main
                     Call id(2), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
                     Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                     Call id(4), args( Bool(true), Pointer, ) !dbg package_id=2 span=[50-54]

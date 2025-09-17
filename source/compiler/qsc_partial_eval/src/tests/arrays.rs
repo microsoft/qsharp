@@ -73,8 +73,8 @@ fn array_with_dynamic_content() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[122-133] scope=1147
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[135-146] scope=1147
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[122-133] scope=0 scope_package_id=2 scope_span=[68-153] callable=Main
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[135-146] scope=0 scope_package_id=2 scope_span=[68-153] callable=Main
                 Call id(2), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -140,9 +140,9 @@ fn array_with_hybrid_content() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[109-119] scope=1147
-                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[136-144] scope=0
-                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[136-144] scope=0
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[109-119] scope=0 scope_package_id=2 scope_span=[66-151] callable=Main
+                Variable(0, Boolean) = Call id(2), args( Result(0), ) !dbg package_id=2 span=[136-144] scope=0 scope_package_id=2 scope_span=[66-151] callable=Main
+                Variable(1, Boolean) = Store Variable(0, Boolean) !dbg package_id=2 span=[136-144] scope=0 scope_package_id=2 scope_span=[66-151] callable=Main
                 Call id(3), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(4), args( Bool(true), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(4), args( Variable(1, Boolean), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -208,7 +208,7 @@ fn array_repeat_with_dynamic_content() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[104-114] scope=1147
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[104-114] scope=0 scope_package_id=2 scope_span=[68-131] callable=Main
                 Call id(2), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -261,8 +261,8 @@ fn result_array_value_at_index() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[134-145] scope=1147
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[147-158] scope=1147
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[134-145] scope=0 scope_package_id=2 scope_span=[66-185] callable=Main
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[147-158] scope=0 scope_package_id=2 scope_span=[66-185] callable=Main
                 Call id(2), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]"#]],
     );
@@ -285,8 +285,8 @@ fn result_array_value_at_negative_index_works() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[134-145] scope=1147
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[147-158] scope=1147
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[134-145] scope=0 scope_package_id=2 scope_span=[66-186] callable=Main
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[147-158] scope=0 scope_package_id=2 scope_span=[66-186] callable=Main
                 Call id(2), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
                 Return !dbg package_id=2 span=[50-54]"#]],
     );
@@ -371,11 +371,11 @@ fn result_array_slice_with_explicit_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[169-180] scope=1147
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[182-193] scope=1147
-                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[195-206] scope=1147
-                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[208-219] scope=1147
-                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=2 span=[221-232] scope=1147
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[169-180] scope=0 scope_package_id=2 scope_span=[68-259] callable=Main
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[182-193] scope=0 scope_package_id=2 scope_span=[68-259] callable=Main
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[195-206] scope=0 scope_package_id=2 scope_span=[68-259] callable=Main
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[208-219] scope=0 scope_package_id=2 scope_span=[68-259] callable=Main
+                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=2 span=[221-232] scope=0 scope_package_id=2 scope_span=[68-259] callable=Main
                 Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(2), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -443,9 +443,9 @@ fn result_array_slice_with_open_start_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[143-154] scope=1147
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[156-167] scope=1147
-                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[169-180] scope=1147
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[143-154] scope=0 scope_package_id=2 scope_span=[68-204] callable=Main
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[156-167] scope=0 scope_package_id=2 scope_span=[68-204] callable=Main
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[169-180] scope=0 scope_package_id=2 scope_span=[68-204] callable=Main
                 Call id(2), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -512,9 +512,9 @@ fn result_array_slice_with_open_ended_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[143-154] scope=1147
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[156-167] scope=1147
-                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[169-180] scope=1147
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[143-154] scope=0 scope_package_id=2 scope_span=[68-204] callable=Main
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[156-167] scope=0 scope_package_id=2 scope_span=[68-204] callable=Main
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[169-180] scope=0 scope_package_id=2 scope_span=[68-204] callable=Main
                 Call id(2), args( Integer(2), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(2), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -581,11 +581,11 @@ fn result_array_slice_with_open_two_step_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[169-180] scope=1147
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[182-193] scope=1147
-                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[195-206] scope=1147
-                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[208-219] scope=1147
-                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=2 span=[221-232] scope=1147
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[169-180] scope=0 scope_package_id=2 scope_span=[68-259] callable=Main
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[182-193] scope=0 scope_package_id=2 scope_span=[68-259] callable=Main
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[195-206] scope=0 scope_package_id=2 scope_span=[68-259] callable=Main
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[208-219] scope=0 scope_package_id=2 scope_span=[68-259] callable=Main
+                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=2 span=[221-232] scope=0 scope_package_id=2 scope_span=[68-259] callable=Main
                 Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(2), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -673,10 +673,10 @@ fn result_array_copy_and_update_with_single_index() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[156-167] scope=1147
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[169-180] scope=1147
-                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[182-193] scope=1147
-                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[214-225] scope=1147
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[156-167] scope=0 scope_package_id=2 scope_span=[68-231] callable=Main
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[169-180] scope=0 scope_package_id=2 scope_span=[68-231] callable=Main
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[182-193] scope=0 scope_package_id=2 scope_span=[68-231] callable=Main
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[214-225] scope=0 scope_package_id=2 scope_span=[68-231] callable=Main
                 Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(3), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -785,14 +785,14 @@ fn result_array_copy_and_update_with_explicit_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[231-242] scope=1147
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[244-255] scope=1147
-                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[257-268] scope=1147
-                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[270-281] scope=1147
-                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=2 span=[283-294] scope=1147
-                Call id(1), args( Qubit(5), Result(5), ) !dbg package_id=2 span=[322-335] scope=1147
-                Call id(1), args( Qubit(6), Result(6), ) !dbg package_id=2 span=[337-350] scope=1147
-                Call id(1), args( Qubit(7), Result(7), ) !dbg package_id=2 span=[352-365] scope=1147
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[231-242] scope=0 scope_package_id=2 scope_span=[68-372] callable=Main
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[244-255] scope=0 scope_package_id=2 scope_span=[68-372] callable=Main
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[257-268] scope=0 scope_package_id=2 scope_span=[68-372] callable=Main
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[270-281] scope=0 scope_package_id=2 scope_span=[68-372] callable=Main
+                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=2 span=[283-294] scope=0 scope_package_id=2 scope_span=[68-372] callable=Main
+                Call id(1), args( Qubit(5), Result(5), ) !dbg package_id=2 span=[322-335] scope=0 scope_package_id=2 scope_span=[68-372] callable=Main
+                Call id(1), args( Qubit(6), Result(6), ) !dbg package_id=2 span=[337-350] scope=0 scope_package_id=2 scope_span=[68-372] callable=Main
+                Call id(1), args( Qubit(7), Result(7), ) !dbg package_id=2 span=[352-365] scope=0 scope_package_id=2 scope_span=[68-372] callable=Main
                 Call id(2), args( Integer(5), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(5), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -862,11 +862,11 @@ fn result_array_copy_and_update_with_open_start_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[169-180] scope=1147
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[182-193] scope=1147
-                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[195-206] scope=1147
-                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[231-242] scope=1147
-                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=2 span=[244-255] scope=1147
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[169-180] scope=0 scope_package_id=2 scope_span=[68-262] callable=Main
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[182-193] scope=0 scope_package_id=2 scope_span=[68-262] callable=Main
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[195-206] scope=0 scope_package_id=2 scope_span=[68-262] callable=Main
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[231-242] scope=0 scope_package_id=2 scope_span=[68-262] callable=Main
+                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=2 span=[244-255] scope=0 scope_package_id=2 scope_span=[68-262] callable=Main
                 Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(3), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(4), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -934,11 +934,11 @@ fn result_array_copy_and_update_with_open_ended_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[169-180] scope=1147
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[182-193] scope=1147
-                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[195-206] scope=1147
-                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[231-242] scope=1147
-                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=2 span=[244-255] scope=1147
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[169-180] scope=0 scope_package_id=2 scope_span=[68-262] callable=Main
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[182-193] scope=0 scope_package_id=2 scope_span=[68-262] callable=Main
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[195-206] scope=0 scope_package_id=2 scope_span=[68-262] callable=Main
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[231-242] scope=0 scope_package_id=2 scope_span=[68-262] callable=Main
+                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=2 span=[244-255] scope=0 scope_package_id=2 scope_span=[68-262] callable=Main
                 Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(0), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(3), Pointer, ) !dbg package_id=2 span=[50-54]
@@ -1006,11 +1006,11 @@ fn result_array_copy_and_update_with_open_two_step_range() {
         BlockId(0),
         &expect![[r#"
             Block:
-                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[169-180] scope=1147
-                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[182-193] scope=1147
-                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[195-206] scope=1147
-                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[234-245] scope=1147
-                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=2 span=[247-258] scope=1147
+                Call id(1), args( Qubit(0), Result(0), ) !dbg package_id=2 span=[169-180] scope=0 scope_package_id=2 scope_span=[68-265] callable=Main
+                Call id(1), args( Qubit(1), Result(1), ) !dbg package_id=2 span=[182-193] scope=0 scope_package_id=2 scope_span=[68-265] callable=Main
+                Call id(1), args( Qubit(2), Result(2), ) !dbg package_id=2 span=[195-206] scope=0 scope_package_id=2 scope_span=[68-265] callable=Main
+                Call id(1), args( Qubit(3), Result(3), ) !dbg package_id=2 span=[234-245] scope=0 scope_package_id=2 scope_span=[68-265] callable=Main
+                Call id(1), args( Qubit(4), Result(4), ) !dbg package_id=2 span=[247-258] scope=0 scope_package_id=2 scope_span=[68-265] callable=Main
                 Call id(2), args( Integer(3), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(3), Pointer, ) !dbg package_id=2 span=[50-54]
                 Call id(3), args( Result(1), Pointer, ) !dbg package_id=2 span=[50-54]
