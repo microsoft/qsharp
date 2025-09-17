@@ -560,7 +560,7 @@ fn loop_and_scope() {
             loop_detection: true,
             group_scopes: true,
             ..Default::default()
-        }
+        },
     )
     .expect("circuit generation should succeed");
 
@@ -1352,6 +1352,82 @@ fn panic_in_register_grouping() {
         q_0    ─ [[ ─── [Main_2 (q[0, 1])] ─── H (q[0]) ─── X (q[0]) ─── CX (q[0, 1]) ─── H (q[0]) ─── X (q[0]) ─── CX (q[0, 1]) ─── H (q[0]) ─── X (q[0]) ─── CX (q[0, 1]) ─── H (q[0]) ─── X (q[0]) ─── CX (q[0, 1]) ─── H (q[0]) ─── X (q[0]) ─── CX (q[0, 1]) ─── H (q[0]) ─── X (q[0]) ─── CX (q[0, 1]) ─── H (q[0]) ─── X (q[0]) ─── CX (q[0, 1]) ─── H (q[0]) ─── X (q[0]) ─── CX (q[0, 1]) ─── H (q[0]) ─── X (q[0]) ─── CX (q[0, 1]) ─── H (q[0]) ─── X (q[0]) ─── CX (q[0, 1]) ─── ]] ──
         q_2    ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
     "#]].assert_eq(&circ.to_string());
+}
+
+#[test]
+fn custom_intrinsic_variable_arg() {
+    let circ = circuit(
+        r"
+        namespace Test {
+            operation foo(q: Qubit, x: Int): Unit {
+                body intrinsic;
+            }
+
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                mutable x = 4;
+                H(q);
+                if (M(q) == One) {
+                    set x = 5;
+                }
+                foo(q, x);
+            }
+        }
+        ",
+        CircuitEntryPoint::EntryPoint,
+        Config::default(),
+    )
+    .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ── H ──── M ─── foo(one of: (4, 5)) ─
+                         ╘══════════════════════════
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn branch_on_dynamic_double() {
+    // TODO: this doesn't show classical control
+    let circ = circuit(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+
+                @EntryPoint()
+                operation Main() : Result[] {
+                    use q0 = Qubit();
+                    use q1 = Qubit();
+                    H(q0);
+                    let r = M(q0);
+                    mutable theta = 1.0;
+                    if r == One {
+                        set theta = 2.0;
+                    };
+                    if theta > 1.5 {
+                        set theta = 3.0;
+                    } else {
+                        set theta = 4.0;
+                    }
+                    Rx(theta, q1);
+                    let r1 = M(q1);
+                    [r, r1]
+                }
+            }
+        ",
+        CircuitEntryPoint::EntryPoint,
+        Config::default(),
+    )
+    .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ────────── H ──────────── M ──
+                                         ╘═══
+        q_1    ─ Rx(one of: (1, 2)) ──── M ──
+                                         ╘═══
+    "#]]
+    .assert_eq(&circ.to_string());
 }
 
 #[test]

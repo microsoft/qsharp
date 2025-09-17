@@ -18,3 +18,4 @@
   - [ ] state annotations
   - [ ] dynamic circuits with ghost paths
 - [x] fixed operation_list_to_grid
+- [ ] scale to thousands/millions of qubits/operations
