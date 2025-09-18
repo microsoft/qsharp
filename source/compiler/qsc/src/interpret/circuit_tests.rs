@@ -1525,6 +1525,51 @@ fn branch_on_dynamic_double() {
 }
 
 #[test]
+fn branch_on_dynamic_bool() {
+    // TODO: this doesn't show classical control
+    let circ = circuit(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+
+                @EntryPoint()
+                operation Main() : Result[] {
+                    use q0 = Qubit();
+                    use q1 = Qubit();
+                    H(q0);
+                    let r = M(q0);
+                    mutable cond = true;
+                    if r == One {
+                        set cond = false;
+                    };
+                    if cond {
+                        set cond = false;
+                    } else {
+                        set cond = true;
+                    }
+                    if cond {
+                        X(q1);
+                    }
+                    let r1 = M(q1);
+                    [r, r1]
+                }
+            }
+        ",
+        CircuitEntryPoint::EntryPoint,
+        Config::default(),
+    )
+    .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ────────── H ──────────── M ──
+                                         ╘═══
+        q_1    ─ Rx(one of: (1, 2)) ──── M ──
+                                         ╘═══
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
 fn teleportation() {
     let circ = circuit(
         r#"

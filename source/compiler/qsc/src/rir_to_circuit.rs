@@ -1,10 +1,9 @@
 use std::fmt::{Display, Write};
 
-use crate::circuit;
-use log::debug;
+use log::{debug, warn};
 use qsc_circuit::{
-    Circuit, Component, ComponentColumn, ComponentGrid, Config, GenerationMethod, Ket, Measurement,
-    Operation, Qubit, Register, Unitary, group_qubits, operation_list_to_grid,
+    Circuit, Component, ComponentColumn, ComponentGrid, Config, Error, GenerationMethod, Ket,
+    Measurement, Operation, Qubit, Register, Unitary, group_qubits, operation_list_to_grid,
 };
 use qsc_data_structures::{index_map::IndexMap, line_column::Encoding, span::Span};
 use qsc_frontend::{compile::PackageStore, location::Location};
@@ -23,10 +22,9 @@ type ResultId = (usize, usize);
 
 #[derive(Clone, Debug)]
 struct Branch {
-    cond_str: String,
+    condition: Variable,
     true_block: BlockId,
     false_block: BlockId,
-    control_results: Vec<u32>,
     metadata: Option<InstructionMetadata>,
 }
 
@@ -118,7 +116,7 @@ pub(crate) fn make_circuit(
     package_store: &PackageStore,
     position_encoding: Encoding,
     config: Config,
-) -> std::result::Result<Circuit, circuit::Error> {
+) -> std::result::Result<Circuit, Error> {
     assert!(config.generation_method == GenerationMethod::Static);
     debug!("make_circuit: program={}", program);
     let mut program_map = ProgramMap::new(program.num_qubits);
@@ -170,7 +168,7 @@ pub(crate) fn make_circuit(
 /// Iterates over all the basic blocks in the original program. If a block ends with a conditional branch,
 /// the corresponding block in the program map is modified to replace the conditional branch with an unconditional branch,
 /// and an operation is added to the block that represents the branch logic (i.e., a unitary operation with two children, one for the true branch and one for the false branch).
-fn expand_branches(program: &Program, state: &mut ProgramMap) -> Result<(), qsc_circuit::Error> {
+fn expand_branches(program: &Program, state: &mut ProgramMap) -> Result<(), Error> {
     for block in program.blocks.iter() {
         let mut circuit_block = state
             .blocks
@@ -178,15 +176,59 @@ fn expand_branches(program: &Program, state: &mut ProgramMap) -> Result<(), qsc_
             .expect("block should exist")
             .clone();
 
-        if let Some(Terminator::Conditional(variable, branch)) = &circuit_block.terminator {
-            let expanded_branch = expand_branch_children(state, branch)?;
-            if !expanded_branch.operation.children.is_empty() {
+        eprintln!("block terminator is {:?}", circuit_block.terminator);
+
+        if let Some(Terminator::Conditional(branch)) = circuit_block
+            .terminator
+            .take_if(|t| matches!(t, Terminator::Conditional(_)))
+        {
+            let expanded_branch = expand_branch(state, &branch)?;
+
+            if !expanded_branch.grouped_operation.children.is_empty() {
                 // don't add operations for empty branches
-                circuit_block.operations.push(expanded_branch.operation);
+                circuit_block
+                    .operations
+                    .push(expanded_branch.grouped_operation);
             }
             circuit_block.terminator = Some(Terminator::Unconditional(
                 expanded_branch.unconditional_successor,
             ));
+
+            // Find the successor and see if it has any phi nodes
+            let successor_block = state
+                .blocks
+                .get(expanded_branch.unconditional_successor)
+                .expect("successor block should exist");
+
+            eprintln!("processing successor block: {successor_block:?}");
+
+            let condition_expr = state.expr_for_variable(branch.condition.variable_id)?;
+            let Expr::Bool(bool_expr) = condition_expr else {
+                return Err(Error::UnsupportedFeature(format!(
+                    "branch condition is not a boolean expression: {condition_expr:?}"
+                )));
+            };
+            // fill in variables for the phi nodes
+            let mut phi_vars = vec![];
+            for phi in &successor_block.phis {
+                debug!("processing phi node: {phi:?}");
+                let (var, pres) = phi;
+                let mut options = vec![];
+                for (expr, block_id) in pres {
+                    if *block_id == branch.true_block {
+                        options.push((bool_expr.clone(), expr.clone()));
+                    }
+                    if *block_id == branch.false_block {
+                        options.push((bool_expr.negate()?.clone(), expr.clone()));
+                    }
+                }
+
+                phi_vars.push((*var, Expr::Rich(RichExpr::Options(options))));
+            }
+            for (var, expr) in phi_vars {
+                debug!("storing phi var {var} = {expr:?}");
+                state.store_expr_in_variable(var, expr)?;
+            }
         }
 
         state.blocks.insert(block.0, circuit_block);
@@ -220,7 +262,7 @@ fn fill_in_dbg_metadata(
     component_grid: &mut ComponentGrid,
     package_store: &PackageStore,
     position_encoding: Encoding,
-) -> Result<(), qsc_circuit::Error> {
+) -> Result<(), Error> {
     for column in component_grid {
         for component in &mut column.components {
             let children = match component {
@@ -359,19 +401,26 @@ fn parse_span(rest: &str) -> Option<Span> {
 }
 
 // TODO: this could be represented by a circuit block, maybe. Consider.
-struct ExpandedBranch {
-    operation: Op,
+struct ExpandedBranchBlock {
+    _condition: Variable,
+    grouped_operation: Op,
     unconditional_successor: BlockId,
 }
 
-fn expand_branch_children(
-    state: &mut ProgramMap,
-    branch: &Branch,
-) -> Result<ExpandedBranch, qsc_circuit::Error> {
+fn expand_branch(state: &mut ProgramMap, branch: &Branch) -> Result<ExpandedBranchBlock, Error> {
+    eprintln!("expanding branch: {branch:?}");
     let branch_block = make_simple_branch_block(state, branch.true_block, branch.false_block)?;
     let (true_operations, true_targets) = branch_block.true_block;
-    let control_results = branch
-        .control_results
+
+    let (results, cond_str) = state.condition_for_variable(branch.condition.variable_id)?;
+    if results.is_empty() {
+        return Err(Error::UnsupportedFeature(format!(
+            "branching on a condition that doesn't involve at least one result: {cond_str}, {}",
+            branch.condition
+        )));
+    }
+
+    let control_results = results
         .iter()
         .map(|r| state.result_register(*r))
         .map(|r| {
@@ -445,11 +494,12 @@ fn expand_branch_children(
     target_qubits.dedup();
     // TODO: target results for container? measurements in branches?
 
-    let args = vec![branch.cond_str.clone()];
+    let args = vec![cond_str.clone()];
     let label = "check ".to_string();
 
-    Ok(ExpandedBranch {
-        operation: Op {
+    Ok(ExpandedBranchBlock {
+        _condition: branch.condition,
+        grouped_operation: Op {
             kind: OperationKind::Unitary,
             label,
             target_qubits,
@@ -467,7 +517,7 @@ fn expand_branch_children(
 
 #[derive(Clone, Debug)]
 struct CircuitBlock {
-    _predecessors: Vec<BlockId>,
+    phis: Vec<(Variable, Vec<(Expr, BlockId)>)>,
     operations: Vec<Op>,
     terminator: Option<Terminator>,
 }
@@ -477,10 +527,10 @@ fn operations_in_block(
     callables: &IndexMap<qsc_partial_eval::CallableId, Callable>,
     block: &BlockWithMetadata,
     group_scopes: bool,
-) -> Result<CircuitBlock, qsc_circuit::Error> {
+) -> Result<CircuitBlock, Error> {
     // TODO: use get_block_successors from utils
     let mut terminator = None;
-    let mut predecessors = vec![];
+    let mut phis = vec![];
     let mut operations = vec![];
     let mut done = false;
 
@@ -489,20 +539,14 @@ fn operations_in_block(
     // let mut last_discriminator = None;
     for instruction in &block.0 {
         if done {
-            return Err(qsc_circuit::Error::UnsupportedFeature(
+            return Err(Error::UnsupportedFeature(
                 "instructions after return or jump in block".to_owned(),
             ));
         }
         let BlockUpdate {
             operations: new_operations,
             terminator: new_terminator,
-        } = get_operations_for_instruction(
-            state,
-            callables,
-            &mut predecessors,
-            &mut done,
-            instruction,
-        )?;
+        } = get_operations_for_instruction(state, callables, &mut phis, &mut done, instruction)?;
 
         if let Some(new_terminator) = new_terminator {
             let old = terminator.replace(new_terminator);
@@ -531,7 +575,7 @@ fn operations_in_block(
     }
 
     Ok(CircuitBlock {
-        _predecessors: predecessors,
+        phis,
         operations,
         terminator, // TODO: make this exhaustive, and detect corrupt blocks
     })
@@ -666,16 +710,16 @@ struct BlockUpdate {
 #[derive(Debug, Clone)]
 enum Terminator {
     Unconditional(BlockId),
-    Conditional(Variable, Branch),
+    Conditional(Branch),
 }
 
 fn get_operations_for_instruction(
     state: &mut ProgramMap,
     callables: &IndexMap<qsc_partial_eval::CallableId, Callable>,
-    predecessors: &mut Vec<BlockId>,
+    phis: &mut Vec<(Variable, Vec<(Expr, BlockId)>)>,
     done: &mut bool,
     instruction: &InstructionWithMetadata,
-) -> Result<BlockUpdate, qsc_circuit::Error> {
+) -> Result<BlockUpdate, Error> {
     let mut terminator = None;
     let operations = match &instruction.instruction {
         Instruction::Call(callable_id, operands, var) => extend_block_with_call_instruction(
@@ -714,12 +758,12 @@ fn get_operations_for_instruction(
             *done = true;
             extend_block_with_branch_instruction(
                 &mut terminator,
-                state,
                 instruction,
                 *variable,
                 *block_id_1,
                 *block_id_2,
-            )?
+            )?;
+            vec![]
         }
         Instruction::Jump(block_id) => {
             extend_block_with_jump_instruction(&mut terminator, *block_id)?;
@@ -727,7 +771,7 @@ fn get_operations_for_instruction(
             vec![]
         }
         Instruction::Phi(pres, variable) => {
-            extend_block_with_phi_instruction(state, predecessors, pres, *variable)?;
+            extend_block_with_phi_instruction(state, phis, pres, *variable)?;
             vec![]
         }
         Instruction::Add(operand, operand1, variable)
@@ -755,7 +799,7 @@ fn get_operations_for_instruction(
             vec![]
         }
         instruction @ Instruction::Store(..) => {
-            return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+            return Err(Error::UnsupportedFeature(format!(
                 "unsupported instruction in block: {instruction:?}"
             )));
         }
@@ -771,51 +815,58 @@ fn extend_block_with_binop_instruction(
     operand: &Operand,
     operand1: &Operand,
     variable: Variable,
-) -> Result<(), qsc_circuit::Error> {
+) -> Result<(), Error> {
     let expr_left = expr_from_operand(state, operand)?;
     let expr_right = expr_from_operand(state, operand1)?;
-    let expr = Expr::RichExpr(RichExpr::FunctionOf(vec![expr_left, expr_right]));
+    let expr = Expr::Rich(RichExpr::FunctionOf(vec![expr_left, expr_right]));
     state.store_expr_in_variable(variable, expr)?;
     Ok(())
 }
 
 fn extend_block_with_phi_instruction(
     state: &mut ProgramMap,
-    predecessors: &mut Vec<BlockId>,
+    phis: &mut Vec<(Variable, Vec<(Expr, BlockId)>)>,
     pres: &Vec<(Operand, BlockId)>,
     variable: Variable,
-) -> Result<(), qsc_circuit::Error> {
+) -> Result<(), Error> {
     let mut exprs = vec![];
-    for pre in pres {
-        exprs.push(expr_from_operand(state, &pre.0)?);
+    let mut this_phis = vec![];
+    for (var, label) in pres {
+        let expr = expr_from_operand(state, var)?;
+        this_phis.push((expr.clone(), *label));
+        exprs.push(expr);
     }
-    let expr = if exprs.iter().all(|e| matches!(e, Expr::BoolExpr(_))) {
-        // fold into pairs of FancyBinOp
-        exprs
-            .into_iter()
-            .reduce(|left, right| {
-                Expr::BoolExpr(BoolExpr::BinOp(
-                    left.into(),
-                    right.into(),
-                    "or maybe".into(),
-                ))
-            })
-            .expect("there should be at least one expression")
-    } else {
-        Expr::RichExpr(RichExpr::Options(exprs))
-    };
-    state.store_expr_in_variable(variable, expr)?;
-    predecessors.extend(pres.iter().map(|p| p.1));
+    phis.push((variable, this_phis));
+    state.store_expr_in_variable(variable, Expr::Unresolved(variable.variable_id))?;
+
+    // TODO: defer this to when we have the predecessors fully known
+    // let expr = if exprs.iter().all(|e| matches!(e, Expr::BoolExpr(_))) {
+    //     // fold into pairs of FancyBinOp
+    //     exprs
+    //         .into_iter()
+    //         .reduce(|left, right| {
+    //             Expr::BoolExpr(BoolExpr::BinOp(
+    //                 left.into(),
+    //                 right.into(),
+    //                 "or maybe".into(),
+    //             ))
+    //         })
+    //         .expect("there should be at least one expression")
+    // } else {
+    //     Expr::RichExpr(RichExpr::Options(exprs))
+    // };
+    // state.store_expr_in_variable(variable, expr)?;
+
     Ok(())
 }
 
 fn extend_block_with_jump_instruction(
     terminator: &mut Option<Terminator>,
     block_id: BlockId,
-) -> Result<(), qsc_circuit::Error> {
+) -> Result<(), Error> {
     let old = terminator.replace(Terminator::Unconditional(block_id));
     let r = if old.is_some() {
-        Err(qsc_circuit::Error::UnsupportedFeature(
+        Err(Error::UnsupportedFeature(
             "block contains more than one terminator".to_owned(),
         ))
     } else {
@@ -827,20 +878,24 @@ fn extend_block_with_jump_instruction(
 
 fn extend_block_with_branch_instruction(
     terminator: &mut Option<Terminator>,
-    state: &mut ProgramMap,
     instruction: &InstructionWithMetadata,
     variable: Variable,
     block_id_1: BlockId,
     block_id_2: BlockId,
-) -> Result<Vec<Op>, qsc_circuit::Error> {
-    let op = operation_for_branch(state, instruction, variable, block_id_1, block_id_2)?;
-    let old = terminator.replace(Terminator::Conditional(variable, op.clone()));
+) -> Result<(), Error> {
+    let branch = Branch {
+        condition: variable,
+        true_block: block_id_1,
+        false_block: block_id_2,
+        metadata: instruction.metadata.clone(),
+    };
+    let old = terminator.replace(Terminator::Conditional(branch));
     if old.is_some() {
-        return Err(qsc_circuit::Error::UnsupportedFeature(
+        return Err(Error::UnsupportedFeature(
             "block contains more than one branch".to_owned(),
         ));
     }
-    Ok(vec![])
+    Ok(())
 }
 
 fn extend_block_with_icmp_instruction(
@@ -849,15 +904,15 @@ fn extend_block_with_icmp_instruction(
     operand: &Operand,
     operand1: &Operand,
     variable: Variable,
-) -> Result<(), qsc_circuit::Error> {
+) -> Result<(), Error> {
     match condition_code {
         ConditionCode::Eq => {
             let expr_left = expr_from_operand(state, operand)?;
             let expr_right = expr_from_operand(state, operand1)?;
             let expr = eq_expr(expr_left, expr_right)?;
-            state.store_expr_in_variable(variable, Expr::BoolExpr(expr))
+            state.store_expr_in_variable(variable, Expr::Bool(expr))
         }
-        condition_code => Err(qsc_circuit::Error::UnsupportedFeature(format!(
+        condition_code => Err(Error::UnsupportedFeature(format!(
             "unsupported condition code in icmp: {condition_code:?}"
         ))),
     }
@@ -869,7 +924,7 @@ fn extend_block_with_fcmp_instruction(
     operand: &Operand,
     operand1: &Operand,
     variable: Variable,
-) -> Result<(), qsc_circuit::Error> {
+) -> Result<(), Error> {
     let expr_left = expr_from_operand(state, operand)?;
     let expr_right = expr_from_operand(state, operand1)?;
     let expr = match condition_code {
@@ -877,7 +932,7 @@ fn extend_block_with_fcmp_instruction(
         FcmpConditionCode::True => BoolExpr::LiteralBool(true),
         cmp => BoolExpr::BinOp(expr_left.into(), expr_right.into(), cmp.to_string()),
     };
-    state.store_expr_in_variable(variable, Expr::BoolExpr(expr))?;
+    state.store_expr_in_variable(variable, Expr::Bool(expr))?;
     Ok(())
 }
 
@@ -888,7 +943,7 @@ fn extend_block_with_call_instruction(
     callable_id: qsc_partial_eval::CallableId,
     operands: &Vec<Operand>,
     var: Option<Variable>,
-) -> Result<Vec<Op>, qsc_circuit::Error> {
+) -> Result<Vec<Op>, Error> {
     map_callable_to_operations(
         state,
         callables.get(callable_id).expect("callable should exist"),
@@ -899,51 +954,27 @@ fn extend_block_with_call_instruction(
     .map(|ops| ops.into_iter().collect())
 }
 
-fn operation_for_branch(
-    state: &mut ProgramMap,
-    instruction: &InstructionWithMetadata,
-    variable: Variable,
-    true_block: BlockId,
-    false_block: BlockId,
-) -> Result<Branch, qsc_circuit::Error> {
-    let (results, cond_str) = state.condition_for_variable(variable.variable_id)?;
-    // TODO: let's allow this for now, though it's weird (see phi nodes)
-    if results.is_empty() {
-        return Err(qsc_circuit::Error::UnsupportedFeature(format!(
-            "branching on a condition that doesn't involve at least one result: {cond_str}"
-        )));
-    }
-    let op = Branch {
-        cond_str,
-        true_block,
-        false_block,
-        control_results: results,
-        metadata: instruction.metadata.clone(),
-    };
-    Ok(op)
-}
-
-fn eq_expr(expr_left: Expr, expr_right: Expr) -> Result<BoolExpr, qsc_circuit::Error> {
+fn eq_expr(expr_left: Expr, expr_right: Expr) -> Result<BoolExpr, Error> {
     Ok(match (expr_left, expr_right) {
-        (Expr::BoolExpr(BoolExpr::LiteralBool(b1)), Expr::BoolExpr(BoolExpr::LiteralBool(b2))) => {
+        (Expr::Bool(BoolExpr::LiteralBool(b1)), Expr::Bool(BoolExpr::LiteralBool(b2))) => {
             BoolExpr::LiteralBool(b1 == b2)
         }
-        (Expr::BoolExpr(BoolExpr::Result(r)), Expr::BoolExpr(BoolExpr::LiteralBool(b)))
-        | (Expr::BoolExpr(BoolExpr::LiteralBool(b)), Expr::BoolExpr(BoolExpr::Result(r))) => {
+        (Expr::Bool(BoolExpr::Result(r)), Expr::Bool(BoolExpr::LiteralBool(b)))
+        | (Expr::Bool(BoolExpr::LiteralBool(b)), Expr::Bool(BoolExpr::Result(r))) => {
             if b {
                 BoolExpr::Result(r)
             } else {
                 BoolExpr::NotResult(r)
             }
         }
-        (Expr::BoolExpr(BoolExpr::Result(left)), Expr::BoolExpr(BoolExpr::Result(right))) => {
-            BoolExpr::TwoResultCondition(TwoResultCondition {
+        (Expr::Bool(BoolExpr::Result(left)), Expr::Bool(BoolExpr::Result(right))) => {
+            BoolExpr::TwoResultCondition {
                 results: (left, right),
                 filter: (true, false, false, true), // 00 and 11
-            })
+            }
         }
         (left, right) => {
-            return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+            return Err(Error::UnsupportedFeature(format!(
                 "unsupported equality expression combination: left={left:?}, right={right:?}"
             )));
         }
@@ -961,7 +992,7 @@ fn make_simple_branch_block(
     state: &ProgramMap,
     true_block: BlockId,
     false_block: BlockId,
-) -> Result<BranchBlock, qsc_circuit::Error> {
+) -> Result<BranchBlock, Error> {
     let CircuitBlock {
         operations: true_operations,
         terminator: true_terminator,
@@ -1032,15 +1063,13 @@ fn make_simple_branch_block(
             unconditional_successor: true_successor.expect("true_successor should exist"),
         })
     } else {
-        Err(qsc_circuit::Error::UnsupportedFeature(format!(
+        Err(Error::UnsupportedFeature(format!(
             "complex branch: true_block={true_block:?} successor={true_successor:?}, false_block={false_block:?} successor={false_successor:?}"
         )))
     }
 }
 
-fn expand_real_branch_block(
-    operations: &Vec<Op>,
-) -> Result<(Vec<Op>, Vec<usize>), qsc_circuit::Error> {
+fn expand_real_branch_block(operations: &Vec<Op>) -> Result<(Vec<Op>, Vec<usize>), Error> {
     let mut seen = FxHashSet::default();
     let mut real_ops = vec![];
     for op in operations {
@@ -1054,7 +1083,7 @@ fn expand_real_branch_block(
     }
 
     if seen.iter().any(|(_, r)| r.is_some()) {
-        return Err(qsc_circuit::Error::UnsupportedFeature(
+        return Err(Error::UnsupportedFeature(
             "measurement operation in a branch block".to_owned(),
         ));
     }
@@ -1064,14 +1093,14 @@ fn expand_real_branch_block(
     Ok((real_ops, target_qubits))
 }
 
-fn expr_from_operand(state: &ProgramMap, operand: &Operand) -> Result<Expr, qsc_circuit::Error> {
+fn expr_from_operand(state: &ProgramMap, operand: &Operand) -> Result<Expr, Error> {
     match operand {
         Operand::Literal(literal) => match literal {
-            Literal::Result(r) => Ok(Expr::BoolExpr(BoolExpr::Result(*r))),
-            Literal::Bool(b) => Ok(Expr::BoolExpr(BoolExpr::LiteralBool(*b))),
-            Literal::Integer(i) => Ok(Expr::RichExpr(RichExpr::Literal(i.to_string()))),
-            Literal::Double(d) => Ok(Expr::RichExpr(RichExpr::Literal(d.to_string()))),
-            _ => Err(qsc_circuit::Error::UnsupportedFeature(format!(
+            Literal::Result(r) => Ok(Expr::Bool(BoolExpr::Result(*r))),
+            Literal::Bool(b) => Ok(Expr::Bool(BoolExpr::LiteralBool(*b))),
+            Literal::Integer(i) => Ok(Expr::Rich(RichExpr::Literal(i.to_string()))),
+            Literal::Double(d) => Ok(Expr::Rich(RichExpr::Literal(d.to_string()))),
+            _ => Err(Error::UnsupportedFeature(format!(
                 "unsupported literal operand: {literal:?}"
             ))),
         },
@@ -1090,51 +1119,73 @@ struct ProgramMap {
     blocks: IndexMap<BlockId, CircuitBlock>,
 }
 
-#[derive(Debug, Clone, Copy)]
-struct TwoResultCondition {
-    results: (u32, u32),
-    // 00, 01, 10, 11
-    filter: (bool, bool, bool, bool),
-}
-
 #[derive(Debug, Clone)]
 enum Expr {
-    RichExpr(RichExpr),
-    BoolExpr(BoolExpr),
+    Rich(RichExpr),
+    Bool(BoolExpr),
+    Unresolved(VariableId),
 }
 
 #[derive(Debug, Clone)]
 enum BoolExpr {
     Result(u32),
     NotResult(u32),
-    TwoResultCondition(TwoResultCondition),
+    TwoResultCondition {
+        results: (u32, u32),
+        // 00, 01, 10, 11
+        filter: (bool, bool, bool, bool),
+    },
     LiteralBool(bool),
     BinOp(Box<Expr>, Box<Expr>, String),
+}
+
+impl BoolExpr {
+    fn negate(&self) -> Result<BoolExpr, Error> {
+        let b = match self {
+            BoolExpr::Result(r) => BoolExpr::NotResult(*r),
+            BoolExpr::NotResult(r) => BoolExpr::Result(*r),
+            BoolExpr::LiteralBool(b) => BoolExpr::LiteralBool(!b),
+            _ => {
+                return Err(Error::UnsupportedFeature(
+                    "too tired to negate complex boolean expressions".to_owned(),
+                ));
+            }
+        };
+        Ok(b)
+    }
 }
 
 #[derive(Debug, Clone)]
 enum RichExpr {
     Literal(String),
-    Options(Vec<Expr>),
+    Options(Vec<(BoolExpr, Expr)>),
     FunctionOf(Vec<Expr>),
 }
 
 impl Expr {
     fn linked_results(&self) -> Vec<u32> {
         match self {
-            Expr::RichExpr(rich_expr) => match rich_expr {
-                RichExpr::Options(exprs) => exprs.iter().flat_map(Expr::linked_results).collect(),
+            Expr::Rich(rich_expr) => match rich_expr {
+                RichExpr::Options(exprs) => exprs
+                    .iter()
+                    .flat_map(|(cond, e)| {
+                        Expr::Bool(cond.clone())
+                            .linked_results()
+                            .into_iter()
+                            .chain(e.linked_results())
+                    })
+                    .collect(),
                 RichExpr::Literal(_) => vec![],
                 RichExpr::FunctionOf(exprs) => {
                     exprs.iter().flat_map(Expr::linked_results).collect()
                 }
             },
-            Expr::BoolExpr(condition_expr) => match condition_expr {
+            Expr::Bool(condition_expr) => match condition_expr {
                 BoolExpr::Result(result_id) | BoolExpr::NotResult(result_id) => {
                     vec![*result_id]
                 }
-                BoolExpr::TwoResultCondition(two_result_cond) => {
-                    vec![two_result_cond.results.0, two_result_cond.results.1]
+                BoolExpr::TwoResultCondition { results, .. } => {
+                    vec![results.0, results.1]
                 }
                 BoolExpr::LiteralBool(_) => vec![],
                 BoolExpr::BinOp(condition_expr, condition_expr1, _) => condition_expr
@@ -1143,6 +1194,12 @@ impl Expr {
                     .chain(condition_expr1.linked_results())
                     .collect(),
             },
+            Expr::Unresolved(variable_id) => {
+                warn!(
+                    "warning: trying to get linked results for unresolved variable {variable_id:?}"
+                );
+                vec![]
+            }
         }
     }
 }
@@ -1150,9 +1207,12 @@ impl Expr {
 impl Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Expr::RichExpr(complicated_expr) => match complicated_expr {
+            Expr::Rich(complicated_expr) => match complicated_expr {
                 RichExpr::Options(exprs) => {
-                    let exprs_str: Vec<String> = exprs.iter().map(ToString::to_string).collect();
+                    let exprs_str: Vec<String> = exprs
+                        .iter()
+                        .map(|(cond, val)| format!("if {cond} then {val}"))
+                        .collect();
                     write!(f, "one of: ({})", exprs_str.join(", "))
                 }
                 RichExpr::Literal(literal_str) => write!(f, "{literal_str}"),
@@ -1166,7 +1226,8 @@ impl Display for Expr {
                         .join(", ")
                 ),
             },
-            Expr::BoolExpr(condition_expr) => write!(f, "{condition_expr}"),
+            Expr::Bool(condition_expr) => write!(f, "{condition_expr}"),
+            Expr::Unresolved(variable_id) => write!(f, "unresolved({variable_id:?})"),
         }
     }
 }
@@ -1178,19 +1239,19 @@ impl Display for BoolExpr {
             BoolExpr::NotResult(_) => write!(f, "a = |0〉"),
             BoolExpr::LiteralBool(true) => write!(f, "true"),
             BoolExpr::LiteralBool(false) => write!(f, "false"),
-            BoolExpr::TwoResultCondition(two_result_cond) => {
-                let (f00, f01, f10, f11) = two_result_cond.filter;
+            BoolExpr::TwoResultCondition { filter, .. } => {
+                let (f00, f01, f10, f11) = filter;
                 let mut conditions = vec![];
-                if f00 {
+                if *f00 {
                     conditions.push("ab = |00〉".to_string());
                 }
-                if f01 {
+                if *f01 {
                     conditions.push("ab = |01〉".to_string());
                 }
-                if f10 {
+                if *f10 {
                     conditions.push("ab = |10〉".to_string());
                 }
-                if f11 {
+                if *f11 {
                     conditions.push("ab = |11〉".to_string());
                 }
                 write!(f, "{}", conditions.join(" or "))
@@ -1247,30 +1308,25 @@ impl ProgramMap {
         }
     }
 
-    fn expr_for_variable(&self, variable_id: VariableId) -> Result<&Expr, qsc_circuit::Error> {
+    fn expr_for_variable(&self, variable_id: VariableId) -> Result<&Expr, Error> {
         let expr = self.variables.get(variable_id);
-        expr.ok_or_else(|| {
-            qsc_circuit::Error::UnsupportedFeature(format!(
-                "variable {variable_id:?} is not linked to a result or expression"
-            ))
-        })
+        Ok(expr.unwrap_or_else(|| {
+            panic!("variable {variable_id:?} is not linked to a result or expression")
+        }))
     }
 
-    fn condition_for_variable(
-        &self,
-        variable_id: VariableId,
-    ) -> Result<(Vec<u32>, String), qsc_circuit::Error> {
+    fn condition_for_variable(&self, variable_id: VariableId) -> Result<(Vec<u32>, String), Error> {
         let var_expr = self.expr_for_variable(variable_id)?;
         let results = var_expr.linked_results();
 
-        if let Expr::BoolExpr(var_expr) = var_expr {
+        if let Expr::Bool(var_expr) = var_expr {
             if let BoolExpr::LiteralBool(_) = var_expr {
-                return Err(qsc_circuit::Error::UnsupportedFeature(
+                return Err(Error::UnsupportedFeature(
                     "constant condition in branch".to_owned(),
                 ));
             }
         } else {
-            return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+            return Err(Error::UnsupportedFeature(format!(
                 "variable {variable_id:?} is not a condition expression, cannot branch on it: {var_expr}"
             )));
         }
@@ -1301,19 +1357,15 @@ impl ProgramMap {
         })
     }
 
-    fn store_expr_in_variable(
-        &mut self,
-        var: Variable,
-        expr: Expr,
-    ) -> Result<(), qsc_circuit::Error> {
+    fn store_expr_in_variable(&mut self, var: Variable, expr: Expr) -> Result<(), Error> {
         let variable_id = var.variable_id;
         if let Some(old_value) = self.variables.get(variable_id) {
             panic!("variable {variable_id:?} already stored {old_value:?}, cannot store {expr:?}");
         }
-        if let Expr::BoolExpr(condition_expr) = &expr {
+        if let Expr::Bool(condition_expr) = &expr {
             if let Ty::Boolean = var.ty {
             } else {
-                return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                return Err(Error::UnsupportedFeature(format!(
                     "variable {variable_id:?} has type {var_ty:?} but is being assigned a condition expression: {condition_expr:?}",
                     var_ty = var.ty,
                 )));
@@ -1331,7 +1383,7 @@ fn map_callable_to_operations(
     operands: &Vec<Operand>,
     var: Option<Variable>,
     metadata: Option<&InstructionMetadata>,
-) -> Result<Vec<Op>, qsc_circuit::Error> {
+) -> Result<Vec<Op>, Error> {
     Ok(match callable.call_type {
         CallableType::Measurement => {
             map_measurement_call_to_operations(state, callable, operands, metadata)?
@@ -1344,13 +1396,10 @@ fn map_callable_to_operations(
                         Operand::Literal(Literal::Result(r)) => {
                             let var =
                                 var.expect("read_result must have a variable to store the result");
-                            state.store_expr_in_variable(
-                                var,
-                                Expr::BoolExpr(BoolExpr::Result(*r)),
-                            )?;
+                            state.store_expr_in_variable(var, Expr::Bool(BoolExpr::Result(*r)))?;
                         }
                         operand => {
-                            return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                            return Err(Error::UnsupportedFeature(format!(
                                 "operand for result readout is not a result: {operand:?}"
                             )));
                         }
@@ -1359,7 +1408,7 @@ fn map_callable_to_operations(
                 vec![]
             }
             name => {
-                return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                return Err(Error::UnsupportedFeature(format!(
                     "unknown readout callable: {name}"
                 )));
             }
@@ -1370,7 +1419,7 @@ fn map_callable_to_operations(
         CallableType::Regular => {
             let (gate, operand_types) = callable_spec(callable, operands)?;
             if let Some(var) = var {
-                let result_expr = Expr::RichExpr(RichExpr::FunctionOf(
+                let result_expr = Expr::Rich(RichExpr::FunctionOf(
                     operands
                         .iter()
                         .map(|o| expr_from_operand(state, o))
@@ -1434,7 +1483,7 @@ fn map_reset_call_into_operations(
     callable: &Callable,
     operands: &[Operand],
     metadata: Option<&InstructionMetadata>,
-) -> Result<Vec<Op>, qsc_circuit::Error> {
+) -> Result<Vec<Op>, Error> {
     Ok(match callable.name.as_str() {
         "__quantum__qis__reset__body" => {
             let operand_types = vec![OperandType::Target];
@@ -1466,7 +1515,7 @@ fn map_reset_call_into_operations(
             }]
         }
         name => {
-            return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+            return Err(Error::UnsupportedFeature(format!(
                 "unknown reset callable: {name}"
             )));
         }
@@ -1478,7 +1527,7 @@ fn map_measurement_call_to_operations(
     callable: &Callable,
     operands: &Vec<Operand>,
     metadata: Option<&InstructionMetadata>,
-) -> Result<Vec<Op>, qsc_circuit::Error> {
+) -> Result<Vec<Op>, Error> {
     let gate = match callable.name.as_str() {
         "__quantum__qis__m__body" => "M",
         "__quantum__qis__mresetz__body" => "MResetZ",
@@ -1574,7 +1623,7 @@ fn map_measurement_call_to_operations(
 fn callable_spec<'a>(
     callable: &'a Callable,
     operands: &[Operand],
-) -> Result<(&'a str, Vec<OperandType>), qsc_circuit::Error> {
+) -> Result<(&'a str, Vec<OperandType>), Error> {
     Ok(match callable.name.as_str() {
         // single-qubit gates
         "__quantum__qis__x__body" => ("X", vec![OperandType::Target]),
@@ -1627,7 +1676,7 @@ fn callable_spec<'a>(
                         operand_types.push(OperandType::Target);
                     }
                     o => {
-                        return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                        return Err(Error::UnsupportedFeature(format!(
                             "unsupported operand for custom gate {custom}: {o:?}"
                         )));
                     }
@@ -1642,7 +1691,7 @@ fn callable_spec<'a>(
 fn gather_measurement_operands(
     state: &mut ProgramMap,
     operands: &Vec<Operand>,
-) -> Result<(Vec<Register>, Vec<Register>), qsc_circuit::Error> {
+) -> Result<(Vec<Register>, Vec<Register>), Error> {
     let mut qubit_registers = vec![];
     let mut result_registers = vec![];
     let mut qubit_id = None;
@@ -1651,7 +1700,7 @@ fn gather_measurement_operands(
             Operand::Literal(Literal::Qubit(q)) => {
                 let old = qubit_id.replace(q);
                 if old.is_some() {
-                    return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                    return Err(Error::UnsupportedFeature(format!(
                         "measurement should only have one qubit operand, found {old:?} and {q}"
                     )));
                 }
@@ -1667,7 +1716,7 @@ fn gather_measurement_operands(
                 result_registers.push(result_register);
             }
             o => {
-                return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                return Err(Error::UnsupportedFeature(format!(
                     "unsupported operand for measurement: {o:?}"
                 )));
             }
@@ -1688,12 +1737,12 @@ fn gather_operands(
     state: &mut ProgramMap,
     operand_types: &[OperandType],
     operands: &[Operand],
-) -> Result<TargetsControlsArgs, qsc_circuit::Error> {
+) -> Result<TargetsControlsArgs, Error> {
     let mut targets = vec![];
     let mut controls = vec![];
     let mut args = vec![];
     if operand_types.len() != operands.len() {
-        return Err(qsc_circuit::Error::UnsupportedFeature(
+        return Err(Error::UnsupportedFeature(
             "unexpected number of operands for known operation".to_owned(),
         ));
     }
@@ -1705,7 +1754,7 @@ fn gather_operands(
                         OperandType::Control => &mut controls,
                         OperandType::Target => &mut targets,
                         OperandType::Arg => {
-                            return Err(qsc_circuit::Error::UnsupportedFeature(
+                            return Err(Error::UnsupportedFeature(
                                 "qubit operand cannot be an argument".to_owned(),
                             ));
                         }
@@ -1716,7 +1765,7 @@ fn gather_operands(
                     });
                 }
                 Literal::Result(_r) => {
-                    return Err(qsc_circuit::Error::UnsupportedFeature(
+                    return Err(Error::UnsupportedFeature(
                         "result operand cannot be a target of a unitary operation".to_owned(),
                     ));
                 }
@@ -1725,7 +1774,7 @@ fn gather_operands(
                         args.push(i.to_string());
                     }
                     _ => {
-                        return Err(qsc_circuit::Error::UnsupportedFeature(
+                        return Err(Error::UnsupportedFeature(
                             "integer operand where qubit was expected".to_owned(),
                         ));
                     }
@@ -1735,13 +1784,13 @@ fn gather_operands(
                         args.push(format!("{d:.4}"));
                     }
                     _ => {
-                        return Err(qsc_circuit::Error::UnsupportedFeature(
+                        return Err(Error::UnsupportedFeature(
                             "double operand where qubit was expected".to_owned(),
                         ));
                     }
                 },
                 l => {
-                    return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                    return Err(Error::UnsupportedFeature(format!(
                         "unsupported literal operand for unitary operation: {l:?}"
                     )));
                 }
@@ -1750,7 +1799,7 @@ fn gather_operands(
                 if let &OperandType::Arg = operand_type {
                     args.push(state.expr_for_variable(var.variable_id)?.to_string());
                 } else {
-                    return Err(qsc_circuit::Error::UnsupportedFeature(format!(
+                    return Err(Error::UnsupportedFeature(format!(
                         "variable operand cannot be a target or control of a unitary operation: {o:?}"
                     )));
                 }
