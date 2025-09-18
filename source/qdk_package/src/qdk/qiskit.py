@@ -11,6 +11,7 @@ from __future__ import annotations
 
 try:  # pragma: no cover - presence check
     from qiskit import *  # type: ignore  # noqa: F401,F403
+    from qsharp.interop.qiskit import *  # type: ignore  # noqa: F401,F403
 except Exception as ex:  # pragma: no cover
     raise ImportError(
         "qdk.qiskit requires the qiskit extra. Install with 'pip install qdk[qiskit]'."
