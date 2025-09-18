@@ -1,7 +1,4 @@
-use std::{
-    fmt::{Display, Write},
-    mem::take,
-};
+use std::fmt::{Display, Write};
 
 use crate::circuit;
 use log::debug;
@@ -147,9 +144,7 @@ pub(crate) fn make_circuit(
         .get(entry_block)
         .expect("entry block should have been processed");
 
-    let entry_operations = entry_block.operations.clone();
-
-    let operations = expand_successors(&program_map, entry_operations);
+    let operations = extend_with_successors(&program_map, entry_block);
 
     let qubits = program_map.into_qubits();
     let operations = operations.into_iter().map(Into::into).collect();
@@ -172,84 +167,53 @@ pub(crate) fn make_circuit(
     Ok(circuit)
 }
 
+/// Iterates over all the basic blocks in the original program. If a block ends with a conditional branch,
+/// the corresponding block in the program map is modified to replace the conditional branch with an unconditional branch,
+/// and an operation is added to the block that represents the branch logic (i.e., a unitary operation with two children, one for the true branch and one for the false branch).
 fn expand_branches(program: &Program, state: &mut ProgramMap) -> Result<(), qsc_circuit::Error> {
-    let mut more_work = true;
-    while more_work {
-        // TODO: stop if no progress to avoid infinite loop
-        more_work = false;
-        for block in program.blocks.iter() {
-            let mut circuit_block = state
-                .blocks
-                .get(block.0)
-                .expect("block should exist")
-                .clone();
+    for block in program.blocks.iter() {
+        let mut circuit_block = state
+            .blocks
+            .get(block.0)
+            .expect("block should exist")
+            .clone();
 
-            if let Some(Terminator::Conditional(variable, unexpanded_branch)) =
-                &circuit_block.terminator
-            {
-                let mut op = unexpanded_branch.clone();
-                let result = expand_branch_children(&*state, &mut op)?;
-
-                match result {
-                    ExpandBranchResult::Expanded(real_op) => {
-                        let successor_arg = &real_op.args[0].clone();
-                        circuit_block.operations.push(*real_op);
-                        let unconditional_successor_block_id =
-                            BlockId(successor_arg.parse().unwrap_or_else(|_| {
-                                panic!("successor block id should parse: {successor_arg}")
-                            }));
-                        circuit_block.terminator =
-                            Some(Terminator::Unconditional(unconditional_successor_block_id));
-                    }
-                    ExpandBranchResult::DeferBranch => {
-                        more_work = true;
-                    }
-                }
+        if let Some(Terminator::Conditional(variable, unexpanded_branch)) =
+            &circuit_block.terminator
+        {
+            let (real_op, unconditional_successor_block_id) =
+                expand_branch_children(&*state, unexpanded_branch)?;
+            if !real_op.children.is_empty() {
+                // don't add operations for empty branches
+                circuit_block.operations.push(real_op);
             }
-
-            state.blocks.insert(block.0, circuit_block);
+            circuit_block.terminator =
+                Some(Terminator::Unconditional(unconditional_successor_block_id));
         }
+
+        state.blocks.insert(block.0, circuit_block);
     }
     Ok(())
 }
 
-fn expand_successors(state: &ProgramMap, block_operations: Vec<Op>) -> Vec<Op> {
+fn extend_with_successors(state: &ProgramMap, entry_block: &CircuitBlock) -> Vec<Op> {
     let mut operations = vec![];
-    let mut operations_stack = block_operations;
-    operations_stack.reverse();
+    let mut block_stack = vec![entry_block.clone()];
 
-    while let Some(mut operation) = operations_stack.pop() {
-        if let unitary @ Op {
-            kind: OperationKind::Unitary,
-            ..
-        } = &mut operation
-        {
-            if unitary.label == "successor" {
-                let successor_block_id = BlockId(unitary.args[0].parse().unwrap_or_else(|_| {
-                    panic!("successor block id should parse: {}", unitary.args[0])
-                }));
-                unitary.args.remove(0);
-                unitary.label = "check ".into();
-                let successor_block = state
-                    .blocks
-                    .get(successor_block_id)
-                    .expect("successor block should exist");
-                for successor_operation in successor_block.operations.iter().rev() {
-                    operations_stack.push(successor_operation.clone());
-                }
-                if unitary.children.is_empty() {
-                    // empty block, skip adding
-                    continue;
-                }
-            }
+    while let Some(block) = block_stack.pop() {
+        // At this point we expect only unconditional successors or none
+        if let Some(Terminator::Unconditional(successor_block_id)) = &block.terminator {
+            let successor_block = state
+                .blocks
+                .get(*successor_block_id)
+                .expect("successor block should exist");
 
-            if !unitary.children.is_empty() {
-                let children = take(&mut unitary.children).into_iter().collect();
-                let children = expand_successors(state, children);
-                unitary.children = children.into_iter().collect();
-            }
+            block_stack.push(successor_block.clone());
         }
-        operations.push(operation.clone());
+
+        for op in block.operations {
+            operations.push(op.clone());
+        }
     }
     operations
 }
@@ -396,16 +360,10 @@ fn parse_span(rest: &str) -> Option<Span> {
     None
 }
 
-#[derive(Debug)]
-enum ExpandBranchResult {
-    DeferBranch,
-    Expanded(Box<Op>),
-}
-
 fn expand_branch_children(
     state: &ProgramMap,
-    branch: &mut UnexpandedBranch,
-) -> Result<ExpandBranchResult, qsc_circuit::Error> {
+    branch: &UnexpandedBranch,
+) -> Result<(Op, BlockId), qsc_circuit::Error> {
     let UnexpandedBranch {
         cond_str,
         true_block,
@@ -416,98 +374,93 @@ fn expand_branch_children(
 
     let true_block = *true_block;
     let false_block = *false_block;
-    if let Some(branch_block) = make_simple_branch_block(state, true_block, false_block)? {
-        let (true_operations, true_targets) = branch_block.true_block;
-        let true_container = Op {
+    let branch_block = make_simple_branch_block(state, true_block, false_block)?;
+    let (true_operations, true_targets) = branch_block.true_block;
+    let true_container = Op {
+        kind: OperationKind::Unitary,
+        label: "true".into(),
+        args: vec![],
+        children: true_operations.clone(),
+        target_qubits: true_targets.clone(),
+        control_qubits: vec![],
+        target_results: vec![],
+        control_results: control_results.clone(),
+        is_adjoint: false,
+        metadata: None,
+    };
+
+    let false_container = branch_block
+        .false_block
+        .map(|(false_operations, false_targets)| {
+            (
+                Op {
+                    kind: OperationKind::Unitary,
+                    label: "false".into(),
+                    target_qubits: false_targets.clone(),
+                    control_qubits: vec![],
+                    target_results: vec![],
+                    control_results: control_results.clone(),
+                    args: vec![],
+                    is_adjoint: false,
+                    children: false_operations.clone(),
+                    metadata: None,
+                },
+                false_targets,
+            )
+        });
+
+    let true_container = if true_container.children.is_empty() {
+        None
+    } else {
+        Some(true_container)
+    };
+    let false_container = false_container.and_then(|f| {
+        if f.0.children.is_empty() {
+            None
+        } else {
+            Some(f)
+        }
+    });
+
+    let mut children = vec![];
+    let mut target_qubits = vec![];
+
+    if let Some(true_container) = true_container {
+        children.push(true_container);
+        target_qubits.extend(true_targets);
+    }
+
+    if let Some((false_container, false_targets)) = false_container {
+        children.push(false_container);
+        target_qubits.extend(false_targets);
+    }
+
+    // dedup targets
+    target_qubits.sort_unstable();
+    target_qubits.dedup();
+    // TODO: target results for container? measurements in branches?
+
+    let args = vec![cond_str.clone()];
+    let label = "check ".to_string();
+
+    Ok((
+        Op {
             kind: OperationKind::Unitary,
-            label: "true".into(),
-            args: vec![],
-            children: true_operations.clone(),
-            target_qubits: true_targets.clone(),
+            label,
+            target_qubits,
             control_qubits: vec![],
             target_results: vec![],
             control_results: control_results.clone(),
             is_adjoint: false,
-            metadata: None,
-        };
-
-        let false_container = branch_block
-            .false_block
-            .map(|(false_operations, false_targets)| {
-                (
-                    Op {
-                        kind: OperationKind::Unitary,
-                        label: "false".into(),
-                        target_qubits: false_targets.clone(),
-                        control_qubits: vec![],
-                        target_results: vec![],
-                        control_results: control_results.clone(),
-                        args: vec![],
-                        is_adjoint: false,
-                        children: false_operations.clone(),
-                        metadata: None,
-                    },
-                    false_targets,
-                )
-            });
-
-        let true_container = if true_container.children.is_empty() {
-            None
-        } else {
-            Some(true_container)
-        };
-        let false_container = false_container.and_then(|f| {
-            if f.0.children.is_empty() {
-                None
-            } else {
-                Some(f)
-            }
-        });
-
-        let mut children = vec![];
-        let mut target_qubits = vec![];
-
-        if let Some(true_container) = true_container {
-            children.push(true_container);
-            target_qubits.extend(true_targets);
-        }
-
-        if let Some((false_container, false_targets)) = false_container {
-            children.push(false_container);
-            target_qubits.extend(false_targets);
-        }
-
-        // dedup targets
-        target_qubits.sort_unstable();
-        target_qubits.dedup();
-        // TODO: target results for container? measurements in branches?
-
-        let args = vec![
-            branch_block.unconditional_successor.0.to_string(),
-            cond_str.clone(),
-        ];
-        let label = "successor".to_string();
-
-        return Ok(ExpandBranchResult::Expanded(
-            Op {
-                kind: OperationKind::Unitary,
-                label,
-                target_qubits,
-                control_qubits: vec![],
-                target_results: vec![],
-                control_results: control_results.clone(),
-                is_adjoint: false,
-                children: children.into_iter().collect(),
-                args,
-                metadata: metadata.clone(),
-            }
-            .into(),
-        ));
-    }
-    return Ok(ExpandBranchResult::DeferBranch); // more work needed to fill in the branch children
+            children: children.into_iter().collect(),
+            args,
+            metadata: metadata.clone(),
+        },
+        branch_block.unconditional_successor,
+    ))
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct CircuitBlock {
     _predecessors: Vec<BlockId>,
     operations: Vec<Op>,
@@ -669,7 +622,7 @@ fn flush_scope(
     }
 
     if should_group {
-        let args = current_scope[0].args.to_vec();
+        let args = current_scope[0].args.clone();
         let metadata = current_scope[0].metadata.clone();
         let qubits: FxHashSet<usize> = current_scope
             .iter()
@@ -1013,7 +966,7 @@ fn make_simple_branch_block(
     state: &ProgramMap,
     true_block: BlockId,
     false_block: BlockId,
-) -> Result<Option<BranchBlock>, qsc_circuit::Error> {
+) -> Result<BranchBlock, qsc_circuit::Error> {
     let CircuitBlock {
         operations: true_operations,
         terminator: true_terminator,
@@ -1036,59 +989,37 @@ fn make_simple_branch_block(
 
     if true_successor.is_some_and(|c| c == false_block) && false_successor.is_none() {
         // simple if
-        let (early_return, target_qubits, true_operations) =
-            expand_real_branch_block(true_operations);
-        if let Some(e) = early_return {
-            return e.map(|_| None);
-        }
+        let true_block = expand_real_branch_block(true_operations)?;
 
-        Ok(Some(BranchBlock {
-            true_block: (true_operations, target_qubits),
+        Ok(BranchBlock {
+            true_block,
             false_block: None,
             unconditional_successor: false_block,
-        }))
+        })
     } else if false_successor.is_some_and(|c| c == true_block) && true_successor.is_none() {
         // simple if, but flipped
         // TODO: we need to flip the condition!!
-        let (early_return, target_qubits, true_operations) =
-            expand_real_branch_block(true_operations);
-        if let Some(e) = early_return {
-            return e.map(|()| None);
-        }
+        let true_block = expand_real_branch_block(true_operations)?;
 
-        Ok(Some(BranchBlock {
-            true_block: (true_operations, target_qubits),
+        Ok(BranchBlock {
+            true_block,
             false_block: None,
             unconditional_successor: false_block,
-        }))
+        })
     } else if true_successor
         .and_then(|true_successor| {
             false_successor.map(|false_successor| (true_successor, false_successor))
         })
         .is_some_and(|(true_successor, false_successor)| true_successor == false_successor)
     {
-        let (early_return, true_target_qubits, true_operations) =
-            expand_real_branch_block(true_operations);
-        if let Some(e) = early_return {
-            return e.map(|_| None);
-        }
+        let true_block = expand_real_branch_block(true_operations)?;
+        let false_block = expand_real_branch_block(false_operations)?;
 
-        let true_block = (true_operations, true_target_qubits);
-
-        let (early_return, false_target_qubits, false_operations) =
-            expand_real_branch_block(false_operations);
-
-        if let Some(e) = early_return {
-            return e.map(|_| None);
-        }
-
-        let false_block = (false_operations, false_target_qubits);
-
-        Ok(Some(BranchBlock {
+        Ok(BranchBlock {
             true_block,
             false_block: Some(false_block),
             unconditional_successor: true_successor.expect("true_successor should exist"),
-        }))
+        })
     } else if false_successor
         .and_then(|false_successor| {
             true_successor.map(|true_successor| (true_successor, false_successor))
@@ -1097,29 +1028,14 @@ fn make_simple_branch_block(
     {
         // if/else, but flipped
 
-        let (early_return, true_target_qubits, true_operations) =
-            expand_real_branch_block(true_operations);
+        let true_block = expand_real_branch_block(true_operations)?;
+        let false_block = expand_real_branch_block(false_operations)?;
 
-        if let Some(e) = early_return {
-            return e.map(|_| None);
-        }
-
-        let true_block = (true_operations, true_target_qubits);
-
-        let (early_return, false_target_qubits, false_operations) =
-            expand_real_branch_block(false_operations);
-
-        if let Some(e) = early_return {
-            return e.map(|_| None);
-        }
-
-        let false_block = (false_operations.clone(), false_target_qubits);
-
-        Ok(Some(BranchBlock {
+        Ok(BranchBlock {
             true_block: false_block,
             false_block: Some(true_block),
             unconditional_successor: true_successor.expect("true_successor should exist"),
-        }))
+        })
     } else {
         Err(qsc_circuit::Error::UnsupportedFeature(format!(
             "complex branch: true_block={true_block:?} successor={true_successor:?}, false_block={false_block:?} successor={false_successor:?}"
@@ -1127,12 +1043,10 @@ fn make_simple_branch_block(
     }
 }
 
-#[must_use]
 fn expand_real_branch_block(
     operations: &Vec<Op>,
-) -> (Option<Result<(), qsc_circuit::Error>>, Vec<usize>, Vec<Op>) {
+) -> Result<(Vec<Op>, Vec<usize>), qsc_circuit::Error> {
     let mut seen = FxHashSet::default();
-    let mut early_return: Option<Result<(), qsc_circuit::Error>> = None;
     let mut real_ops = vec![];
     for op in operations {
         real_ops.push(op.clone());
@@ -1145,14 +1059,14 @@ fn expand_real_branch_block(
     }
 
     if seen.iter().any(|(_, r)| r.is_some()) {
-        early_return = Some(Err(qsc_circuit::Error::UnsupportedFeature(
+        return Err(qsc_circuit::Error::UnsupportedFeature(
             "measurement operation in a branch block".to_owned(),
-        )));
+        ));
     }
 
     // TODO: everything is a target. Don't know how else we would do this.
     let target_qubits = seen.into_iter().map(|(q, _)| q).collect();
-    (early_return, target_qubits, real_ops)
+    Ok((real_ops, target_qubits))
 }
 
 fn expr_from_operand(state: &ProgramMap, operand: &Operand) -> Result<Expr, qsc_circuit::Error> {
