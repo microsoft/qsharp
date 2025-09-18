@@ -228,13 +228,13 @@ impl Display for InstructionWithMetadata {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MetadataPackageSpan {
     pub package: u32,
     pub span: Span,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct InstructionMetadata {
     pub location: MetadataPackageSpan,
     pub scope_id: Option<u32>,
