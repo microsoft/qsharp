@@ -22,11 +22,11 @@ use rustc_hash::FxHashSet;
 type ResultId = (usize, usize);
 
 #[derive(Clone, Debug)]
-struct UnexpandedBranch {
+struct Branch {
     cond_str: String,
     true_block: BlockId,
     false_block: BlockId,
-    control_results: Vec<ResultId>,
+    control_results: Vec<u32>,
     metadata: Option<InstructionMetadata>,
 }
 
@@ -178,17 +178,15 @@ fn expand_branches(program: &Program, state: &mut ProgramMap) -> Result<(), qsc_
             .expect("block should exist")
             .clone();
 
-        if let Some(Terminator::Conditional(variable, unexpanded_branch)) =
-            &circuit_block.terminator
-        {
-            let (real_op, unconditional_successor_block_id) =
-                expand_branch_children(&*state, unexpanded_branch)?;
-            if !real_op.children.is_empty() {
+        if let Some(Terminator::Conditional(variable, branch)) = &circuit_block.terminator {
+            let expanded_branch = expand_branch_children(state, branch)?;
+            if !expanded_branch.operation.children.is_empty() {
                 // don't add operations for empty branches
-                circuit_block.operations.push(real_op);
+                circuit_block.operations.push(expanded_branch.operation);
             }
-            circuit_block.terminator =
-                Some(Terminator::Unconditional(unconditional_successor_block_id));
+            circuit_block.terminator = Some(Terminator::Unconditional(
+                expanded_branch.unconditional_successor,
+            ));
         }
 
         state.blocks.insert(block.0, circuit_block);
@@ -360,22 +358,29 @@ fn parse_span(rest: &str) -> Option<Span> {
     None
 }
 
-fn expand_branch_children(
-    state: &ProgramMap,
-    branch: &UnexpandedBranch,
-) -> Result<(Op, BlockId), qsc_circuit::Error> {
-    let UnexpandedBranch {
-        cond_str,
-        true_block,
-        false_block,
-        control_results,
-        metadata,
-    } = branch;
+// TODO: this could be represented by a circuit block, maybe. Consider.
+struct ExpandedBranch {
+    operation: Op,
+    unconditional_successor: BlockId,
+}
 
-    let true_block = *true_block;
-    let false_block = *false_block;
-    let branch_block = make_simple_branch_block(state, true_block, false_block)?;
+fn expand_branch_children(
+    state: &mut ProgramMap,
+    branch: &Branch,
+) -> Result<ExpandedBranch, qsc_circuit::Error> {
+    let branch_block = make_simple_branch_block(state, branch.true_block, branch.false_block)?;
     let (true_operations, true_targets) = branch_block.true_block;
+    let control_results = branch
+        .control_results
+        .iter()
+        .map(|r| state.result_register(*r))
+        .map(|r| {
+            (
+                r.qubit,
+                r.result.expect("result register must have result idx"),
+            )
+        })
+        .collect::<Vec<_>>();
     let true_container = Op {
         kind: OperationKind::Unitary,
         label: "true".into(),
@@ -440,11 +445,11 @@ fn expand_branch_children(
     target_qubits.dedup();
     // TODO: target results for container? measurements in branches?
 
-    let args = vec![cond_str.clone()];
+    let args = vec![branch.cond_str.clone()];
     let label = "check ".to_string();
 
-    Ok((
-        Op {
+    Ok(ExpandedBranch {
+        operation: Op {
             kind: OperationKind::Unitary,
             label,
             target_qubits,
@@ -454,10 +459,10 @@ fn expand_branch_children(
             is_adjoint: false,
             children: children.into_iter().collect(),
             args,
-            metadata: metadata.clone(),
+            metadata: branch.metadata.clone(),
         },
-        branch_block.unconditional_successor,
-    ))
+        unconditional_successor: branch_block.unconditional_successor,
+    })
 }
 
 #[derive(Clone, Debug)]
@@ -661,7 +666,7 @@ struct BlockUpdate {
 #[derive(Debug, Clone)]
 enum Terminator {
     Unconditional(BlockId),
-    Conditional(Variable, UnexpandedBranch),
+    Conditional(Variable, Branch),
 }
 
 fn get_operations_for_instruction(
@@ -900,7 +905,7 @@ fn operation_for_branch(
     variable: Variable,
     true_block: BlockId,
     false_block: BlockId,
-) -> Result<UnexpandedBranch, qsc_circuit::Error> {
+) -> Result<Branch, qsc_circuit::Error> {
     let (results, cond_str) = state.condition_for_variable(variable.variable_id)?;
     // TODO: let's allow this for now, though it's weird (see phi nodes)
     if results.is_empty() {
@@ -908,21 +913,11 @@ fn operation_for_branch(
             "branching on a condition that doesn't involve at least one result: {cond_str}"
         )));
     }
-    let controls = results.into_iter().map(|r| state.result_register(r));
-
-    let op = UnexpandedBranch {
+    let op = Branch {
         cond_str,
         true_block,
         false_block,
-        control_results: controls
-            .into_iter()
-            .map(|r| {
-                (
-                    r.qubit,
-                    r.result.expect("result register must have result idx"),
-                )
-            })
-            .collect(),
+        control_results: results,
         metadata: instruction.metadata.clone(),
     };
     Ok(op)
