@@ -104,8 +104,30 @@ def mock_azure() -> List[str]:
     if "azure.quantum" not in sys.modules:
         aq = types.ModuleType("azure.quantum")
         aq.__version__ = "3.2.0-mock"
+        # Minimal submodules expected by qdk.azure shim
+        tgt = types.ModuleType("azure.quantum.target")
+        tgt.__doc__ = "mock target submodule"
+        argt = types.ModuleType("azure.quantum.argument_types")
+        argt.__doc__ = "mock argument_types submodule"
+        job = types.ModuleType("azure.quantum.job")
+        job.__doc__ = "mock job submodule"
+        # Register in sys.modules first
+        sys.modules["azure.quantum.target"] = tgt
+        sys.modules["azure.quantum.argument_types"] = argt
+        sys.modules["azure.quantum.job"] = job
+        # Attach to parent for attribute access
+        aq.target = tgt  # type: ignore[attr-defined]
+        aq.argument_types = argt  # type: ignore[attr-defined]
+        aq.job = job  # type: ignore[attr-defined]
         sys.modules["azure.quantum"] = aq
-        created.append("azure.quantum")
+        created.extend(
+            [
+                "azure.quantum",
+                "azure.quantum.target",
+                "azure.quantum.argument_types",
+                "azure.quantum.job",
+            ]
+        )
     return created
 
 

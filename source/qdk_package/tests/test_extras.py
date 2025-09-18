@@ -23,8 +23,10 @@ EXTRAS = {
         "mock": mock_azure,
         "require_name": "azure",
         "module": "qdk.azure",
-        # azure is nested (azure.quantum). We just assert the exported module has a __doc__.
-        "post_assert": lambda mod: hasattr(mod, "__doc__"),
+        # Assert presence of expected lifted submodules from azure.quantum
+        "post_assert": lambda mod: all(
+            hasattr(mod, name) for name in ("target", "argument_types", "job")
+        ),
     },
     "qiskit": {
         "mock": mock_qiskit,

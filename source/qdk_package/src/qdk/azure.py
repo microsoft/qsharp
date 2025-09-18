@@ -12,6 +12,9 @@ from __future__ import annotations
 try:  # pragma: no cover - simple presence check
     # azure-quantum's public surface is under azure.quantum.*; we import the top package
     from azure.quantum import *  # type: ignore  # noqa: F401,F403
+    from azure.quantum import target as target  # type: ignore  # noqa: F401
+    from azure.quantum import argument_types as argument_types  # type: ignore  # noqa: F401
+    from azure.quantum import job as job  # type: ignore  # noqa: F401
 except Exception as ex:  # pragma: no cover
     raise ImportError(
         "qdk.azure requires the azure extra. Install with 'pip install qdk[azure]'."
