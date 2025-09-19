@@ -229,7 +229,7 @@ extends:
           displayName: Install Prereqs and set version
 
         - script: |
-            python ./build.py --jupyterlab --widgets --no-check --no-check-prereqs
+            python ./build.py --jupyterlab --widgets --qdk --no-check --no-check-prereqs
           displayName: Build JupyterLab Package
 
         - script: |
@@ -326,7 +326,7 @@ extends:
 
           # On anything except Windows aarch64, we can build and run tests normally
           - script: |
-              python build.py --pip --no-check-prereqs --integration-tests --manylinux
+              python build.py --pip --qdk --no-check-prereqs --integration-tests --manylinux
             displayName: Build Platform-Dependent Py Packages
             condition: not(and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['arch'], 'aarch64')))
 
@@ -338,7 +338,7 @@ extends:
 
           # now build the Windows aarch64 packages but skip tests as we can't run them
           - script: |
-              python build.py --pip --no-check-prereqs --no-check --no-test
+              python build.py --pip --qdk --no-check-prereqs --no-check --no-test
             displayName: Cross Build Windows aarch64 Py Packages
             condition: and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['arch'], 'aarch64'))
 
