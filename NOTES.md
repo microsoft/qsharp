@@ -19,3 +19,6 @@
   - [ ] dynamic circuits with ghost paths
 - [x] fixed operation_list_to_grid
 - [ ] scale to thousands/millions of qubits/operations
+- [ ] multiple circuits for complex conditionals
+- [ ] link to source for conditions
+- [ ] show control lines when unitary arg is a variable conditional on results (test: multiple_possible_float_values_in_unitary_arg)

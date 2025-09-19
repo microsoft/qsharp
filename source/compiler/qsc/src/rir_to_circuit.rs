@@ -129,6 +129,16 @@ pub(crate) fn make_circuit(
     }
 
     expand_branches(program, &mut program_map)?;
+    program_map.blocks.clear();
+
+    // Do it all again, with all variables properly resolved
+    for (id, block) in program.blocks.iter() {
+        let block_operations =
+            operations_in_block(&mut program_map, callables, block, config.group_scopes)?;
+        program_map.blocks.insert(id, block_operations);
+    }
+
+    expand_branches(program, &mut program_map)?;
 
     let entry_block = program
         .callables
@@ -169,10 +179,11 @@ pub(crate) fn make_circuit(
 /// the corresponding block in the program map is modified to replace the conditional branch with an unconditional branch,
 /// and an operation is added to the block that represents the branch logic (i.e., a unitary operation with two children, one for the true branch and one for the false branch).
 fn expand_branches(program: &Program, state: &mut ProgramMap) -> Result<(), Error> {
-    for block in program.blocks.iter() {
+    for (block_id, _) in program.blocks.iter() {
+        // TODO: we can just iterate over state.blocks here
         let mut circuit_block = state
             .blocks
-            .get(block.0)
+            .get(block_id)
             .expect("block should exist")
             .clone();
 
@@ -182,7 +193,7 @@ fn expand_branches(program: &Program, state: &mut ProgramMap) -> Result<(), Erro
             .terminator
             .take_if(|t| matches!(t, Terminator::Conditional(_)))
         {
-            let expanded_branch = expand_branch(state, &branch)?;
+            let expanded_branch = expand_branch(state, block_id, &branch)?;
 
             if !expanded_branch.grouped_operation.children.is_empty() {
                 // don't add operations for empty branches
@@ -201,39 +212,76 @@ fn expand_branches(program: &Program, state: &mut ProgramMap) -> Result<(), Erro
                 .expect("successor block should exist");
 
             eprintln!("processing successor block: {successor_block:?}");
-
             let condition_expr = state.expr_for_variable(branch.condition.variable_id)?;
-            let Expr::Bool(bool_expr) = condition_expr else {
-                return Err(Error::UnsupportedFeature(format!(
-                    "branch condition is not a boolean expression: {condition_expr:?}"
-                )));
-            };
-            // fill in variables for the phi nodes
-            let mut phi_vars = vec![];
-            for phi in &successor_block.phis {
-                debug!("processing phi node: {phi:?}");
-                let (var, pres) = phi;
-                let mut options = vec![];
-                for (expr, block_id) in pres {
-                    if *block_id == branch.true_block {
-                        options.push((bool_expr.clone(), expr.clone()));
-                    }
-                    if *block_id == branch.false_block {
-                        options.push((bool_expr.negate()?.clone(), expr.clone()));
-                    }
-                }
 
-                phi_vars.push((*var, Expr::Rich(RichExpr::Options(options))));
-            }
+            let phi_vars = store_phi_vars_from_branch(
+                successor_block,
+                expanded_branch.true_predecessor_to_successor,
+                expanded_branch.false_predecessor_to_successor,
+                condition_expr,
+            )?;
             for (var, expr) in phi_vars {
                 debug!("storing phi var {var} = {expr:?}");
                 state.store_expr_in_variable(var, expr)?;
             }
         }
 
-        state.blocks.insert(block.0, circuit_block);
+        state.blocks.insert(block_id, circuit_block);
     }
     Ok(())
+}
+
+fn store_phi_vars_from_branch(
+    successor_block: &CircuitBlock,
+    true_predecessor: BlockId,
+    false_predecessor: BlockId,
+    condition: &Expr,
+) -> Result<Vec<(Variable, Expr)>, Error> {
+    let mut phi_vars = vec![];
+    for phi in &successor_block.phis {
+        let (var, pres) = phi;
+        let mut options = vec![];
+        for (expr, block_id) in pres {
+            // TODO: this is not how it works
+            if *block_id == true_predecessor {
+                options.push((condition.clone(), expr.clone()));
+            }
+            if *block_id == false_predecessor {
+                options.push((condition.negate()?.clone(), expr.clone()));
+            }
+        }
+
+        let rich = combine_exprs(options)?;
+        phi_vars.push((*var, rich));
+    }
+    Ok(phi_vars)
+}
+
+fn combine_exprs(options: Vec<(Expr, Expr)>) -> Result<Expr, Error> {
+    // assert all the exprs are the same type
+    let first = &options.first().expect("options should not be empty").1;
+    if let Expr::Unresolved(_) = first {
+    } else {
+        for (_, expr) in &options {
+            if let Expr::Unresolved(_) = expr {
+                continue;
+            }
+            assert!(
+                !(std::mem::discriminant(expr) != std::mem::discriminant(first)),
+                "cannot combine expressions of different types: {first:?} and {expr:?}"
+            );
+        }
+    }
+
+    let e = match first {
+        Expr::Rich(_) | Expr::Bool(_) => Expr::Rich(RichExpr::Options(options)),
+        Expr::Unresolved(_) => {
+            return Err(Error::UnsupportedFeature(format!(
+                "complex phi chains not supported yet: {options:?}"
+            )));
+        }
+    };
+    Ok(e)
 }
 
 fn extend_with_successors(state: &ProgramMap, entry_block: &CircuitBlock) -> Vec<Op> {
@@ -405,20 +453,44 @@ struct ExpandedBranchBlock {
     _condition: Variable,
     grouped_operation: Op,
     unconditional_successor: BlockId,
+    true_predecessor_to_successor: BlockId,
+    false_predecessor_to_successor: BlockId,
 }
 
-fn expand_branch(state: &mut ProgramMap, branch: &Branch) -> Result<ExpandedBranchBlock, Error> {
+fn expand_branch(
+    state: &mut ProgramMap,
+    curent_block_id: BlockId,
+    branch: &Branch,
+) -> Result<ExpandedBranchBlock, Error> {
     eprintln!("expanding branch: {branch:?}");
-    let branch_block = make_simple_branch_block(state, branch.true_block, branch.false_block)?;
-    let (true_operations, true_targets) = branch_block.true_block;
 
-    let (results, cond_str) = state.condition_for_variable(branch.condition.variable_id)?;
+    let cond_expr = state.expr_for_variable(branch.condition.variable_id)?;
+    let results = cond_expr.linked_results();
+
+    if let Expr::Bool(BoolExpr::LiteralBool(_)) = cond_expr {
+        return Err(Error::UnsupportedFeature(
+            "constant condition in branch".to_owned(),
+        ));
+    }
+
     if results.is_empty() {
         return Err(Error::UnsupportedFeature(format!(
-            "branching on a condition that doesn't involve at least one result: {cond_str}, {}",
+            "branching on a condition that doesn't involve at least one result: {cond_expr:?}, {}",
             branch.condition
         )));
     }
+
+    let branch_block = make_simple_branch_block(
+        state,
+        cond_expr,
+        curent_block_id,
+        branch.true_block,
+        branch.false_block,
+    )?;
+    let ConditionalBlock {
+        operations: true_operations,
+        targets: true_targets,
+    } = branch_block.true_block;
 
     let control_results = results
         .iter()
@@ -443,9 +515,11 @@ fn expand_branch(state: &mut ProgramMap, branch: &Branch) -> Result<ExpandedBran
         metadata: None,
     };
 
-    let false_container = branch_block
-        .false_block
-        .map(|(false_operations, false_targets)| {
+    let false_container = branch_block.false_block.map(
+        |ConditionalBlock {
+             operations: false_operations,
+             targets: false_targets,
+         }| {
             (
                 Op {
                     kind: OperationKind::Unitary,
@@ -461,7 +535,8 @@ fn expand_branch(state: &mut ProgramMap, branch: &Branch) -> Result<ExpandedBran
                 },
                 false_targets,
             )
-        });
+        },
+    );
 
     let true_container = if true_container.children.is_empty() {
         None
@@ -494,7 +569,7 @@ fn expand_branch(state: &mut ProgramMap, branch: &Branch) -> Result<ExpandedBran
     target_qubits.dedup();
     // TODO: target results for container? measurements in branches?
 
-    let args = vec![cond_str.clone()];
+    let args = vec![branch_block.cond_expr.to_string().clone()];
     let label = "check ".to_string();
 
     Ok(ExpandedBranchBlock {
@@ -512,6 +587,8 @@ fn expand_branch(state: &mut ProgramMap, branch: &Branch) -> Result<ExpandedBran
             metadata: branch.metadata.clone(),
         },
         unconditional_successor: branch_block.unconditional_successor,
+        true_predecessor_to_successor: branch_block.true_predecessor_to_successor,
+        false_predecessor_to_successor: branch_block.false_predecessor_to_successor,
     })
 }
 
@@ -837,25 +914,8 @@ fn extend_block_with_phi_instruction(
         exprs.push(expr);
     }
     phis.push((variable, this_phis));
-    state.store_expr_in_variable(variable, Expr::Unresolved(variable.variable_id))?;
 
-    // TODO: defer this to when we have the predecessors fully known
-    // let expr = if exprs.iter().all(|e| matches!(e, Expr::BoolExpr(_))) {
-    //     // fold into pairs of FancyBinOp
-    //     exprs
-    //         .into_iter()
-    //         .reduce(|left, right| {
-    //             Expr::BoolExpr(BoolExpr::BinOp(
-    //                 left.into(),
-    //                 right.into(),
-    //                 "or maybe".into(),
-    //             ))
-    //         })
-    //         .expect("there should be at least one expression")
-    // } else {
-    //     Expr::RichExpr(RichExpr::Options(exprs))
-    // };
-    // state.store_expr_in_variable(variable, expr)?;
+    state.store_variable_placeholder(variable);
 
     Ok(())
 }
@@ -981,28 +1041,41 @@ fn eq_expr(expr_left: Expr, expr_right: Expr) -> Result<BoolExpr, Error> {
     })
 }
 
+struct ConditionalBlock {
+    operations: Vec<Op>,
+    targets: Vec<usize>,
+}
+
 struct BranchBlock {
-    true_block: (Vec<Op>, Vec<usize>),
-    false_block: Option<(Vec<Op>, Vec<usize>)>,
+    cond_expr: Expr,
+    true_block: ConditionalBlock,
+    false_block: Option<ConditionalBlock>,
     unconditional_successor: BlockId,
+    true_predecessor_to_successor: BlockId,
+    false_predecessor_to_successor: BlockId,
 }
 
 /// Can only handle basic branches
 fn make_simple_branch_block(
     state: &ProgramMap,
-    true_block: BlockId,
-    false_block: BlockId,
+    cond_expr: &Expr,
+    current_block_id: BlockId,
+    true_block_id: BlockId,
+    false_block_id: BlockId,
 ) -> Result<BranchBlock, Error> {
     let CircuitBlock {
         operations: true_operations,
         terminator: true_terminator,
         ..
-    } = state.blocks.get(true_block).expect("block should exist");
+    } = state.blocks.get(true_block_id).expect("block should exist");
     let CircuitBlock {
         operations: false_operations,
         terminator: false_terminator,
         ..
-    } = state.blocks.get(false_block).expect("block should exist");
+    } = state
+        .blocks
+        .get(false_block_id)
+        .expect("block should exist");
 
     let true_successor = match true_terminator {
         Some(Terminator::Unconditional(s)) => Some(*s),
@@ -1013,24 +1086,31 @@ fn make_simple_branch_block(
         _ => None,
     };
 
-    if true_successor.is_some_and(|c| c == false_block) && false_successor.is_none() {
+    if true_successor.is_some_and(|c| c == false_block_id) && false_successor.is_none() {
         // simple if
         let true_block = expand_real_branch_block(true_operations)?;
 
         Ok(BranchBlock {
+            cond_expr: cond_expr.clone(),
             true_block,
             false_block: None,
-            unconditional_successor: false_block,
+            unconditional_successor: false_block_id,
+            true_predecessor_to_successor: true_block_id,
+            false_predecessor_to_successor: current_block_id,
         })
-    } else if false_successor.is_some_and(|c| c == true_block) && true_successor.is_none() {
-        // simple if, but flipped
-        // TODO: we need to flip the condition!!
+    } else if false_successor.is_some_and(|c| c == true_block_id) && true_successor.is_none() {
+        // simple if, but flipped (i.e. just else)
+        // TODO: test
+
         let true_block = expand_real_branch_block(true_operations)?;
 
         Ok(BranchBlock {
+            cond_expr: cond_expr.negate()?,
             true_block,
             false_block: None,
-            unconditional_successor: false_block,
+            unconditional_successor: false_block_id,
+            true_predecessor_to_successor: true_block_id,
+            false_predecessor_to_successor: current_block_id,
         })
     } else if true_successor
         .and_then(|true_successor| {
@@ -1038,38 +1118,26 @@ fn make_simple_branch_block(
         })
         .is_some_and(|(true_successor, false_successor)| true_successor == false_successor)
     {
+        // both branches go to the same successor, so it's an if/else
         let true_block = expand_real_branch_block(true_operations)?;
         let false_block = expand_real_branch_block(false_operations)?;
 
         Ok(BranchBlock {
+            cond_expr: cond_expr.clone(),
             true_block,
             false_block: Some(false_block),
             unconditional_successor: true_successor.expect("true_successor should exist"),
-        })
-    } else if false_successor
-        .and_then(|false_successor| {
-            true_successor.map(|true_successor| (true_successor, false_successor))
-        })
-        .is_some_and(|(true_successor, false_successor)| true_successor == false_successor)
-    {
-        // if/else, but flipped
-
-        let true_block = expand_real_branch_block(true_operations)?;
-        let false_block = expand_real_branch_block(false_operations)?;
-
-        Ok(BranchBlock {
-            true_block: false_block,
-            false_block: Some(true_block),
-            unconditional_successor: true_successor.expect("true_successor should exist"),
+            true_predecessor_to_successor: true_block_id,
+            false_predecessor_to_successor: false_block_id,
         })
     } else {
         Err(Error::UnsupportedFeature(format!(
-            "complex branch: true_block={true_block:?} successor={true_successor:?}, false_block={false_block:?} successor={false_successor:?}"
+            "complex branch: true_block={true_block_id:?} successor={true_successor:?}, false_block={false_block_id:?} successor={false_successor:?}"
         )))
     }
 }
 
-fn expand_real_branch_block(operations: &Vec<Op>) -> Result<(Vec<Op>, Vec<usize>), Error> {
+fn expand_real_branch_block(operations: &Vec<Op>) -> Result<ConditionalBlock, Error> {
     let mut seen = FxHashSet::default();
     let mut real_ops = vec![];
     for op in operations {
@@ -1090,7 +1158,10 @@ fn expand_real_branch_block(operations: &Vec<Op>) -> Result<(Vec<Op>, Vec<usize>
 
     // TODO: everything is a target. Don't know how else we would do this.
     let target_qubits = seen.into_iter().map(|(q, _)| q).collect();
-    Ok((real_ops, target_qubits))
+    Ok(ConditionalBlock {
+        operations: real_ops,
+        targets: target_qubits,
+    })
 }
 
 fn expr_from_operand(state: &ProgramMap, operand: &Operand) -> Result<Expr, Error> {
@@ -1119,14 +1190,14 @@ struct ProgramMap {
     blocks: IndexMap<BlockId, CircuitBlock>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum Expr {
     Rich(RichExpr),
     Bool(BoolExpr),
     Unresolved(VariableId),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum BoolExpr {
     Result(u32),
     NotResult(u32),
@@ -1139,40 +1210,57 @@ enum BoolExpr {
     BinOp(Box<Expr>, Box<Expr>, String),
 }
 
-impl BoolExpr {
-    fn negate(&self) -> Result<BoolExpr, Error> {
+impl BoolExpr {}
+
+/// These could be of type boolean, we just don't necessary know
+/// when they get complex. We could keep track, though it's probably
+/// not necessary at this point.
+#[derive(Debug, Clone, PartialEq)]
+enum RichExpr {
+    Literal(String),
+    Options(Vec<(Expr, Expr)>),
+    FunctionOf(Vec<Expr>), // catch-all for complex expressions
+}
+
+impl Expr {
+    fn negate(&self) -> Result<Expr, Error> {
         let b = match self {
-            BoolExpr::Result(r) => BoolExpr::NotResult(*r),
-            BoolExpr::NotResult(r) => BoolExpr::Result(*r),
-            BoolExpr::LiteralBool(b) => BoolExpr::LiteralBool(!b),
-            _ => {
-                return Err(Error::UnsupportedFeature(
-                    "too tired to negate complex boolean expressions".to_owned(),
-                ));
+            Expr::Bool(BoolExpr::Result(r)) => Expr::Bool(BoolExpr::NotResult(*r)),
+            Expr::Bool(BoolExpr::NotResult(r)) => Expr::Bool(BoolExpr::Result(*r)),
+            Expr::Bool(BoolExpr::LiteralBool(b)) => Expr::Bool(BoolExpr::LiteralBool(!b)),
+            Expr::Bool(BoolExpr::TwoResultCondition { results, filter }) => {
+                let (f00, f01, f10, f11) = filter;
+                Expr::Bool(BoolExpr::TwoResultCondition {
+                    results: *results,
+                    filter: (!f00, !f01, !f10, !f11),
+                })
+            }
+            Expr::Rich(RichExpr::Options(opts)) => {
+                // collect all the exprssions in `opts` and just dump them all into
+                // the same vector without negating them. Use RichExpr::FunctionOf
+                // and leave it at that.
+                let exprs = opts
+                    .iter()
+                    .flat_map(|(cond, expr)| vec![cond.clone(), expr.clone()])
+                    .collect();
+                Expr::Rich(RichExpr::FunctionOf(exprs))
+            }
+            expr => {
+                return Err(Error::UnsupportedFeature(format!(
+                    "too tired to negate complex expressions: {expr:?}"
+                )));
             }
         };
         Ok(b)
     }
-}
 
-#[derive(Debug, Clone)]
-enum RichExpr {
-    Literal(String),
-    Options(Vec<(BoolExpr, Expr)>),
-    FunctionOf(Vec<Expr>),
-}
-
-impl Expr {
     fn linked_results(&self) -> Vec<u32> {
         match self {
             Expr::Rich(rich_expr) => match rich_expr {
                 RichExpr::Options(exprs) => exprs
                     .iter()
                     .flat_map(|(cond, e)| {
-                        Expr::Bool(cond.clone())
-                            .linked_results()
-                            .into_iter()
-                            .chain(e.linked_results())
+                        cond.linked_results().into_iter().chain(e.linked_results())
                     })
                     .collect(),
                 RichExpr::Literal(_) => vec![],
@@ -1213,7 +1301,7 @@ impl Display for Expr {
                         .iter()
                         .map(|(cond, val)| format!("if {cond} then {val}"))
                         .collect();
-                    write!(f, "one of: ({})", exprs_str.join(", "))
+                    write!(f, "(one of: ({}))", exprs_str.join(", "))
                 }
                 RichExpr::Literal(literal_str) => write!(f, "{literal_str}"),
                 RichExpr::FunctionOf(exprs) => write!(
@@ -1235,29 +1323,33 @@ impl Display for Expr {
 impl Display for BoolExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            BoolExpr::Result(_) => write!(f, "a = |1〉"),
-            BoolExpr::NotResult(_) => write!(f, "a = |0〉"),
+            BoolExpr::Result(r) => write!(f, "c_{r} = |1〉"),
+            BoolExpr::NotResult(r) => write!(f, "c_{r} = |0〉"),
             BoolExpr::LiteralBool(true) => write!(f, "true"),
             BoolExpr::LiteralBool(false) => write!(f, "false"),
-            BoolExpr::TwoResultCondition { filter, .. } => {
+            BoolExpr::TwoResultCondition {
+                results: (result_1, result_2),
+                filter,
+            } => {
                 let (f00, f01, f10, f11) = filter;
+                let var_name = format!("c_{result_1}c_{result_2}");
                 let mut conditions = vec![];
                 if *f00 {
-                    conditions.push("ab = |00〉".to_string());
+                    conditions.push(format!("{var_name} = |00〉"));
                 }
                 if *f01 {
-                    conditions.push("ab = |01〉".to_string());
+                    conditions.push(format!("{var_name} = |01〉"));
                 }
                 if *f10 {
-                    conditions.push("ab = |10〉".to_string());
+                    conditions.push(format!("{var_name} = |10〉"));
                 }
                 if *f11 {
-                    conditions.push("ab = |11〉".to_string());
+                    conditions.push(format!("{var_name} = |11〉"));
                 }
                 write!(f, "{}", conditions.join(" or "))
             }
             BoolExpr::BinOp(condition_expr, condition_expr1, op) => {
-                write!(f, "({condition_expr} {op} {condition_expr1})")
+                write!(f, "({condition_expr}) {op} ({condition_expr1})")
             }
         }
     }
@@ -1315,27 +1407,6 @@ impl ProgramMap {
         }))
     }
 
-    fn condition_for_variable(&self, variable_id: VariableId) -> Result<(Vec<u32>, String), Error> {
-        let var_expr = self.expr_for_variable(variable_id)?;
-        let results = var_expr.linked_results();
-
-        if let Expr::Bool(var_expr) = var_expr {
-            if let BoolExpr::LiteralBool(_) = var_expr {
-                return Err(Error::UnsupportedFeature(
-                    "constant condition in branch".to_owned(),
-                ));
-            }
-        } else {
-            return Err(Error::UnsupportedFeature(format!(
-                "variable {variable_id:?} is not a condition expression, cannot branch on it: {var_expr}"
-            )));
-        }
-
-        let str = var_expr.to_string();
-
-        Ok((results, str))
-    }
-
     fn link_result_to_qubit(&mut self, qubit_id: u32, result_id: u32) -> usize {
         self.results.insert(
             result_id
@@ -1360,7 +1431,13 @@ impl ProgramMap {
     fn store_expr_in_variable(&mut self, var: Variable, expr: Expr) -> Result<(), Error> {
         let variable_id = var.variable_id;
         if let Some(old_value) = self.variables.get(variable_id) {
-            panic!("variable {variable_id:?} already stored {old_value:?}, cannot store {expr:?}");
+            if let Expr::Unresolved(_) = old_value {
+                // allow overwriting unresolved variables
+            } else if old_value != &expr {
+                panic!(
+                    "variable {variable_id:?} already stored {old_value:?}, cannot store {expr:?}"
+                );
+            }
         }
         if let Expr::Bool(condition_expr) = &expr {
             if let Ty::Boolean = var.ty {
@@ -1374,6 +1451,13 @@ impl ProgramMap {
 
         self.variables.insert(variable_id, expr);
         Ok(())
+    }
+
+    fn store_variable_placeholder(&mut self, variable: Variable) {
+        if self.variables.get(variable.variable_id).is_none() {
+            self.variables
+                .insert(variable.variable_id, Expr::Unresolved(variable.variable_id));
+        }
     }
 }
 
