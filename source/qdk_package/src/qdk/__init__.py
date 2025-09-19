@@ -32,10 +32,13 @@ try:  # pragma: no cover
 except Exception as _ex:  # pragma: no cover
     raise
 
-# Use the telemetry logic from qsharp to log qdk imports.
-from qsharp.telemetry_events import on_qdk_import as _on_import
+# Optional: use telemetry hook if present (skipped in stub/mock envs)
+try:  # pragma: no cover - best effort
+    import qsharp.telemetry_events.on_qdk_import  # type: ignore
 
-_on_import()
+    qsharp.telemetry_events.on_qdk_import()
+except Exception:  # pragma: no cover
+    pass
 
 # Some common utilities are lifted to the qdk root.
 from qsharp import code  # type: ignore  # noqa: F401

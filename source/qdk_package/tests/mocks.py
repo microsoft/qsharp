@@ -82,7 +82,22 @@ def mock_qsharp() -> List[str]:
         stub.openqasm = oq  # type: ignore[attr-defined]
 
         sys.modules["qsharp"] = stub
-        created.append("qsharp")
+        # Interop namespace for qiskit shim expectations
+        interop = types.ModuleType("qsharp.interop")
+        sys.modules["qsharp.interop"] = interop
+        interop_qk = types.ModuleType("qsharp.interop.qiskit")
+        interop_qk.__doc__ = "mock qsharp interop qiskit"
+        sys.modules["qsharp.interop.qiskit"] = interop_qk
+
+        created.extend(
+            [
+                "qsharp",
+                "qsharp.estimator",
+                "qsharp.openqasm",
+                "qsharp.interop",
+                "qsharp.interop.qiskit",
+            ]
+        )
     return created
 
 

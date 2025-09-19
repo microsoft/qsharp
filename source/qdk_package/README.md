@@ -42,7 +42,7 @@ pip install qdk[all]
 ```python
 from qdk import qsharp
 
-result = qsharp.run("operation Hello() : Result { use q = Qubit(); H(q); return M(q); }")
+result = qsharp.run("{ use q = Qubit(); H(q); return MResetZ(q); }", shots=100)
 print(result)
 ```
 
@@ -86,6 +86,7 @@ Root-level symbols (kept intentionally small):
 | `azure_available()`   | Boolean: is the azure extra installed?                                      |
 | `qiskit_available()`  | Boolean: is the qiskit extra installed?                                     |
 | `require(name)`       | Retrieve a feature module (`"qsharp"`, `"widgets"`, `"azure"`, `"qiskit"`). |
+| (lifted utilities)    | Convenience re-exports from `qsharp` (see section below).                   |
 
 Submodules:
 
@@ -95,6 +96,28 @@ Submodules:
 - `qdk.qiskit` – only if `qiskit` installed.
 - `qdk.estimator` – shim re-export of `qsharp.estimator` (always present if underlying `qsharp` provides it).
 - `qdk.openqasm` – shim re-export of `qsharp.openqasm` for OpenQASM integration.
+
+### Lifted utilities from `qsharp`
+
+For convenience, frequently-used helpers and types are available directly at the `qdk` root. Algorithm execution APIs (like `run` / `estimate`) remain under `qdk.qsharp`.
+
+| Symbol               | Type     | Origin                      | Description                                                         |
+| -------------------- | -------- | --------------------------- | ------------------------------------------------------------------- |
+| `code`               | module   | `qsharp.code`               | Define inline Q# snippets / code objects.                           |
+| `set_quantum_seed`   | function | `qsharp.set_quantum_seed`   | Deterministic seed for quantum randomness (simulators).             |
+| `set_classical_seed` | function | `qsharp.set_classical_seed` | Deterministic seed for classical host RNG.                          |
+| `dump_machine`       | function | `qsharp.dump_machine`       | Emit a structured dump of full quantum state (simulator dependent). |
+| `dump_circuit`       | function | `qsharp.dump_circuit`       | Produce a circuit representation / diagram (when supported).        |
+| `Result`             | class    | `qsharp.Result`             | Measurement result token.                                           |
+| `TargetProfile`      | class    | `qsharp.TargetProfile`      | Target capability / profile descriptor.                             |
+| `StateDump`          | class    | `qsharp.StateDump`          | Structured state dump object.                                       |
+| `ShotResult`         | class    | `qsharp.ShotResult`         | Multi-shot execution results container.                             |
+| `PauliNoise`         | class    | `qsharp.PauliNoise`         | Pauli channel noise model spec.                                     |
+| `DepolarizingNoise`  | class    | `qsharp.DepolarizingNoise`  | Depolarizing noise model spec.                                      |
+| `BitFlipNoise`       | class    | `qsharp.BitFlipNoise`       | Bit-flip noise model spec.                                          |
+| `PhaseFlipNoise`     | class    | `qsharp.PhaseFlipNoise`     | Phase-flip noise model spec.                                        |
+
+If you need additional items, import them from `qdk.qsharp` directly rather than expanding the root surface.
 
 ## `require()` Helper
 
