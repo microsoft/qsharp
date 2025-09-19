@@ -27,31 +27,31 @@ def mock_qsharp() -> List[str]:
     if "qsharp" not in sys.modules:
         stub = types.ModuleType("qsharp")
 
-        def _not_impl(*_a, **_k):  # pragma: no cover - placeholder
+        def _not_impl(*_a, **_k):
             raise NotImplementedError(
                 "qsharp stub: real 'qsharp' package not installed"
             )
 
-        stub.run = _not_impl  # type: ignore[attr-defined]
-        stub.estimate = _not_impl  # type: ignore[attr-defined]
+        stub.run = _not_impl
+        stub.estimate = _not_impl
         # Provide utility symbols expected to re-export at root
-        stub.code = object()  # type: ignore[attr-defined]
-        stub.set_quantum_seed = lambda *_a, **_k: None  # type: ignore[attr-defined]
-        stub.set_classical_seed = lambda *_a, **_k: None  # type: ignore[attr-defined]
-        stub.dump_machine = lambda *_a, **_k: None  # type: ignore[attr-defined]
-        stub.dump_circuit = lambda *_a, **_k: None  # type: ignore[attr-defined]
+        stub.code = object()
+        stub.set_quantum_seed = lambda *_a, **_k: None
+        stub.set_classical_seed = lambda *_a, **_k: None
+        stub.dump_machine = lambda *_a, **_k: None
+        stub.dump_circuit = lambda *_a, **_k: None
 
         class _T:  # placeholder types
             pass
 
-        stub.Result = _T  # type: ignore[attr-defined]
-        stub.TargetProfile = _T  # type: ignore[attr-defined]
-        stub.StateDump = _T  # type: ignore[attr-defined]
-        stub.ShotResult = _T  # type: ignore[attr-defined]
-        stub.PauliNoise = _T  # type: ignore[attr-defined]
-        stub.DepolarizingNoise = _T  # type: ignore[attr-defined]
-        stub.BitFlipNoise = _T  # type: ignore[attr-defined]
-        stub.PhaseFlipNoise = _T  # type: ignore[attr-defined]
+        stub.Result = _T
+        stub.TargetProfile = _T
+        stub.StateDump = _T
+        stub.ShotResult = _T
+        stub.PauliNoise = _T
+        stub.DepolarizingNoise = _T
+        stub.BitFlipNoise = _T
+        stub.PhaseFlipNoise = _T
         stub.__all__ = [
             "run",
             "estimate",
@@ -75,11 +75,11 @@ def mock_qsharp() -> List[str]:
         est = types.ModuleType("qsharp.estimator")
         est.__doc__ = "mock estimator"
         sys.modules["qsharp.estimator"] = est
-        stub.estimator = est  # type: ignore[attr-defined]
+        stub.estimator = est
         oq = types.ModuleType("qsharp.openqasm")
         oq.__doc__ = "mock openqasm"
         sys.modules["qsharp.openqasm"] = oq
-        stub.openqasm = oq  # type: ignore[attr-defined]
+        stub.openqasm = oq
 
         sys.modules["qsharp"] = stub
         # Interop namespace for qiskit shim expectations
@@ -131,9 +131,9 @@ def mock_azure() -> List[str]:
         sys.modules["azure.quantum.argument_types"] = argt
         sys.modules["azure.quantum.job"] = job
         # Attach to parent for attribute access
-        aq.target = tgt  # type: ignore[attr-defined]
-        aq.argument_types = argt  # type: ignore[attr-defined]
-        aq.job = job  # type: ignore[attr-defined]
+        aq.target = tgt
+        aq.argument_types = argt
+        aq.job = job
         sys.modules["azure.quantum"] = aq
         created.extend(
             [
@@ -152,10 +152,10 @@ def mock_qiskit() -> List[str]:
         qk = types.ModuleType("qiskit")
         qk.__version__ = "1.2.2-mock"
 
-        def transpile(*circuits, **_kwargs):  # pragma: no cover - placeholder
+        def transpile(*circuits, **_kwargs):
             return {"circuits": len(circuits)}
 
-        qk.transpile = transpile  # type: ignore[attr-defined]
+        qk.transpile = transpile
         sys.modules["qiskit"] = qk
         created.append("qiskit")
     return created

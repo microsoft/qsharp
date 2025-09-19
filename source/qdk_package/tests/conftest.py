@@ -12,6 +12,6 @@ for p in (_src, _root):
         sys.path.insert(0, str(p))
 
 # Ensure a qsharp stub (if real package absent) via centralized mocks helper.
-import mocks  # type: ignore
+import mocks
 
 mocks.mock_qsharp()

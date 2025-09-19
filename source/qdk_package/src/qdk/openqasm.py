@@ -5,9 +5,9 @@
 
 from __future__ import annotations
 
-try:  # pragma: no cover
-    from qsharp.openqasm import *  # type: ignore  # noqa: F401,F403
-except Exception as ex:  # pragma: no cover
+try:
+    from qsharp.openqasm import *
+except Exception as ex:
     raise ImportError(
         "qdk.openqasm requires the 'qsharp' package with 'qsharp.openqasm' available."
     ) from ex

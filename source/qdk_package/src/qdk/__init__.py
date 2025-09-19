@@ -19,30 +19,30 @@ from __future__ import annotations
 from importlib import import_module
 
 # Eagerly check for qsharp presence to provide a clear error message.
-try:  # pragma: no cover
+try:
     import_module("qsharp")
-except ModuleNotFoundError as _ex:  # pragma: no cover
+except ModuleNotFoundError as _ex:
     raise ImportError(
         "qdk requires the 'qsharp' package. Install with 'pip install qsharp'."
     ) from _ex
 
 # Eagerly import qdk.qsharp to ensure qdk.qsharp is always available if qdk is.
-try:  # pragma: no cover
-    from . import qsharp as qsharp  # type: ignore  # noqa: F401
-except Exception as _ex:  # pragma: no cover
+try:
+    from . import qsharp as qsharp
+except Exception as _ex:
     raise
 
 # Optional: use telemetry hook if present (skipped in stub/mock envs)
-try:  # pragma: no cover - best effort
-    import qsharp.telemetry_events.on_qdk_import  # type: ignore
+try:
+    import qsharp.telemetry_events.on_qdk_import
 
     qsharp.telemetry_events.on_qdk_import()
-except Exception:  # pragma: no cover
+except Exception:
     pass
 
 # Some common utilities are lifted to the qdk root.
-from qsharp import code  # type: ignore  # noqa: F401
-from qsharp import (  # type: ignore  # noqa: F401
+from qsharp import code
+from qsharp import (
     set_quantum_seed,
     set_classical_seed,
     dump_machine,
@@ -84,7 +84,7 @@ __all__ = [
 
 def widgets_available() -> bool:
     """Return True if widget support (via the jupyter extra) is installed."""
-    try:  # pragma: no cover
+    try:
         import_module("qsharp_widgets")
         return True
     except Exception:
@@ -93,7 +93,7 @@ def widgets_available() -> bool:
 
 def azure_available() -> bool:
     """Return True if the azure extra (azure-quantum) is installed."""
-    try:  # pragma: no cover
+    try:
         import_module(
             "azure.quantum"
         )  # azure-quantum installs namespace under azure.quantum
@@ -104,7 +104,7 @@ def azure_available() -> bool:
 
 def qiskit_available() -> bool:
     """Return True if the qiskit extra is installed."""
-    try:  # pragma: no cover
+    try:
         import_module("qiskit")
         return True
     except Exception:

@@ -9,10 +9,10 @@ module raises an ImportError describing how to enable it.
 
 from __future__ import annotations
 
-try:  # pragma: no cover - presence check
-    from qiskit import *  # type: ignore  # noqa: F401,F403
-    from qsharp.interop.qiskit import *  # type: ignore  # noqa: F401,F403
-except Exception as ex:  # pragma: no cover
+try:
+    from qiskit import *
+    from qsharp.interop.qiskit import *
+except Exception as ex:
     raise ImportError(
         "qdk.qiskit requires the qiskit extra. Install with 'pip install qdk[qiskit]'."
     ) from ex
