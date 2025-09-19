@@ -229,7 +229,7 @@ extends:
           displayName: Install Prereqs and set version
 
         - script: |
-            python ./build.py --jupyterlab --widgets --no-check --no-check-prereqs
+            python ./build.py --jupyterlab --widgets --qdk --no-check --no-check-prereqs
           displayName: Build JupyterLab Package
 
         - script: |
@@ -325,7 +325,7 @@ extends:
             displayName: Set version
 
           - script: |
-              python build.py --pip --no-check-prereqs --integration-tests --manylinux
+              python build.py --pip --qdk --no-check-prereqs --integration-tests --manylinux
             displayName: Build Platform-Dependent Py Packages
 
           - script: |
@@ -334,7 +334,7 @@ extends:
             condition: and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['arch'], 'aarch64'))
 
           - script: |
-              python build.py --pip --no-check-prereqs --no-check --no-test
+              python build.py --pip --qdk --no-check-prereqs --no-check --no-test
             displayName: Cross Build Windows aarch64 Py Packages
             condition: and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['arch'], 'aarch64'))
 
