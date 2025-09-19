@@ -16,6 +16,10 @@ import types
 from typing import List
 
 
+def _not_impl(*_a, **_k):
+    raise NotImplementedError("qsharp stub: real 'qsharp' package not installed")
+
+
 def mock_qsharp() -> List[str]:
     """Ensure a minimal 'qsharp' module exists.
 
@@ -27,19 +31,14 @@ def mock_qsharp() -> List[str]:
     if "qsharp" not in sys.modules:
         stub = types.ModuleType("qsharp")
 
-        def _not_impl(*_a, **_k):
-            raise NotImplementedError(
-                "qsharp stub: real 'qsharp' package not installed"
-            )
-
         stub.run = _not_impl
         stub.estimate = _not_impl
         # Provide utility symbols expected to re-export at root
         stub.code = object()
-        stub.set_quantum_seed = lambda *_a, **_k: None
-        stub.set_classical_seed = lambda *_a, **_k: None
-        stub.dump_machine = lambda *_a, **_k: None
-        stub.dump_circuit = lambda *_a, **_k: None
+        stub.set_quantum_seed = _not_impl
+        stub.set_classical_seed = _not_impl
+        stub.dump_machine = _not_impl
+        stub.dump_circuit = _not_impl
 
         class _T:  # placeholder types
             pass
@@ -105,7 +104,6 @@ def mock_widgets() -> List[str]:
     created: List[str] = []
     if "qsharp_widgets" not in sys.modules:
         mod = types.ModuleType("qsharp_widgets")
-        mod.__version__ = "1.20.0-mock"
         sys.modules["qsharp_widgets"] = mod
         created.append("qsharp_widgets")
     return created
@@ -118,14 +116,10 @@ def mock_azure() -> List[str]:
         created.append("azure")
     if "azure.quantum" not in sys.modules:
         aq = types.ModuleType("azure.quantum")
-        aq.__version__ = "3.2.0-mock"
         # Minimal submodules expected by qdk.azure shim
         tgt = types.ModuleType("azure.quantum.target")
-        tgt.__doc__ = "mock target submodule"
         argt = types.ModuleType("azure.quantum.argument_types")
-        argt.__doc__ = "mock argument_types submodule"
         job = types.ModuleType("azure.quantum.job")
-        job.__doc__ = "mock job submodule"
         # Register in sys.modules first
         sys.modules["azure.quantum.target"] = tgt
         sys.modules["azure.quantum.argument_types"] = argt
@@ -150,12 +144,7 @@ def mock_qiskit() -> List[str]:
     created: List[str] = []
     if "qiskit" not in sys.modules:
         qk = types.ModuleType("qiskit")
-        qk.__version__ = "1.2.2-mock"
-
-        def transpile(*circuits, **_kwargs):
-            return {"circuits": len(circuits)}
-
-        qk.transpile = transpile
+        qk.transpile = _not_impl
         sys.modules["qiskit"] = qk
         created.append("qiskit")
     return created
@@ -165,8 +154,3 @@ def cleanup_modules(created: List[str]) -> None:
     """Remove synthetic modules created during a test if still present."""
     for name in created:
         sys.modules.pop(name, None)
-    if (
-        "azure" in created
-        and getattr(sys.modules.get("azure"), "__file__", None) is None
-    ):
-        sys.modules.pop("azure", None)

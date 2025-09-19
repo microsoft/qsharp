@@ -126,7 +126,7 @@ def require(feature: str):
     if feature in ("widgets", "jupyter"):
         if not widgets_available():
             raise ImportError(
-                "Feature 'widgets' (jupyter) unavailable. Install with 'pip install qdk[jupyter]'."
+                "Feature 'jupyter' (widgets) unavailable. Install with 'pip install qdk[jupyter]'."
             )
         return import_module("qdk.widgets")
     if feature == "azure":

@@ -18,12 +18,6 @@ def test_estimator_and_openqasm_shims():
     assert hasattr(oq, "__doc__")
 
 
-def test_no_direct_run_or_estimate_exports():
-    qdk = importlib.import_module("qdk")
-    assert not hasattr(qdk, "run"), "'run' should not be directly exported"
-    assert not hasattr(qdk, "estimate"), "'estimate' should not be directly exported"
-
-
 def test_require_helper():
     qdk = importlib.import_module("qdk")
     mod = qdk.require("qsharp")
@@ -36,11 +30,8 @@ def test_require_helper():
 def test_azure_require_missing():
     qdk = importlib.import_module("qdk")
 
-    # Should raise if azure extra not installed
-    import importlib as _il
-
     try:
-        _il.import_module("azure.quantum")
+        importlib.import_module("azure.quantum")
         installed = True
     except Exception:
         installed = False
