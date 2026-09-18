@@ -25,43 +25,43 @@ pub type Probability = f64;
 
 const MAX_COORDINATES: usize = 16;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MeasurementRecord {
     pub offset: u32,
     pub span: Span,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct NegatableMeasurementRecord {
     pub record: MeasurementRecord,
     pub negated: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Circuit {
     pub span: Span,
     pub items: Vec<Item>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Item {
     Block(Block),
     Instruction(Instruction),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Block {
     RepeatBlock { count: u32, body: Vec<Item> },
     SelectBlock { body: Vec<Item> },
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Instruction {
     pub span: Span,
     pub kind: InstructionKind,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum InstructionKind {
     Reset {
         q: StimQubitId,
@@ -182,7 +182,7 @@ impl Display for Instruction {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[allow(non_camel_case_types)]
 pub enum SingleQubitGateKind {
     I,
@@ -248,7 +248,7 @@ impl SingleQubitGateKind {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[allow(non_camel_case_types)]
 pub enum TwoQubitGateKind {
     CX,
@@ -320,7 +320,7 @@ impl TwoQubitGateKind {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ThreeQubitGateKind {
     CCZ,
     CCX,
@@ -336,27 +336,27 @@ impl ThreeQubitGateKind {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PauliPair {
     XX,
     YY,
     ZZ,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct PauliProduct {
     pub factors: Vec<PauliFactor>,
     pub negated: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct PauliFactor {
     pub pauli: Pauli,
     pub q: StimQubitId,
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PauliProductGateKind {
     S,
     S_DAG,
@@ -376,7 +376,7 @@ impl PauliProductGateKind {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Noise {
     CorrelatedError {
         kind: CorrelatedErrorKind,
@@ -412,13 +412,13 @@ pub enum Noise {
     },
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CorrelatedErrorKind {
     Initial,
     Else,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FaultKind {
     X,
     Y,
@@ -445,18 +445,18 @@ impl FaultKind {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Fault {
     pub kind: FaultKind,
     pub q: StimQubitId,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum SingleQubitNoiseKind {
     Depolarize,
     Fault(FaultKind),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Annotation {
     Detector {
         coordinates: Vec<f64>,
@@ -480,7 +480,7 @@ pub enum Annotation {
     Tick,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ObservableTarget {
     Record(MeasurementRecord),
     Pauli(PauliFactor),
