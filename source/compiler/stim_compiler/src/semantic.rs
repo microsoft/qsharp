@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::parser;
-use crate::parser::{ArgValue, PauliTarget, args_span};
+use crate::parser::{ArgValue, PauliTarget, args_span, targets_span};
 use miette::Diagnostic;
 use parser::Pauli;
 use qsc_data_structures::{
@@ -2027,7 +2027,7 @@ impl Lowerer {
         if !instruction.targets.len().is_multiple_of(2) {
             self.push_error(Error::OddTargetCount {
                 instruction: instruction.name.clone(),
-                span: instruction.span,
+                span: targets_span(&instruction.targets),
             });
             return None;
         }
@@ -2041,7 +2041,7 @@ impl Lowerer {
         if !instruction.targets.len().is_multiple_of(3) {
             self.push_error(Error::TargetCountNotMultipleOfThree {
                 instruction: instruction.name.clone(),
-                span: instruction.span,
+                span: targets_span(&instruction.targets),
             });
             return None;
         }
