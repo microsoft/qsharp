@@ -35,7 +35,7 @@ class TechnologyFamily(IntEnum):
     SOLID_STATE = 5
 
 
-class Architecture(ABC):
+class QPU(ABC):
     """Abstract base class for quantum hardware architectures."""
 
     family: TechnologyFamily = TechnologyFamily.UNKNOWN
@@ -83,6 +83,7 @@ class Architecture(ABC):
         """
         return []
 
+Architecture = QPU
 
 def qubit(
     base_class: Optional[Union[Type[Architecture], type]] = None,

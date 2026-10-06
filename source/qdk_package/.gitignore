@@ -1,3 +1,5 @@
 /build/
 /*.egg-info/
 /doc/
+/qdk/qre4-pooya
+/qdk/qre4/analysis.md
