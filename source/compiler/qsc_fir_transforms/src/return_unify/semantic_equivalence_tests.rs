@@ -31,7 +31,7 @@ fn eager_operand_failures_in_non_unit_tails_preserve_user_error_and_location() {
         "[fail \"expected\"];",
         "(1, fail \"expected\");",
         "function Ignore(value : Int) : Unit {} Ignore(fail \"expected\");",
-        "if fail \"expected\" {}",
+        "if fail \"expected\" { 1 } else { 2 }",
         "$\"{fail \"expected\"}\";",
         "1 + (fail \"expected\");",
         "[1, size = fail \"expected\"];",

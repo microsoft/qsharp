@@ -2345,6 +2345,7 @@ fn remap_condition_expr(pkg: &Package, locals: &LocalState, expr_id: ExprId) -> 
 /// callee's analyzed `LocalState`, substituting producing-function parameters
 /// with the caller-scope argument expressions in `param_substitutions`, so
 /// rewrite can re-emit the captures as caller-scope arguments.
+/// An unresolved capture makes the entire lattice dynamic, not a concrete candidate.
 fn materialize_capture_exprs_from_state(
     pkg: &Package,
     state: &LocalState,
@@ -2355,7 +2356,7 @@ fn materialize_capture_exprs_from_state(
 ) -> CalleeLattice {
     match resolved {
         CalleeLattice::Single(concrete) => {
-            CalleeLattice::Single(materialize_capture_exprs_in_callable(
+            CalleeLattice::from_concrete(materialize_capture_exprs_in_callable(
                 pkg,
                 state,
                 param_substitutions,
@@ -2375,17 +2376,18 @@ fn materialize_capture_exprs_from_state(
                     }
                     remapped_condition.push(condition);
                 }
-                materialized.push((
-                    materialize_capture_exprs_in_callable(
-                        pkg,
-                        state,
-                        param_substitutions,
-                        caller_owner,
-                        caller_mutable_bindings,
-                        concrete,
-                    ),
-                    remapped_condition,
-                ));
+                let concrete = materialize_capture_exprs_in_callable(
+                    pkg,
+                    state,
+                    param_substitutions,
+                    caller_owner,
+                    caller_mutable_bindings,
+                    concrete,
+                );
+                if matches!(concrete, ConcreteCallable::Dynamic) {
+                    return CalleeLattice::Dynamic;
+                }
+                materialized.push((concrete, remapped_condition));
             }
             CalleeLattice::Multi(materialized)
         }
