@@ -1,0 +1,113 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""One simulator, compiler, or runner stage per disposable subprocess."""
+
+import contextlib
+import importlib.util
+import io
+import json
+from pathlib import Path
+import resource
+import subprocess
+import sys
+import traceback
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness.common import ReviewError, file_digest  # noqa: E402
+from harness.records import counts, encode, parse_output  # noqa: E402
+
+
+def execute(job):
+    cap = job["memory_mb"] * 1024 * 1024
+    resource.setrlimit(resource.RLIMIT_AS, (cap, cap))
+    if job["stage"] == "runner":
+        proc = subprocess.run(
+            [job["runner"], "-s", str(job["shots"]), "-r", str(job["seed"])],
+            input=Path(job["qir_path"]).read_text(),
+            capture_output=True,
+            text=True,
+        )
+        result = {"stdout": proc.stdout, "runner_stderr": proc.stderr, "returncode": proc.returncode}
+        if proc.returncode:
+            return result | {"status": "runner_crash" if proc.returncode < 0 else "runner_error"}
+        try:
+            values = parse_output(proc.stdout, job["shots"])
+        except ReviewError as error:
+            return result | {"status": "parser_error", "message": str(error)}
+        return result | {"status": "ok", "values": values, "counts": counts(values)}
+
+    import qdk
+    import qdk._native
+
+    overlay = Path(job["build"]["overlay"]).resolve()
+    if Path(qdk.__file__).resolve() != overlay / "qdk/__init__.py":
+        raise ReviewError(f"Wrong qdk imported: {qdk.__file__}")
+    if Path(qdk._native.__file__).resolve() != overlay / "qdk/_native.abi3.so":
+        raise ReviewError(f"Wrong native module imported: {qdk._native.__file__}")
+    if file_digest(qdk._native.__file__) != job["build"]["native_digest"]:
+        raise ReviewError("Native module digest differs from the build manifest")
+    profile = "Unrestricted" if job["stage"] == "simulate" else job["profile"]
+    if not hasattr(qdk.TargetProfile, profile):
+        return {"status": "unsupported_profile", "message": f"Profile unavailable: {profile}"}
+    case = job["case"]
+    ctx = qdk.Context(
+        target_profile=getattr(qdk.TargetProfile, profile),
+        project_root=case.get("project_root"),
+        language_features=case.get("language_features"),
+    )
+    ctx.set_classical_seed(job["seed"])
+    ctx.set_quantum_seed(job["seed"])
+    if "source" in case:
+        ctx.eval(case["source"])
+    args = ()
+    entry = case.get("entry")
+    if "adapter" in case:
+        spec = importlib.util.spec_from_file_location("review_adapter", case["adapter"])
+        if spec is None or spec.loader is None:
+            raise ReviewError(f"Cannot load adapter: {case['adapter']}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        entry, args = module.prepare(ctx)
+        if not isinstance(args, (tuple, list)):
+            raise ReviewError("Adapter prepare(ctx) must return (entry, argument_sequence)")
+    if entry is None:
+        raise ReviewError("Case has no entry expression or callable")
+    if job["stage"] == "compile":
+        return {"status": "ok", "qir": str(ctx.compile(entry, *args))}
+    values = ctx.run(entry, job["shots"], *args, seed=job["seed"])
+    for value in values:
+        if isinstance(value, Exception):
+            return {"status": "runtime_error", "message": str(value)}
+    if len(values) != job["shots"]:
+        raise ReviewError("Simulator returned the wrong number of shots")
+    encoded = [encode(value) for value in values]
+    return {"status": "ok", "values": encoded, "counts": counts(encoded)}
+
+
+def main():
+    job = json.load(sys.stdin)
+    captured = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(captured):
+            result = execute(job)
+    except BaseException as error:
+        if isinstance(error, (KeyboardInterrupt, SystemExit)):
+            raise
+        name = type(error).__name__
+        if name == "PanicException":
+            result = {"status": "panic", "message": str(error)}
+        elif name == "QSharpError":
+            result = {"status": "diagnostic", "message": str(error)}
+        else:
+            result = {
+                "status": "infrastructure_error",
+                "message": f"{name}: {error}",
+                "traceback": traceback.format_exc(),
+            }
+    result["messages"] = captured.getvalue()
+    print(json.dumps(result, allow_nan=False))
+
+
+if __name__ == "__main__":
+    main()
