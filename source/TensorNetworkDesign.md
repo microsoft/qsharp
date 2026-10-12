@@ -148,22 +148,22 @@ an MPS on the CPU, can be added beside it without changing the methods. Until
 then, ④ calls cuTensorNet directly; the backend interface is extracted when the
 second backend arrives, shaped by both.
 
-**② tensornet** describes tensor networks (indices, networks, contraction
-queries and plans, the MPS) but not how they are contracted, so the same
-description goes to a GPU library, a CPU library or a test's reference
-implementation.
+**② tensornet** describes tensor networks by their shape, today
+[the MPS](tensornet/src/mps.rs), but not how they are built or contracted, so
+the same description goes to a GPU library, a CPU library or a test's
+reference implementation.
 
 **③ Execution core** runs a program once for every simulator, whether a
 tensor-network method or an existing QDK simulator. It prepares the program,
 walks branches, loops and shots, and keeps what simulators share: shot results,
 each shot's seeded random stream and its noise. A simulator receives regions of
 gates, measurements and resets, and never selects a branch. ③'s contracts
-(consumer, queries, observables, contraction) are neutral to simulators and
+(consumer, queries, observables) are neutral to simulators and
 backends, and ③ depends on none of them (§4.3).
 
 **④ MPS method** represents the state as a chain of site tensors whose bonds it
 truncates. It implements ③'s consumer contract and queries, describes its state
-with ②'s `Mps`, takes gate matrices from ③'s shared tables, and runs its
+with ②'s [`Mps`](tensornet/src/mps.rs), takes gate matrices from ③'s shared tables, and runs its
 numerics on a backend. Other methods (§3) can be added beside it without
 changing ③ or ⑤.
 
@@ -310,8 +310,8 @@ ported (§3); links to the code follow once it is there.
 | Block            | In the branch                                                                                                                                                                                                                                   |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ① Loading        | [`source/cutensornet`](cutensornet/README.md) ([`bindings`](cutensornet/src/bindings/mod.rs), [`library`](cutensornet/src/library.rs)): cuTensorNet 2.13 and CUDA runtime 12.9, audited, on Linux x86_64                                        |
-| ② tensornet      | `source/tensornet`: `Index`, `Indices`, `TensorNetwork`, `ContractionQuery`, `ContractionPlan`, `Mps`                                                                                                                                           |
-| ③ Execution core | `source/simulators/src/execution`: preparation and regions, the walk, `RegionConsumer`, `ImmediateSimulatorConsumer`, `PauliSum`, the shared gate tables, the contraction contracts                                                             |
+| ② tensornet      | [`source/tensornet`](tensornet/README.md): `Mps`, the shape of a matrix product state                                                                                                                                                           |
+| ③ Execution core | `source/simulators/src/execution`: preparation and regions, the walk, `RegionConsumer`, `ImmediateSimulatorConsumer`, `PauliSum`, the shared gate tables                                                                                        |
 | ④ MPS method     | `source/cutensornet` (`execution`, `library::simulation`): `Sample` of Base programs, `Expectation`, the `Cost` of `Expectation`; tested against test doubles, qualified on an A100                                                             |
 | ⑤ Python API     | `source/qdk_package`: `tensornetwork_qir` with `Sample`, `Expectation`, `Cost`; `MpsOptions(backend, max_bond_dimension)`; `seed`. Not yet: `Sample` of Adaptive programs, `Cost` with `Sample`; their errors say they come in the next release |
 
@@ -616,11 +616,11 @@ default paths, so it is its own milestone.
 
 ## Appendix E. Testing in CI
 
-| Where                                          | What runs                                                                                                                                                                                                                                  |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Every PR, no GPU                               | public-API tests (Rust and Python); test doubles of cuTensorNet's API; brute-force contraction of small networks; [checks that the bindings and loader match their generator](cutensornet/src/lib.rs); the parity suite for CPU simulators |
-| Release pipeline's GPU pool, `QDK_GPU_TESTS=1` | library discovery; GPU qualification against closed forms and the dense simulator; the parity suite for MPS                                                                                                                                |
-| An A100, by hand                               | H₂ and the gadget at full size, which need more memory than a CI GPU may have                                                                                                                                                              |
+| Where                                          | What runs                                                                                                                                                                                       |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Every PR, no GPU                               | public-API tests (Rust and Python); test doubles of cuTensorNet's API; [checks that the bindings and loader match their generator](cutensornet/src/lib.rs); the parity suite for CPU simulators |
+| Release pipeline's GPU pool, `QDK_GPU_TESTS=1` | library discovery; GPU qualification against closed forms and the dense simulator; the parity suite for MPS                                                                                     |
+| An A100, by hand                               | H₂ and the gadget at full size, which need more memory than a CI GPU may have                                                                                                                   |
 
 The Python GPU tests reuse `QDK_GPU_TESTS`, the variable the GPU simulator's
 tests already use: `./build.py --gpu-tests` sets it for pytest, and the release

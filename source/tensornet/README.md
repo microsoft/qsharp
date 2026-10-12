@@ -1,0 +1,131 @@
+# `tensornet`
+
+A backend-agnostic description of tensor networks, by shape alone: block ② of
+the [tensor-network design](../TensorNetworkDesign.md#42-functional-blocks).
+
+## What this crate does
+
+It describes one family of tensor network today: the matrix product state
+(MPS), a chain of site tensors, given by the extents (axis lengths) of each
+site. `Mps::new` checks that the extents form a chain, and the accessors answer
+the questions callers ask of a chain's shape: its bond dimensions, its largest
+bond, how many elements each site holds, and whether one chain fits inside
+another.
+
+It does **not** hold tensor elements, strides or device memory, and it does not
+build, truncate, sample or contract a chain. Those belong to a method and the
+backend it runs on. Because the description carries no data, the same `Mps`
+can be handed to a GPU library, to a CPU library, or to a reference
+implementation written purely for a test.
+
+## Lifecycle at a glance
+
+A method that runs an MPS on a backend uses `Mps` twice per state, once before
+and once after the backend does its work:
+
+```text
+method                       tensornet                         backend
+requested extents ──► Mps::new ─► target  ──► element_counts() ──► allocates site buffers
+                                                                    applies gates, truncates
+reported extents  ◄──────────────────────────────────────────────── writes back the extents it used
+      │
+      └─────────► Mps::new ─► realized ──► realized.fits_within(&target)   the backend kept its bound
+                                       └─► realized.max_bond()            the bond reached, for Cost
+```
+
+- **Before:** the target is the capacity the method asks for. Its element
+  counts size the buffers the backend writes into.
+- **After:** the realized chain is what the backend produced. Truncation can
+  only shrink a bond, so a realized chain that does not fit its target is a
+  backend defect, not a property of the program.
+
+## Files
+
+| File           | Defines                                                                |
+| -------------- | ---------------------------------------------------------------------- |
+| `src/mps.rs`   | `Mps`: the chain's shape, its validation and its accessors             |
+| `src/error.rs` | `MpsError`: why a list of extents is not a chain, raised by `Mps::new` |
+| `src/lib.rs`   | the crate's public surface and its role                                |
+
+The API reference is the rustdoc (`cargo doc -p tensornet --open`). The crate
+depends only on `thiserror`, so it builds for every target the QDK supports,
+WebAssembly included.
+
+## The shape of a chain
+
+A chain of $n$ sites has a physical extent $p_k$ at each site and a bond
+$\chi_k$ between sites $k$ and $k+1$. A site lists its extents in the order
+`[bond_left, physical, bond_right]`, with the absent bond omitted at each end:
+
+```text
+ site 0         site 1                  site n-1
+[p₀, χ₀] ── [χ₀, p₁, χ₁] ── … ── [χₙ₋₂, pₙ₋₁]
+ rank 2        rank 3                  rank 2          (a lone site is [p₀], rank 1)
+```
+
+Site $k$ holds $\chi_{k-1}\,p_k\,\chi_k$ elements (an absent bond counts as 1),
+which is what `element_counts` returns; `bond_dim(k)` is $\chi_k$, and
+`max_bond` is $\max_k \chi_k$, or 1 for a lone site, which has no bond.
+
+`Mps::new` rejects anything that is not a chain, each with its own `MpsError`
+variant: no sites, a rank that does not match the site's position, an extent
+of zero, neighbours that disagree about the bond they share, or a site whose
+element count does not fit a machine word. Rejecting the last one up front is
+what lets every later element count be answered without overflow.
+
+Nothing here is specific to qubits. A physical extent is just a number, so a
+chain of qutrits is describable without change; a caller that requires
+two-level sites checks `physical_dim(site) == Some(2)` itself.
+
+## Why a chain is a description of its own
+
+A general tensor network can express a chain's topology (a line of nodes
+sharing one index each) but not the invariants that make it a matrix product
+state: that the sites form a line at all, that neighbours agree on the bond
+between them, and that the two ends carry no outer bond. A general network has
+nowhere to put those; `Mps` holds them. In the other direction a chain cannot
+express an arbitrary topology, so if a general network is described here, it
+is a peer of `Mps` rather than its supertype, and neither loses its invariants.
+
+The _sweep_ that builds a chain is a strategy and stays with the method that
+performs it. The _chain_ is a shape, and it is the shape callers reason about:
+how large the bonds grew, and whether the result fits the capacity that was
+asked for.
+
+## Extents, but never strides
+
+A site is a list of extents, and deliberately nothing else. Strides (the
+offsets used to walk a tensor laid out in a flat buffer) are a property of a
+buffer, not of a state. `Mps` carries no elements, so it has no buffer, and a
+layout with nothing to lay out is meaningless.
+
+This matters in practice. A backend that truncates writes a tensor smaller than
+the allocation it was handed, and reports the strides it actually used; those
+strides belong to that one readout, in the code that fetched it. The shape
+belongs to the state. Keeping them apart is what lets one type describe both a
+capacity a caller requests and a shape a backend produced: different values of
+one type, related by `fits_within`, rather than two types that happen to hold
+the same numbers.
+
+## What is deliberately not here
+
+- **General networks and their contraction.** No indices, networks,
+  contraction queries or plans. No method in the current milestones contracts
+  a general network; the types arrive with the first one that does
+  ([design §3](../TensorNetworkDesign.md#3-approach)).
+
+- **An MPS trait family.** `Mps` is a struct and nothing more. Backends differ
+  too widely in how they build and truncate a chain for a shared trait to be
+  discovered rather than invented: the shape is shared, the algorithm that
+  builds it is not.
+
+- **Truncation settings.** Libraries express approximation in incompatible
+  ways (maximum bond dimension and discarded weight; an SVD algorithm with
+  absolute and relative cutoffs plus a gauge option; none at all). A shared
+  abstraction here would be invented rather than discovered, so each method
+  takes its own options.
+
+- **Vendor scalar types.** Extents are ordinary `usize` values, not
+  cuTensorNet's `int32_t` and `int64_t`. The narrowing, and the overflow check
+  that goes with it, belongs at the FFI boundary, where it is actually a
+  constraint.
