@@ -307,13 +307,13 @@ tasks it lists and the milestones before it.
 The table lists what each block has in the branch once the prototype is
 ported (§3); links to the code follow once it is there.
 
-| Block            | In the branch                                                                                                                                                                       |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ① Loading        | `source/cutensornet` (`bindings`, `library`): cuTensorNet 2.13 and CUDA runtime 12.9, audited, on Linux x86_64                                                                      |
-| ② tensornet      | `source/tensornet`: `Index`, `Indices`, `TensorNetwork`, `ContractionQuery`, `ContractionPlan`, `Mps`                                                                               |
-| ③ Execution core | `source/simulators/src/execution`: preparation and regions, the walk, `RegionConsumer`, `ImmediateSimulatorConsumer`, `PauliSum`, the shared gate tables, the contraction contracts |
-| ④ MPS method     | `source/cutensornet` (`execution`, `library::simulation`): `Sample` of Base programs, `Expectation`, `Cost`; tested against test doubles, qualified on an A100                      |
-| ⑤ Python API     | `source/qdk_package`: `tensornetwork_qir` with `Sample`, `Expectation`, `Cost`; `MpsOptions(backend, max_bond_dimension)`; `seed`                                                   |
+| Block            | In the branch                                                                                                                                                                                                                                   |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ① Loading        | `source/cutensornet` (`bindings`, `library`): cuTensorNet 2.13 and CUDA runtime 12.9, audited, on Linux x86_64                                                                                                                                  |
+| ② tensornet      | `source/tensornet`: `Index`, `Indices`, `TensorNetwork`, `ContractionQuery`, `ContractionPlan`, `Mps`                                                                                                                                           |
+| ③ Execution core | `source/simulators/src/execution`: preparation and regions, the walk, `RegionConsumer`, `ImmediateSimulatorConsumer`, `PauliSum`, the shared gate tables, the contraction contracts                                                             |
+| ④ MPS method     | `source/cutensornet` (`execution`, `library::simulation`): `Sample` of Base programs, `Expectation`, the `Cost` of `Expectation`; tested against test doubles, qualified on an A100                                                             |
+| ⑤ Python API     | `source/qdk_package`: `tensornetwork_qir` with `Sample`, `Expectation`, `Cost`; `MpsOptions(backend, max_bond_dimension)`; `seed`. Not yet: `Sample` of Adaptive programs, `Cost` with `Sample`; their errors say they come in the next release |
 
 ### 5.2 M1: H₂ QPE on MPS
 
@@ -356,15 +356,15 @@ flowchart TB
   style cwork fill:#ffe9a8,stroke:#c98a00,color:#000
 ```
 
-| Block | Task     | Needs         | Effort     | Delivers                                                                                                                               |
-| ----- | -------- | ------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| ③     | `ctr`    | —             | 2–3 d      | `ShotContext { rng, log_p }`, with a random stream fixed by the seed and shot index; `measure` returns the outcome and its probability |
-| ③     | `icmp`   | —             | 1–2 d      | the `ICMP` opcode, ported from the CPU runtime                                                                                         |
-| ④     | `meas`   | `icmp`        | 1–2 d      | on the A100, the time per MPS measurement and the $\chi$ reached on H₂                                                                 |
-| ④     | `mps-a`  | `ctr`, `icmp` | 1–2 wk     | adaptive `Sample`: measurements drawn from the MPS and fed forward; resets                                                             |
-| ④     | `finish` | `mps-a`       | 1–2 d      | typed errors; bond reached and discarded weight in `Cost`, for `Sample` and `Expectation`                                              |
-| ⑤     | `pkg`    | —             | about 1 wk | the `qdk[tensornetwork]` extra; GPU tests in the release pipeline                                                                      |
-| ⑤     | `finish` | —             | 1 d        | typed Python errors; GIL released during GPU work                                                                                      |
+| Block | Task     | Needs         | Effort     | Delivers                                                                                                                                        |
+| ----- | -------- | ------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| ③     | `ctr`    | —             | 2–3 d      | `ShotContext { rng, log_p }`, with a random stream fixed by the seed and shot index; `measure` returns the outcome and its probability          |
+| ③     | `icmp`   | —             | 1–2 d      | the `ICMP` opcode, ported from the CPU runtime                                                                                                  |
+| ④     | `meas`   | `icmp`        | 1–2 d      | on the A100, the time per MPS measurement and the $\chi$ reached on H₂                                                                          |
+| ④     | `mps-a`  | `ctr`, `icmp` | 1–2 wk     | adaptive `Sample`: measurements drawn from the MPS and fed forward; resets                                                                      |
+| ④     | `finish` | `mps-a`       | 1–2 d      | typed errors; bond reached and discarded weight in `Cost`, for `Sample` and `Expectation`                                                       |
+| ⑤     | `pkg`    | —             | about 1 wk | the `qdk[tensornetwork]` extra; GPU tests and the Rust GPU qualification in the release pipeline, where a failed probe is an error (Appendix E) |
+| ⑤     | `finish` | —             | 1 d        | typed Python errors; GIL released during GPU work                                                                                               |
 
 The critical path is `ctr` → `mps-a` → `finish` (④), 8–15 days. `meas` runs in
 week one, before `mps-a`; its numbers are not acceptance conditions.
@@ -619,6 +619,16 @@ default paths, so it is its own milestone.
 | Every PR, no GPU                               | public-API tests (Rust and Python); test doubles of cuTensorNet's API; brute-force contraction of small networks; checks that the bindings and loader match their generator; the parity suite for CPU simulators |
 | Release pipeline's GPU pool, `QDK_GPU_TESTS=1` | library discovery; GPU qualification against closed forms and the dense simulator; the parity suite for MPS                                                                                                      |
 | An A100, by hand                               | H₂ and the gadget at full size, which need more memory than a CI GPU may have                                                                                                                                    |
+
+The Python GPU tests reuse `QDK_GPU_TESTS`, the variable the GPU simulator's
+tests already use: `./build.py --gpu-tests` sets it for pytest, and the release
+pipeline sets it on its Linux, Mac and Windows GPU pools. With it set, a probe
+samples a two-qubit program, and if it raises `OSError` the tests are skipped
+with its message, so pools without an NVIDIA GPU on Linux x86_64 skip them,
+with no second variable. The variable reaches only pytest, so the Rust GPU
+qualification is marked `#[ignore]` instead and runs with
+`cargo test -p qdk_cutensornet -- --ignored`. M1's `pkg` adds that step on the
+NVIDIA pool, and makes a failed probe an error there.
 
 Whether the release pool has an NVIDIA GPU is a question for the team (§6.3).
 If it doesn't, the GPU tests need an NVIDIA pool.
