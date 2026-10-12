@@ -53,8 +53,8 @@ To rebuild the base OS image, update the sha256 in `./qdk-base/Dockerfile` and r
 
 ```bash
 # Create the `base` image (UBI8 + dnf packages) with the specified tag
-ACR_IMAGE_TAG="20261007" # Set as needed
-GH_BRANCH="main"
+ACR_IMAGE_TAG="20261007"
+GH_BRANCH="billti/manylinux_2_28"
 az acr run --registry "$ACR_NAME" \
   --set imageTag="$ACR_IMAGE_TAG" \
   --file manifest-task.yaml \
