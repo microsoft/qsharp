@@ -239,6 +239,7 @@ operation I(target : Qubit) : Unit is Adj + Ctl {
     adjoint self;
 }
 
+/// # Summary
 /// Performs a measurement of a single qubit in the
 /// Pauli _Z_ basis.
 ///

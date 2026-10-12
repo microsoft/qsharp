@@ -39,7 +39,7 @@ pub enum OutputRecord {
 }
 
 /// Pauli bases for intrinsic measurements.
-#[derive(PartialEq)]
+#[derive(Debug, Clone, Copy)]
 pub enum Pauli {
     X,
     Y,

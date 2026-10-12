@@ -10,7 +10,7 @@ use num_bigint::{BigInt, BigUint};
 use num_complex::Complex;
 use num_traits::Zero;
 use qdk_simulators::{
-    MeasurementResult, Simulator as _, SparseStateSim,
+    MeasurementResult, Pauli, Simulator as _, SparseStateSim,
     noise_config::{CumulativeNoiseConfig, CumulativeNoiseTable, FaultTerm},
     stabilizer_simulator::StabilizerSimulator,
 };
@@ -847,30 +847,24 @@ impl Backend for SparseSim {
     }
 
     fn mx(&mut self, q: usize) -> Result<val::Result, String> {
-        // TODO: Check for noise type
+        // TODO: [FUTURE] Change noise type
         self.apply_faults(|noise| &noise.mz, &[q]);
         if self.is_qubit_lost(q) {
             self.lost_qubits.set_bit(q as u64, false);
             return Ok(val::Result::Loss);
         }
-        self.sim.h(q);
-        let res = self.sim.measure(q);
-        self.sim.h(q);
+        let res = self.sim.measure_pauli(q, Pauli::X);
         Ok(val::Result::Val(res))
     }
 
     fn my(&mut self, q: usize) -> Result<val::Result, String> {
-        // TODO: Check for noise type
+        // TODO: [FUTURE] Change noise type
         self.apply_faults(|noise| &noise.mz, &[q]);
         if self.is_qubit_lost(q) {
             self.lost_qubits.set_bit(q as u64, false);
             return Ok(val::Result::Loss);
         }
-        self.sim.sadj(q);
-        self.sim.h(q);
-        let res = self.sim.measure(q);
-        self.sim.h(q);
-        self.sim.s(q);
+        let res = self.sim.measure_pauli(q, Pauli::Y);
         Ok(val::Result::Val(res))
     }
 

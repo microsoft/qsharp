@@ -21,7 +21,7 @@ use num_complex::Complex64;
 use num_traits::{One, ToPrimitive, Zero};
 use rand::{RngExt, SeedableRng, rngs::StdRng};
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2, fmt::Write};
+use std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2, f64::consts::FRAC_PI_2, fmt::Write};
 
 type SparseState = Vec<(BigUint, Complex64)>;
 type SparseStateMap = FxHashMap<BigUint, Complex64>;
@@ -304,7 +304,7 @@ impl SparseStateSim {
     /// Measures the qubit with the given id, collapsing the state based on the measured result.
     /// # Panics
     ///
-    /// This funciton will panic if the given identifier does not correspond to an allocated qubit.
+    /// This function will panic if the given identifier does not correspond to an allocated qubit.
     #[must_use]
     pub fn measure(&mut self, id: usize) -> bool {
         // We only need to flush the queue here if there are pending H, Rx, or Ry operations.
@@ -323,23 +323,72 @@ impl SparseStateSim {
         res
     }
 
-    /// Measures the qubit with the given id, collapsing the state based on the measured result.
-    /// # Panics
-    ///
-    /// This funciton will panic if the given identifier does not correspond to an allocated qubit.
+    /// Measures the qubit with the given id in the specified Pauli basis, collapsing the state based on the measured result.
+    /// The state returned post-measurement is a compact state, i.e., it is specified in the Z basis with the relevant basis transformation unitary kept pending in the queue.
     #[must_use]
     pub fn measure_pauli(&mut self, id: usize, pauli: Pauli) -> bool {
-        if pauli == Pauli::Z {
-            return self.measure(id);
-        }
-        todo!("Measurement in the X or Y basis is not yet implemented.")
-        // else {
-        //     // We only need to flush the queue here if there are pending H, Rx, or Ry operations.
-        //     // Any operations in `self.op_queue` will get applied when `check_joint_probability`
-        //     // iterates through the state vector.
-        //     self.maybe_flush_queue(&[id], FlushLevel::HRxRy);
+        let mut flip_res = false;
+        let mut change_basis = true;
 
-        // }
+        match pauli {
+            Pauli::Z => self.measure(id),
+            Pauli::X => {
+                let ry = self.ry_queue.get(id).copied();
+                if self.rx_queue.contains_key(id) && !self.ry_queue.contains_key(id) {
+                    self.rx_queue.remove(id);
+                }
+                if let Some(entry_ry) = ry {
+                    // TODO: docs explaining why the +- difference in phase is handled this way
+                    if (entry_ry - FRAC_PI_2).is_nearly_zero() {
+                        self.ry_queue.remove(id);
+                        change_basis = false;
+                    } else if (entry_ry + FRAC_PI_2).is_nearly_zero() {
+                        self.ry_queue.remove(id);
+                        flip_res = true;
+                        change_basis = false;
+                    }
+                }
+                if change_basis {
+                    self.h(id);
+                }
+                let res = flip_res ^ self.measure(id);
+                if flip_res {
+                    self.x(id);
+                }
+                self.h_flag.set_bit(id as u64, !self.h_flag.bit(id as u64));
+                res
+            }
+            Pauli::Y => {
+                let rx = self.rx_queue.get(id).copied();
+                if self.ry_queue.contains_key(id) {
+                    self.ry_queue.remove(id);
+                }
+                if self.h_flag.bit(id as u64) {
+                    self.h_flag.set_bit(id as u64, !self.h_flag.bit(id as u64));
+                    flip_res = true;
+                }
+                if let Some(entry_rx) = rx {
+                    if (entry_rx + FRAC_PI_2).is_nearly_zero() {
+                        self.rx_queue.remove(id);
+                        change_basis = false;
+                    } else if (entry_rx - FRAC_PI_2).is_nearly_zero() {
+                        self.rx_queue.remove(id);
+                        flip_res = true;
+                        change_basis = false;
+                    }
+                }
+                if change_basis {
+                    self.rx(FRAC_PI_2, id);
+                }
+                let res = flip_res ^ self.measure(id);
+                if flip_res {
+                    self.x(id);
+                }
+                self.rx(-FRAC_PI_2, id);
+                // TO TEST: The global phase form RX rotation does not affect the post-measurement state.
+                res
+            }
+        }
     }
 
     /// Forces the collapse of the qubit with the given id to the specified value,
