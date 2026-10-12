@@ -135,8 +135,8 @@ flowchart TB
 
 **① Loading** finds and loads cuTensorNet and the CUDA runtime at run time, so
 no build depends on CUDA and users who don't need them are unaffected. Only
-versions with an audited ABI load (Appendix C); a failure is a typed
-availability error, raised by the query that needed the library.
+versions with an audited ABI load (Appendix C); a failure is a [typed
+availability error](cutensornet/src/error.rs), raised by the query that needed the library.
 
 **The cuTensorNet backend** is ① and the library it loads. A backend runs a
 method's numerics on one library and device: memory, tensors, gate application
@@ -309,7 +309,7 @@ ported (§3); links to the code follow once it is there.
 
 | Block            | In the branch                                                                                                                                                                                                                                   |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ① Loading        | `source/cutensornet` (`bindings`, `library`): cuTensorNet 2.13 and CUDA runtime 12.9, audited, on Linux x86_64                                                                                                                                  |
+| ① Loading        | [`source/cutensornet`](cutensornet/README.md) ([`bindings`](cutensornet/src/bindings/mod.rs), [`library`](cutensornet/src/library.rs)): cuTensorNet 2.13 and CUDA runtime 12.9, audited, on Linux x86_64                                        |
 | ② tensornet      | `source/tensornet`: `Index`, `Indices`, `TensorNetwork`, `ContractionQuery`, `ContractionPlan`, `Mps`                                                                                                                                           |
 | ③ Execution core | `source/simulators/src/execution`: preparation and regions, the walk, `RegionConsumer`, `ImmediateSimulatorConsumer`, `PauliSum`, the shared gate tables, the contraction contracts                                                             |
 | ④ MPS method     | `source/cutensornet` (`execution`, `library::simulation`): `Sample` of Base programs, `Expectation`, the `Cost` of `Expectation`; tested against test doubles, qualified on an A100                                                             |
@@ -567,9 +567,11 @@ Which versions to accept is a question for the team (§6.3).
 - **Install:** `pip install "qdk[tensornetwork]"` installs NVIDIA's own wheels
   from PyPI, under NVIDIA's licence, so the QDK redistributes nothing; a system
   install also works.
-- **Audit:** a version loads only after its ABI is audited: bindings generated
-  from its header, layouts checked at compile time, and the GPU qualification
-  suite passing. Today only 2.13 with CUDA Runtime 12.9 is audited.
+- **Audit:** a version loads only after its ABI is audited: [bindings generated
+  from its header](cutensornet/scripts/README.md), [layouts checked at compile
+  time](cutensornet/src/bindings/mod.rs), and the GPU qualification suite
+  passing. Today [only 2.13 with CUDA Runtime 12.9](cutensornet/src/version.rs)
+  is audited.
 - **Suggestion:** accept the current release and the one before it, today 2.14
   and 2.13. The API has been stable, so auditing 2.14 means regenerating the
   bindings and running the suite.
@@ -614,11 +616,11 @@ default paths, so it is its own milestone.
 
 ## Appendix E. Testing in CI
 
-| Where                                          | What runs                                                                                                                                                                                                        |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Every PR, no GPU                               | public-API tests (Rust and Python); test doubles of cuTensorNet's API; brute-force contraction of small networks; checks that the bindings and loader match their generator; the parity suite for CPU simulators |
-| Release pipeline's GPU pool, `QDK_GPU_TESTS=1` | library discovery; GPU qualification against closed forms and the dense simulator; the parity suite for MPS                                                                                                      |
-| An A100, by hand                               | H₂ and the gadget at full size, which need more memory than a CI GPU may have                                                                                                                                    |
+| Where                                          | What runs                                                                                                                                                                                                                                  |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Every PR, no GPU                               | public-API tests (Rust and Python); test doubles of cuTensorNet's API; brute-force contraction of small networks; [checks that the bindings and loader match their generator](cutensornet/src/lib.rs); the parity suite for CPU simulators |
+| Release pipeline's GPU pool, `QDK_GPU_TESTS=1` | library discovery; GPU qualification against closed forms and the dense simulator; the parity suite for MPS                                                                                                                                |
+| An A100, by hand                               | H₂ and the gadget at full size, which need more memory than a CI GPU may have                                                                                                                                                              |
 
 The Python GPU tests reuse `QDK_GPU_TESTS`, the variable the GPU simulator's
 tests already use: `./build.py --gpu-tests` sets it for pytest, and the release
