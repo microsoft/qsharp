@@ -11,7 +11,11 @@ use crate::{
 };
 use expect_test::{Expect, expect};
 use miette::Diagnostic;
-use qsc::{LanguageFeatures, PackageType, line_column::Encoding};
+use qsc::{
+    LanguageFeatures, PackageType,
+    line_column::{Encoding, Position, Range},
+    target::Profile,
+};
 use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel, LintOrGroupConfig};
 use serde_json::Value;
 use std::{
@@ -2010,6 +2014,121 @@ async fn lints_prefer_manifest_over_workspace() {
 
     // No lints expected ("allow" wins over "warn")
     assert_eq!(received_errors.borrow().len(), 0);
+}
+
+#[tokio::test]
+async fn prefer_mresetz_lint_follows_target_profile() {
+    let base_source = "@EntryPoint(Base)
+operation Main() : Result {
+    use q = Qubit();
+    H(q);
+    let r = M(q);
+    Reset(q);
+    r
+}";
+    let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
+
+    // The workspace default profile is Unrestricted, so the lint comes from `@EntryPoint(Base)`.
+    updater
+        .update_document("single/foo.qs", 1, base_source, "qsharp")
+        .await;
+
+    expect_errors(
+        &errors,
+        &expect![[r#"
+        [
+          uri: "single/foo.qs" version: Some(1) errors: [
+            measurement without reset on a target that does not support qubit reuse
+              [single/foo.qs] [M]
+          ],
+        ]"#]],
+    );
+
+    // The lint offers a quick fix on `M`.
+    {
+        let state = updater.state.try_borrow().expect("borrow should succeed");
+        let compilation = state
+            .get_compilation("single/foo.qs")
+            .expect("compilation should exist");
+        let m_range = Range {
+            start: Position {
+                line: 4,
+                column: 12,
+            },
+            end: Position {
+                line: 4,
+                column: 13,
+            },
+        };
+        let actions = crate::code_action::get_code_actions(
+            compilation,
+            "single/foo.qs",
+            m_range,
+            Encoding::Utf8,
+        );
+        expect![[r#"
+            [
+                CodeAction {
+                    title: "Replace with `MResetZ` (resets after measuring)",
+                    edit: Some(
+                        WorkspaceEdit {
+                            changes: [
+                                (
+                                    "single/foo.qs",
+                                    [
+                                        TextEdit {
+                                            new_text: "Std.Measurement.MResetZ",
+                                            range: Range {
+                                                start: Position {
+                                                    line: 4,
+                                                    column: 12,
+                                                },
+                                                end: Position {
+                                                    line: 4,
+                                                    column: 13,
+                                                },
+                                            },
+                                        },
+                                    ],
+                                ),
+                            ],
+                        },
+                    ),
+                    kind: Some(
+                        QuickFix,
+                    ),
+                    is_preferred: None,
+                },
+            ]
+        "#]]
+        .assert_debug_eq(&actions);
+    }
+
+    // On a target that supports qubit reuse, the lint goes away. A Base workspace
+    // default shows that the profile from `@EntryPoint(...)` is the one that counts.
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Base),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+    let adaptive_source = base_source.replace("@EntryPoint(Base)", "@EntryPoint(Adaptive_RI)");
+    updater
+        .update_document("single/foo.qs", 2, &adaptive_source, "qsharp")
+        .await;
+
+    expect_errors(
+        &errors,
+        &expect![[r#"
+        [
+          uri: "single/foo.qs" version: Some(1) errors: [
+            measurement without reset on a target that does not support qubit reuse
+              [single/foo.qs] [M]
+          ],
+
+          uri: "single/foo.qs" version: Some(2) errors: [],
+        ]"#]],
+    );
 }
 
 #[tokio::test]
