@@ -81,16 +81,16 @@ const MAX_RESOLVE_DEPTH: usize = 32;
 
 /// Runs the analysis phase: finds callable parameters and collects call sites.
 ///
-/// `preserved_direct_lambda_calls` carries the prior iteration's occurrence-local
-/// operands, which survive a closure callee having been rewritten to its lifted
-/// lambda item.
+/// `previous_direct_call_sites` contains all direct call sites from the prior
+/// iteration. Lifted-lambda calls use it to recover occurrence-local capture
+/// operands after their closure callees have been rewritten to lifted items.
 pub(super) fn analyze(
     store: &mut PackageStore,
     package_id: PackageId,
     reachable: &FxHashSet<StoreItemId>,
     specialized_items: &FxHashSet<StoreItemId>,
     collapsed_spans: &FxHashMap<ExprId, Span>,
-    preserved_direct_lambda_calls: &[DirectCallSite],
+    previous_direct_call_sites: &[DirectCallSite],
 ) -> AnalysisResult {
     let hof_params = find_callable_params(store, reachable);
     let CollectedCallSites {
@@ -105,7 +105,7 @@ pub(super) fn analyze(
         specialized_items,
         &hof_params,
         collapsed_spans,
-        preserved_direct_lambda_calls,
+        previous_direct_call_sites,
     );
     AnalysisResult {
         callable_params: hof_params.into_values().flatten().collect(),
@@ -279,9 +279,9 @@ struct CallRecorder<'a> {
     /// keyed by the collapsed init-expr node, stamped onto surviving direct
     /// calls so circuit instructions point at the original lambda body.
     collapsed_spans: &'a FxHashMap<ExprId, Span>,
-    /// Occurrence-local operands retained from the prior fixpoint iteration
-    /// after rewrite replaced a closure callee with its lifted lambda item.
-    preserved_direct_lambda_calls: &'a [DirectCallSite],
+    /// All direct call sites from the prior fixpoint iteration, retained to
+    /// recover capture operands for rewritten lifted-lambda calls.
+    previous_direct_call_sites: &'a [DirectCallSite],
     /// Whether direct-call analysis accepts all callee expression shapes.
     /// Foreign bodies admit only closure, local, field-projection, and
     /// previously rewritten lifted-lambda callees. Ordinary literal item calls
@@ -309,7 +309,7 @@ fn collect_call_sites(
     specialized_items: &FxHashSet<StoreItemId>,
     hof_params: &FxHashMap<StoreItemId, Vec<CallableParam>>,
     collapsed_spans: &FxHashMap<ExprId, Span>,
-    preserved_direct_lambda_calls: &[DirectCallSite],
+    previous_direct_call_sites: &[DirectCallSite],
 ) -> CollectedCallSites {
     let package = store.get(package_id);
     let mut call_sites = Vec::new();
@@ -335,7 +335,7 @@ fn collect_call_sites(
                 direct_call_sites: &mut direct_call_sites,
                 unresolved_direct_call_sites: &mut unresolved_direct_call_sites,
                 collapsed_spans,
-                preserved_direct_lambda_calls,
+                previous_direct_call_sites,
                 record_direct_calls,
             };
             let locals = build_callable_flow_state(
@@ -387,7 +387,7 @@ fn collect_call_sites(
             direct_call_sites: &mut direct_call_sites,
             unresolved_direct_call_sites: &mut unresolved_direct_call_sites,
             collapsed_spans,
-            preserved_direct_lambda_calls,
+            previous_direct_call_sites,
             record_direct_calls: true,
         };
         analyze_expr_flow(
@@ -561,7 +561,7 @@ fn inspect_call_expr(
     unresolved_direct_call_sites: &mut Vec<StoreExprId>,
     package_id: PackageId,
     collapsed_spans: &FxHashMap<ExprId, Span>,
-    preserved_direct_lambda_calls: &[DirectCallSite],
+    previous_direct_call_sites: &[DirectCallSite],
     record_direct_calls: bool,
 ) {
     let ExprKind::Call(callee_expr_id, args_expr_id) = &expr.kind else {
@@ -616,7 +616,7 @@ fn inspect_call_expr(
             expr_id,
             package_id,
             base_id,
-            preserved_direct_lambda_calls,
+            previous_direct_call_sites,
         ) {
             return;
         }
@@ -633,7 +633,7 @@ fn inspect_call_expr(
         unresolved_direct_call_sites,
         package_id,
         collapsed_spans,
-        preserved_direct_lambda_calls,
+        previous_direct_call_sites,
     );
 }
 
@@ -658,13 +658,13 @@ fn is_preserved_direct_lifted_lambda_call(
     call_expr_id: ExprId,
     package_id: PackageId,
     callee_expr_id: ExprId,
-    preserved_direct_lambda_calls: &[DirectCallSite],
+    previous_direct_call_sites: &[DirectCallSite],
 ) -> bool {
     let ExprKind::Var(Res::Item(item_id), _) = pkg.get_expr(callee_expr_id).kind else {
         return false;
     };
     is_lifted_lambda_item(store, item_id)
-        && preserved_direct_lambda_calls.iter().any(|site| {
+        && previous_direct_call_sites.iter().any(|site| {
             if site.call_expr_id != call_expr_id || site.call_pkg_id != package_id {
                 return false;
             }
@@ -812,7 +812,7 @@ fn inspect_direct_call_expr(
     unresolved_direct_call_sites: &mut Vec<StoreExprId>,
     package_id: PackageId,
     collapsed_spans: &FxHashMap<ExprId, Span>,
-    preserved_direct_lambda_calls: &[DirectCallSite],
+    previous_direct_call_sites: &[DirectCallSite],
 ) {
     let callee_expr = pkg.get_expr(callee_expr_id);
     if let ExprKind::Var(Res::Item(item_id), _) = callee_expr.kind {
@@ -821,7 +821,7 @@ fn inspect_direct_call_expr(
             expr_id,
             package_id,
             item_id,
-            preserved_direct_lambda_calls,
+            previous_direct_call_sites,
             direct_call_sites,
         );
         return;
@@ -1080,14 +1080,14 @@ fn record_preserved_direct_lifted_lambda_calls(
     call_expr_id: ExprId,
     package_id: PackageId,
     item_id: ItemId,
-    preserved_direct_lambda_calls: &[DirectCallSite],
+    previous_direct_call_sites: &[DirectCallSite],
     direct_call_sites: &mut Vec<DirectCallSite>,
 ) {
     if !is_lifted_lambda_item(store, item_id) {
         return;
     }
 
-    for prior_site in preserved_direct_lambda_calls {
+    for prior_site in previous_direct_call_sites {
         let (target, captures, functor) = match &prior_site.callable {
             ConcreteCallable::Closure {
                 target,
@@ -4151,7 +4151,7 @@ fn analyze_expr_flow(
             rec.unresolved_direct_call_sites,
             package_id,
             rec.collapsed_spans,
-            rec.preserved_direct_lambda_calls,
+            rec.previous_direct_call_sites,
             rec.record_direct_calls,
         );
     }

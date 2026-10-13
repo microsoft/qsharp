@@ -209,7 +209,9 @@ pub(crate) fn defunctionalize(
     // cleanup uses them when proving a producer call safe to discard.
     let total_foreign = crate::walk_utils::collect_total_foreign_callables(store);
 
-    let mut preserved_direct_lambda_calls = Vec::new();
+    // Retain all direct call sites so rewritten lifted-lambda calls can recover
+    // their occurrence-local capture operands on the next iteration.
+    let mut previous_direct_call_sites = Vec::new();
 
     // Capture the initial callable-value count for before/after progress
     // tracking, mirroring LLVM's DevirtSCCRepeatedPass: detect when an
@@ -240,9 +242,9 @@ pub(crate) fn defunctionalize(
             &reachable,
             &specialized_items,
             &collapsed_spans,
-            &preserved_direct_lambda_calls,
+            &previous_direct_call_sites,
         );
-        preserved_direct_lambda_calls.clone_from(&analysis.direct_call_sites);
+        previous_direct_call_sites.clone_from(&analysis.direct_call_sites);
 
         // Record (do not yet emit) direct calls whose callee resolved to
         // `Dynamic`; emission is deferred to `emit_fixpoint_error` so calls
