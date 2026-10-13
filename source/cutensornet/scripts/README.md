@@ -53,12 +53,14 @@ Unless stated otherwise, paths and shell commands below are relative to
 
 ## What lives here
 
-| File / target             | Role                                                                                                                         |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `cutensornet-symbols.txt` | The symbol manifest. Single source of truth for **which functions** the crate binds.                                         |
-| `generate-bindings.sh`    | Headers and function/type selection &rarr; `src/bindings/v2_13.rs`. Requires the pinned x86-64 tools and headers, not a GPU. |
-| `src/generator.rs`        | Manifest + bindings &rarr; the loader model &rarr; source text. Pure, unit-tested.                                           |
-| `--bin generate-loader`   | Reads the manifest and Rust bindings; writes/formats the loader files. Runs on any supported Rust development host.          |
+| File / target                   | Role                                                                                                                                                 |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cutensornet-symbols.txt`       | The symbol manifest. Single source of truth for **which functions** the crate binds.                                                                 |
+| `generate-bindings.sh`          | Headers and function/type selection &rarr; `src/bindings/v2_13.rs`. Requires the pinned x86-64 tools and headers, not a GPU.                         |
+| `src/generator.rs`              | Manifest + bindings &rarr; the loader model &rarr; source text. Pure, unit-tested.                                                                   |
+| `--bin generate-loader`         | Reads the manifest and Rust bindings; writes/formats the loader files. Runs on any supported Rust development host.                                  |
+| `validate-on-cuda-host.sh`      | Checks this checkout on a Linux x86-64 CUDA host: the loader, the native-only tests, the real libraries and, with `--qualification`, the A100 suite. |
+| `test_validate_on_cuda_host.py` | Host-only tests of the script's option handling and test selection, using test doubles of `cargo` and the host tools; not native evidence.           |
 
 Both generators consume the same manifest, so the bindgen allowlist and the
 dynamic loader cannot disagree about which symbols exist.
@@ -299,14 +301,52 @@ mechanical proof the manifest's symbol names exist. Point
 `QDK_CUTENSORNET_LIBRARY` / `QDK_CUDART_LIBRARY` at the libraries when they live
 somewhere other than the reference paths.
 
+`validate-on-cuda-host.sh` runs these on the supported host:
+
+```sh
+scripts/validate-on-cuda-host.sh                      # the FFI surface, fast
+scripts/validate-on-cuda-host.sh --archive <archive>  # also regenerate and diff the bindings
+scripts/validate-on-cuda-host.sh --qualification      # also run the slow A100 suite
+scripts/validate-on-cuda-host.sh --skip-hardware      # CUDA host without a usable library
+```
+
+Run it from any directory; it locates the crate relative to the script. It
+refuses to run on a host other than Linux x86-64 rather than report a
+misleading pass, then checks:
+
+1. The generated loader is current and unedited.
+2. `cargo fmt --check` and `cargo clippy --all-targets -D warnings`.
+3. `cargo test`, **and** that `library::tests::*` appeared in its output: the
+   property that matters is that the gated modules compiled and ran, not how
+   many tests there were.
+4. That `libcutensornet.so.2` and `libcudart.so.12` are present, falling back
+   to the `QDK_CUTENSORNET_LIBRARY` / `QDK_CUDART_LIBRARY` overrides.
+5. The ignored availability test above.
+6. With `--qualification`, the MPS method's A100 suite
+   (`simulation::mps_execution::qualification::`), failing if no case ran.
+7. With `--archive`, that `generate-bindings.sh` reproduces
+   `src/bindings/v2_13.rs` byte for byte.
+
+The A100 suite is opt-in because it answers a different question: whether the
+simulation still produces the right numbers, not whether the FFI surface is
+intact. It is expensive and needs a GPU. `--skip-hardware` cannot be combined
+with it. The script's own tests run on any host, from the repository root:
+
+```sh
+python3 -m unittest source/cutensornet/scripts/test_validate_on_cuda_host.py
+```
+
 The host ABI, native libraries and GPU requirements are independent:
 
-| Step                                                             | x86-64 | The real `.so` | A GPU  |
-| ---------------------------------------------------------------- | ------ | -------------- | ------ |
-| `generate-bindings.sh` &rarr; `src/bindings/v2_13.rs`            | yes    | no             | **no** |
-| `generate-loader` and its tests                                  | **no** | no             | no     |
-| `library::tests::*` (resolver tests, `TestDoubleSymbolResolver`) | yes    | no             | **no** |
-| `tests/availability.rs`                                          | yes    | yes            | **no** |
+| Step                                                               | x86-64 | The real `.so` | A GPU   |
+| ------------------------------------------------------------------ | ------ | -------------- | ------- |
+| `generate-bindings.sh` &rarr; `src/bindings/v2_13.rs`              | yes    | no             | **no**  |
+| `generate-loader` and its tests                                    | **no** | no             | no      |
+| `library::tests::*` (resolver tests, `TestDoubleSymbolResolver`)   | yes    | no             | **no**  |
+| `library::simulation::tests::*` (native-call helpers)              | yes    | no             | **no**  |
+| MPS host tests (test doubles of the native APIs)                   | **no** | no             | no      |
+| `tests/availability.rs`                                            | yes    | yes            | **no**  |
+| `mps_execution/qualification.rs` (`#[ignore]`d, `--qualification`) | yes    | yes            | **yes** |
 
 ## What the guards catch
 

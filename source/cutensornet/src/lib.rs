@@ -6,13 +6,27 @@
 )]
 mod bindings;
 mod error;
+mod execution;
 pub mod generator;
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
 mod library;
+#[cfg_attr(
+    not(all(target_os = "linux", target_arch = "x86_64")),
+    allow(
+        dead_code,
+        reason = "non-x86 builds use only host preflight; the remaining mechanics stay compiled so host tests can exercise them"
+    )
+)]
+mod simulation;
 #[cfg(any(test, all(target_os = "linux", target_arch = "x86_64")))]
 mod version;
 
 pub use error::AvailabilityError;
+#[doc(hidden)]
+pub use execution::{
+    MpsCost, MpsExecutionError, StateMethod, StateQuery, StateQueryValue, evaluate_state_queries,
+    run_mps_shots,
+};
 
 use std::{fmt, path::PathBuf};
 
@@ -69,10 +83,6 @@ pub struct AvailabilityReport {
 pub struct Availability {
     report: AvailabilityReport,
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-    #[expect(
-        dead_code,
-        reason = "keeps the loaded libraries alive for the lifetime of the availability; read by the simulation layer"
-    )]
     libraries: std::sync::Arc<library::CuTensorNetApi>,
 }
 

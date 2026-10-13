@@ -1856,6 +1856,10 @@ name = "qdk_cutensornet"
 version = "0.0.0"
 dependencies = [
  "libloading",
+ "num-complex",
+ "qdk_simulators",
+ "rand 0.10.2",
+ "tensornet",
  "thiserror",
 ]
 

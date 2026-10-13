@@ -5,7 +5,10 @@
 `qdk_cutensornet` is the Rust boundary between the QDK and NVIDIA cuTensorNet.
 It finds and loads cuTensorNet and the CUDA Runtime at run time, so optional GPU
 acceleration does not make CUDA part of the QDK's ordinary build or startup
-contract.
+contract. On top of that loader it runs the MPS method (block ④ of the
+[tensor-network design](../TensorNetworkDesign.md)): it simulates a program's
+state as a _matrix product state_ (MPS), a chain of site tensors whose bonds
+are truncated to at most χ, on the GPU. See [The MPS method](#the-mps-method).
 
 Native shared libraries expose functions under exported names called
 _symbols_, such as `cudaMalloc` or `cutensornetCreate`. To keep NVIDIA software
@@ -47,8 +50,8 @@ following:
 - NVIDIA headers or shared libraries; or
 - a CUDA-aware linker configuration.
 
-On other platforms the crate compiles, and `discover()` reports the libraries
-as unavailable.
+On other platforms the crate compiles, `discover()` reports the libraries as
+unavailable, and the MPS entry points report that as an environment error.
 
 ## Lifecycle at a glance
 
@@ -62,14 +65,20 @@ Maintainers rerun code generation only when they need to update or reproduce
 those files; see the [FFI generation documentation](scripts/README.md).
 Separately, at run time, a QDK component calls `discover()` only when preparing
 a cuTensorNet-backed workload. That operation looks for compatible cuTensorNet
-and CUDA libraries installed on the host.
+and CUDA libraries installed on the host. Each call into the MPS method checks
+the program on the host first, then discovers the libraries, opens one session
+on the device, computes one state, answers the call from it and closes the
+session.
 
 ```text
 pinned NVIDIA headers
   -> maintainer generation
   -> reviewed, checked-in Rust source
   -> ordinary Cargo build
-  -> optional runtime library discovery
+  -> per MPS call: host checks
+       -> optional runtime library discovery
+       -> one session, one state
+       -> results, session closed
 ```
 
 ## What this crate contains
@@ -95,10 +104,15 @@ only their approved version and error probes and performs no GPU work.
 | Loader generator          | `src/generator.rs`, `src/bin/generate-loader.rs` | Maintainer tool that reads the manifest and binding signatures and writes the generated loader tables.                         |
 | Availability API          | `src/lib.rs`                                     | Exposes explicit discovery and reports availability without exposing raw FFI.                                                  |
 | Error and status model    | `src/error.rs`                                   | Defines structured discovery failures and maps native status values without losing unknown codes.                              |
+| MPS entry                 | `src/execution.rs`                               | The MPS method's entry points for the Python API: host checks, one session per call, results.                                  |
+| MPS mechanics             | `src/simulation.rs`, `src/library/simulation/`   | cuTensorNet-specific state lifecycle, sampler, region consumer and policy; host-tested through private injection traits.       |
+| MPS native adapter        | `src/library/simulation{.rs,/mps_session.rs}`    | `simulation.rs` implements the four traits through the loaded function tables; `mps_session.rs` binds policy to one device.    |
 
 The raw bindings, function tables, library guards, resolver seam, and native
 status mapping are private. The public capability is
-`discover() -> Result<Availability, AvailabilityError>`.
+`discover() -> Result<Availability, AvailabilityError>`. The MPS entry points
+are public only so that the Python native module can call them; they are
+`#[doc(hidden)]` and not a stable API.
 
 ## Runtime discovery
 
@@ -330,6 +344,307 @@ Code extending this crate should:
 4. Preserve optionality. Ordinary tests and builds must never read SDK headers,
    call the binding generator, or require NVIDIA libraries.
 
+## The MPS method
+
+The MPS method is block ④ of the
+[tensor-network design](../TensorNetworkDesign.md). It represents the state
+of n qubits as a chain of site tensors $A^{[k]}$, one per qubit, joined by
+bonds of dimension at most χ:
+
+$$
+\psi_{s_1 \dots s_n} \approx A^{[1]}_{s_1} A^{[2]}_{s_2} \cdots A^{[n]}_{s_n},
+\qquad A^{[k]}_{s_k} \in \mathbb{C}^{\chi_{k-1} \times \chi_k},\ \chi_k \le \chi .
+$$
+
+Applying a two-qubit gate grows a bond; cuTensorNet truncates it back to χ by
+an SVD that drops the smallest singular values. Memory and time grow with χ,
+not with $2^n$, which is what makes circuits with low entanglement tractable.
+
+It answers three queries of a Base program, for the Python API:
+
+| Query         | Entry point                                         | Result                                                    |
+| ------------- | --------------------------------------------------- | --------------------------------------------------------- |
+| `Sample`      | `run_mps_shots`                                     | One list of output records per shot, as `run_qir` returns |
+| `Expectation` | `evaluate_state_queries`, `StateQuery::Expectation` | ⟨ψ\|O\|ψ⟩ / ⟨ψ\|ψ⟩ for a Pauli sum O                      |
+| `Cost`        | `evaluate_state_queries`, `StateQuery::Cost`        | The bond reached, state bytes and peak workspace bytes    |
+
+ψ is $U|0\dots0\rangle$, the state before the terminal measurements. The
+method owns the numerics; [the execution core](../simulators/src/execution/README.md)
+(③) owns programs, shots and output records, and
+[`tensornet::Mps`](../tensornet/README.md) (②) describes the shape of the
+chain.
+
+### Three layers
+
+`execution` orchestrates an MPS request from program to results; `simulation`
+implements the current cuTensorNet-shaped MPS lifecycle in host-portable Rust;
+`library::simulation` supplies the Linux x86-64 native calls.
+
+```text
+execution.rs          orchestrates a request: host checks,    every platform
+                      one session, ③ walks, results
+   │ Circuit, ExecutionPolicy, SamplingRequest, PauliSum
+   ▼
+simulation            cuTensorNet-shaped MPS lifecycle         every platform
+                      over four private test seams
+  circuit             gate set, Circuit, state readouts
+  policy              χ, cutoffs, SVD, gauge, workspace budget
+  resources           device, stream, handle      ── SessionApi
+  memory_workspace    device buffers, workspaces  ── MemoryWorkspaceApi
+  mps_execution       one state's lifecycle       ── MpsExecutionApi
+                      create → apply gates → finalize (χ) → compute → read → close
+  sampler             sampler over the computed MPS ── SamplerApi
+  query               Expectation results
+  consumer            ③ region consumer (batch strategy)
+  error               errors below the entry
+  ffi                 Complex64Abi, the complex ABI value, and its checks
+  branch              test only: project mid-circuit and continue
+   │ the four traits
+   ▼
+library::simulation   Linux x86-64 only
+  simulation.rs       the four traits for CuTensorNetApi, through ①'s function tables
+  mps_session         MpsSession: the policy and SessionResources of one device
+```
+
+- _Host-portable_ says where this Rust logic compiles and is tested; it does
+  not make the lifecycle _backend-neutral_.
+- Every file lives in `src/library/simulation/`, but `src/simulation.rs`
+  includes all of them except `simulation.rs` itself and `mps_session.rs` by
+  `#[path]`, outside the Linux x86-64 gate on `library`. So `simulation`
+  compiles on every platform, and its host tests run without a GPU.
+- `CuTensorNetApi` owns the library guards and function tables, but no
+  stream, handle, state or sampler; the lifecycle owners create and close
+  those ([Session, execution and ownership](#session-execution-and-ownership)).
+- `src/library/simulation.rs` is the only MPS layer that invokes the loaded
+  CUDA and cuTensorNet operations.
+- The four traits are test seams shaped around the cuTensorNet operations
+  this implementation needs. They are not the backend-neutral interface of
+  §4.2 of the [tensor-network design](../TensorNetworkDesign.md); that
+  interface is extracted when a second backend arrives.
+
+### One call, end to end
+
+In one line: the entry runs Base programs with the MPS method, and `Sample`
+uses the batch strategy. Every query starts from one MPS:
+
+```text
+Base program ─1─► Circuit     ③ walk on the host; rejects feedforward, reset, a 2nd region
+             ─2─► one MPS ψ   GPU (MpsSession)
+                    ├─ Expectation ─► read from ψ;  Cost ─► report the call's resources
+                    └─ Sample ─► draw N rows from ψ
+                                 ─3─► replay each row through ③ (shot results)
+```
+
+- The batch strategy is how `Sample` works: one state gives every shot.
+- Base only applies to every query: step 1 rejects any Adaptive feature.
+  `Expectation` stays Base-only by design, as in CUDA-Q's `observe`.
+  Adaptive `Sample` is M1's `mps-a`, with the
+  [incremental strategy](#adaptive-programs-the-incremental-strategy).
+
+In detail, ⑤ calls the entry, and the entry calls ③ as a library, twice. The
+GPU work happens in between, outside ③:
+
+```text
+⑤ tensornetwork_qir
+  │
+  ▼
+④ run_mps_shots / evaluate_state_queries
+  │
+  ├─1─► ③ drive_prepared_shot(program, CircuitPreparationConsumer)     host, once
+  │       the consumer records the gates into a Circuit and rejects a
+  │       second region, feedforward and reset; qubits, shots and seeds
+  │       are checked too                       program error, before discovery
+  │
+  ├─2─► discover()                              environment error from here on
+  │     MpsSession::new(policy)                 stream + handle on one device
+  │       MpsExecution::new                     |0…0⟩ state, workspace
+  │         apply gates, finalize as an MPS (χ), compute once
+  │         Sample:      sampler -> rows of bits
+  │         Expectation: one native expectation per Pauli sum, normalized
+  │       MpsExecution::close                   every native object released
+  │
+  ├─3─► ③ drive_prepared_shot(program, CuTensorNetMpsConsumer(row i))  host, per shot
+  │       Sample only; the consumer answers each measurement from row i
+  │       and ③ writes the output records
+  │
+  └───► MpsSession::close
+```
+
+Neither consumer touches the GPU, so ③ does not yet drive cuTensorNet. In
+M1's `mps-a` (adaptive `Sample`), a consumer applies each region to the live
+MPS and draws each measurement from it, so feedforward works; M2's `query`
+moves the queries into ③.
+
+Everything that depends only on the program is checked on the host before
+`discover()`, so bad input is a _program error_ and never touches the GPU.
+Discovery, native and cleanup failures are _environment errors_.
+`MpsExecutionError::is_environment_error` tells them apart; the Python API
+raises `ValueError` and `OSError` respectively. When execution and its
+cleanup both fail, the error reports both.
+
+### Sampling: the batch strategy
+
+A Base program measures only at the end, so every shot samples the same
+state. The method evolves ψ once and asks cuTensorNet's sampler for all the
+shots at once, then hands each row to the execution core:
+
+```text
+              ┌──────────────── one MpsSession ────────────────┐
+program ──► circuit ──► ψ (MPS, χ) ──► sampler ──► S[shots × m] bits
+              └────────────────────────────────────────────────┘
+                                                     │ row i
+                                                     ▼
+            drive_prepared_shot(program, CuTensorNetMpsConsumer(row i))
+                                                     │
+                                                     ▼
+                                       output records of shot i
+```
+
+`CuTensorNetSampleMatrix` holds one column per distinct measured qubit. The
+consumer implements ③'s `RegionConsumer`: it applies no gates, answers each
+measurement from its row, and rejects what one sampled state cannot
+represent, which is a second region, a region after a measurement, reset, and
+a measurement after reset. The execution core still walks the program and
+writes the records, so results have the same shape as every other simulator's.
+
+Seeds are derived on the host: `seed` seeds a generator that draws one
+positive 32-bit value used both as the sampler's path seed and as its sample
+seed. Without `seed`, the value is drawn from entropy.
+
+### Adaptive programs: the incremental strategy
+
+The batch strategy needs a Base program. In an Adaptive program a later gate
+can depend on an earlier outcome (feedforward), so shots no longer share one
+state. M1's `mps-a` samples them with the incremental strategy the design
+describes: shots run one at a time, ③ walks each one, and the consumer holds
+the live MPS on the GPU.
+
+```text
+for each shot (fresh |0…0⟩, same MpsSession):
+  ③ drive_prepared_shot(program, incremental MPS consumer)
+     execute_region(R) ─► apply R's gates to the MPS, truncate to χ
+     measure(q)        ─► p₀ = ⟨ψ|Π₀(q)|ψ⟩ / ⟨ψ|ψ⟩     from the MPS
+                          r ~ Bernoulli(1 − p₀)       the shot's random stream
+                          ψ ← Π_r(q) ψ / √p_r          project and renormalize
+                          return r                    ③ feeds r forward
+     reset(q)          ─► measure(q), then X on outcome 1
+```
+
+Each outcome is drawn conditioned on the earlier ones, so a shot's outcomes
+have the program's distribution:
+
+$$
+P(r_1, \dots, r_M) = \prod_{k=1}^{M} P(r_k \mid r_{<k}) .
+$$
+
+What changes in this crate:
+
+- The entry walks each shot once, with the consumer above, instead of
+  walking once to build a circuit and again to replay rows; the host checks
+  stop rejecting feedforward and reset for `Sample`.
+- The consumer borrows one `MpsExecution` per shot from the session, so the
+  session is reused across shots, one execution at a time, as today.
+- The per-measurement step exists already as test-only code, used by the A100
+  qualification to measure mid-circuit and continue: `compute_branch_masses`
+  computes p₀ and p₁ from two projector expectations, and `apply_projection`
+  projects the MPS. `mps-a` moves that step behind `RegionConsumer::measure`.
+
+③ supplies the shot's random stream and records each outcome's probability
+(M1's `ctr`). Base programs keep the batch strategy, which samples every shot
+from one state.
+
+### Expectation and Cost
+
+For each Pauli sum $O = c_0 I + \sum_j c_j P_j$, the identity coefficient is
+added on the host and the rest is one native expectation on the computed MPS:
+
+$$
+\langle O \rangle = c_0 + \frac{\langle \psi | O - c_0 I | \psi \rangle}{\langle \psi | \psi \rangle} .
+$$
+
+The division matters: truncation discards weight, so the MPS is not
+normalized. Non-finite values and a nonpositive norm are rejected. Each
+expectation's descriptors and buffers are released before the next one, so
+device memory does not grow with the number of observables.
+
+A call computes exactly one MPS, so `Cost` describes that state: the largest
+bond it reached, at most χ; the bytes of its site tensors; and the largest
+workspace any step requested. `Cost` with `Sample` is not available yet.
+
+### Session, execution and ownership
+
+```text
+Arc<CuTensorNetApi>                 shared, immutable: library guards and function tables
+  └─ MpsSession                     !Send, !Sync; one per call
+       ├─ ExecutionPolicy           validated: fp64, GESVD, SIMPLE gauge, χ, cutoffs, budget
+       ├─ SessionResources          device, CUDA stream, cuTensorNet handle
+       └─ MpsExecution (borrowed)   one state: workspaces, operators, device buffers
+            └─ PreparedSampler      one native sampler
+```
+
+- Each owner releases its children before its parent: sampler, then
+  execution, then session. `close` releases every object on every path and
+  reports the failure; `Drop` is a non-panicking fallback for paths that
+  return early, not an error report.
+- `MpsExecution` borrows the session's API, handle and stream. A session can
+  serve several executions in sequence, never two at once.
+- Gate matrices come from ③'s shared operator table, so every simulator
+  applies the same matrices. The realized chain is checked against the
+  `tensornet::Mps` the method asked for: no bond above χ, a qubit on every
+  site.
+
+The policy is fixed by the entry:
+
+| Setting         | Value                          | Why                                                           |
+| --------------- | ------------------------------ | ------------------------------------------------------------- |
+| Precision       | fp64                           | the only qualified precision                                  |
+| SVD, gauge      | GESVD, SIMPLE                  | the only qualified combination                                |
+| χ               | 128, or `max_bond_dimension`   | the user's accuracy and memory trade-off                      |
+| Cutoffs         | absolute 10⁻¹⁰, relative 10⁻¹⁶ | drop singular values that carry no weight                     |
+| Workspace limit | at most 64 GiB                 | a request beyond it is an error, not an out-of-memory failure |
+
+`ExecutionPolicy::validate` rejects anything else; qualifying another
+configuration takes a new A100 qualification case first.
+
+### Threading and processes
+
+Parallelism comes from independent owners, not from sharing one native state.
+
+- Discover once per process and share only `Arc<CuTensorNetApi>`. It holds no
+  device, stream or state, so it is `Send + Sync`.
+- Create, use and close each `MpsSession` on one thread. A `PhantomData<Rc<()>>`
+  in `SessionResources` makes it `!Send` and `!Sync`, because cuTensorNet
+  handles are tied to the CUDA device current when they were created, and
+  states, workspaces and samplers are mutated by every call.
+- Treat libraries, handles, streams and device pointers as process-local.
+  Each process discovers on its own; choose GPUs per process before discovery.
+  Fork safety has not been audited: do not use discovered libraries or
+  sessions in a child after `fork()`.
+
+### Test doubles and qualification
+
+The native calls sit behind private injection traits (`SessionApi`,
+`MemoryWorkspaceApi`, `SamplerApi`, `MpsExecutionApi`). `src/library/simulation.rs`
+implements them with cuTensorNet; host tests implement them with test doubles
+(`TestDoubleSessionApi`, `TestDoubleSamplerApi`, and the one in
+`src/library/simulation/mps_execution/tests.rs`) that record call order and
+inject failures. They check that every created object is released on every
+path and that errors are reported as described above. They run on every host
+without a GPU ([Three layers](#three-layers)).
+
+Numbers come from the A100 qualification in
+`src/library/simulation/mps_execution/qualification.rs`: `#[ignore]`d tests
+that compare the MPS on a real GPU with closed-form amplitudes, pinned
+reference values and the QDK's sparse simulator.
+
+### Extending the method
+
+`src/execution.rs` opens with the steps to add a state method or a query: the
+variant, host validation before discovery, the session method that closes on
+every path, and the Python encoding. Keep new native calls behind an injection
+trait, give each native object one owner that closes it, and add the symbol to
+`scripts/cutensornet-symbols.txt` before calling it.
+
 ## Validation
 
 ### CPU-only and no-SDK validation
@@ -340,9 +655,11 @@ cargo clippy --target x86_64-unknown-linux-gnu -p qdk_cutensornet --all-targets 
 ```
 
 The loader is gated to Linux x86-64, so on other hosts its tests do not
-compile; the `src/generator.rs` unit tests and the non-x86-64 paths still run
-there. The second command type-checks the gated code from any host. On Linux
-x86-64, the focused tests verify:
+compile; the `src/generator.rs` unit tests, the MPS method's host tests and the
+non-x86-64 paths still run there. The second command type-checks the gated
+code from any host. The MPS host tests run against
+[test doubles](#test-doubles-and-qualification) and need no GPU. On Linux
+x86-64, the focused loader tests verify:
 
 - invalid relative, missing, and directory overrides fail before loading;
 - every missing required cuTensorNet and CUDA symbol is reported by name;
@@ -374,6 +691,18 @@ cargo test -p qdk_cutensornet --test availability -- --ignored --nocapture
 
 This test is native-environment evidence, not a replacement for CPU-only
 tests.
+
+The MPS method's numerical qualification is also `#[ignore]`d. It needs an
+NVIDIA GPU (it was qualified on an A100) and runs every ignored test of the
+crate:
+
+```bash
+cargo test -p qdk_cutensornet -- --ignored
+```
+
+On a CUDA host, `scripts/validate-on-cuda-host.sh --qualification` runs the
+same suite after the loader checks, and fails if no qualification test ran;
+see [Validating the FFI surface](scripts/README.md#validating-the-ffi-surface).
 
 ### Deterministic binding validation
 

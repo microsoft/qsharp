@@ -18,8 +18,10 @@ use std::{
     sync::Arc,
 };
 
+mod simulation;
 mod symbols;
 
+pub(crate) use simulation::MpsSession;
 use symbols::{CuTensorNetFunctions, resolve_cutensornet_functions};
 
 const CUTENSORNET_NAME: &str = "cuTensorNet";

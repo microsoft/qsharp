@@ -10,6 +10,10 @@ repository.workspace = true
 
 [dependencies]
 libloading = { workspace = true }
+num-complex = { workspace = true }
+qdk_simulators = { path = "../simulators", default-features = false }
+rand = { workspace = true }
+tensornet = { path = "../tensornet" }
 thiserror = { workspace = true }
 
 [lints]
