@@ -394,7 +394,7 @@ impl<'a> Context<'a> {
                     }
                 };
                 Partial {
-                    diverges: cond.diverges || (if_true.diverges && if_false_diverges),
+                    diverges: if_true.diverges && if_false_diverges,
                     ..if_true
                 }
             }
@@ -580,7 +580,10 @@ impl<'a> Context<'a> {
                 let if_false = self.infer_expr(if_false);
                 self.inferrer
                     .eq(if_false_span, if_true.ty.clone(), if_false.ty);
-                if_true
+                Partial {
+                    diverges: if_true.diverges && if_false.diverges,
+                    ..if_true
+                }
             }
             ExprKind::TernOp(TernOp::Update, container, index, replace) => {
                 self.infer_update(expr.span, container, index, replace)
