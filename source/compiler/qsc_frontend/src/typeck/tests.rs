@@ -1510,7 +1510,7 @@ fn if_cond_fail() {
             namespace A {
                 function F() : Int {
                     if fail "error" {
-                        "this type doesn't matter"
+                        "this type is still seen"
                     } else {
                         "foo"
                     }
@@ -1520,15 +1520,16 @@ fn if_cond_fail() {
         "",
         &expect![[r##"
             #6 28-30 "()" : Unit
-            #10 37-154 "{\n        if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }\n    }" : Int
-            #12 47-148 "if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }" : String
+            #10 37-153 "{\n        if fail \"error\" {\n            \"this type is still seen\"\n        } else {\n            \"foo\"\n        }\n    }" : String
+            #12 47-147 "if fail \"error\" {\n            \"this type is still seen\"\n        } else {\n            \"foo\"\n        }" : String
             #13 50-62 "fail \"error\"" : Bool
             #14 55-62 "\"error\"" : String
-            #15 63-113 "{\n            \"this type doesn't matter\"\n        }" : String
-            #17 77-103 "\"this type doesn't matter\"" : String
-            #18 114-148 "else {\n            \"foo\"\n        }" : String
-            #19 119-148 "{\n            \"foo\"\n        }" : String
-            #21 133-138 "\"foo\"" : String
+            #15 63-112 "{\n            \"this type is still seen\"\n        }" : String
+            #17 77-102 "\"this type is still seen\"" : String
+            #18 113-147 "else {\n            \"foo\"\n        }" : String
+            #19 118-147 "{\n            \"foo\"\n        }" : String
+            #21 132-137 "\"foo\"" : String
+            Error(Type(Error(TyMismatch(TyInfo { kind: Prim(Int), display: "Int" }, TyInfo { kind: Prim(String), display: "String" }, Span { lo: 47, hi: 147 }))))
         "##]],
     );
 }
