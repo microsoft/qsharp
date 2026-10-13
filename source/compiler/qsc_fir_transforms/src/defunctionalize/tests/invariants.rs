@@ -1769,7 +1769,7 @@ fn pure_partial_app_direct_dispatch_passes_invariants() {
 }
 
 #[test]
-fn mutable_effectful_producer_residue_remains_authorized() {
+fn overwritten_effectful_callable_producer_is_retained_as_residue() {
     use qsc_fir::fir::StoreItemId;
 
     for setup in [
@@ -1816,7 +1816,7 @@ fn mutable_effectful_producer_residue_remains_authorized() {
             outcome
                 .diagnostics
                 .iter()
-                .any(super::super::Error::is_deferrable),
+                .all(super::super::Error::is_deferrable),
             "expected deferred loop residue: {setup}"
         );
         assert!(
@@ -1875,7 +1875,7 @@ fn deferrable_residue_preserves_local_binding_type_checks() {
         outcome
             .diagnostics
             .iter()
-            .any(super::super::Error::is_deferrable),
+            .all(super::super::Error::is_deferrable),
         "the dynamic call should produce a deferrable diagnostic"
     );
     assert!(

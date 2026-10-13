@@ -7330,98 +7330,165 @@ namespace Test {
     );
 }
 
-#[test]
-fn residual_callable_sources_preserve_profile_acceptance() {
-    use qsc_rca::errors::Error as CapabilityError;
-
-    let mut failures = Vec::new();
-    for (name, source) in residual_callable_sources() {
-        for profile in [Profile::Base, Profile::AdaptiveRI, Profile::AdaptiveRIF] {
-            let context = format!("{name}/{profile:?}");
-            let accepted = match name {
-                "false_branch" | "false_loop" => false,
-                "post_return" => profile != Profile::Base,
-                _ => true,
-            };
-            match compile_source_to_qir_result(&source, profile.into()) {
-                Ok(qir) if accepted => {
-                    let expected_x = match name {
-                        "killed_producer" => 2,
-                        "unrelated_callable" => 1,
-                        _ => 0,
-                    };
-                    let expected_y = usize::from(name == "post_return");
-                    if qir.matches("call void @__quantum__qis__x__body").count() != expected_x
-                        || qir.matches("call void @__quantum__qis__y__body").count() != expected_y
-                        || qir.contains("call void @__quantum__qis__h__body")
-                    {
-                        failures.push(format!("{context}: unexpected gate effects:\n{qir}"));
-                    }
-                }
-                Err(errors) if !accepted => {
-                    let expected_error = errors.iter().any(|error| {
-                        let crate::interpret::Error::Pass(error) = error else {
-                            return false;
-                        };
-                        matches!(
-                            (name, error.error()),
-                            (
-                                "post_return",
-                                qsc_passes::Error::CapabilitiesCk(
-                                    CapabilityError::UseOfDynamicBool(_)
-                                )
-                            ) | (
-                                "false_branch" | "false_loop",
-                                qsc_passes::Error::CapabilitiesCk(
-                                    CapabilityError::CallToDynamicCallee(_)
-                                )
-                            )
-                        )
-                    });
-                    let only_capability_errors = errors.iter().all(|error| {
-                        matches!(error, crate::interpret::Error::Pass(error) if matches!(error.error(), qsc_passes::Error::CapabilitiesCk(_)))
-                    });
-                    if !expected_error || !only_capability_errors {
-                        failures.push(format!("{context}: unexpected typed errors: {errors:?}"));
-                    }
-                }
-                result => failures.push(format!("{context}: unexpected acceptance: {result:?}")),
-            }
-            eprintln!("checked {context}");
-        }
-    }
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
+#[derive(Clone, Copy, Debug)]
+enum ExpectedCapabilityError {
+    CallToDynamicCallee,
+    UseOfDynamicBool,
 }
 
-fn residual_callable_sources() -> Vec<(&'static str, String)> {
-    let mut sources = Vec::new();
-    for (name, body) in [
-        ("false_branch", "if false { ApplyOp(ops[index], q); }"),
-        ("false_loop", "while false { ApplyOp(ops[index], q); }"),
-        ("post_return", "return (); ApplyOp(ops[index], q);"),
-    ] {
-        sources.push((
-            name,
-            format!(
-                r#"
-            namespace Test {{
-                operation MakeCandidates(q : Qubit) : (Qubit => Unit)[] {{ Y(q); [H, X] }}
-                operation ApplyOp(op : Qubit => Unit, target : Qubit) : Unit {{ op(target); }}
-                @EntryPoint()
-                operation Main() : Unit {{
-                    use q = Qubit();
-                    let ops = MakeCandidates(q);
-                    let index = if MResetZ(q) == Zero {{ 0 }} else {{ 1 }};
-                    {body}
-                }}
-            }}
-        "#
-            ),
-        ));
-    }
-    sources.push((
-        "killed_producer",
-        r#"
+fn assert_residual_callable_capability_error(
+    source: &str,
+    profile: Profile,
+    expected: ExpectedCapabilityError,
+) {
+    use qsc_rca::errors::Error as CapabilityError;
+
+    let errors = compile_source_to_qir_result(source, profile.into())
+        .expect_err(&format!("{profile:?} should reject the program"));
+    assert!(
+        errors.iter().all(|error| {
+            matches!(error, crate::interpret::Error::Pass(error) if matches!(error.error(), qsc_passes::Error::CapabilitiesCk(_)))
+        }),
+        "{profile:?} should produce only capability errors, got {errors:?}"
+    );
+    assert!(
+        errors.iter().any(|error| {
+            let crate::interpret::Error::Pass(error) = error else {
+                return false;
+            };
+            matches!(
+                (expected, error.error()),
+                (
+                    ExpectedCapabilityError::CallToDynamicCallee,
+                    qsc_passes::Error::CapabilitiesCk(CapabilityError::CallToDynamicCallee(_))
+                ) | (
+                    ExpectedCapabilityError::UseOfDynamicBool,
+                    qsc_passes::Error::CapabilitiesCk(CapabilityError::UseOfDynamicBool(_))
+                )
+            )
+        }),
+        "{profile:?} should produce {expected:?}, got {errors:?}"
+    );
+}
+
+fn assert_residual_callable_gate_effects(
+    source: &str,
+    profile: Profile,
+    expected_x: usize,
+    expected_y: usize,
+) {
+    let qir = compile_source_to_qir(source, profile.into());
+    assert_eq!(
+        qir.matches("call void @__quantum__qis__x__body").count(),
+        expected_x,
+        "{profile:?} produced unexpected X effects:\n{qir}"
+    );
+    assert_eq!(
+        qir.matches("call void @__quantum__qis__y__body").count(),
+        expected_y,
+        "{profile:?} produced unexpected Y effects:\n{qir}"
+    );
+    assert!(
+        !qir.contains("call void @__quantum__qis__h__body"),
+        "{profile:?} produced an unexpected H effect:\n{qir}"
+    );
+}
+
+#[test]
+fn residual_callable_in_false_branch_is_rejected_by_all_profiles() {
+    let source = r#"
+        namespace Test {
+            operation MakeCandidates(q : Qubit) : (Qubit => Unit)[] { Y(q); [H, X] }
+            operation ApplyOp(op : Qubit => Unit, target : Qubit) : Unit { op(target); }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let ops = MakeCandidates(q);
+                let index = if MResetZ(q) == Zero { 0 } else { 1 };
+                if false { ApplyOp(ops[index], q); }
+            }
+        }
+    "#;
+
+    assert_residual_callable_capability_error(
+        source,
+        Profile::Base,
+        ExpectedCapabilityError::CallToDynamicCallee,
+    );
+    assert_residual_callable_capability_error(
+        source,
+        Profile::AdaptiveRI,
+        ExpectedCapabilityError::CallToDynamicCallee,
+    );
+    assert_residual_callable_capability_error(
+        source,
+        Profile::AdaptiveRIF,
+        ExpectedCapabilityError::CallToDynamicCallee,
+    );
+}
+
+#[test]
+fn residual_callable_in_false_loop_is_rejected_by_all_profiles() {
+    let source = r#"
+        namespace Test {
+            operation MakeCandidates(q : Qubit) : (Qubit => Unit)[] { Y(q); [H, X] }
+            operation ApplyOp(op : Qubit => Unit, target : Qubit) : Unit { op(target); }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let ops = MakeCandidates(q);
+                let index = if MResetZ(q) == Zero { 0 } else { 1 };
+                while false { ApplyOp(ops[index], q); }
+            }
+        }
+    "#;
+
+    assert_residual_callable_capability_error(
+        source,
+        Profile::Base,
+        ExpectedCapabilityError::CallToDynamicCallee,
+    );
+    assert_residual_callable_capability_error(
+        source,
+        Profile::AdaptiveRI,
+        ExpectedCapabilityError::CallToDynamicCallee,
+    );
+    assert_residual_callable_capability_error(
+        source,
+        Profile::AdaptiveRIF,
+        ExpectedCapabilityError::CallToDynamicCallee,
+    );
+}
+
+#[test]
+fn residual_callable_after_return_is_rejected_only_by_base_profile() {
+    let source = r#"
+        namespace Test {
+            operation MakeCandidates(q : Qubit) : (Qubit => Unit)[] { Y(q); [H, X] }
+            operation ApplyOp(op : Qubit => Unit, target : Qubit) : Unit { op(target); }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let ops = MakeCandidates(q);
+                let index = if MResetZ(q) == Zero { 0 } else { 1 };
+                return ();
+                ApplyOp(ops[index], q);
+            }
+        }
+    "#;
+
+    assert_residual_callable_capability_error(
+        source,
+        Profile::Base,
+        ExpectedCapabilityError::UseOfDynamicBool,
+    );
+    assert_residual_callable_gate_effects(source, Profile::AdaptiveRI, 0, 1);
+    assert_residual_callable_gate_effects(source, Profile::AdaptiveRIF, 0, 1);
+}
+
+#[test]
+fn killed_callable_producer_is_accepted_by_all_profiles() {
+    let source = r#"
         namespace Test {
             operation MakeOp(q : Qubit) : Qubit => Unit { X(q); Rx(0.0, _) }
             operation ApplyOp(op : Qubit => Unit, target : Qubit) : Unit { op(target); }
@@ -7437,12 +7504,16 @@ fn residual_callable_sources() -> Vec<(&'static str, String)> {
                 MResetZ(q)
             }
         }
-    "#
-        .to_string(),
-    ));
-    sources.push((
-        "unrelated_callable",
-        r#"
+    "#;
+
+    assert_residual_callable_gate_effects(source, Profile::Base, 2, 0);
+    assert_residual_callable_gate_effects(source, Profile::AdaptiveRI, 2, 0);
+    assert_residual_callable_gate_effects(source, Profile::AdaptiveRIF, 2, 0);
+}
+
+#[test]
+fn unrelated_callable_is_accepted_by_all_profiles() {
+    let source = r#"
         namespace Test {
             function Identity(value : Int) : Int { value }
             operation Unrelated() : Unit { let decoy = Identity; }
@@ -7457,8 +7528,9 @@ fn residual_callable_sources() -> Vec<(&'static str, String)> {
                 MResetZ(q)
             }
         }
-    "#
-        .to_string(),
-    ));
-    sources
+    "#;
+
+    assert_residual_callable_gate_effects(source, Profile::Base, 1, 0);
+    assert_residual_callable_gate_effects(source, Profile::AdaptiveRI, 1, 0);
+    assert_residual_callable_gate_effects(source, Profile::AdaptiveRIF, 1, 0);
 }
