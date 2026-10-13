@@ -136,7 +136,7 @@ extends:
                 inputs:
                   version: "22.x"
 
-              - template: templates/create-authenticated-npmrc.yml
+              - template: /.ado/templates/create-authenticated-npmrc.yml@self
 
               - script: |
                   python ./prereqs.py --install && python ./version.py
@@ -191,7 +191,7 @@ extends:
                 inputs:
                   version: "22.x"
 
-              - template: templates/create-authenticated-npmrc.yml
+              - template: /.ado/templates/create-authenticated-npmrc.yml@self
 
               - script: |
                   python ./prereqs.py --install && python ./version.py
@@ -314,13 +314,13 @@ extends:
                 inputs:
                   version: "22.x"
 
-              - template: templates/create-authenticated-npmrc.yml
+              - template: /.ado/templates/create-authenticated-npmrc.yml@self
 
-              - template: templates/create-authenticated-npmrc.yml
+              - template: /.ado/templates/create-authenticated-npmrc.yml@self
                 parameters:
                   workingFile: source/jupyterlab/.npmrc
 
-              - template: templates/create-authenticated-npmrc.yml
+              - template: /.ado/templates/create-authenticated-npmrc.yml@self
                 parameters:
                   workingFile: source/widgets/.npmrc
 
@@ -414,7 +414,7 @@ extends:
                     inputs:
                       version: "22.x"
 
-                  - template: templates/create-authenticated-npmrc.yml
+                  - template: /.ado/templates/create-authenticated-npmrc.yml@self
 
                   - script: |
                       sudo apt update
@@ -499,7 +499,7 @@ extends:
                   artifactName: VSIX
                   targetPath: $(System.DefaultWorkingDirectory)/target/vscode
             steps:
-              - template: templates/create-authenticated-npmrc.yml
+              - template: /.ado/templates/create-authenticated-npmrc.yml@self
 
               - script: |
                   npm install -g @vscode/vsce --userconfig=.npmrc
