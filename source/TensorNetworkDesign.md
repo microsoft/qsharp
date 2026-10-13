@@ -158,12 +158,12 @@ tensor-network method or an existing QDK simulator. It prepares the program,
 walks branches, loops and shots, and keeps what simulators share: shot results,
 each shot's seeded random stream and its noise. A simulator receives regions of
 gates, measurements and resets, and never selects a branch. ③'s contracts
-(consumer, queries, observables) are neutral to simulators and
+([consumer](simulators/src/execution/region.rs), queries, [observables](simulators/src/execution/pauli_sum.rs)) are neutral to simulators and
 backends, and ③ depends on none of them (§4.3).
 
 **④ MPS method** represents the state as a chain of site tensors whose bonds it
 truncates. It implements ③'s consumer contract and queries, describes its state
-with ②'s [`Mps`](tensornet/src/mps.rs), takes gate matrices from ③'s shared tables, and runs its
+with ②'s [`Mps`](tensornet/src/mps.rs), takes gate matrices from ③'s [shared tables](simulators/src/execution/operator_matrix.rs), and runs its
 numerics on a backend. Other methods (§3) can be added beside it without
 changing ③ or ⑤.
 
@@ -211,21 +211,57 @@ operation would also be a Python call holding the GIL. ③ writes the common par
 once, in Rust, and Qodec can move onto it (Appendix D).
 
 **Regions.** ③ prepares a program once, before any shot, and cuts each basic
-block into _regions_: maximal runs of consecutive gates, closed by any other
-instruction.
+block into [_regions_](simulators/src/execution/region.rs#L25): maximal runs of
+consecutive gates, closed by any other instruction.
 
 ```text
  block 7:  cz cz h │ ADD │ cz s sx │ MEASURE │ READ_RESULT │ BRANCH
            └region┘        └region─┘
 ```
 
-During a shot, the walk resolves a region's angles and qubits from the shot's
-registers and hands the region to the simulator as one command. Regions let a
-simulator:
+A _shot_ is one execution of the prepared program from its initial state,
+producing one output record. During a shot, the walk follows the program's
+branches and loops. When it reaches a region, it evaluates the gates'
+arguments—such as rotation angles and qubit IDs—using the current
+classical-register values, then sends the concrete operations to the simulator
+together as one region command. Regions let a simulator:
 
 - see many gates at once, to fuse them or to pay one GPU dispatch for them;
 - recognize a region met again, in a loop or in another shot, since regions are
   cut statically; any per-region cache needs this.
+
+More generally, `AdaptiveExecution` emits commands to execute a region, measure,
+reset or complete. The driver dispatches each command to the consumer.
+[`RegionConsumer`](simulators/src/execution/region.rs#L45) adapts the driver to
+an execution strategy. A consumer may evolve a target incrementally, or replay
+results produced by request-level batch execution so that shared control can
+reconstruct each shot's outputs.
+[`ImmediateSimulatorConsumer`](simulators/src/execution/immediate.rs#L106) is
+the incremental compatibility adapter for an existing `Simulator`; it executes
+every operation in a region one at a time. Base MPS sampling uses the batch
+strategy: request-level orchestration evolves one state and samples every shot,
+then a consumer replays each sampled row through the driver.
+
+From ③'s perspective, execution has two stages. The caller first wraps the existing
+[`AdaptiveProgram`](simulators/src/bytecode.rs#L22) in a new execution-core
+type, `PreparedAdaptiveProgram`, by invoking
+[`PreparedAdaptiveProgram::new`](simulators/src/execution/adaptive.rs#L228)
+once. This retains the bytecode and cuts its regions. The caller then calls
+[`drive_prepared_shot`](simulators/src/execution/immediate.rs#L170) once per
+shot, passing the prepared program and that shot's consumer. Each call creates
+fresh [`AdaptiveExecution`](simulators/src/execution/adaptive.rs#L346) state,
+dispatches commands until the shot completes or fails, closes the consumer on
+every path, and returns the shot's output and consumer reports. The caller owns
+the shot loop and any request-level resources, such as a batch sampler or
+device session.
+
+In M1–M3, `AdaptiveProgram` is a trusted internal representation produced by
+QIR lowering, not an untrusted public input format. Preparation validates the
+region and consumer-facing metadata it derives; the walk assumes structural
+references such as block targets and register and result indices are valid.
+Each opcode task preserves this boundary and adds parity and typed-error tests
+for the behavior it introduces. Validating arbitrary manually constructed
+bytecode is not part of these milestones.
 
 **Classes.** ③'s classes are in blue, and the classes on `main` they build on
 are in grey:
@@ -276,7 +312,7 @@ class Simulator {
 PreparedAdaptiveProgram *-- AdaptiveProgram : owns
 drive_prepared_shot --> AdaptiveExecution : one per shot
 AdaptiveExecution --> PreparedAdaptiveProgram : reads
-drive_prepared_shot --> RegionConsumer : one call per command
+drive_prepared_shot --> RegionConsumer : dispatches each command
 RegionConsumer <|.. ImmediateSimulatorConsumer
 ImmediateSimulatorConsumer o-- Simulator : wraps
 style PreparedAdaptiveProgram stroke:#4ea1ff,stroke-width:3px
@@ -290,10 +326,12 @@ style Simulator stroke:#c8c8c8,stroke-width:2px
 
 Three invariants hold:
 
-- `PreparedAdaptiveProgram` is read-only, so shots share nothing mutable.
+- [`PreparedAdaptiveProgram`](simulators/src/execution/adaptive.rs#L217) is
+  read-only, so shots share nothing mutable.
 - `reset` is mandatory, so a simulator that cannot reset returns an error.
-- `drive_prepared_shot` closes the simulator on every path, so device memory is
-  released on errors too.
+- [`drive_prepared_shot`](simulators/src/execution/immediate.rs#L170) calls
+  `close` on the consumer on every return path. A consumer releases the
+  resources it owns there; the caller releases request-level resources.
 
 ## 5. Milestone design
 
@@ -307,13 +345,13 @@ tasks it lists and the milestones before it.
 The table lists what each block has in the branch once the prototype is
 ported (§3); links to the code follow once it is there.
 
-| Block            | In the branch                                                                                                                                                                                                                                   |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ① Loading        | [`source/cutensornet`](cutensornet/README.md) ([`bindings`](cutensornet/src/bindings/mod.rs), [`library`](cutensornet/src/library.rs)): cuTensorNet 2.13 and CUDA runtime 12.9, audited, on Linux x86_64                                        |
-| ② tensornet      | [`source/tensornet`](tensornet/README.md): `Mps`, the shape of a matrix product state                                                                                                                                                           |
-| ③ Execution core | `source/simulators/src/execution`: preparation and regions, the walk, `RegionConsumer`, `ImmediateSimulatorConsumer`, `PauliSum`, the shared gate tables                                                                                        |
-| ④ MPS method     | `source/cutensornet` (`execution`, `library::simulation`): `Sample` of Base programs, `Expectation`, the `Cost` of `Expectation`; tested against test doubles, qualified on an A100                                                             |
-| ⑤ Python API     | `source/qdk_package`: `tensornetwork_qir` with `Sample`, `Expectation`, `Cost`; `MpsOptions(backend, max_bond_dimension)`; `seed`. Not yet: `Sample` of Adaptive programs, `Cost` with `Sample`; their errors say they come in the next release |
+| Block            | In the branch                                                                                                                                                                                                                                                                                                                                                         |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ① Loading        | [`source/cutensornet`](cutensornet/README.md) ([`bindings`](cutensornet/src/bindings/mod.rs), [`library`](cutensornet/src/library.rs)): cuTensorNet 2.13 and CUDA runtime 12.9, audited, on Linux x86_64                                                                                                                                                              |
+| ② tensornet      | [`source/tensornet`](tensornet/README.md): `Mps`, the shape of a matrix product state                                                                                                                                                                                                                                                                                 |
+| ③ Execution core | [`source/simulators/src/execution`](simulators/src/execution/README.md): preparation and regions, the walk, [`RegionConsumer`](simulators/src/execution/region.rs), [`ImmediateSimulatorConsumer`](simulators/src/execution/immediate.rs), [`PauliSum`](simulators/src/execution/pauli_sum.rs), [the shared gate tables](simulators/src/execution/operator_matrix.rs) |
+| ④ MPS method     | `source/cutensornet` (`execution`, `library::simulation`): `Sample` of Base programs by evolving one state, batch-sampling and replaying each sampled row through ③; `Expectation`; the `Cost` of `Expectation`; tested against test doubles, qualified on an A100                                                                                                    |
+| ⑤ Python API     | `source/qdk_package`: `tensornetwork_qir` with `Sample`, `Expectation`, `Cost`; `MpsOptions(backend, max_bond_dimension)`; `seed`. Not yet: `Sample` of Adaptive programs, `Cost` with `Sample`; their errors say they come in the next release                                                                                                                       |
 
 ### 5.2 M1: H₂ QPE on MPS
 
@@ -327,7 +365,10 @@ adds a parity check.
 H₂ has 29 qubits, 1,404 measurements and 399,537 instructions. Beyond what ③
 supports today, it needs only `ICMP`, for 713 branch conditions on the XOR of
 two or three results. Its 1,400 regions have a median of 7 gates and at most
-351, so a shot's cost follows its measurements, not its gates.
+351, so a shot's cost follows its measurements, not its gates. M1 measures
+shared-control time separately from MPS measurement time. If scanning the
+1,400 regions is material, preparation indexes region starts; negligible
+overhead needs no optimization.
 
 ```mermaid
 flowchart TB
@@ -359,8 +400,8 @@ flowchart TB
 | Block | Task     | Needs         | Effort     | Delivers                                                                                                                                        |
 | ----- | -------- | ------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | ③     | `ctr`    | —             | 2–3 d      | `ShotContext { rng, log_p }`, with a random stream fixed by the seed and shot index; `measure` returns the outcome and its probability          |
-| ③     | `icmp`   | —             | 1–2 d      | the `ICMP` opcode, ported from the CPU runtime                                                                                                  |
-| ④     | `meas`   | `icmp`        | 1–2 d      | on the A100, the time per MPS measurement and the $\chi$ reached on H₂                                                                          |
+| ③     | `icmp`   | —             | 1–2 d      | the `ICMP` opcode, ported from the CPU runtime, with parity and typed-error tests                                                               |
+| ④     | `meas`   | `icmp`        | 1–2 d      | on the A100, the time per MPS measurement, shared-control time and the $\chi$ reached on H₂                                                     |
 | ④     | `mps-a`  | `ctr`, `icmp` | 1–2 wk     | adaptive `Sample`: measurements drawn from the MPS and fed forward; resets                                                                      |
 | ④     | `finish` | `mps-a`       | 1–2 d      | typed errors; bond reached and discarded weight in `Cost`, for `Sample` and `Expectation`                                                       |
 | ⑤     | `pkg`    | —             | about 1 wk | the `qdk[tensornetwork]` extra; GPU tests and the Rust GPU qualification in the release pipeline, where a failed probe is an error (Appendix E) |
@@ -415,15 +456,15 @@ flowchart TB
   style cwork fill:#ffe9a8,stroke:#c98a00,color:#000
 ```
 
-| Block | Task     | Needs   | Effort     | Delivers                                                                                                                                          |
-| ----- | -------- | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ③     | `ops`    | —       | about 1 wk | 10 opcodes ported from the CPU runtime: `ADD`, `ALLOCA`, `CALL`, `CALL_RETURN`, `GEP`, `LOAD`, `MOV`, `SELECT`, `STORE`, `XOR`                    |
-| ③     | `math`   | —       | 2–3 d      | for the unbounded gadget, if needed: `cos`, `sin` and `arccos` in the lowering, bytecode and walk; new, since the CPU runtime lacks them          |
-| ③     | `draw`   | —       | 2–3 d      | Pauli faults, loss and readout noise, drawn from `NoiseConfig` with the shot's random stream; the default `LossPolicy` skips gates on lost qubits |
-| ③     | `query`  | —       | 2–3 d      | queries move from ④ to ③; ④ answers them, ⑤ calls ③; `tensornetwork_qir` is unchanged                                                             |
-| ④     | `mps-n`  | `draw`  | about 1 wk | the drawn faults and loss applied to the MPS                                                                                                      |
-| ④     | `finish` | `mps-n` | about 1 d  | typed errors and reports for the noise paths                                                                                                      |
-| ⑤     | `noise`  | `draw`  | about 1 d  | `noise: Optional[NoiseConfig] = None`, checked as on `run_qir`; noise with a query other than `Sample` is a typed error                           |
+| Block | Task     | Needs   | Effort     | Delivers                                                                                                                                                                    |
+| ----- | -------- | ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ③     | `ops`    | —       | about 1 wk | 10 opcodes ported from the CPU runtime, each with parity and typed-error tests: `ADD`, `ALLOCA`, `CALL`, `CALL_RETURN`, `GEP`, `LOAD`, `MOV`, `SELECT`, `STORE`, `XOR`      |
+| ③     | `math`   | —       | 2–3 d      | for the unbounded gadget, if needed: `cos`, `sin` and `arccos` in the lowering, bytecode and walk, with parity and typed-error tests; new, since the CPU runtime lacks them |
+| ③     | `draw`   | —       | 2–3 d      | Pauli faults, loss and readout noise, drawn from `NoiseConfig` with the shot's random stream; the default `LossPolicy` skips gates on lost qubits                           |
+| ③     | `query`  | —       | 2–3 d      | queries move from ④ to ③; ④ answers them, ⑤ calls ③; `tensornetwork_qir` is unchanged                                                                                       |
+| ④     | `mps-n`  | `draw`  | about 1 wk | the drawn faults and loss applied to the MPS                                                                                                                                |
+| ④     | `finish` | `mps-n` | about 1 d  | typed errors and reports for the noise paths                                                                                                                                |
+| ⑤     | `noise`  | `draw`  | about 1 d  | `noise: Optional[NoiseConfig] = None`, checked as on `run_qir`; noise with a query other than `Sample` is a typed error                                                     |
 
 The critical path is `draw` → `mps-n` → `finish` (④), 8–9 days. M2 reports the
 $\chi$ reached on the gadget.
@@ -508,6 +549,10 @@ Each is the cost of a choice in this design.
   shot's random stream depends only on the seed and the shot index (§5.2),
   faster strategies, such as walking once the shots that share outcomes, can be
   added to ③ later.
+- **Shared execution uses 64-bit bytecode in M1–M3.** Their Python paths lower
+  with `Bytecode.Bit64`, while region consumers receive concrete operations and
+  are word-agnostic. Generalizing the walk to another word size waits for a
+  frontend that needs it.
 - **NVIDIA GPUs on Linux x86_64 only,** until a second backend arrives (§4.2).
   Elsewhere, a query raises a typed availability error.
 - **The GPU path is tested only at release,** not on every PR (Appendix E). PR
@@ -581,7 +626,7 @@ Which versions to accept is a question for the team (§6.3).
 The QDK's other simulators can run on ③ as M4, an optional milestone. On ③ a
 simulator keeps only its numerics.
 
-- **CPU full state and stabilizer:** they already run on ③ in its tests,
+- **CPU full state and stabilizer:** they already run on ③ [in its tests](simulators/src/execution/tests.rs),
   checked against the CPU runtime; the per-shot overhead is still to be
   measured.
 - **Qodec:** only its decoders are its own; ③ would take over the rest (below).
@@ -616,11 +661,11 @@ default paths, so it is its own milestone.
 
 ## Appendix E. Testing in CI
 
-| Where                                          | What runs                                                                                                                                                                                       |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Every PR, no GPU                               | public-API tests (Rust and Python); test doubles of cuTensorNet's API; [checks that the bindings and loader match their generator](cutensornet/src/lib.rs); the parity suite for CPU simulators |
-| Release pipeline's GPU pool, `QDK_GPU_TESTS=1` | library discovery; GPU qualification against closed forms and the dense simulator; the parity suite for MPS                                                                                     |
-| An A100, by hand                               | H₂ and the gadget at full size, which need more memory than a CI GPU may have                                                                                                                   |
+| Where                                          | What runs                                                                                                                                                                                                                            |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Every PR, no GPU                               | public-API tests (Rust and Python); test doubles of cuTensorNet's API; [checks that the bindings and loader match their generator](cutensornet/src/lib.rs); [the parity suite for CPU simulators](simulators/src/execution/tests.rs) |
+| Release pipeline's GPU pool, `QDK_GPU_TESTS=1` | library discovery; GPU qualification against closed forms and the dense simulator; the parity suite for MPS                                                                                                                          |
+| An A100, by hand                               | H₂ and the gadget at full size, which need more memory than a CI GPU may have                                                                                                                                                        |
 
 The Python GPU tests reuse `QDK_GPU_TESTS`, the variable the GPU simulator's
 tests already use: `./build.py --gpu-tests` sets it for pytest, and the release
