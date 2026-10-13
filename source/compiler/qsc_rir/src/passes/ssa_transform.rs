@@ -61,7 +61,7 @@ fn transform_body_to_ssa(
     let mut body_blocks = vec![entry];
     body_blocks.append(&mut get_all_block_successors(entry, program));
 
-    let mut block_var_map = IndexMap::default();
+    let mut block_var_map = IndexMap::with_capacity(body_blocks.len());
 
     // Insert phi nodes where necessary, mapping any remaining orphaned uses to the new variable
     // created by the phi node.
