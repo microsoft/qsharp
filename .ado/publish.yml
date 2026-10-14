@@ -136,10 +136,7 @@ extends:
                 inputs:
                   version: "22.x"
 
-              # See the note on AZURE_ARTIFACTS_FEED
-              - task: npmAuthenticate@0
-                inputs:
-                  workingFile: .npmrc
+              - template: /.ado/templates/create-authenticated-npmrc.yml@self
 
               - script: |
                   python ./prereqs.py --install && python ./version.py
@@ -194,17 +191,7 @@ extends:
                 inputs:
                   version: "22.x"
 
-              # Manually create the .npmrc file for npm authentication for now
-              - script: |
-                  echo "registry=$(AZURE_ARTIFACTS_FEED)" > .npmrc
-                  echo "" >> .npmrc
-                  echo "always-auth=true" >> .npmrc
-                displayName: Create .npmrc for npm authentication
-
-              # See the note on AZURE_ARTIFACTS_FEED
-              - task: npmAuthenticate@0
-                inputs:
-                  workingFile: .npmrc
+              - template: /.ado/templates/create-authenticated-npmrc.yml@self
 
               - script: |
                   python ./prereqs.py --install && python ./version.py
@@ -327,19 +314,14 @@ extends:
                 inputs:
                   version: "22.x"
 
-              # See the note on AZURE_ARTIFACTS_FEED
-              - task: npmAuthenticate@0
-                inputs:
-                  workingFile: .npmrc
+              - template: /.ado/templates/create-authenticated-npmrc.yml@self
 
-              # See the note on AZURE_ARTIFACTS_FEED
-              - task: npmAuthenticate@0
-                inputs:
+              - template: /.ado/templates/create-authenticated-npmrc.yml@self
+                parameters:
                   workingFile: source/jupyterlab/.npmrc
 
-              # See the note on AZURE_ARTIFACTS_FEED
-              - task: npmAuthenticate@0
-                inputs:
+              - template: /.ado/templates/create-authenticated-npmrc.yml@self
+                parameters:
                   workingFile: source/widgets/.npmrc
 
               - script: |
@@ -432,10 +414,7 @@ extends:
                     inputs:
                       version: "22.x"
 
-                  # See the note on AZURE_ARTIFACTS_FEED
-                  - task: npmAuthenticate@0
-                    inputs:
-                      workingFile: .npmrc
+                  - template: /.ado/templates/create-authenticated-npmrc.yml@self
 
                   - script: |
                       sudo apt update
@@ -520,18 +499,7 @@ extends:
                   artifactName: VSIX
                   targetPath: $(System.DefaultWorkingDirectory)/target/vscode
             steps:
-              # We don't want to check this .npmrc in because it won't work for external contributors.
-              # Unlike in the build stage, there doesn't seem to be a task that consumes AZURE_ARTIFACTS_FEED
-              # and creates the compliant .npmrc files, so just make a simple one inline.
-              - script: |
-                  echo "registry=$(AZURE_ARTIFACTS_FEED)" > .npmrc
-                  echo "always-auth=true" >> .npmrc
-                displayName: Create .npmrc
-
-              # See the note on AZURE_ARTIFACTS_FEED
-              - task: npmAuthenticate@0
-                inputs:
-                  workingFile: .npmrc
+              - template: /.ado/templates/create-authenticated-npmrc.yml@self
 
               - script: |
                   npm install -g @vscode/vsce --userconfig=.npmrc

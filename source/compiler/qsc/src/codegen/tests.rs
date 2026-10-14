@@ -11,7 +11,7 @@ mod base_profile;
 use std::{io::Cursor, rc::Rc, sync::Arc};
 
 use expect_test::expect;
-use miette::{Diagnostic, Report};
+use miette::Report;
 use qsc_data_structures::{
     functors::FunctorApp,
     language_features::LanguageFeatures,
@@ -214,7 +214,13 @@ fn compile_source_to_qir_with_library_result(
 }
 
 #[test]
-fn package_aware_foreign_fir_transform_diagnostic() {
+fn package_aware_foreign_projected_dynamic_call_resolves_to_qir() {
+    // A foreign library operation stores a loop-reassigned local (`op`, provably
+    // `X` after the loop) in a struct field and calls it through a field
+    // projection (`config.Apply(q)`). Defunctionalization over-approximates the
+    // projected callee to dynamic and defers the convergence failure; partial
+    // evaluation then resolves it to the concrete `X` global, so the whole
+    // program lowers to clean Base-profile QIR instead of failing to compile.
     let lib_source = r#"
         namespace ForeignLib {
             struct Config {
@@ -252,31 +258,41 @@ fn package_aware_foreign_fir_transform_diagnostic() {
         }
     "#;
 
-    let errors = compile_source_to_qir_with_library_result(
-        lib_source,
-        user_source,
-        TargetCapabilityFlags::empty(),
-    )
-    .expect_err("the foreign projected dynamic call should fail defunctionalization");
-    let [crate::interpret::Error::FirTransform(error)] = errors.as_slice() else {
-        panic!("expected one FIR transform diagnostic, got {errors:?}");
-    };
-    let code = error.code().expect("diagnostic should have a code");
-    assert_eq!(code.to_string(), "Qdk.Qsc.Defunctionalize.DynamicCallable");
+    let qir =
+        compile_source_to_qir_with_library(lib_source, user_source, TargetCapabilityFlags::empty());
+    expect![[r#"
+        %Result = type opaque
+        %Qubit = type opaque
 
-    let label = error
-        .labels()
-        .into_iter()
-        .flatten()
-        .next()
-        .expect("diagnostic should have a source label");
-    let (source, relative_span) = error.resolve_span(label.inner());
-    let span_start = relative_span.offset();
-    let span_end = span_start + relative_span.len();
+        @0 = internal constant [4 x i8] c"0_t\00"
 
-    assert_eq!(source.name.as_ref(), "lib.qs");
-    assert_eq!(&source.contents[span_start..span_end], "config.Apply(q)");
-    assert_ne!(source.name.as_ref(), "OutOfBounds");
+        define i64 @ENTRYPOINT__main() #0 {
+        block_0:
+          call void @__quantum__rt__initialize(i8* null)
+          call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+          call void @__quantum__rt__tuple_record_output(i64 0, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
+          ret i64 0
+        }
+
+        declare void @__quantum__rt__initialize(i8*)
+
+        declare void @__quantum__qis__x__body(%Qubit*)
+
+        declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+        attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="1" "required_num_results"="0" }
+        attributes #1 = { "irreversible" }
+
+        ; module flags
+
+        !llvm.module.flags = !{!0, !1, !2, !3}
+
+        !0 = !{i32 1, !"qir_major_version", i32 1}
+        !1 = !{i32 7, !"qir_minor_version", i32 0}
+        !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+        !3 = !{i32 1, !"dynamic_result_management", i1 false}
+    "#]]
+    .assert_eq(&qir);
 }
 
 fn compile_source_to_qir_from_ast(source: &str, capabilities: TargetCapabilityFlags) -> String {
@@ -1041,21 +1057,21 @@ fn deutsch_jozsa_sample_shape_generates_qir() {
         block_1:
           br label %block_2
         block_2:
-          %var_187 = phi i1 [true, %block_0], [false, %block_1]
+          %var_191 = phi i1 [true, %block_0], [false, %block_1]
           call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
           %var_11 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 1 to %Result*))
           br i1 %var_11, label %block_3, label %block_4
         block_3:
           br label %block_4
         block_4:
-          %var_188 = phi i1 [%var_187, %block_2], [false, %block_3]
+          %var_192 = phi i1 [%var_191, %block_2], [false, %block_3]
           call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Result* inttoptr (i64 2 to %Result*))
           %var_13 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 2 to %Result*))
           br i1 %var_13, label %block_5, label %block_6
         block_5:
           br label %block_6
         block_6:
-          %var_189 = phi i1 [%var_188, %block_4], [false, %block_5]
+          %var_193 = phi i1 [%var_192, %block_4], [false, %block_5]
           call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 3 to %Qubit*))
           call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 3 to %Qubit*))
           call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 3 to %Qubit*))
@@ -1067,26 +1083,26 @@ fn deutsch_jozsa_sample_shape_generates_qir() {
           call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
           call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 3 to %Result*))
-          %var_25 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 3 to %Result*))
-          br i1 %var_25, label %block_7, label %block_8
+          %var_26 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 3 to %Result*))
+          br i1 %var_26, label %block_7, label %block_8
         block_7:
           br label %block_8
         block_8:
-          %var_190 = phi i1 [true, %block_6], [false, %block_7]
+          %var_194 = phi i1 [true, %block_6], [false, %block_7]
           call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 4 to %Result*))
-          %var_27 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 4 to %Result*))
-          br i1 %var_27, label %block_9, label %block_10
+          %var_28 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 4 to %Result*))
+          br i1 %var_28, label %block_9, label %block_10
         block_9:
           br label %block_10
         block_10:
-          %var_191 = phi i1 [%var_190, %block_8], [false, %block_9]
+          %var_195 = phi i1 [%var_194, %block_8], [false, %block_9]
           call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Result* inttoptr (i64 5 to %Result*))
-          %var_29 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 5 to %Result*))
-          br i1 %var_29, label %block_11, label %block_12
+          %var_30 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 5 to %Result*))
+          br i1 %var_30, label %block_11, label %block_12
         block_11:
           br label %block_12
         block_12:
-          %var_192 = phi i1 [%var_191, %block_10], [false, %block_11]
+          %var_196 = phi i1 [%var_195, %block_10], [false, %block_11]
           call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 3 to %Qubit*))
           call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 3 to %Qubit*))
           call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 3 to %Qubit*))
@@ -1145,26 +1161,26 @@ fn deutsch_jozsa_sample_shape_generates_qir() {
           call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
           call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 6 to %Result*))
-          %var_122 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 6 to %Result*))
-          br i1 %var_122, label %block_13, label %block_14
+          %var_124 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 6 to %Result*))
+          br i1 %var_124, label %block_13, label %block_14
         block_13:
           br label %block_14
         block_14:
-          %var_193 = phi i1 [true, %block_12], [false, %block_13]
+          %var_197 = phi i1 [true, %block_12], [false, %block_13]
           call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 7 to %Result*))
-          %var_124 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 7 to %Result*))
-          br i1 %var_124, label %block_15, label %block_16
+          %var_126 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 7 to %Result*))
+          br i1 %var_126, label %block_15, label %block_16
         block_15:
           br label %block_16
         block_16:
-          %var_194 = phi i1 [%var_193, %block_14], [false, %block_15]
+          %var_198 = phi i1 [%var_197, %block_14], [false, %block_15]
           call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Result* inttoptr (i64 8 to %Result*))
-          %var_126 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 8 to %Result*))
-          br i1 %var_126, label %block_17, label %block_18
+          %var_128 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 8 to %Result*))
+          br i1 %var_128, label %block_17, label %block_18
         block_17:
           br label %block_18
         block_18:
-          %var_195 = phi i1 [%var_194, %block_16], [false, %block_17]
+          %var_199 = phi i1 [%var_198, %block_16], [false, %block_17]
           call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 3 to %Qubit*))
           call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 3 to %Qubit*))
           call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 3 to %Qubit*))
@@ -1203,32 +1219,32 @@ fn deutsch_jozsa_sample_shape_generates_qir() {
           call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
           call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 9 to %Result*))
-          %var_179 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 9 to %Result*))
-          br i1 %var_179, label %block_19, label %block_20
+          %var_182 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 9 to %Result*))
+          br i1 %var_182, label %block_19, label %block_20
         block_19:
           br label %block_20
         block_20:
-          %var_196 = phi i1 [true, %block_18], [false, %block_19]
+          %var_200 = phi i1 [true, %block_18], [false, %block_19]
           call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 10 to %Result*))
-          %var_181 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 10 to %Result*))
-          br i1 %var_181, label %block_21, label %block_22
+          %var_184 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 10 to %Result*))
+          br i1 %var_184, label %block_21, label %block_22
         block_21:
           br label %block_22
         block_22:
-          %var_197 = phi i1 [%var_196, %block_20], [false, %block_21]
+          %var_201 = phi i1 [%var_200, %block_20], [false, %block_21]
           call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Result* inttoptr (i64 11 to %Result*))
-          %var_183 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 11 to %Result*))
-          br i1 %var_183, label %block_23, label %block_24
+          %var_186 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 11 to %Result*))
+          br i1 %var_186, label %block_23, label %block_24
         block_23:
           br label %block_24
         block_24:
-          %var_198 = phi i1 [%var_197, %block_22], [false, %block_23]
+          %var_202 = phi i1 [%var_201, %block_22], [false, %block_23]
           call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 3 to %Qubit*))
           call void @__quantum__rt__array_record_output(i64 4, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
-          call void @__quantum__rt__bool_record_output(i1 zeroext %var_189, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
-          call void @__quantum__rt__bool_record_output(i1 zeroext %var_192, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
-          call void @__quantum__rt__bool_record_output(i1 zeroext %var_195, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @3, i64 0, i64 0))
-          call void @__quantum__rt__bool_record_output(i1 zeroext %var_198, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @4, i64 0, i64 0))
+          call void @__quantum__rt__bool_record_output(i1 zeroext %var_193, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+          call void @__quantum__rt__bool_record_output(i1 zeroext %var_196, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
+          call void @__quantum__rt__bool_record_output(i1 zeroext %var_199, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @3, i64 0, i64 0))
+          call void @__quantum__rt__bool_record_output(i1 zeroext %var_202, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @4, i64 0, i64 0))
           ret i64 0
         }
 
@@ -1461,12 +1477,12 @@ fn explicit_return_tuple_keeps_dynamic_integer_output() {
         block_2:
           br label %block_3
         block_3:
-          %var_9 = phi i64 [1, %block_1], [2, %block_2]
+          %var_13 = phi i64 [1, %block_1], [2, %block_2]
           call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-          %var_5 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 1 to %Result*))
+          %var_6 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 1 to %Result*))
           call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
-          call void @__quantum__rt__int_record_output(i64 %var_9, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
-          call void @__quantum__rt__bool_record_output(i1 zeroext %var_5, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
+          call void @__quantum__rt__int_record_output(i64 %var_13, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
+          call void @__quantum__rt__bool_record_output(i1 zeroext %var_6, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
           ret i64 0
         }
 
@@ -5927,9 +5943,12 @@ fn array_with_dynamic_contents_passed_as_argument_and_dynamically_indexed_emits_
         define i64 @ENTRYPOINT__main() #0 {
         block_0:
           %var_2 = alloca i64
-          %var_5 = alloca i64
-          %var_8 = alloca i64
-          %var_9 = alloca [2 x i64]
+          %var_3 = alloca i64
+          %var_6 = alloca i64
+          %var_7 = alloca i64
+          %var_10 = alloca i64
+          %var_11 = alloca i64
+          %var_12 = alloca [2 x i64]
           call void @__quantum__rt__initialize(ptr null)
           call void @__quantum__qis__m__body(ptr inttoptr (i64 0 to ptr), ptr inttoptr (i64 0 to ptr))
           %var_0 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 0 to ptr))
@@ -5941,38 +5960,44 @@ fn array_with_dynamic_contents_passed_as_argument_and_dynamically_indexed_emits_
           store i64 0, ptr %var_2
           br label %block_3
         block_3:
+          %var_15 = load i64, ptr %var_2
+          store i64 %var_15, ptr %var_3
           call void @__quantum__qis__m__body(ptr inttoptr (i64 0 to ptr), ptr inttoptr (i64 1 to ptr))
-          %var_3 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 1 to ptr))
-          br i1 %var_3, label %block_4, label %block_5
+          %var_4 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 1 to ptr))
+          br i1 %var_4, label %block_4, label %block_5
         block_4:
-          store i64 1, ptr %var_5
+          store i64 1, ptr %var_6
           br label %block_6
         block_5:
-          store i64 0, ptr %var_5
+          store i64 0, ptr %var_6
           br label %block_6
         block_6:
+          %var_18 = load i64, ptr %var_6
+          store i64 %var_18, ptr %var_7
           call void @__quantum__qis__m__body(ptr inttoptr (i64 0 to ptr), ptr inttoptr (i64 2 to ptr))
-          %var_6 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 2 to ptr))
-          br i1 %var_6, label %block_7, label %block_8
+          %var_8 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 2 to ptr))
+          br i1 %var_8, label %block_7, label %block_8
         block_7:
-          store i64 1, ptr %var_8
+          store i64 1, ptr %var_10
           br label %block_9
         block_8:
-          store i64 0, ptr %var_8
+          store i64 0, ptr %var_10
           br label %block_9
         block_9:
-          %var_14 = load i64, ptr %var_2
-          %var_15 = load i64, ptr %var_5
-          %var_9_0 = getelementptr [2 x i64], ptr %var_9, i64 0, i64 0
-          store i64 %var_14, ptr %var_9_0
-          %var_9_1 = getelementptr [2 x i64], ptr %var_9, i64 0, i64 1
-          store i64 %var_15, ptr %var_9_1
-          %var_17 = load i64, ptr %var_8
-          %var_18_offset_chk = icmp slt i64 %var_17, 0
-          %var_18_offset = select i1 %var_18_offset_chk, i64 1, i64 0
-          %var_18 = getelementptr [2 x i64], ptr %var_9, i64 %var_18_offset, i64 %var_17
-          %var_10 = load i64, ptr %var_18
-          call void @__quantum__rt__int_record_output(i64 %var_10, ptr @0)
+          %var_21 = load i64, ptr %var_10
+          store i64 %var_21, ptr %var_11
+          %var_23 = load i64, ptr %var_3
+          %var_24 = load i64, ptr %var_7
+          %var_12_0 = getelementptr [2 x i64], ptr %var_12, i64 0, i64 0
+          store i64 %var_23, ptr %var_12_0
+          %var_12_1 = getelementptr [2 x i64], ptr %var_12, i64 0, i64 1
+          store i64 %var_24, ptr %var_12_1
+          %var_26 = load i64, ptr %var_11
+          %var_27_offset_chk = icmp slt i64 %var_26, 0
+          %var_27_offset = select i1 %var_27_offset_chk, i64 1, i64 0
+          %var_27 = getelementptr [2 x i64], ptr %var_12, i64 %var_27_offset, i64 %var_26
+          %var_13 = load i64, ptr %var_27
+          call void @__quantum__rt__int_record_output(i64 %var_13, ptr @0)
           ret i64 0
         }
 
@@ -6029,8 +6054,10 @@ fn array_with_dynamic_contents_passed_as_argument_with_static_index_does_not_emi
         define i64 @ENTRYPOINT__main() #0 {
         block_0:
           %var_2 = alloca i64
-          %var_5 = alloca i64
+          %var_3 = alloca i64
+          %var_6 = alloca i64
           %var_7 = alloca i64
+          %var_9 = alloca i64
           call void @__quantum__rt__initialize(ptr null)
           call void @__quantum__qis__m__body(ptr inttoptr (i64 0 to ptr), ptr inttoptr (i64 0 to ptr))
           %var_0 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 0 to ptr))
@@ -6042,20 +6069,24 @@ fn array_with_dynamic_contents_passed_as_argument_with_static_index_does_not_emi
           store i64 0, ptr %var_2
           br label %block_3
         block_3:
+          %var_11 = load i64, ptr %var_2
+          store i64 %var_11, ptr %var_3
           call void @__quantum__qis__m__body(ptr inttoptr (i64 0 to ptr), ptr inttoptr (i64 1 to ptr))
-          %var_3 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 1 to ptr))
-          br i1 %var_3, label %block_4, label %block_5
+          %var_4 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 1 to ptr))
+          br i1 %var_4, label %block_4, label %block_5
         block_4:
-          store i64 1, ptr %var_5
+          store i64 1, ptr %var_6
           br label %block_6
         block_5:
-          store i64 0, ptr %var_5
+          store i64 0, ptr %var_6
           br label %block_6
         block_6:
-          %var_10 = load i64, ptr %var_2
-          store i64 %var_10, ptr %var_7
-          %var_12 = load i64, ptr %var_7
-          call void @__quantum__rt__int_record_output(i64 %var_12, ptr @0)
+          %var_14 = load i64, ptr %var_6
+          store i64 %var_14, ptr %var_7
+          %var_16 = load i64, ptr %var_3
+          store i64 %var_16, ptr %var_9
+          %var_18 = load i64, ptr %var_9
+          call void @__quantum__rt__int_record_output(i64 %var_18, ptr @0)
           ret i64 0
         }
 
@@ -6115,13 +6146,19 @@ fn nested_array_with_dynamic_contents_passed_as_argument_and_dynamically_indexed
         define i64 @ENTRYPOINT__main() #0 {
         block_0:
           %var_2 = alloca i64
-          %var_5 = alloca i64
-          %var_8 = alloca i64
+          %var_3 = alloca i64
+          %var_6 = alloca i64
+          %var_7 = alloca i64
+          %var_10 = alloca i64
           %var_11 = alloca i64
           %var_14 = alloca i64
-          %var_17 = alloca i64
-          %var_18 = alloca [2 x i64]
-          %var_19 = alloca [3 x i64]
+          %var_15 = alloca i64
+          %var_18 = alloca i64
+          %var_19 = alloca i64
+          %var_22 = alloca i64
+          %var_23 = alloca i64
+          %var_24 = alloca [2 x i64]
+          %var_25 = alloca [3 x i64]
           call void @__quantum__rt__initialize(ptr null)
           call void @__quantum__qis__m__body(ptr inttoptr (i64 0 to ptr), ptr inttoptr (i64 0 to ptr))
           %var_0 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 0 to ptr))
@@ -6133,83 +6170,95 @@ fn nested_array_with_dynamic_contents_passed_as_argument_and_dynamically_indexed
           store i64 0, ptr %var_2
           br label %block_3
         block_3:
+          %var_30 = load i64, ptr %var_2
+          store i64 %var_30, ptr %var_3
           call void @__quantum__qis__m__body(ptr inttoptr (i64 0 to ptr), ptr inttoptr (i64 1 to ptr))
-          %var_3 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 1 to ptr))
-          br i1 %var_3, label %block_4, label %block_5
+          %var_4 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 1 to ptr))
+          br i1 %var_4, label %block_4, label %block_5
         block_4:
-          store i64 1, ptr %var_5
+          store i64 1, ptr %var_6
           br label %block_6
         block_5:
-          store i64 0, ptr %var_5
+          store i64 0, ptr %var_6
           br label %block_6
         block_6:
+          %var_33 = load i64, ptr %var_6
+          store i64 %var_33, ptr %var_7
           call void @__quantum__qis__m__body(ptr inttoptr (i64 0 to ptr), ptr inttoptr (i64 2 to ptr))
-          %var_6 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 2 to ptr))
-          br i1 %var_6, label %block_7, label %block_8
+          %var_8 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 2 to ptr))
+          br i1 %var_8, label %block_7, label %block_8
         block_7:
-          store i64 1, ptr %var_8
+          store i64 1, ptr %var_10
           br label %block_9
         block_8:
-          store i64 0, ptr %var_8
+          store i64 0, ptr %var_10
           br label %block_9
         block_9:
+          %var_36 = load i64, ptr %var_10
+          store i64 %var_36, ptr %var_11
           call void @__quantum__qis__m__body(ptr inttoptr (i64 0 to ptr), ptr inttoptr (i64 3 to ptr))
-          %var_9 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 3 to ptr))
-          br i1 %var_9, label %block_10, label %block_11
+          %var_12 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 3 to ptr))
+          br i1 %var_12, label %block_10, label %block_11
         block_10:
-          store i64 1, ptr %var_11
+          store i64 1, ptr %var_14
           br label %block_12
         block_11:
-          store i64 0, ptr %var_11
+          store i64 0, ptr %var_14
           br label %block_12
         block_12:
+          %var_39 = load i64, ptr %var_14
+          store i64 %var_39, ptr %var_15
           call void @__quantum__qis__m__body(ptr inttoptr (i64 0 to ptr), ptr inttoptr (i64 4 to ptr))
-          %var_12 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 4 to ptr))
-          br i1 %var_12, label %block_13, label %block_14
+          %var_16 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 4 to ptr))
+          br i1 %var_16, label %block_13, label %block_14
         block_13:
-          store i64 1, ptr %var_14
+          store i64 1, ptr %var_18
           br label %block_15
         block_14:
-          store i64 0, ptr %var_14
+          store i64 0, ptr %var_18
           br label %block_15
         block_15:
+          %var_42 = load i64, ptr %var_18
+          store i64 %var_42, ptr %var_19
           call void @__quantum__qis__m__body(ptr inttoptr (i64 0 to ptr), ptr inttoptr (i64 5 to ptr))
-          %var_15 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 5 to ptr))
-          br i1 %var_15, label %block_16, label %block_17
+          %var_20 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 5 to ptr))
+          br i1 %var_20, label %block_16, label %block_17
         block_16:
-          store i64 1, ptr %var_17
+          store i64 1, ptr %var_22
           br label %block_18
         block_17:
-          store i64 0, ptr %var_17
+          store i64 0, ptr %var_22
           br label %block_18
         block_18:
-          %var_28 = load i64, ptr %var_2
-          %var_29 = load i64, ptr %var_5
-          %var_18_0 = getelementptr [2 x i64], ptr %var_18, i64 0, i64 0
-          store i64 %var_28, ptr %var_18_0
-          %var_18_1 = getelementptr [2 x i64], ptr %var_18, i64 0, i64 1
-          store i64 %var_29, ptr %var_18_1
-          %var_31 = load i64, ptr %var_8
-          %var_32 = load i64, ptr %var_11
-          %var_33 = load i64, ptr %var_14
-          %var_19_0 = getelementptr [3 x i64], ptr %var_19, i64 0, i64 0
-          store i64 %var_31, ptr %var_19_0
-          %var_19_1 = getelementptr [3 x i64], ptr %var_19, i64 0, i64 1
-          store i64 %var_32, ptr %var_19_1
-          %var_19_2 = getelementptr [3 x i64], ptr %var_19, i64 0, i64 2
-          store i64 %var_33, ptr %var_19_2
-          %var_35 = load i64, ptr %var_17
-          %var_36_offset_chk = icmp slt i64 %var_35, 0
-          %var_36_offset = select i1 %var_36_offset_chk, i64 1, i64 0
-          %var_36 = getelementptr [2 x i64], ptr %var_18, i64 %var_36_offset, i64 %var_35
-          %var_20 = load i64, ptr %var_36
-          %var_37_offset_chk = icmp slt i64 %var_35, 0
-          %var_37_offset = select i1 %var_37_offset_chk, i64 1, i64 0
-          %var_37 = getelementptr [3 x i64], ptr %var_19, i64 %var_37_offset, i64 %var_35
-          %var_21 = load i64, ptr %var_37
+          %var_45 = load i64, ptr %var_22
+          store i64 %var_45, ptr %var_23
+          %var_47 = load i64, ptr %var_3
+          %var_48 = load i64, ptr %var_7
+          %var_24_0 = getelementptr [2 x i64], ptr %var_24, i64 0, i64 0
+          store i64 %var_47, ptr %var_24_0
+          %var_24_1 = getelementptr [2 x i64], ptr %var_24, i64 0, i64 1
+          store i64 %var_48, ptr %var_24_1
+          %var_50 = load i64, ptr %var_11
+          %var_51 = load i64, ptr %var_15
+          %var_52 = load i64, ptr %var_19
+          %var_25_0 = getelementptr [3 x i64], ptr %var_25, i64 0, i64 0
+          store i64 %var_50, ptr %var_25_0
+          %var_25_1 = getelementptr [3 x i64], ptr %var_25, i64 0, i64 1
+          store i64 %var_51, ptr %var_25_1
+          %var_25_2 = getelementptr [3 x i64], ptr %var_25, i64 0, i64 2
+          store i64 %var_52, ptr %var_25_2
+          %var_54 = load i64, ptr %var_23
+          %var_55_offset_chk = icmp slt i64 %var_54, 0
+          %var_55_offset = select i1 %var_55_offset_chk, i64 1, i64 0
+          %var_55 = getelementptr [2 x i64], ptr %var_24, i64 %var_55_offset, i64 %var_54
+          %var_26 = load i64, ptr %var_55
+          %var_56_offset_chk = icmp slt i64 %var_54, 0
+          %var_56_offset = select i1 %var_56_offset_chk, i64 1, i64 0
+          %var_56 = getelementptr [3 x i64], ptr %var_25, i64 %var_56_offset, i64 %var_54
+          %var_28 = load i64, ptr %var_56
           call void @__quantum__rt__array_record_output(i64 2, ptr @0)
-          call void @__quantum__rt__int_record_output(i64 %var_20, ptr @1)
-          call void @__quantum__rt__int_record_output(i64 %var_21, ptr @2)
+          call void @__quantum__rt__int_record_output(i64 %var_26, ptr @1)
+          call void @__quantum__rt__int_record_output(i64 %var_28, ptr @2)
           ret i64 0
         }
 
@@ -6274,40 +6323,49 @@ fn array_entry_used_as_argument_to_callable_with_inner_branch() {
         define i64 @ENTRYPOINT__main() #0 {
         block_0:
           %var_1 = alloca i64
-          %var_3 = alloca i1
+          %var_2 = alloca i64
+          %var_5 = alloca i1
+          %var_6 = alloca i64
+          %var_11 = alloca i64
           call void @__quantum__rt__initialize(ptr null)
           store i64 0, ptr %var_1
           br label %block_1
         block_1:
-          %var_10 = load i64, ptr %var_1
-          %var_2 = icmp sle i64 %var_10, 0
-          store i1 true, ptr %var_3
-          br i1 %var_2, label %block_2, label %block_3
+          %var_14 = load i64, ptr %var_1
+          store i64 %var_14, ptr %var_2
+          %var_16 = load i64, ptr %var_2
+          %var_3 = icmp sle i64 %var_16, 0
+          store i1 true, ptr %var_5
+          br i1 %var_3, label %block_2, label %block_3
         block_2:
-          %var_13 = load i1, ptr %var_3
-          br i1 %var_13, label %block_4, label %block_5
+          %var_19 = load i1, ptr %var_5
+          br i1 %var_19, label %block_4, label %block_5
         block_3:
-          store i1 false, ptr %var_3
+          store i1 false, ptr %var_5
           br label %block_2
         block_4:
-          %var_14 = load i64, ptr %var_1
-          %var_15_offset_chk = icmp slt i64 %var_14, 0
-          %var_15_offset = select i1 %var_15_offset_chk, i64 1, i64 0
-          %var_15 = getelementptr [1 x ptr], ptr @array0, i64 %var_15_offset, i64 %var_14
-          %var_4 = load ptr, ptr %var_15
+          %var_20 = load i64, ptr %var_1
+          store i64 %var_20, ptr %var_6
+          %var_22 = load i64, ptr %var_6
+          %var_23_offset_chk = icmp slt i64 %var_22, 0
+          %var_23_offset = select i1 %var_23_offset_chk, i64 1, i64 0
+          %var_23 = getelementptr [1 x ptr], ptr @array0, i64 %var_23_offset, i64 %var_22
+          %var_7 = load ptr, ptr %var_23
           call void @__quantum__qis__m__body(ptr inttoptr (i64 1 to ptr), ptr inttoptr (i64 0 to ptr))
-          %var_5 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 0 to ptr))
-          br i1 %var_5, label %block_6, label %block_7
+          %var_8 = call zeroext i1 @__quantum__rt__read_result(ptr inttoptr (i64 0 to ptr))
+          br i1 %var_8, label %block_6, label %block_7
         block_5:
           call void @__quantum__rt__tuple_record_output(i64 0, ptr @0)
           ret i64 0
         block_6:
-          call void @X(ptr %var_4)
+          call void @X(ptr %var_7)
           br label %block_7
         block_7:
-          %var_16 = load i64, ptr %var_1
-          %var_8 = add i64 %var_16, 1
-          store i64 %var_8, ptr %var_1
+          %var_24 = load i64, ptr %var_1
+          store i64 %var_24, ptr %var_11
+          %var_26 = load i64, ptr %var_11
+          %var_12 = add i64 %var_26, 1
+          store i64 %var_12, ptr %var_1
           br label %block_1
         }
 
@@ -6317,9 +6375,9 @@ fn array_entry_used_as_argument_to_callable_with_inner_branch() {
 
         declare zeroext i1 @__quantum__rt__read_result(ptr) #2
 
-        define internal void @X(ptr %var_7) {
+        define internal void @X(ptr %var_10) {
         block_8:
-          call void @__quantum__qis__x__body(ptr %var_7)
+          call void @__quantum__qis__x__body(ptr %var_10)
           ret void
         }
 
@@ -6437,4 +6495,209 @@ namespace Test {
         rendered.contains("cannot use a dynamic bool"),
         "expected a dynamic-bool capability diagnostic, got:\n{rendered}"
     );
+}
+
+#[derive(Clone, Copy, Debug)]
+enum ExpectedCapabilityError {
+    CallToDynamicCallee,
+    UseOfDynamicBool,
+}
+
+fn assert_residual_callable_capability_error(
+    source: &str,
+    profile: Profile,
+    expected: ExpectedCapabilityError,
+) {
+    use qsc_rca::errors::Error as CapabilityError;
+
+    let errors = compile_source_to_qir_result(source, profile.into())
+        .expect_err(&format!("{profile:?} should reject the program"));
+    assert!(
+        errors.iter().all(|error| {
+            matches!(error, crate::interpret::Error::Pass(error) if matches!(error.error(), qsc_passes::Error::CapabilitiesCk(_)))
+        }),
+        "{profile:?} should produce only capability errors, got {errors:?}"
+    );
+    assert!(
+        errors.iter().any(|error| {
+            let crate::interpret::Error::Pass(error) = error else {
+                return false;
+            };
+            matches!(
+                (expected, error.error()),
+                (
+                    ExpectedCapabilityError::CallToDynamicCallee,
+                    qsc_passes::Error::CapabilitiesCk(CapabilityError::CallToDynamicCallee(_))
+                ) | (
+                    ExpectedCapabilityError::UseOfDynamicBool,
+                    qsc_passes::Error::CapabilitiesCk(CapabilityError::UseOfDynamicBool(_))
+                )
+            )
+        }),
+        "{profile:?} should produce {expected:?}, got {errors:?}"
+    );
+}
+
+fn assert_residual_callable_gate_effects(
+    source: &str,
+    profile: Profile,
+    expected_x: usize,
+    expected_y: usize,
+) {
+    let qir = compile_source_to_qir(source, profile.into());
+    assert_eq!(
+        qir.matches("call void @__quantum__qis__x__body").count(),
+        expected_x,
+        "{profile:?} produced unexpected X effects:\n{qir}"
+    );
+    assert_eq!(
+        qir.matches("call void @__quantum__qis__y__body").count(),
+        expected_y,
+        "{profile:?} produced unexpected Y effects:\n{qir}"
+    );
+    assert!(
+        !qir.contains("call void @__quantum__qis__h__body"),
+        "{profile:?} produced an unexpected H effect:\n{qir}"
+    );
+}
+
+#[test]
+fn residual_callable_in_false_branch_is_rejected_by_all_profiles() {
+    let source = r#"
+        namespace Test {
+            operation MakeCandidates(q : Qubit) : (Qubit => Unit)[] { Y(q); [H, X] }
+            operation ApplyOp(op : Qubit => Unit, target : Qubit) : Unit { op(target); }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let ops = MakeCandidates(q);
+                let index = if MResetZ(q) == Zero { 0 } else { 1 };
+                if false { ApplyOp(ops[index], q); }
+            }
+        }
+    "#;
+
+    assert_residual_callable_capability_error(
+        source,
+        Profile::Base,
+        ExpectedCapabilityError::CallToDynamicCallee,
+    );
+    assert_residual_callable_capability_error(
+        source,
+        Profile::AdaptiveRI,
+        ExpectedCapabilityError::CallToDynamicCallee,
+    );
+    assert_residual_callable_capability_error(
+        source,
+        Profile::AdaptiveRIF,
+        ExpectedCapabilityError::CallToDynamicCallee,
+    );
+}
+
+#[test]
+fn residual_callable_in_false_loop_is_rejected_by_all_profiles() {
+    let source = r#"
+        namespace Test {
+            operation MakeCandidates(q : Qubit) : (Qubit => Unit)[] { Y(q); [H, X] }
+            operation ApplyOp(op : Qubit => Unit, target : Qubit) : Unit { op(target); }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let ops = MakeCandidates(q);
+                let index = if MResetZ(q) == Zero { 0 } else { 1 };
+                while false { ApplyOp(ops[index], q); }
+            }
+        }
+    "#;
+
+    assert_residual_callable_capability_error(
+        source,
+        Profile::Base,
+        ExpectedCapabilityError::CallToDynamicCallee,
+    );
+    assert_residual_callable_capability_error(
+        source,
+        Profile::AdaptiveRI,
+        ExpectedCapabilityError::CallToDynamicCallee,
+    );
+    assert_residual_callable_capability_error(
+        source,
+        Profile::AdaptiveRIF,
+        ExpectedCapabilityError::CallToDynamicCallee,
+    );
+}
+
+#[test]
+fn residual_callable_after_return_is_rejected_only_by_base_profile() {
+    let source = r#"
+        namespace Test {
+            operation MakeCandidates(q : Qubit) : (Qubit => Unit)[] { Y(q); [H, X] }
+            operation ApplyOp(op : Qubit => Unit, target : Qubit) : Unit { op(target); }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let ops = MakeCandidates(q);
+                let index = if MResetZ(q) == Zero { 0 } else { 1 };
+                return ();
+                ApplyOp(ops[index], q);
+            }
+        }
+    "#;
+
+    assert_residual_callable_capability_error(
+        source,
+        Profile::Base,
+        ExpectedCapabilityError::UseOfDynamicBool,
+    );
+    assert_residual_callable_gate_effects(source, Profile::AdaptiveRI, 0, 1);
+    assert_residual_callable_gate_effects(source, Profile::AdaptiveRIF, 0, 1);
+}
+
+#[test]
+fn killed_callable_producer_is_accepted_by_all_profiles() {
+    let source = r#"
+        namespace Test {
+            operation MakeOp(q : Qubit) : Qubit => Unit { X(q); Rx(0.0, _) }
+            operation ApplyOp(op : Qubit => Unit, target : Qubit) : Unit { op(target); }
+            operation Replacement(q : Qubit) : Unit { H(q); }
+            operation LoopValue(q : Qubit) : Unit { X(q); }
+            @EntryPoint()
+            operation Main() : Result {
+                use q = Qubit();
+                mutable op = MakeOp(q);
+                op = Replacement;
+                for _ in 0..2 { op = LoopValue; }
+                ApplyOp(op, q);
+                MResetZ(q)
+            }
+        }
+    "#;
+
+    assert_residual_callable_gate_effects(source, Profile::Base, 2, 0);
+    assert_residual_callable_gate_effects(source, Profile::AdaptiveRI, 2, 0);
+    assert_residual_callable_gate_effects(source, Profile::AdaptiveRIF, 2, 0);
+}
+
+#[test]
+fn unrelated_callable_is_accepted_by_all_profiles() {
+    let source = r#"
+        namespace Test {
+            function Identity(value : Int) : Int { value }
+            operation Unrelated() : Unit { let decoy = Identity; }
+            operation ApplyOp(op : Qubit => Unit, q : Qubit) : Unit { op(q); }
+            @EntryPoint()
+            operation Main() : Result {
+                use q = Qubit();
+                Unrelated();
+                mutable op = H;
+                for _ in 0..3 { op = X; }
+                ApplyOp(op, q);
+                MResetZ(q)
+            }
+        }
+    "#;
+
+    assert_residual_callable_gate_effects(source, Profile::Base, 1, 0);
+    assert_residual_callable_gate_effects(source, Profile::AdaptiveRI, 1, 0);
+    assert_residual_callable_gate_effects(source, Profile::AdaptiveRIF, 1, 0);
 }
