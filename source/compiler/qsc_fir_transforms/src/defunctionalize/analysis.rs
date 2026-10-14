@@ -3663,20 +3663,19 @@ fn bind_callable_assignment(
     package_id: PackageId,
 ) {
     match &pkg.get_expr(lhs_id).kind {
-        ExprKind::Var(Res::Local(var), _)
-            if state.callable.contains_key(var) => {
-                let lattice = resolve_callee(
-                    pkg,
-                    store,
-                    state,
-                    rhs_id,
-                    0,
-                    true,
-                    &FxHashSet::default(),
-                    package_id,
-                );
-                state.callable.insert(*var, lattice);
-            }
+        ExprKind::Var(Res::Local(var), _) if state.callable.contains_key(var) => {
+            let lattice = resolve_callee(
+                pkg,
+                store,
+                state,
+                rhs_id,
+                0,
+                true,
+                &FxHashSet::default(),
+                package_id,
+            );
+            state.callable.insert(*var, lattice);
+        }
         ExprKind::Tuple(places) => {
             if let ExprKind::Tuple(values) = &pkg.get_expr(rhs_id).kind
                 && places.len() == values.len()
@@ -3705,21 +3704,20 @@ fn bind_callable_assignment_projections(
     package_id: PackageId,
 ) {
     match &pkg.get_expr(lhs_id).kind {
-        ExprKind::Var(Res::Local(var), _)
-            if state.callable.contains_key(var) => {
-                let lattice = resolve_callee_projection(
-                    pkg,
-                    store,
-                    state,
-                    rhs_id,
-                    path,
-                    0,
-                    true,
-                    &FxHashSet::default(),
-                    package_id,
-                );
-                state.callable.insert(*var, lattice);
-            }
+        ExprKind::Var(Res::Local(var), _) if state.callable.contains_key(var) => {
+            let lattice = resolve_callee_projection(
+                pkg,
+                store,
+                state,
+                rhs_id,
+                path,
+                0,
+                true,
+                &FxHashSet::default(),
+                package_id,
+            );
+            state.callable.insert(*var, lattice);
+        }
         ExprKind::Tuple(places) => {
             for (index, &place) in places.iter().enumerate() {
                 path.push(index);
