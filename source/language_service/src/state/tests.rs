@@ -2132,6 +2132,103 @@ operation Main() : Result {
 }
 
 #[tokio::test]
+async fn prefer_mresetz_quick_fix_in_later_notebook_cell() {
+    let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
+
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata {
+                target_profile: Some(Profile::Base),
+                ..NotebookMetadata::default()
+            },
+            [
+                ("cell1", 1, "operation Prepare(q : Qubit) : Unit { H(q); }"),
+                (
+                    "cell2",
+                    1,
+                    "operation Main() : Result {
+    use q = Qubit();
+    Prepare(q);
+    let r = M(q);
+    Reset(q);
+    r
+}",
+                ),
+            ]
+            .into_iter(),
+        )
+        .await;
+
+    expect_errors(
+        &errors,
+        &expect![[r#"
+        [
+          uri: "cell2" version: Some(1) errors: [
+            measurement without reset on a target that does not support qubit reuse
+              [cell2] [M]
+          ],
+        ]"#]],
+    );
+
+    // The edit must be on `M` in the second cell, whose offsets come after the first cell's.
+    let state = updater.state.try_borrow().expect("borrow should succeed");
+    let compilation = state
+        .get_compilation("cell2")
+        .expect("compilation should exist");
+    let m_range = Range {
+        start: Position {
+            line: 3,
+            column: 12,
+        },
+        end: Position {
+            line: 3,
+            column: 13,
+        },
+    };
+    let actions =
+        crate::code_action::get_code_actions(compilation, "cell2", m_range, Encoding::Utf8);
+    expect![[r#"
+        [
+            CodeAction {
+                title: "Replace with `MResetZ` (resets after measuring)",
+                edit: Some(
+                    WorkspaceEdit {
+                        changes: [
+                            (
+                                "cell2",
+                                [
+                                    TextEdit {
+                                        new_text: "Std.Measurement.MResetZ",
+                                        range: Range {
+                                            start: Position {
+                                                line: 3,
+                                                column: 12,
+                                            },
+                                            end: Position {
+                                                line: 3,
+                                                column: 13,
+                                            },
+                                        },
+                                    },
+                                ],
+                            ),
+                        ],
+                    },
+                ),
+                kind: Some(
+                    QuickFix,
+                ),
+                is_preferred: None,
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&actions);
+}
+
+#[tokio::test]
 async fn missing_dependency_reported() {
     let fs = FsNode::Dir(
         [dir(
