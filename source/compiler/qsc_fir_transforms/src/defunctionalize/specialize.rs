@@ -5778,9 +5778,9 @@ fn remove_nested_callable_param(
     }
 }
 
-/// Walks a block and rewrites any destructuring `let` statement whose init
-/// expression is `Var(Local(param_var))` by removing the sub-pattern at
-/// `inner_path` from the tuple pattern.
+/// Rewrites each matching destructuring `let` statement in a block and its nested
+/// blocks once. The initializer must be `Var(Local(param_var))`; the sub-pattern
+/// at `inner_path` is removed from its tuple pattern.
 ///
 /// # Before
 /// ```text
@@ -5800,23 +5800,7 @@ fn rewrite_destructuring_pat_in_block(
     param_var: LocalVarId,
     inner_path: &[usize],
 ) {
-    let mut stmts = package.get_block(block_id).stmts.clone();
-    for stmt_id in stmts.clone() {
-        let root = match package.get_stmt(stmt_id).kind {
-            qsc_fir::fir::StmtKind::Expr(root)
-            | qsc_fir::fir::StmtKind::Semi(root)
-            | qsc_fir::fir::StmtKind::Local(_, _, root) => root,
-            qsc_fir::fir::StmtKind::Item(_) => continue,
-        };
-        crate::walk_utils::for_each_node_from_expr_root(package, root, &mut |node| {
-            if let crate::walk_utils::CallableNode::Stmt(stmt_id) = node {
-                stmts.push(stmt_id);
-            }
-        });
-    }
-    stmts.sort_unstable();
-    stmts.dedup();
-    for stmt_id in stmts {
+    for stmt_id in crate::walk_utils::collect_stmt_ids_in_block(package, block_id) {
         let stmt = package.stmts.get(stmt_id).expect("stmt not found").clone();
         if let qsc_fir::fir::StmtKind::Local(_, pat_id, expr_id) = &stmt.kind {
             let rewrites_param_var = {

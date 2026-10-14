@@ -1201,6 +1201,77 @@ fn structural_walker_covers_blocks_locals_and_spec_inputs() {
 }
 
 #[test]
+fn collect_block_stmt_ids_handles_empty_block() {
+    let (store, package_id) = compile_to_fir("function Main() : Unit {}");
+    let package = store.get(package_id);
+    let block = find_callable_block(package, "Main");
+
+    assert!(collect_stmt_ids_in_block(package, block).is_empty());
+}
+
+#[test]
+fn collect_block_stmt_ids_covers_nested_blocks_without_entering_callables() {
+    let (store, package_id) = compile_to_fir(
+        r#"
+        function Other() : Int {
+            let outside = 4;
+            outside
+        }
+        function Main() : Int {
+            function Nested() : Int {
+                let inNamed = 5;
+                inNamed
+            }
+            let top = {
+                let inInitializer = 1;
+                inInitializer
+            };
+            if true {
+                let inBranch = 2;
+            }
+            mutable counter = 0;
+            while counter < 1 {
+                let inLoop = 3;
+                counter += 1;
+            }
+            let closure = x -> {
+                let inClosure = x + 1;
+                inClosure
+            };
+            top + closure(1) + Nested() + Other()
+        }
+        "#,
+    );
+    let package = store.get(package_id);
+    let statements = collect_stmt_ids_in_block(package, find_callable_block(package, "Main"));
+    let mut bindings: Vec<_> = statements
+        .iter()
+        .filter_map(|&statement| {
+            let StmtKind::Local(_, pat, _) = package.get_stmt(statement).kind else {
+                return None;
+            };
+            let PatKind::Bind(binding) = &package.get_pat(pat).kind else {
+                return None;
+            };
+            Some(binding.name.as_ref())
+        })
+        .collect();
+    bindings.sort_unstable();
+
+    assert_eq!(
+        bindings,
+        [
+            "closure",
+            "counter",
+            "inBranch",
+            "inInitializer",
+            "inLoop",
+            "top"
+        ]
+    );
+}
+
+#[test]
 fn structural_walker_from_expr_root_covers_nested_blocks() {
     // Driving the walker from a bare `ExprId` (here, the `if` expression) must
     // descend into the nested block, yielding its statements, the tuple Local

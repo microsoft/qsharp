@@ -3663,8 +3663,8 @@ fn bind_callable_assignment(
     package_id: PackageId,
 ) {
     match &pkg.get_expr(lhs_id).kind {
-        ExprKind::Var(Res::Local(var), _) => {
-            if state.callable.contains_key(var) {
+        ExprKind::Var(Res::Local(var), _)
+            if state.callable.contains_key(var) => {
                 let lattice = resolve_callee(
                     pkg,
                     store,
@@ -3677,7 +3677,6 @@ fn bind_callable_assignment(
                 );
                 state.callable.insert(*var, lattice);
             }
-        }
         ExprKind::Tuple(places) => {
             if let ExprKind::Tuple(values) = &pkg.get_expr(rhs_id).kind
                 && places.len() == values.len()
@@ -3706,8 +3705,8 @@ fn bind_callable_assignment_projections(
     package_id: PackageId,
 ) {
     match &pkg.get_expr(lhs_id).kind {
-        ExprKind::Var(Res::Local(var), _) => {
-            if state.callable.contains_key(var) {
+        ExprKind::Var(Res::Local(var), _)
+            if state.callable.contains_key(var) => {
                 let lattice = resolve_callee_projection(
                     pkg,
                     store,
@@ -3721,7 +3720,6 @@ fn bind_callable_assignment_projections(
                 );
                 state.callable.insert(*var, lattice);
             }
-        }
         ExprKind::Tuple(places) => {
             for (index, &place) in places.iter().enumerate() {
                 path.push(index);
