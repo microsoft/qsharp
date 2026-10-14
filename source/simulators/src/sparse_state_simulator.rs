@@ -10,6 +10,8 @@ pub mod nearly_zero;
 #[cfg(test)]
 mod matrix_testing;
 #[cfg(test)]
+mod pauli_testing;
+#[cfg(test)]
 mod tests;
 
 use crate::Pauli;
@@ -301,6 +303,24 @@ impl SparseStateSim {
         self.joint_probability(&[id]).is_nearly_zero()
     }
 
+    /// Checks the internal state of the given qubit and returns true only if the given qubit is in exactly the |+⟩ state (eigenstate of Pauli X).
+    pub fn qubit_is_plus(&mut self, id: usize) -> bool {
+        self.h(id);
+        let res = self.joint_probability(&[id]).is_nearly_zero();
+        self.h(id);
+        res
+    }
+
+    /// Checks the internal state of the given qubit and returns true only if the given qubit is in exactly the |i⟩ state (eigenstate of Pauli Y).
+    pub fn qubit_is_plus_i(&mut self, id: usize) -> bool {
+        self.sadj(id);
+        self.h(id);
+        let res = self.joint_probability(&[id]).is_nearly_zero();
+        self.h(id);
+        self.s(id);
+        res
+    }
+
     /// Measures the qubit with the given id, collapsing the state based on the measured result.
     /// # Panics
     ///
@@ -323,8 +343,11 @@ impl SparseStateSim {
         res
     }
 
-    /// Measures the qubit with the given id in the specified Pauli basis, collapsing the state based on the measured result.
-    /// The state returned post-measurement is a compact state, i.e., it is specified in the Z basis with the relevant basis transformation unitary kept pending in the queue.
+    /// Measures the qubit with the given id, in the specified Pauli basis, collapsing the state in the given basis. The state returned
+    /// post-measurement is compactly specified in the Z basis with the relevant basis transformation unitary kept pending in the queue.
+    /// # Panics
+    ///
+    /// This function will panic if the given identifier does not correspond to an allocated qubit.
     #[must_use]
     pub fn measure_pauli(&mut self, id: usize, pauli: Pauli) -> bool {
         let mut flip_res = false;
@@ -334,11 +357,13 @@ impl SparseStateSim {
             Pauli::Z => self.measure(id),
             Pauli::X => {
                 let ry = self.ry_queue.get(id).copied();
-                if self.rx_queue.contains_key(id) && !self.ry_queue.contains_key(id) {
+
+                // Rx commutes with X-basis measurement so we can safely ignore it IF it is the last operation in queue.
+                if ry.is_none() && self.rx_queue.contains_key(id) {
                     self.rx_queue.remove(id);
                 }
+                // Ry rotations at +-pi/2 angles have the same affect as rotating X <-> Z bases.
                 if let Some(entry_ry) = ry {
-                    // TODO: docs explaining why the +- difference in phase is handled this way
                     if (entry_ry - FRAC_PI_2).is_nearly_zero() {
                         self.ry_queue.remove(id);
                         change_basis = false;
@@ -355,18 +380,15 @@ impl SparseStateSim {
                 if flip_res {
                     self.x(id);
                 }
-                self.h_flag.set_bit(id as u64, !self.h_flag.bit(id as u64));
+                self.h_flag.set_bit(id as u64, true);
                 res
             }
             Pauli::Y => {
                 let rx = self.rx_queue.get(id).copied();
-                if self.ry_queue.contains_key(id) {
-                    self.ry_queue.remove(id);
-                }
-                if self.h_flag.bit(id as u64) {
-                    self.h_flag.set_bit(id as u64, !self.h_flag.bit(id as u64));
-                    flip_res = true;
-                }
+
+                // Ry commutes with Y-basis measurement so we can safely ignore it IF it is the last operation in queue.
+                self.ry_queue.remove(id);
+                // Rx rotations at +-pi/2 angles have the same affect as rotating Y <-> Z bases.
                 if let Some(entry_rx) = rx {
                     if (entry_rx + FRAC_PI_2).is_nearly_zero() {
                         self.rx_queue.remove(id);
@@ -377,6 +399,11 @@ impl SparseStateSim {
                         change_basis = false;
                     }
                 }
+                // A Hadamard simply flips the Y-basis measurement result.
+                if self.h_flag.bit(id as u64) {
+                    self.h_flag.set_bit(id as u64, false);
+                    flip_res = true;
+                }
                 if change_basis {
                     self.rx(FRAC_PI_2, id);
                 }
@@ -385,7 +412,6 @@ impl SparseStateSim {
                     self.x(id);
                 }
                 self.rx(-FRAC_PI_2, id);
-                // TO TEST: The global phase form RX rotation does not affect the post-measurement state.
                 res
             }
         }
@@ -1112,6 +1138,13 @@ impl SparseStateSim {
                 self.mcy(ctls, target);
             } else {
                 self.mcx(ctls, target);
+                if ctls.is_empty()
+                    && let Some(entry) = self.ry_queue.get_mut(target)
+                {
+                    //Bug Fix: The X gate applied here must be applied before any pending Ry, so the sign flip on Ry caused by `sim.x()` must be reverted.
+                    // YX = -XY, so flip the sign on any queued Ry rotations.
+                    *entry *= -1.0;
+                }
             }
             // Rx/Ry are different from X/Y by a global phase of -i, so apply that here when indicated by m01,
             // for mathematical correctness.
