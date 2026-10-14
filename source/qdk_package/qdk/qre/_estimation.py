@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import cast
 
 from .. import telemetry_events
 from ._application import Application
@@ -18,7 +18,7 @@ from ._qre import (
     instruction_name,
 )
 from ._results import EstimationTable, EstimationTableEntry
-from ._trace import PSSPC, LatticeSurgery, TraceQuery
+from ._trace import PSSPC, LatticeSurgery, TraceQuery, TraceWithParams
 
 
 def _zero_results_warning_message(
@@ -218,7 +218,7 @@ def estimate(
     if post_process:
         # Enumerate traces with their parameters so we can post-process later
         params_and_traces = cast(
-            list[tuple[Any, Trace]],
+            list[TraceWithParams],
             list(trace_query.enumerate(app_ctx, track_parameters=True)),
         )
         num_traces = len(params_and_traces)

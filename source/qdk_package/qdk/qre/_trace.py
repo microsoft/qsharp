@@ -7,7 +7,7 @@ from dataclasses import dataclass, KW_ONLY, field
 from enum import IntEnum
 from itertools import product
 from types import NoneType
-from typing import Any, Optional, Generator, Type, TYPE_CHECKING
+from typing import Any, NamedTuple, Optional, Generator, Type, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ._application import ApplicationContext
@@ -199,6 +199,13 @@ class _Node(ABC):
     ) -> Generator[Trace | tuple[Any, Trace], None, None]: ...
 
 
+class TraceWithParams(NamedTuple):
+    """Associates an application trace with the parameters that produced it."""
+
+    params: Any
+    trace: Trace
+
+
 class TraceQuery(_Node):
     """A query that enumerates transformed traces from an application.
 
@@ -215,7 +222,7 @@ class TraceQuery(_Node):
 
     def enumerate(
         self, ctx: ApplicationContext, track_parameters: bool = False
-    ) -> Generator[Trace | tuple[Any, Trace], None, None]:
+    ) -> Generator[Trace | TraceWithParams, None, None]:
         """Enumerate transformed traces from the application context.
 
         Args:
@@ -224,7 +231,7 @@ class TraceQuery(_Node):
                 tuples instead of plain traces. Default is False.
 
         Yields:
-            Trace | tuple[Any, Trace]: A transformed trace, or a
+            Trace | TraceWithParams: A transformed trace, or a
                 ``(parameters, trace)`` tuple when *track_parameters* is True.
         """
         sequence = self.sequence
@@ -240,7 +247,7 @@ class TraceQuery(_Node):
 
         for params, trace in source:
             if not sequence:
-                yield (params, trace) if track_parameters else trace
+                yield TraceWithParams(params, trace) if track_parameters else trace
                 continue
 
             transformer_instances = []
@@ -253,7 +260,11 @@ class TraceQuery(_Node):
                 transformed = trace
                 for transformer in combination:
                     transformed = transformer.transform(transformed)
-                yield (params, transformed) if track_parameters else transformed
+                yield (
+                    TraceWithParams(params, transformed)
+                    if track_parameters
+                    else transformed
+                )
 
     def __mul__(self, other: TraceQuery) -> TraceQuery:
         """Chain another trace query onto this one.

@@ -45,12 +45,19 @@ from ._results import (
     EstimationTableEntry,
     plot_estimates,
 )
+from .resource_estimator import (
+    CompilationStrategy,
+    ResourceEstimationOptions,
+    ResourceEstimationResult,
+    ResourceEstimator,
+)
 from ._target import QECStrategy, Target
 from ._trace import (
     LatticeSurgery,
     PSSPC,
     TraceQuery,
     TraceTransform,
+    TraceWithParams,
     EvictionStrategy,
     DynamicMemoryCompute,
     Unmemory,
@@ -74,6 +81,7 @@ __all__ = [
     "Block",
     "Constraint",
     "ConstraintBound",
+    "CompilationStrategy",
     "EvictionStrategy",
     "DynamicMemoryCompute",
     "Encoding",
@@ -107,8 +115,12 @@ __all__ = [
     "TraceParameters",
     "TraceQuery",
     "TraceTransform",
+    "TraceWithParams",
     "Unmemory",
     "LOGICAL",
     "PHYSICAL",
     "QUBIT_MODELS",
+    "ResourceEstimationOptions",
+    "ResourceEstimationResult",
+    "ResourceEstimator",
 ]

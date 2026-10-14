@@ -4,6 +4,8 @@
 
 from dataclasses import dataclass, field
 
+import pytest
+
 from qdk import qsharp
 
 from qdk.qre import (
@@ -15,6 +17,8 @@ from qdk.qre import (
     EstimationResult,
     LatticeSurgery,
     Trace,
+    TraceTransform,
+    TraceWithParams,
     linear_function,
 )
 from qdk.qre._qre import _ProvenanceGraph
@@ -206,6 +210,63 @@ def test_trace_enumeration():
 
     q = PSSPC.q() * LatticeSurgery.q()
     assert sum(1 for _ in q.enumerate(ctx)) == 32
+
+
+@pytest.mark.parametrize("track_parameters", [False, True])
+@pytest.mark.parametrize("with_transform", [False, True])
+def test_trace_query_with_params(
+    track_parameters: bool, with_transform: bool
+) -> None:
+    """Test optionally tracking parameters through trace transformations."""
+
+    @dataclass(kw_only=True)
+    class Params:
+        size: int = 2
+
+    class TestApp(Application[Params]):
+        def get_trace(self, parameters: Params) -> Trace:
+            """Create a trace with the configured number of qubits."""
+            return Trace(parameters.size)
+
+    @dataclass
+    class DoubleQubits(TraceTransform):
+        def transform(self, trace: Trace) -> Trace:
+            """Double the number of compute qubits in a trace."""
+            return Trace(2 * trace.compute_qubits)
+
+    query = TestApp.q(size=[2, 3])
+    if with_transform:
+        query *= DoubleQubits.q()
+
+    results = list(
+        query.enumerate(TestApp().context(), track_parameters=track_parameters)
+    )
+    assert len(results) == 2
+    for size, result in zip([2, 3], results):
+        if track_parameters:
+            assert isinstance(result, TraceWithParams)
+            params, trace = result
+            assert params == result.params == Params(size=size)
+            assert trace is result.trace
+            assert result == (params, trace)
+        else:
+            assert isinstance(result, Trace)
+            trace = result
+        assert trace.compute_qubits == size * (2 if with_transform else 1)
+
+
+def test_trace_query_with_no_params() -> None:
+    """Test tracking a trace generated without application parameters."""
+
+    class TestApp(Application[None]):
+        def get_trace(self, parameters: None) -> Trace:
+            """Create a fixed-size trace."""
+            return Trace(2)
+
+    (result,) = TestApp.q().enumerate(TestApp().context(), track_parameters=True)
+    assert isinstance(result, TraceWithParams)
+    assert result.params is None
+    assert result.trace.compute_qubits == 2
 
 
 def test_error_composition_modes():
