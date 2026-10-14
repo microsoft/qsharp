@@ -370,7 +370,7 @@ fn test_ry_pi_flushed() {
 }
 
 /// Verifies that a queued Rx(+-PI), which is flushed as an X gate, is applied before an Ry queued
-/// after it. Applying X after Ry(theta) flips the sign on Ry, leaving Ry(-theta) which has the same 
+/// after it. Applying X after Ry(theta) flips the sign on Ry, leaving Ry(-theta) which has the same
 /// Z probabilities but is distinguishable in a different basis.
 #[test]
 fn test_rx_pi_then_ry_flushed() {
