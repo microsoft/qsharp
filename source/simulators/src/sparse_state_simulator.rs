@@ -1046,7 +1046,7 @@ impl SparseStateSim {
                 if ctls.is_empty()
                     && let Some(entry) = self.ry_queue.get_mut(target)
                 {
-                    // Bug Fix: The X gate applied here must be applied before any pending Ry(theta), so the sign flip on Ry caused
+                    // Sign Fix: The X gate applied here must be applied before any pending Ry(theta), so the sign flip on Ry caused
                     // by `sim.x()` inside `self.mcx()` must be reverted.
                     *entry *= -1.0;
                 }
