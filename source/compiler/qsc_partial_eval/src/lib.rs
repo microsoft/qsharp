@@ -117,6 +117,13 @@ pub enum Error {
     #[diagnostic(help("try invoking the desired callable directly"))]
     UnexpectedDynamicValue(#[label] PackageSpan),
 
+    #[error("cannot inline a recursive call under runtime-dependent control flow")]
+    #[diagnostic(code("Qdk.Qsc.PartialEval.UnsupportedRecursiveInlining"))]
+    #[diagnostic(help(
+        "make the recursion depth known at compile time or use a non-recursive implementation"
+    ))]
+    UnsupportedRecursiveInlining(#[label] PackageSpan),
+
     #[error("unsupported type `{0}` in custom intrinsic callable")]
     #[diagnostic(help(
         "variables of type `{0}` cannot be emitted into QIR and should not appear in custom intrinsic callable signatures"
@@ -170,6 +177,7 @@ impl Error {
         match self {
             Self::CapabilityError(e) => map_fir_package_span_to_hir(e.span()),
             Self::UnexpectedDynamicValue(span)
+            | Self::UnsupportedRecursiveInlining(span)
             | Self::UnsupportedCustomIntrinsicType(_, span)
             | Self::EvaluationFailed(_, span)
             | Self::OutputResultLiteral(span)
@@ -1659,15 +1667,20 @@ impl<'a> PartialEvaluator<'a> {
             ComputeKind::Dynamic {runtime_features, ..} if runtime_features.contains(RuntimeFeatureFlags::MustBeInlined))
             || self.in_parallel_expr()
         {
-            // A call site that has the `MustBeInlined` runtime feature flag set is not eligible to be emitted as an IR function
-            // based on Runtime Capabilities Analysis, so we fall through to the inline path
-            // OR we are currently in a parrallel expression which requires that all calls are inlined to ensure the whole parallel
-            // ends up in a single block.
+            // A call site explicitly marked for inlining uses the inline path.
+            // Parallel expressions also require inlining to stay in one block.
             None
         } else {
             spec_decl
                 .filter(|spec_decl| {
                     self.is_ir_function_eligible(store_item_id, spec_decl, callable_decl)
+                        // Resolve calls inside the body with the actual arguments
+                        // before promoting static inputs to runtime parameters.
+                        && !matches!(
+                            self.spec_inherent_compute_kind(store_item_id, functor_app),
+                            Some(ComputeKind::Dynamic { runtime_features, .. })
+                                if runtime_features.contains(RuntimeFeatureFlags::CallToUnresolvedCallee)
+                        )
                 })
                 .map(|_| {
                     args.iter()
@@ -1692,12 +1705,24 @@ impl<'a> PartialEvaluator<'a> {
                     // emitted when the callable carries quantum/runtime content (`Dynamic` inherent) or
                     // when at least one argument is a runtime variable, so classical callables are still
                     // emitted as functions whenever they are actually invoked with runtime values.
-                    self.spec_inherent_is_dynamic(store_item_id, functor_app)
+                    matches!(
+                        self.spec_inherent_compute_kind(store_item_id, functor_app),
+                        Some(ComputeKind::Dynamic { .. })
+                    )
                         || arg_operands
                             .iter()
                             .any(|operand| matches!(operand, Operand::Variable(_)))
                 })
         };
+        if ir_function_arg_operands.is_none()
+            && self
+                .eval_context
+                .is_callable_in_dynamic_branch(store_item_id, functor_app)
+        {
+            return Err(Error::UnsupportedRecursiveInlining(
+                self.get_expr_package_span(call_expr_id),
+            ));
+        }
         let call_scope = Scope::new(
             store_item_id.package,
             Some((store_item_id.item, functor_app)),
@@ -2189,6 +2214,7 @@ impl<'a> PartialEvaluator<'a> {
     /// "IR function" (a `Regular` RIR callable with a body, called via `Instruction::Call`) instead
     /// of being inlined. Inputs must have runtime-representable leaves; outputs must be Unit
     /// or a supported scalar (Int/Double/Bool). Ineligible specializations use the inline path.
+    /// The caller additionally checks body resolution and folds fully static calls.
     fn is_ir_function_eligible(
         &self,
         store_item_id: StoreItemId,
@@ -2265,23 +2291,19 @@ impl<'a> PartialEvaluator<'a> {
         true
     }
 
-    /// Reports whether the resolved specialization has a `Dynamic` inherent compute kind, i.e.
-    /// whether it carries quantum or other runtime content even when all of its parameters are
-    /// bound to static values. A `Static` inherent compute kind means the callable is purely
-    /// classical and can be constant-folded whenever its arguments are compile-time constants.
-    /// This is used to decide whether a call should be emitted as an IR function: emitting a
-    /// purely-classical callable with all-constant arguments would discard its statically-known
-    /// result as an opaque IR variable, so such calls must be folded instead.
-    fn spec_inherent_is_dynamic(
+    /// Returns the resolved specialization's compute kind with static parameters.
+    /// Unresolved calls in its body force inlining; genuinely runtime bodies may
+    /// be emitted as IR functions, while static bodies can be constant-folded.
+    fn spec_inherent_compute_kind(
         &self,
         store_item_id: StoreItemId,
         functor_app: FunctorApp,
-    ) -> bool {
+    ) -> Option<ComputeKind> {
         let ItemComputeProperties::Callable(callable_compute_properties) = self
             .compute_properties
             .get_item(store_item_id, self.in_parallel_scope())
         else {
-            return false;
+            return None;
         };
         let generator_set = match (functor_app.adjoint, functor_app.controlled) {
             (false, 0) => Some(&callable_compute_properties.body),
@@ -2289,10 +2311,7 @@ impl<'a> PartialEvaluator<'a> {
             (true, 0) => callable_compute_properties.adj.as_ref(),
             (true, _) => callable_compute_properties.ctl_adj.as_ref(),
         };
-        matches!(
-            generator_set.map(|gen_set| gen_set.inherent),
-            Some(ComputeKind::Dynamic { .. })
-        )
+        generator_set.map(|gen_set| gen_set.inherent)
     }
 
     /// Scans a specialization block for any residual FIR `Return` expression. After the
