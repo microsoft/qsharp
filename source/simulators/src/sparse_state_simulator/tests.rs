@@ -5,8 +5,7 @@ use super::pauli_testing::{
     check_measure_pauli,
 };
 use super::*;
-use crate::Pauli;
-use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI};
+use std::f64::consts::{FRAC_PI_2, FRAC_PI_3, FRAC_PI_4, PI};
 
 fn almost_equal(a: f64, b: f64) -> bool {
     a.max(b) - b.min(a) <= 1e-10
@@ -434,6 +433,40 @@ fn test_ry_pi_flushed() {
         sim.joint_probability(&[q])
     ));
     assert!(!sim.joint_probability(&[q]).is_nearly_zero());
+}
+
+/// Verifies that a queued Rx(+-PI), which is flushed as an X gate, is applied before an Ry queued
+/// after it. Applying X after Ry(theta) flips the sign on Ry, leaving Ry(-theta) which has the same
+/// Z probabilities but is distinguishable in a different basis.
+#[test]
+fn test_rx_pi_then_ry_flushed() {
+    let mut sim = SparseStateSim::new(None);
+    let q = sim.allocate();
+    // Ry(PI/2)X|0⟩ = -|-⟩ so H maps it to |1⟩, whereas the wrong order Ry(-PI/2)X|0⟩ = |+⟩ maps to |0⟩.
+    sim.rx(PI, q);
+    sim.ry(FRAC_PI_2, q);
+    sim.h(q);
+    assert!(almost_equal(sim.joint_probability(&[q]), 1.0));
+}
+
+/// Verifies Rx(+-PI) followed by Ry(theta) on entangled and lazily queued states for both signs of theta.
+#[test]
+fn test_rx_then_ry_flushed() {
+    for rx_theta in [PI, -PI] {
+        for ry_theta in [FRAC_PI_2, -FRAC_PI_2, FRAC_PI_3, -FRAC_PI_3, PI] {
+            assert_operation_equal_referenced(
+                |sim, qs| {
+                    sim.rx(rx_theta, qs[0]);
+                    sim.ry(ry_theta, qs[0]);
+                },
+                |sim, qs| {
+                    sim.ry(-ry_theta, qs[0]);
+                    sim.rx(-rx_theta, qs[0]);
+                },
+                1,
+            );
+        }
+    }
 }
 
 /// Verifies that when a controlled Ry(PI) is recognized as equivalent to a
