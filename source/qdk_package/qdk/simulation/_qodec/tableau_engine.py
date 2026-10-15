@@ -23,7 +23,7 @@ class TableauEngine:
         if num_qubits < 0:
             raise ValueError("num_qubits must be nonnegative")
         try:
-            import stim
+            import stim  # pyright: ignore[reportMissingImports]
         except ModuleNotFoundError as error:
             if error.name != "stim":
                 raise

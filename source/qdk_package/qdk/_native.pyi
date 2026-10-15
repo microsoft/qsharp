@@ -1186,6 +1186,42 @@ def run_cpu_adaptive(
     """
     ...
 
+def _tensor_network_sample(
+    input: dict,
+    shots: int,
+    seed: Optional[int] = None,
+    max_bond_dimension: Optional[int] = None,
+) -> List[List[object]]:
+    """Sample a Base program with the MPS method on the cuTensorNet backend.
+
+    Uses the batch strategy: one MPS, every shot sampled from it. ``input`` is
+    an ``AdaptiveProgram`` (64-bit bytecode) converted with ``.as_dict()``.
+    ``seed`` reproduces the shots; ``max_bond_dimension`` caps the MPS bonds
+    (None for the backend default). Returns each shot's output records, to be
+    formatted by output recording. Backs ``Sample`` in
+    ``qdk.simulation.tensornetwork_qir``. Raises ``OSError`` when the backend
+    is unavailable and ``ValueError`` for an unsupported program.
+    """
+    ...
+
+def _tensor_network_state_query(
+    input: dict,
+    queries: List[dict],
+    max_bond_dimension: Optional[int] = None,
+) -> List[object]:
+    """Evaluate state queries with the MPS method on the cuTensorNet backend.
+
+    Expectation reads |ψ⟩, the program's state before its terminal
+    measurements; Cost reports the resources used for that MPS.
+    ``max_bond_dimension`` caps the MPS bonds (None for the backend default).
+    Expectation returns a complex value; Cost returns ``max_bond_dimension``,
+    ``state_bytes`` and ``workspace_bytes``. Backs ``Expectation`` and ``Cost``
+    in ``qdk.simulation.tensornetwork_qir``; returns one value per query.
+    Raises ``OSError`` when the backend is unavailable and ``ValueError`` for an
+    unsupported program or query.
+    """
+    ...
+
 def run_clifford_adaptive(
     input: dict,
     shots: int,

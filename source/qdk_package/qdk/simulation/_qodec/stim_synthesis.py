@@ -5,7 +5,7 @@ from .quantum_operations import Operation
 
 def synthesize_clifford(clifford: CliffordUnitary) -> tuple[Operation, ...]:
     try:
-        import stim
+        import stim  # pyright: ignore[reportMissingImports]
     except ModuleNotFoundError as error:
         if error.name != "stim":
             raise

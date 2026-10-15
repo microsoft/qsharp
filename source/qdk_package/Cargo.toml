@@ -18,6 +18,7 @@ num-traits = { workspace = true }
 qsc = { path = "../compiler/qsc" }
 qdk_openqasm = { path = "../qdk_openqasm" }
 stim_compiler = { path = "../compiler/stim_compiler" }
+qdk_cutensornet = { path = "../cutensornet" }
 qdk_simulators = { path = "../simulators", features = ["gpu"] }
 resource_estimator = { path = "../resource_estimator" }
 qre = { path = "../qre" }
