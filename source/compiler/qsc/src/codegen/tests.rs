@@ -3447,6 +3447,42 @@ fn synthetic_closure_arrays_preserve_scalar_and_tuple_inputs() {
 }
 
 #[test]
+fn recursive_residual_dispatch_rejects_dynamic_inlining() {
+    let source = r#"
+        operation Recurse(count : Int, flag : Bool, index : Int, target : Qubit) : Unit {
+            if count > 0 {
+                Recurse(count - 1, flag, index, target);
+                let actions = [I, X];
+                let action = if flag { actions[index] } else { I };
+                action(target);
+            }
+        }
+        @EntryPoint()
+        operation Main() : Result {
+            use flag = Qubit();
+            use target = Qubit();
+            let count = if MResetZ(flag) == Zero { 2 } else { 0 };
+            Recurse(count, true, 1, target);
+            MResetZ(target)
+        }
+        "#;
+    let errors = compile_source_to_qir_result(source, Profile::Adaptive.into())
+        .expect_err("runtime recursion cannot be unrolled");
+    let diagnostics = format_interpret_errors(errors);
+    assert!(
+        diagnostics.contains("Qdk.Qsc.PartialEval.UnsupportedRecursiveInlining"),
+        "expected a bounded rejection, not unbounded recursive inlining:\n{diagnostics}"
+    );
+    let static_source = source.replace("if MResetZ(flag) == Zero { 2 } else { 0 }", "2");
+    let qir = compile_source_to_qir(&static_source, Profile::Adaptive.into());
+    assert_eq!(
+        qir.matches("call void @X(").count(),
+        2,
+        "static recursive inlining must still apply X twice:\n{qir}"
+    );
+}
+
+#[test]
 fn dynamic_recursion_reports_error_instead_of_overflowing() {
     // The recursion depth depends on a measurement, so inlining cannot unroll
     // it. Previously the partial evaluator inlined forever and overflowed the
