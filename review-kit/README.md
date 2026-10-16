@@ -110,6 +110,102 @@ Existing reports are protected; `--overwrite` is only for an owned generated dra
 Helper outputs explicitly named with `--output` can be replaced; choose owned
 artifact paths, never an unrelated existing file.
 
+`run` prints `[completed/total]` as cases finish, so a slow case never makes a run
+look stalled; `results.jsonl` is rewritten in manifest order when the run ends.
+
+### Summaries and run-to-run comparison
+
+```bash
+.venv/bin/python review-kit/review.py summarize review-kit/.work/runs/RUN [--json summary.json]
+.venv/bin/python review-kit/review.py compare review-kit/.work/runs/OLD review-kit/.work/runs/NEW
+.venv/bin/python review-kit/review.py compare OLD NEW --select 'a=validated,b!=validated' \
+  --output review-kit/.work/lost-fixes.json
+.venv/bin/python review-kit/review.py subset A.json B.json --match 'i38*' --ids extra-case \
+  --output review-kit/.work/subset.json
+```
+
+`summarize` cross-tabulates reference→candidate outcomes per profile, groups
+candidate failures by normalized signature (numbers replaced by `N`) with their
+reference outcomes, lists flagged regressions, and checks the **profile hierarchy**:
+a program validated on a lower profile (Base ⊂ Adaptive_RI ⊂ Adaptive_RIF ⊂ Adaptive)
+should not fail on a higher one. Violations new at the candidate are listed.
+Compile-time medians come from concurrent sweeps and are only a hint.
+
+`compare` diffs two runs case by case (candidate outcomes by default; `--side
+reference` compares reference columns). Use it after every PR update: rerun the
+same manifests and compare, or compare a previous candidate's run with the new one
+to find **lost fixes**. `--select` terms (`a=STATUS`, `b!=STATUS`, ...) must all
+hold for one shared profile; `--output` copies the selected cases' original entries
+from run B's manifest. `subset` merges manifests by ID or glob and rewrites
+`source_file`, `project_root` and `adapter` paths for the new location.
+
+### Executing standalone repros on each revision
+
+```bash
+.venv/bin/python review-kit/review.py exec review-kit/review.json repro.py \
+  [--roles reference candidate | --refs SHA1 SHA2] [--mode debug] [--args ...]
+```
+
+`exec` runs a self-contained Python script with each revision's pinned overlay
+(no `.venv` package swapping), keeps full stdout/stderr per revision under
+`<work_dir>/exec`, and reports the exit status, final Python exception, and every
+native panic with its `file:line`, message, and the enclosing Rust `fn` resolved
+at that revision. Use it for the final inline repros and for variant tables.
+
+### Extracting test programs
+
+```bash
+.venv/bin/python review-kit/review.py extract-tests review-kit/review.json \
+  --crate qsc_fir_transforms --revision candidate --output review-kit/.work/fir-tests.json
+```
+
+In an owned worktree, this inserts a dump call at the start of the crate's test
+helpers that take an explicit expected value (bundled hooks:
+`qsc_fir_transforms` `check_semantic_equivalence_impl` and `check_qir_int_result`),
+runs `cargo test -p CRATE --lib` with an isolated target directory, and converts the
+dump into deterministic cases. IDs hash the source, so manifests from several
+revisions can be merged without duplicates (removed tests keep their programs).
+When a helper is renamed, extraction fails rather than producing an empty corpus;
+supply `--hooks FILE` (same JSON shape as `DEFAULT_HOOKS` in `harness/extraction.py`).
+Failing tests still contribute their programs; inspect the recorded log.
+
+### Issue overlap
+
+`issues --all` snapshots every repository issue (titles and bodies, no comments).
+`match-issues SNAPSHOT --run RUN` (or `--text 'signature'`) lists issues whose text
+contains each candidate failure signature's stable prefix. A match is a lead, not a
+duplicate: the same invariant panic has many causes.
+
+### Generators and oracle tools
+
+```bash
+.venv/bin/python review-kit/generators/callable_chains.py review-kit/.work/gen \
+  --inline 1600 --layout 800 --python 400 --seed 2 --profiles Adaptive_RI Adaptive_RIF Adaptive
+.venv/bin/python review-kit/review.py oracle-check review-kit/review.json review-kit/.work/gen/cases.json
+.venv/bin/python review-kit/review.py run review-kit/review.json review-kit/.work/gen/cases.json
+.venv/bin/python review-kit/review.py stages review-kit/.work/fir-tests.json review-kit/.work/gen/cases.json
+.venv/bin/python review-kit/review.py statecheck RUN/CASE/candidate/Base.ll
+```
+
+`generators/callable_chains.py` composes factories, closures, records holding
+callables, static/mutable/measurement-dependent selection, callable arrays, gate
+side effects, `Adjoint`/`Controlled`, `within`, and library higher-order operations;
+a layout family uses `(Int, Qubit[]) => Unit` callables with holes in different
+positions, and a Python family composes factories through the callable API. Its
+oracle is by construction: identity qubits see only X/CNOT/CCX and one probe qubit
+sees Rz multiples of π/2 inside a single H…H pair, so every correct program ends in
+a computational-basis state and the generator models the expected result. Wrong
+selection/environment/order changes identity bits; a dropped or extra `Adjoint` or a
+wrong captured angle flips or randomizes the probe. Record the command and seed.
+
+`oracle-check` simulates every case with an explicit expectation at one revision
+and exits non-zero on disagreements: run it before trusting generated or curated
+expectations. `stages` reports how many chain stages programs combine, e.g. to see
+whether deep compositions come only from a PR author's own tests. `statecheck`
+replays straight-line (Base) QIR in a small statevector and reports per-qubit
+`P(|1>)` and unmeasured qubits not returned to `|0>` — effects a returned value
+cannot show (for example, a body applied where an uncompute needed an adjoint).
+
 ### Discovery
 
 ```bash
@@ -130,7 +226,8 @@ Issue discovery snapshots issue bodies and paginated comments, never evaluates o
 executes Markdown. Author sweeps include closed issues. Explicit includes override
 author/number filters. Commit issue references are added; PR references are recorded
 separately. Related issues mentioned only in PR discussions require reviewer
-discovery. No author selector means no whole-repository issue sweep.
+discovery. No author selector means no author sweep; use `issues --all` (below) for
+whole-repository overlap searches.
 
 ### Attribution and reduction
 
@@ -155,8 +252,16 @@ default, a semantically validated reference. `--allow-preexisting` removes that
 reference requirement. Panic/rejection reduction requires a signature; wrong-result
 reduction requires a deterministic oracle. It is deliberately simple, bounded by
 `--attempts` (default 100), and records exhaustion. It does not establish that the
-root cause survived minimization. Projects/adapters must first be reduced manually
-to standalone Q#.
+root cause survived minimization. Projects must first be reduced manually to
+standalone Q#.
+
+`reduce-adapter` (same options) reduces Python-adapter cases: it alternates
+simplifying `prepare()` (replace a call by one of its call/list arguments, drop a
+list element) with line reduction of module-level Q# source strings, and writes the
+reduced adapter beside the output manifest. When line deletion stalls because every
+remaining line matters, probe targeted variants instead (literal versus constant
+expression, functor sets, one versus two captures) with `exec`, and report the
+variant table: it often explains the trigger better than a smaller program.
 
 ## Case manifests
 
@@ -204,8 +309,8 @@ Oracle policies:
   or a miscompile. Use statistical/state checks manually where required.
 - `compile_only`: capability/compilation coverage, not a correctness oracle.
 
-Typed values distinguish `result`, `bool`, `int`, `double`, `array`, `tuple`, and
-`unit`. Doubles use Python's canonical `float.hex()` spelling (including signed
+Typed values distinguish `result`, `bool`, `int`, `double`, `array`, `tuple`,
+`unit`, and (simulator-only) `string`. Doubles use Python's canonical `float.hex()` spelling (including signed
 zero); NaN payload distinctions are not represented. Pure `Unit` return values
 never establish semantic equivalence. The kit does not compare messages, quantum
 states, or side effects as an oracle.
@@ -221,6 +326,13 @@ Build cache reuse verifies tool/dependency metadata, package/library digests,
 worktree SHA and non-ignored modifications; workers verify actual import locations and
 the native digest. Compilation failures stop the build, never reuse a stale library.
 No result cache or silent QIR patch is used.
+
+All revisions share one Cargo target directory so third-party crates compile once.
+Cargo names workspace-crate artifacts by workspace-relative path and judges freshness
+by source mtimes, so a worktree checked out before another revision was built could
+silently link that revision's crates (observed as `E0061` argument-count errors).
+Every build therefore refreshes its worktree's timestamps first and disables
+incremental compilation (`CARGO_INCREMENTAL=0`).
 
 `.work` is ignored and disposable, but includes Git-registered worktrees. Do not
 recursively delete it while those registrations remain. After inspecting ownership,
@@ -244,4 +356,8 @@ Fixtures cover all profiles, typed/nested outputs, signed zero, stochastic
 observations, callable arguments, and separate local project dependencies.
 `tests/smoke.py --mode debug` exercises debug builds. It asserts the expected
 profile/status matrix and exact shot counts, rather than accepting exit zero alone.
-No chemistry-specific trace interpreter/state checker is included.
+`statecheck` covers straight-line QIR only; no chemistry-specific trace interpreter
+is included.
+
+The repository's `.prettierignore` excludes `review-kit/.work/`: generated reports
+and case manifests there are not formatted source.

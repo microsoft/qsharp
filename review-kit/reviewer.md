@@ -25,6 +25,20 @@ messages, tests, and relevant PR discussions. If previous work was rebased, use
 `git range-diff` to map the stacks. Do not claim every rewritten SHA is new work.
 Ask if the intended comparison remains ambiguous.
 
+When a PR is updated during a review, first check whether the new head's tree
+equals a reviewed tree (`git diff --quiet OLD NEW`); identical trees need no new
+review. Otherwise rerun the _same_ manifests at the new candidate and
+`review.py compare` against the previous candidate's runs. Report three groups
+separately: regressions against the reference, new fixes, and **lost fixes**
+(fixed by an earlier candidate, broken again; not regressions against the
+reference). Keep programs from tests that a force-push removed: extract tests at
+every reviewed revision and merge the manifests. Name the candidates explicitly
+(first, previous, current) in the report.
+
+If the candidate is a local composition (for example a stacked PR merged onto its
+base, or several PRs merged together), record every input SHA and the merge commit,
+keep it on a separately named branch, and do not move the user's branches.
+
 Default scope: compiler/evaluator panics and process crashes; wrong answers,
 invalid generated QIR and newly rejected valid programs; logical errors in the
 changes; existing bugs fixed without issue references. Investigate performance
@@ -54,10 +68,13 @@ expected behavior. Prioritize risky production changes over snapshot churn.
    and pending cases. Discover relevant notebooks/Python/OpenQASM API scenarios
    manually. Run broad cheap samples when useful, respecting explicit exclusions.
 4. Extract useful source programs from relevant test helpers on demand. Prefer a
-   supported helper/API if available. Otherwise instrument an owned worktree,
-   documenting the instrumentation diff, then replay clean builds. Preserve entry
-   expressions, capabilities, source boundaries, manifests, and dependency packages.
-   Concatenating library tests is a different test; label it as such.
+   supported helper/API if available; `review.py extract-tests` instruments the
+   `qsc_fir_transforms` helpers that carry explicit expected values. Otherwise
+   instrument an owned worktree, documenting the instrumentation diff, then replay
+   clean builds. Preserve entry expressions, capabilities, source boundaries,
+   manifests, and dependency packages. Concatenating library tests is a different
+   test; label it as such. A PR's own tests confirm the author's intended
+   combinations; they are not an independent search.
 5. Add focused semantic variants based on the changed mechanism: both deterministic
    measurement directions using X/no-X; zero/one/multiple loop iterations;
    continuation after branches/loops/early returns; aliases, copies, swaps and
@@ -67,11 +84,22 @@ expected behavior. Prioritize risky production changes over snapshot churn.
    Do not apply every family indiscriminately to every review.
 6. Use bounded, seeded generators for the relevant semantic space. Store the
    generator, parameters and seeds, not gigabytes of programs. Minimize findings
-   and expand neighboring shapes once a mechanism is understood.
+   and expand neighboring shapes once a mechanism is understood. For callable,
+   closure, specialization or defunctionalization changes, run
+   `generators/callable_chains.py` (inline, argument-layout and Python-API
+   families) and check its expectations with `oracle-check` first. Use
+   `review.py stages` to see how deeply existing corpora compose; most failures
+   sit at the junction of several stages, not inside one. When writing a new
+   generator, prefer programs that end in computational-basis states (X/CNOT/CCX
+   for decisions, phases confined to an H…H probe) so outputs stay deterministic
+   while functor and angle errors remain visible.
 7. For configured clients, inspect their manifests/tests and actual public Python
    construction APIs. Add self-contained trusted adapters or project cases.
    Identify full-project failures first; explicitly label capability-compatible
-   subsets. Missing optional clients are untested, not successful.
+   subsets. Missing optional clients are untested, not successful. When clients
+   build callables by calling Q# factories from Python and passing the results back
+   into compilation, cover that callable-API path directly: it reconstructs closures
+   from interpreter values and fails differently from the same code written inline.
 
 Test the _same curated input_ at both endpoints. Cases using newly introduced APIs
 may legitimately fail on the reference; decide intended support before calling it
@@ -111,6 +139,15 @@ unsupported capabilities, and infrastructure errors. A failure with different
 signatures can be a changed trigger or a different bug. Matching panic sites alone
 does not establish a duplicate root cause.
 
+Start each run's analysis with `review.py summarize`: reference→candidate tables per
+profile, failures grouped by signature, and profile-hierarchy checks. Adaptive is
+meant to be a superset of Adaptive_RIF (and so on down to Base); report programs
+that validate on a lower profile but fail on a higher one, at both endpoints, even
+when they are not regressions. Treat a compile error claiming the program fails
+(`EvaluationFailed` on a `fail` that cannot be reached) as a miscompile, not a
+rejection. Unmeasured qubits can hide errors: replay small straight-line QIR with
+`review.py statecheck` when only a flag is measured.
+
 For timing/size concerns, measure representative cases repeatedly in isolation,
 using identical settings and no competing build load. Report thresholds, sizes,
 variance and attribution. Do not convert concurrent sweep wall times directly into
@@ -119,13 +156,20 @@ a claimed performance regression.
 ## Investigate, attribute, and classify
 
 Minimize while preserving the target failure and appropriate reference behavior.
-Use `review.py reduce` for simple standalone cases; inspect the reduced program
-and repeat it across relevant profiles/build modes. Note reduction budget exhaustion.
+Use `review.py reduce` for simple standalone cases and `review.py reduce-adapter`
+for Python callable-API cases; inspect the reduced program and repeat it across
+relevant profiles/build modes. Note reduction budget exhaustion. When reduction
+stalls, write a few hand variants that each change one thing (literal versus
+constant expression, functor set, number of captured callables, direct versus
+helper application) and run them with `review.py exec` at both endpoints; include
+the variant table in the finding.
 
 Use `review.py attribute` or selected intermediate builds to identify introducing
 and fixing commits. Confirm behavior on the actual parent, not just the preceding
 row of a topological matrix. Non-monotonic results and merges invalidate naive
 bisection. If attribution is incomplete, say which commits were tested and why.
+After a rebase or force-push, do not attribute a lost fix to a dropped commit by
+inference: bisect the new stack. Retained commits can also undo earlier fixes.
 
 Classify with evidence:
 
@@ -153,14 +197,23 @@ issue relationship, attribution, and explicit configured-client impact. Minimize
 project/API cases or provide an honestly labeled dependency bundle; do not claim an
 absolute local project path is a self-contained repro.
 
-Actually execute the final inline repros on the reported revisions. Keep raw errors,
+Actually execute the final inline repros on the reported revisions (`review.py
+exec` records outputs, panic locations and enclosing functions). Keep raw errors,
 exit statuses, and observations; do not hand-edit outputs to match expectations.
 Compile acceptance without a semantic oracle is not a verified fix.
+
+Search for overlapping issues beyond the configured author (`issues --all`,
+`match-issues`) and link them as related, not as duplicates, unless the root cause
+is shown to be the same. When asked to draft issues for filing, follow
+`issue-template.md` (one sub-issue per distinct trigger plus a meta-issue summary).
 
 Record native suites, sample/issue/generator/client coverage, debug validation,
 exclusions, missing profiles/tools and unresolved uncertainty. Include an issue
 status table separating repro, fixed, partial, newly accepted, unsupported,
-no-runnable-repro, and not tested.
+no-runnable-repro, and not tested. For updated reviews, add the "Changes since the
+previous review" and "Lost fixes" sections from the template; for a follow-up PR
+reviewed on top of the candidate, add a dated update section at the top rather than
+rewriting the earlier findings.
 
 Retain compact manifests/evidence, minimal repros and generator seeds. Keep native
 builds, bulk generated programs and routine QIR under ignored `.work`. Remove only

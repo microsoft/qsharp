@@ -11,6 +11,20 @@ Previously reviewed / rebase mapping: `<details or none>`
 | ------------ | ----------------------------------- | ------------ | ------------------------- | -------------------------- | ----------------------- |
 | `<ID/title>` | `<regression/fixed/non-regression>` | `<profiles>` | `<SHA or unestablished>`  | `<issue/new trigger/none>` | `<client and evidence>` |
 
+## Changes since the previous review
+
+Only for updated reviews; omit otherwise. Name the candidates (first, previous,
+current) and keep that terminology throughout.
+
+- New or changed commits (from `git range-diff`); stacks with identical trees.
+- Rerun results versus the previous candidate (`review.py compare`): unchanged
+  suites, new fixes, new failures.
+- Status of every earlier finding: resolved, unchanged, or changed shape.
+
+For a follow-up PR reviewed on top of the candidate, put a dated update section
+here instead: inputs and merge commit, what it restores/fixes/regresses, and the
+evidence. Leave the earlier findings below intact.
+
 ## 1. Regressions
 
 ### R1. `<specific behavior>`
@@ -57,6 +71,14 @@ Use the full unresolved-issue structure above. Show the reference failure; expla
 whether this is the original trigger, a new trigger, or a demonstrated distinct
 root cause. Include configured-client impact.
 
+## 4. Lost fixes
+
+Only for updated reviews: behavior an earlier candidate fixed that the current
+candidate no longer fixes. These are not regressions against the reference. For
+each: the earlier and current behavior, the affected programs/issues, and the
+commit responsible established by bisecting the current stack (not inferred from
+which commit was dropped).
+
 ## Issue status table
 
 | Issue      | State at snapshot | Tested repro/variant | Profiles     | Reference  | Candidate  | Assessment                                                                      |
@@ -67,7 +89,11 @@ root cause. Include configured-client impact.
 
 - Run manifests, exact tool/dependency versions, build/import provenance.
 - Native suites and end-to-end cases, source/API surfaces and profiles.
-- Generated families, seeds, budgets and reduction results.
+- Generated families, seeds, budgets and reduction results; how many chain stages
+  programs combine (`review.py stages`) and whether deep compositions came only from
+  the change's own tests.
+- Profile-hierarchy violations (lower profile validates, higher profile fails) at
+  both endpoints, new ones called out.
 - Release/debug coverage; stochastic/Unit/state checks and oracle limitations.
 - Full client projects versus explicitly named subsets; client revisions/edits.
 - Exclusions with reasons, pending discovery, unsupported profiles, failed builds,

@@ -13,17 +13,30 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from harness.builds import verify_build  # noqa: E402
+from harness.analysis import (  # noqa: E402
+    callable_stages, compare_runs, hierarchy_violations, match_issues, normalize_signature,
+    parse_selection, select_cases, summarize_run,
+)
+from harness.builds import refresh_timestamps, verify_build  # noqa: E402
 from harness.cases import load_cases, snapshot_project  # noqa: E402
 from harness.common import (  # noqa: E402
     KIT, ReviewError, isolated, load_config, read_json, tree_digest, validate, write_json,
 )
 from harness.discovery import infer_entry, snapshot_issues  # noqa: E402
-from harness.investigate import ddmin  # noqa: E402
+from harness.execution import enclosing_function, last_exception, parse_panics  # noqa: E402
+from harness.extraction import convert_dump, insert_at_function_start, instrument  # noqa: E402
+from harness.investigate import (  # noqa: E402
+    adapter_variants, ddmin, qsharp_constants, render_adapter, replace_constant,
+)
+from harness.manifests import export_run_cases, subset_manifests  # noqa: E402
 from harness.records import encode, parse_output, validate_value  # noqa: E402
 from harness.report import generate_report, source_repro  # noqa: E402
-from harness.runner import compare, endpoint, prune_qir, run_case  # noqa: E402
+from harness.runner import compare, create_run, endpoint, prune_qir, run_case  # noqa: E402
+from harness.statecheck import check as statecheck  # noqa: E402
 from harness import worker  # noqa: E402
+
+sys.path.insert(0, str(KIT / "generators"))
+import callable_chains  # noqa: E402
 
 
 ONE = {"type": "result", "value": 1}
@@ -365,6 +378,320 @@ class HelperTests(unittest.TestCase):
             self.assertIn("run status: `failed`", output.read_text())
             with self.assertRaisesRegex(ReviewError, "Report exists"):
                 generate_report(root, output)
+
+
+def comparison_row(case_id, statuses, message="", verdicts=None):
+    """A results.jsonl row; statuses maps profile -> (reference, candidate)."""
+    rows, profiles = [], {}
+    for profile, (old, new) in statuses.items():
+        verdict = (verdicts or {}).get(profile) or (
+            "regression_candidate" if old == "validated" and new != "validated"
+            else "fix_candidate" if new == "validated" and old != "validated"
+            else "validated_unchanged" if old == new == "validated"
+            else "pre_existing_or_changed_failure"
+        )
+        rows.append({"profile": profile, "reference": old, "candidate": new, "verdict": verdict})
+        compiled = {"status": "ok", "seconds": 0.5} if new == "validated" else {"status": "panic", "message": message, "seconds": 0.5}
+        profiles[profile] = {"compile": compiled}
+    result = {"profiles": profiles}
+    return {"case": case_id, "results": {"reference": result, "candidate": result}, "comparison": rows}
+
+
+def write_run(root, rows, refs=None, cases_path=None):
+    root = Path(root)
+    root.mkdir(parents=True, exist_ok=True)
+    write_json(root / "manifest.json", {
+        "config": {"refs": refs or {"reference": "a" * 40, "candidate": "b" * 40}},
+        "status": "complete", "cases_path": str(cases_path or root / "cases.json"),
+    })
+    write_json(root / "cases.json", [CASE | {"id": row["case"]} for row in rows])
+    (root / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+    return root
+
+
+class AnalysisTests(unittest.TestCase):
+    def test_signature_normalization_groups_ids(self):
+        a = normalize_signature("PostArgPromote: Expr 67 passes Expr 70\nsecond line")
+        b = normalize_signature("\n  PostArgPromote: Expr 1   passes Expr 2")
+        self.assertEqual(a, b)
+        self.assertEqual(a, "PostArgPromote: Expr N passes Expr N")
+
+    def test_profile_hierarchy(self):
+        statuses = {"Base": "rejected", "Adaptive_RI": "validated", "Adaptive_RIF": "validated", "Adaptive": "rejected"}
+        self.assertEqual(
+            hierarchy_violations(statuses),
+            [("Adaptive_RI", "Adaptive", "rejected"), ("Adaptive_RIF", "Adaptive", "rejected")],
+        )
+        self.assertEqual(hierarchy_violations({"Adaptive_RIF": "validated", "Adaptive": "validated"}), [])
+
+    def test_summary_tables_signatures_and_new_hierarchy_violations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run = write_run(directory, [
+                comparison_row("one", {"Adaptive_RIF": ("validated", "validated"), "Adaptive": ("validated", "panic")},
+                               "Local 4 is not bound"),
+                comparison_row("two", {"Adaptive_RIF": ("panic", "panic"), "Adaptive": ("panic", "panic")},
+                               "Local 9 is not bound"),
+            ])
+            summary = summarize_run(run)
+        self.assertEqual(summary["verdicts"]["regression_candidate"], 1)
+        self.assertEqual(summary["flagged"][0]["signature"], "Local N is not bound")
+        groups = {(g["profile"], g["signature"]): g for g in summary["candidate_failures"]}
+        self.assertEqual(groups[("Adaptive", "Local N is not bound")]["count"], 2)
+        self.assertEqual(groups[("Adaptive", "Local N is not bound")]["reference"], {"validated": 1, "panic": 1})
+        self.assertEqual(summary["hierarchy"]["candidate"], 1)
+        self.assertEqual(summary["hierarchy"]["new_at_candidate"][0]["case"], "one")
+
+    def test_run_comparison_selection_and_export(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = root / "cases" / "cases.json"
+            (root / "cases" / "adapters").mkdir(parents=True)
+            (root / "cases" / "adapters" / "x.py").write_text("def prepare(ctx):\n    return 'Main()', ()\n")
+            write_json(manifest, [CASE | {"id": "fixed"}, CASE | {"id": "lost"},
+                                  {"id": "py", "adapter": "adapters/x.py", "oracle": {"kind": "compile_only"}}])
+            old = write_run(root / "old", [
+                comparison_row("fixed", {"Base": ("panic", "panic")}),
+                comparison_row("lost", {"Base": ("panic", "validated")}),
+            ], cases_path=manifest)
+            new = write_run(root / "new", [
+                comparison_row("fixed", {"Base": ("panic", "validated")}),
+                comparison_row("lost", {"Base": ("panic", "panic")}),
+            ], cases_path=manifest)
+            result = compare_runs(old, new)
+            directions = {c["examples"][0]: c["direction"] for c in result["changes"]}
+            self.assertEqual(directions, {"fixed": "better", "lost": "worse"})
+            self.assertEqual(result["reference_changes"], [])
+            chosen = select_cases(old, new, "a=validated,b!=validated")
+            self.assertEqual(chosen, ["lost"])
+            output = root / "out" / "lost.json"
+            export_run_cases(new, chosen, output)
+            self.assertEqual([c["id"] for c in read_json(output)], ["lost"])
+        with self.assertRaises(ReviewError):
+            parse_selection("a==validated")
+
+    def test_callable_stage_classifier(self):
+        source = """
+            struct Box { F : (Qubit => Unit) }
+            function Make(op : (Qubit => Unit)) : (Qubit => Unit) { q => op(q) }
+            operation Main() : Unit {
+                let f = if true { H } else { X };
+                ApplyToEach(Make(f), []);
+            }
+        """
+        self.assertTrue({"factory", "closure", "record", "selection", "library"} <= callable_stages(source))
+        self.assertEqual(callable_stages("operation Main() : Unit {}"), set())
+
+    def test_issue_matching_uses_stable_prefix(self):
+        snapshot = {"issues": [
+            {"number": 1, "state": "open", "title": "[Panic] something",
+             "body": "PostArgPromote/PostAll call invariant violation: Expr 3 passes Expr 5"},
+            {"number": 2, "state": "closed", "title": "unrelated", "body": "no panic here"},
+        ]}
+        result = match_issues(snapshot, ["PostArgPromote/PostAll call invariant violation: Expr 67 passes Expr 70"])
+        self.assertEqual([i["number"] for i in next(iter(result.values()))["issues"]], [1])
+
+
+class ManifestTests(unittest.TestCase):
+    def test_subset_rebases_relative_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "a" / "adapters").mkdir(parents=True)
+            (root / "a" / "adapters" / "x.py").write_text("")
+            write_json(root / "a" / "cases.json", [
+                {"id": "py-1", "adapter": "adapters/x.py", "oracle": {"kind": "compile_only"}}, CASE,
+            ])
+            write_json(root / "b.json", [CASE | {"id": "other"}])
+            output = root / "c" / "d" / "subset.json"
+            count = subset_manifests([root / "a" / "cases.json", root / "b.json"], output, ids=["other"], patterns=["py-*"])
+            cases = read_json(output)
+            self.assertEqual(count, 2)
+            self.assertEqual((output.parent / cases[0]["adapter"]).resolve(), (root / "a/adapters/x.py").resolve())
+            with self.assertRaisesRegex(ReviewError, "not found"):
+                subset_manifests([root / "b.json"], output, ids=["missing"])
+            with self.assertRaisesRegex(ReviewError, "appears in both"):
+                subset_manifests([root / "b.json", root / "b.json"], output, patterns=["*"])
+
+
+class ExecutionTests(unittest.TestCase):
+    STDERR = (
+        "thread '<unnamed>' (1234) panicked at source/compiler/qsc_x/src/a.rs:12:9:\n"
+        "first message\nnote: run with RUST_BACKTRACE\n"
+        "thread '<unnamed>' (1234) panicked at source/compiler/qsc_x/src/a.rs:12:9:\n"
+        "first message\n"
+        "Traceback (most recent call last):\n  File \"x.py\"\npyo3_runtime.PanicException: first message\n"
+    )
+
+    def test_panic_parsing_deduplicates(self):
+        panics = parse_panics(self.STDERR)
+        self.assertEqual(panics, [{"path": "source/compiler/qsc_x/src/a.rs", "line": 12, "column": 9,
+                                   "message": "first message"}])
+        self.assertEqual(last_exception(self.STDERR), "pyo3_runtime.PanicException: first message")
+
+    def test_enclosing_function(self):
+        text = "impl A {\n    pub(crate) fn outer(\n        x: u8,\n    ) {\n        let y = 1;\n    }\n}\nfn other() {}\n"
+        self.assertEqual(enclosing_function(text, 5), "outer")
+        self.assertEqual(enclosing_function(text, 8), "other")
+        self.assertIsNone(enclosing_function(text, 1))
+
+
+class ExtractionTests(unittest.TestCase):
+    def test_hook_insertion(self):
+        text = "fn helper<T: Into<u8>>(source: &str, expected: (u8, u8)) -> Result<(), String> where T: Copy {\n    body();\n}\n"
+        patched = insert_at_function_start(text, "helper", "hook();")
+        self.assertIn("{\n    hook();\n    body();", patched)
+        with self.assertRaisesRegex(ReviewError, "exactly one"):
+            insert_at_function_start(text + text, "helper", "hook();")
+        with self.assertRaisesRegex(ReviewError, "exactly one"):
+            insert_at_function_start(text, "missing", "hook();")
+
+    def test_instrument_edits_owned_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "src").mkdir()
+            (root / "src/utils.rs").write_text("fn check(source: &str) {\n}\n")
+            spec = {"helper_file": "src/utils.rs", "helper_code": "\n// helper\n",
+                    "hooks": [{"file": "src/utils.rs", "function": "check", "code": "dump(source);"}]}
+            self.assertEqual(instrument(root, spec), ["src/utils.rs"])
+            self.assertEqual((root / "src/utils.rs").read_text(), "fn check(source: &str) {\n    dump(source);\n}\n\n// helper\n")
+
+    def test_dump_conversion(self):
+        main = "@EntryPoint() operation Main() : Int { 1 }"
+        lines = [
+            json.dumps({"kind": "semantic", "test": "a::b", "source": main, "expected": {"type": "int", "value": 1}}),
+            json.dumps({"kind": "semantic", "test": "a::c", "source": main, "expected": {"type": "int", "value": 1}}),
+            json.dumps({"kind": "semantic", "test": "a::d", "source": "operation Other() : Unit {}",
+                        "expected": {"type": "unit"}}),
+            json.dumps({"kind": "semantic", "test": "a::e", "source": "x", "expected": None}),
+            json.dumps({"kind": "qir_int", "test": "a::f", "source": main.replace("1 }", "2 }"),
+                        "expected": {"type": "tuple", "items": [{"type": "double_bits", "value": 4607182418800017408}]}}),
+            json.dumps({"kind": "semantic", "test": "a::g", "source": main.replace("1 }", "3 }"), "expected": {"type": "int", "value": 3}}),
+            json.dumps({"kind": "semantic", "test": "a::h", "source": main.replace("1 }", "3 }"), "expected": {"type": "int", "value": 4}}),
+        ]
+        cases, stats = convert_dump(lines, "c" * 40, "crate")
+        self.assertEqual(stats, {"records": 7, "unsupported_value": 1, "no_entry": 1, "conflict": 1})
+        self.assertEqual(len(cases), 2)
+        doubles = [c for c in cases if c["id"].startswith("t-qir_int-")]
+        self.assertEqual(doubles[0]["oracle"]["expected"], {"type": "tuple", "items": [encode(1.0)]})
+        validate(cases, read_json(KIT / "cases.schema.json"))
+
+
+class AdapterReductionTests(unittest.TestCase):
+    ADAPTER = (
+        'SRC = """\noperation A() : Unit {}\noperation B() : Unit {}\n"""\n\n'
+        "def prepare(ctx):\n    ctx.eval(SRC)\n    c = ctx.code\n"
+        "    f = c.Wrap(c.Pick([c.A(), c.B()]))\n    return (c.Run, (f,))\n"
+    )
+
+    def test_variants_unwrap_calls_and_drop_elements(self):
+        variants = list(adapter_variants(render_adapter(__import__("ast").parse(self.ADAPTER))))
+        expressions = {line.strip() for v in variants for line in v.splitlines() if line.strip().startswith("f =")}
+        self.assertIn("f = c.Pick([c.A(), c.B()])", expressions)
+        self.assertIn("f = c.Wrap([c.A(), c.B()])", expressions)
+        self.assertIn("f = c.Wrap(c.Pick([c.B()]))", expressions)
+        for variant in variants:
+            compile(variant, "<variant>", "exec")
+
+    def test_qsharp_constants_round_trip(self):
+        self.assertEqual(qsharp_constants(self.ADAPTER), ["SRC"])
+        reduced = replace_constant(self.ADAPTER, "SRC", "operation A() : Unit {}\n")
+        self.assertIn('SRC = """operation A() : Unit {}\n"""', reduced)
+        self.assertNotIn("operation B", reduced)
+
+
+class GeneratorTests(unittest.TestCase):
+    def test_generated_cases_are_valid_and_deterministic(self):
+        with tempfile.TemporaryDirectory() as first, tempfile.TemporaryDirectory() as second:
+            cases = callable_chains.generate(first, 12, 8, 6, seed=3, profiles=["Adaptive_RIF"])
+            callable_chains.generate(second, 12, 8, 6, seed=3, profiles=["Adaptive_RIF"])
+            self.assertEqual((Path(first) / "cases.json").read_text(), (Path(second) / "cases.json").read_text())
+            validate(cases, read_json(KIT / "cases.schema.json"))
+            loaded, _ = load_cases(Path(first) / "cases.json", {"input": {}, "profiles": ["Base"],
+                                                                 "limits": {"shots": 2, "seed": 1}}, first)
+            self.assertEqual(len(loaded), 26)
+            for case in cases:
+                validate_value(case["oracle"]["expected"])
+                if "adapter" in case:
+                    compile((Path(first) / case["adapter"]).read_text(), case["adapter"], "exec")
+
+    def test_model_inverse_and_composition(self):
+        tag = callable_chains.M.tag(5, 1, "c")
+        identity = callable_chains.M.ident()
+        self.assertEqual(tag.then(tag.adj()).perm, identity.perm)
+        self.assertEqual(tag.then(tag.adj()).phase, 0)
+        self.assertNotEqual(tag.adj().phase, tag.phase)
+
+
+class StatecheckTests(unittest.TestCase):
+    @staticmethod
+    def qir(*calls):
+        body = "\n".join(f"  call void @__quantum__qis__{c}" for c in calls)
+        return f"define void @main() #0 {{\n{body}\n  ret void\n}}\nattributes #0 = {{ \"required_num_qubits\"=\"2\" }}\n"
+
+    Q1 = "%Qubit* inttoptr (i64 1 to %Qubit*)"
+
+    def test_unmeasured_qubit_left_flipped_is_reported(self):
+        q1 = self.Q1
+        result = statecheck(self.qir("x__body(%Qubit* null)", f"h__body({q1})", f"s__body({q1})", f"s__body({q1})",
+                                     f"h__body({q1})", "mresetz__body(%Qubit* null, %Result* null)"))
+        self.assertEqual(result["p1"], [1.0, 1.0])
+        self.assertEqual(result["measured"], [0])
+        self.assertEqual(result["dirty_unmeasured"], [1])
+
+    def test_adjoint_uncomputes(self):
+        q1 = self.Q1
+        result = statecheck(self.qir(f"h__body({q1})", f"s__adj({q1})", f"s__body({q1})", f"h__body({q1})"))
+        self.assertEqual(result["dirty_unmeasured"], [])
+
+    def test_branching_qir_is_rejected(self):
+        with self.assertRaisesRegex(ReviewError, "straight-line"):
+            statecheck("br i1 %0, label %a, label %b\n\"required_num_qubits\"=\"1\"")
+
+
+class ExtraRecordTests(unittest.TestCase):
+    def test_strings_are_typed_simulator_values(self):
+        self.assertEqual(encode("<Range> 2..1"), {"type": "string", "value": "<Range> 2..1"})
+        validate_value({"type": "string", "value": "Foo"})
+        with self.assertRaises(ReviewError):
+            validate_value({"type": "string", "value": 1})
+
+
+class BuildFreshnessTests(unittest.TestCase):
+    def test_refresh_timestamps_skips_git_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "src").mkdir()
+            (root / "src/lib.rs").write_text("")
+            (root / ".git").write_text("gitdir: elsewhere")
+            os.utime(root / "src/lib.rs", (1, 1))
+            os.utime(root / ".git", (1, 1))
+            refresh_timestamps(root)
+            self.assertGreater((root / "src/lib.rs").stat().st_mtime, 1)
+            self.assertEqual((root / ".git").stat().st_mtime, 1)
+
+
+class RunOrderingTests(unittest.TestCase):
+    def test_results_are_rewritten_in_manifest_order(self):
+        import time
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cases = [CASE | {"id": f"c{i}"} for i in range(4)]
+            write_json(root / "cases.json", cases)
+            config = {"work_dir": str(root / "work"), "refs": {"reference": "r", "candidate": "c"},
+                      "input": {}, "profiles": ["Base"], "limits": {"jobs": 4, "shots": 2, "seed": 1},
+                      "keep_qir": False}
+
+            def slow_first(config, build, case, directory):
+                time.sleep(0.3 if case["id"] == "c0" else 0)
+                return good()
+
+            with patch("harness.runner.preflight", return_value={}), patch(
+                "harness.runner.build_revision", return_value={"sha": "x", "mode": "release"}
+            ), patch("harness.runner.run_case", side_effect=slow_first), patch("sys.stdout", io.StringIO()) as out:
+                run = create_run(config, root / "cases.json", "release")
+            order = [json.loads(line)["case"] for line in (run / "results.jsonl").read_text().splitlines()]
+            self.assertEqual(order, ["c0", "c1", "c2", "c3"])
+            self.assertIn("[4/4] c0", out.getvalue())
 
 
 if __name__ == "__main__":

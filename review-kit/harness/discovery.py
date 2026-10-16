@@ -159,3 +159,34 @@ def snapshot_issues(config, output):
         },
     )
     return len(snapshots)
+
+
+def snapshot_all_issues(config, output):
+    """Whole-repository issue snapshot (titles/bodies, no comments) for overlap searches."""
+    repo = config["input"].get("issues", {}).get("repository", "microsoft/qdk")
+    query = urlencode({"state": "all", "per_page": 100})
+    issues = [
+        {
+            "number": issue["number"],
+            "url": issue["html_url"],
+            "title": issue["title"],
+            "state": issue["state"],
+            "state_reason": issue.get("state_reason"),
+            "author": (issue.get("user") or {}).get("login"),
+            "labels": [label["name"] for label in issue.get("labels", [])],
+            "body": issue.get("body") or "",
+            "updated_at": issue["updated_at"],
+        }
+        for issue in _api(f"repos/{repo}/issues?{query}", paginated=True)
+        if "pull_request" not in issue
+    ]
+    write_json(
+        output,
+        {
+            "repository": repo,
+            "captured": datetime.now(timezone.utc).isoformat(),
+            "scope": "all issues, open and closed; comments not included",
+            "issues": sorted(issues, key=lambda issue: issue["number"]),
+        },
+    )
+    return len(issues)

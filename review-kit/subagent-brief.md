@@ -20,7 +20,9 @@ for the same objective or make agents share mutable case/output directories.
 
 Read `review-kit/README.md` and the relevant sections of `reviewer.md`. Use
 `review.py run` and shared immutable build overlays. Build fixtures in your context;
-do not reuse Q# callable objects across contexts.
+do not reuse Q# callable objects across contexts. Start analysis with
+`review.py summarize`, run standalone repros with `review.py exec`, and reduce
+Python callable-API cases with `review.py reduce-adapter`.
 
 Read the assigned production changes and adjacent tests/callers. Derive runnable
 cases and bounded variants from the changed invariant. Inspect issue repros before

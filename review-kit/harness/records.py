@@ -31,6 +31,10 @@ def encode(value):
         }
     if type(value).__name__ == "Result" and str(value) in ("Zero", "One"):
         return {"type": "result", "value": int(str(value) == "One")}
+    if type(value) is str:
+        # String-returning programs (and values the interop layer renders as text, such
+        # as ranges) cannot be emitted as QIR output, but remain simulator evidence.
+        return {"type": "string", "value": value}
     raise ReviewError(f"Unsupported simulator value: {type(value).__name__}: {value!r}")
 
 
@@ -55,6 +59,7 @@ def validate_value(value):
         (kind == "int" and type(scalar) is int)
         or (kind == "bool" and type(scalar) is bool)
         or (kind == "result" and type(scalar) is int and scalar in (0, 1))
+        or (kind == "string" and type(scalar) is str)
     )
     if kind == "double" and isinstance(scalar, str):
         try:

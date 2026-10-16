@@ -3,7 +3,7 @@
 
 """Independent stages and conservative endpoint classifications."""
 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -11,7 +11,7 @@ import tempfile
 
 from harness.builds import build_revision, worker_environment
 from harness.cases import load_cases
-from harness.common import KIT, digest, file_digest, isolated, preflight, write_json
+from harness.common import KIT, ReviewError, digest, file_digest, isolated, preflight, write_json
 
 
 def stage(config, build, case, name, profile=None, qir_path=None):
@@ -224,13 +224,22 @@ def create_run(config, cases_path, mode):
             prune_qir(config, case, results)
             return {"case": case["id"], "results": results, "comparison": comparison, "historical": historical}
 
+        # Rows are appended as cases finish so slow cases never hide progress; the file
+        # is rewritten in manifest order once every case has completed.
+        infrastructure_failures, finished = [], {}
         with (directory / "results.jsonl").open("w") as output:
-            infrastructure_failures = []
             with ThreadPoolExecutor(config["limits"]["jobs"]) as executor:
-                for row in executor.map(execute, cases):
+                futures = [executor.submit(execute, case) for case in cases]
+                for future in as_completed(futures):
+                    row = future.result()
+                    finished[row["case"]] = row
                     output.write(json.dumps(row, allow_nan=False) + "\n")
                     output.flush()
-                    print(f"{row['case']}: " + ", ".join(f"{r['profile']}={r['verdict']}" for r in row["comparison"]), flush=True)
+                    print(
+                        f"[{len(finished)}/{len(cases)}] {row['case']}: "
+                        + ", ".join(f"{r['profile']}={r['verdict']}" for r in row["comparison"]),
+                        flush=True,
+                    )
                     for role, result in row["results"].items():
                         stages = [("Unrestricted", "simulate", result.get("simulator", {}))]
                         stages += [
@@ -247,6 +256,9 @@ def create_run(config, cases_path, mode):
                                 }
                                 infrastructure_failures.append(failure)
                                 print(f"WARNING: {failure}", flush=True)
+        ordered = directory / "results.jsonl.tmp"
+        ordered.write_text("".join(json.dumps(finished[case["id"]], allow_nan=False) + "\n" for case in cases))
+        ordered.replace(directory / "results.jsonl")
         manifest["infrastructure_failures"] = infrastructure_failures
         manifest["status"] = "complete_with_infrastructure_failures" if infrastructure_failures else "complete"
     except BaseException:
@@ -256,3 +268,38 @@ def create_run(config, cases_path, mode):
         manifest["finished"] = datetime.now(timezone.utc).isoformat()
         write_json(directory / "manifest.json", manifest)
     return directory
+
+
+def oracle_check(config, cases_path, role="reference", mode="release"):
+    """Simulate every case with a hand-written expectation at one revision; report disagreements.
+
+    Use before a large differential run: a generator or curation mistake otherwise shows
+    up as shared "wrong results" at both endpoints.
+    """
+    tools = preflight(config)
+    if role not in config["refs"]:
+        raise ReviewError(f"Configuration has no {role}")
+    root = Path(config["work_dir"]) / "oracle-checks"
+    root.mkdir(parents=True, exist_ok=True)
+    directory = Path(tempfile.mkdtemp(prefix=datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ-"), dir=root))
+    cases, skipped = load_cases(cases_path, config, directory / "inputs")
+    checked = [case for case in cases if case["oracle"]["kind"] == "deterministic" and "expected" in case["oracle"]]
+    build = build_revision(config, config["refs"][role], mode, tools)
+
+    def check(case):
+        simulated = stage(config, build, case, "simulate")
+        expected = case["oracle"]["expected"]
+        if simulated["status"] != "ok":
+            return {"case": case["id"], "status": simulated["status"],
+                    "message": simulated.get("message", simulated.get("stderr", ""))[:2000]}
+        wrong = [value for value in simulated["values"] if value != expected]
+        return {"case": case["id"], "status": "mismatch" if wrong else "ok",
+                "expected": expected, "observed": wrong[0] if wrong else expected}
+
+    with ThreadPoolExecutor(config["limits"]["jobs"]) as executor:
+        results = list(executor.map(check, checked))
+    write_json(directory / "oracle-check.json", {
+        "revision": config["refs"][role], "role": role, "mode": mode, "cases_path": str(Path(cases_path).resolve()),
+        "skipped": skipped, "unchecked": len(cases) - len(checked), "results": results,
+    })
+    return directory, results, len(cases) - len(checked)

@@ -32,6 +32,22 @@ def checkout_revision(config, sha):
     return worktree
 
 
+def refresh_timestamps(worktree):
+    """Make every checked-out file newer than any artifact in a shared Cargo target.
+
+    Cargo hashes path dependencies by their workspace-relative path, so the same crate
+    from two worktrees maps to the same artifact name. Its freshness check compares
+    source mtimes with that artifact; a worktree created before another revision was
+    built would otherwise reuse the other revision's stale artifacts (seen as E0061
+    argument-count errors). Third-party dependencies remain shared and cached.
+    """
+    worktree = Path(worktree)
+    for path in worktree.rglob("*"):
+        if ".git" in path.relative_to(worktree).parts or path.is_symlink() or not path.is_file():
+            continue
+        os.utime(path, None)
+
+
 def verify_build(build, tools):
     root = Path(build["overlay"])
     if build["tools"] != tools:
@@ -64,10 +80,12 @@ def build_revision(config, sha, mode, tools):
             raise ReviewError(f"Incomplete build directory {root}; inspect it before removing it.")
         worktree = checkout_revision(config, sha)
         target = work / "cargo-target"
+        refresh_timestamps(worktree)
         env = dict(
             os.environ,
             PYO3_PYTHON=str(Path(config["venv"]) / "bin/python"),
             CARGO_TARGET_DIR=str(target),
+            CARGO_INCREMENTAL="0",
         )
         args = ["cargo", "build", "--locked", "-p", "qdk", "--lib"]
         if mode == "release":
@@ -100,6 +118,7 @@ def build_revision(config, sha, mode, tools):
             "library_digest": tree_digest(worktree / "library"),
             "tools": tools,
             "command": args,
+            "environment": {"CARGO_INCREMENTAL": "0", "timestamps": "refreshed before build"},
             "log": str(log),
         }
         write_json(staging / "manifest.json", build)
