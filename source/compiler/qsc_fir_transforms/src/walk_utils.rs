@@ -8,7 +8,7 @@
 //!
 //! # Helper surface
 //!
-//! The module exposes three families of helpers:
+//! The module exposes the following families of helpers:
 //!
 //! - **Closure-based pre-order walkers.** [`for_each_expr`] visits a single
 //!   expression and its descendants; [`for_each_expr_in_block`] visits every
@@ -33,12 +33,14 @@
 //!   [`ParamUse`] vector, while [`classify_block_use`] folds them into a
 //!   single [`UseClass`] aggregate. See
 //!   [`# Use classification`](#use-classification) below for the rules.
-//! - **Reachable-`ExprId` collectors.** [`collect_expr_ids_in_entry`],
+//! - **Reachable-ID collectors.** [`collect_expr_ids_in_entry`],
 //!   [`collect_expr_ids_in_local_callables`], and
 //!   [`collect_expr_ids_in_entry_and_local_callables`] return every
 //!   [`ExprId`] reachable from the given roots, deduplicated.
 //!   [`extend_expr_ids_in_local_callables`] is the in-place variant used to
 //!   accumulate IDs across roots while sharing a single dedup set.
+//!   [`collect_stmt_ids_in_block`] collects unique statement IDs from a block
+//!   and its nested blocks.
 //!
 //! # Use classification
 //!
@@ -651,6 +653,24 @@ fn for_each_use_event<F: FnMut(UseEvent)>(
         }
         ExprKind::Hole | ExprKind::Lit(_) | ExprKind::Var(_, _) => {}
     }
+}
+
+/// Collects each statement ID in a block and its nested blocks once, in
+/// first-encounter order.
+///
+/// Includes item-declaration statements but does not traverse their bodies
+/// or closure bodies.
+pub(crate) fn collect_stmt_ids_in_block(package: &Package, block_id: BlockId) -> Vec<StmtId> {
+    let mut ids = Vec::new();
+    let mut seen = FxHashSet::default();
+    for_each_node_in_block(package, block_id, &mut |node| {
+        if let CallableNode::Stmt(id) = node
+            && seen.insert(id)
+        {
+            ids.push(id);
+        }
+    });
+    ids
 }
 
 /// Collects all expression IDs reachable from the package entry expression.
