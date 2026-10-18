@@ -320,6 +320,7 @@ fn interpret_error_labels(err: &interpret::Error) -> Vec<Label> {
         | interpret::Error::Circuit(_)
         | interpret::Error::NotAnOperation
         | interpret::Error::NotACallable
+        | interpret::Error::InvalidRuntimeCallableArgumentType { .. }
         | interpret::Error::InvalidRuntimeCallableFunctor { .. } => Vec::new(),
     }
 }

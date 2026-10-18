@@ -127,6 +127,12 @@ pub enum Error {
         callable: qsc_fir::fir::StoreItemId,
         functor: FunctorApp,
     },
+    #[error("runtime callable argument type mismatch: expected {expected}, found {actual}")]
+    #[diagnostic(code("Qdk.Qsc.Interpret.InvalidRuntimeCallableArgumentType"))]
+    InvalidRuntimeCallableArgumentType {
+        expected: Box<qsc_fir::ty::Ty>,
+        actual: Box<qsc_fir::ty::Ty>,
+    },
     #[error("partial evaluation error")]
     #[diagnostic(transparent)]
     PartialEvaluation(#[from] WithSource<qsc_partial_eval::Error>),
@@ -1272,6 +1278,8 @@ impl Interpreter {
     /// Performs QIR codegen using the given callable with the given arguments on a new instance of the environment
     /// and simulator but using the current compilation. The target's adjoint and
     /// controlled applications are preserved independently of callable arguments.
+    /// Provable callable argument signature mismatches return a diagnostic before
+    /// transforms; this does not perform complete runtime argument validation.
     pub fn qirgen_from_callable(
         &mut self,
         callable: &Value,
@@ -1330,6 +1338,7 @@ impl Interpreter {
     /// Generates a circuit representation for the program.
     ///
     /// For `entry` options, see [`CircuitEntryPoint`]. For `tracer_config` options, see [`TracerConfig`].
+    /// Static callable entries share QIR's bounded argument signature preflight.
     pub fn circuit(
         &mut self,
         entry: CircuitEntryPoint,
