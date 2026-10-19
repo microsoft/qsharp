@@ -138,6 +138,30 @@ def test_device_simlate_with_clifford() -> None:
 
 
 @pytest.mark.skipif(not PYQIR_AVAILABLE, reason=SKIP_REASON)
+def test_device_simulate_z_h_s_h_z_is_sx_adjoint() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Adaptive_RIF)
+    # Z·H·S·H·Z is SX† and Rx(π/2) is SX (up to global phase), so the qubit
+    # always ends in |0⟩.
+    qir = qsharp.compile("""
+        {
+            use q = Qubit();
+            Z(q);
+            H(q);
+            S(q);
+            H(q);
+            Z(q);
+            Rx(Std.Math.PI() / 2.0, q);
+            MResetZ(q)
+        }
+        """)
+
+    device = NeutralAtomDevice()
+    for sim_type in ["cpu", "stabilizer"]:
+        result = device.simulate(qir, shots=10, type=sim_type, seed=1)
+        assert result == [qsharp.Result.Zero] * 10, sim_type
+
+
+@pytest.mark.skipif(not PYQIR_AVAILABLE, reason=SKIP_REASON)
 def test_device_simulate_with_loss() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Base)
     qir = qsharp.compile("""

@@ -93,6 +93,9 @@ class OptimizeSingleQubitGates(QirModuleVisitor):
                 other_instr.erase()
                 (other_instr, _) = self.qubit_ops[key].pop()
                 other_instr.erase()
+                # The new sx is not visited, so treat it as a barrier like an existing sx:
+                # gates before it must not cancel with gates after it.
+                self.qubit_ops[key].clear()
             else:
                 # The last operation was not the adjoint of this one, so add this instruction to the list.
                 self.qubit_ops[key].append((instr, name))
