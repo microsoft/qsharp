@@ -26,6 +26,100 @@ enum CallableSpecKind {
     CtlAdj,
 }
 
+#[test]
+fn checked_callees_survive_graph_rebuilding() {
+    let (mut store, pkg_id) = crate::test_utils::compile_to_fir(
+        "function Inc(x : Int) : Int { x + 1 } function Main() : Int { Inc(2) }",
+    );
+    for rebuilt in [false, true] {
+        if rebuilt {
+            super::rebuild_exec_graphs(&mut store, pkg_id, &[]);
+        }
+        let package = store.get(pkg_id);
+        let CallableImpl::Spec(spec) = &find_callable(package, "Main").implementation else {
+            panic!("expected body");
+        };
+        let mut calls = 0;
+        crate::walk_utils::for_each_expr_in_block(package, spec.body.block, &mut |_, expr| {
+            if let qsc_fir::fir::ExprKind::Call(callee, _) = expr.kind {
+                calls += 1;
+                for (config, end) in [
+                    (
+                        ExecGraphConfig::NoDebug,
+                        expr.exec_graph_range.end.no_debug_idx,
+                    ),
+                    (ExecGraphConfig::Debug, expr.exec_graph_range.end.debug_idx),
+                ] {
+                    assert!(matches!(
+                        spec.body.exec_graph.select_ref(config)[end - 1],
+                        ExecGraphNode::Expr(ExecGraphExpr::Call { callee: checked, .. }, _)
+                            if checked == callee
+                    ));
+                }
+            }
+        });
+        assert_eq!(calls, 1);
+    }
+}
+
+#[test]
+fn graph_invariants_reject_invalid_checked_callees() {
+    for dangling in [false, true] {
+        let (mut store, pkg_id) = compile_and_run_pipeline_to(
+            "function Inc(x : Int) : Int { x + 1 } function Main() : Int { Inc(2) }",
+            PipelineStage::Full,
+        );
+        let package = store.get_mut(pkg_id);
+        let entry = package.entry.expect("entry");
+        let qsc_fir::fir::ExprKind::Call(callee, arg) = package.get_expr(entry).kind else {
+            panic!("entry call");
+        };
+        let invalid = if dangling {
+            ExprId::from(u32::MAX)
+        } else {
+            arg
+        };
+        let mut compact = package
+            .entry_exec_graph
+            .select_ref(ExecGraphConfig::NoDebug)
+            .to_vec();
+        let debug = package
+            .entry_exec_graph
+            .select_ref(ExecGraphConfig::Debug)
+            .to_vec();
+        let mut changed = false;
+        for node in &mut compact {
+            if let ExecGraphNode::Expr(
+                ExecGraphExpr::Call {
+                    callee: checked, ..
+                },
+                _,
+            ) = node
+                && *checked == callee
+            {
+                *checked = invalid;
+                changed = true;
+            }
+        }
+        assert!(changed);
+        package.entry_exec_graph = qsc_fir::fir::ExecGraph::new(compact.into(), debug.into());
+        assert_panics_with(
+            if dangling {
+                "nonexistent Expr"
+            } else {
+                "checked callee"
+            },
+            || {
+                crate::invariants::check(
+                    &store,
+                    pkg_id,
+                    crate::invariants::InvariantLevel::PostAll,
+                );
+            },
+        );
+    }
+}
+
 /// Formats the body spec exec graph of the entry callable as a string for
 /// snapshot testing. Each node is printed on its own line with its index.
 fn format_callable_exec_graph(
@@ -779,7 +873,7 @@ fn exec_graph_callable_with_adjoint_spec_rebuilds_body_and_adj_independently() {
             0: H
             1: Store
             2: Var(Local(LocalVarId(1)))
-            3: Call { callee_span: Span { lo: 52, hi: 53 }, args_span: Span { lo: 54, hi: 55 } }
+            3: Call { callee: ExprId(4), callee_span: Span { lo: 52, hi: 53 }, args_span: Span { lo: 54, hi: 55 } }
             4: Unit
             5: Ret"#]],
     );
@@ -791,7 +885,7 @@ fn exec_graph_callable_with_adjoint_spec_rebuilds_body_and_adj_independently() {
             0: X
             1: Store
             2: Var(Local(LocalVarId(1)))
-            3: Call { callee_span: Span { lo: 74, hi: 75 }, args_span: Span { lo: 76, hi: 77 } }
+            3: Call { callee: ExprId(7), callee_span: Span { lo: 74, hi: 75 }, args_span: Span { lo: 76, hi: 77 } }
             4: Unit
             5: Ret"#]],
     );
@@ -820,7 +914,7 @@ fn controlled_spec_exec_graph_rebuilds_semantic_order() {
             5: Var(Local(LocalVarId(1)))
             6: Store
             7: Tuple(2)
-            8: Call { callee_span: Span { lo: 109, hi: 121 }, args_span: Span { lo: 121, hi: 130 } }
+            8: Call { callee: ExprId(7), callee_span: Span { lo: 109, hi: 121 }, args_span: Span { lo: 121, hi: 130 } }
             9: Unit
             10: Ret"#]],
     );
@@ -852,7 +946,7 @@ fn controlled_adjoint_spec_exec_graph_rebuilds_semantic_order() {
             6: Var(Local(LocalVarId(1)))
             7: Store
             8: Tuple(2)
-            9: Call { callee_span: Span { lo: 227, hi: 247 }, args_span: Span { lo: 247, hi: 256 } }
+            9: Call { callee: ExprId(17), callee_span: Span { lo: 227, hi: 247 }, args_span: Span { lo: 247, hi: 256 } }
             10: Unit
             11: Ret"#]],
     );
@@ -1032,20 +1126,20 @@ fn exec_graph_rebuild_passes_post_all_invariant() {
         0: __quantum__rt__qubit_allocate
         1: Store
         2: Tuple(0)
-        3: Call { callee_span: Span { lo: 73, hi: 89 }, args_span: Span { lo: 73, hi: 89 } }
+        3: Call { callee: ExprId(4), callee_span: Span { lo: 73, hi: 89 }, args_span: Span { lo: 73, hi: 89 } }
         4: Bind(q)
         5: H
         6: Store
         7: Var(Local(LocalVarId(1)))
-        8: Call { callee_span: Span { lo: 98, hi: 99 }, args_span: Span { lo: 100, hi: 101 } }
+        8: Call { callee: ExprId(7), callee_span: Span { lo: 98, hi: 99 }, args_span: Span { lo: 100, hi: 101 } }
         9: Reset
         10: Store
         11: Var(Local(LocalVarId(1)))
-        12: Call { callee_span: Span { lo: 112, hi: 117 }, args_span: Span { lo: 118, hi: 119 } }
+        12: Call { callee: ExprId(10), callee_span: Span { lo: 112, hi: 117 }, args_span: Span { lo: 118, hi: 119 } }
         13: __quantum__rt__qubit_release
         14: Store
         15: Var(Local(LocalVarId(1)))
-        16: Call { callee_span: Span { lo: 73, hi: 89 }, args_span: Span { lo: 73, hi: 89 } }
+        16: Call { callee: ExprId(13), callee_span: Span { lo: 73, hi: 89 }, args_span: Span { lo: 73, hi: 89 } }
         17: Unit
         18: Ret"#]]
     .assert_eq(&graph);

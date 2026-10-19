@@ -102,6 +102,9 @@ use qsc_fir::{
 use thiserror::Error;
 
 use crate::package_assigners::PackageAssigners;
+pub use monomorphize::{
+    Error as MonomorphizeError, RuntimeSpecializationError, RuntimeSpecializations,
+};
 pub use qsc_data_structures::intrinsic_names::is_codegen_noop_intrinsic;
 
 /// Kinds of callable specializations that carry execution graphs.
@@ -290,6 +293,7 @@ fn run_pipeline_to_impl(
     package_id: PackageId,
     stage: PipelineStage,
     pinned_items: &[StoreItemId],
+    runtime_specialization_count: usize,
 ) -> PipelineResult {
     assert!(
         store.get(package_id).entry.is_some(),
@@ -312,7 +316,18 @@ fn run_pipeline_to_impl(
 
     let mut result = PipelineResult::default();
 
-    if let Err(error) = monomorphize::monomorphize(store, package_id, &mut assigners) {
+    let mono_result = if runtime_specialization_count == 0 {
+        monomorphize::monomorphize(store, package_id, &mut assigners)
+    } else {
+        monomorphize::monomorphize_with_runtime_count(
+            store,
+            package_id,
+            &mut assigners,
+            runtime_specialization_count,
+            pinned_items,
+        )
+    };
+    if let Err(error) = mono_result {
         result.errors.push(error.into());
         return result;
     }
@@ -934,7 +949,25 @@ pub fn run_pipeline_to_with_diagnostics(
     stage: PipelineStage,
     pinned_items: &[StoreItemId],
 ) -> PipelineResult {
-    run_pipeline_to_impl(store, package_id, stage, pinned_items)
+    run_pipeline_to_impl(store, package_id, stage, pinned_items, 0)
+}
+
+/// Continues a runtime specialization request through the FIR pipeline.
+/// Its clones and ordinary generic instantiations share the same count budget.
+/// ID watermarks are refreshed after the caller's synthetic entry construction.
+///
+/// # Panics
+/// Panics if the package has no entry expression.
+pub fn run_pipeline_with_runtime_specializations(
+    store: &mut PackageStore,
+    package_id: PackageId,
+    stage: PipelineStage,
+    pinned_items: &[StoreItemId],
+    runtime: RuntimeSpecializations,
+) -> PipelineResult {
+    let count = runtime.count();
+    drop(runtime);
+    run_pipeline_to_impl(store, package_id, stage, pinned_items, count)
 }
 
 /// Runs the full FIR optimization pipeline on the given package, returning

@@ -99,7 +99,7 @@ fn resolve_closure_separates_callable_and_source_packages() {
     assert!(matches!(error, Error::UnboundName(span) if span == source_span));
 }
 
-fn check_expr(file: &str, expr: &str, expect: &Expect) {
+fn compile_expr(file: &str, expr: &str) -> (fir::PackageStore, PackageId, ExecGraph) {
     let mut fir_lowerer = qsc_lowerer::Lowerer::new();
     let mut core = compile::core();
     run_core_passes(&mut core);
@@ -146,18 +146,349 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     fir_store.insert(map_hir_package_to_fir(std_id), std_fir);
     fir_store.insert(map_hir_package_to_fir(id), unit_fir);
 
+    (fir_store, map_hir_package_to_fir(id), entry)
+}
+
+fn check_expr(file: &str, expr: &str, expect: &Expect) {
+    let (fir_store, id, entry) = compile_expr(file, expr);
     let mut out = Vec::new();
     match eval_graph(
         entry,
         &mut SparseSim::new(),
         &fir_store,
         ExecGraphConfig::NoDebug,
-        map_hir_package_to_fir(id),
+        id,
         &mut Env::default(),
         &mut GenericReceiver::new(&mut out),
     ) {
         Ok(value) => expect.assert_eq(&value.to_string()),
         Err((err, _)) => expect.assert_debug_eq(&err),
+    }
+}
+
+fn check_closure_metadata(file: &str, expr: &str, check: impl Fn(Value)) {
+    let (store, id, entry) = compile_expr(file, expr);
+    for config in [ExecGraphConfig::NoDebug, ExecGraphConfig::Debug] {
+        let value = eval_graph(
+            entry.clone(),
+            &mut SparseSim::new(),
+            &store,
+            config,
+            id,
+            &mut Env::default(),
+            &mut GenericReceiver::new(&mut Vec::new()),
+        )
+        .expect("checked source evaluates");
+        check(value);
+    }
+}
+
+fn closure(value: &Value) -> &crate::val::Closure {
+    let Value::Closure(value) = value else {
+        panic!("expected closure");
+    };
+    value
+}
+
+const GENERIC_CLOSURES: &str = r#"
+namespace Test {
+    newtype Wrapped = Int;
+    function MkConst<'T>(x : 'T) : (Unit -> 'T) { () -> x }
+    function MkApply<'T>(op : 'T => Unit) : ('T => Unit) { x => op(x) }
+    function MkNested<'T>(x : 'T) : (Unit -> (Unit -> 'T)) { () -> (() -> x) }
+    function MkHidden<'T>(seed : 'T) : (Unit -> Int) {
+        () -> { let empty : 'T[] = []; Length(empty) }
+    }
+    function MkUnused<'T>(seed : 'T) : (Unit -> Int) { () -> 5 }
+}
+"#;
+
+#[test]
+fn closures_retain_actual_nominal_instantiations() {
+    use qsc_fir::ty::{GenericArg, ParamId, Prim, Ty};
+    check_closure_metadata(
+        GENERIC_CLOSURES,
+        r#"{
+        let make : (Int -> (Unit -> Int)) = Test.MkConst;
+        (Test.MkConst(5), Test.MkConst(Test.Wrapped(5)), Test.MkConst(0.5), make(5))
+    }"#,
+        |value| {
+            let Value::Tuple(values, _) = value else {
+                panic!("tuple");
+            };
+            let plain = closure(&values[0]);
+            let wrapped = closure(&values[1]);
+            let double = closure(&values[2]);
+            let key = ParamId::from(0);
+            assert_eq!(plain.id, wrapped.id);
+            assert_eq!(plain.id, double.id);
+            assert_eq!(plain.fixed_args, wrapped.fixed_args);
+            assert_eq!(
+                plain.type_args.as_ref().expect("checked")[&key],
+                GenericArg::Ty(Ty::Prim(Prim::Int))
+            );
+            assert!(matches!(
+                wrapped.type_args.as_ref().expect("checked")[&key],
+                GenericArg::Ty(Ty::Udt(_))
+            ));
+            assert_eq!(
+                double.type_args.as_ref().expect("checked")[&key],
+                GenericArg::Ty(Ty::Prim(Prim::Double))
+            );
+            assert_ne!(values[0], values[1]);
+            assert_eq!(values[0], values[3]);
+        },
+    );
+}
+
+#[test]
+fn factory_aliases_retain_checked_functor_arguments() {
+    use qsc_fir::ty::{FunctorSet, FunctorSetValue, GenericArg};
+    check_closure_metadata(
+        GENERIC_CLOSURES,
+        r#"{
+        let make : ((Qubit => Unit) -> (Qubit => Unit)) = Test.MkApply;
+        (Test.MkApply(X), make(X))
+    }"#,
+        |value| {
+            let Value::Tuple(values, _) = value else {
+                panic!("tuple");
+            };
+            let direct = closure(&values[0]);
+            let alias = closure(&values[1]);
+            assert_eq!(direct.id, alias.id);
+            assert_eq!(direct.fixed_args, alias.fixed_args);
+            let functors = |value: &crate::val::Closure| {
+                value
+                    .type_args
+                    .as_ref()
+                    .expect("checked")
+                    .values()
+                    .find_map(|arg| {
+                        if let GenericArg::Functor(FunctorSet::Value(value)) = arg {
+                            Some(*value)
+                        } else {
+                            None
+                        }
+                    })
+                    .expect("functor parameter")
+            };
+            assert_eq!(functors(direct), FunctorSetValue::CtlAdj);
+            assert_eq!(functors(alias), FunctorSetValue::Empty);
+        },
+    );
+}
+
+#[test]
+fn partial_applications_distinguish_identical_captures_with_different_creator_types() {
+    use qsc_fir::ty::{GenericArg, ParamId, Prim, Ty};
+    check_closure_metadata(
+        r#"
+        namespace Test {
+            newtype Wrapped = Int;
+            operation Ignore<'U>(x : 'U) : Unit is Adj + Ctl {}
+            operation ApplyRepeated<'T>(op : 'T => Unit is Adj + Ctl, power : Int, target : 'T) : Unit is Adj + Ctl {
+                for _ in 1..power { op(target); }
+            }
+            function MakeRepeatedOp<'T>(op : 'T => Unit is Adj + Ctl, power : Int) : ('T => Unit is Adj + Ctl) {
+                ApplyRepeated(op, power, _)
+            }
+        }
+        "#,
+        r#"{
+            let plain : Int => Unit is Adj + Ctl = Test.Ignore;
+            let wrapped : Test.Wrapped => Unit is Adj + Ctl = Test.Ignore;
+            (Test.MakeRepeatedOp(plain, 1), Test.MakeRepeatedOp(wrapped, 1), Test.MakeRepeatedOp(plain, 2))
+        }"#,
+        |value| {
+            let Value::Tuple(values, _) = value else {
+                panic!("tuple");
+            };
+            let plain = closure(&values[0]);
+            let wrapped = closure(&values[1]);
+            let twice = closure(&values[2]);
+            assert_eq!(plain.id, wrapped.id);
+            assert_eq!(plain.fixed_args, wrapped.fixed_args);
+            assert_eq!(
+                plain.type_args.as_ref().expect("checked")[&ParamId::from(0)],
+                GenericArg::Ty(Ty::Prim(Prim::Int))
+            );
+            assert!(matches!(
+                wrapped.type_args.as_ref().expect("checked")[&ParamId::from(0)],
+                GenericArg::Ty(Ty::Udt(_))
+            ));
+            assert_ne!(plain.type_args, wrapped.type_args);
+            assert_eq!(plain.type_args, twice.type_args);
+            assert_ne!(plain.fixed_args, twice.fixed_args);
+        },
+    );
+}
+
+#[test]
+fn closures_retain_body_only_but_not_unused_parameters() {
+    check_closure_metadata(
+        GENERIC_CLOSURES,
+        r#"(
+        Test.MkHidden(5), Test.MkHidden(Test.Wrapped(5)),
+        Test.MkUnused(5), Test.MkUnused(Test.Wrapped(5))
+    )"#,
+        |value| {
+            let Value::Tuple(values, _) = value else {
+                panic!("tuple");
+            };
+            assert!(closure(&values[0]).fixed_args.is_empty());
+            assert!(closure(&values[1]).fixed_args.is_empty());
+            assert_ne!(closure(&values[0]).type_args, closure(&values[1]).type_args);
+            assert_eq!(values[2], values[3]);
+            assert!(
+                closure(&values[2])
+                    .type_args
+                    .as_ref()
+                    .expect("checked empty")
+                    .is_empty()
+            );
+        },
+    );
+}
+
+#[test]
+fn closure_calls_restore_their_creator_context() {
+    use qsc_fir::ty::{GenericArg, ParamId, Prim, Ty};
+    check_closure_metadata(
+        GENERIC_CLOSURES,
+        r#"{
+        let outer = Test.MkNested(Test.Wrapped(5));
+        let other = Test.MkNested(0.5);
+        let _ = Length([1, 2]);
+        (outer(), other(), Test.MkConst(5), outer())
+    }"#,
+        |value| {
+            let Value::Tuple(values, _) = value else {
+                panic!("tuple");
+            };
+            let binding = |index: usize| {
+                closure(&values[index]).type_args.as_ref().expect("checked")[&ParamId::from(0)]
+                    .clone()
+            };
+            assert!(matches!(binding(0), GenericArg::Ty(Ty::Udt(_))));
+            assert_eq!(binding(1), GenericArg::Ty(Ty::Prim(Prim::Double)));
+            assert_eq!(binding(2), GenericArg::Ty(Ty::Prim(Prim::Int)));
+            assert_eq!(values[0], values[3]);
+        },
+    );
+}
+
+#[test]
+fn native_calls_preserve_closure_context_without_inventing_global_arguments() {
+    let (store, id, entry) = compile_expr(GENERIC_CLOSURES, "Test.MkNested(Test.Wrapped(5))");
+    let factory = store
+        .get(id)
+        .items
+        .iter()
+        .find_map(|(item, value)| {
+            if let fir::ItemKind::Callable(decl) = &value.kind
+                && decl.name.name.as_ref() == "MkConst"
+            {
+                Some(fir::StoreItemId { package: id, item })
+            } else {
+                None
+            }
+        })
+        .expect("factory");
+    for config in [ExecGraphConfig::NoDebug, ExecGraphConfig::Debug] {
+        let outer = eval_graph(
+            entry.clone(),
+            &mut SparseSim::new(),
+            &store,
+            config,
+            id,
+            &mut Env::default(),
+            &mut GenericReceiver::new(&mut Vec::new()),
+        )
+        .expect("outer");
+        let invoke = |value, args| {
+            crate::invoke(
+                id,
+                None,
+                &store,
+                config,
+                &mut Env::default(),
+                &mut TracingBackend::no_tracer(&mut SparseSim::new()),
+                &mut GenericReceiver::new(&mut Vec::new()),
+                value,
+                args,
+            )
+            .expect("native invocation")
+        };
+        let inner = invoke(outer.clone(), Value::unit());
+        assert_eq!(closure(&outer).type_args, closure(&inner).type_args);
+        assert!(closure(&inner).type_args.is_some());
+        let untyped = invoke(Value::Global(factory, Default::default()), Value::Int(5));
+        assert!(closure(&untyped).type_args.is_none());
+    }
+}
+
+#[test]
+fn checked_context_survives_early_returns_debug_steps_and_errors() {
+    let source = format!(
+        r#"{GENERIC_CLOSURES}
+        namespace Test {{
+            @SimulatableIntrinsic()
+            operation Touch() : Unit {{ }}
+            operation Wrap<'T>(x : 'T, stop : Bool) : (Unit -> 'T) {{
+                let other = MkConst(0.5);
+                let _ = other();
+                let _ = Length([x]);
+                Touch();
+                if stop {{ fail "stop"; }}
+                return MkConst(x);
+            }}
+        }}
+    "#
+    );
+    for stop in [false, true] {
+        let (store, id, graph) =
+            compile_expr(&source, &format!("Test.Wrap(Test.Wrapped(5), {stop})"));
+        for behavior in [ErrorBehavior::FailOnError, ErrorBehavior::StopOnError] {
+            let mut state = State::new(id, graph.clone(), ExecGraphConfig::Debug, None, behavior);
+            let mut env = Env::default();
+            let mut sim = SparseSim::new();
+            loop {
+                match state.eval(
+                    &store,
+                    &mut env,
+                    &mut TracingBackend::no_tracer(&mut sim),
+                    &mut GenericReceiver::new(&mut Vec::new()),
+                    &[],
+                    StepAction::In,
+                ) {
+                    Ok(StepResult::Return(value)) => {
+                        assert!(!stop);
+                        let args = closure(&value).type_args.as_ref().expect("checked");
+                        assert!(args.values().any(|arg| matches!(
+                            arg,
+                            qsc_fir::ty::GenericArg::Ty(qsc_fir::ty::Ty::Udt(_))
+                        )));
+                        assert!(state.type_args.is_empty());
+                        break;
+                    }
+                    Ok(StepResult::Fail(message)) => {
+                        assert!(stop);
+                        assert!(message.contains("stop"));
+                        assert!(state.exec_graph_stack.is_empty());
+                        break;
+                    }
+                    Err((error, _)) => {
+                        assert!(stop);
+                        assert!(error.to_string().contains("stop"));
+                        break;
+                    }
+                    Ok(_) => {
+                        assert_eq!(state.type_args.len(), state.exec_graph_stack.len());
+                    }
+                }
+            }
+        }
     }
 }
 

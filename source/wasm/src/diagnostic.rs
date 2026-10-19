@@ -315,12 +315,15 @@ fn interpret_error_labels(err: &interpret::Error) -> Vec<Label> {
         interpret::Error::Pass(e) => error_labels(e),
         interpret::Error::PartialEvaluation(e) => error_labels(e),
         interpret::Error::FirTransform(e) => error_labels(e),
+        interpret::Error::InvalidRuntimeInstantiation(e) => error_labels(e),
         interpret::Error::NoEntryPoint
         | interpret::Error::UnsupportedRuntimeCapabilities
         | interpret::Error::Circuit(_)
         | interpret::Error::NotAnOperation
         | interpret::Error::NotACallable
         | interpret::Error::InvalidRuntimeCallableArgumentType { .. }
+        | interpret::Error::MissingRuntimeClosureTypeInformation(_)
+        | interpret::Error::MissingRuntimeCallableTypeInformation(_)
         | interpret::Error::InvalidRuntimeCallableFunctor { .. } => Vec::new(),
     }
 }

@@ -576,6 +576,7 @@ fn rebuild_expr(
             let args_span = package.get_expr(arg).span;
             builder.push(ExecGraphNode::Expr(
                 ExecGraphExpr::Call {
+                    callee,
                     callee_span: callee_span.span,
                     args_span: args_span.span,
                 },

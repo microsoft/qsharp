@@ -2913,6 +2913,551 @@ fn runtime_argument_global(interpreter: &crate::interpret::Interpreter, name: &s
         .value
 }
 
+const RUNTIME_GENERIC_CLOSURES: &str = r#"
+    newtype Wrapped = Int;
+    function MkConst<'T>(x : 'T) : (Unit -> 'T) { () -> x }
+    function MkInt(x : Int) : (Unit -> Int) { () -> x }
+    function MkApply<'T>(op : 'T => Unit) : ('T => Unit) { x => op(x) }
+    function MkNested<'T>(x : 'T) : (Unit -> (Unit -> 'T)) { () -> (() -> x) }
+    function MkHidden<'T>(seed : 'T) : (Unit -> Int) {
+        () -> { let empty : 'T[] = []; Length(empty) }
+    }
+    operation Run(f : Unit -> Int) : Result {
+        use q = Qubit();
+        if f() == 5 { X(q); }
+        MResetZ(q)
+    }
+    operation RunWrapped(f : Unit -> Wrapped) : Result {
+        use q = Qubit();
+        if f()! == 5 { X(q); }
+        MResetZ(q)
+    }
+    operation RunMixed(f : Unit -> Int, g : Unit -> Double) : Result {
+        use q = Qubit();
+        if f() == 5 and g() == 0.5 { X(q); }
+        MResetZ(q)
+    }
+    operation RunOp(op : Qubit => Unit) : Result {
+        use q = Qubit();
+        op(q);
+        MResetZ(q)
+    }
+    operation RunZero(f : Unit -> Int) : Result {
+        use q = Qubit();
+        if f() == 0 { X(q); }
+        MResetZ(q)
+    }
+"#;
+
+const RUNTIME_GENERIC_CALLABLES: &str = r#"
+    operation Ap(op : Qubit => Unit) : Unit {}
+    operation RunAp(f : (Qubit => Unit) => Unit) : Unit { f(X); }
+    operation ApEffect(op : Qubit => Unit, q : Qubit) : Unit { op(q); }
+    operation ApAdj(op : Qubit => Unit is Adj, q : Qubit) : Unit { Adjoint op(q); }
+    operation RunEffect(f : ((Qubit => Unit), Qubit) => Unit) : Result {
+        use q = Qubit(); f(X, q); MResetZ(q)
+    }
+    operation RunAdj(f : ((Qubit => Unit is Adj), Qubit) => Unit) : Result {
+        use q = Qubit(); f(X, q); MResetZ(q)
+    }
+    operation ApplyRepeated<'T>(
+        op : 'T => Unit is Adj + Ctl, power : Int, target : 'T
+    ) : Unit is Adj + Ctl {
+        for _ in 1..power { op(target); }
+    }
+    function MakeRepeatedOp<'T>(
+        op : 'T => Unit is Adj + Ctl, power : Int
+    ) : ('T => Unit is Adj + Ctl) { ApplyRepeated(op, power, _) }
+    operation Flip(qs : Qubit[]) : Unit is Adj + Ctl { X(qs[0]); }
+    operation RunPartial(op : Qubit[] => Unit) : Result {
+        use qs = Qubit[1]; op(qs); MResetZ(qs[0])
+    }
+    operation RunPowers(ops : (Qubit[] => Unit)[]) : Result[] {
+        use qs = Qubit[1];
+        mutable results = [];
+        for op in ops { op(qs); set results += [MResetZ(qs[0])]; }
+        results
+    }
+    function Foo<'U>(x : 'U) : 'U { x }
+    function G<'T>() : Unit { let y = Foo(1); let _ = y + 1; }
+    operation Unused<'T>(op : Qubit => Unit) : Unit { fail "must not execute"; }
+    operation Concrete<'T>(x : 'T) : Result {
+        let _ = Foo(x); use q = Qubit(); X(q); MResetZ(q)
+    }
+    newtype Wrapped = Int;
+    operation Ignore<'U>(x : 'U) : Unit is Adj + Ctl {}
+    operation RunInt(op : Int => Unit is Adj + Ctl) : Unit { op(5); }
+    function Add<'T: Add>(x : 'T) : 'T { x + x }
+    operation RunBool(f : Bool -> Bool) : Unit { let _ = f(true); }
+"#;
+
+#[test]
+fn native_generic_globals_preserve_functor_schemes() {
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let mut interpreter = interpreter_with_capabilities(profile.into());
+        eval_fragments(&mut interpreter, RUNTIME_GENERIC_CALLABLES);
+        for (target, argument) in [
+            ("RunAp", "Ap"),
+            ("RunEffect", "ApEffect"),
+            ("RunAdj", "ApAdj"),
+        ] {
+            let callable = runtime_argument_global(&interpreter, target);
+            let args = runtime_argument_global(&interpreter, argument);
+            let native = interpreter
+                .qirgen_from_callable(&callable, args)
+                .expect("native generic callback");
+            let source = interpreter
+                .qirgen(&format!("{target}({argument})"))
+                .expect("source callback");
+            assert_eq!(native, source, "{profile:?} {argument}");
+        }
+    }
+}
+
+#[test]
+fn native_generic_targets_require_complete_evidence() {
+    use miette::Diagnostic;
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let mut interpreter = interpreter_with_capabilities(profile.into());
+        eval_fragments(&mut interpreter, RUNTIME_GENERIC_CALLABLES);
+        for (target, argument) in [("G", "()"), ("Unused", "X")] {
+            let callable = runtime_argument_global(&interpreter, target);
+            let args = eval_fragments(&mut interpreter, argument);
+            let errors = interpreter
+                .qirgen_from_callable(&callable, args)
+                .expect_err("missing type evidence");
+            assert!(matches!(
+                errors.as_slice(),
+                [crate::interpret::Error::MissingRuntimeCallableTypeInformation(_)]
+            ));
+            assert_eq!(
+                errors[0].code().expect("diagnostic code").to_string(),
+                "Qdk.Qsc.Interpret.MissingRuntimeCallableTypeInformation"
+            );
+        }
+        for argument in ["5", "(5, true)"] {
+            let callable = runtime_argument_global(&interpreter, "Concrete");
+            let args = eval_fragments(&mut interpreter, argument);
+            let native = interpreter
+                .qirgen_from_callable(&callable, args)
+                .expect("concrete target");
+            let source = interpreter
+                .qirgen(&format!("Concrete({argument})"))
+                .expect("source target");
+            assert_eq!(native, source);
+        }
+    }
+}
+
+#[test]
+fn native_partial_applications_preserve_creator_types_and_captures() {
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let mut interpreter = interpreter_with_capabilities(profile.into());
+        eval_fragments(&mut interpreter, RUNTIME_GENERIC_CALLABLES);
+        for (target, argument) in [
+            ("RunPartial", "MakeRepeatedOp(Flip, 1)"),
+            (
+                "RunPowers",
+                "[MakeRepeatedOp(Flip, 1), MakeRepeatedOp(Flip, 2)]",
+            ),
+            (
+                "RunInt",
+                "{ let op : Int => Unit is Adj + Ctl = Ignore; MakeRepeatedOp(op, 1) }",
+            ),
+        ] {
+            let callable = runtime_argument_global(&interpreter, target);
+            let args = eval_fragments(&mut interpreter, argument);
+            let native = interpreter
+                .qirgen_from_callable(&callable, args)
+                .expect("native partial");
+            let source = interpreter
+                .qirgen(&format!("{target}({argument})"))
+                .expect("source partial");
+            assert_eq!(native, source, "{profile:?} {argument}");
+        }
+        let callable = runtime_argument_global(&interpreter, "RunInt");
+        let args = eval_fragments(
+            &mut interpreter,
+            "{ let op : Wrapped => Unit is Adj + Ctl = Ignore; MakeRepeatedOp(op, 1) }",
+        );
+        let errors = interpreter
+            .qirgen_from_callable(&callable, args)
+            .expect_err("nominal creator mismatch");
+        assert!(matches!(errors.as_slice(),
+            [crate::interpret::Error::InvalidRuntimeCallableArgumentType { expected, actual }]
+            if **expected == qsc_fir::ty::Ty::Prim(qsc_fir::ty::Prim::Int)
+                && matches!(actual.as_ref(), qsc_fir::ty::Ty::Udt(_))));
+    }
+}
+
+#[test]
+fn native_generic_candidates_obey_class_and_functor_bounds() {
+    use miette::Diagnostic;
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let mut interpreter = interpreter_with_capabilities(profile.into());
+        eval_fragments(&mut interpreter, RUNTIME_GENERIC_CALLABLES);
+        for (target, argument, code) in [
+            ("RunBool", "Add", "Qdk.Qsc.TypeCk.MissingClassAdd"),
+            ("RunEffect", "ApAdj", "Qdk.Qsc.TypeCk.MissingFunctor"),
+        ] {
+            let callable = runtime_argument_global(&interpreter, target);
+            let args = runtime_argument_global(&interpreter, argument);
+            let errors = interpreter
+                .qirgen_from_callable(&callable, args)
+                .expect_err("invalid generic candidate");
+            assert!(
+                matches!(
+                    errors.as_slice(),
+                    [crate::interpret::Error::InvalidRuntimeInstantiation(_)]
+                ),
+                "{errors:?}"
+            );
+            assert_eq!(errors[0].code().expect("diagnostic code").to_string(), code);
+            assert!(errors[0].labels().expect("source labels").next().is_some());
+            let source_errors = interpreter
+                .qirgen(&format!("{target}({argument})"))
+                .expect_err("the source type checker rejects the same candidate");
+            assert!(
+                source_errors.iter().any(|error| error
+                    .code()
+                    .is_some_and(|actual| actual.to_string() == code)),
+                "{source_errors:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn native_generic_pinned_targets_retain_concrete_ids_and_dependencies() {
+    let source = r#"
+        namespace Test {
+            function Id<'U>(x : 'U) : 'U { x }
+            operation Apply<'T>(op : 'T => Unit, x : 'T) : Unit { op(Id(x)); }
+            operation Flip(q : Qubit) : Unit { X(q); }
+        }
+    "#;
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let caps = profile.into();
+        let (store, pkg, items) =
+            compile_and_locate_items(source, &[("Apply", true), ("Flip", true)], caps);
+        let original = fir_id_for(pkg, items["Apply"]);
+        let qubit = Rc::new(qsc_eval::val::Qubit(0));
+        let args = Value::Tuple(
+            vec![
+                Value::Global(fir_id_for(pkg, items["Flip"]), FunctorApp::default()),
+                Value::Qubit((&qubit).into()),
+            ]
+            .into(),
+            None,
+        );
+        let (prepared, backend) = prepare_codegen_fir_from_callable_args(
+            &store,
+            hir_id_for(pkg, items["Apply"]),
+            &args,
+            caps,
+        )
+        .expect("pinned generic preparation");
+        let CallableArgsBackend::ReinvokeOriginal {
+            callable,
+            args: retained,
+            ..
+        } = backend
+        else {
+            panic!("live identity must be reinvoked");
+        };
+        assert_ne!(callable, original);
+        assert_eq!(callable.package, original.package);
+        assert_eq!(retained, args);
+        let FirItemKind::Callable(decl) = &prepared
+            .fir_store
+            .get(callable.package)
+            .get_item(callable.item)
+            .kind
+        else {
+            panic!("concrete target");
+        };
+        assert!(decl.generics.is_empty());
+        assert!(
+            prepared
+                .fir_store
+                .get(callable.package)
+                .get_pat(decl.input)
+                .ty
+                .is_concrete()
+        );
+        assert!(
+            prepared
+                .fir_store
+                .get(callable.package)
+                .items
+                .values()
+                .all(|item| {
+                    !matches!(&item.kind, FirItemKind::Callable(decl) if !decl.generics.is_empty())
+                })
+        );
+    }
+}
+
+#[test]
+fn native_foreign_partial_applications_match_source_qir() {
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let caps = profile.into();
+        let (std_id, store) = crate::compile::package_store_with_stdlib(caps);
+        let mut interpreter = crate::interpret::Interpreter::new(
+            SourceMap::new(
+                [(
+                    "library.qs".into(),
+                    format!("namespace Library {{ {RUNTIME_GENERIC_CALLABLES} }}").into(),
+                )],
+                None,
+            ),
+            PackageType::Lib,
+            caps,
+            LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
+            Default::default(),
+        )
+        .expect("library");
+        eval_fragments(&mut interpreter, RUNTIME_GENERIC_CALLABLES);
+        for argument in [
+            "Library.MakeRepeatedOp(Library.Flip, 1)",
+            "Adjoint (Library.MakeRepeatedOp(Library.Flip, 1))",
+        ] {
+            let target = runtime_argument_global(&interpreter, "RunPartial");
+            let args = eval_fragments(&mut interpreter, argument);
+            let native = interpreter
+                .qirgen_from_callable(&target, args)
+                .expect("foreign partial");
+            let source = interpreter
+                .qirgen(&format!("RunPartial({argument})"))
+                .expect("source partial");
+            assert_eq!(native, source);
+        }
+    }
+}
+
+#[test]
+fn runtime_generic_closures_match_checked_source_qir() {
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let mut interpreter = interpreter_with_capabilities(profile.into());
+        eval_fragments(&mut interpreter, RUNTIME_GENERIC_CLOSURES);
+        for (target, argument) in [
+            ("Run", "MkConst(5)"),
+            ("RunWrapped", "MkConst(Wrapped(5))"),
+            ("RunMixed", "(MkConst(5), MkConst(0.5))"),
+            ("RunOp", "MkApply(X)"),
+            (
+                "RunOp",
+                "{ let make : ((Qubit => Unit) -> (Qubit => Unit)) = MkApply; make(X) }",
+            ),
+            ("Run", "MkInt(5)"),
+            (
+                "Run",
+                "{ let make : (Int -> (Unit -> Int)) = MkConst; make(5) }",
+            ),
+            ("Run", "MkNested(5)()"),
+            ("RunZero", "MkHidden(5)"),
+            ("RunZero", "MkHidden(Wrapped(5))"),
+        ] {
+            let callable = runtime_argument_global(&interpreter, target);
+            let args = eval_fragments(&mut interpreter, argument);
+            let native = interpreter
+                .qirgen_from_callable(&callable, args)
+                .unwrap_or_else(|errors| panic!("{profile:?} {target}({argument}): {errors:?}"));
+            let source = interpreter
+                .qirgen(&format!("{target}({argument})"))
+                .expect("source QIR");
+            assert_eq!(native, source, "{profile:?} {target}({argument})");
+        }
+    }
+}
+
+#[test]
+fn runtime_generic_closures_reject_wrong_nominal_or_missing_evidence() {
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let mut interpreter = interpreter_with_capabilities(profile.into());
+        eval_fragments(&mut interpreter, RUNTIME_GENERIC_CLOSURES);
+        let run = runtime_argument_global(&interpreter, "Run");
+        let wrapped = eval_fragments(&mut interpreter, "MkConst(Wrapped(5))");
+        let errors = interpreter
+            .qirgen_from_callable(&run, wrapped)
+            .expect_err("wrong nominal type");
+        assert!(matches!(
+            &errors[..],
+            [crate::interpret::Error::InvalidRuntimeCallableArgumentType { .. }]
+        ));
+        let mut raw = eval_fragments(&mut interpreter, "MkConst(5)");
+        let Value::Closure(closure) = &mut raw else {
+            panic!("closure");
+        };
+        let target = closure.id;
+        closure.type_args = None;
+        let errors = interpreter
+            .qirgen_from_callable(&run, raw)
+            .expect_err("unavailable type evidence");
+        assert!(
+            matches!(&errors[..], [crate::interpret::Error::MissingRuntimeClosureTypeInformation(id)] if *id == target)
+        );
+        assert_eq!(
+            miette::Diagnostic::code(&errors[0])
+                .expect("code")
+                .to_string(),
+            "Qdk.Qsc.Interpret.MissingRuntimeClosureTypeInformation"
+        );
+    }
+}
+
+#[test]
+fn runtime_generic_closures_preserve_distinct_captures_in_foreign_packages() {
+    let source = r#"namespace Library {
+        function MkConst<'T>(x : 'T) : (Unit -> 'T) { () -> x }
+    }"#;
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let (std_id, store) = crate::compile::package_store_with_stdlib(profile.into());
+        let mut interpreter = crate::interpret::Interpreter::new(
+            SourceMap::new([("library.qs".into(), source.into())], None),
+            PackageType::Lib,
+            profile.into(),
+            LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
+            Default::default(),
+        )
+        .expect("interpreter");
+        eval_fragments(
+            &mut interpreter,
+            r#"
+            operation RunPair(fs : (Unit -> Int)[]) : Result {
+                use q = Qubit();
+                if fs[0]() == 3 and fs[1]() == 5 { X(q); }
+                MResetZ(q)
+            }
+        "#,
+        );
+        let target = runtime_argument_global(&interpreter, "RunPair");
+        let args = eval_fragments(&mut interpreter, "[Library.MkConst(3), Library.MkConst(5)]");
+        let Value::Array(values) = &args else {
+            panic!("array");
+        };
+        let (Value::Closure(a), Value::Closure(b)) = (&values[0], &values[1]) else {
+            panic!("closures");
+        };
+        assert_eq!(a.id, b.id);
+        assert_eq!(a.type_args, b.type_args);
+        assert_ne!(a.fixed_args, b.fixed_args);
+        let Value::Global(target_id, _) = &target else {
+            panic!("global");
+        };
+        assert_ne!(a.id.package, target_id.package);
+        let native = interpreter
+            .qirgen_from_callable(&target, args)
+            .expect("foreign closures");
+        let source = interpreter
+            .qirgen("RunPair([Library.MkConst(3), Library.MkConst(5)])")
+            .expect("source");
+        assert_eq!(native, source);
+    }
+}
+
+#[test]
+fn runtime_generic_closure_functors_preserve_instantiation_and_behavior() {
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let mut interpreter = interpreter_with_capabilities(profile.into());
+        eval_fragments(&mut interpreter, RUNTIME_GENERIC_CLOSURES);
+        eval_fragments(
+            &mut interpreter,
+            r#"
+            function MkApplyAll<'T>(op : 'T => Unit is Adj + Ctl) : ('T => Unit is Adj + Ctl) {
+                x => op(x)
+            }
+            operation RunControlled(op : (Qubit[], Qubit) => Unit) : Result {
+                use control = Qubit();
+                use target = Qubit();
+                X(control);
+                op([control], target);
+                let _ = MResetZ(control);
+                MResetZ(target)
+            }
+        "#,
+        );
+        let original = eval_fragments(&mut interpreter, "MkApplyAll(X)");
+        let Value::Closure(original) = original else {
+            panic!("closure");
+        };
+        for (target, expression, controlled) in [
+            ("RunOp", "Adjoint (MkApplyAll(X))", 0),
+            ("RunControlled", "Controlled (MkApplyAll(X))", 1),
+        ] {
+            let args = eval_fragments(&mut interpreter, expression);
+            let Value::Closure(closure) = &args else {
+                panic!("closure");
+            };
+            assert_eq!(closure.type_args, original.type_args);
+            assert_eq!(closure.functor.controlled, controlled);
+            assert_eq!(closure.functor.adjoint, controlled == 0);
+            let callable = runtime_argument_global(&interpreter, target);
+            let native = interpreter
+                .qirgen_from_callable(&callable, args)
+                .expect("functored closure");
+            let source = interpreter
+                .qirgen(&format!("{target}({expression})"))
+                .expect("source");
+            assert_eq!(native, source);
+        }
+    }
+}
+
 #[test]
 fn runtime_callable_argument_signature_mismatch_is_rejected() {
     let source = r#"
@@ -4267,6 +4812,7 @@ fn synthetic_path_captureless_closure_adjoint_preserves_functor() {
         compile_and_locate_items(source, &[("Invoke", true), ("DoS", true)], caps);
 
     let adjoint_do_s = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: Vec::<Value>::new().into(),
         id: fir_id_for(pkg, items["DoS"]),
         functor: FunctorApp {
@@ -4390,6 +4936,7 @@ fn foreign_closure_arguments_preserve_package_identity() {
                 .expect("library must contain a lifted lambda");
             let library_package = store.insert(unit);
             let foreign = Value::Closure(Box::new(qsc_eval::val::Closure {
+                type_args: None,
                 id: fir_id_for(library_package, lambda),
                 fixed_args: if capturing {
                     vec![Value::Int(100)]
@@ -4400,6 +4947,7 @@ fn foreign_closure_arguments_preserve_package_identity() {
                 functor: FunctorApp::default(),
             }));
             let wrapped = Value::Closure(Box::new(qsc_eval::val::Closure {
+                type_args: None,
                 id: fir_id_for(user_package, items[".lambda"]),
                 fixed_args: vec![foreign.clone()].into(),
                 functor: FunctorApp::default(),
@@ -4491,6 +5039,7 @@ fn foreign_operation_closure_arrays_emit_the_library_gate() {
             let library_package = store.insert(unit);
             let argument = Value::Array(
                 vec![Value::Closure(Box::new(qsc_eval::val::Closure {
+                    type_args: None,
                     id: fir_id_for(library_package, lambda),
                     fixed_args: if capturing {
                         vec![Value::Bool(true)]
@@ -4557,6 +5106,7 @@ fn synthetic_path_classical_capture_closure_generates_qir() {
     // The lifted lambda's input is `(shift, register)`; capturing `shift = 1`
     // leaves the explicit `register` slot for the synthetic entry to supply.
     let shifted_closure = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![Value::Int(1)].into(),
         id: fir_id_for(pkg, items[".lambda"]),
         functor: FunctorApp::default(),
@@ -5307,6 +5857,7 @@ fn synthetic_path_controlled_hof_forwarded_capturing_closure_generates_qir() {
         FunctorApp::default(),
     );
     let select = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![Value::Array(Rc::new(vec![Value::Int(1)]))].into(),
         id: fir_id_for(pkg, items[".lambda"]),
         functor: FunctorApp::default(),
@@ -5403,6 +5954,7 @@ fn synthetic_path_doubly_controlled_hof_forwarded_capturing_closure_generates_qi
         FunctorApp::default(),
     );
     let select = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![Value::Array(Rc::new(vec![Value::Int(1)]))].into(),
         id: fir_id_for(pkg, items[".lambda"]),
         functor: FunctorApp::default(),
@@ -5478,6 +6030,7 @@ fn synthetic_path_single_callable_doubly_controlled_hof_forwarded_capturing_clos
     );
 
     let select = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![Value::Array(Rc::new(vec![Value::Int(1)]))].into(),
         id: fir_id_for(pkg, items[".lambda"]),
         functor: FunctorApp::default(),
@@ -5600,16 +6153,19 @@ fn same_target_multi_closure_args_route_to_synthetic_entry_and_generate_qir() {
 
     let apply_rz = fir_id_for(pkg, items["ApplyRz"]);
     let first = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![Value::Double(1.0)].into(),
         id: apply_rz,
         functor: FunctorApp::default(),
     }));
     let second = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![Value::Double(2.0)].into(),
         id: apply_rz,
         functor: FunctorApp::default(),
     }));
     let third = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![Value::Double(3.0)].into(),
         id: apply_rz,
         functor: FunctorApp::default(),
@@ -5684,11 +6240,13 @@ fn nested_closure_arg_routes_to_synthetic_entry_and_generates_inner_effect() {
     );
 
     let inner = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![Value::Double(4.0)].into(),
         id: fir_id_for(pkg, items[".lambda"]),
         functor: FunctorApp::default(),
     }));
     let outer = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![inner].into(),
         id: fir_id_for(pkg, items["ApplyInner"]),
         functor: FunctorApp::default(),
@@ -5751,6 +6309,7 @@ fn classical_capture_closure_routes_to_synthetic_entry_qubit_capture_does_not() 
     // Keep the captured qubit alive for the duration of the closure value.
     let captured_qubit = Rc::new(qsc_eval::val::Qubit(0));
     let qubit_closure = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![Value::Qubit((&captured_qubit).into())].into(),
         id: fir_id_for(pkg, items[".lambda"]),
         functor: FunctorApp::default(),
@@ -5981,6 +6540,7 @@ fn early_return_in_dynamic_branch_synthetic_and_reinvoke_both_compile_parity() {
     // The lifted lambda's input is `(reps, target)`; capturing `reps = 1` leaves the
     // explicit `target` slot for the closure invocation to supply.
     let rotation_closure = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![Value::Int(1)].into(),
         id: fir_id_for(pkg, items[".lambda"]),
         functor: FunctorApp::default(),
@@ -6016,6 +6576,7 @@ fn early_return_in_dynamic_branch_synthetic_and_reinvoke_both_compile_parity() {
     // Keep the captured qubit alive for the duration of the closure value.
     let captured_qubit = Rc::new(qsc_eval::val::Qubit(0));
     let qubit_closure = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![Value::Qubit((&captured_qubit).into())].into(),
         id: fir_id_for(pkg, items[".lambda"]),
         functor: FunctorApp::default(),
@@ -6063,6 +6624,7 @@ fn early_return_in_dynamic_branch_reinvoke_original_compiles_parity_target() {
     // Keep the captured qubit alive for the duration of the closure value.
     let captured_qubit = Rc::new(qsc_eval::val::Qubit(0));
     let qubit_closure = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![Value::Qubit((&captured_qubit).into())].into(),
         id: fir_id_for(pkg, items[".lambda"]),
         functor: FunctorApp::default(),
@@ -6700,6 +7262,7 @@ fn chemistry_like_sequential_partial_application_generates_qir() {
         FunctorApp::default(),
     );
     let sequential = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![first_step, second_step].into(),
         id: fir_id_for(pkg, items[".lambda"]),
         functor: FunctorApp::default(),
@@ -7005,6 +7568,7 @@ fn chemistry_like_state_preparation_closure_with_empty_expansion_ops_generates_q
         None,
     );
     let prepare = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![state_params].into(),
         id: fir_id_for(pkg, items["ApplyStatePreparation"]),
         functor: FunctorApp::default(),
@@ -7326,6 +7890,7 @@ fn chemistry_like_standard_qpe_callable_array_of_closures_generates_qir() {
         None,
     );
     let state_prep = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![state_prep_params].into(),
         id: fir_id_for(pkg, items["StatePreparation"]),
         functor: FunctorApp::default(),
@@ -7343,6 +7908,7 @@ fn chemistry_like_standard_qpe_callable_array_of_closures_generates_qir() {
                     None,
                 );
                 Value::Closure(Box::new(qsc_eval::val::Closure {
+                    type_args: None,
                     fixed_args: vec![params].into(),
                     id: rep_controlled_id,
                     functor: FunctorApp::default(),
@@ -7352,6 +7918,7 @@ fn chemistry_like_standard_qpe_callable_array_of_closures_generates_qir() {
             .into(),
     );
     let phase_prep = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![].into(),
         id: fir_id_for(pkg, items["PreparePhase"]),
         functor: FunctorApp::default(),
@@ -7614,6 +8181,7 @@ fn chemistry_like_iqpe_with_controlled_psp_closure_generates_qir() {
         FunctorApp::default(),
     );
     let rep_controlled_unitary = Value::Closure(Box::new(qsc_eval::val::Closure {
+        type_args: None,
         fixed_args: vec![prepare.clone(), select, Value::Int(1), Value::Int(1)].into(),
         id: fir_id_for(pkg, items[".lambda"]),
         functor: FunctorApp::default(),

@@ -3,7 +3,7 @@
 
 use indenter::indented;
 use qsc_data_structures::{display::core::set_indentation, span::Span};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::fir::{CallableKind, FieldPath, Functor, ItemId, Res};
 use std::{
@@ -36,6 +36,174 @@ pub enum Ty {
 impl Ty {
     /// The unit type.
     pub const UNIT: Self = Self::Tuple(Vec::new());
+
+    /// Whether this type contains no unresolved type or functor evidence.
+    #[must_use]
+    pub fn is_concrete(&self) -> bool {
+        match self {
+            Self::Array(inner) => inner.is_concrete(),
+            Self::Arrow(arrow) => {
+                matches!(arrow.functors, FunctorSet::Value(_))
+                    && arrow.input.is_concrete()
+                    && arrow.output.is_concrete()
+            }
+            Self::Tuple(items) => items.iter().all(Self::is_concrete),
+            Self::Prim(_) | Self::Udt(Res::Item(_)) => true,
+            _ => false,
+        }
+    }
+}
+
+/// Maximum nodes materialized by one generic type substitution.
+pub const MAX_TYPE_NODES: usize = 4096;
+/// Maximum depth materialized by generic type substitution.
+pub const MAX_TYPE_DEPTH: usize = 128;
+
+/// Checks expansion before constructing substituted types. Each parameter is
+/// substituted once, since its argument belongs to a different declaration scope.
+#[must_use]
+#[allow(clippy::implicit_hasher)]
+pub fn type_expansion_within_limits<'a>(
+    types: impl IntoIterator<Item = &'a Ty>,
+    args: &FxHashMap<ParamId, GenericArg>,
+) -> bool {
+    let mut nodes = 0;
+    for ty in types {
+        let mut pending = vec![(ty, 1, true)];
+        while let Some((ty, depth, substitute)) = pending.pop() {
+            if substitute
+                && let Ty::Param(param) = ty
+                && let Some(GenericArg::Ty(concrete)) = args.get(param)
+            {
+                pending.push((concrete, depth, false));
+                continue;
+            }
+            nodes += 1;
+            if nodes > MAX_TYPE_NODES || depth > MAX_TYPE_DEPTH {
+                return false;
+            }
+            match ty {
+                Ty::Array(inner) => pending.push((inner, depth + 1, substitute)),
+                Ty::Arrow(arrow) => {
+                    pending.push((&arrow.input, depth + 1, substitute));
+                    pending.push((&arrow.output, depth + 1, substitute));
+                }
+                Ty::Tuple(items) => {
+                    if items.len() > MAX_TYPE_NODES - nodes {
+                        return false;
+                    }
+                    pending.extend(items.iter().map(|ty| (ty, depth + 1, substitute)));
+                }
+                _ => {}
+            }
+        }
+    }
+    true
+}
+
+/// Free parameters used by a lifted callable, including its nested closures.
+/// Ordinary global references do not import another declaration's parameter scope.
+#[must_use]
+pub fn callable_type_parameters(
+    store: &impl crate::fir::PackageStoreLookup,
+    target: crate::fir::StoreItemId,
+) -> FxHashSet<ParamId> {
+    use crate::{fir, visit};
+    use visit::Visitor;
+
+    struct Collector<'a, S> {
+        store: &'a S,
+        package: fir::PackageId,
+        seen: FxHashSet<fir::LocalItemId>,
+        params: FxHashSet<ParamId>,
+    }
+
+    impl<S: fir::PackageStoreLookup> Collector<'_, S> {
+        fn ty(&mut self, ty: &Ty) {
+            let mut pending = vec![ty];
+            while let Some(ty) = pending.pop() {
+                match ty {
+                    Ty::Param(id) => {
+                        self.params.insert(*id);
+                    }
+                    Ty::Arrow(arrow) => {
+                        if let FunctorSet::Param(id) = arrow.functors {
+                            self.params.insert(id);
+                        }
+                        pending.extend([arrow.input.as_ref(), arrow.output.as_ref()]);
+                    }
+                    Ty::Array(inner) => pending.push(inner),
+                    Ty::Tuple(items) => pending.extend(items),
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    impl<'a, S: fir::PackageStoreLookup> Visitor<'a> for Collector<'a, S> {
+        fn visit_callable_decl(&mut self, decl: &'a fir::CallableDecl) {
+            self.ty(&decl.output);
+            visit::walk_callable_decl(self, decl);
+        }
+        fn visit_expr(&mut self, id: fir::ExprId) {
+            let expr = self.get_expr(id);
+            self.ty(&expr.ty);
+            match &expr.kind {
+                fir::ExprKind::Closure(_, target) if self.seen.insert(*target) => {
+                    if let Some(fir::Global::Callable(decl)) =
+                        self.store.get_global((self.package, *target).into())
+                        && decl.generics.is_empty()
+                    {
+                        self.visit_callable_decl(decl);
+                    }
+                }
+                fir::ExprKind::Var(_, args) => {
+                    for arg in args {
+                        match arg {
+                            GenericArg::Ty(ty) => self.ty(ty),
+                            GenericArg::Functor(FunctorSet::Param(id)) => {
+                                self.params.insert(*id);
+                            }
+                            GenericArg::Functor(_) => {}
+                        }
+                    }
+                }
+                _ => {}
+            }
+            visit::walk_expr(self, id);
+        }
+        fn visit_pat(&mut self, id: fir::PatId) {
+            self.ty(&self.get_pat(id).ty);
+            visit::walk_pat(self, id);
+        }
+        fn visit_block(&mut self, id: fir::BlockId) {
+            self.ty(&self.get_block(id).ty);
+            visit::walk_block(self, id);
+        }
+        fn get_expr(&self, id: fir::ExprId) -> &'a fir::Expr {
+            self.store.get_expr((self.package, id).into())
+        }
+        fn get_pat(&self, id: fir::PatId) -> &'a fir::Pat {
+            self.store.get_pat((self.package, id).into())
+        }
+        fn get_block(&self, id: fir::BlockId) -> &'a fir::Block {
+            self.store.get_block((self.package, id).into())
+        }
+        fn get_stmt(&self, id: fir::StmtId) -> &'a fir::Stmt {
+            self.store.get_stmt((self.package, id).into())
+        }
+    }
+
+    let mut collector = Collector {
+        store,
+        package: target.package,
+        seen: FxHashSet::from_iter([target.item]),
+        params: FxHashSet::default(),
+    };
+    if let Some(fir::Global::Callable(decl)) = store.get_global(target) {
+        collector.visit_callable_decl(decl);
+    }
+    collector.params
 }
 
 impl Display for Ty {
@@ -120,7 +288,11 @@ pub enum InstantiationError {
     Kind(ParamId),
 }
 
-fn instantiate_ty<'a>(
+/// Substitutes parameters once, preserving unbound parameters and nominal types.
+///
+/// # Errors
+/// Returns a kind error when a type parameter is bound to a functor or vice versa.
+pub fn instantiate_ty<'a>(
     arg: impl Fn(&ParamId) -> Option<&'a GenericArg> + Copy,
     ty: &Ty,
 ) -> Result<Ty, InstantiationError> {
@@ -164,6 +336,68 @@ fn instantiate_arrow_ty<'a>(
         output: Box::new(output),
         functors,
     })
+}
+
+/// Matches a declaration type against a checked type in another scope.
+/// Bindings belong only to the declaration; substitutions in `actual` must
+/// already have been resolved in the caller's scope.
+#[must_use]
+#[allow(clippy::implicit_hasher)]
+pub fn infer_generic_ty_args(
+    formal: &Ty,
+    actual: &Ty,
+    arg_map: &mut FxHashMap<ParamId, GenericArg>,
+) -> bool {
+    match (formal, actual) {
+        (Ty::Param(param), _) => {
+            record_inferred_arg(*param, GenericArg::Ty(actual.clone()), arg_map)
+        }
+        (Ty::Array(formal), Ty::Array(actual)) => infer_generic_ty_args(formal, actual, arg_map),
+        (Ty::Arrow(formal), Ty::Arrow(actual)) => {
+            formal.kind == actual.kind
+                && infer_generic_ty_args(&formal.input, &actual.input, arg_map)
+                && infer_generic_ty_args(&formal.output, &actual.output, arg_map)
+                && infer_generic_functor_args(formal.functors, actual.functors, arg_map)
+        }
+        (Ty::Tuple(formal), Ty::Tuple(actual)) if formal.len() == actual.len() => formal
+            .iter()
+            .zip(actual)
+            .all(|(formal, actual)| infer_generic_ty_args(formal, actual, arg_map)),
+        (Ty::Prim(formal), Ty::Prim(actual)) => formal == actual,
+        (Ty::Udt(formal), Ty::Udt(actual)) => formal == actual,
+        (Ty::Infer(formal), Ty::Infer(actual)) => formal == actual,
+        (Ty::Err, Ty::Err) => true,
+        _ => false,
+    }
+}
+
+/// Matches a declaration's functor set against a checked functor set.
+#[must_use]
+#[allow(clippy::implicit_hasher)]
+pub fn infer_generic_functor_args(
+    formal: FunctorSet,
+    actual: FunctorSet,
+    arg_map: &mut FxHashMap<ParamId, GenericArg>,
+) -> bool {
+    match formal {
+        FunctorSet::Param(param) => {
+            record_inferred_arg(param, GenericArg::Functor(actual), arg_map)
+        }
+        _ => formal == actual,
+    }
+}
+
+fn record_inferred_arg(
+    param: ParamId,
+    arg: GenericArg,
+    arg_map: &mut FxHashMap<ParamId, GenericArg>,
+) -> bool {
+    if let Some(existing) = arg_map.get(&param) {
+        existing == &arg
+    } else {
+        arg_map.insert(param, arg);
+        true
+    }
 }
 
 impl Display for TypeParameter {
@@ -260,7 +494,7 @@ pub enum TypeParameter {
 }
 
 /// A generic parameter ID.
-#[derive(Clone, Copy, Default, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Default, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct ParamId(u32);
 
 impl ParamId {
@@ -712,5 +946,47 @@ impl From<InferFunctorId> for usize {
 impl From<usize> for InferFunctorId {
     fn from(value: usize) -> Self {
         InferFunctorId(value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn instantiation_preserves_scope_and_checks_kinds() {
+        let param = ParamId::from(0);
+        let actual = GenericArg::Ty(Ty::Array(Box::new(Ty::Param(param))));
+        assert_eq!(
+            instantiate_ty(|_| Some(&actual), &Ty::Param(param)).expect("type argument"),
+            Ty::Array(Box::new(Ty::Param(param))),
+        );
+        let wrong = GenericArg::Functor(FunctorSet::Value(FunctorSetValue::Empty));
+        assert!(matches!(
+            instantiate_ty(|_| Some(&wrong), &Ty::Param(param)),
+            Err(InstantiationError::Kind(id)) if id == param,
+        ));
+        assert_eq!(
+            instantiate_ty(|_| None, &Ty::Param(param)).expect("unbound"),
+            Ty::Param(param),
+        );
+    }
+
+    #[test]
+    fn checked_type_matching_preserves_nominal_identity() {
+        let a = Ty::Udt(Res::Item(ItemId {
+            package: crate::fir::PackageId::from(1usize),
+            item: crate::fir::LocalItemId::from(0usize),
+        }));
+        let b = Ty::Udt(Res::Item(ItemId {
+            package: crate::fir::PackageId::from(2usize),
+            item: crate::fir::LocalItemId::from(0usize),
+        }));
+        let mut bindings = FxHashMap::default();
+        let param = Ty::Param(ParamId::from(0));
+        assert!(infer_generic_ty_args(&param, &a, &mut bindings));
+        assert!(!infer_generic_ty_args(&param, &b, &mut bindings));
+        assert!(!infer_generic_ty_args(&a, &b, &mut FxHashMap::default()));
+        assert_eq!(bindings[&ParamId::from(0)], GenericArg::Ty(a));
     }
 }

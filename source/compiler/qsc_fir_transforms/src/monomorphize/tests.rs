@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use super::*;
+use crate::reachability::collect_reachable_from_entry;
 use crate::test_utils::{
     assert_pipeline_succeeded, check_semantic_equivalence, check_semantic_equivalence_with_library,
     compile_to_fir_with_library, compile_to_fir_with_two_libraries,
@@ -11,6 +12,273 @@ use crate::test_utils::{
 };
 use expect_test::{Expect, expect};
 use indoc::indoc;
+
+fn runtime_lambda(store: &PackageStore, package: PackageId, factory: &str) -> StoreItemId {
+    let package_ref = store.get(package);
+    let target =
+        collect_closure_targets_in_callable(package_ref, find_callable(package_ref, factory));
+    assert_eq!(target.len(), 1);
+    StoreItemId::from((package, target[0]))
+}
+
+fn assert_concrete_runtime_body(store: &PackageStore, target: StoreItemId) {
+    let package = store.get(target.package);
+    let ItemKind::Callable(decl) = &package.get_item(target.item).kind else {
+        panic!("callable");
+    };
+    assert!(decl.output.is_concrete());
+    let body = extract_callable_body(package, decl);
+    assert!(body.exprs.values().all(|expr| expr.ty.is_concrete()));
+    assert!(body.blocks.values().all(|block| block.ty.is_concrete()));
+    assert!(body.pats.values().all(|pat| pat.ty.is_concrete()));
+    assert!(body.items.values().all(|item| match &item.kind {
+        ItemKind::Callable(decl) => decl.output.is_concrete(),
+        ItemKind::Ty(..) => true,
+    }));
+}
+
+#[test]
+fn runtime_clones_separate_nominal_instantiations_and_preserve_templates() {
+    use qsc_fir::ty::Prim;
+    let (mut store, package) = crate::test_utils::compile_to_fir(
+        r#"
+        newtype Wrapped = Int;
+        function MkConst<'T>(x : 'T) : (Unit -> 'T) { () -> x }
+        function Main() : Unit { }
+    "#,
+    );
+    let target = runtime_lambda(&store, package, "MkConst");
+    let original = store.get(package).clone();
+    let udt = original
+        .items
+        .iter()
+        .find_map(|(item, value)| {
+            matches!(value.kind, ItemKind::Ty(..))
+                .then_some(Ty::Udt(Res::Item(ItemId { package, item })))
+        })
+        .expect("Wrapped");
+    let mut runtime = RuntimeSpecializations::new(&store, package);
+    let mut targets = FxHashSet::default();
+    for ty in [Ty::Prim(Prim::Int), Ty::Prim(Prim::Double), udt] {
+        let args = FxHashMap::from_iter([(ParamId::from(0), GenericArg::Ty(ty.clone()))]);
+        let cloned = runtime
+            .specialize(&mut store, target, Some(&args))
+            .expect("clone");
+        assert_ne!(cloned, target);
+        assert!(targets.insert(cloned));
+        assert_eq!(
+            runtime
+                .specialize(&mut store, target, Some(&args))
+                .expect("reuse"),
+            cloned
+        );
+        assert_concrete_runtime_body(&store, cloned);
+        let ItemKind::Callable(decl) = &store.get(package).get_item(cloned.item).kind else {
+            panic!("callable");
+        };
+        assert_eq!(decl.output, ty);
+    }
+    assert_eq!(runtime.count(), 3);
+    for (id, expr) in &original.exprs {
+        assert_eq!(
+            store.get(package).get_expr(id).to_string(),
+            expr.to_string()
+        );
+    }
+    for (id, item) in &original.items {
+        assert_eq!(
+            store.get(package).get_item(id).to_string(),
+            item.to_string()
+        );
+    }
+}
+
+#[test]
+fn runtime_clones_substitute_hidden_and_nested_types() {
+    let (mut store, package) = crate::test_utils::compile_to_fir(
+        r#"
+        newtype Wrapped = Int;
+        function MkHidden<'T>(seed : 'T) : (Unit -> Int) {
+            () -> { let empty : 'T[] = []; Length(empty) }
+        }
+        function MkNested<'T>(x : 'T) : (Unit -> (Unit -> 'T)) { () -> (() -> x) }
+        function Main() : Unit { }
+    "#,
+    );
+    let udt = store
+        .get(package)
+        .items
+        .iter()
+        .find_map(|(item, value)| {
+            matches!(value.kind, ItemKind::Ty(..))
+                .then_some(Ty::Udt(Res::Item(ItemId { package, item })))
+        })
+        .expect("Wrapped");
+    let args = FxHashMap::from_iter([(ParamId::from(0), GenericArg::Ty(udt.clone()))]);
+    let mut runtime = RuntimeSpecializations::new(&store, package);
+    for factory in ["MkHidden", "MkNested"] {
+        let target = runtime_lambda(&store, package, factory);
+        let cloned = runtime
+            .specialize(&mut store, target, Some(&args))
+            .expect("clone");
+        assert_concrete_runtime_body(&store, cloned);
+        let pkg = store.get(package);
+        let ItemKind::Callable(decl) = &pkg.get_item(cloned.item).kind else {
+            panic!("callable");
+        };
+        let body = extract_callable_body(pkg, decl);
+        assert!(body.exprs.values().any(|expr| match &expr.kind {
+            ExprKind::Var(_, generic_args) => generic_args.contains(&GenericArg::Ty(udt.clone())),
+            ExprKind::Closure(_, _) => matches!(&expr.ty, Ty::Arrow(arrow) if *arrow.output == udt),
+            _ => false,
+        }));
+    }
+}
+
+#[test]
+fn runtime_clones_keep_checked_functor_instantiations_separate() {
+    use qsc_fir::ty::{FunctorSetValue, Prim};
+    let (mut store, package) = crate::test_utils::compile_to_fir(
+        r#"
+        function MkApply<'T>(op : 'T => Unit) : ('T => Unit) { x => op(x) }
+        function Main() : Unit { }
+    "#,
+    );
+    let target = runtime_lambda(&store, package, "MkApply");
+    let mut runtime = RuntimeSpecializations::new(&store, package);
+    let mut targets = FxHashSet::default();
+    for functors in [FunctorSetValue::Empty, FunctorSetValue::CtlAdj] {
+        let args = FxHashMap::from_iter([
+            (ParamId::from(0), GenericArg::Ty(Ty::Prim(Prim::Qubit))),
+            (
+                ParamId::from(1),
+                GenericArg::Functor(FunctorSet::Value(functors)),
+            ),
+        ]);
+        let cloned = runtime
+            .specialize(&mut store, target, Some(&args))
+            .expect("clone");
+        assert!(targets.insert(cloned));
+        assert_concrete_runtime_body(&store, cloned);
+        let pkg = store.get(package);
+        let ItemKind::Callable(decl) = &pkg.get_item(cloned.item).kind else {
+            panic!("callable");
+        };
+        let Ty::Tuple(input) = &pkg.get_pat(decl.input).ty else {
+            panic!("captures");
+        };
+        let Ty::Arrow(capture) = &input[0] else {
+            panic!("operation capture");
+        };
+        assert_eq!(capture.functors, FunctorSet::Value(functors));
+    }
+}
+
+#[test]
+fn foreign_runtime_clones_reject_missing_or_wrong_kind_evidence() {
+    let (mut store, package) = compile_to_fir_with_library(
+        "namespace Lib { function MkConst<'T>(x : 'T) : (Unit -> 'T) { () -> x } }",
+        "function Main() : Unit { }",
+    );
+    let foreign = store
+        .iter()
+        .find_map(|(id, pkg)| {
+            pkg.items
+                .values()
+                .any(|item| {
+                    matches!(&item.kind, ItemKind::Callable(decl)
+            if decl.name.name.as_ref() == "MkConst")
+                })
+                .then_some(id)
+        })
+        .expect("library");
+    let target = runtime_lambda(&store, foreign, "MkConst");
+    let mut runtime = RuntimeSpecializations::new(&store, package);
+    let wrong = FxHashMap::from_iter([(
+        ParamId::from(0),
+        GenericArg::Functor(FunctorSet::Value(qsc_fir::ty::FunctorSetValue::Empty)),
+    )]);
+    for args in [None, Some(&wrong)] {
+        assert!(matches!(
+            runtime.specialize(&mut store, target, args),
+            Err(RuntimeSpecializationError::MissingTypeInformation(id)) if id == target
+        ));
+        assert_eq!(runtime.count(), 0);
+    }
+    let args = FxHashMap::from_iter([(
+        ParamId::from(0),
+        GenericArg::Ty(Ty::Prim(qsc_fir::ty::Prim::Int)),
+    )]);
+    let cloned = runtime
+        .specialize(&mut store, target, Some(&args))
+        .expect("foreign clone");
+    assert_eq!(cloned.package, foreign);
+    assert_ne!(cloned.package, package);
+    assert_concrete_runtime_body(&store, cloned);
+}
+
+#[test]
+fn runtime_global_clones_require_complete_kinds_and_preserve_schemes() {
+    let (mut store, package) = crate::test_utils::compile_to_fir(
+        r#"
+        operation Ap(op : Qubit => Unit) : Unit { }
+        function G<'T>() : Unit { }
+        function Main() : Unit { }
+        "#,
+    );
+    let mut runtime = RuntimeSpecializations::new(&store, package);
+    for (name, correct, wrong) in [
+        (
+            "Ap",
+            GenericArg::Functor(FunctorSet::Value(qsc_fir::ty::FunctorSetValue::Empty)),
+            GenericArg::Ty(Ty::UNIT),
+        ),
+        (
+            "G",
+            GenericArg::Ty(Ty::Prim(qsc_fir::ty::Prim::Int)),
+            GenericArg::Functor(FunctorSet::Value(qsc_fir::ty::FunctorSetValue::Empty)),
+        ),
+    ] {
+        let item = store
+            .get(package)
+            .items
+            .iter()
+            .find_map(|(id, item)| {
+                matches!(&item.kind, ItemKind::Callable(decl) if decl.name.name.as_ref() == name)
+                    .then_some(id)
+            })
+            .expect("source declaration");
+        let source = StoreItemId::from((package, item));
+        let original = store.get(package).get_item(source.item).to_string();
+        for evidence in [
+            None,
+            Some(FxHashMap::default()),
+            Some(FxHashMap::from_iter([(ParamId::from(0), wrong)])),
+        ] {
+            assert!(matches!(
+                runtime.specialize(&mut store, source, evidence.as_ref()),
+                Err(RuntimeSpecializationError::MissingTypeInformation(id)) if id == source
+            ));
+        }
+        let evidence = FxHashMap::from_iter([(ParamId::from(0), correct)]);
+        let target = runtime
+            .specialize(&mut store, source, Some(&evidence))
+            .expect("concrete clone");
+        assert_ne!(target, source);
+        assert_concrete_runtime_body(&store, target);
+        assert_eq!(
+            runtime
+                .specialize(&mut store, source, Some(&evidence))
+                .expect("cached"),
+            target
+        );
+        assert_eq!(
+            store.get(package).get_item(source.item).to_string(),
+            original
+        );
+    }
+    assert_eq!(runtime.count(), 2);
+}
 
 /// Explicit parameter types keep the frontend's inference-size limit separate
 /// from this pass's construction budget. The tuples are source-written, not
@@ -196,6 +464,7 @@ fn growing_recursive_types_report_fatal_located_errors_before_later_passes() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn type_expansion_accepts_exact_node_and_depth_limits_and_rejects_the_next() {
     use qsc_fir::ty::Prim;
     let span = PackageSpan::default();
@@ -214,6 +483,7 @@ fn type_expansion_accepts_exact_node_and_depth_limits_and_rejects_the_next() {
             package,
             StoreItemId::from((package, item)),
             &[GenericArg::Ty(ty.clone())],
+            &build_arg_map(&[GenericArg::Ty(ty.clone())]),
             &mut cloner,
         );
         if accepted {

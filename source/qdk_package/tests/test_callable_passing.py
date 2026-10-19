@@ -391,6 +391,98 @@ attributes #1 = { "irreversible" }
     )
 
 
+@pytest.mark.parametrize(
+    "profile",
+    [
+        qsharp.TargetProfile.Base,
+        qsharp.TargetProfile.Adaptive_RI,
+        qsharp.TargetProfile.Adaptive_RIF,
+        qsharp.TargetProfile.Adaptive,
+    ],
+)
+def test_qir_generic_callable_without_type_evidence_reports_diagnostic(
+    profile: qsharp.TargetProfile,
+) -> None:
+    qsharp.init(target_profile=profile)
+    qsharp.eval("""
+        function Foo<'U>(x : 'U) : 'U { x }
+        function G<'T>() : Unit {
+            let y = Foo(1);
+            let _ = y + 1;
+        }
+    """)
+    from qdk.code import G
+
+    with pytest.raises(
+        QSharpError,
+        match=r"Qdk\.Qsc\.Interpret\.MissingRuntimeCallableTypeInformation",
+    ):
+        qsharp.compile(G)
+
+
+@pytest.mark.parametrize(
+    "profile",
+    [
+        qsharp.TargetProfile.Base,
+        qsharp.TargetProfile.Adaptive_RI,
+        qsharp.TargetProfile.Adaptive_RIF,
+        qsharp.TargetProfile.Adaptive,
+    ],
+)
+def test_qir_callback_with_implicit_functor_parameter_returns_unit(
+    profile: qsharp.TargetProfile,
+) -> None:
+    qsharp.init(target_profile=profile)
+    qsharp.eval("""
+        operation Ap(op : Qubit => Unit) : Unit {}
+        operation Run(f : (Qubit => Unit) => Unit) : Unit { f(X); }
+    """)
+    from qdk.code import Ap, Run
+
+    qir = str(qsharp.compile(Run, Ap))
+    assert qir == str(qsharp.compile("Run(Ap)"))
+    assert run_qir(qir, shots=4, type="cpu") == [()] * 4
+
+
+@pytest.mark.parametrize(
+    "profile",
+    [
+        qsharp.TargetProfile.Base,
+        qsharp.TargetProfile.Adaptive_RI,
+        qsharp.TargetProfile.Adaptive_RIF,
+        qsharp.TargetProfile.Adaptive,
+    ],
+)
+def test_qir_generic_partial_application_preserves_captured_operation(
+    profile: qsharp.TargetProfile,
+) -> None:
+    qsharp.init(target_profile=profile)
+    qsharp.eval("""
+        operation ApplyRepeated<'T>(
+            op : 'T => Unit is Adj + Ctl, power : Int, target : 'T
+        ) : Unit is Adj + Ctl {
+            for _ in 1..power { op(target); }
+        }
+        function MakeRepeatedOp<'T>(
+            op : 'T => Unit is Adj + Ctl, power : Int
+        ) : ('T => Unit is Adj + Ctl) {
+            ApplyRepeated(op, power, _)
+        }
+        operation Flip(qs : Qubit[]) : Unit is Adj + Ctl { X(qs[0]); }
+        operation Run(op : Qubit[] => Unit) : Result {
+            use qs = Qubit[1];
+            op(qs);
+            MResetZ(qs[0])
+        }
+    """)
+    from qdk.code import Run
+
+    op = qsharp.eval("MakeRepeatedOp(Flip, 1)")
+    qir = str(qsharp.compile(Run, op))
+    assert qir == str(qsharp.compile("Run(MakeRepeatedOp(Flip, 1))"))
+    assert run_qir(qir, shots=4, type="cpu") == [qsharp.Result.One] * 4
+
+
 def test_same_target_multi_closure_args_generate_qir() -> None:
     # Python mirror of the Rust
     # `same_target_multi_closure_args_route_to_synthetic_entry_and_generate_qir`

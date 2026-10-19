@@ -14,6 +14,77 @@ use thiserror::Error;
 
 pub type Error = WithSource<ErrorKind>;
 
+pub(crate) fn runtime_functors_to_hir(
+    functors: qsc_fir::ty::FunctorSet,
+) -> Option<qsc_hir::ty::FunctorSet> {
+    use qsc_fir::ty::{FunctorSet, FunctorSetValue};
+    use qsc_hir::ty;
+    let FunctorSet::Value(value) = functors else {
+        return None;
+    };
+    Some(ty::FunctorSet::Value(match value {
+        FunctorSetValue::Empty => ty::FunctorSetValue::Empty,
+        FunctorSetValue::Adj => ty::FunctorSetValue::Adj,
+        FunctorSetValue::Ctl => ty::FunctorSetValue::Ctl,
+        FunctorSetValue::CtlAdj => ty::FunctorSetValue::CtlAdj,
+    }))
+}
+
+/// Rebuilds concrete runtime types without sharing mutable HIR arrow cells.
+/// Nominal identities are resolved in their owning package, never from payloads.
+pub(crate) fn runtime_type_to_hir(
+    store: &PackageStore,
+    runtime: &qsc_fir::ty::Ty,
+) -> Option<qsc_hir::ty::Ty> {
+    use qsc_fir::{
+        fir,
+        ty::{Prim, Ty},
+    };
+    use qsc_hir::{hir, ty};
+    use std::{cell::RefCell, rc::Rc};
+    Some(match runtime {
+        Ty::Array(inner) => ty::Ty::Array(Box::new(runtime_type_to_hir(store, inner)?)),
+        Ty::Tuple(items) => ty::Ty::Tuple(
+            items
+                .iter()
+                .map(|ty| runtime_type_to_hir(store, ty))
+                .collect::<Option<_>>()?,
+        ),
+        Ty::Arrow(arrow) => ty::Ty::Arrow(Rc::new(ty::Arrow {
+            kind: match arrow.kind {
+                fir::CallableKind::Function => hir::CallableKind::Function,
+                fir::CallableKind::Operation => hir::CallableKind::Operation,
+            },
+            input: RefCell::new(runtime_type_to_hir(store, &arrow.input)?),
+            output: RefCell::new(runtime_type_to_hir(store, &arrow.output)?),
+            functors: RefCell::new(runtime_functors_to_hir(arrow.functors)?),
+        })),
+        Ty::Prim(prim) => ty::Ty::Prim(match prim {
+            Prim::BigInt => ty::Prim::BigInt,
+            Prim::Bool => ty::Prim::Bool,
+            Prim::Double => ty::Prim::Double,
+            Prim::Int => ty::Prim::Int,
+            Prim::Pauli => ty::Prim::Pauli,
+            Prim::Qubit => ty::Prim::Qubit,
+            Prim::Range | Prim::RangeTo | Prim::RangeFrom | Prim::RangeFull => ty::Prim::Range,
+            Prim::Result => ty::Prim::Result,
+            Prim::String => ty::Prim::String,
+        }),
+        Ty::Udt(fir::Res::Item(id)) => {
+            let id = hir::ItemId {
+                package: qsc_lowerer::map_fir_package_to_hir(id.package),
+                item: qsc_lowerer::map_fir_local_item_to_hir(id.item),
+            };
+            let item = store.get(id.package)?.package.items.get(id.item)?;
+            let hir::ItemKind::Ty(name, _) = &item.kind else {
+                return None;
+            };
+            ty::Ty::Udt(name.name.clone(), hir::Res::Item(id))
+        }
+        _ => return None,
+    })
+}
+
 /// Attaches a FIR transform diagnostic to the source map owned by the package
 /// that produced its labels.
 #[must_use]

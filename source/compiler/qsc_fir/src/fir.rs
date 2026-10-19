@@ -965,6 +965,9 @@ pub enum ExecGraphExpr {
         rhs_span: Span,
     },
     Call {
+        /// The checked callee expression in this graph's package.
+        /// Retains type arguments and alias types for runtime instantiation.
+        callee: ExprId,
         callee_span: Span,
         args_span: Span,
     },

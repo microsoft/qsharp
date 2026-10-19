@@ -42,7 +42,10 @@ use qsc_fir::fir::{
     Global, Lit, LocalItemId, LocalVarId, PackageId, PackageStoreLookup, ParKind, PatId, PatKind,
     PrimField, Res, StmtId, StoreItemId, StringComponent, UnOp,
 };
-use qsc_fir::ty::Ty;
+use qsc_fir::ty::{
+    FunctorSet, GenericArg, ParamId, Ty, TypeParameter, callable_type_parameters,
+    infer_generic_ty_args, instantiate_ty, type_expansion_within_limits,
+};
 pub use qsc_hir::hir::PackageSpan;
 use qsc_lowerer::{map_fir_package_span_to_hir, map_fir_package_to_hir};
 use rand::{SeedableRng, rngs::StdRng};
@@ -332,6 +335,7 @@ pub fn invoke<B: Backend>(
             env,
             sim,
             globals,
+            None,
             Span::default(),
             Span::default(),
             receiver,
@@ -592,6 +596,13 @@ pub struct State {
     source_package: PackageId,
     package: PackageId,
     call_stack: CallStack,
+    /// Instantiations in each execution frame's declaration scope.
+    /// Missing evidence is retained as `None`, never inferred from runtime values.
+    type_args: Vec<Option<Rc<FxHashMap<ParamId, GenericArg>>>>,
+    /// Shared checked-empty context keeps nongeneric calls allocation-free.
+    empty_type_args: Rc<FxHashMap<ParamId, GenericArg>>,
+    /// Free-parameter sets for lifted targets encountered in this evaluation.
+    closure_params: FxHashMap<StoreItemId, FxHashSet<ParamId>>,
     current_span: Span,
     rng: RefCell<StdRng>,
     call_counts: FxHashMap<CallableCountKey, i64>,
@@ -616,6 +627,7 @@ impl State {
             Some(seed) => RefCell::new(StdRng::seed_from_u64(seed)),
             None => RefCell::new(StdRng::from_rng(&mut rand::rng())),
         };
+        let empty_type_args = Rc::new(FxHashMap::default());
         Self {
             exec_graph_stack: vec![exec_graph.select(exec_graph_config)],
             idx: 0,
@@ -625,6 +637,9 @@ impl State {
             source_package: package,
             package,
             call_stack: CallStack::default(),
+            type_args: vec![Some(Rc::clone(&empty_type_args))],
+            empty_type_args,
+            closure_params: FxHashMap::default(),
             current_span: Span::default(),
             rng,
             call_counts: FxHashMap::default(),
@@ -646,6 +661,7 @@ impl State {
         exec_graph: ConfiguredExecGraph,
         id: StoreItemId,
         functor: FunctorApp,
+        type_args: Option<Rc<FxHashMap<ParamId, GenericArg>>>,
     ) {
         self.call_stack.push_frame(Frame {
             span: self.current_span,
@@ -655,6 +671,7 @@ impl State {
             loop_iterations: Vec::new(),
         });
         self.exec_graph_stack.push(exec_graph);
+        self.type_args.push(type_args);
         self.val_stack.push(Vec::new());
         self.idx_stack.push(self.idx);
         self.idx = 0;
@@ -668,6 +685,7 @@ impl State {
         self.val_stack.pop();
         self.idx = self.idx_stack.pop().unwrap_or_default();
         self.exec_graph_stack.pop();
+        self.type_args.pop();
     }
 
     fn push_scope(&mut self, env: &mut Env) {
@@ -1059,13 +1077,35 @@ impl State {
                     ExprKind::String(components) => self.collect_string(components),
                     ExprKind::ArrayLit(arr) => self.eval_arr_lit(arr, globals),
                     ExprKind::Closure(args, callable) => {
-                        let closure = resolve_closure(
+                        let mut closure = resolve_closure(
                             env,
                             self.package,
                             map_fir_package_span_to_hir(expr.span),
                             args,
                             *callable,
                         )?;
+                        if let Value::Closure(value) = &mut closure {
+                            let params = self
+                                .closure_params
+                                .entry(value.id)
+                                .or_insert_with(|| callable_type_parameters(globals, value.id));
+                            value.type_args = if params.is_empty() {
+                                Some(Rc::clone(&self.empty_type_args))
+                            } else {
+                                self.type_args
+                                    .last()
+                                    .and_then(Option::as_ref)
+                                    .and_then(|args| {
+                                        params
+                                            .iter()
+                                            .map(|param| {
+                                                args.get(param).map(|arg| (*param, arg.clone()))
+                                            })
+                                            .collect::<Option<FxHashMap<_, _>>>()
+                                            .map(Rc::new)
+                                    })
+                            };
+                        }
                         self.set_val_register(closure);
                     }
                     ExprKind::AssignField(record, field, _) => {
@@ -1107,9 +1147,18 @@ impl State {
                 self.set_val_register(resolve_binding(env, *res, self.to_global_span(span))?);
             }
             ExecGraphExpr::Call {
+                callee,
                 callee_span,
                 args_span,
-            } => self.eval_call(env, sim, globals, *callee_span, *args_span, out)?,
+            } => self.eval_call(
+                env,
+                sim,
+                globals,
+                Some(*callee),
+                *callee_span,
+                *args_span,
+                out,
+            )?,
             ExecGraphExpr::BinOp {
                 op,
                 lhs_span,
@@ -1323,20 +1372,26 @@ impl State {
         Ok(())
     }
 
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
     fn eval_call<B: Backend>(
         &mut self,
         env: &mut Env,
         sim: &mut TracingBackend<'_, B>,
         globals: &impl PackageStoreLookup,
+        callsite: Option<ExprId>,
         callable_span: Span,
         arg_span: Span,
         out: &mut impl Receiver,
     ) -> Result<(), Error> {
         let arg = self.take_val_register();
-        let (callee_id, functor, fixed_args) = match self.pop_val() {
-            Value::Closure(inner) => (inner.id, inner.functor, Some(inner.fixed_args)),
-            Value::Global(id, functor) => (id, functor, None),
+        let (callee_id, functor, fixed_args, closure_type_args) = match self.pop_val() {
+            Value::Closure(inner) => (
+                inner.id,
+                inner.functor,
+                Some(inner.fixed_args),
+                inner.type_args,
+            ),
+            Value::Global(id, functor) => (id, functor, None, None),
             _ => panic!("value is not callable"),
         };
 
@@ -1358,11 +1413,16 @@ impl State {
         };
 
         let callee_span = map_fir_package_span_to_hir(callee.span);
+        let type_args = if fixed_args.is_some() {
+            closure_type_args
+        } else {
+            self.checked_type_args(globals, callee_id, callee, functor, callsite)
+        };
 
         let spec = spec_from_functor_app(functor);
         match &callee.implementation {
             CallableImpl::Intrinsic if is_counting_call(&callee.name.name) => {
-                self.push_frame(Vec::new().into(), callee_id, functor);
+                self.push_frame(Vec::new().into(), callee_id, functor, type_args);
 
                 let val = self.counting_call(&callee.name.name, arg, arg_span)?;
 
@@ -1374,6 +1434,7 @@ impl State {
                 env,
                 callee_id,
                 functor,
+                type_args,
                 callee,
                 sim,
                 globals,
@@ -1394,6 +1455,7 @@ impl State {
                     spec_decl.exec_graph.clone().select(self.exec_graph_config),
                     callee_id,
                     functor,
+                    type_args,
                 );
                 self.push_scope(env);
                 self.increment_call_count(callee_id, functor);
@@ -1415,6 +1477,7 @@ impl State {
                     spec_decl.exec_graph.clone().select(self.exec_graph_config),
                     callee_id,
                     functor,
+                    type_args,
                 );
                 self.push_scope(env);
 
@@ -1433,12 +1496,103 @@ impl State {
         }
     }
 
+    /// Recover the actual checked call instantiation before entering its fresh
+    /// declaration scope. Failure leaves evidence unavailable; simulation itself
+    /// does not acquire new type restrictions.
+    fn checked_type_args(
+        &self,
+        globals: &impl PackageStoreLookup,
+        id: StoreItemId,
+        decl: &fir::CallableDecl,
+        functor: FunctorApp,
+        callsite: Option<ExprId>,
+    ) -> Option<Rc<FxHashMap<ParamId, GenericArg>>> {
+        if decl.generics.is_empty() {
+            return Some(Rc::clone(&self.empty_type_args));
+        }
+        let checked = globals.get_expr((self.package, callsite?).into());
+        let caller_args = self
+            .type_args
+            .last()
+            .and_then(Option::as_ref)
+            .unwrap_or(&self.empty_type_args);
+        let mut reference = checked;
+        while let ExprKind::UnOp(UnOp::Functor(_), operand) = reference.kind {
+            reference = globals.get_expr((self.package, operand).into());
+        }
+        let mut bindings = FxHashMap::default();
+        if let ExprKind::Var(Res::Item(target), args) = &reference.kind
+            && target.package == id.package
+            && target.item == id.item
+            && args.len() == decl.generics.len()
+        {
+            if !type_expansion_within_limits(
+                args.iter().filter_map(|arg| match arg {
+                    GenericArg::Ty(ty) => Some(ty),
+                    GenericArg::Functor(_) => None,
+                }),
+                caller_args,
+            ) {
+                return None;
+            }
+            for (index, arg) in args.iter().enumerate() {
+                let arg = match arg {
+                    GenericArg::Ty(ty) => {
+                        GenericArg::Ty(instantiate_ty(|param| caller_args.get(param), ty).ok()?)
+                    }
+                    GenericArg::Functor(FunctorSet::Param(param)) => {
+                        caller_args.get(param)?.clone()
+                    }
+                    GenericArg::Functor(functors) => GenericArg::Functor(*functors),
+                };
+                bindings.insert(ParamId::from(index), arg);
+            }
+        } else {
+            let input = &globals.get_pat((id.package, decl.input).into()).ty;
+            if !type_expansion_within_limits([&checked.ty], caller_args)
+                || !type_expansion_within_limits([input, &decl.output], &self.empty_type_args)
+            {
+                return None;
+            }
+            let Ty::Arrow(mut actual) =
+                instantiate_ty(|param| caller_args.get(param), &checked.ty).ok()?
+            else {
+                return None;
+            };
+            for _ in 0..functor.controlled {
+                let Ty::Tuple(mut fields) = *actual.input else {
+                    return None;
+                };
+                if fields.len() != 2 {
+                    return None;
+                }
+                actual.input = Box::new(fields.pop()?);
+            }
+            if actual.kind != decl.kind
+                || !infer_generic_ty_args(input, &actual.input, &mut bindings)
+                || !infer_generic_ty_args(&decl.output, &actual.output, &mut bindings)
+            {
+                return None;
+            }
+        }
+        for (index, param) in decl.generics.iter().enumerate() {
+            match (param, bindings.get(&ParamId::from(index))?) {
+                (TypeParameter::Ty { .. }, GenericArg::Ty(ty)) if ty.is_concrete() => {}
+                (TypeParameter::Functor(min), GenericArg::Functor(FunctorSet::Value(actual)))
+                    if actual.intersect(min) == *min => {}
+                _ => return None,
+            }
+        }
+        Some(Rc::new(bindings))
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn eval_intrinsic<B: Backend>(
         &mut self,
         env: &mut Env,
         callee_id: StoreItemId,
         functor: FunctorApp,
+        type_args: Option<Rc<FxHashMap<ParamId, GenericArg>>>,
         callee: &fir::CallableDecl,
         sim: &mut TracingBackend<'_, B>,
         globals: &impl PackageStoreLookup,
@@ -1448,7 +1602,7 @@ impl State {
         out: &mut impl Receiver,
     ) -> Result<(), Error> {
         let call_stack = self.capture_stack_if_trace_enabled(sim);
-        self.push_frame(Vec::new().into(), callee_id, functor);
+        self.push_frame(Vec::new().into(), callee_id, functor, type_args);
         self.current_span = callee_span.span;
         self.increment_call_count(callee_id, functor);
         let name = &callee.name.name;
@@ -2228,6 +2382,7 @@ pub fn resolve_closure(
             fixed_args: args.into(),
             id: callable,
             functor: FunctorApp::default(),
+            type_args: None,
         }
         .into(),
     ))

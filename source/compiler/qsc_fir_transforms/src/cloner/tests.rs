@@ -13,6 +13,44 @@ use qsc_fir::ty::Ty;
 const LET_X_SOURCE: &str = "function Main() : Int { let x = 42; x }";
 
 #[test]
+fn cloned_calls_reference_cloned_callees() {
+    use qsc_fir::fir::{ExecGraphConfig, ExecGraphExpr, PackageLookup};
+    let (store, pkg_id) =
+        compile_to_fir("function Inc(x : Int) : Int { x + 1 } function Main() : Int { Inc(2) }");
+    let source = store.get(pkg_id);
+    let mut target = source.clone();
+    let mut cloner = FirCloner::new(&target);
+    let new_impl = cloner.clone_callable_impl(
+        source,
+        &find_callable(source, "Main").implementation,
+        &mut target,
+    );
+    let CallableImpl::Spec(spec) = new_impl else {
+        panic!("expected body");
+    };
+    for config in [ExecGraphConfig::NoDebug, ExecGraphConfig::Debug] {
+        let mut calls = 0;
+        for node in spec.body.exec_graph.select_ref(config).iter() {
+            if let ExecGraphNode::Expr(ExecGraphExpr::Call { callee, .. }, _) = node {
+                calls += 1;
+                assert!(cloner.expr_map().values().any(|copy| copy == callee));
+                assert!(!cloner.expr_map().contains_key(callee));
+                let call =
+                    cloner
+                        .expr_map()
+                        .values()
+                        .find_map(|id| match target.get_expr(*id).kind {
+                            ExprKind::Call(checked, _) if checked == *callee => Some(checked),
+                            _ => None,
+                        });
+                assert_eq!(call, Some(*callee));
+            }
+        }
+        assert_eq!(calls, 1);
+    }
+}
+
+#[test]
 fn expression_copy_freshens_bindings_but_preserves_closure_target() {
     let (store, pkg_id) = compile_to_fir(
         r#"

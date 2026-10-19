@@ -330,6 +330,9 @@ pub(crate) fn check_with_exemptions_and_seeds(
                 let nodes = package.entry_exec_graph.select_ref(config);
                 check_configured_exec_graph(package, nodes, "entry_exec_graph", label);
             }
+            crate::walk_utils::for_each_expr(package, entry_id, &mut |_, expr| {
+                check_callsite_reference(expr, &package.entry_exec_graph);
+            });
         }
     }
 }
@@ -2253,6 +2256,9 @@ fn check_configured_exec_graph(
             ExecGraphNode::Expr(expr, _) => match expr {
                 qsc_fir::fir::ExecGraphExpr::Expr(expr_id)
                 | qsc_fir::fir::ExecGraphExpr::Assign(expr_id)
+                | qsc_fir::fir::ExecGraphExpr::Call {
+                    callee: expr_id, ..
+                }
                 | qsc_fir::fir::ExecGraphExpr::AssignOp {
                     lhs: expr_id,
                     op: _,
@@ -2272,10 +2278,6 @@ fn check_configured_exec_graph(
                     op: _,
                     lhs_span: _,
                     rhs_span: _,
-                }
-                | qsc_fir::fir::ExecGraphExpr::Call {
-                    callee_span: _,
-                    args_span: _,
                 }
                 | qsc_fir::fir::ExecGraphExpr::Fail
                 | qsc_fir::fir::ExecGraphExpr::Index { index_span: _ }
@@ -2351,6 +2353,7 @@ fn check_spec_exec_graph_ranges(package: &Package, spec: &SpecDecl, context: &st
     let debug_len = spec.exec_graph.select_ref(ExecGraphConfig::Debug).len();
 
     crate::walk_utils::for_each_expr_in_block(package, spec.block, &mut |expr_id, expr| {
+        check_callsite_reference(expr, &spec.exec_graph);
         let range = &expr.exec_graph_range;
         assert!(
             range.start != range.end,
@@ -2366,6 +2369,29 @@ fn check_spec_exec_graph_ranges(package: &Package, spec: &SpecDecl, context: &st
             "Exec graph range for {context} Expr {expr_id} debug indices {range:?} exceed graph length {debug_len}"
         );
     });
+}
+
+fn check_callsite_reference(expr: &qsc_fir::fir::Expr, graph: &qsc_fir::fir::ExecGraph) {
+    if let ExprKind::Call(callee, _) = expr.kind {
+        for (config, end) in [
+            (
+                ExecGraphConfig::NoDebug,
+                expr.exec_graph_range.end.no_debug_idx,
+            ),
+            (ExecGraphConfig::Debug, expr.exec_graph_range.end.debug_idx),
+        ] {
+            assert!(
+                end > 0
+                    && matches!(
+                        graph.select_ref(config).get(end - 1),
+                        Some(ExecGraphNode::Expr(
+                            qsc_fir::fir::ExecGraphExpr::Call { callee: checked, .. }, _
+                        )) if *checked == callee
+                    ),
+                "Exec graph call must reference its checked callee {callee}"
+            );
+        }
+    }
 }
 
 /// Verifies two ownership properties of `ExprId`s after defunctionalization:

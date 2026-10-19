@@ -4,6 +4,8 @@
 use num_bigint::BigInt;
 use qsc_data_structures::{display::join, functors::FunctorApp};
 use qsc_fir::fir::{Functor, Pauli, StoreItemId};
+use qsc_fir::ty::{GenericArg, ParamId};
+use rustc_hash::FxHashMap;
 use std::{
     array,
     fmt::{self, Display, Formatter},
@@ -34,9 +36,16 @@ pub enum Value {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Closure {
+    /// Captured values, in the lifted target's input order.
     pub fixed_args: Rc<[Value]>,
+    /// Package-qualified lifted target; its free parameters scope `type_args`.
     pub id: StoreItemId,
+    /// Functors applied to this value, independent of checked type arguments.
     pub functor: FunctorApp,
+    /// Actual creator-call substitutions, shared immutably by value copies.
+    /// `None` means checked evidence is unavailable, not an empty substitution.
+    /// Only parameters used by the target or its nested closures are retained.
+    pub type_args: Option<Rc<FxHashMap<ParamId, GenericArg>>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

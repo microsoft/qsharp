@@ -68,6 +68,182 @@ mod given_interpreter {
         (result, receiver.dump())
     }
 
+    #[test]
+    fn runtime_closure_reflection_is_concrete_without_mutating_templates() {
+        let (std_id, store) =
+            crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+        let mut interpreter = Interpreter::new(
+            SourceMap::default(),
+            PackageType::Lib,
+            TargetCapabilityFlags::all(),
+            LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
+            Default::default(),
+        )
+        .expect("interpreter");
+        line(
+            &mut interpreter,
+            r#"
+            newtype Wrapped = Int;
+            function MkConst<'T>(x : 'T) : (Unit -> 'T) { () -> x }
+            function MkNested<'T>(x : 'T) : (Unit -> (Unit -> 'T)) { () -> (() -> x) }
+            operation ApplyRepeated<'T>(op : 'T => Unit is Adj + Ctl, power : Int, target : 'T) : Unit is Adj + Ctl {
+                for _ in 1..power { op(target); }
+            }
+            function MakeRepeatedOp<'T>(op : 'T => Unit is Adj + Ctl, power : Int) : ('T => Unit is Adj + Ctl) {
+                ApplyRepeated(op, power, _)
+            }
+            operation Ignore<'T>(x : 'T) : Unit is Adj + Ctl {}
+        "#,
+        )
+        .0
+        .expect("source");
+        let factory = interpreter
+            .user_globals()
+            .into_iter()
+            .find(|global| global.name.as_ref() == "MkNested")
+            .expect("factory")
+            .value;
+        let before = format!("{:?}", interpreter.global_callable_ty(&factory));
+        for (expression, output) in [
+            ("MkConst(5)", "Int"),
+            ("MkConst(0.5)", "Double"),
+            ("MkConst(Wrapped(5))", "Wrapped"),
+            ("MkNested(5)", "(Unit -> Int)"),
+            ("MkNested(0.5)", "(Unit -> Double)"),
+        ] {
+            let value = line(&mut interpreter, expression).0.expect("closure");
+            let (input, actual) = interpreter
+                .global_callable_ty(&value)
+                .expect("concrete signature");
+            assert_eq!(input.display(), "Unit");
+            assert_eq!(actual.display(), output);
+        }
+        assert_eq!(
+            format!("{:?}", interpreter.global_callable_ty(&factory)),
+            before
+        );
+        for (expression, expected) in [
+            (
+                "{ let op : Int => Unit is Adj + Ctl = Ignore; MakeRepeatedOp(op, 1) }",
+                "Int",
+            ),
+            (
+                "{ let op : Wrapped => Unit is Adj + Ctl = Ignore; MakeRepeatedOp(op, 1) }",
+                "Wrapped",
+            ),
+        ] {
+            let value = line(&mut interpreter, expression)
+                .0
+                .expect("partial application");
+            let (input, output) = interpreter
+                .global_callable_ty(&value)
+                .expect("concrete partial signature");
+            assert_eq!(input.display(), expected);
+            assert_eq!(output.display(), "Unit");
+        }
+    }
+
+    #[test]
+    fn runtime_closure_remapping_preserves_nested_type_evidence() {
+        use qsc_fir::{fir, ty};
+        let id = fir::StoreItemId {
+            package: fir::PackageId::from(2usize),
+            item: fir::LocalItemId::from(3usize),
+        };
+        let nominal = ty::Ty::Udt(fir::Res::Item(fir::ItemId {
+            package: id.package,
+            item: id.item,
+        }));
+        let args = FxHashMap::from_iter([(
+            ty::ParamId::from(0),
+            ty::GenericArg::Ty(ty::Ty::Array(Box::new(nominal))),
+        )]);
+        let value = Value::Array(Rc::new(vec![Value::Closure(Box::new(
+            qsc_eval::val::Closure {
+                id,
+                fixed_args: vec![Value::Tuple(vec![Value::Int(5)].into(), Some(Rc::new(id)))]
+                    .into(),
+                functor: Default::default(),
+                type_args: Some(Rc::new(args)),
+            },
+        ))]));
+        let remapped = Interpreter::remap_value_for_codegen(value.clone());
+        assert_eq!(remapped, value);
+        let Value::Array(items) = remapped else {
+            panic!("array");
+        };
+        let Value::Closure(closure) = &items[0] else {
+            panic!("closure");
+        };
+        assert_eq!(closure.id, Interpreter::remap_store_item_id_for_codegen(id));
+        assert!(closure.type_args.is_some());
+    }
+
+    #[test]
+    fn runtime_generic_closure_preparation_preserves_live_qubit_identity() {
+        use crate::codegen::qir::{CallableArgsBackend, prepare_codegen_fir_from_callable_args};
+        use crate::target::Profile;
+        for profile in [
+            Profile::Base,
+            Profile::AdaptiveRI,
+            Profile::AdaptiveRIF,
+            Profile::Adaptive,
+        ] {
+            let (std_id, store) = crate::compile::package_store_with_stdlib(profile.into());
+            let mut interpreter = Interpreter::new(
+                SourceMap::default(),
+                PackageType::Lib,
+                profile.into(),
+                LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
+                Default::default(),
+            )
+            .expect("interpreter");
+            line(
+                &mut interpreter,
+                r#"
+                function MkConst<'T>(x : 'T) : (Unit -> 'T) { () -> x }
+                operation RunQubit(f : Unit -> Qubit) : Result { X(f()); MResetZ(f()) }
+                use q = Qubit();
+            "#,
+            )
+            .0
+            .expect("source");
+            let target = interpreter
+                .user_globals()
+                .into_iter()
+                .find(|global| global.name.as_ref() == "RunQubit")
+                .expect("target")
+                .value;
+            let args = line(&mut interpreter, "MkConst(q)").0.expect("closure");
+            let (id, _) = Interpreter::hir_callable_from_value(&target).expect("global");
+            let (prepared, backend) = prepare_codegen_fir_from_callable_args(
+                interpreter.compiler.package_store(),
+                id,
+                &args,
+                profile.into(),
+            )
+            .expect("prepare reinvocation");
+            let CallableArgsBackend::ReinvokeOriginal {
+                args: rewritten, ..
+            } = backend
+            else {
+                panic!("reinvoke");
+            };
+            let (Value::Closure(original), Value::Closure(rewritten)) = (&args, rewritten) else {
+                panic!("closures");
+            };
+            assert_ne!(original.id, rewritten.id);
+            assert_eq!(original.fixed_args, rewritten.fixed_args);
+            assert_eq!(original.type_args, rewritten.type_args);
+            let package = prepared.fir_store.get(rewritten.id.package);
+            assert!(package.items.get(rewritten.id.item).is_some());
+        }
+    }
+
     mod without_sources {
         use std::rc::Rc;
 

@@ -776,6 +776,9 @@ impl FirCloner {
                 match &mut expr {
                     qsc_fir::fir::ExecGraphExpr::Expr(expr_id)
                     | qsc_fir::fir::ExecGraphExpr::Assign(expr_id)
+                    | qsc_fir::fir::ExecGraphExpr::Call {
+                        callee: expr_id, ..
+                    }
                     | qsc_fir::fir::ExecGraphExpr::AssignOp {
                         lhs: expr_id,
                         op: _,
@@ -794,10 +797,6 @@ impl FirCloner {
                         op: _,
                         lhs_span: _,
                         rhs_span: _,
-                    }
-                    | qsc_fir::fir::ExecGraphExpr::Call {
-                        callee_span: _,
-                        args_span: _,
                     }
                     | qsc_fir::fir::ExecGraphExpr::Fail
                     | qsc_fir::fir::ExecGraphExpr::Index { index_span: _ }

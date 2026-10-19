@@ -133,6 +133,15 @@ pub enum Error {
         expected: Box<qsc_fir::ty::Ty>,
         actual: Box<qsc_fir::ty::Ty>,
     },
+    #[error("checked type information is unavailable or inconsistent for runtime closure {0}")]
+    #[diagnostic(code("Qdk.Qsc.Interpret.MissingRuntimeClosureTypeInformation"))]
+    MissingRuntimeClosureTypeInformation(qsc_fir::fir::StoreItemId),
+    #[error("type information is missing or inconsistent for runtime callable {0}")]
+    #[diagnostic(code("Qdk.Qsc.Interpret.MissingRuntimeCallableTypeInformation"))]
+    MissingRuntimeCallableTypeInformation(qsc_fir::fir::StoreItemId),
+    #[error("invalid runtime generic instantiation")]
+    #[diagnostic(transparent)]
+    InvalidRuntimeInstantiation(WithSource<qsc_frontend::typeck::InstantiationError>),
     #[error("partial evaluation error")]
     #[diagnostic(transparent)]
     PartialEvaluation(#[from] WithSource<qsc_partial_eval::Error>),
@@ -513,12 +522,16 @@ impl Interpreter {
     }
 
     /// Get the input and output types of a given value representing a global item.
+    /// Source-created closures apply their checked creator bindings without
+    /// mutating the shared declaration. Values without that evidence retain the
+    /// declaration's unresolved types. Applied functors do not alter this view.
+    ///
     /// # Panics
     /// Panics if the item is not callable or a type that can be invoked as a callable.
     pub fn global_callable_ty(&self, item_id: &Value) -> Option<(ty::Ty, ty::Ty)> {
-        let (item_id, is_closure) = match item_id {
-            Value::Global(item_id, _) => (*item_id, false),
-            Value::Closure(closure) => (closure.id, true),
+        let (item_id, is_closure, type_args) = match item_id {
+            Value::Global(item_id, _) => (*item_id, false, None),
+            Value::Closure(closure) => (closure.id, true, closure.type_args.as_deref()),
             _ => panic!("value is not a callable"),
         };
 
@@ -544,7 +557,36 @@ impl Interpreter {
                     let input_ty = elems
                         .last()
                         .expect("closure input type should have at least one element");
-                    Some((input_ty.clone(), decl.output.clone()))
+                    if let Some(type_args) = type_args {
+                        let args: rustc_hash::FxHashMap<_, _> = type_args
+                            .iter()
+                            .map(|(id, arg)| {
+                                let arg = match arg {
+                                    qsc_fir::ty::GenericArg::Ty(ty) => {
+                                        ty::GenericArg::Ty(crate::compile::runtime_type_to_hir(
+                                            self.compiler.package_store(),
+                                            ty,
+                                        )?)
+                                    }
+                                    qsc_fir::ty::GenericArg::Functor(functors) => {
+                                        ty::GenericArg::Functor(
+                                            crate::compile::runtime_functors_to_hir(*functors)?,
+                                        )
+                                    }
+                                };
+                                Some((*id, arg))
+                            })
+                            .collect::<Option<_>>()?;
+                        let lookup = |id: &ty::ParamId| {
+                            args.get(&qsc_fir::ty::ParamId::from(usize::from(*id)))
+                        };
+                        Some((
+                            ty::instantiate_ty(lookup, input_ty).ok()?,
+                            ty::instantiate_ty(lookup, &decl.output).ok()?,
+                        ))
+                    } else {
+                        Some((input_ty.clone(), decl.output.clone()))
+                    }
                 } else {
                     Some((decl.input.ty.clone(), decl.output.clone()))
                 }
@@ -1164,6 +1206,27 @@ impl Interpreter {
                     .collect(),
             )),
             Value::Closure(inner) => Value::Closure(Box::new(Closure {
+                type_args: inner.type_args.map(|args| {
+                    Rc::new(
+                        args.iter()
+                            .map(|(id, arg)| {
+                                (
+                                    *id,
+                                    match arg {
+                                        qsc_fir::ty::GenericArg::Ty(ty) => {
+                                            qsc_fir::ty::GenericArg::Ty(
+                                                Self::remap_runtime_type_for_codegen(ty),
+                                            )
+                                        }
+                                        qsc_fir::ty::GenericArg::Functor(functors) => {
+                                            qsc_fir::ty::GenericArg::Functor(*functors)
+                                        }
+                                    },
+                                )
+                            })
+                            .collect(),
+                    )
+                }),
                 fixed_args: inner
                     .fixed_args
                     .iter()
@@ -1188,6 +1251,32 @@ impl Interpreter {
                 store_item_id.map(|id| Rc::new(Self::remap_store_item_id_for_codegen(*id))),
             ),
             other => other,
+        }
+    }
+
+    fn remap_runtime_type_for_codegen(ty: &qsc_fir::ty::Ty) -> qsc_fir::ty::Ty {
+        use qsc_fir::ty::{Arrow, Ty};
+        match ty {
+            Ty::Array(inner) => Ty::Array(Box::new(Self::remap_runtime_type_for_codegen(inner))),
+            Ty::Tuple(items) => Ty::Tuple(
+                items
+                    .iter()
+                    .map(Self::remap_runtime_type_for_codegen)
+                    .collect(),
+            ),
+            Ty::Arrow(arrow) => Ty::Arrow(Box::new(Arrow {
+                input: Box::new(Self::remap_runtime_type_for_codegen(&arrow.input)),
+                output: Box::new(Self::remap_runtime_type_for_codegen(&arrow.output)),
+                ..**arrow
+            })),
+            Ty::Udt(fir::Res::Item(id)) => {
+                let id = Self::remap_store_item_id_for_codegen((id.package, id.item).into());
+                Ty::Udt(fir::Res::Item(fir::ItemId {
+                    package: id.package,
+                    item: id.item,
+                }))
+            }
+            _ => ty.clone(),
         }
     }
 

@@ -47,6 +47,57 @@ fn interpreter_with_circuit_trace(code: &str, profile: Profile) -> Interpreter {
     .expect("interpreter creation should succeed")
 }
 
+#[test]
+fn generic_runtime_closure_static_circuit_matches_classical() {
+    let source = r#"
+        namespace Test {
+        function MkApply<'T>(op : 'T => Unit) : ('T => Unit) { x => op(x) }
+        operation Run(op : Qubit => Unit) : Unit {
+            use q = Qubit(); op(q); op(q);
+        }
+        operation ApplyRepeated<'T>(op : 'T => Unit is Adj + Ctl, power : Int, target : 'T) : Unit is Adj + Ctl {
+            for _ in 1..power { op(target); }
+        }
+        function MakeRepeatedOp<'T>(op : 'T => Unit is Adj + Ctl, power : Int) : ('T => Unit is Adj + Ctl) {
+            ApplyRepeated(op, power, _)
+        }
+        }
+    "#;
+    for profile in [Profile::Base, Profile::AdaptiveRI, Profile::AdaptiveRIF] {
+        for expression in ["Test.MkApply(X)", "Test.MakeRepeatedOp(X, 1)"] {
+            let mut interpreter = interpreter(source, PackageType::Lib, profile);
+            let mut sink = std::io::sink();
+            let mut out = GenericReceiver::new(&mut sink);
+            let args = interpreter
+                .eval_fragments(&mut out, expression)
+                .expect("closure");
+            let target = interpreter
+                .source_globals()
+                .into_iter()
+                .find(|global| global.name.as_ref() == "Run")
+                .expect("Run")
+                .value;
+            let entry = CircuitEntryPoint::Callable(target, args);
+            let config = TracerConfig {
+                source_locations: false,
+                group_by_scope: false,
+                ..default_test_tracer_config()
+            };
+            let classical = interpreter
+                .circuit(
+                    entry.clone(),
+                    CircuitGenerationMethod::ClassicalEval,
+                    config,
+                )
+                .expect("classical");
+            let compiled = interpreter
+                .circuit(entry, CircuitGenerationMethod::Static, config)
+                .expect("static");
+            assert_eq!(format!("{compiled:?}"), format!("{classical:?}"));
+        }
+    }
+}
+
 fn circuit_without_groups(code: &str, entry: CircuitEntryPoint) -> String {
     let eval_circ = circuit_with_options_success(
         code,

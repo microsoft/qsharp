@@ -720,6 +720,7 @@ impl Lowerer {
                 (
                     fir::ExprKind::Call(call, arg),
                     Some(ExecGraphExpr::Call {
+                        callee: call,
                         callee_span,
                         args_span,
                     }),

@@ -64,7 +64,7 @@ mod semantic_equivalence_tests;
 use crate::cloner::FirCloner;
 use crate::fir_builder::{functored_specs, reachable_local_callables};
 use crate::package_assigners::PackageAssigners;
-use crate::reachability::{collect_reachable_from_entry, collect_reachable_package_closure};
+use crate::reachability::{collect_reachable_package_closure, collect_reachable_with_seeds};
 use crate::walk_utils::{
     CallableNode, collect_expr_ids_in_entry_and_local_callables,
     collect_expr_ids_in_local_callables, extend_expr_ids_in_local_callables,
@@ -78,7 +78,11 @@ use qsc_fir::fir::{
 
 use miette::Diagnostic;
 pub use qsc_data_structures::intrinsic_names::must_preserve_intrinsic_name;
-use qsc_fir::ty::{Arrow, FunctorSet, GenericArg, ParamId, Ty, TypeParameter};
+use qsc_fir::ty::{
+    Arrow, FunctorSet, GenericArg, MAX_TYPE_DEPTH, MAX_TYPE_NODES, ParamId, Ty, TypeParameter,
+    callable_type_parameters, infer_generic_functor_args, infer_generic_ty_args, instantiate_ty,
+    type_expansion_within_limits,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::VecDeque;
 use std::rc::Rc;
@@ -86,10 +90,6 @@ use thiserror::Error;
 
 /// Per-invocation limits, including foreign-package and lifted-lambda specializations.
 const MAX_SPECIALIZATIONS: usize = 1024;
-/// Maximum nodes in one substituted type or a reference's generic-argument list.
-const MAX_TYPE_NODES: usize = 4096;
-/// Maximum type depth (a scalar has depth one), bounding recursive type consumers.
-const MAX_TYPE_DEPTH: usize = 128;
 
 /// Fatal resource-limit diagnostics. The intermediate store must not be consumed.
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -129,6 +129,167 @@ struct Specialization {
     new_item_id: ItemId,
 }
 
+/// Failure to specialize a runtime callable from concrete type evidence.
+#[derive(Debug)]
+pub enum RuntimeSpecializationError {
+    /// Required declaration-scoped type evidence is missing or contradictory.
+    MissingTypeInformation(StoreItemId),
+    /// The shared specialization or type construction budget was exceeded.
+    Limit(Error),
+}
+
+/// Per-request runtime specializations, followed by the ordinary FIR pipeline.
+/// The cache keys include package identity and all effective type/functor bindings.
+pub struct RuntimeSpecializations {
+    /// Owning-package ID watermarks shared across runtime clones in this request.
+    assigners: PackageAssigners,
+    /// Source target, effective checked bindings, and concrete target. Captured
+    /// values are intentionally absent: equal instantiations may share code.
+    instances: Vec<(StoreItemId, FxHashMap<ParamId, GenericArg>, StoreItemId)>,
+}
+
+impl RuntimeSpecializations {
+    /// Starts a bounded specialization request on a disposable lowered store.
+    #[must_use]
+    pub fn new(store: &PackageStore, package: PackageId) -> Self {
+        Self {
+            assigners: PackageAssigners::new(store, package),
+            instances: Vec::new(),
+        }
+    }
+
+    pub(crate) fn count(&self) -> usize {
+        self.instances.len()
+    }
+
+    /// Clones a target when its declaration or complete body requires substitution.
+    /// Declared arguments must already have passed the source constraint validator.
+    /// The returned ID belongs to the original target's package; originals stay intact.
+    ///
+    /// # Errors
+    /// Missing evidence and construction limits prevent consuming the request.
+    #[allow(clippy::too_many_lines)]
+    pub fn specialize(
+        &mut self,
+        store: &mut PackageStore,
+        source: StoreItemId,
+        evidence: Option<&FxHashMap<ParamId, GenericArg>>,
+    ) -> Result<StoreItemId, RuntimeSpecializationError> {
+        let missing = || RuntimeSpecializationError::MissingTypeInformation(source);
+        let Some(qsc_fir::fir::Global::Callable(decl)) =
+            store.get(source.package).get_global(source.item)
+        else {
+            return Err(missing());
+        };
+        let mut required = callable_type_parameters(store, source);
+        required.extend((0..decl.generics.len()).map(ParamId::from));
+        if required.is_empty() {
+            return Ok(source);
+        }
+        let evidence = evidence.ok_or_else(missing)?;
+        for (index, declared) in decl.generics.iter().enumerate() {
+            if !matches!(
+                (declared, evidence.get(&ParamId::from(index))),
+                (
+                    qsc_fir::ty::TypeParameter::Ty { .. },
+                    Some(GenericArg::Ty(_))
+                ) | (
+                    qsc_fir::ty::TypeParameter::Functor(_),
+                    Some(GenericArg::Functor(_))
+                )
+            ) {
+                return Err(missing());
+            }
+        }
+        if !type_expansion_within_limits(
+            required.iter().filter_map(|id| match evidence.get(id) {
+                Some(GenericArg::Ty(ty)) => Some(ty),
+                _ => None,
+            }),
+            &FxHashMap::default(),
+        ) {
+            return Err(RuntimeSpecializationError::Limit(
+                Error::TypeExpansionLimit(decl.span),
+            ));
+        }
+        let mut effective = FxHashMap::default();
+        for param in required {
+            let arg = evidence.get(&param).ok_or_else(missing)?;
+            match arg {
+                GenericArg::Ty(ty) if ty.is_concrete() => {}
+                GenericArg::Functor(FunctorSet::Value(_)) => {}
+                _ => return Err(missing()),
+            }
+            effective.insert(param, arg.clone());
+        }
+        if let Some((_, _, target)) = self
+            .instances
+            .iter()
+            .find(|(id, args, _)| *id == source && *args == effective)
+        {
+            return Ok(*target);
+        }
+        if self.instances.len() >= MAX_SPECIALIZATIONS {
+            return Err(RuntimeSpecializationError::Limit(
+                Error::SpecializationLimit(decl.span),
+            ));
+        }
+        let body = extract_callable_body(store.get(source.package), decl);
+        validate_specialization_types(&body, decl, &effective)
+            .map_err(RuntimeSpecializationError::Limit)?;
+        let concrete =
+            |ty: &Ty| instantiate_ty(|id| effective.get(id), ty).is_ok_and(|ty| ty.is_concrete());
+        if !concrete(&decl.output)
+            || !body.pats.values().all(|pat| concrete(&pat.ty))
+            || !body.blocks.values().all(|block| concrete(&block.ty))
+            || !body.exprs.values().all(|expr| {
+                concrete(&expr.ty)
+                    && match &expr.kind {
+                        ExprKind::Var(_, args) => args.iter().all(|arg| match arg {
+                            GenericArg::Ty(ty) => concrete(ty),
+                            GenericArg::Functor(FunctorSet::Param(id)) => matches!(
+                                effective.get(id),
+                                Some(GenericArg::Functor(FunctorSet::Value(_)))
+                            ),
+                            GenericArg::Functor(FunctorSet::Value(_)) => true,
+                            GenericArg::Functor(_) => false,
+                        }),
+                        _ => true,
+                    }
+            })
+            || !body.items.values().all(|item| match &item.kind {
+                ItemKind::Callable(decl) if decl.generics.is_empty() => concrete(&decl.output),
+                _ => true,
+            })
+        {
+            return Err(missing());
+        }
+        let mut ordered: Vec<_> = effective.iter().collect();
+        ordered.sort_by_key(|(param, _)| **param);
+        let args: Vec<_> = ordered.into_iter().map(|(_, arg)| arg.clone()).collect();
+        let target = self
+            .assigners
+            .with_package(store, source.package, |store, assigner| {
+                let package = store.get_mut(source.package);
+                let mut cloner = FirCloner::from_assigner(assigner);
+                let result = specialize_one(
+                    package,
+                    source.package,
+                    source,
+                    &args,
+                    &effective,
+                    &mut cloner,
+                );
+                (cloner.into_assigner(), result)
+            })
+            .map_err(RuntimeSpecializationError::Limit)?
+            .0;
+        let target = StoreItemId::from((target.package, target.item));
+        self.instances.push((source, effective, target));
+        Ok(target)
+    }
+}
+
 /// Monomorphizes all generic callable references in the entry-reachable portion
 /// of a package.
 ///
@@ -145,30 +306,41 @@ struct Specialization {
 /// # Panics
 ///
 /// Panics if the package has no entry expression. The reachability scans
-/// in this pass go through [`collect_reachable_from_entry`], which asserts
+/// in this pass go through [`collect_reachable_with_seeds`], which asserts
 /// `package.entry.is_some()`.
 pub fn monomorphize(
     store: &mut PackageStore,
     package_id: PackageId,
     assigners: &mut PackageAssigners,
 ) -> Result<(), Error> {
-    let instantiations = discover_instantiations(store, package_id)?;
+    monomorphize_with_runtime_count(store, package_id, assigners, 0, &[])
+}
+
+pub(crate) fn monomorphize_with_runtime_count(
+    store: &mut PackageStore,
+    package_id: PackageId,
+    assigners: &mut PackageAssigners,
+    runtime_count: usize,
+    seeds: &[StoreItemId],
+) -> Result<(), Error> {
+    let instantiations = discover_instantiations(store, package_id, seeds)?;
     if !instantiations.is_empty() {
         // Create specialized callables, allocating each into the package that owns
         // the generic source callable (specialize-in-place). The per-package
         // assigners thread the advanced id watermarks back into the pipeline.
-        let specializations = create_specializations(store, instantiations, assigners)?;
+        let specializations =
+            create_specializations(store, instantiations, assigners, runtime_count)?;
 
         // Rewrite generic call sites across every reachable package so foreign
         // bodies that call the now-specialized generics point at the concrete
         // specializations in their own arena.
-        rewrite_all_packages(store, package_id, &specializations);
+        rewrite_all_packages(store, package_id, &specializations, seeds);
     }
 
     // After monomorphization no generic callable may remain reachable in any
     // package. Holds even when no instantiation was discovered (a reachable
     // generic would have produced one).
-    assert_no_reachable_generic(store, package_id);
+    assert_no_reachable_generic(store, package_id, seeds);
     Ok(())
 }
 
@@ -180,38 +352,11 @@ fn validate_type_expansion<'a>(
     arg_map: &FxHashMap<ParamId, GenericArg>,
     span: PackageSpan,
 ) -> Result<(), Error> {
-    let mut nodes = 0;
-    for ty in types {
-        let mut pending = vec![(ty, 1, true)];
-        while let Some((ty, depth, substitute)) = pending.pop() {
-            if substitute
-                && let Ty::Param(param) = ty
-                && let Some(GenericArg::Ty(concrete)) = arg_map.get(param)
-            {
-                pending.push((concrete, depth, false));
-                continue;
-            }
-            nodes += 1;
-            if nodes > MAX_TYPE_NODES || depth > MAX_TYPE_DEPTH {
-                return Err(Error::TypeExpansionLimit(span));
-            }
-            match ty {
-                Ty::Array(inner) => pending.push((inner, depth + 1, substitute)),
-                Ty::Arrow(arrow) => {
-                    pending.push((&arrow.input, depth + 1, substitute));
-                    pending.push((&arrow.output, depth + 1, substitute));
-                }
-                Ty::Tuple(items) => {
-                    if items.len() > MAX_TYPE_NODES - nodes {
-                        return Err(Error::TypeExpansionLimit(span));
-                    }
-                    pending.extend(items.iter().map(|ty| (ty, depth + 1, substitute)));
-                }
-                _ => {}
-            }
-        }
+    if type_expansion_within_limits(types, arg_map) {
+        Ok(())
+    } else {
+        Err(Error::TypeExpansionLimit(span))
     }
-    Ok(())
 }
 
 fn validate_node_types(
@@ -289,8 +434,12 @@ fn validate_specialization_types(
 ///
 /// Panics if any reachable callable in any reachable package still carries
 /// generic type parameters.
-fn assert_no_reachable_generic(store: &PackageStore, entry_pkg_id: PackageId) {
-    let reachable = collect_reachable_from_entry(store, entry_pkg_id);
+fn assert_no_reachable_generic(
+    store: &PackageStore,
+    entry_pkg_id: PackageId,
+    seeds: &[StoreItemId],
+) {
+    let reachable = collect_reachable_with_seeds(store, entry_pkg_id, seeds);
     for store_item_id in &reachable {
         let package = store.get(store_item_id.package);
         if let Some(item) = package.items.get(store_item_id.item)
@@ -317,6 +466,7 @@ fn rewrite_all_packages(
     store: &mut PackageStore,
     entry_pkg_id: PackageId,
     specializations: &[Specialization],
+    seeds: &[StoreItemId],
 ) {
     // Build a single lookup from (source key) → new ItemId, shared across all
     // packages so foreign callers resolve specializations regardless of which
@@ -326,7 +476,7 @@ fn rewrite_all_packages(
         .map(|s| (mono_key(s.source, &s.args), s.new_item_id))
         .collect();
 
-    let reachable = collect_reachable_from_entry(store, entry_pkg_id);
+    let reachable = collect_reachable_with_seeds(store, entry_pkg_id, seeds);
     let packages = collect_reachable_package_closure(entry_pkg_id, &reachable);
 
     // Group the newly created specialization local ids by their owning package
@@ -507,8 +657,9 @@ fn collect_rewrite_scope_for_package(
 fn discover_instantiations(
     store: &PackageStore,
     package_id: PackageId,
+    seeds: &[StoreItemId],
 ) -> Result<Vec<Instantiation>, Error> {
-    let reachable = collect_reachable_from_entry(store, package_id);
+    let reachable = collect_reachable_with_seeds(store, package_id, seeds);
     let mut found: Vec<Instantiation> = Vec::new();
     let mut seen_keys: FxHashSet<String> = FxHashSet::default();
 
@@ -937,71 +1088,6 @@ fn infer_closure_generic_args(
         .collect()
 }
 
-/// Structurally unifies a `formal` (possibly generic) type against a concrete
-/// `actual` type, recording every solved type/functor parameter in `arg_map`.
-///
-/// A bare `Ty::Param` binds directly to whatever `actual` is; compound types
-/// (array, arrow, tuple) recurse into their matching components; leaf types
-/// must be equal. Returns `false` on any shape mismatch or a conflicting
-/// re-binding of an already-solved parameter.
-fn infer_generic_ty_args(
-    formal: &Ty,
-    actual: &Ty,
-    arg_map: &mut FxHashMap<ParamId, GenericArg>,
-) -> bool {
-    match (formal, actual) {
-        (Ty::Param(param), _) => {
-            record_inferred_arg(*param, GenericArg::Ty(actual.clone()), arg_map)
-        }
-        (Ty::Array(formal), Ty::Array(actual)) => infer_generic_ty_args(formal, actual, arg_map),
-        (Ty::Arrow(formal), Ty::Arrow(actual)) => {
-            formal.kind == actual.kind
-                && infer_generic_ty_args(&formal.input, &actual.input, arg_map)
-                && infer_generic_ty_args(&formal.output, &actual.output, arg_map)
-                && infer_generic_functor_args(formal.functors, actual.functors, arg_map)
-        }
-        (Ty::Tuple(formal), Ty::Tuple(actual)) if formal.len() == actual.len() => formal
-            .iter()
-            .zip(actual)
-            .all(|(formal, actual)| infer_generic_ty_args(formal, actual, arg_map)),
-        (Ty::Prim(formal), Ty::Prim(actual)) => formal == actual,
-        (Ty::Udt(formal), Ty::Udt(actual)) => formal == actual,
-        (Ty::Infer(formal), Ty::Infer(actual)) => formal == actual,
-        (Ty::Err, Ty::Err) => true,
-        _ => false,
-    }
-}
-
-/// Unifies a `formal` functor set against a concrete `actual` one: a
-/// `FunctorSet::Param` binds to `actual`, otherwise the two must be equal.
-fn infer_generic_functor_args(
-    formal: FunctorSet,
-    actual: FunctorSet,
-    arg_map: &mut FxHashMap<ParamId, GenericArg>,
-) -> bool {
-    match formal {
-        FunctorSet::Param(param) => {
-            record_inferred_arg(param, GenericArg::Functor(actual), arg_map)
-        }
-        _ => formal == actual,
-    }
-}
-
-/// Records a solved parameter binding, returning `false` if the parameter was
-/// already bound to a different argument (an inconsistent unification).
-fn record_inferred_arg(
-    param: ParamId,
-    arg: GenericArg,
-    arg_map: &mut FxHashMap<ParamId, GenericArg>,
-) -> bool {
-    if let Some(existing) = arg_map.get(&param) {
-        existing == &arg
-    } else {
-        arg_map.insert(param, arg);
-        true
-    }
-}
-
 /// Returns `true` when no `Ty::Param` or `FunctorSet::Param` appears at any
 /// depth inside the given generic args.
 fn is_fully_concrete(args: &[GenericArg]) -> bool {
@@ -1055,6 +1141,7 @@ fn create_specializations(
     store: &mut PackageStore,
     instantiations: Vec<Instantiation>,
     assigners: &mut PackageAssigners,
+    runtime_count: usize,
 ) -> Result<Vec<Specialization>, Error> {
     let mut specializations = Vec::new();
 
@@ -1066,7 +1153,7 @@ fn create_specializations(
     let mut worklist: VecDeque<Instantiation> = instantiations.into();
 
     while let Some((source_id, args)) = worklist.pop_front() {
-        if specializations.len() == MAX_SPECIALIZATIONS {
+        if specializations.len() + runtime_count >= MAX_SPECIALIZATIONS {
             return Err(Error::SpecializationLimit(
                 store.get(source_id.package).get_item(source_id.item).span,
             ));
@@ -1091,6 +1178,7 @@ fn create_specializations(
                     owning_pkg_id,
                     source_id,
                     &args,
+                    &build_arg_map(&args),
                     &mut cloner,
                 );
 
@@ -1102,7 +1190,7 @@ fn create_specializations(
         for (ref_id, ref_args) in new_refs {
             let key = mono_key(ref_id, &ref_args);
             if !seen_keys.contains(&key) {
-                if seen_keys.len() >= MAX_SPECIALIZATIONS {
+                if seen_keys.len() + runtime_count >= MAX_SPECIALIZATIONS {
                     return Err(Error::SpecializationLimit(
                         store.get(ref_id.package).get_item(ref_id.item).span,
                     ));
@@ -1131,6 +1219,7 @@ fn specialize_one(
     owning_pkg_id: PackageId,
     source_id: StoreItemId,
     args: &[GenericArg],
+    arg_map: &FxHashMap<ParamId, GenericArg>,
     cloner: &mut FirCloner,
 ) -> Result<(ItemId, Vec<Instantiation>), Error> {
     // Extract read-only data from the owning package.
@@ -1144,8 +1233,7 @@ fn specialize_one(
         let decl_snapshot = source_decl.clone();
         (body_pkg, decl_snapshot)
     };
-    let arg_map = build_arg_map(args);
-    validate_specialization_types(&body_pkg, &decl_snapshot, &arg_map)?;
+    validate_specialization_types(&body_pkg, &decl_snapshot, arg_map)?;
 
     // Clone body into the owning package, substitute types, and insert.
     let new_local_id = cloner.alloc_item();
@@ -1167,9 +1255,9 @@ fn specialize_one(
     let new_impl = cloner.clone_callable_impl(&body_pkg, &decl_snapshot.implementation, owning_pkg);
 
     // Substitute Ty::Param / FunctorSet::Param in all cloned nodes.
-    substitute_types_in_cloned_nodes(owning_pkg, cloner, &arg_map);
+    substitute_types_in_cloned_nodes(owning_pkg, cloner, arg_map);
 
-    let output = substitute_ty(&decl_snapshot.output, &arg_map);
+    let output = substitute_ty(&decl_snapshot.output, arg_map);
 
     let spec_name = mono_name(&decl_snapshot, args);
     let spec_decl = CallableDecl {
