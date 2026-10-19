@@ -44,7 +44,7 @@ class OptimizeSingleQubitGates(QirModuleVisitor):
                     self.mresetz_func = func
                 case "__quantum__qis__sx__body":
                     self.sx_func = func
-        if not hasattr(self, "sx_fun"):
+        if not hasattr(self, "sx_func"):
             self.sx_func = Function(
                 FunctionType(void, [qubit_ty]),
                 Linkage.EXTERNAL,

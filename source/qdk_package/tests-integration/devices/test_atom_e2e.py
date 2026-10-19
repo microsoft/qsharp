@@ -162,6 +162,31 @@ def test_device_simulate_z_h_s_h_z_is_sx_adjoint() -> None:
 
 
 @pytest.mark.skipif(not PYQIR_AVAILABLE, reason=SKIP_REASON)
+def test_device_compile_late_h_s_h_fusion_calls_sx() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Adaptive_RIF)
+    # The h s h on t only appears after the first optimizer run, when the
+    # module already declares __quantum__qis__sx__body.
+    qir = qsharp.compile("""
+        {
+            use (c, t) = (Qubit(), Qubit());
+            H(t);
+            S(t);
+            CNOT(c, t);
+            H(t);
+            Rx(Std.Math.PI() / 2.0, t);
+            [MResetZ(c), MResetZ(t)]
+        }
+        """)
+
+    device = NeutralAtomDevice()
+    compiled = str(device.compile(qir))
+    assert "__quantum__qis__sx__body." not in compiled
+    for sim_type in ["cpu", "stabilizer"]:
+        result = device.simulate(qir, shots=10, type=sim_type, seed=1)
+        assert result == [[qsharp.Result.Zero, qsharp.Result.One]] * 10, sim_type
+
+
+@pytest.mark.skipif(not PYQIR_AVAILABLE, reason=SKIP_REASON)
 def test_device_simulate_with_loss() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Base)
     qir = qsharp.compile("""
