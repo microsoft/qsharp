@@ -353,11 +353,16 @@ impl<'a> PartialEvaluator<'a> {
     fn bind_value_to_ident(&mut self, mutability: Mutability, ident: &Ident, value: Value) {
         // We do slightly different things depending on the mutability of the identifier.
         match mutability {
-            Mutability::Mutable => self.bind_value_to_mutable_ident(ident, value),
+            Mutability::Mutable => {
+                // Make sure to track this mutable variable in the current scope to inform
+                // the partial evaluator that it should be monitored for updates across evaluation boundaries.
+                self.eval_context
+                    .get_current_scope_mut()
+                    .insert_mutable_var(ident.id);
+                self.bind_value_to_mutable_ident(ident, value);
+            }
             Mutability::Immutable => {
-                let current_scope = self.eval_context.get_current_scope();
-                if matches!(value, Value::Var(var) if current_scope.get_static_value(var.id.into()).is_none())
-                {
+                if matches!(value, Value::Var(_)) {
                     // An immutable identifier is being bound to a dynamic value, so treat the identifier as mutable.
                     // This allows it to represent a point-in-time copy of the mutable value during evaluation.
                     self.bind_value_to_mutable_ident(ident, value);
@@ -370,20 +375,14 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn bind_value_to_immutable_ident(&mut self, ident: &Ident, value: Value) {
-        // If the value is not a variable, bind it to the classical map.
-        if !matches!(value, Value::Var(_)) {
-            self.bind_value_in_classical_map(ident, &value);
-        }
+        self.bind_value_in_classical_map(ident, &value);
 
         // Always bind the value to the hybrid map.
         self.bind_value_in_hybrid_map(ident, value);
     }
 
     fn bind_value_to_mutable_ident(&mut self, ident: &Ident, value: Value) {
-        // If the value is not a variable, bind it to the classical map.
-        if !matches!(value, Value::Var(_)) {
-            self.bind_value_in_classical_map(ident, &value);
-        }
+        self.bind_value_in_classical_map(ident, &value);
 
         // Always bind the value to the hybrid map but do it differently depending of the value type.
         if let Some((var_id, literal)) = self.try_create_mutable_variable(ident.id, &value) {
@@ -595,7 +594,9 @@ impl<'a> PartialEvaluator<'a> {
         // Set the value at the specified index or range.
         let update_result = match index_value {
             Value::Int(index) => {
-                update_index_single(array, index, update_value, index_expr_package_span)
+                let elem_value = self.copy_value_if_needed(update_value);
+
+                update_index_single(array, index, elem_value, index_expr_package_span)
             }
             Value::Range(range) => update_index_range(
                 array,
@@ -628,6 +629,12 @@ impl<'a> PartialEvaluator<'a> {
                 bin_op_expr_span,
             ),
             Value::Result(_) => self.eval_bin_op_with_lhs_result_operand(
+                bin_op,
+                &lhs_value,
+                rhs_expr_id,
+                bin_op_expr_span,
+            ),
+            Value::Var(v) if v.ty == VarTy::Result => self.eval_bin_op_with_lhs_result_operand(
                 bin_op,
                 &lhs_value,
                 rhs_expr_id,
@@ -1028,6 +1035,7 @@ impl<'a> PartialEvaluator<'a> {
         self.eval_context.push_block_node(rhs_eval_block_node);
 
         // Evaluate the RHS expression
+        let cached_mappings = self.clone_current_static_var_map();
         let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
         let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
             return Err(Error::Unexpected(
@@ -1036,6 +1044,7 @@ impl<'a> PartialEvaluator<'a> {
             ));
         };
         let rhs_operand = self.map_eval_value_to_rir_operand(&rhs_value);
+        self.keep_matching_static_var_mappings(&cached_mappings);
 
         // Store the RHS value into the the variable that represents the result of the Boolean operation.
         let store_ins = Instruction::Store(rhs_operand, result_rir_var);
@@ -1239,7 +1248,7 @@ impl<'a> PartialEvaluator<'a> {
                     bin_op_expr_span,
                 )
             }
-            VarTy::Qubit => Err(Error::Unexpected(
+            VarTy::Qubit | VarTy::Result => Err(Error::Unexpected(
                 format!(
                     "unsupported LHS variable type {} in binary operation",
                     lhs_eval_var.ty
@@ -1255,6 +1264,7 @@ impl<'a> PartialEvaluator<'a> {
         let expr = self.package_store.get_expr(store_expr_id);
         let scope_exec_graph = self.get_current_scope_exec_graph().clone();
         let scope = self.eval_context.get_current_scope_mut();
+        scope.update_classical_locals_from_hybrid_locals();
         let exec_graph = scope_exec_graph.get_range(&expr.exec_graph_range);
         let mut state = State::new(
             current_package_id,
@@ -1289,17 +1299,18 @@ impl<'a> PartialEvaluator<'a> {
             Err((error, _)) => Err(Error::from(error)),
         };
 
-        // If this was an assign expression, update the bindings in the hybrid side to keep them in sync and to insert
-        // store instructions for variables of type `Bool`, `Int` or `Double`.
-        if let Ok(EvalControlFlow::Continue(_)) = eval_result {
-            let expr = self.get_expr(expr_id);
-            if let ExprKind::Assign(lhs_expr_id, _)
-            | ExprKind::AssignField(lhs_expr_id, _, _)
-            | ExprKind::AssignIndex(lhs_expr_id, _, _)
-            | ExprKind::AssignOp(_, lhs_expr_id, _) = &expr.kind
-            {
-                self.update_hybrid_bindings_from_classical_bindings(*lhs_expr_id)?;
-            }
+        // Static expressions or sub-expressions may have updated variable values, so we need to collect and apply those updates
+        // to the hybrid maps (potentially updating static variable mappings as well), collecting the pending updates and
+        // making copies of values as needed.
+        let pending_updates = self
+            .eval_context
+            .get_current_scope_mut()
+            .collect_updated_local_values()
+            .into_iter()
+            .map(|(local_var_id, new_value)| (local_var_id, self.copy_value_if_needed(new_value)))
+            .collect::<Vec<_>>();
+        for (local_var_id, new_value) in pending_updates {
+            self.update_hybrid_local(local_var_id, new_value)?;
         }
 
         eval_result
@@ -1444,6 +1455,8 @@ impl<'a> PartialEvaluator<'a> {
                 self.get_expr_package_span(value_expr_id),
             ));
         };
+        let elem_value = self.copy_value_if_needed(value);
+
         let size_control_flow = self.try_eval_expr(size_expr_id)?;
         let EvalControlFlow::Continue(size) = size_control_flow else {
             return Err(Error::Unexpected(
@@ -1455,7 +1468,8 @@ impl<'a> PartialEvaluator<'a> {
         // We assume the size of the array is a classical value because otherwise it would have been rejected before
         // getting to the partial evaluation stage.
         let size = size.unwrap_int();
-        let values = vec![value; TryFrom::try_from(size).expect("could not convert size value")];
+        let values =
+            vec![elem_value; TryFrom::try_from(size).expect("could not convert size value")];
         Ok(EvalControlFlow::Continue(Value::Array(values.into())))
     }
 
@@ -1530,6 +1544,7 @@ impl<'a> PartialEvaluator<'a> {
             }
             lhs_control_flow.into_value()
         };
+        let lhs_value = self.copy_value_if_needed(lhs_value);
         let bin_op_control_flow = self.eval_bin_op(
             bin_op,
             lhs_value,
@@ -1562,6 +1577,7 @@ impl<'a> PartialEvaluator<'a> {
                 self.get_expr_package_span(lhs_expr_id),
             ));
         };
+        let lhs_value = self.copy_value_if_needed(lhs_value);
 
         // Now that we have a LHS value, evaluate the binary operation, which will properly consider short-circuiting
         // logic in the case of Boolean operations.
@@ -2071,8 +2087,11 @@ impl<'a> PartialEvaluator<'a> {
         let ret_val = match output_var {
             None => Value::unit(),
             Some(output_var) => {
-                if output_var.ty == rir::Ty::Prim(rir::Prim::Qubit) {
-                    // We don't actually accept custom intrinsics that return qubits, so emit an error here.
+                if matches!(
+                    output_var.ty,
+                    rir::Ty::Prim(rir::Prim::Qubit | rir::Prim::Result)
+                ) {
+                    // We don't actually accept custom intrinsics that return qubits or results (unless marked as a measurement), so emit an error here.
                     return Err(Error::UnsupportedCustomIntrinsicType(
                         callable_decl.output.to_string(),
                         callee_expr_span,
@@ -2793,7 +2812,9 @@ impl<'a> PartialEvaluator<'a> {
                     self.get_expr_package_span(*expr_id),
                 ));
             }
-            values.push(control_flow.into_value());
+            let elem_value = self.copy_value_if_needed(control_flow.into_value());
+
+            values.push(elem_value);
         }
         Ok(EvalControlFlow::Continue(Value::Array(values.into())))
     }
@@ -2808,7 +2829,9 @@ impl<'a> PartialEvaluator<'a> {
                     self.get_expr_package_span(*expr_id),
                 ));
             }
-            values.push(control_flow.into_value());
+            let elem_value = self.copy_value_if_needed(control_flow.into_value());
+
+            values.push(elem_value);
         }
         Ok(EvalControlFlow::Continue(Value::Tuple(values.into(), None)))
     }
@@ -2952,7 +2975,7 @@ impl<'a> PartialEvaluator<'a> {
                                 .config
                                 .capabilities
                                 .contains(TargetCapabilityFlags::BackwardsBranching))
-                        && let Some(value) = map_rir_literal_to_eval_value(*literal)
+                        && let Some(value) = map_rir_literal_to_eval_value(*literal, var.ty)
                     {
                         value
                     } else {
@@ -3051,6 +3074,10 @@ impl<'a> PartialEvaluator<'a> {
         body_block_id: BlockId,
     ) -> Result<EvalControlFlow, Error> {
         // Pop the current block node and create the necessary block nodes for the loop structure.
+        let cached_mappings = self
+            .eval_context
+            .get_current_scope()
+            .clone_static_var_mappings();
         let current_block_node = self.eval_context.pop_block_node();
         let conditional_block_node_id = self.create_program_block();
         let conditional_block_node = BlockNode {
@@ -3126,6 +3153,10 @@ impl<'a> PartialEvaluator<'a> {
             .push(jump_to_condition_ins);
         let _ = self.eval_context.pop_block_node();
 
+        self.eval_context
+            .get_current_scope_mut()
+            .keep_matching_static_var_mappings(&cached_mappings);
+
         Ok(EvalControlFlow::Continue(Value::unit()))
     }
 
@@ -3136,6 +3167,9 @@ impl<'a> PartialEvaluator<'a> {
                     .try_into()
                     .expect("could not convert result ID to u32"),
             )),
+            Value::Var(v) if v.ty == VarTy::Result => {
+                Operand::Variable(map_eval_var_to_rir_var(*v))
+            }
             Value::Result(val::Result::Val(bool)) => return Operand::Literal(Literal::Bool(*bool)),
             Value::Result(val::Result::Loss) => {
                 panic!("loss result should not occur in partial evaluation")
@@ -3245,6 +3279,82 @@ impl<'a> PartialEvaluator<'a> {
         };
         self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
         Ok(bin_op_rir_variable)
+    }
+
+    /// Emits a shift that, like the evaluator, shifts the opposite way when the amount is negative.
+    fn generate_instructions_for_integer_shift(
+        &mut self,
+        is_left: bool,
+        lhs_operand: Operand,
+        rhs_operand: Operand,
+        bin_op_expr_span: PackageSpan, // For diagnostic purposes only.
+    ) -> Result<rir::Variable, Error> {
+        let shift = |is_left: bool, amount: Operand, var: rir::Variable| {
+            if is_left {
+                Instruction::Shl(lhs_operand, amount, var)
+            } else {
+                Instruction::Ashr(lhs_operand, amount, var)
+            }
+        };
+
+        if let Operand::Literal(Literal::Integer(amount)) = rhs_operand {
+            let (reverse, magnitude) = shift_amount(amount, bin_op_expr_span)?;
+            let result = rir::Variable::new_integer(self.resource_manager.next_var());
+            let ins = shift(
+                is_left != reverse,
+                Operand::Literal(Literal::Integer(magnitude.into())),
+                result,
+            );
+            self.get_current_rir_block_mut().0.push(ins);
+            return Ok(result);
+        }
+
+        // Clever branchless branching:
+        // If rhs_operand is negative, mask will be -1 (all ones); otherwise it will be 0
+        // ((rhs_operand ^ mask) - mask) makes the two's complement if rhs_operand is negative
+        // Compute *both* the requested shift and the opposite shift
+        // Use mask and xor to cancel out the shift you don't want: (fwd ^ ((fwd ^ rev) & mask))
+        let mut new_var = || rir::Variable::new_integer(self.resource_manager.next_var());
+        let mask = new_var();
+        let flipped = new_var();
+        let magnitude = new_var();
+        let forward = new_var();
+        let backward = new_var();
+        let diff = new_var();
+        let masked_diff = new_var();
+        let result = new_var();
+        let instructions = [
+            Instruction::Ashr(
+                rhs_operand,
+                Operand::Literal(Literal::Integer((i64::BITS - 1).into())),
+                mask,
+            ),
+            Instruction::BitwiseXor(rhs_operand, Operand::Variable(mask), flipped),
+            Instruction::Sub(
+                Operand::Variable(flipped),
+                Operand::Variable(mask),
+                magnitude,
+            ),
+            shift(is_left, Operand::Variable(magnitude), forward),
+            shift(!is_left, Operand::Variable(magnitude), backward),
+            Instruction::BitwiseXor(
+                Operand::Variable(forward),
+                Operand::Variable(backward),
+                diff,
+            ),
+            Instruction::BitwiseAnd(
+                Operand::Variable(diff),
+                Operand::Variable(mask),
+                masked_diff,
+            ),
+            Instruction::BitwiseXor(
+                Operand::Variable(forward),
+                Operand::Variable(masked_diff),
+                result,
+            ),
+        ];
+        self.get_current_rir_block_mut().0.extend(instructions);
+        Ok(result)
     }
 
     #[allow(clippy::too_many_lines)]
@@ -3358,22 +3468,12 @@ impl<'a> PartialEvaluator<'a> {
                 self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
                 bin_op_rir_variable
             }
-            BinOp::Shl => {
-                let bin_op_variable_id = self.resource_manager.next_var();
-                let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
-                let bin_op_rir_ins =
-                    Instruction::Shl(lhs_operand, rhs_operand, bin_op_rir_variable);
-                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
-                bin_op_rir_variable
-            }
-            BinOp::Shr => {
-                let bin_op_variable_id = self.resource_manager.next_var();
-                let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
-                let bin_op_rir_ins =
-                    Instruction::Ashr(lhs_operand, rhs_operand, bin_op_rir_variable);
-                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
-                bin_op_rir_variable
-            }
+            BinOp::Shl | BinOp::Shr => self.generate_instructions_for_integer_shift(
+                bin_op == BinOp::Shl,
+                lhs_operand,
+                rhs_operand,
+                bin_op_expr_span,
+            )?,
             BinOp::Eq => {
                 let bin_op_variable_id = self.resource_manager.next_var();
                 let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
@@ -4028,6 +4128,25 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
+    fn copy_value_if_needed(&mut self, value: Value) -> Value {
+        match value {
+            Value::Var(var) => {
+                let var_id = self.resource_manager.next_var();
+                let copy_var = Var {
+                    id: var_id.into(),
+                    ty: var.ty,
+                };
+                // Insert a store instruction.
+                let value_operand = map_eval_var_to_rir_var(var);
+                let rir_var = map_eval_var_to_rir_var(copy_var);
+                let store_ins = Instruction::Store(Operand::Variable(value_operand), rir_var);
+                self.get_current_rir_block_mut().0.push(store_ins);
+                Value::Var(copy_var)
+            }
+            val => val,
+        }
+    }
+
     fn update_bindings(&mut self, lhs_expr_id: ExprId, rhs_value: Value) -> Result<(), Error> {
         let lhs_expr = self.get_expr(lhs_expr_id);
         match (&lhs_expr.kind, rhs_value) {
@@ -4042,7 +4161,7 @@ impl<'a> PartialEvaluator<'a> {
                 //
                 // Since expressions call expressions to the `Length` intrinsic will be offloaded to the evaluator,
                 // the evaluator environment also needs to track some non-classical variables.
-                self.update_hybrid_local(lhs_expr, *local_var_id, value.clone())?;
+                self.update_hybrid_local(*local_var_id, value.clone())?;
                 self.update_classical_local(*local_var_id, value);
             }
             (ExprKind::Tuple(exprs), Value::Tuple(values, _)) => {
@@ -4077,12 +4196,7 @@ impl<'a> PartialEvaluator<'a> {
             .update_variable_in_top_frame(local_var_id, value);
     }
 
-    fn update_hybrid_local(
-        &mut self,
-        local_expr: &Expr,
-        local_var_id: LocalVarId,
-        value: Value,
-    ) -> Result<(), Error> {
+    fn update_hybrid_local(&mut self, local_var_id: LocalVarId, value: Value) -> Result<(), Error> {
         let bound_value = self
             .eval_context
             .get_current_scope()
@@ -4107,51 +4221,9 @@ impl<'a> PartialEvaluator<'a> {
                 }
             }
         } else {
-            // Verify that we are not updating a value that does not have a backing variable from a dynamic branch
-            // because it is unsupported.
-            if self
-                .eval_context
-                .get_current_scope()
-                .is_currently_evaluating_branch()
-            {
-                let error_message = format!(
-                    "re-assignment within a dynamic branch is unsupported for type {}",
-                    local_expr.ty
-                );
-                let error =
-                    Error::Unexpected(error_message, self.get_expr_package_span(local_expr.id));
-                return Err(error);
-            }
             self.eval_context
                 .get_current_scope_mut()
                 .update_hybrid_local_value(local_var_id, value);
-        }
-        Ok(())
-    }
-
-    fn update_hybrid_bindings_from_classical_bindings(
-        &mut self,
-        lhs_expr_id: ExprId,
-    ) -> Result<(), Error> {
-        let lhs_expr = &self.get_expr(lhs_expr_id);
-        match &lhs_expr.kind {
-            ExprKind::Hole => {
-                // Nothing to bind to.
-            }
-            ExprKind::Var(Res::Local(local_var_id), _) => {
-                let classical_value = self
-                    .eval_context
-                    .get_current_scope()
-                    .get_classical_local_value(*local_var_id)
-                    .clone();
-                self.update_hybrid_local(lhs_expr, *local_var_id, classical_value)?;
-            }
-            ExprKind::Tuple(exprs) => {
-                for expr_id in exprs {
-                    self.update_hybrid_bindings_from_classical_bindings(*expr_id)?;
-                }
-            }
-            _ => unreachable!("unassignable pattern should be disallowed by compiler"),
         }
         Ok(())
     }
@@ -4161,7 +4233,7 @@ impl<'a> PartialEvaluator<'a> {
             Value::Var(var) => {
                 let current_scope = self.eval_context.get_current_scope();
                 if let Some(literal) = current_scope.get_static_value(var.id.into()) {
-                    map_rir_literal_to_eval_value(*literal).unwrap_or(Value::Var(var))
+                    map_rir_literal_to_eval_value(*literal, var.ty).unwrap_or(Value::Var(var))
                 } else {
                     value
                 }
@@ -4264,6 +4336,7 @@ impl<'a> PartialEvaluator<'a> {
             Ty::Prim(Prim::Bool) => (self.get_bool_record_callable(), "b"),
             Ty::Prim(Prim::Int) => (self.get_int_record_callable(), "i"),
             Ty::Prim(Prim::Double) => (self.get_double_record_callable(), "d"),
+            Ty::Prim(Prim::Result) => (self.get_result_record_callable(), "r"),
             _ => panic!("unsupported variable type in output recording"),
         };
         let tag = format!("{idx}_{tag_root}{tag_ty}");
@@ -4484,7 +4557,7 @@ impl<'a> PartialEvaluator<'a> {
                         .try_into()
                         .expect("could not convert result ID to u32"),
                 )),
-                val::Result::Val(bool) => Operand::Literal(Literal::Bool(*bool)),
+                val::Result::Val(bool) => Operand::Literal(Literal::ResultLit(*bool)),
                 val::Result::Loss => panic!("loss result should not occur in partial evaluation"),
             },
             Value::Var(var) => Operand::Variable(map_eval_var_to_rir_var(*var)),
@@ -4927,6 +5000,7 @@ impl<'a> PartialEvaluator<'a> {
                 Value::Result(val::Result::Id(r)) => rir::Literal::Result(
                     (*r).try_into().expect("could not convert result ID to u32"),
                 ),
+                Value::Result(val::Result::Val(b)) => rir::Literal::ResultLit(*b),
                 _ => {
                     return Err(Error::Unimplemented(
                         format!("array element type `{}`", elem.type_name()),
@@ -5162,9 +5236,27 @@ fn eval_bin_op_with_integer_literals(
         BinOp::AndB => Ok(Value::Int(lhs_int & rhs_int)),
         BinOp::OrB => Ok(Value::Int(lhs_int | rhs_int)),
         BinOp::XorB => Ok(Value::Int(lhs_int ^ rhs_int)),
-        BinOp::Shl => Ok(Value::Int(lhs_int << rhs_int)),
-        BinOp::Shr => Ok(Value::Int(lhs_int >> rhs_int)),
+        BinOp::Shl | BinOp::Shr => {
+            let (reverse, magnitude) = shift_amount(rhs_int, bin_op_expr_span)?;
+            if (bin_op == BinOp::Shl) == reverse {
+                Ok(Value::Int(lhs_int >> magnitude))
+            } else {
+                Ok(Value::Int(lhs_int << magnitude))
+            }
+        }
         _ => panic!("invalid integer operator: {bin_op:?}"),
+    }
+}
+
+/// Splits a shift amount into (reverse direction, magnitude), rejecting magnitudes the evaluator rejects.
+fn shift_amount(amount: i64, span: PackageSpan) -> Result<(bool, u32), Error> {
+    match amount
+        .checked_abs()
+        .and_then(|m| u32::try_from(m).ok())
+        .filter(|m| *m < i64::BITS)
+    {
+        Some(magnitude) => Ok((amount < 0, magnitude)),
+        None => Err(EvalError::IntTooLarge(amount, span).into()),
     }
 }
 
@@ -5306,6 +5398,7 @@ fn map_eval_var_type_to_rir_type(var_ty: VarTy) -> rir::Ty {
         VarTy::Integer => rir::Ty::Prim(rir::Prim::Integer),
         VarTy::Double => rir::Ty::Prim(rir::Prim::Double),
         VarTy::Qubit => rir::Ty::Prim(rir::Prim::Qubit),
+        VarTy::Result => rir::Ty::Prim(rir::Prim::Result),
     }
 }
 
@@ -5320,13 +5413,19 @@ fn map_fir_type_to_rir_type(ty: &Ty) -> Result<rir::Ty, String> {
     }
 }
 
-fn map_rir_literal_to_eval_value(literal: rir::Literal) -> Option<Value> {
-    match literal {
-        rir::Literal::Bool(b) => Some(Value::Bool(b)),
-        rir::Literal::Double(d) => Some(Value::Double(d)),
-        rir::Literal::Integer(i) => Some(Value::Int(i)),
-        _ => None,
-    }
+fn map_rir_literal_to_eval_value(literal: rir::Literal, var_ty: VarTy) -> Option<Value> {
+    Some(match literal {
+        rir::Literal::Bool(b) => match var_ty {
+            VarTy::Boolean => Value::Bool(b),
+            VarTy::Result => Value::Result(val::Result::Val(b)),
+            _ => panic!("Incompatible literal and variable types: {literal}, {var_ty}"),
+        },
+        rir::Literal::Double(d) => Value::Double(d),
+        rir::Literal::Integer(i) => Value::Int(i),
+        rir::Literal::Result(r) => Value::Result(val::Result::Id(r as usize)),
+        rir::Literal::ResultLit(r) => Value::Result(val::Result::Val(r)),
+        _ => return None,
+    })
 }
 
 fn map_rir_var_to_eval_var(var: rir::Variable) -> Result<Var, ()> {
@@ -5342,6 +5441,7 @@ fn map_rir_type_to_eval_var_type(ty: rir::Ty) -> Result<VarTy, ()> {
         rir::Ty::Prim(rir::Prim::Integer) => Ok(VarTy::Integer),
         rir::Ty::Prim(rir::Prim::Double) => Ok(VarTy::Double),
         rir::Ty::Prim(rir::Prim::Qubit) => Ok(VarTy::Qubit),
+        rir::Ty::Prim(rir::Prim::Result) => Ok(VarTy::Result),
         _ => Err(()),
     }
 }
@@ -5352,6 +5452,7 @@ fn try_get_eval_var_type(value: &Value) -> Option<VarTy> {
         Value::Int(_) => Some(VarTy::Integer),
         Value::Double(_) => Some(VarTy::Double),
         Value::Qubit(_) => Some(VarTy::Qubit),
+        Value::Result(_) => Some(VarTy::Result),
         Value::Var(var) => Some(var.ty),
         _ => None,
     }

@@ -5,6 +5,32 @@ use std::any::Any;
 
 use super::*;
 
+// smoke test to ensure that semantic equivalence checks the expected original value
+#[test]
+fn semantic_equivalence_checks_the_expected_original_value() {
+    let source = "@EntryPoint() operation Main() : Int { 42 }";
+    check_semantic_equivalence_with_expected(source, qsc_eval::val::Value::Int(42));
+    assert_panics_with("unexpected original value", || {
+        check_semantic_equivalence_with_expected(source, qsc_eval::val::Value::Int(41));
+    });
+}
+
+#[test]
+fn observable_evaluation_records_messages_in_order() {
+    let source = r#"
+        @EntryPoint() operation Main() : Int {
+            Message("first");
+            Message("second");
+            42
+        }
+    "#;
+    let (store, package) = compile_to_fir(source);
+    let (result, trace, output) = eval_fir_entry_with_observables(&store, package);
+    assert_eq!(result, Ok(qsc_eval::val::Value::Int(42)));
+    assert!(trace.is_empty());
+    assert_eq!(output, b"first\nsecond\n");
+}
+
 fn panic_message(panic: Box<dyn Any + Send>) -> String {
     match panic.downcast::<String>() {
         Ok(message) => *message,
@@ -15,19 +41,30 @@ fn panic_message(panic: Box<dyn Any + Send>) -> String {
     }
 }
 
+/// The error-returning runner must still surface fatal backstops after
+/// convergence failures are deferred.
 #[test]
 fn staged_runner_with_errors_returns_defunctionalization_diagnostics() {
     let source = r#"
-        operation ApplyOp(op : Qubit => Unit, q : Qubit) : Unit { op(q); }
+        operation ApplyTwoArrays(
+            firstOps : (Qubit => Unit)[],
+            secondOps : (Qubit => Unit)[],
+            q : Qubit
+        ) : Unit {
+            for op in firstOps { op(q); }
+            for op in secondOps { op(q); }
+        }
+        operation ForwardTwoArrays(
+            firstOps : (Qubit => Unit)[],
+            secondOps : (Qubit => Unit)[],
+            q : Qubit
+        ) : Unit {
+            ApplyTwoArrays(firstOps, secondOps, q);
+        }
+        @EntryPoint()
         operation Main() : Unit {
             use q = Qubit();
-            mutable op = H;
-            mutable n = 3;
-            while n > 0 {
-                op = X;
-                n -= 1;
-            }
-            ApplyOp(op, q);
+            ForwardTwoArrays([X, Y], [Z, H], q);
         }
     "#;
 
@@ -45,24 +82,37 @@ fn staged_runner_with_errors_returns_defunctionalization_diagnostics() {
         .collect::<Vec<_>>()
         .join("\n");
     assert!(
-        messages.contains("callable argument could not be resolved statically"),
+        messages.contains(
+            "higher-order function forwards more than one callable array, which is not supported"
+        ),
         "unexpected diagnostics: {messages}"
     );
 }
 
+/// The checked runner must still panic for fatal backstops after convergence
+/// failures are deferred.
 #[test]
 fn checked_staged_runner_panics_on_unexpected_defunctionalization_diagnostics() {
     let source = r#"
-        operation ApplyOp(op : Qubit => Unit, q : Qubit) : Unit { op(q); }
+        operation ApplyTwoArrays(
+            firstOps : (Qubit => Unit)[],
+            secondOps : (Qubit => Unit)[],
+            q : Qubit
+        ) : Unit {
+            for op in firstOps { op(q); }
+            for op in secondOps { op(q); }
+        }
+        operation ForwardTwoArrays(
+            firstOps : (Qubit => Unit)[],
+            secondOps : (Qubit => Unit)[],
+            q : Qubit
+        ) : Unit {
+            ApplyTwoArrays(firstOps, secondOps, q);
+        }
+        @EntryPoint()
         operation Main() : Unit {
             use q = Qubit();
-            mutable op = H;
-            mutable n = 3;
-            while n > 0 {
-                op = X;
-                n -= 1;
-            }
-            ApplyOp(op, q);
+            ForwardTwoArrays([X, Y], [Z, H], q);
         }
     "#;
 
@@ -76,7 +126,9 @@ fn checked_staged_runner_panics_on_unexpected_defunctionalization_diagnostics() 
         "unexpected panic: {message}"
     );
     assert!(
-        message.contains("callable argument could not be resolved statically"),
+        message.contains(
+            "higher-order function forwards more than one callable array, which is not supported"
+        ),
         "unexpected panic: {message}"
     );
 }

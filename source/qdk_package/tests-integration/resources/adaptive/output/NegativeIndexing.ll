@@ -7,22 +7,31 @@
 define i64 @ENTRYPOINT__main() #0 {
 block_0:
   %var_1 = alloca i64
+  %var_2 = alloca i64
+  %var_4 = alloca i64
+  %var_7 = alloca i64
   call void @__quantum__rt__initialize(ptr null)
   store i64 -2, ptr %var_1
   br label %block_1
 block_1:
-  %var_7 = load i64, ptr %var_1
-  %var_2 = icmp sge i64 %var_7, -3
-  br i1 %var_2, label %block_2, label %block_3
+  %var_10 = load i64, ptr %var_1
+  store i64 %var_10, ptr %var_2
+  %var_12 = load i64, ptr %var_2
+  %var_3 = icmp sge i64 %var_12, -3
+  br i1 %var_3, label %block_2, label %block_3
 block_2:
-  %var_8 = load i64, ptr %var_1
-  %var_9_offset_chk = icmp slt i64 %var_8, 0
-  %var_9_offset = select i1 %var_9_offset_chk, i64 1, i64 0
-  %var_9 = getelementptr [3 x ptr], ptr @array0, i64 %var_9_offset, i64 %var_8
-  %var_3 = load ptr, ptr %var_9
-  call void @X(ptr %var_3)
-  %var_5 = add i64 %var_8, -1
-  store i64 %var_5, ptr %var_1
+  %var_13 = load i64, ptr %var_1
+  store i64 %var_13, ptr %var_4
+  %var_15 = load i64, ptr %var_4
+  %var_16_offset_chk = icmp slt i64 %var_15, 0
+  %var_16_offset = select i1 %var_16_offset_chk, i64 1, i64 0
+  %var_16 = getelementptr [3 x ptr], ptr @array0, i64 %var_16_offset, i64 %var_15
+  %var_5 = load ptr, ptr %var_16
+  call void @X(ptr %var_5)
+  store i64 %var_13, ptr %var_7
+  %var_18 = load i64, ptr %var_7
+  %var_8 = add i64 %var_18, -1
+  store i64 %var_8, ptr %var_1
   br label %block_1
 block_3:
   call void @__quantum__qis__mresetz__body(ptr inttoptr (i64 0 to ptr), ptr inttoptr (i64 0 to ptr))
@@ -37,9 +46,9 @@ block_3:
 
 declare void @__quantum__rt__initialize(ptr)
 
-define internal void @X(ptr %var_4) {
+define internal void @X(ptr %var_6) {
 block_4:
-  call void @__quantum__qis__x__body(ptr %var_4)
+  call void @__quantum__qis__x__body(ptr %var_6)
   ret void
 }
 
@@ -57,7 +66,7 @@ attributes #2 = { nofree nosync nounwind willreturn memory(argmem: read) }
 
 ; module flags
 
-!llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8}
+!llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9}
 
 !0 = !{i32 1, !"qir_major_version", i32 2}
 !1 = !{i32 7, !"qir_minor_version", i32 1}
@@ -68,3 +77,4 @@ attributes #2 = { nofree nosync nounwind willreturn memory(argmem: read) }
 !6 = !{i32 7, !"backwards_branching", i2 3}
 !7 = !{i32 1, !"arrays", i1 true}
 !8 = !{i32 1, !"ir_functions", i1 true}
+!9 = !{i32 1, !"writable_results", i1 true}
