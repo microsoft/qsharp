@@ -9,12 +9,122 @@ use crate::package_assigners::PackageAssigners;
 
 use super::*;
 use expect_test::expect;
-use indoc::indoc;
+use indoc::{formatdoc, indoc};
 use miette::Diagnostic;
 
 use super::super::build_spec_key;
 use super::super::types::CallSite;
 use qsc_fir::fir::{ExprId, ItemId, LocalItemId, PackageId};
+
+#[test]
+fn foreign_capture_expression_collisions_preserve_613_in_both_declaration_orders() {
+    for reversed in [false, true] {
+        let (library, source) = foreign_capture_collision_sources(reversed);
+        let (store, package_id) = crate::test_utils::compile_to_fir_with_library(&library, &source);
+        assert_foreign_wrap_operand_collisions(&store, package_id, reversed);
+        assert_eq!(
+            crate::test_utils::try_eval_fir_entry(&store, package_id),
+            Ok(qsc_eval::val::Value::Int(613))
+        );
+        crate::test_utils::check_semantic_equivalence_with_library(&library, &source);
+    }
+}
+
+fn foreign_capture_collision_sources(reversed: bool) -> (String, String) {
+    let declarations = [
+        "function Add(n : Int) : Int -> Int { x -> x+n }",
+        "function Wrap(f : Int -> Int, n : Int) : Int -> Int { x -> f(x)+n }",
+        "function Apply<'T,'U>(f : 'T -> 'U, x : 'T) : 'U { f(x) }",
+    ];
+    let padding = vec!["true"; 128].join(",");
+    let caller_padding = vec!["false"; 64].join(",");
+    let padding_decl = format!("function Padding() : Bool[] {{ [{padding}] }}");
+    let mut ordered = declarations
+        .iter()
+        .map(|decl| (*decl).to_string())
+        .collect::<Vec<_>>();
+    ordered.insert(0, padding_decl);
+    if reversed {
+        ordered.reverse();
+    }
+    let library = format!(
+        "namespace Lib {{ {} export Add, Wrap, Apply; }}",
+        ordered.join("\n")
+    );
+    let main = formatdoc! {r#"
+        @EntryPoint() operation Main() : Int {{
+            let padding = [{caller_padding}];
+            let first = Lib.Wrap(Lib.Add(2), 3);
+            let second = Lib.Wrap(Lib.Add(5), 7);
+            Lib.Apply(first, 1)*100 + Lib.Apply(second, 1)
+        }}
+    "#};
+    let other = "function Other() : Bool { true }";
+    let source = if reversed {
+        format!("{main}\n{other}")
+    } else {
+        format!("{other}\n{main}")
+    };
+    (library, source)
+}
+
+/// Verifies the regression fixture, not the correctness of a compiler collision.
+///
+/// `ExprId`s are package-local, so equal numeric IDs in different packages are
+/// valid and refer to unrelated expressions. This fixture deliberately makes
+/// each caller-side `Wrap` scalar operand (`Int`) share an ID with a library-side
+/// `Bool` expression. Looking up that operand in the wrong package would then
+/// select a visibly different value and type.
+///
+/// These assertions ensure both calls still exercise that hazard if lowering or
+/// ID allocation changes. The enclosing test separately verifies that execution
+/// preserves the correct result rather than confusing the two packages.
+fn assert_foreign_wrap_operand_collisions(
+    store: &fir::PackageStore,
+    package_id: PackageId,
+    reversed: bool,
+) {
+    use qsc_fir::{
+        fir::{ExprKind, ItemKind, PackageLookup, Res},
+        ty::{Prim, Ty},
+    };
+
+    let package = store.get(package_id);
+    let mut collisions = 0;
+    for expr in package.exprs.values() {
+        let ExprKind::Call(callee, args) = expr.kind else {
+            continue;
+        };
+        let ExprKind::Var(Res::Item(item), _) = package.get_expr(callee).kind else {
+            continue;
+        };
+        if item.package == package_id {
+            continue;
+        }
+        let foreign = store.get(item.package);
+        let ItemKind::Callable(decl) = &foreign.get_item(item.item).kind else {
+            continue;
+        };
+        if decl.name.name.as_ref() != "Wrap" {
+            continue;
+        }
+        let ExprKind::Tuple(args) = &package.get_expr(args).kind else {
+            panic!("Wrap tuple input")
+        };
+        let scalar_id = args[1];
+        assert_eq!(package.get_expr(scalar_id).ty, Ty::Prim(Prim::Int));
+        let collision = foreign
+            .exprs
+            .get(scalar_id)
+            .expect("source-created foreign ExprId overlap");
+        assert_eq!(collision.ty, Ty::Prim(Prim::Bool), "reversed={reversed}");
+        collisions += 1;
+    }
+    assert_eq!(
+        collisions, 2,
+        "both Wrap operands collide, reversed={reversed}"
+    );
+}
 
 /// Regression guard: two call sites that differ only in the package owning the
 /// closure body (`call_pkg_id`) must produce distinct `SpecKey`s. The closure
@@ -103,7 +213,7 @@ fn cross_package_hof_body_with_nested_lambda_clones_into_target() {
 
     // Specialization succeeds because the closure target is extracted and
     // relocated rather than left dangling.
-    let errors = defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners);
+    let errors = defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners).diagnostics;
     assert_no_defunctionalization_errors(
         "cross_package_hof_body_with_nested_lambda_clones_into_target",
         &errors,
@@ -182,7 +292,7 @@ fn cross_package_nested_lambda_relocated_with_remapped_id_and_defunctionalized()
         "precondition: the entry package starts with no lifted lambda items"
     );
 
-    let errors = defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners);
+    let errors = defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners).diagnostics;
     assert_no_defunctionalization_errors(
         "cross_package_nested_lambda_relocated_with_remapped_id_and_defunctionalized",
         &errors,
@@ -305,7 +415,7 @@ fn cross_package_foreign_hof_without_nested_lambda_specializes_into_entry() {
 
     let entry_items_before = callable_item_ids(fir_store.get(fir_pkg_id));
 
-    let errors = defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners);
+    let errors = defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners).diagnostics;
     assert_no_defunctionalization_errors(
         "cross_package_foreign_hof_without_nested_lambda_specializes_into_entry",
         &errors,
@@ -336,15 +446,13 @@ fn cross_package_foreign_hof_without_nested_lambda_specializes_into_entry() {
     );
 }
 
-/// A higher-order callable that forwards its own callable parameter to another
-/// higher-order call cannot be specialized: the forwarded parameter cannot be
-/// resolved statically, so defunctionalize emits a `DynamicCallable`
-/// diagnostic. This is a by-design limitation of the pass, not a cross-package
-/// regression.
+/// This mutually recursive pair of higher-order callables leaves an unresolved
+/// forwarded callable parameter, so the raw defunctionalization pass emits
+/// `DynamicCallable` diagnostics. Ordinary non-recursive forwarding is supported.
 ///
-/// The test asserts the cross-package mutual recursion is rejected identically
-/// to the structurally-equivalent same-package program, proving cross-package
-/// transformation adds no new failure mode for recursive callables.
+/// The test asserts that this cross-package fixture produces the same diagnostic
+/// count and messages as its same-package counterpart. It does not run the full
+/// pipeline, which defers these diagnostics.
 #[test]
 fn cross_package_recursive_hof_forwarding_callable_rejected_like_same_package() {
     // The mutually-recursive callables live in a library package, seeded with a
@@ -380,7 +488,8 @@ fn cross_package_recursive_hof_forwarding_callable_rejected_like_same_package() 
         crate::test_utils::compile_to_fir_with_library(lib_source, user_source);
     let mut assigners = PackageAssigners::new(&fir_store, fir_pkg_id);
     crate::monomorphize::monomorphize(&mut fir_store, fir_pkg_id, &mut assigners);
-    let cross_package_errors = defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners);
+    let cross_package_errors =
+        defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners).diagnostics;
 
     // The identical mutual recursion declared entirely in the entry package.
     let same_package_source = r#"
@@ -405,7 +514,8 @@ fn cross_package_recursive_hof_forwarding_callable_rejected_like_same_package() 
     let (mut same_store, same_pkg_id) =
         crate::test_utils::compile_to_monomorphized_fir(same_package_source);
     let mut same_assigners = PackageAssigners::new(&same_store, same_pkg_id);
-    let same_package_errors = defunctionalize(&mut same_store, same_pkg_id, &mut same_assigners);
+    let same_package_errors =
+        defunctionalize(&mut same_store, same_pkg_id, &mut same_assigners).diagnostics;
 
     // Both reject the forwarded callable parameter.
     assert!(
@@ -420,8 +530,7 @@ fn cross_package_recursive_hof_forwarding_callable_rejected_like_same_package() 
         );
     }
 
-    // The rejection matches the same-package program in count and message,
-    // proving cross-package transformation adds no new failure mode.
+    // The diagnostic count and messages match for these two fixtures.
     assert_eq!(
         cross_package_errors.len(),
         same_package_errors.len(),
@@ -443,9 +552,9 @@ fn cross_package_recursive_hof_forwarding_callable_rejected_like_same_package() 
     );
 }
 
-/// A library function whose return type is a callable hands a function value
+/// A library function whose return type is a callable hands an operation value
 /// back across the package boundary for the entry package to invoke.
-/// Defunctionalize and the rest of the pipeline must handle the function-typed
+/// Defunctionalize and the rest of the pipeline must handle the callable-typed
 /// return without dangling closures or errors.
 #[test]
 fn cross_package_function_typed_return_flows_across_packages() {
@@ -473,13 +582,13 @@ fn cross_package_function_typed_return_flows_across_packages() {
     let mut assigners = PackageAssigners::new(&fir_store, fir_pkg_id);
     crate::monomorphize::monomorphize(&mut fir_store, fir_pkg_id, &mut assigners);
 
-    let errors = defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners);
+    let errors = defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners).diagnostics;
     assert_no_defunctionalization_errors(
         "cross_package_function_typed_return_flows_across_packages",
         &errors,
     );
 
-    // A function-typed return must not leave any closure referencing a foreign
+    // A callable-typed return must not leave any closure referencing a foreign
     // package-local id.
     assert_no_dangling_cross_package_closures(&fir_store);
 
@@ -535,7 +644,7 @@ fn foreign_factory_capturing_callable_field_is_defunctionalized() {
     let mut assigners = PackageAssigners::new(&fir_store, fir_pkg_id);
     crate::monomorphize::monomorphize(&mut fir_store, fir_pkg_id, &mut assigners);
 
-    let errors = defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners);
+    let errors = defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners).diagnostics;
     assert_no_defunctionalization_errors(
         "foreign_factory_capturing_callable_field_is_defunctionalized",
         &errors,
@@ -594,7 +703,7 @@ fn unresolved_foreign_projected_callee_emits_dynamic_callable() {
     let mut assigners = PackageAssigners::new(&fir_store, fir_pkg_id);
     crate::monomorphize::monomorphize(&mut fir_store, fir_pkg_id, &mut assigners);
 
-    let errors = defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners);
+    let errors = defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners).diagnostics;
     assert_eq!(
         errors.len(),
         1,
@@ -654,6 +763,7 @@ fn analysis_apply_operation_power_ca_consumer() {
         &expect![[r#"
             callable_params: 3
               param: callable_id=<item 4 in package 2>, path=[0], ty=((Qubit)[] => Unit is Adj + Ctl)
+              param: callable_id=<item 1030 in package 1>, path=[1], ty=((Qubit)[] => Unit is Adj + Ctl)
               param: callable_id=<item 5 in package 2>, path=[0], ty=((Int, (Qubit)[]) => Unit is Adj + Ctl)
               param: callable_id=<item 1036 in package 1>, path=[1], ty=((Qubit)[] => Unit is Adj + Ctl)
             call_sites: 5
@@ -743,6 +853,26 @@ fn analysis_apply_operation_power_ca_consumer() {
                 Consume_AdjCtl__closure_(qs);
                 ReleaseQubitArray(qs);
             }
+            operation _lambda_4(arg : (Qubit[] => Unit is Adj + Ctl), (hole : Int, hole_1 : Qubit[])) : Unit is Adj + Ctl {
+                body ... {
+                    ApplyOperationPowerCA__Qubit_____AdjCtl_(hole, arg, hole_1)
+                }
+                adjoint ... {
+                    Adjoint ApplyOperationPowerCA__Qubit_____AdjCtl_(hole, arg, hole_1)
+                }
+                controlled (ctls, ...) {
+                    Controlled ApplyOperationPowerCA__Qubit_____AdjCtl_(ctls, (hole, arg, hole_1))
+                }
+                controlled adjoint (ctls, ...) {
+                    Controlled Adjoint ApplyOperationPowerCA__Qubit_____AdjCtl_(ctls, (hole, arg, hole_1))
+                }
+            }
+            operation Consume_AdjCtl_(apply_power_of_u : ((Int, Qubit[]) => Unit is Adj + Ctl), target : Qubit[]) : Unit {
+                apply_power_of_u(1, target);
+            }
+            operation Consume_AdjCtl__closure_(target : Qubit[]) : Unit {
+                _lambda_4(1, target);
+            }
             operation _lambda_4(hole : Int, hole_1 : Qubit[]) : Unit is Adj + Ctl {
                 body ... {
                     ApplyOperationPowerCA__Qubit_____AdjCtl__U_(hole, hole_1)
@@ -756,12 +886,6 @@ fn analysis_apply_operation_power_ca_consumer() {
                 controlled adjoint (ctls, ...) {
                     Controlled Adjoint ApplyOperationPowerCA__Qubit_____AdjCtl__U_(ctls, (hole, hole_1))
                 }
-            }
-            operation Consume_AdjCtl_(apply_power_of_u : ((Int, Qubit[]) => Unit is Adj + Ctl), target : Qubit[]) : Unit {
-                apply_power_of_u(1, target);
-            }
-            operation Consume_AdjCtl__closure_(target : Qubit[]) : Unit {
-                _lambda_4(1, target);
             }
             operation ApplyOperationPowerCA__Qubit_____AdjCtl__U_(power : Int, target : Qubit[]) : Unit is Adj + Ctl {
                 body ... {
@@ -815,9 +939,9 @@ fn analysis_apply_operation_power_ca_consumer() {
                         while ((_step_id_48895 > 0) and (_index_id_48890 <= _end_id_48900)) or ((_step_id_48895 < 0) and (_index_id_48890 >= _end_id_48900)) {
                             let _ : Int = _index_id_48890;
                             if power >= 0 {
-                                Controlled U(ctls, target)
+                                U(target)
                             } else {
-                                Controlled Adjoint U(ctls, target)
+                                Adjoint U(target)
                             };
                             _index_id_48890 += _step_id_48895;
                         }
@@ -825,7 +949,7 @@ fn analysis_apply_operation_power_ca_consumer() {
                     }
 
                 }
-                controlled adjoint (ctls, ...) {
+                adjoint ... {
                     {
                         let _range : Range = 1..AbsI(power);
                         {
@@ -835,6 +959,48 @@ fn analysis_apply_operation_power_ca_consumer() {
                             let _end_id_48943 : Int = _range_id_48930.End;
                             while ((_step_id_48938 > 0) and (_index_id_48933 <= _end_id_48943)) or ((_step_id_48938 < 0) and (_index_id_48933 >= _end_id_48943)) {
                                 let _ : Int = _index_id_48933;
+                                if power >= 0 {
+                                    Adjoint U(target)
+                                } else {
+                                    U(target)
+                                };
+                                _index_id_48775 += _step_id_48780;
+                            }
+
+                        }
+
+                    }
+
+                }
+                controlled (ctls, ...) {
+                    {
+                        let _range_id_48815 : Range = 1..AbsI(power);
+                        mutable _index_id_48818 : Int = _range_id_48815.Start;
+                        let _step_id_48823 : Int = _range_id_48815.Step;
+                        let _end_id_48828 : Int = _range_id_48815.End;
+                        while ((_step_id_48823 > 0) and (_index_id_48818 <= _end_id_48828)) or ((_step_id_48823 < 0) and (_index_id_48818 >= _end_id_48828)) {
+                            let _ : Int = _index_id_48818;
+                            if power >= 0 {
+                                Controlled U(ctls, target)
+                            } else {
+                                Controlled Adjoint U(ctls, target)
+                            };
+                            _index_id_48818 += _step_id_48823;
+                        }
+
+                    }
+
+                }
+                controlled adjoint (ctls, ...) {
+                    {
+                        let _range : Range = 1..AbsI(power);
+                        {
+                            let _range_id_48858 : Range = (_range.Start + ((((_range.End - _range.Start) + _range.Step) / _range.Step) * _range.Step)) - _range.Step..(-_range.Step).._range.Start;
+                            mutable _index_id_48861 : Int = _range_id_48858.Start;
+                            let _step_id_48866 : Int = _range_id_48858.Step;
+                            let _end_id_48871 : Int = _range_id_48858.End;
+                            while ((_step_id_48866 > 0) and (_index_id_48861 <= _end_id_48871)) or ((_step_id_48866 < 0) and (_index_id_48861 >= _end_id_48871)) {
+                                let _ : Int = _index_id_48861;
                                 if power >= 0 {
                                     Controlled Adjoint U(ctls, target)
                                 } else {
@@ -1037,7 +1203,10 @@ fn analysis_bernstein_vazirani_sample_shape() {
                     mutable _index_id_216 : Int = 0;
                     while _index_id_216 < _len_id_211 {
                         let integer : Int = _array_id_207[_index_id_216];
-                        let _ : Result[] = BernsteinVazirani_Empty__closure_(nQubits, integer);
+                        let _ : Result[] = {
+                            let __capture : Int = integer;
+                            BernsteinVazirani_Empty__closure_(nQubits, __capture)
+                        };
                         _index_id_216 += 1;
                     }
 
@@ -1307,7 +1476,7 @@ fn analysis_deutsch_jozsa_sample_shape() {
               site: callee=H:Adj, default
             lattice states:
               callable Main:
-                5: Multi([SimpleConstantBoolF:Body, SimpleBalancedBoolF:Body, ConstantBoolF:Body, BalancedBoolF:Body])"#]],
+                5: Dynamic"#]],
     );
     check_rewrite_with_capabilities(
         source,
@@ -1517,14 +1686,17 @@ fn analysis_deutsch_jozsa_sample_shape() {
                     mutable _index_id_253 : Int = 0;
                     while _index_id_253 < _len_id_248 {
                         let fn : ((Qubit[], Qubit) => Unit) = _array_id_244[_index_id_253];
-                        let _ : Bool = if _index_id_253 == 0 {
-                            DeutschJozsa_Empty__SimpleConstantBoolF_(5)
-                        } else if _index_id_253 == 1 {
-                            DeutschJozsa_Empty__SimpleBalancedBoolF_(5)
-                        } else if _index_id_253 == 2 {
-                            DeutschJozsa_Empty__ConstantBoolF_(5)
-                        } else {
-                            DeutschJozsa_Empty__BalancedBoolF_(5)
+                        let _ : Bool = {
+                            [(), (), (), ()][_index_id_253];
+                            if (_index_id_253 == 0) or (_index_id_253 == -4) {
+                                DeutschJozsa_Empty__SimpleConstantBoolF_(5)
+                            } else if (_index_id_253 == 1) or (_index_id_253 == -3) {
+                                DeutschJozsa_Empty__SimpleBalancedBoolF_(5)
+                            } else if (_index_id_253 == 2) or (_index_id_253 == -2) {
+                                DeutschJozsa_Empty__ConstantBoolF_(5)
+                            } else {
+                                DeutschJozsa_Empty__BalancedBoolF_(5)
+                            }
                         };
                         _index_id_253 += 1;
                     }
@@ -3348,8 +3520,8 @@ fn cross_package_callable_value_semantic_equivalence() {
 /// The same library HOF is called with the same global callable from two
 /// packages: the user entry and a sibling library function. Defunctionalization
 /// keys the specialization on the callee, not the caller package, so both call
-/// sites dedup to a single specialization. The program stays correct regardless
-/// of which package that shared specialization lands in.
+/// sites can share a specialization. This test checks return-value equivalence
+/// across that boundary, not the number or destination of specializations.
 #[test]
 fn cross_package_same_hof_same_global_from_two_packages_is_correct() {
     let lib_source = indoc! {"
@@ -3369,5 +3541,135 @@ fn cross_package_same_hof_same_global_from_two_packages_is_correct() {
     "};
 
     // Inc(10) + Inc(20) = 32, both before and after the transforms.
+    crate::test_utils::check_semantic_equivalence_with_library(lib_source, user_source);
+}
+
+const SWEEP_LIB: &str = r#"
+namespace TestLib {
+    operation FA(q : Qubit) : Unit { X(q); }
+    operation FB(q : Qubit) : Unit { Y(q); }
+    operation Run(f : Qubit => Unit, q : Qubit) : Unit { f(q); }
+    export FA, FB, Run;
+}
+"#;
+
+/// Renders the entry package after the full pipeline, tolerating diagnostics so
+/// a declined shape can be inspected rather than aborting the test.
+fn swept_cross_package_rendering(user_source: &str) -> String {
+    let (store, package_id, _result) =
+        crate::test_utils::compile_and_run_pipeline_to_with_library_and_errors(
+            SWEEP_LIB,
+            user_source,
+            crate::PipelineStage::Full,
+        );
+    crate::pretty::write_package_qsharp_parseable(&store, package_id)
+}
+
+/// Asserts both candidates appear after the guard and in selection order, which
+/// a swapped candidate-to-guard mapping would violate.
+fn assert_guarded_in_order(rendered: &str, guard: &str, first: &str, second: &str) {
+    let g = rendered
+        .find(guard)
+        .unwrap_or_else(|| panic!("missing guard `{guard}` in:\n{rendered}"));
+    let f = rendered
+        .find(first)
+        .unwrap_or_else(|| panic!("missing candidate `{first}` in:\n{rendered}"));
+    let s = rendered
+        .find(second)
+        .unwrap_or_else(|| panic!("missing candidate `{second}` in:\n{rendered}"));
+    assert!(
+        g < f && f < s,
+        "expected `{guard}` then `{first}` then `{second}` in:\n{rendered}"
+    );
+}
+
+/// Candidates defined in a foreign package and chosen by a measurement-dependent
+/// condition must dispatch to both, in selection order.
+#[test]
+fn cross_package_conditional_selection_dispatches_both_candidates() {
+    let rendered = swept_cross_package_rendering(
+        r#"
+import TestLib.*;
+@EntryPoint()
+operation Main() : Unit {
+    use q = Qubit();
+    let pick = MResetZ(q) == One;
+    let f = pick ? FA | FB;
+    f(q);
+}
+"#,
+    );
+    assert_guarded_in_order(&rendered, "if pick", "FA(q)", "FB(q)");
+}
+
+/// The same foreign candidates routed through a foreign higher-order operation
+/// must reach per-candidate specializations rather than collapsing to one.
+#[test]
+fn cross_package_hof_dispatches_both_specializations() {
+    let rendered = swept_cross_package_rendering(
+        r#"
+import TestLib.*;
+@EntryPoint()
+operation Main() : Unit {
+    use q = Qubit();
+    let pick = MResetZ(q) == One;
+    Run(pick ? FA | FB, q);
+}
+"#,
+    );
+    assert_guarded_in_order(&rendered, "if pick", "Run_Empty__FA_", "Run_Empty__FB_");
+}
+
+/// Foreign candidates selected by a dynamic array index must be dispatched under
+/// an index guard that reaches every candidate; emitting one unconditionally
+/// would drop the other.
+#[test]
+fn cross_package_indexed_selection_guards_every_candidate() {
+    let rendered = swept_cross_package_rendering(
+        r#"
+import TestLib.*;
+@EntryPoint()
+operation Main() : Unit {
+    use q = Qubit();
+    let ops = [FA, FB];
+    let idx = MResetZ(q) == One ? 0 | 1;
+    ops[idx](q);
+}
+"#,
+    );
+    assert_guarded_in_order(&rendered, "idx == 0", "FA(q)", "FB(q)");
+}
+
+/// Semantic anchor for the cross-package sweep.
+///
+/// Emitted-code assertions are necessary but not sufficient here, so one shape
+/// is also checked for behavioral equivalence. The oracle compares returned
+/// values, so the fixture returns a `Result` that differs by which candidate
+/// ran: only `Applied` flips the target, so dispatching the wrong candidate
+/// changes the returned value rather than going unnoticed.
+///
+/// The measured qubit starts in |0>, so `pick` is deterministically `false` and
+/// both qubits are released in |0>.
+#[test]
+fn cross_package_conditional_selection_preserves_semantics() {
+    let lib_source = r#"
+namespace TestLib {
+    operation Applied(q : Qubit) : Unit { X(q); }
+    operation Skipped(q : Qubit) : Unit { }
+    export Applied, Skipped;
+}
+"#;
+    let user_source = r#"
+import TestLib.*;
+@EntryPoint()
+operation Main() : Result {
+    use q = Qubit();
+    use target = Qubit();
+    let pick = MResetZ(q) == One;
+    let f = pick ? Applied | Skipped;
+    f(target);
+    return MResetZ(target);
+}
+"#;
     crate::test_utils::check_semantic_equivalence_with_library(lib_source, user_source);
 }

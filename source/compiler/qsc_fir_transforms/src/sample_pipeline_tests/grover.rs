@@ -231,31 +231,58 @@ fn grover_sample_full_pipeline_reachable_items() {
         }
         operation ApplyGlobalPhase(theta : Double) : Unit is Adj + Ctl {
             body ... {
-                ControllableGlobalPhase(theta);
+                GlobalPhase(theta);
             }
             adjoint ... {
-                ControllableGlobalPhase((-theta));
-            }
-            controlled (ctls, ...) {
-                Controlled ControllableGlobalPhase(ctls, theta);
-            }
-            controlled adjoint (ctls, ...) {
-                Controlled ControllableGlobalPhase(ctls, (-theta));
-            }
-        }
-        operation ControllableGlobalPhase(theta : Double) : Unit is Ctl {
-            body ... {
-                GlobalPhase(theta);
+                ApplyGlobalPhase((-theta));
             }
             controlled (ctls, ...) {
                 let __cond_0 : Bool = Length(ctls) == 0;
+                mutable __cond_1 : Bool = false;
+                mutable __cond_2 : Bool = false;
                 if __cond_0 {
                     GlobalPhase(theta);
                 } else {
-                    Controlled Rz(ctls[1...], (theta, ctls[0]));
-                    Controlled ControllableGlobalPhase(ctls[1...], theta / 2.);
+                    __cond_1 = Length(ctls) == 1;
+                    if __cond_1 {
+                        Rz(theta, ctls[0]);
+                        GlobalPhase(theta / 2.);
+                    } else {
+                        __cond_2 = Length(ctls) == 2;
+                        if __cond_2 {
+                            Rz(theta / 2., ctls[1]);
+                            CRz(ctls[1], theta, ctls[0]);
+                            GlobalPhase(theta / 4.);
+                        } else {
+                            let remainingControls : Qubit[] = ctls[1...];
+                            let aux : Qubit[] = AllocateQubitArray(Length(ctls) - 2);
+                            let _generated_ident_54736 : Unit = {
+                                {
+                                    CollectControls(remainingControls, aux, 0);
+                                    AdjustForSingleControl(remainingControls, aux);
+                                }
+
+                                let _apply_res : Unit = {
+                                    Controlled ApplyGlobalPhase([ctls[0], aux[Length(aux) - 1]], theta);
+                                };
+                                {
+                                    Adjoint AdjustForSingleControl(remainingControls, aux);
+                                    Adjoint CollectControls(remainingControls, aux, 0);
+                                }
+
+                                _apply_res
+                            };
+                            ReleaseQubitArray(aux);
+                            _generated_ident_54736
+                        }
+
+                    }
+
                 }
 
+            }
+            controlled adjoint (ctls, ...) {
+                Controlled ApplyGlobalPhase(ctls, (-theta));
             }
         }
         operation GlobalPhase(theta : Double) : Unit {

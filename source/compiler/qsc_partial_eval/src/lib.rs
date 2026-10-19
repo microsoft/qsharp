@@ -353,11 +353,16 @@ impl<'a> PartialEvaluator<'a> {
     fn bind_value_to_ident(&mut self, mutability: Mutability, ident: &Ident, value: Value) {
         // We do slightly different things depending on the mutability of the identifier.
         match mutability {
-            Mutability::Mutable => self.bind_value_to_mutable_ident(ident, value),
+            Mutability::Mutable => {
+                // Make sure to track this mutable variable in the current scope to inform
+                // the partial evaluator that it should be monitored for updates across evaluation boundaries.
+                self.eval_context
+                    .get_current_scope_mut()
+                    .insert_mutable_var(ident.id);
+                self.bind_value_to_mutable_ident(ident, value);
+            }
             Mutability::Immutable => {
-                let current_scope = self.eval_context.get_current_scope();
-                if matches!(value, Value::Var(var) if current_scope.get_static_value(var.id.into()).is_none())
-                {
+                if matches!(value, Value::Var(_)) {
                     // An immutable identifier is being bound to a dynamic value, so treat the identifier as mutable.
                     // This allows it to represent a point-in-time copy of the mutable value during evaluation.
                     self.bind_value_to_mutable_ident(ident, value);
@@ -370,20 +375,14 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn bind_value_to_immutable_ident(&mut self, ident: &Ident, value: Value) {
-        // If the value is not a variable, bind it to the classical map.
-        if !matches!(value, Value::Var(_)) {
-            self.bind_value_in_classical_map(ident, &value);
-        }
+        self.bind_value_in_classical_map(ident, &value);
 
         // Always bind the value to the hybrid map.
         self.bind_value_in_hybrid_map(ident, value);
     }
 
     fn bind_value_to_mutable_ident(&mut self, ident: &Ident, value: Value) {
-        // If the value is not a variable, bind it to the classical map.
-        if !matches!(value, Value::Var(_)) {
-            self.bind_value_in_classical_map(ident, &value);
-        }
+        self.bind_value_in_classical_map(ident, &value);
 
         // Always bind the value to the hybrid map but do it differently depending of the value type.
         if let Some((var_id, literal)) = self.try_create_mutable_variable(ident.id, &value) {
@@ -595,7 +594,9 @@ impl<'a> PartialEvaluator<'a> {
         // Set the value at the specified index or range.
         let update_result = match index_value {
             Value::Int(index) => {
-                update_index_single(array, index, update_value, index_expr_package_span)
+                let elem_value = self.copy_value_if_needed(update_value);
+
+                update_index_single(array, index, elem_value, index_expr_package_span)
             }
             Value::Range(range) => update_index_range(
                 array,
@@ -1034,6 +1035,7 @@ impl<'a> PartialEvaluator<'a> {
         self.eval_context.push_block_node(rhs_eval_block_node);
 
         // Evaluate the RHS expression
+        let cached_mappings = self.clone_current_static_var_map();
         let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
         let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
             return Err(Error::Unexpected(
@@ -1042,6 +1044,7 @@ impl<'a> PartialEvaluator<'a> {
             ));
         };
         let rhs_operand = self.map_eval_value_to_rir_operand(&rhs_value);
+        self.keep_matching_static_var_mappings(&cached_mappings);
 
         // Store the RHS value into the the variable that represents the result of the Boolean operation.
         let store_ins = Instruction::Store(rhs_operand, result_rir_var);
@@ -1261,6 +1264,7 @@ impl<'a> PartialEvaluator<'a> {
         let expr = self.package_store.get_expr(store_expr_id);
         let scope_exec_graph = self.get_current_scope_exec_graph().clone();
         let scope = self.eval_context.get_current_scope_mut();
+        scope.update_classical_locals_from_hybrid_locals();
         let exec_graph = scope_exec_graph.get_range(&expr.exec_graph_range);
         let mut state = State::new(
             current_package_id,
@@ -1295,17 +1299,18 @@ impl<'a> PartialEvaluator<'a> {
             Err((error, _)) => Err(Error::from(error)),
         };
 
-        // If this was an assign expression, update the bindings in the hybrid side to keep them in sync and to insert
-        // store instructions for variables of type `Bool`, `Int` or `Double`.
-        if let Ok(EvalControlFlow::Continue(_)) = eval_result {
-            let expr = self.get_expr(expr_id);
-            if let ExprKind::Assign(lhs_expr_id, _)
-            | ExprKind::AssignField(lhs_expr_id, _, _)
-            | ExprKind::AssignIndex(lhs_expr_id, _, _)
-            | ExprKind::AssignOp(_, lhs_expr_id, _) = &expr.kind
-            {
-                self.update_hybrid_bindings_from_classical_bindings(*lhs_expr_id)?;
-            }
+        // Static expressions or sub-expressions may have updated variable values, so we need to collect and apply those updates
+        // to the hybrid maps (potentially updating static variable mappings as well), collecting the pending updates and
+        // making copies of values as needed.
+        let pending_updates = self
+            .eval_context
+            .get_current_scope_mut()
+            .collect_updated_local_values()
+            .into_iter()
+            .map(|(local_var_id, new_value)| (local_var_id, self.copy_value_if_needed(new_value)))
+            .collect::<Vec<_>>();
+        for (local_var_id, new_value) in pending_updates {
+            self.update_hybrid_local(local_var_id, new_value)?;
         }
 
         eval_result
@@ -1450,6 +1455,8 @@ impl<'a> PartialEvaluator<'a> {
                 self.get_expr_package_span(value_expr_id),
             ));
         };
+        let elem_value = self.copy_value_if_needed(value);
+
         let size_control_flow = self.try_eval_expr(size_expr_id)?;
         let EvalControlFlow::Continue(size) = size_control_flow else {
             return Err(Error::Unexpected(
@@ -1461,7 +1468,8 @@ impl<'a> PartialEvaluator<'a> {
         // We assume the size of the array is a classical value because otherwise it would have been rejected before
         // getting to the partial evaluation stage.
         let size = size.unwrap_int();
-        let values = vec![value; TryFrom::try_from(size).expect("could not convert size value")];
+        let values =
+            vec![elem_value; TryFrom::try_from(size).expect("could not convert size value")];
         Ok(EvalControlFlow::Continue(Value::Array(values.into())))
     }
 
@@ -1536,6 +1544,7 @@ impl<'a> PartialEvaluator<'a> {
             }
             lhs_control_flow.into_value()
         };
+        let lhs_value = self.copy_value_if_needed(lhs_value);
         let bin_op_control_flow = self.eval_bin_op(
             bin_op,
             lhs_value,
@@ -1568,6 +1577,7 @@ impl<'a> PartialEvaluator<'a> {
                 self.get_expr_package_span(lhs_expr_id),
             ));
         };
+        let lhs_value = self.copy_value_if_needed(lhs_value);
 
         // Now that we have a LHS value, evaluate the binary operation, which will properly consider short-circuiting
         // logic in the case of Boolean operations.
@@ -2802,7 +2812,9 @@ impl<'a> PartialEvaluator<'a> {
                     self.get_expr_package_span(*expr_id),
                 ));
             }
-            values.push(control_flow.into_value());
+            let elem_value = self.copy_value_if_needed(control_flow.into_value());
+
+            values.push(elem_value);
         }
         Ok(EvalControlFlow::Continue(Value::Array(values.into())))
     }
@@ -2817,7 +2829,9 @@ impl<'a> PartialEvaluator<'a> {
                     self.get_expr_package_span(*expr_id),
                 ));
             }
-            values.push(control_flow.into_value());
+            let elem_value = self.copy_value_if_needed(control_flow.into_value());
+
+            values.push(elem_value);
         }
         Ok(EvalControlFlow::Continue(Value::Tuple(values.into(), None)))
     }
@@ -3060,6 +3074,10 @@ impl<'a> PartialEvaluator<'a> {
         body_block_id: BlockId,
     ) -> Result<EvalControlFlow, Error> {
         // Pop the current block node and create the necessary block nodes for the loop structure.
+        let cached_mappings = self
+            .eval_context
+            .get_current_scope()
+            .clone_static_var_mappings();
         let current_block_node = self.eval_context.pop_block_node();
         let conditional_block_node_id = self.create_program_block();
         let conditional_block_node = BlockNode {
@@ -3134,6 +3152,10 @@ impl<'a> PartialEvaluator<'a> {
             .0
             .push(jump_to_condition_ins);
         let _ = self.eval_context.pop_block_node();
+
+        self.eval_context
+            .get_current_scope_mut()
+            .keep_matching_static_var_mappings(&cached_mappings);
 
         Ok(EvalControlFlow::Continue(Value::unit()))
     }
@@ -4106,6 +4128,25 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
+    fn copy_value_if_needed(&mut self, value: Value) -> Value {
+        match value {
+            Value::Var(var) => {
+                let var_id = self.resource_manager.next_var();
+                let copy_var = Var {
+                    id: var_id.into(),
+                    ty: var.ty,
+                };
+                // Insert a store instruction.
+                let value_operand = map_eval_var_to_rir_var(var);
+                let rir_var = map_eval_var_to_rir_var(copy_var);
+                let store_ins = Instruction::Store(Operand::Variable(value_operand), rir_var);
+                self.get_current_rir_block_mut().0.push(store_ins);
+                Value::Var(copy_var)
+            }
+            val => val,
+        }
+    }
+
     fn update_bindings(&mut self, lhs_expr_id: ExprId, rhs_value: Value) -> Result<(), Error> {
         let lhs_expr = self.get_expr(lhs_expr_id);
         match (&lhs_expr.kind, rhs_value) {
@@ -4120,7 +4161,7 @@ impl<'a> PartialEvaluator<'a> {
                 //
                 // Since expressions call expressions to the `Length` intrinsic will be offloaded to the evaluator,
                 // the evaluator environment also needs to track some non-classical variables.
-                self.update_hybrid_local(lhs_expr, *local_var_id, value.clone())?;
+                self.update_hybrid_local(*local_var_id, value.clone())?;
                 self.update_classical_local(*local_var_id, value);
             }
             (ExprKind::Tuple(exprs), Value::Tuple(values, _)) => {
@@ -4155,12 +4196,7 @@ impl<'a> PartialEvaluator<'a> {
             .update_variable_in_top_frame(local_var_id, value);
     }
 
-    fn update_hybrid_local(
-        &mut self,
-        local_expr: &Expr,
-        local_var_id: LocalVarId,
-        value: Value,
-    ) -> Result<(), Error> {
+    fn update_hybrid_local(&mut self, local_var_id: LocalVarId, value: Value) -> Result<(), Error> {
         let bound_value = self
             .eval_context
             .get_current_scope()
@@ -4185,51 +4221,9 @@ impl<'a> PartialEvaluator<'a> {
                 }
             }
         } else {
-            // Verify that we are not updating a value that does not have a backing variable from a dynamic branch
-            // because it is unsupported.
-            if self
-                .eval_context
-                .get_current_scope()
-                .is_currently_evaluating_branch()
-            {
-                let error_message = format!(
-                    "re-assignment within a dynamic branch is unsupported for type {}",
-                    local_expr.ty
-                );
-                let error =
-                    Error::Unexpected(error_message, self.get_expr_package_span(local_expr.id));
-                return Err(error);
-            }
             self.eval_context
                 .get_current_scope_mut()
                 .update_hybrid_local_value(local_var_id, value);
-        }
-        Ok(())
-    }
-
-    fn update_hybrid_bindings_from_classical_bindings(
-        &mut self,
-        lhs_expr_id: ExprId,
-    ) -> Result<(), Error> {
-        let lhs_expr = &self.get_expr(lhs_expr_id);
-        match &lhs_expr.kind {
-            ExprKind::Hole => {
-                // Nothing to bind to.
-            }
-            ExprKind::Var(Res::Local(local_var_id), _) => {
-                let classical_value = self
-                    .eval_context
-                    .get_current_scope()
-                    .get_classical_local_value(*local_var_id)
-                    .clone();
-                self.update_hybrid_local(lhs_expr, *local_var_id, classical_value)?;
-            }
-            ExprKind::Tuple(exprs) => {
-                for expr_id in exprs {
-                    self.update_hybrid_bindings_from_classical_bindings(*expr_id)?;
-                }
-            }
-            _ => unreachable!("unassignable pattern should be disallowed by compiler"),
         }
         Ok(())
     }

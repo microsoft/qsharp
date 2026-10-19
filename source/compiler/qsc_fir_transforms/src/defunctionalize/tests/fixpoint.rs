@@ -1246,10 +1246,13 @@ fn two_level_cross_hof_closure_array_forwarding_threads_all_captures() {
                     let _end_id_196 : Int = _range_id_183.End;
                     while ((_step_id_191 > 0) and (_index_id_186 <= _end_id_196)) or ((_step_id_191 < 0) and (_index_id_186 >= _end_id_196)) {
                         let idx : Int = _index_id_186;
-                        if idx == 0 {
-                            _lambda_5(__capture_0, (controls[idx], targets))
-                        } else {
-                            _lambda_6(__capture_1, (controls[idx], targets))
+                        {
+                            [(), ()][idx];
+                            if (idx == 0) or (idx == -2) {
+                                _lambda_5(__capture_0, (controls[idx], targets))
+                            } else {
+                                _lambda_6(__capture_1, (controls[idx], targets))
+                            }
                         };
                         _index_id_186 += _step_id_191;
                     }
@@ -1266,8 +1269,8 @@ fn two_level_cross_hof_closure_array_forwarding_threads_all_captures() {
 /// A closure callable-array forwarded across two higher-order levels and fully
 /// consumed by the innermost indexed dispatch leaves the source-array local
 /// dead in the reachable caller. Because closure cleanup blanks each element to
-/// unit, the surviving array binding would be an arrow-typed block with a unit
-/// tail that trips the `PostDefunc` non-unit block-tail invariant. The dead
+/// unit, retaining the array would leave its element blocks arrow-typed with unit
+/// tails that trip the `PostDefunc` non-unit block-tail invariant. The dead
 /// binding must be removed; this runs the invariant walk and full pipeline over
 /// the same shape as
 /// `two_level_cross_hof_closure_array_forwarding_threads_all_captures`.
@@ -1383,7 +1386,10 @@ fn producer_body_closure_cleanup_converges() {
             }
             operation Main() : Unit {
                 let q : Qubit = __quantum__rt__qubit_allocate();
-                ApplyOp_Empty__closure_(q, true);
+                {
+                    let __capture : Bool = true;
+                    ApplyOp_Empty__closure_(q, __capture)
+                };
                 __quantum__rt__qubit_release(q);
             }
             operation _lambda_5(arg : Bool, hole : Qubit) : Unit {
@@ -1458,8 +1464,9 @@ fn callable_returning_closure_with_controlled_callable_captures() {
 }
 
 /// Two callable arguments passed to a multi-parameter HOF: one partial
-/// application closure and one global callable. Both must survive cleanup
-/// because they are still live as call arguments.
+/// application closure and one global callable. Both must remain available until
+/// specialization consumes them; the final snapshot removes both callable slots
+/// and threads the closure's capture into the specialized call.
 #[test]
 fn closure_in_active_call_arg_survives_cleanup() {
     let source = r#"
@@ -1570,9 +1577,12 @@ fn captured_closure_forwarded_to_nested_hof_converges() {
         }
         "#;
     check_invariants(source);
+    check_pipeline(source);
+    // The lifted wrapper preserves its tuple input around the forwarded array.
     check(
         source,
         &expect![[r#"
+            .lambda_6: input_ty=((Qubit)[],)
             ApplyFirstStep: input_ty=(Qubit)[]
             ApplySecondStep: input_ty=(Qubit)[]
             ApplySequential<Empty, Empty>{ApplyFirstStep}{ApplySecondStep}: input_ty=(Qubit)[]
@@ -1590,8 +1600,8 @@ fn captured_closure_forwarded_to_nested_hof_converges() {
 /// a lifted lambda that re-invokes `Repeat`. Before the static closure-capture
 /// inlining prepass, the captured `H` could not be resolved statically and this
 /// construct errored with `DynamicCallable`. The prepass inlines the callable
-/// capture into the lifted body, normalizing the closure into the already
-/// converging capture-free explicit-lambda shape.
+/// capture into the lifted body while retaining the classical `Int` capture,
+/// allowing the recursive specialization chain to converge.
 ///
 /// The `check_rewrite` snapshot locks the full converged specialization chain so
 /// a zero-error miscompile with wrong downstream routing (wrong callable,
@@ -1941,11 +1951,10 @@ fn single_capture_single_closure_param_rewrite() {
 }
 
 /// When a mutable callable variable is reassigned in a loop, the analysis
-/// resolves it to `Dynamic` (overdefined). The fixpoint loop detects no
-/// progress — remaining callable count is unchanged and no new call sites are
-/// discovered — and breaks via stuck detection. The `DynamicCallable` error
-/// from the current iteration survives, preventing the post-loop
+/// resolves it to `Dynamic` (overdefined). The final iteration's
+/// `DynamicCallable` diagnostic survives, preventing the post-loop
 /// `FixpointNotReached` from firing (which only fires when `errors.is_empty()`).
+/// This checks the diagnostic, not which termination condition ends the loop.
 #[test]
 fn stuck_detection_with_unresolvable_callable_emits_dynamic_error() {
     check_errors(
@@ -2374,10 +2383,13 @@ fn pipeline_callable_from_tuple_destructured_array_iteration() {
                     while _index_id_45 < _len_id_40 {
                         let (op : (Qubit => Unit is Adj + Ctl), _basis : Pauli) = _array_id_36[_index_id_45];
                         let q : Qubit = __quantum__rt__qubit_allocate();
-                        if _index_id_45 == 0 {
-                            S(q)
-                        } else {
-                            T(q)
+                        {
+                            [(), ()][_index_id_45];
+                            if (_index_id_45 == 0) or (_index_id_45 == -2) {
+                                S(q)
+                            } else {
+                                T(q)
+                            }
                         };
                         _index_id_45 += 1;
                         __quantum__rt__qubit_release(q);
@@ -2518,14 +2530,17 @@ fn pipeline_teleportation_pattern_callable_from_array_of_tuples() {
                     while _index_id_165 < _len_id_160 {
                         let (initializer : (Qubit => Unit is Adj + Ctl), _basis : Pauli) = _array_id_156[_index_id_165];
                         let q : Qubit = __quantum__rt__qubit_allocate();
-                        if _index_id_165 == 0 {
-                            I(q)
-                        } else if _index_id_165 == 1 {
-                            X(q)
-                        } else if _index_id_165 == 2 {
-                            SetToPlus(q)
-                        } else {
-                            SetToMinus(q)
+                        {
+                            [(), (), (), ()][_index_id_165];
+                            if (_index_id_165 == 0) or (_index_id_165 == -4) {
+                                I(q)
+                            } else if (_index_id_165 == 1) or (_index_id_165 == -3) {
+                                X(q)
+                            } else if (_index_id_165 == 2) or (_index_id_165 == -2) {
+                                SetToPlus(q)
+                            } else {
+                                SetToMinus(q)
+                            }
                         };
                         _index_id_165 += 1;
                         __quantum__rt__qubit_release(q);
@@ -2666,14 +2681,17 @@ fn pipeline_callable_at_middle_of_three_tuple_from_array_iteration() {
                     while _index_id_171 < _len_id_166 {
                         let (_basis : Pauli, initializer : (Qubit => Unit is Adj + Ctl), _flag : Bool) = _array_id_162[_index_id_171];
                         let q : Qubit = __quantum__rt__qubit_allocate();
-                        if _index_id_171 == 0 {
-                            I(q)
-                        } else if _index_id_171 == 1 {
-                            X(q)
-                        } else if _index_id_171 == 2 {
-                            SetToPlus(q)
-                        } else {
-                            SetToMinus(q)
+                        {
+                            [(), (), (), ()][_index_id_171];
+                            if (_index_id_171 == 0) or (_index_id_171 == -4) {
+                                I(q)
+                            } else if (_index_id_171 == 1) or (_index_id_171 == -3) {
+                                X(q)
+                            } else if (_index_id_171 == 2) or (_index_id_171 == -2) {
+                                SetToPlus(q)
+                            } else {
+                                SetToMinus(q)
+                            }
                         };
                         _index_id_171 += 1;
                         __quantum__rt__qubit_release(q);
@@ -2818,14 +2836,17 @@ fn pipeline_teleportation_like_callable_from_string_tagged_triple_array() {
                     while _index_id_178 < _len_id_173 {
                         let (initializer : (Qubit => Unit is Adj + Ctl), basis : Pauli) = _array_id_169[_index_id_178];
                         let q : Qubit = __quantum__rt__qubit_allocate();
-                        if _index_id_178 == 0 {
-                            I(q)
-                        } else if _index_id_178 == 1 {
-                            X(q)
-                        } else if _index_id_178 == 2 {
-                            SetToPlus(q)
-                        } else {
-                            SetToMinus(q)
+                        {
+                            [(), (), (), ()][_index_id_178];
+                            if (_index_id_178 == 0) or (_index_id_178 == -4) {
+                                I(q)
+                            } else if (_index_id_178 == 1) or (_index_id_178 == -3) {
+                                X(q)
+                            } else if (_index_id_178 == 2) or (_index_id_178 == -2) {
+                                SetToPlus(q)
+                            } else {
+                                SetToMinus(q)
+                            }
                         };
                         let _ : Result = Measure([basis], [q]);
                         Reset(q);
@@ -2923,20 +2944,23 @@ fn pipeline_callable_array_iteration_exceeding_old_multi_cap() {
                     mutable _index_id_113 : Int = 0;
                     while _index_id_113 < _len_id_108 {
                         let gate : (Qubit => Unit is Adj + Ctl) = _array_id_104[_index_id_113];
-                        if _index_id_113 == 0 {
-                            H(q)
-                        } else if _index_id_113 == 1 {
-                            X(q)
-                        } else if _index_id_113 == 2 {
-                            Y(q)
-                        } else if _index_id_113 == 3 {
-                            Z(q)
-                        } else if _index_id_113 == 4 {
-                            S(q)
-                        } else if _index_id_113 == 5 {
-                            Adjoint S(q)
-                        } else {
-                            SX(q)
+                        {
+                            [(), (), (), (), (), (), ()][_index_id_113];
+                            if (_index_id_113 == 0) or (_index_id_113 == -7) {
+                                H(q)
+                            } else if (_index_id_113 == 1) or (_index_id_113 == -6) {
+                                X(q)
+                            } else if (_index_id_113 == 2) or (_index_id_113 == -5) {
+                                Y(q)
+                            } else if (_index_id_113 == 3) or (_index_id_113 == -4) {
+                                Z(q)
+                            } else if (_index_id_113 == 4) or (_index_id_113 == -3) {
+                                S(q)
+                            } else if (_index_id_113 == 5) or (_index_id_113 == -2) {
+                                Adjoint S(q)
+                            } else {
+                                SX(q)
+                            }
                         };
                         _index_id_113 += 1;
                     }
@@ -2979,7 +3003,8 @@ fn defunc_20_level_hof_completes_without_error() {
 
     let (mut fir_store, fir_pkg_id) = crate::test_utils::compile_to_monomorphized_fir(&source);
     let mut assigners = PackageAssigners::new(&fir_store, fir_pkg_id);
-    let errors = super::super::defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners);
+    let errors =
+        super::super::defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners).diagnostics;
 
     assert!(
         errors.is_empty(),
@@ -2997,7 +3022,8 @@ fn defunc_21_level_hof_returns_static_resolution_error() {
 
     let (mut fir_store, fir_pkg_id) = crate::test_utils::compile_to_monomorphized_fir(&source);
     let mut assigners = PackageAssigners::new(&fir_store, fir_pkg_id);
-    let errors = super::super::defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners);
+    let errors =
+        super::super::defunctionalize(&mut fir_store, fir_pkg_id, &mut assigners).diagnostics;
 
     assert!(
         !errors.is_empty(),
@@ -3052,7 +3078,7 @@ fn multiple_forwarded_callable_arrays_return_unsupported_error() {
 
     let (mut store, package_id) = compile_to_monomorphized_fir(source);
     let mut assigners = PackageAssigners::new(&store, package_id);
-    let errors = defunctionalize(&mut store, package_id, &mut assigners);
+    let errors = defunctionalize(&mut store, package_id, &mut assigners).diagnostics;
 
     assert!(
         matches!(
@@ -3066,13 +3092,11 @@ fn multiple_forwarded_callable_arrays_return_unsupported_error() {
 
 #[test]
 fn operation_computed_captured_field_declines_to_dynamic_callable() {
-    // A captured struct field whose value is computed by an operation call
-    // cannot be specialized. Rebuilding the captured literal in the caller would
-    // duplicate and reorder that operation call, which is unsound for a call
-    // with quantum side effects because it cannot be run twice or moved. The
-    // transform therefore declines the closure to a dynamic call site and
-    // reports a recoverable `DynamicCallable` diagnostic. On the base profile
-    // this surfaces as a hard error rather than silently incorrect code.
+    // `MakeWrapper` computes its callable-valued `Op` field with
+    // `Choose(MResetZ(q))`. The raw pass cannot statically resolve this projected
+    // callable and reports `DynamicCallable`; it must not duplicate the
+    // measurement to reconstruct the field. This test checks the raw diagnostic,
+    // not a Base-profile codegen failure: the pipeline defers this diagnostic.
     check_errors(
         r#"
         struct Wrapper { Op : Qubit => Unit }
@@ -3099,9 +3123,10 @@ fn operation_computed_captured_field_declines_to_dynamic_callable() {
 #[test]
 fn operation_call_in_captured_compound_literal_without_locals_declines_to_dynamic_callable() {
     // A closure returned from `MakeOp` captures a `Payload` struct literal whose
-    // field is initialized by a runtime operation call (`ReadValue()`), with no
-    // intervening local binding to anchor that call. The captured value is not a
-    // statically-known callable, so defunctionalization must decline the
+    // field is initialized by an operation call (`ReadValue()`). The struct is
+    // bound to `payload`, but the field computation has no separate local binding.
+    // Operation calls are not eligible for capture reconstruction, even though
+    // this particular operation returns a constant, so the raw pass declines the
     // `ApplyOp(MakeOp(), q)` call site to a dynamic callable — emitting the
     // "callable argument could not be resolved statically" diagnostic — rather than
     // attempt to specialize the unresolved compound-literal capture.
@@ -3131,4 +3156,132 @@ fn operation_call_in_captured_compound_literal_without_locals_declines_to_dynami
         "#,
         &expect!["callable argument could not be resolved statically"],
     );
+}
+
+#[test]
+fn branch_split_inside_specialized_clone_preserves_capture_scope() {
+    let source = r#"
+        operation Apply(op : Qubit => Unit, q : Qubit) : Unit {
+            op(q);
+        }
+
+        operation Outer(seed : Qubit => Unit, chooseFirst : Bool, q : Qubit) : Unit {
+            seed(q);
+            let firstAngle = 0.1;
+            let secondAngle = 0.2;
+            let selected = if chooseFirst {
+                target => Rx(firstAngle, target)
+            } else {
+                target => Ry(secondAngle, target)
+            };
+            Apply(selected, q);
+        }
+
+        operation Main() : Unit {
+            use q = Qubit();
+            Outer(H, true, q);
+        }
+        "#;
+
+    let (store, pkg_id) = compile_and_defunctionalize(source);
+    let package = store.get(pkg_id);
+    let reachable = collect_reachable_from_entry(&store, pkg_id);
+    let (outer_id, outer) = reachable
+        .iter()
+        .filter(|item| item.package == pkg_id)
+        .find_map(|item| match &package.get_item(item.item).kind {
+            ItemKind::Callable(decl)
+                if decl.name.name.starts_with("Outer") && decl.name.name.ends_with("{H}") =>
+            {
+                Some((item.item, decl.as_ref()))
+            }
+            _ => None,
+        })
+        .expect("Outer should have a reachable specialization for H");
+
+    expect![[r#"
+        operation Outer_AdjCtl__H_(chooseFirst : Bool, q : Qubit) : Unit {
+            H(q);
+            let firstAngle : Double = 0.1;
+            let secondAngle : Double = 0.2;
+            if chooseFirst {
+                Apply_Empty__closure_(q, firstAngle)
+            } else {
+                Apply_Empty__closure_(q, secondAngle)
+            };
+        }
+    "#]]
+    .assert_eq(&crate::pretty::write_item_qsharp_parseable(
+        &store, pkg_id, outer_id,
+    ));
+    fir_invariants::check_local_var_consistency(package, outer);
+    fir_invariants::check(&store, pkg_id, InvariantLevel::PostDefunc);
+}
+
+#[test]
+fn direct_indexed_capturing_closures_inside_specialized_clone_preserve_semantics() {
+    let source = r#"
+        operation Outer(seed : Qubit => Unit, idx : Int, q : Qubit) : Unit {
+            seed(q);
+            let first = 0.1;
+            let second = 0.2;
+            let ops = [target => Rx(first, target), target => Ry(second, target)];
+            ops[idx](q);
+        }
+
+        operation Main() : Unit {
+            use q = Qubit();
+            Outer(H, 1, q);
+        }
+        "#;
+
+    crate::test_utils::check_semantic_equivalence(source);
+}
+
+#[test]
+fn aliased_indexed_capturing_closures_inside_specialized_clone_preserve_semantics() {
+    let source = r#"
+        operation Outer(seed : Qubit => Unit, idx : Int, q : Qubit) : Unit {
+            seed(q);
+            let first = 0.1;
+            let second = 0.2;
+            let ops = [target => Rx(first, target), target => Ry(second, target)];
+            let forwarded = ops;
+            forwarded[idx](q);
+        }
+
+        operation Main() : Unit {
+            use q = Qubit();
+            Outer(H, 1, q);
+        }
+        "#;
+
+    crate::test_utils::check_semantic_equivalence(source);
+}
+
+#[test]
+fn hof_indexed_capturing_closures_inside_specialized_clone_preserve_semantics() {
+    let source = r#"
+        operation Apply(op : Qubit => Unit, q : Qubit) : Unit {
+            op(q);
+        }
+
+        operation Outer(seed : Qubit => Unit, idx : Int, q : Qubit) : Unit {
+            seed(q);
+            let firstAngle = 0.1;
+            let secondAngle = 0.2;
+            let ops = [
+                target => Rx(firstAngle, target),
+                target => Ry(secondAngle, target)
+            ];
+            Apply(ops[idx], q);
+        }
+
+        operation Main() : Unit {
+            use q = Qubit();
+            Outer(H, 1, q);
+        }
+        "#;
+
+    crate::test_utils::check_semantic_equivalence(source);
 }
