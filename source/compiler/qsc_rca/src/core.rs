@@ -259,6 +259,16 @@ impl<'a> Analyzer<'a> {
             .last_analyzed_compute_kind
             .take()
             .expect("last analyzed compute kind should be set after visiting an expression");
+
+        // If the LHS expression is dynamic and this is a short-circuit binary operator, we push a new dynamic scope.
+        let within_dynamic_scope = (bin_op == BinOp::AndL || bin_op == BinOp::OrL)
+            && lhs_compute_kind.is_variable_value_kind();
+        if within_dynamic_scope {
+            self.get_current_application_instance_mut()
+                .active_dynamic_scopes
+                .push(lhs_expr_id);
+        }
+
         self.visit_expr(rhs_expr_id);
         let rhs_compute_kind = self
             .last_analyzed_compute_kind
@@ -316,6 +326,15 @@ impl<'a> Analyzer<'a> {
                 // this runtime feature.
                 *runtime_features |= RuntimeFeatureFlags::UseOfDynamicString;
             }
+        }
+
+        if within_dynamic_scope {
+            let dynamic_scope_expr = self
+                .get_current_application_instance_mut()
+                .active_dynamic_scopes
+                .pop()
+                .expect("at least one dynamic scope should exist");
+            assert_eq!(dynamic_scope_expr, lhs_expr_id);
         }
 
         compute_kind
