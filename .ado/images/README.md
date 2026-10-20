@@ -28,7 +28,7 @@ ACR_LOGIN_SERVER="qdkacr-cfgqhwddajdaebhg.azurecr.io"
 # Upstream UBI8 details
 # See https://catalog.redhat.com/en/software/containers/ubi8/5c647760bed8bd28d0e38f9f for the latest UBI8 image tag
 UBI_REGISTRY="registry.access.redhat.com"
-UBI_TAG="8.10-1791402236"
+UBI_TAG="8.10-1792456775"
 
 # Log in to Azure for the right account and subscription
 az login --tenant AZ_TENANT_ID --skip-subscription-discovery --subscription AZ_SUBSCRIPTION_ID
