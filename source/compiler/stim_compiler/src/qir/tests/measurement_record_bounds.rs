@@ -280,8 +280,8 @@ fn record_count_overflow_yields_error() {
         &expect![[r#"
             Qdk.Stim.Semantic.MeasurementRecordCounterOverflow
 
-              x the circuit exceeds the limit of 18,446,744,073,709,551,615 measurement
-              | records
+              x the circuit's measurement record count exceeds the unsigned 64-bit integer
+              | limit
         "#]],
     );
 }
