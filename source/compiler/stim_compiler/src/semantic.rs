@@ -763,7 +763,7 @@ impl Lowerer {
             ..
         } = block;
 
-        self.unsupported_args(instruction);
+        self.validate_no_args(instruction);
 
         if instruction.targets.is_empty() {
             self.push_error(Error::MissingTarget {
@@ -823,7 +823,7 @@ impl Lowerer {
             ..
         } = block;
 
-        self.unsupported_args(instruction);
+        self.validate_no_args(instruction);
         if !instruction.targets.is_empty() {
             self.push_error(Error::UnsupportedTarget {
                 instruction: instruction.name.clone(),
@@ -1011,7 +1011,7 @@ impl Lowerer {
         instruction: &parser::Instruction,
         basis: Pauli,
     ) -> Vec<Instruction> {
-        self.unsupported_args(instruction);
+        self.validate_no_args(instruction);
         let qubit_targets = self.expect_qubit_targets(instruction, false);
         qubit_targets
             .into_iter()
@@ -1027,7 +1027,7 @@ impl Lowerer {
         instruction: &parser::Instruction,
         gate: SingleQubitGateKind,
     ) -> Vec<Instruction> {
-        self.unsupported_args(instruction);
+        self.validate_no_args(instruction);
         let qubit_targets = self.expect_qubit_targets(instruction, false);
         qubit_targets
             .into_iter()
@@ -1043,7 +1043,7 @@ impl Lowerer {
         instruction: &parser::Instruction,
         gate: TwoQubitGateKind,
     ) -> Vec<Instruction> {
-        self.unsupported_args(instruction);
+        self.validate_no_args(instruction);
         let qubit_target_pairs = self.expect_qubit_pairs(instruction, false);
         qubit_target_pairs
             .into_iter()
@@ -1059,7 +1059,7 @@ impl Lowerer {
         instruction: &parser::Instruction,
         gate: ThreeQubitGateKind,
     ) -> Vec<Instruction> {
-        self.unsupported_args(instruction);
+        self.validate_no_args(instruction);
         let qubit_triples = self.expect_qubit_triples(instruction);
         qubit_triples
             .into_iter()
@@ -1077,7 +1077,7 @@ impl Lowerer {
         allowed_rec_position: AllowedRecPosition,
         classically_controlled_pauli: Pauli,
     ) -> Vec<Instruction> {
-        self.unsupported_args(instruction);
+        self.validate_no_args(instruction);
         let Some(target_pairs) = self.expect_target_pairs(instruction) else {
             return Vec::new();
         };
@@ -1159,7 +1159,7 @@ impl Lowerer {
         instruction: &parser::Instruction,
         gate: PauliProductGateKind,
     ) -> Vec<Instruction> {
-        self.unsupported_args(instruction);
+        self.validate_no_args(instruction);
         let pauli_products = self.expect_pauli_products(instruction);
         pauli_products
             .into_iter()
@@ -1471,7 +1471,7 @@ impl Lowerer {
         }
 
         let coordinates = self.expect_coordinates(instruction)?;
-        self.unsupported_targets(instruction);
+        self.validate_no_targets(instruction);
 
         Some(Instruction {
             span: instruction.span,
@@ -1482,8 +1482,8 @@ impl Lowerer {
     }
 
     fn lower_tick(&mut self, instruction: &parser::Instruction) -> Option<Instruction> {
-        self.unsupported_args(instruction);
-        self.unsupported_targets(instruction);
+        self.validate_no_args(instruction);
+        self.validate_no_targets(instruction);
         Some(Instruction {
             span: instruction.span,
             kind: InstructionKind::Annotation(Annotation::Tick),
@@ -1598,7 +1598,7 @@ impl Lowerer {
     }
 
     fn lower_require(&mut self, instruction: &parser::Instruction) -> Option<Instruction> {
-        self.unsupported_args(instruction);
+        self.validate_no_args(instruction);
         if instruction.targets.is_empty() {
             self.push_error(Error::MissingTarget {
                 instruction: instruction.name.clone(),
@@ -1628,7 +1628,7 @@ impl Lowerer {
     }
 
     fn lower_not_leaked(&mut self, instruction: &parser::Instruction) -> Option<Instruction> {
-        self.unsupported_args(instruction);
+        self.validate_no_args(instruction);
         if instruction.targets.is_empty() {
             self.push_error(Error::MissingTarget {
                 instruction: instruction.name.clone(),
@@ -2307,7 +2307,7 @@ impl Lowerer {
         args.as_slice().try_into().ok()
     }
 
-    fn unsupported_args(&mut self, instruction: &parser::Instruction) {
+    fn validate_no_args(&mut self, instruction: &parser::Instruction) {
         if !instruction.args.is_empty() {
             self.push_error(Error::UnsupportedArgument {
                 instruction: instruction.name.clone(),
@@ -2316,7 +2316,7 @@ impl Lowerer {
         }
     }
 
-    fn unsupported_targets(&mut self, instruction: &parser::Instruction) {
+    fn validate_no_targets(&mut self, instruction: &parser::Instruction) {
         let Some((first, rest)) = instruction.targets.split_first() else {
             return;
         };
