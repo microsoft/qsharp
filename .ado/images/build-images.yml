@@ -124,6 +124,7 @@ extends:
                       # I tried using BuildKit with secrets, but it didn't work with the network isolation due
                       # to trying to fetch schema files from docker.io
                       buildArguments: >
+                        --build-arg BASE_TAG=${{ parameters.qdkBaseTag }}
                         --build-arg MSRUSTUP_FEED_URL=$(toolchainFeed)
                         --build-arg MSRUSTUP_ACCESS_TOKEN=$(System.AccessToken)
                         --build-arg RUST_TOOLCHAIN=ms-prod-$(RUST_TOOLCHAIN_VERSION)
