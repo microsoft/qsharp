@@ -95,6 +95,14 @@ pub(super) enum Error {
         #[label]
         span: Span,
     },
+    #[error("unused generic type parameter `{name}`")]
+    #[diagnostic(help("remove the unused generic type parameter"))]
+    #[diagnostic(code("Qdk.Qsc.LowerAst.UnusedGeneric"))]
+    UnusedGeneric {
+        #[label]
+        span: Span,
+        name: String,
+    },
     #[error("unrecognized class constraint {name}")]
     #[help(
         "supported classes are Eq, Add, Sub, Mul, Div, Mod, Signed, Ord, Exp, Integral, and Show"
@@ -147,6 +155,7 @@ impl From<TyConversionError> for Error {
         use TyConversionError::*;
         match err {
             MissingTy { span } => Error::MissingTy { span },
+            UnusedGeneric { span, name } => Error::UnusedGeneric { span, name },
             UnrecognizedClass { span, name } => Error::UnrecognizedClass { span, name },
             RecursiveClassConstraint { span, name } => {
                 Error::RecursiveClassConstraint { span, name }
@@ -592,10 +601,10 @@ impl With<'_> {
     /// decls.
     pub(crate) fn synthesize_callable_generics(
         &mut self,
-        generics: &[ast::TypeParameter],
+        decl: &ast::CallableDecl,
         input: &mut hir::Pat,
     ) -> (Vec<qsc_hir::ty::TypeParameter>, Vec<TyConversionError>) {
-        let (mut params, errs) = convert::type_parameters_for_ast_callable(self.names, generics);
+        let (mut params, errs) = convert::type_parameters_for_ast_callable(self.names, decl);
         let mut functor_params =
             Self::synthesize_functor_params_in_pat(&mut params.len().into(), input);
         params.append(&mut functor_params);
@@ -649,7 +658,7 @@ impl With<'_> {
         }
 
         let output = convert::ty_from_ast(self.names, &decl.output, &mut Default::default()).0;
-        let (generics, errs) = self.synthesize_callable_generics(&decl.generics, &mut input);
+        let (generics, errs) = self.synthesize_callable_generics(decl, &mut input);
         let functors = convert::ast_callable_functors(decl);
 
         let (body, adj, ctl, ctl_adj) = match decl.body.as_ref() {

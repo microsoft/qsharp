@@ -5235,14 +5235,16 @@ fn instantiate_duplicate_ty_param_names() {
     check(
         "namespace Test { function Foo<'T, 'T>() : () { let f = Foo; } }",
         "",
-        &expect![[r#"
+        &expect![[r##"
             #8 37-39 "()" : Unit
             #10 45-61 "{ let f = Foo; }" : Unit
             #12 51-52 "f" : (Unit -> Unit)
             #14 55-58 "Foo" : (Unit -> Unit)
+            Error(Type(Error(UnusedGeneric { span: Span { lo: 30, hi: 32 }, name: "'T" })))
+            Error(Type(Error(UnusedGeneric { span: Span { lo: 34, hi: 36 }, name: "'T" })))
             Error(Type(Error(AmbiguousTy(Span { lo: 55, hi: 58 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 55, hi: 58 }))))
-        "#]],
+        "##]],
     );
 }
 #[test]
