@@ -136,6 +136,10 @@ pub(super) enum Error {
     #[diagnostic(help("consider reexporting items individually"))]
     #[diagnostic(code("Qdk.Qsc.LowerAst.CrossPackageNamespaceReexport"))]
     CrossPackageNamespaceReexport(#[label] Span),
+    #[error("cannot use a discard in qubit allocation")]
+    #[diagnostic(help("use a named variable binding instead of a discard"))]
+    #[diagnostic(code("Qdk.Qsc.LowerAst.InvalidQubitDiscard"))]
+    InvalidQubitDiscard(#[label] Span),
 }
 
 impl From<TyConversionError> for Error {
@@ -831,15 +835,19 @@ impl With<'_> {
                 self.lower_pat(lhs),
                 self.lower_expr(rhs),
             )),
-            ast::StmtKind::Qubit(source, lhs, rhs, block) => Some(hir::StmtKind::Qubit(
-                match source {
-                    ast::QubitSource::Fresh => hir::QubitSource::Fresh,
-                    ast::QubitSource::Dirty => hir::QubitSource::Dirty,
-                },
-                self.lower_pat(lhs),
-                self.lower_qubit_init(rhs),
-                block.as_ref().map(|b| self.lower_block(b)),
-            )),
+            ast::StmtKind::Qubit(source, lhs, rhs, block) => {
+                let lhs_pat = self.lower_pat(lhs);
+                self.reject_any_qubit_discard(&lhs_pat);
+                Some(hir::StmtKind::Qubit(
+                    match source {
+                        ast::QubitSource::Fresh => hir::QubitSource::Fresh,
+                        ast::QubitSource::Dirty => hir::QubitSource::Dirty,
+                    },
+                    lhs_pat,
+                    self.lower_qubit_init(rhs),
+                    block.as_ref().map(|b| self.lower_block(b)),
+                ))
+            }
             ast::StmtKind::Semi(expr) => Some(hir::StmtKind::Semi(self.lower_expr(expr))),
         };
 
@@ -1367,6 +1375,22 @@ impl With<'_> {
             }
         };
         hir::ExprKind::Parallel(limit, Box::new(expr))
+    }
+
+    fn reject_any_qubit_discard(&mut self, pat: &hir::Pat) {
+        match pat.kind {
+            hir::PatKind::Discard => {
+                self.lowerer
+                    .errors
+                    .push(Error::InvalidQubitDiscard(pat.span));
+            }
+            hir::PatKind::Tuple(ref pats) => {
+                for p in pats {
+                    self.reject_any_qubit_discard(p);
+                }
+            }
+            _ => {}
+        }
     }
 }
 
