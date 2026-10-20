@@ -154,6 +154,10 @@ impl<'a> Analyzer<'a> {
         // Visit the assignee and value expressions to determine their compute kind.
         self.visit_expr(assignee_expr_id);
         self.visit_expr(value_expr_id);
+        let value_expr_compute_kind = self
+            .last_analyzed_compute_kind
+            .take()
+            .expect("last analyzed compute kind should be set after visiting an expression");
 
         // Since this is an assignment, update the local variables on the assignee expression with the compute kind of
         // the value expression.
@@ -167,6 +171,11 @@ impl<'a> Analyzer<'a> {
         // The compute kind of an assign expression is determined by the runtime features of the updated compute kind
         // associated to the local variable.
         compute_kind.aggregate_runtime_features(updated_compute_kind, default_value_kind);
+
+        // The runtime features of the value expression must also be aggregated, since they are not necessarily reflected
+        // in the updated compute kind (e.g. when the assignee is the unit tuple `()`, no local is updated even though
+        // evaluating the value expression might have dynamic side effects).
+        compute_kind.aggregate_runtime_features(value_expr_compute_kind, default_value_kind);
         compute_kind
     }
 
