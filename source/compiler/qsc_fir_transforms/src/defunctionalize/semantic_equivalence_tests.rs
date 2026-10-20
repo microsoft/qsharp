@@ -1256,6 +1256,77 @@ fn global_dead_local_pruner_retains_effectful_callable_initializer() {
     "#});
 }
 
+/// Regression for a `mutable` tuple-pattern binding whose callable projection
+/// cannot be resolved. The binding must read as unknown, not as "no value
+/// yet": otherwise the join after the untaken `set op = X` yields `X` alone
+/// and `op(q)` is rewritten to an unconditional `X(q)`.
+#[test]
+fn unresolved_mutable_tuple_projection_keeps_untaken_store_conditional() {
+    crate::test_utils::check_semantic_equivalence(indoc::indoc! {r#"
+        namespace Test {
+            function Pick() : ((Qubit => Unit), Int) {
+                let k = 2;
+                if k > 10 { (H, 1) } else { (I, 0) }
+            }
+            @EntryPoint()
+            operation Main() : Result {
+                use q = Qubit();
+                mutable (op, _) = Pick();
+                if false { set op = X; }
+                op(q);
+                MResetZ(q)
+            }
+        }
+    "#});
+}
+
+/// Same as above, with a factory condition on a callee-internal local and a
+/// guard that reads a runtime-computed local.
+#[test]
+fn unresolved_mutable_tuple_projection_with_internal_factory_local() {
+    crate::test_utils::check_semantic_equivalence(indoc::indoc! {r#"
+        namespace Test {
+            function Pick(n : Int) : ((Qubit => Unit is Adj + Ctl), Int) {
+                let k = n * 2;
+                if k > 10 { (H, 1) } else { (I, 0) }
+            }
+            @EntryPoint()
+            operation Main() : Result {
+                use q = Qubit();
+                let n = Length([1, 2]);
+                mutable (op, _) = Pick(n);
+                if n > 7 { set op = X; }
+                op(q);
+                MResetZ(q)
+            }
+        }
+    "#});
+}
+
+/// Same as above, with the store guarded by a parameter and both guard values
+/// exercised.
+#[test]
+fn unresolved_mutable_tuple_projection_with_parameter_guard() {
+    crate::test_utils::check_semantic_equivalence(indoc::indoc! {r#"
+        namespace Test {
+            function Pick(b : Int) : ((Qubit => Unit is Adj + Ctl), Int) {
+                if b % 2 == 1 { (H, 1) } else { (I, 0) }
+            }
+            operation Run(b : Int, c : Bool) : Result {
+                use q = Qubit();
+                mutable (op, _) = Pick(b);
+                if c { set op = X; }
+                op(q);
+                MResetZ(q)
+            }
+            @EntryPoint()
+            operation Main() : (Result, Result) {
+                (Run(2, false), Run(2, true))
+            }
+        }
+    "#});
+}
+
 /// Generates syntactically valid Q# programs exercising defunctionalization's
 /// key code paths: lambda arguments, partial application, and direct callable
 /// references passed to higher-order functions.
