@@ -34,7 +34,7 @@ use std::ops::Range;
 
 use qsc_fir::fir::{
     BinOp, BlockId, CallableImpl, ExecGraphDebugNode, ExecGraphExpr, ExecGraphIdx, ExecGraphNode,
-    ExprId, ExprKind, ItemKind, LocalItemId, Package, PackageId, PackageLookup, PackageStore,
+    ExprId, ExprKind, ItemKind, LocalItemId, Package, PackageId, PackageLookup, PackageStore, Res,
     SpecDecl as FirSpecDecl, StmtId, StmtKind, StoreItemId, StringComponent,
 };
 use qsc_fir::ty::Ty;
@@ -103,7 +103,7 @@ struct CallableSpecs {
 ///
 /// Panics if reachable bodies still contain FIR variants eliminated by earlier
 /// transforms, such as `ExprKind::Struct`, `ExprKind::Closure`, or
-/// `ExprKind::Hole`.
+/// `ExprKind::Hole` in a value-expression position.
 pub fn rebuild_exec_graphs(
     store: &mut PackageStore,
     package_id: PackageId,
@@ -324,6 +324,45 @@ fn rebuild_stmt(
     ranges.stmts.push((stmt_id, graph_start..builder.len()));
 }
 
+/// Rebuilds target ranges without treating discard holes as value expressions.
+/// The caller truncates these nodes, as it does for other assignment targets.
+fn rebuild_assignment_target(
+    package: &Package,
+    builder: &mut ExecGraphBuilder,
+    expr_id: ExprId,
+    ranges: &mut RangeUpdates,
+) {
+    let graph_start = builder.len();
+    let expr = package.get_expr(expr_id);
+    match &expr.kind {
+        ExprKind::Hole => {
+            // Match the lowerer's non-empty target range; this node is truncated.
+            builder.push(ExecGraphNode::Expr(
+                ExecGraphExpr::Expr(expr_id),
+                expr.span.span,
+            ));
+        }
+        ExprKind::Var(res @ Res::Local(_), _) => {
+            builder.push(ExecGraphNode::Expr(
+                ExecGraphExpr::Var(*res),
+                expr.span.span,
+            ));
+        }
+        ExprKind::Tuple(items) => {
+            for &item_id in items {
+                rebuild_assignment_target(package, builder, item_id, ranges);
+                builder.push(ExecGraphNode::Store);
+            }
+            builder.push(ExecGraphNode::Expr(
+                ExecGraphExpr::Tuple(items.len()),
+                expr.span.span,
+            ));
+        }
+        _ => panic!("expected a local variable, a tuple, or a discard"),
+    }
+    ranges.exprs.push((expr_id, graph_start..builder.len()));
+}
+
 /// Rebuilds the execution graph for an expression, recursively visiting
 /// sub-expressions. Control-flow expressions (`If`, `While`, short-circuit
 /// operators) produce jump nodes; assignments use `truncate` to discard
@@ -409,7 +448,7 @@ fn rebuild_expr(
             // Visit the LHS to record its range, then truncate the emitted
             // nodes — the LHS is an assignment target, not a value to evaluate.
             let idx = builder.len();
-            rebuild_expr(package, builder, lhs, ranges);
+            rebuild_assignment_target(package, builder, lhs, ranges);
             builder.truncate(idx);
             rebuild_expr(package, builder, rhs, ranges);
             builder.push(ExecGraphNode::Expr(
@@ -715,8 +754,8 @@ fn rebuild_expr(
 
         // Eliminated variant
         //
-        // A hole is not valid post-defunctionalization residue, so it is
-        // unreachable at this pipeline stage.
+        // A hole in a value position is not valid post-defunctionalization
+        // residue. Assignment discards are handled separately.
         ExprKind::Hole => {
             panic!("Hole expressions should have been eliminated by post_defunc");
         }

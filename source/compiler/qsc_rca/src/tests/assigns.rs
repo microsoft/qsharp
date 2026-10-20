@@ -26,6 +26,57 @@ fn check_rca_for_classical_int_assign_to_local() {
 }
 
 #[test]
+fn check_rca_for_assignment_discards() {
+    for assignment in [
+        "set (_, a) = (1, 2);",
+        "set (a, _) = (2, 1);",
+        "set (_, (_, a)) = (1, (3, 2));",
+        "set (_, a) = values;",
+        "set (_, a) = Make();",
+        "set (_, _) = Make();",
+        "set _ = Make();",
+    ] {
+        let mut compilation_context = CompilationContext::default();
+        compilation_context.update(&format!(
+            "function Make() : (Int, Int) {{ (1, 2) }}
+            mutable a = 0;
+            let values = (1, 2);
+            {assignment}
+            a"
+        ));
+        check_last_statement_compute_properties(
+            compilation_context.get_compute_properties(),
+            &expect![[r#"
+                ApplicationsGeneratorSet:
+                    inherent: Static
+                    dynamic_param_applications: <empty>"#]],
+        );
+    }
+}
+
+#[test]
+fn check_rca_for_assignment_discard_preserves_dynamic_local() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        use q = Qubit();
+        mutable a = false;
+        set (_, a) = (1, MResetZ(q) == One);
+        a
+        "#,
+    );
+    check_last_statement_compute_properties(
+        compilation_context.get_compute_properties(),
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Dynamic:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | QubitAllocation)
+                    value_kind: Variable
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
 fn check_rca_for_dynamic_result_assign_to_local() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(

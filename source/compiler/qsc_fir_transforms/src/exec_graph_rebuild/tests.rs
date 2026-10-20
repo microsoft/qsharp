@@ -7,8 +7,9 @@
 // graph node sequences, which is better served by targeted snapshot tests.
 
 use crate::test_utils::{
-    PipelineStage, assert_panics_with, assert_pipeline_succeeded, compile_and_run_pipeline_to,
-    expr_kind_short, find_callable, stmt_kind_short,
+    PipelineStage, assert_panics_with, assert_pipeline_succeeded,
+    check_semantic_equivalence_with_expected, compile_and_run_pipeline_to, expr_kind_short,
+    find_callable, stmt_kind_short,
 };
 use expect_test::{Expect, expect};
 use indoc::indoc;
@@ -481,6 +482,58 @@ fn tuple_construction_emits_store_per_element() {
             3: Store
             4: Expr [Tuple(2)]
             5: Ret"#]],
+    );
+}
+
+#[test]
+fn assignment_discards_preserve_values() {
+    for (assignment, expected) in [
+        ("set (_, a) = (1, 2);", 2),
+        ("set (a, _) = (2, 1);", 2),
+        ("set (_, (_, a)) = (1, (3, 2));", 2),
+        ("set (_, a) = values;", 2),
+        ("set (_, a) = Make();", 2),
+        ("set (_, _) = Make();", 0),
+        ("set _ = Make();", 0),
+    ] {
+        check_semantic_equivalence_with_expected(
+            &format!(
+                "function Make() : (Int, Int) {{ (1, 2) }}
+                operation Main() : Int {{
+                    mutable a = 0;
+                    let values = (1, 2);
+                    {assignment}
+                    a
+                }}"
+            ),
+            qsc_eval::val::Value::Int(expected),
+        );
+    }
+}
+
+#[test]
+fn assignment_discards_preserve_rhs_effects() {
+    check_semantic_equivalence_with_expected(
+        indoc! {r#"
+            operation Make(q : Qubit) : (Result, Int) {
+                Message("Make");
+                X(q);
+                (MResetZ(q), 2)
+            }
+            operation Main() : Int {
+                use q = Qubit();
+                mutable a = 0;
+                mutable count = 0;
+                set (_, a) = Make(q);
+                set (_, _) = Make(q);
+                set (_, a) = (
+                    { set count += 1; count },
+                    { set count += 10; count }
+                );
+                count * 100 + a
+            }
+        "#},
+        qsc_eval::val::Value::Int(1111),
     );
 }
 
@@ -1120,8 +1173,8 @@ fn pinned_item_rebuilt_in_exec_graph() {
 
 #[test]
 fn residual_hole_in_rebuilt_body_panics() {
-    // exec_graph_rebuild defensively panics on a residual `ExprKind::Hole`,
-    // which is not valid post-defunctionalization residue. (Residual closures,
+    // exec_graph_rebuild defensively panics on a residual `ExprKind::Hole`
+    // in a value position, unlike an assignment discard. (Residual closures,
     // by contrast, are tolerated and rebuilt into a single `Expr` node.) Inject
     // a residual `Hole` into the reachable `Main` body to pin that defensive
     // arm.
