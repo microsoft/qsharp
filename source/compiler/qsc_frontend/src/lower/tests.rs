@@ -2787,7 +2787,7 @@ fn duplicate_commas_in_generics() {
                         name: Ident 1 [30-33] "Foo"
                         generics:
                             0: type 'T
-                            1: type
+                            1: type 
                         input: Pat 2 [40-46] [Type Param<"'T": 0>]: Bind: Ident 3 [40-41] "x"
                         output: Unit
                         functors: empty set
