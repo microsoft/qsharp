@@ -4017,6 +4017,11 @@ fn bind_callable_pat_projections(
                         state.callable_sources.remove(&ident.id);
                         state.projected_sources.insert(ident.id, init_expr_id);
                     }
+                } else {
+                    // An unresolved projection is `Dynamic`, never `Bottom`: `Bottom`
+                    // is the identity of the branch joins, and a later conditional
+                    // store would otherwise become the local's only reaching callable.
+                    state.callable.insert(ident.id, CalleeLattice::Dynamic);
                 }
             }
         }

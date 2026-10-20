@@ -4086,7 +4086,10 @@ fn analysis_nested_callable_in_tuple_param() {
             callable_params: 1
               param: callable_id=<item 3 in package 2>, path=[0, 0], ty=(Qubit => Unit is Adj + Ctl)
             call_sites: 1
-              site: hof=Wrapper<AdjCtl>, arg=Global(H, Body)"#]],
+              site: hof=Wrapper<AdjCtl>, arg=Global(H, Body)
+            lattice states:
+              callable Wrapper<AdjCtl>:
+                2: Dynamic"#]],
     );
     check_rewrite(
         source,
@@ -4150,7 +4153,10 @@ fn analysis_nested_callable_second_element() {
             callable_params: 1
               param: callable_id=<item 3 in package 2>, path=[0, 1], ty=(Qubit => Unit is Adj + Ctl)
             call_sites: 1
-              site: hof=Wrapper<AdjCtl>, arg=Global(H, Body)"#]],
+              site: hof=Wrapper<AdjCtl>, arg=Global(H, Body)
+            lattice states:
+              callable Wrapper<AdjCtl>:
+                2: Dynamic"#]],
     );
     check_rewrite(
         source,
@@ -4214,7 +4220,10 @@ fn analysis_nested_callable_single_param_supported() {
             callable_params: 1
               param: callable_id=<item 3 in package 2>, path=[0, 0], ty=(Qubit => Unit is Adj + Ctl)
             call_sites: 1
-              site: hof=Wrapper<AdjCtl>, arg=Global(H, Body)"#]],
+              site: hof=Wrapper<AdjCtl>, arg=Global(H, Body)
+            lattice states:
+              callable Wrapper<AdjCtl>:
+                1: Dynamic"#]],
     );
     check_rewrite(
         source,
@@ -4289,7 +4298,9 @@ fn analysis_branch_split_nested_callable_in_tuple() {
               site: hof=Wrapper<AdjCtl>, arg=Global(X, Body)
             lattice states:
               callable Main:
-                2: Multi([H:Body, X:Body])"#]],
+                2: Multi([H:Body, X:Body])
+              callable Wrapper<AdjCtl>:
+                2: Dynamic"#]],
     );
     check_rewrite(
         source,
@@ -4366,7 +4377,10 @@ fn analysis_nested_callable_single_param_second_element_supported() {
             callable_params: 1
               param: callable_id=<item 3 in package 2>, path=[0, 1], ty=(Qubit => Unit is Adj + Ctl)
             call_sites: 1
-              site: hof=Wrapper<AdjCtl>, arg=Global(H, Body)"#]],
+              site: hof=Wrapper<AdjCtl>, arg=Global(H, Body)
+            lattice states:
+              callable Wrapper<AdjCtl>:
+                1: Dynamic"#]],
     );
     check_rewrite(
         source,
@@ -4438,7 +4452,10 @@ fn analysis_nested_callable_single_param_recursive_supported() {
             callable_params: 1
               param: callable_id=<item 3 in package 2>, path=[0, 0, 0, 0], ty=(Qubit => Unit is Adj + Ctl)
             call_sites: 1
-              site: hof=Wrapper<AdjCtl>, arg=Global(H, Body)"#]],
+              site: hof=Wrapper<AdjCtl>, arg=Global(H, Body)
+            lattice states:
+              callable Wrapper<AdjCtl>:
+                1: Dynamic"#]],
     );
     check_rewrite(
         source,
