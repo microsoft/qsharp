@@ -570,7 +570,7 @@ pub enum Error {
         #[label]
         span: Span,
     },
-    #[error("the circuit exceeds the limit of 18,446,744,073,709,551,615 measurement records")]
+    #[error("the circuit's measurement record count exceeds the unsigned 64-bit integer limit")]
     #[diagnostic(code("Qdk.Stim.Semantic.MeasurementRecordCounterOverflow"))]
     MeasurementRecordCounterOverflow,
     #[error("all measurement records referenced by {instruction} are out of scope")]
