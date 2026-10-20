@@ -216,6 +216,8 @@ impl Display for Namespace {
 }
 
 /// An item is a declaration that can live at the top level of a namespace.
+/// (They can also appear in other places, but being able to appear there
+/// is what makes them items.)
 #[derive(Clone, Debug, PartialEq)]
 pub struct Item {
     /// The ID.
