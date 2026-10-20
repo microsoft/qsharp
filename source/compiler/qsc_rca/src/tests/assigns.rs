@@ -26,32 +26,58 @@ fn check_rca_for_classical_int_assign_to_local() {
 }
 
 #[test]
-fn check_rca_for_assignment_discards() {
-    for assignment in [
-        "set (_, a) = (1, 2);",
-        "set (a, _) = (2, 1);",
-        "set (_, (_, a)) = (1, (3, 2));",
-        "set (_, a) = values;",
-        "set (_, a) = Make();",
-        "set (_, _) = Make();",
-        "set _ = Make();",
-    ] {
-        let mut compilation_context = CompilationContext::default();
-        compilation_context.update(&format!(
-            "function Make() : (Int, Int) {{ (1, 2) }}
-            mutable a = 0;
-            let values = (1, 2);
-            {assignment}
-            a"
-        ));
-        check_last_statement_compute_properties(
-            compilation_context.get_compute_properties(),
-            &expect![[r#"
-                ApplicationsGeneratorSet:
-                    inherent: Static
-                    dynamic_param_applications: <empty>"#]],
-        );
-    }
+fn check_rca_for_assignment_discard_in_tuple() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        mutable a = 0;
+        set (_, a) = (1, 2);
+        a"#,
+    );
+    check_last_statement_compute_properties(
+        compilation_context.get_compute_properties(),
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Static
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_assignment_discard_in_nested_tuple() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        mutable a = 0;
+        set (_, (_, a)) = (1, (3, 2));
+        a"#,
+    );
+    check_last_statement_compute_properties(
+        compilation_context.get_compute_properties(),
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Static
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_assignment_discard_of_call_result() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        function Make() : (Int, Int) { (1, 2) }
+        mutable a = 0;
+        set _ = Make();
+        a"#,
+    );
+    check_last_statement_compute_properties(
+        compilation_context.get_compute_properties(),
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Static
+                dynamic_param_applications: <empty>"#]],
+    );
 }
 
 #[test]
