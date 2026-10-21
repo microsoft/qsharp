@@ -486,7 +486,7 @@ impl<'noise> NoiseAccumulator<'noise> {
         for row in rows {
             let mut pauli_string_chars = vec!["I"; pauli_string_width];
             for fault in row.faults {
-                pauli_string_chars[column_of_qubit[&fault.qubit]] = fault.kind.as_str();
+                pauli_string_chars[column_of_qubit[&fault.q]] = fault.kind.as_str();
             }
             pauli_strings.push(encode_pauli(&pauli_string_chars.concat()));
             probabilities.push(remaining_probability * row.probability); // each row fires only if all previous ones didn't
@@ -500,7 +500,7 @@ impl<'noise> NoiseAccumulator<'noise> {
     fn collect_qubits(&self, rows: &[CorrelatedRow]) -> Vec<StimQubitId> {
         let mut qubits: Vec<StimQubitId> = rows
             .iter()
-            .flat_map(|row| row.faults.iter().map(|fault| fault.qubit))
+            .flat_map(|row| row.faults.iter().map(|fault| fault.q))
             .collect();
         qubits.sort_unstable();
         qubits.dedup();
@@ -608,11 +608,11 @@ impl<'noise> Compiler<'noise> {
         }
 
         match &instruction.kind {
-            semantic::InstructionKind::Reset { qubit, basis } => {
-                self.compile_reset(*qubit, *basis);
+            semantic::InstructionKind::Reset { q, basis } => {
+                self.compile_reset(*q, *basis);
             }
-            semantic::InstructionKind::SingleQubitGate { qubit, gate } => {
-                self.compile_single_qubit_gate(*qubit, *gate);
+            semantic::InstructionKind::SingleQubitGate { q, gate } => {
+                self.compile_single_qubit_gate(*q, *gate);
             }
             semantic::InstructionKind::TwoQubitGate { q0, q1, gate } => {
                 self.compile_two_qubit_gate(*q0, *q1, *gate);
@@ -636,13 +636,13 @@ impl<'noise> Compiler<'noise> {
                 observable,
                 readout_noise,
                 negated,
-                qubit,
+                q,
             } => self.compile_single_qubit_measurement(
                 *reset,
                 *observable,
                 *readout_noise,
                 *negated,
-                *qubit,
+                *q,
             ),
             semantic::InstructionKind::TwoQubitMeasurement {
                 readout_noise,
@@ -657,11 +657,8 @@ impl<'noise> Compiler<'noise> {
                 readout_noise,
                 product,
             } => self.compile_pauli_product_measurement(*readout_noise, product),
-            semantic::InstructionKind::PeekLoss {
-                readout_noise,
-                qubit,
-            } => {
-                let result_id = self.emit_peek_loss(*qubit);
+            semantic::InstructionKind::PeekLoss { readout_noise, q } => {
+                let result_id = self.emit_peek_loss(*q);
                 self.emit_optional_readout_noise(*readout_noise, result_id);
             }
             semantic::InstructionKind::Require { records } => {
@@ -674,13 +671,13 @@ impl<'noise> Compiler<'noise> {
                 ..
             }) => self.unsupported("MPAD", instruction.span),
             semantic::InstructionKind::Annotation(_) => {}
-            semantic::InstructionKind::SingleQubitRotation { axis, angle, qubit } => {
+            semantic::InstructionKind::SingleQubitRotation { axis, angle, q } => {
                 let intrinsic = match axis {
                     X => "rx",
                     Y => "ry",
                     Z => "rz",
                 };
-                self.emit_rotation(intrinsic, *angle, *qubit);
+                self.emit_rotation(intrinsic, *angle, *q);
             }
             semantic::InstructionKind::TwoQubitRotation {
                 axis,
@@ -699,11 +696,11 @@ impl<'noise> Compiler<'noise> {
                 theta,
                 phi,
                 lambda,
-                qubit,
+                q,
             } => {
-                self.emit_rotation("rz", *lambda, *qubit);
-                self.emit_rotation("ry", *theta, *qubit);
-                self.emit_rotation("rz", *phi, *qubit);
+                self.emit_rotation("rz", *lambda, *q);
+                self.emit_rotation("ry", *theta, *q);
+                self.emit_rotation("rz", *phi, *q);
             }
             semantic::InstructionKind::PauliProductRotation { angle, product } => {
                 self.compile_pauli_product_rotation(*angle, product);
@@ -1095,16 +1092,13 @@ impl<'noise> Compiler<'noise> {
             semantic::Noise::HeraldedPauliChannel1 { .. } => {
                 self.unsupported("HERALDED_PAULI_CHANNEL_1", instruction_span);
             }
-            semantic::Noise::PauliChannel1 {
-                probabilities,
-                qubit,
-            } => {
+            semantic::Noise::PauliChannel1 { probabilities, q } => {
                 let table = self.noise_accumulator.build_noise_table(
                     1,
                     ["X", "Y", "Z"].map(encode_pauli).to_vec(),
                     probabilities.to_vec(),
                 );
-                self.emit_noise(table, &[*qubit]);
+                self.emit_noise(table, &[*q]);
             }
             semantic::Noise::PauliChannel2 {
                 probabilities,
@@ -1126,7 +1120,7 @@ impl<'noise> Compiler<'noise> {
             semantic::Noise::SingleQubitNoise {
                 kind,
                 probability,
-                qubit,
+                q,
             } => match kind {
                 semantic::SingleQubitNoiseKind::Depolarize => {
                     let table = self.noise_accumulator.build_noise_table(
@@ -1134,7 +1128,7 @@ impl<'noise> Compiler<'noise> {
                         ["X", "Y", "Z"].map(encode_pauli).to_vec(),
                         vec![*probability / 3.0; 3],
                     );
-                    self.emit_noise(table, &[*qubit]);
+                    self.emit_noise(table, &[*q]);
                 }
                 semantic::SingleQubitNoiseKind::Fault(kind) => {
                     let table = self.noise_accumulator.build_noise_table(
@@ -1142,7 +1136,7 @@ impl<'noise> Compiler<'noise> {
                         vec![encode_pauli(kind.as_str())],
                         vec![*probability],
                     );
-                    self.emit_noise(table, &[*qubit]);
+                    self.emit_noise(table, &[*q]);
                 }
             },
         }
@@ -1354,19 +1348,19 @@ impl<'noise> Compiler<'noise> {
         product: &semantic::PauliProduct,
         operation: impl FnOnce(&mut Self, StimQubitId, bool),
     ) {
-        let focus_qubit = product.factors[0].qubit;
+        let focus_qubit = product.factors[0].q;
         for factor in &product.factors {
-            self.rotate_to_z_basis(factor.pauli, factor.qubit);
+            self.rotate_to_z_basis(factor.pauli, factor.q);
         }
         for factor in product.factors.iter().skip(1) {
-            self.emit_two_qubit_gate("cx", factor.qubit, focus_qubit);
+            self.emit_two_qubit_gate("cx", factor.q, focus_qubit);
         }
         operation(self, focus_qubit, product.negated);
         for factor in product.factors.iter().skip(1).rev() {
-            self.emit_two_qubit_gate("cx", factor.qubit, focus_qubit);
+            self.emit_two_qubit_gate("cx", factor.q, focus_qubit);
         }
         for factor in product.factors.iter().rev() {
-            self.rotate_from_z_basis(factor.pauli, factor.qubit);
+            self.rotate_from_z_basis(factor.pauli, factor.q);
         }
     }
 

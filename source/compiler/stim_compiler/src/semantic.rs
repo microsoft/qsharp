@@ -49,11 +49,11 @@ pub struct Instruction {
 
 pub enum InstructionKind {
     Reset {
-        qubit: StimQubitId,
+        q: StimQubitId,
         basis: Pauli,
     },
     SingleQubitGate {
-        qubit: StimQubitId,
+        q: StimQubitId,
         gate: SingleQubitGateKind,
     },
     TwoQubitGate {
@@ -82,7 +82,7 @@ pub enum InstructionKind {
         observable: Pauli,
         readout_noise: Probability,
         negated: bool,
-        qubit: StimQubitId,
+        q: StimQubitId,
     },
     TwoQubitMeasurement {
         readout_noise: Probability,
@@ -97,7 +97,7 @@ pub enum InstructionKind {
     },
     PeekLoss {
         readout_noise: Probability,
-        qubit: StimQubitId,
+        q: StimQubitId,
     },
     Require {
         records: Vec<NegatableMeasurementRecord>,
@@ -109,7 +109,7 @@ pub enum InstructionKind {
     SingleQubitRotation {
         axis: Pauli,
         angle: Radians,
-        qubit: StimQubitId,
+        q: StimQubitId,
     },
     TwoQubitRotation {
         axis: PauliPair,
@@ -121,7 +121,7 @@ pub enum InstructionKind {
         theta: Radians,
         phi: Radians,
         lambda: Radians,
-        qubit: StimQubitId,
+        q: StimQubitId,
     },
     PauliProductRotation {
         angle: Radians,
@@ -283,7 +283,7 @@ pub struct PauliProduct {
 
 pub struct PauliFactor {
     pub pauli: Pauli,
-    pub qubit: StimQubitId,
+    pub q: StimQubitId,
 }
 
 #[allow(non_camel_case_types)]
@@ -320,15 +320,15 @@ pub enum Noise {
     },
     HeraldedErase {
         probability: Probability,
-        qubit: StimQubitId,
+        q: StimQubitId,
     },
     HeraldedPauliChannel1 {
         probabilities: [Probability; 4],
-        qubit: StimQubitId,
+        q: StimQubitId,
     },
     PauliChannel1 {
         probabilities: [Probability; 3],
-        qubit: StimQubitId,
+        q: StimQubitId,
     },
     PauliChannel2 {
         probabilities: [Probability; 15],
@@ -338,7 +338,7 @@ pub enum Noise {
     SingleQubitNoise {
         kind: SingleQubitNoiseKind,
         probability: Probability,
-        qubit: StimQubitId,
+        q: StimQubitId,
     },
 }
 
@@ -378,7 +378,7 @@ impl FaultKind {
 #[derive(Clone, Copy)]
 pub struct Fault {
     pub kind: FaultKind,
-    pub qubit: StimQubitId,
+    pub q: StimQubitId,
 }
 
 #[derive(Clone, Copy)]
@@ -401,7 +401,7 @@ pub enum Annotation {
     },
     QubitCoordinates {
         coordinates: Vec<f64>,
-        qubit: StimQubitId,
+        q: StimQubitId,
     },
     ShiftCoordinates {
         offsets: Vec<f64>,
@@ -1015,9 +1015,9 @@ impl Lowerer {
         let qubit_targets = self.expect_qubit_targets(instruction, false);
         qubit_targets
             .into_iter()
-            .map(|(qubit, _)| Instruction {
+            .map(|(q, _)| Instruction {
                 span: instruction.span,
-                kind: InstructionKind::Reset { qubit, basis },
+                kind: InstructionKind::Reset { q, basis },
             })
             .collect()
     }
@@ -1031,9 +1031,9 @@ impl Lowerer {
         let qubit_targets = self.expect_qubit_targets(instruction, false);
         qubit_targets
             .into_iter()
-            .map(|(qubit, _)| Instruction {
+            .map(|(q, _)| Instruction {
                 span: instruction.span,
-                kind: InstructionKind::SingleQubitGate { qubit, gate },
+                kind: InstructionKind::SingleQubitGate { q, gate },
             })
             .collect()
     }
@@ -1186,14 +1186,14 @@ impl Lowerer {
         self.increase_record_count(qubit_targets.len());
         qubit_targets
             .into_iter()
-            .map(|(qubit, negated)| Instruction {
+            .map(|(q, negated)| Instruction {
                 span: instruction.span,
                 kind: InstructionKind::SingleQubitMeasurement {
                     reset,
                     observable,
                     readout_noise,
                     negated,
-                    qubit,
+                    q,
                 },
             })
             .collect()
@@ -1256,12 +1256,12 @@ impl Lowerer {
         let qubit_targets = self.expect_qubit_targets(instruction, false);
         qubit_targets
             .into_iter()
-            .map(|(qubit, _)| Instruction {
+            .map(|(q, _)| Instruction {
                 span: instruction.span,
                 kind: InstructionKind::Noise(Noise::SingleQubitNoise {
                     kind,
                     probability,
-                    qubit,
+                    q,
                 }),
             })
             .collect()
@@ -1275,9 +1275,9 @@ impl Lowerer {
         self.increase_record_count(qubit_targets.len());
         qubit_targets
             .into_iter()
-            .map(|(qubit, _)| Instruction {
+            .map(|(q, _)| Instruction {
                 span: instruction.span,
-                kind: InstructionKind::Noise(Noise::HeraldedErase { probability, qubit }),
+                kind: InstructionKind::Noise(Noise::HeraldedErase { probability, q }),
             })
             .collect()
     }
@@ -1313,12 +1313,9 @@ impl Lowerer {
         self.increase_record_count(qubit_targets.len());
         qubit_targets
             .into_iter()
-            .map(|(qubit, _)| Instruction {
+            .map(|(q, _)| Instruction {
                 span: instruction.span,
-                kind: InstructionKind::Noise(Noise::HeraldedPauliChannel1 {
-                    probabilities,
-                    qubit,
-                }),
+                kind: InstructionKind::Noise(Noise::HeraldedPauliChannel1 { probabilities, q }),
             })
             .collect()
     }
@@ -1332,12 +1329,9 @@ impl Lowerer {
         let qubit_targets = self.expect_qubit_targets(instruction, false);
         qubit_targets
             .into_iter()
-            .map(|(qubit, _)| Instruction {
+            .map(|(q, _)| Instruction {
                 span: instruction.span,
-                kind: InstructionKind::Noise(Noise::PauliChannel1 {
-                    probabilities,
-                    qubit,
-                }),
+                kind: InstructionKind::Noise(Noise::PauliChannel1 { probabilities, q }),
             })
             .collect()
     }
@@ -1370,12 +1364,9 @@ impl Lowerer {
         self.increase_record_count(qubit_targets.len());
         qubit_targets
             .into_iter()
-            .map(|(qubit, _)| Instruction {
+            .map(|(q, _)| Instruction {
                 span: instruction.span,
-                kind: InstructionKind::PeekLoss {
-                    readout_noise,
-                    qubit,
-                },
+                kind: InstructionKind::PeekLoss { readout_noise, q },
             })
             .collect()
     }
@@ -1451,11 +1442,11 @@ impl Lowerer {
         let qubit_targets = self.expect_qubit_targets(instruction, false);
         qubit_targets
             .into_iter()
-            .map(|(qubit, _)| Instruction {
+            .map(|(q, _)| Instruction {
                 span: instruction.span,
                 kind: InstructionKind::Annotation(Annotation::QubitCoordinates {
                     coordinates: coordinates.clone(),
-                    qubit,
+                    q,
                 }),
             })
             .collect()
@@ -1502,9 +1493,9 @@ impl Lowerer {
         let qubit_targets = self.expect_qubit_targets(instruction, false);
         qubit_targets
             .into_iter()
-            .map(|(qubit, _)| Instruction {
+            .map(|(q, _)| Instruction {
                 span: instruction.span,
-                kind: InstructionKind::SingleQubitRotation { axis, angle, qubit },
+                kind: InstructionKind::SingleQubitRotation { axis, angle, q },
             })
             .collect()
     }
@@ -1542,10 +1533,10 @@ impl Lowerer {
         let qubit_targets = self.expect_qubit_targets(instruction, false);
         qubit_targets
             .into_iter()
-            .map(|(qubit, _)| Instruction {
+            .map(|(q, _)| Instruction {
                 span: instruction.span,
                 kind: InstructionKind::U3 {
-                    qubit,
+                    q,
                     theta,
                     phi,
                     lambda,
@@ -1803,7 +1794,7 @@ impl Lowerer {
                     };
                     observable_targets.push(ObservableTarget::Pauli(PauliFactor {
                         pauli: pauli.pauli,
-                        qubit: pauli.qubit,
+                        q: pauli.qubit,
                     }));
                 }
                 _ => {
@@ -1855,7 +1846,7 @@ impl Lowerer {
             if let Some(pauli) = accumulated {
                 canonical_factors.push(PauliFactor {
                     pauli,
-                    qubit: same_qubit_factors[0].qubit,
+                    q: same_qubit_factors[0].qubit,
                 });
             }
         }
@@ -2076,7 +2067,7 @@ impl Lowerer {
         if let parser::TargetKind::Loss { value } = target.kind {
             return Some(Fault {
                 kind: FaultKind::Loss,
-                qubit: value,
+                q: value,
             });
         }
 
@@ -2084,7 +2075,7 @@ impl Lowerer {
 
         Some(Fault {
             kind: FaultKind::from_pauli(pauli_target.pauli),
-            qubit: pauli_target.qubit,
+            q: pauli_target.qubit,
         })
     }
 
