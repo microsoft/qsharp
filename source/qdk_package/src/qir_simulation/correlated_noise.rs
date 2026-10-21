@@ -241,6 +241,12 @@ fn parse_noise_chunk(contents: &str, line_offset: usize) -> Result<ChunkEntries,
         // Validate characters, and encode to u64 in one pass.
         // Uses 3 bits per Pauli char to match `encode_pauli`/`decode_pauli`
         // (I=0, X=1, Z=2, Y=3, L=4).
+        let max_qubits = u64::BITS as usize / 3;
+        assert!(
+            pauli.len() <= max_qubits,
+            "Pauli string on line {i} has {} qubits, but at most {max_qubits} are supported",
+            pauli.len()
+        );
         let pauli_bytes = pauli.as_bytes();
         let mut key: u64 = 0;
         for &b in pauli_bytes {
