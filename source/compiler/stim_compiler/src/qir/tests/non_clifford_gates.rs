@@ -861,7 +861,7 @@ fn u3_with_multiple_angles_that_overflow_radians_yields_errors() {
         &expect![[r#"
             Qdk.Stim.Semantic.InvalidAngle
 
-              x angle for U3 must be finite and representable in radians
+              x angle for U3 must be finite after conversion to radians
                ,----
              1 | U3(1e308, 0.25, -1e308) 0
                :    ^^^^^
@@ -869,7 +869,7 @@ fn u3_with_multiple_angles_that_overflow_radians_yields_errors() {
 
             Qdk.Stim.Semantic.InvalidAngle
 
-              x angle for U3 must be finite and representable in radians
+              x angle for U3 must be finite after conversion to radians
                ,----
              1 | U3(1e308, 0.25, -1e308) 0
                :                 ^^^^^^
