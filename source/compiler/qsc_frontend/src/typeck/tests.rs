@@ -5271,6 +5271,67 @@ fn ambiguous_generic() {
         "#]],
     );
 }
+
+#[test]
+fn generic_used_in_nested_tuple_allowed() {
+    check(
+        "namespace Test {
+            function Foo<'T>(x : (Int, (Double, 'T))) : Unit { }
+        }",
+        "",
+        &expect![[r##"
+            #7 45-70 "(x : (Int, (Double, 'T)))" : (Int, (Double, Param<"'T": 0>))
+            #8 46-69 "x : (Int, (Double, 'T))" : (Int, (Double, Param<"'T": 0>))
+            #23 78-81 "{ }" : Unit
+        "##]],
+    );
+}
+
+#[test]
+fn generic_used_in_nested_callable_allowed() {
+    check(
+        "namespace Test {
+            function Foo<'T>(x : Int -> (Double, 'T)) : Unit { }
+        }",
+        "",
+        &expect![[r##"
+            #7 45-70 "(x : Int -> (Double, 'T))" : (Int -> (Double, Param<"'T": 0>))
+            #8 46-69 "x : Int -> (Double, 'T)" : (Int -> (Double, Param<"'T": 0>))
+            #23 78-81 "{ }" : Unit
+        "##]],
+    );
+}
+
+#[test]
+fn generic_used_in_array_allowed() {
+    check(
+        "namespace Test {
+            function Foo<'T>(x : 'T[]) : Unit { }
+        }",
+        "",
+        &expect![[r##"
+            #7 45-55 "(x : 'T[])" : Param<"'T": 0>[]
+            #8 46-54 "x : 'T[]" : Param<"'T": 0>[]
+            #16 63-66 "{ }" : Unit
+        "##]],
+    );
+}
+
+#[test]
+fn generic_used_only_in_discard_allowed() {
+    check(
+        "namespace Test {
+            function Foo<'T>(_ : 'T) : Unit { }
+        }",
+        "",
+        &expect![[r##"
+            #7 45-53 "(_ : 'T)" : Param<"'T": 0>
+            #8 46-52 "_ : 'T" : Param<"'T": 0>
+            #14 61-64 "{ }" : Unit
+        "##]],
+    );
+}
+
 #[test]
 fn invalid_ident() {
     check(
