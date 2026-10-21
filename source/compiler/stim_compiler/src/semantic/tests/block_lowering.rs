@@ -21,7 +21,7 @@ fn repeat_block_lowers() {
                         count: 3
                         body:
                             [13-16] SingleQubitGate {
-                                qubit: 0,
+                                q: 0,
                                 gate: X,
                             }"#]],
     );
@@ -37,14 +37,14 @@ fn select_block_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-17]:
-            items:
-                SelectBlock:
-                    body:
-                        [11-14] SingleQubitGate {
-                            qubit: 0,
-                            gate: X,
-                        }"#]],
+            Circuit [0-17]:
+                items:
+                    SelectBlock:
+                        body:
+                            [11-14] SingleQubitGate {
+                                q: 0,
+                                gate: X,
+                            }"#]],
     );
 }
 
@@ -82,21 +82,21 @@ fn sibling_blocks_lower() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-40]:
-            items:
-                RepeatBlock:
-                    count: 2
-                    body:
-                        [15-18] SingleQubitGate {
-                            qubit: 0,
-                            gate: X,
-                        }
-                SelectBlock:
-                    body:
-                        [34-37] SingleQubitGate {
-                            qubit: 1,
-                            gate: Z,
-                        }"#]],
+            Circuit [0-40]:
+                items:
+                    RepeatBlock:
+                        count: 2
+                        body:
+                            [15-18] SingleQubitGate {
+                                q: 0,
+                                gate: X,
+                            }
+                    SelectBlock:
+                        body:
+                            [34-37] SingleQubitGate {
+                                q: 1,
+                                gate: Z,
+                            }"#]],
     );
 }
 
@@ -112,18 +112,18 @@ fn repeat_inside_repeat_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-46]:
-            items:
-                RepeatBlock:
-                    count: 2
-                    body:
-                        RepeatBlock:
-                            count: 3
-                            body:
-                                [34-37] SingleQubitGate {
-                                    qubit: 0,
-                                    gate: X,
-                                }"#]],
+            Circuit [0-46]:
+                items:
+                    RepeatBlock:
+                        count: 2
+                        body:
+                            RepeatBlock:
+                                count: 3
+                                body:
+                                    [34-37] SingleQubitGate {
+                                        q: 0,
+                                        gate: X,
+                                    }"#]],
     );
 }
 
@@ -139,17 +139,17 @@ fn select_inside_repeat_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-44]:
-            items:
-                RepeatBlock:
-                    count: 2
-                    body:
-                        SelectBlock:
-                            body:
-                                [32-35] SingleQubitGate {
-                                    qubit: 0,
-                                    gate: X,
-                                }"#]],
+            Circuit [0-44]:
+                items:
+                    RepeatBlock:
+                        count: 2
+                        body:
+                            SelectBlock:
+                                body:
+                                    [32-35] SingleQubitGate {
+                                        q: 0,
+                                        gate: X,
+                                    }"#]],
     );
 }
 
@@ -165,17 +165,17 @@ fn repeat_inside_select_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-44]:
-            items:
-                SelectBlock:
-                    body:
-                        RepeatBlock:
-                            count: 2
-                            body:
-                                [32-35] SingleQubitGate {
-                                    qubit: 0,
-                                    gate: X,
-                                }"#]],
+            Circuit [0-44]:
+                items:
+                    SelectBlock:
+                        body:
+                            RepeatBlock:
+                                count: 2
+                                body:
+                                    [32-35] SingleQubitGate {
+                                        q: 0,
+                                        gate: X,
+                                    }"#]],
     );
 }
 
@@ -191,16 +191,16 @@ fn select_inside_select_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-42]:
-            items:
-                SelectBlock:
-                    body:
-                        SelectBlock:
-                            body:
-                                [30-33] SingleQubitGate {
-                                    qubit: 0,
-                                    gate: X,
-                                }"#]],
+            Circuit [0-42]:
+                items:
+                    SelectBlock:
+                        body:
+                            SelectBlock:
+                                body:
+                                    [30-33] SingleQubitGate {
+                                        q: 0,
+                                        gate: X,
+                                    }"#]],
     );
 }
 
@@ -219,36 +219,36 @@ fn alternating_nested_blocks_lower() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-79]:
-            items:
-                RepeatBlock:
-                    count: 2
-                    body:
-                        SelectBlock:
-                            body:
-                                RepeatBlock:
-                                    count: 3
-                                    body:
-                                        [43-46] SingleQubitMeasurement {
-                                            reset: false,
-                                            observable: Z,
-                                            readout_noise: 0.0,
-                                            negated: false,
-                                            qubit: 0,
-                                        }
-                                [57-72] Require {
-                                    records: [
-                                        NegatableMeasurementRecord {
-                                            record: MeasurementRecord {
-                                                offset: 1,
-                                                span: Span {
-                                                    lo: 65,
-                                                    hi: 72,
+            Circuit [0-79]:
+                items:
+                    RepeatBlock:
+                        count: 2
+                        body:
+                            SelectBlock:
+                                body:
+                                    RepeatBlock:
+                                        count: 3
+                                        body:
+                                            [43-46] SingleQubitMeasurement {
+                                                reset: false,
+                                                observable: Z,
+                                                readout_noise: 0.0,
+                                                negated: false,
+                                                q: 0,
+                                            }
+                                    [57-72] Require {
+                                        records: [
+                                            NegatableMeasurementRecord {
+                                                record: MeasurementRecord {
+                                                    offset: 1,
+                                                    span: Span {
+                                                        lo: 65,
+                                                        hi: 72,
+                                                    },
                                                 },
+                                                negated: false,
                                             },
-                                            negated: false,
-                                        },
-                                    ],
-                                }"#]],
+                                        ],
+                                    }"#]],
     );
 }

@@ -12,12 +12,12 @@ fn i_lowers() {
     check(
         "I 0",
         &expect![[r#"
-        Circuit [0-3]:
-            items:
-                [0-3] SingleQubitGate {
-                    qubit: 0,
-                    gate: I,
-                }"#]],
+            Circuit [0-3]:
+                items:
+                    [0-3] SingleQubitGate {
+                        q: 0,
+                        gate: I,
+                    }"#]],
     );
 }
 
@@ -26,12 +26,12 @@ fn x_lowers() {
     check(
         "X 0",
         &expect![[r#"
-        Circuit [0-3]:
-            items:
-                [0-3] SingleQubitGate {
-                    qubit: 0,
-                    gate: X,
-                }"#]],
+            Circuit [0-3]:
+                items:
+                    [0-3] SingleQubitGate {
+                        q: 0,
+                        gate: X,
+                    }"#]],
     );
 }
 
@@ -40,12 +40,12 @@ fn y_lowers() {
     check(
         "Y 0",
         &expect![[r#"
-        Circuit [0-3]:
-            items:
-                [0-3] SingleQubitGate {
-                    qubit: 0,
-                    gate: Y,
-                }"#]],
+            Circuit [0-3]:
+                items:
+                    [0-3] SingleQubitGate {
+                        q: 0,
+                        gate: Y,
+                    }"#]],
     );
 }
 
@@ -54,12 +54,12 @@ fn z_lowers() {
     check(
         "Z 0",
         &expect![[r#"
-        Circuit [0-3]:
-            items:
-                [0-3] SingleQubitGate {
-                    qubit: 0,
-                    gate: Z,
-                }"#]],
+            Circuit [0-3]:
+                items:
+                    [0-3] SingleQubitGate {
+                        q: 0,
+                        gate: Z,
+                    }"#]],
     );
 }
 
@@ -68,12 +68,12 @@ fn c_nxyz_lowers() {
     check(
         "C_NXYZ 0",
         &expect![[r#"
-        Circuit [0-8]:
-            items:
-                [0-8] SingleQubitGate {
-                    qubit: 0,
-                    gate: C_NXYZ,
-                }"#]],
+            Circuit [0-8]:
+                items:
+                    [0-8] SingleQubitGate {
+                        q: 0,
+                        gate: C_NXYZ,
+                    }"#]],
     );
 }
 
@@ -82,12 +82,12 @@ fn c_nzyx_lowers() {
     check(
         "C_NZYX 0",
         &expect![[r#"
-        Circuit [0-8]:
-            items:
-                [0-8] SingleQubitGate {
-                    qubit: 0,
-                    gate: C_NZYX,
-                }"#]],
+            Circuit [0-8]:
+                items:
+                    [0-8] SingleQubitGate {
+                        q: 0,
+                        gate: C_NZYX,
+                    }"#]],
     );
 }
 
@@ -96,12 +96,12 @@ fn c_xnyz_lowers() {
     check(
         "C_XNYZ 0",
         &expect![[r#"
-        Circuit [0-8]:
-            items:
-                [0-8] SingleQubitGate {
-                    qubit: 0,
-                    gate: C_XNYZ,
-                }"#]],
+            Circuit [0-8]:
+                items:
+                    [0-8] SingleQubitGate {
+                        q: 0,
+                        gate: C_XNYZ,
+                    }"#]],
     );
 }
 
@@ -110,12 +110,12 @@ fn c_xynz_lowers() {
     check(
         "C_XYNZ 0",
         &expect![[r#"
-        Circuit [0-8]:
-            items:
-                [0-8] SingleQubitGate {
-                    qubit: 0,
-                    gate: C_XYNZ,
-                }"#]],
+            Circuit [0-8]:
+                items:
+                    [0-8] SingleQubitGate {
+                        q: 0,
+                        gate: C_XYNZ,
+                    }"#]],
     );
 }
 
@@ -124,12 +124,12 @@ fn c_xyz_lowers() {
     check(
         "C_XYZ 0",
         &expect![[r#"
-        Circuit [0-7]:
-            items:
-                [0-7] SingleQubitGate {
-                    qubit: 0,
-                    gate: C_XYZ,
-                }"#]],
+            Circuit [0-7]:
+                items:
+                    [0-7] SingleQubitGate {
+                        q: 0,
+                        gate: C_XYZ,
+                    }"#]],
     );
 }
 
@@ -138,12 +138,12 @@ fn c_znyx_lowers() {
     check(
         "C_ZNYX 0",
         &expect![[r#"
-        Circuit [0-8]:
-            items:
-                [0-8] SingleQubitGate {
-                    qubit: 0,
-                    gate: C_ZNYX,
-                }"#]],
+            Circuit [0-8]:
+                items:
+                    [0-8] SingleQubitGate {
+                        q: 0,
+                        gate: C_ZNYX,
+                    }"#]],
     );
 }
 
@@ -152,12 +152,12 @@ fn c_zynx_lowers() {
     check(
         "C_ZYNX 0",
         &expect![[r#"
-        Circuit [0-8]:
-            items:
-                [0-8] SingleQubitGate {
-                    qubit: 0,
-                    gate: C_ZYNX,
-                }"#]],
+            Circuit [0-8]:
+                items:
+                    [0-8] SingleQubitGate {
+                        q: 0,
+                        gate: C_ZYNX,
+                    }"#]],
     );
 }
 
@@ -166,12 +166,12 @@ fn c_zyx_lowers() {
     check(
         "C_ZYX 0",
         &expect![[r#"
-        Circuit [0-7]:
-            items:
-                [0-7] SingleQubitGate {
-                    qubit: 0,
-                    gate: C_ZYX,
-                }"#]],
+            Circuit [0-7]:
+                items:
+                    [0-7] SingleQubitGate {
+                        q: 0,
+                        gate: C_ZYX,
+                    }"#]],
     );
 }
 
@@ -180,12 +180,12 @@ fn h_lowers() {
     check(
         "H 0",
         &expect![[r#"
-        Circuit [0-3]:
-            items:
-                [0-3] SingleQubitGate {
-                    qubit: 0,
-                    gate: H,
-                }"#]],
+            Circuit [0-3]:
+                items:
+                    [0-3] SingleQubitGate {
+                        q: 0,
+                        gate: H,
+                    }"#]],
     );
 }
 
@@ -194,12 +194,12 @@ fn h_nxy_lowers() {
     check(
         "H_NXY 0",
         &expect![[r#"
-        Circuit [0-7]:
-            items:
-                [0-7] SingleQubitGate {
-                    qubit: 0,
-                    gate: H_NXY,
-                }"#]],
+            Circuit [0-7]:
+                items:
+                    [0-7] SingleQubitGate {
+                        q: 0,
+                        gate: H_NXY,
+                    }"#]],
     );
 }
 
@@ -208,12 +208,12 @@ fn h_nxz_lowers() {
     check(
         "H_NXZ 0",
         &expect![[r#"
-        Circuit [0-7]:
-            items:
-                [0-7] SingleQubitGate {
-                    qubit: 0,
-                    gate: H_NXZ,
-                }"#]],
+            Circuit [0-7]:
+                items:
+                    [0-7] SingleQubitGate {
+                        q: 0,
+                        gate: H_NXZ,
+                    }"#]],
     );
 }
 
@@ -222,12 +222,12 @@ fn h_nyz_lowers() {
     check(
         "H_NYZ 0",
         &expect![[r#"
-        Circuit [0-7]:
-            items:
-                [0-7] SingleQubitGate {
-                    qubit: 0,
-                    gate: H_NYZ,
-                }"#]],
+            Circuit [0-7]:
+                items:
+                    [0-7] SingleQubitGate {
+                        q: 0,
+                        gate: H_NYZ,
+                    }"#]],
     );
 }
 
@@ -236,12 +236,12 @@ fn h_xy_lowers() {
     check(
         "H_XY 0",
         &expect![[r#"
-        Circuit [0-6]:
-            items:
-                [0-6] SingleQubitGate {
-                    qubit: 0,
-                    gate: H_XY,
-                }"#]],
+            Circuit [0-6]:
+                items:
+                    [0-6] SingleQubitGate {
+                        q: 0,
+                        gate: H_XY,
+                    }"#]],
     );
 }
 
@@ -250,12 +250,12 @@ fn h_yz_lowers() {
     check(
         "H_YZ 0",
         &expect![[r#"
-        Circuit [0-6]:
-            items:
-                [0-6] SingleQubitGate {
-                    qubit: 0,
-                    gate: H_YZ,
-                }"#]],
+            Circuit [0-6]:
+                items:
+                    [0-6] SingleQubitGate {
+                        q: 0,
+                        gate: H_YZ,
+                    }"#]],
     );
 }
 
@@ -264,12 +264,12 @@ fn s_lowers() {
     check(
         "S 0",
         &expect![[r#"
-        Circuit [0-3]:
-            items:
-                [0-3] SingleQubitGate {
-                    qubit: 0,
-                    gate: S,
-                }"#]],
+            Circuit [0-3]:
+                items:
+                    [0-3] SingleQubitGate {
+                        q: 0,
+                        gate: S,
+                    }"#]],
     );
 }
 
@@ -278,12 +278,12 @@ fn sqrt_x_lowers() {
     check(
         "SQRT_X 0",
         &expect![[r#"
-        Circuit [0-8]:
-            items:
-                [0-8] SingleQubitGate {
-                    qubit: 0,
-                    gate: SQRT_X,
-                }"#]],
+            Circuit [0-8]:
+                items:
+                    [0-8] SingleQubitGate {
+                        q: 0,
+                        gate: SQRT_X,
+                    }"#]],
     );
 }
 
@@ -292,12 +292,12 @@ fn sqrt_x_dag_lowers() {
     check(
         "SQRT_X_DAG 0",
         &expect![[r#"
-        Circuit [0-12]:
-            items:
-                [0-12] SingleQubitGate {
-                    qubit: 0,
-                    gate: SQRT_X_DAG,
-                }"#]],
+            Circuit [0-12]:
+                items:
+                    [0-12] SingleQubitGate {
+                        q: 0,
+                        gate: SQRT_X_DAG,
+                    }"#]],
     );
 }
 
@@ -306,12 +306,12 @@ fn sqrt_y_lowers() {
     check(
         "SQRT_Y 0",
         &expect![[r#"
-        Circuit [0-8]:
-            items:
-                [0-8] SingleQubitGate {
-                    qubit: 0,
-                    gate: SQRT_Y,
-                }"#]],
+            Circuit [0-8]:
+                items:
+                    [0-8] SingleQubitGate {
+                        q: 0,
+                        gate: SQRT_Y,
+                    }"#]],
     );
 }
 
@@ -320,12 +320,12 @@ fn sqrt_y_dag_lowers() {
     check(
         "SQRT_Y_DAG 0",
         &expect![[r#"
-        Circuit [0-12]:
-            items:
-                [0-12] SingleQubitGate {
-                    qubit: 0,
-                    gate: SQRT_Y_DAG,
-                }"#]],
+            Circuit [0-12]:
+                items:
+                    [0-12] SingleQubitGate {
+                        q: 0,
+                        gate: SQRT_Y_DAG,
+                    }"#]],
     );
 }
 
@@ -334,12 +334,12 @@ fn s_dag_lowers() {
     check(
         "S_DAG 0",
         &expect![[r#"
-        Circuit [0-7]:
-            items:
-                [0-7] SingleQubitGate {
-                    qubit: 0,
-                    gate: S_DAG,
-                }"#]],
+            Circuit [0-7]:
+                items:
+                    [0-7] SingleQubitGate {
+                        q: 0,
+                        gate: S_DAG,
+                    }"#]],
     );
 }
 
@@ -688,26 +688,26 @@ fn cx_with_record_control_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-17]:
-            items:
-                [0-3] SingleQubitMeasurement {
-                    reset: false,
-                    observable: Z,
-                    readout_noise: 0.0,
-                    negated: false,
-                    qubit: 0,
-                }
-                [4-16] ClassicallyControlledPauli {
-                    control: MeasurementRecord {
-                        offset: 1,
-                        span: Span {
-                            lo: 7,
-                            hi: 14,
+            Circuit [0-17]:
+                items:
+                    [0-3] SingleQubitMeasurement {
+                        reset: false,
+                        observable: Z,
+                        readout_noise: 0.0,
+                        negated: false,
+                        q: 0,
+                    }
+                    [4-16] ClassicallyControlledPauli {
+                        control: MeasurementRecord {
+                            offset: 1,
+                            span: Span {
+                                lo: 7,
+                                hi: 14,
+                            },
                         },
-                    },
-                    target: 1,
-                    pauli: X,
-                }"#]],
+                        target: 1,
+                        pauli: X,
+                    }"#]],
     );
 }
 
@@ -720,31 +720,31 @@ fn cx_with_mixed_quantum_and_classical_pairs_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-21]:
-            items:
-                [0-3] SingleQubitMeasurement {
-                    reset: false,
-                    observable: Z,
-                    readout_noise: 0.0,
-                    negated: false,
-                    qubit: 0,
-                }
-                [4-20] ClassicallyControlledPauli {
-                    control: MeasurementRecord {
-                        offset: 1,
-                        span: Span {
-                            lo: 7,
-                            hi: 14,
+            Circuit [0-21]:
+                items:
+                    [0-3] SingleQubitMeasurement {
+                        reset: false,
+                        observable: Z,
+                        readout_noise: 0.0,
+                        negated: false,
+                        q: 0,
+                    }
+                    [4-20] ClassicallyControlledPauli {
+                        control: MeasurementRecord {
+                            offset: 1,
+                            span: Span {
+                                lo: 7,
+                                hi: 14,
+                            },
                         },
-                    },
-                    target: 1,
-                    pauli: X,
-                }
-                [4-20] TwoQubitGate {
-                    q0: 2,
-                    q1: 3,
-                    gate: CX,
-                }"#]],
+                        target: 1,
+                        pauli: X,
+                    }
+                    [4-20] TwoQubitGate {
+                        q0: 2,
+                        q1: 3,
+                        gate: CX,
+                    }"#]],
     );
 }
 
@@ -757,26 +757,26 @@ fn cy_with_record_control_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-17]:
-            items:
-                [0-3] SingleQubitMeasurement {
-                    reset: false,
-                    observable: Z,
-                    readout_noise: 0.0,
-                    negated: false,
-                    qubit: 0,
-                }
-                [4-16] ClassicallyControlledPauli {
-                    control: MeasurementRecord {
-                        offset: 1,
-                        span: Span {
-                            lo: 7,
-                            hi: 14,
+            Circuit [0-17]:
+                items:
+                    [0-3] SingleQubitMeasurement {
+                        reset: false,
+                        observable: Z,
+                        readout_noise: 0.0,
+                        negated: false,
+                        q: 0,
+                    }
+                    [4-16] ClassicallyControlledPauli {
+                        control: MeasurementRecord {
+                            offset: 1,
+                            span: Span {
+                                lo: 7,
+                                hi: 14,
+                            },
                         },
-                    },
-                    target: 1,
-                    pauli: Y,
-                }"#]],
+                        target: 1,
+                        pauli: Y,
+                    }"#]],
     );
 }
 
@@ -789,26 +789,26 @@ fn cz_with_record_control_on_first_target_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-17]:
-            items:
-                [0-3] SingleQubitMeasurement {
-                    reset: false,
-                    observable: Z,
-                    readout_noise: 0.0,
-                    negated: false,
-                    qubit: 0,
-                }
-                [4-16] ClassicallyControlledPauli {
-                    control: MeasurementRecord {
-                        offset: 1,
-                        span: Span {
-                            lo: 7,
-                            hi: 14,
+            Circuit [0-17]:
+                items:
+                    [0-3] SingleQubitMeasurement {
+                        reset: false,
+                        observable: Z,
+                        readout_noise: 0.0,
+                        negated: false,
+                        q: 0,
+                    }
+                    [4-16] ClassicallyControlledPauli {
+                        control: MeasurementRecord {
+                            offset: 1,
+                            span: Span {
+                                lo: 7,
+                                hi: 14,
+                            },
                         },
-                    },
-                    target: 1,
-                    pauli: Z,
-                }"#]],
+                        target: 1,
+                        pauli: Z,
+                    }"#]],
     );
 }
 
@@ -821,26 +821,26 @@ fn cz_with_record_control_on_second_target_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-17]:
-            items:
-                [0-3] SingleQubitMeasurement {
-                    reset: false,
-                    observable: Z,
-                    readout_noise: 0.0,
-                    negated: false,
-                    qubit: 0,
-                }
-                [4-16] ClassicallyControlledPauli {
-                    control: MeasurementRecord {
-                        offset: 1,
-                        span: Span {
-                            lo: 9,
-                            hi: 16,
+            Circuit [0-17]:
+                items:
+                    [0-3] SingleQubitMeasurement {
+                        reset: false,
+                        observable: Z,
+                        readout_noise: 0.0,
+                        negated: false,
+                        q: 0,
+                    }
+                    [4-16] ClassicallyControlledPauli {
+                        control: MeasurementRecord {
+                            offset: 1,
+                            span: Span {
+                                lo: 9,
+                                hi: 16,
+                            },
                         },
-                    },
-                    target: 1,
-                    pauli: Z,
-                }"#]],
+                        target: 1,
+                        pauli: Z,
+                    }"#]],
     );
 }
 
@@ -853,26 +853,26 @@ fn xcz_with_record_control_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-18]:
-            items:
-                [0-3] SingleQubitMeasurement {
-                    reset: false,
-                    observable: Z,
-                    readout_noise: 0.0,
-                    negated: false,
-                    qubit: 0,
-                }
-                [4-17] ClassicallyControlledPauli {
-                    control: MeasurementRecord {
-                        offset: 1,
-                        span: Span {
-                            lo: 10,
-                            hi: 17,
+            Circuit [0-18]:
+                items:
+                    [0-3] SingleQubitMeasurement {
+                        reset: false,
+                        observable: Z,
+                        readout_noise: 0.0,
+                        negated: false,
+                        q: 0,
+                    }
+                    [4-17] ClassicallyControlledPauli {
+                        control: MeasurementRecord {
+                            offset: 1,
+                            span: Span {
+                                lo: 10,
+                                hi: 17,
+                            },
                         },
-                    },
-                    target: 1,
-                    pauli: X,
-                }"#]],
+                        target: 1,
+                        pauli: X,
+                    }"#]],
     );
 }
 
@@ -885,26 +885,26 @@ fn ycz_with_record_control_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-18]:
-            items:
-                [0-3] SingleQubitMeasurement {
-                    reset: false,
-                    observable: Z,
-                    readout_noise: 0.0,
-                    negated: false,
-                    qubit: 0,
-                }
-                [4-17] ClassicallyControlledPauli {
-                    control: MeasurementRecord {
-                        offset: 1,
-                        span: Span {
-                            lo: 10,
-                            hi: 17,
+            Circuit [0-18]:
+                items:
+                    [0-3] SingleQubitMeasurement {
+                        reset: false,
+                        observable: Z,
+                        readout_noise: 0.0,
+                        negated: false,
+                        q: 0,
+                    }
+                    [4-17] ClassicallyControlledPauli {
+                        control: MeasurementRecord {
+                            offset: 1,
+                            span: Span {
+                                lo: 10,
+                                hi: 17,
+                            },
                         },
-                    },
-                    target: 1,
-                    pauli: Y,
-                }"#]],
+                        target: 1,
+                        pauli: Y,
+                    }"#]],
     );
 }
 
@@ -915,20 +915,20 @@ fn correlated_error_lowers() {
     check(
         "CORRELATED_ERROR(0.01) X0",
         &expect![[r#"
-        Circuit [0-25]:
-            items:
-                [0-25] Noise(
-                    CorrelatedError {
-                        kind: Initial,
-                        probability: 0.01,
-                        faults: [
-                            Fault {
-                                kind: X,
-                                qubit: 0,
-                            },
-                        ],
-                    },
-                )"#]],
+            Circuit [0-25]:
+                items:
+                    [0-25] Noise(
+                        CorrelatedError {
+                            kind: Initial,
+                            probability: 0.01,
+                            faults: [
+                                Fault {
+                                    kind: X,
+                                    q: 0,
+                                },
+                            ],
+                        },
+                    )"#]],
     );
 }
 
@@ -937,20 +937,20 @@ fn correlated_error_with_probability_one_lowers() {
     check(
         "CORRELATED_ERROR(1) X0",
         &expect![[r#"
-        Circuit [0-22]:
-            items:
-                [0-22] Noise(
-                    CorrelatedError {
-                        kind: Initial,
-                        probability: 1.0,
-                        faults: [
-                            Fault {
-                                kind: X,
-                                qubit: 0,
-                            },
-                        ],
-                    },
-                )"#]],
+            Circuit [0-22]:
+                items:
+                    [0-22] Noise(
+                        CorrelatedError {
+                            kind: Initial,
+                            probability: 1.0,
+                            faults: [
+                                Fault {
+                                    kind: X,
+                                    q: 0,
+                                },
+                            ],
+                        },
+                    )"#]],
     );
 }
 
@@ -959,20 +959,20 @@ fn correlated_error_with_loss_lowers() {
     check(
         "CORRELATED_ERROR(0.01) L0",
         &expect![[r#"
-        Circuit [0-25]:
-            items:
-                [0-25] Noise(
-                    CorrelatedError {
-                        kind: Initial,
-                        probability: 0.01,
-                        faults: [
-                            Fault {
-                                kind: Loss,
-                                qubit: 0,
-                            },
-                        ],
-                    },
-                )"#]],
+            Circuit [0-25]:
+                items:
+                    [0-25] Noise(
+                        CorrelatedError {
+                            kind: Initial,
+                            probability: 0.01,
+                            faults: [
+                                Fault {
+                                    kind: Loss,
+                                    q: 0,
+                                },
+                            ],
+                        },
+                    )"#]],
     );
 }
 
@@ -981,20 +981,20 @@ fn else_correlated_error_lowers() {
     check(
         "ELSE_CORRELATED_ERROR(0.01) X0",
         &expect![[r#"
-        Circuit [0-30]:
-            items:
-                [0-30] Noise(
-                    CorrelatedError {
-                        kind: Else,
-                        probability: 0.01,
-                        faults: [
-                            Fault {
-                                kind: X,
-                                qubit: 0,
-                            },
-                        ],
-                    },
-                )"#]],
+            Circuit [0-30]:
+                items:
+                    [0-30] Noise(
+                        CorrelatedError {
+                            kind: Else,
+                            probability: 0.01,
+                            faults: [
+                                Fault {
+                                    kind: X,
+                                    q: 0,
+                                },
+                            ],
+                        },
+                    )"#]],
     );
 }
 
@@ -1003,20 +1003,20 @@ fn else_correlated_error_with_loss_lowers() {
     check(
         "ELSE_CORRELATED_ERROR(0.01) L0",
         &expect![[r#"
-        Circuit [0-30]:
-            items:
-                [0-30] Noise(
-                    CorrelatedError {
-                        kind: Else,
-                        probability: 0.01,
-                        faults: [
-                            Fault {
-                                kind: Loss,
-                                qubit: 0,
-                            },
-                        ],
-                    },
-                )"#]],
+            Circuit [0-30]:
+                items:
+                    [0-30] Noise(
+                        CorrelatedError {
+                            kind: Else,
+                            probability: 0.01,
+                            faults: [
+                                Fault {
+                                    kind: Loss,
+                                    q: 0,
+                                },
+                            ],
+                        },
+                    )"#]],
     );
 }
 
@@ -1025,15 +1025,15 @@ fn depolarize1_lowers() {
     check(
         "DEPOLARIZE1(0.01) 0",
         &expect![[r#"
-        Circuit [0-19]:
-            items:
-                [0-19] Noise(
-                    SingleQubitNoise {
-                        kind: Depolarize,
-                        probability: 0.01,
-                        qubit: 0,
-                    },
-                )"#]],
+            Circuit [0-19]:
+                items:
+                    [0-19] Noise(
+                        SingleQubitNoise {
+                            kind: Depolarize,
+                            probability: 0.01,
+                            q: 0,
+                        },
+                    )"#]],
     );
 }
 
@@ -1059,14 +1059,14 @@ fn heralded_erase_lowers() {
     check(
         "HERALDED_ERASE(0.01) 0",
         &expect![[r#"
-        Circuit [0-22]:
-            items:
-                [0-22] Noise(
-                    HeraldedErase {
-                        probability: 0.01,
-                        qubit: 0,
-                    },
-                )"#]],
+            Circuit [0-22]:
+                items:
+                    [0-22] Noise(
+                        HeraldedErase {
+                            probability: 0.01,
+                            q: 0,
+                        },
+                    )"#]],
     );
 }
 
@@ -1075,19 +1075,19 @@ fn heralded_pauli_channel_1_lowers() {
     check(
         "HERALDED_PAULI_CHANNEL_1(0.01,0,0,0) 0",
         &expect![[r#"
-        Circuit [0-38]:
-            items:
-                [0-38] Noise(
-                    HeraldedPauliChannel1 {
-                        probabilities: [
-                            0.01,
-                            0.0,
-                            0.0,
-                            0.0,
-                        ],
-                        qubit: 0,
-                    },
-                )"#]],
+            Circuit [0-38]:
+                items:
+                    [0-38] Noise(
+                        HeraldedPauliChannel1 {
+                            probabilities: [
+                                0.01,
+                                0.0,
+                                0.0,
+                                0.0,
+                            ],
+                            q: 0,
+                        },
+                    )"#]],
     );
 }
 
@@ -1096,18 +1096,18 @@ fn pauli_channel_1_lowers() {
     check(
         "PAULI_CHANNEL_1(0.01,0,0) 0",
         &expect![[r#"
-        Circuit [0-27]:
-            items:
-                [0-27] Noise(
-                    PauliChannel1 {
-                        probabilities: [
-                            0.01,
-                            0.0,
-                            0.0,
-                        ],
-                        qubit: 0,
-                    },
-                )"#]],
+            Circuit [0-27]:
+                items:
+                    [0-27] Noise(
+                        PauliChannel1 {
+                            probabilities: [
+                                0.01,
+                                0.0,
+                                0.0,
+                            ],
+                            q: 0,
+                        },
+                    )"#]],
     );
 }
 
@@ -1116,18 +1116,18 @@ fn pauli_channel_1_with_probabilities_summing_to_one_lowers() {
     check(
         "PAULI_CHANNEL_1(0.2,0.3,0.5) 0",
         &expect![[r#"
-        Circuit [0-30]:
-            items:
-                [0-30] Noise(
-                    PauliChannel1 {
-                        probabilities: [
-                            0.2,
-                            0.3,
-                            0.5,
-                        ],
-                        qubit: 0,
-                    },
-                )"#]],
+            Circuit [0-30]:
+                items:
+                    [0-30] Noise(
+                        PauliChannel1 {
+                            probabilities: [
+                                0.2,
+                                0.3,
+                                0.5,
+                            ],
+                            q: 0,
+                        },
+                    )"#]],
     );
 }
 
@@ -1187,17 +1187,17 @@ fn x_error_lowers() {
     check(
         "X_ERROR(0.01) 0",
         &expect![[r#"
-        Circuit [0-15]:
-            items:
-                [0-15] Noise(
-                    SingleQubitNoise {
-                        kind: Fault(
-                            X,
-                        ),
-                        probability: 0.01,
-                        qubit: 0,
-                    },
-                )"#]],
+            Circuit [0-15]:
+                items:
+                    [0-15] Noise(
+                        SingleQubitNoise {
+                            kind: Fault(
+                                X,
+                            ),
+                            probability: 0.01,
+                            q: 0,
+                        },
+                    )"#]],
     );
 }
 
@@ -1206,17 +1206,17 @@ fn y_error_lowers() {
     check(
         "Y_ERROR(0.01) 0",
         &expect![[r#"
-        Circuit [0-15]:
-            items:
-                [0-15] Noise(
-                    SingleQubitNoise {
-                        kind: Fault(
-                            Y,
-                        ),
-                        probability: 0.01,
-                        qubit: 0,
-                    },
-                )"#]],
+            Circuit [0-15]:
+                items:
+                    [0-15] Noise(
+                        SingleQubitNoise {
+                            kind: Fault(
+                                Y,
+                            ),
+                            probability: 0.01,
+                            q: 0,
+                        },
+                    )"#]],
     );
 }
 
@@ -1225,17 +1225,17 @@ fn z_error_lowers() {
     check(
         "Z_ERROR(0.01) 0",
         &expect![[r#"
-        Circuit [0-15]:
-            items:
-                [0-15] Noise(
-                    SingleQubitNoise {
-                        kind: Fault(
-                            Z,
-                        ),
-                        probability: 0.01,
-                        qubit: 0,
-                    },
-                )"#]],
+            Circuit [0-15]:
+                items:
+                    [0-15] Noise(
+                        SingleQubitNoise {
+                            kind: Fault(
+                                Z,
+                            ),
+                            probability: 0.01,
+                            q: 0,
+                        },
+                    )"#]],
     );
 }
 
@@ -1244,17 +1244,17 @@ fn loss_error_lowers() {
     check(
         "LOSS_ERROR(0.01) 0",
         &expect![[r#"
-        Circuit [0-18]:
-            items:
-                [0-18] Noise(
-                    SingleQubitNoise {
-                        kind: Fault(
-                            Loss,
-                        ),
-                        probability: 0.01,
-                        qubit: 0,
-                    },
-                )"#]],
+            Circuit [0-18]:
+                items:
+                    [0-18] Noise(
+                        SingleQubitNoise {
+                            kind: Fault(
+                                Loss,
+                            ),
+                            probability: 0.01,
+                            q: 0,
+                        },
+                    )"#]],
     );
 }
 
@@ -1265,15 +1265,15 @@ fn m_lowers() {
     check(
         "M 0",
         &expect![[r#"
-        Circuit [0-3]:
-            items:
-                [0-3] SingleQubitMeasurement {
-                    reset: false,
-                    observable: Z,
-                    readout_noise: 0.0,
-                    negated: false,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-3]:
+                items:
+                    [0-3] SingleQubitMeasurement {
+                        reset: false,
+                        observable: Z,
+                        readout_noise: 0.0,
+                        negated: false,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1282,15 +1282,15 @@ fn m_with_readout_noise_lowers() {
     check(
         "M(1) 0",
         &expect![[r#"
-        Circuit [0-6]:
-            items:
-                [0-6] SingleQubitMeasurement {
-                    reset: false,
-                    observable: Z,
-                    readout_noise: 1.0,
-                    negated: false,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-6]:
+                items:
+                    [0-6] SingleQubitMeasurement {
+                        reset: false,
+                        observable: Z,
+                        readout_noise: 1.0,
+                        negated: false,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1299,15 +1299,15 @@ fn m_with_negated_target_lowers() {
     check(
         "M !0",
         &expect![[r#"
-        Circuit [0-4]:
-            items:
-                [0-4] SingleQubitMeasurement {
-                    reset: false,
-                    observable: Z,
-                    readout_noise: 0.0,
-                    negated: true,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-4]:
+                items:
+                    [0-4] SingleQubitMeasurement {
+                        reset: false,
+                        observable: Z,
+                        readout_noise: 0.0,
+                        negated: true,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1316,15 +1316,15 @@ fn m_with_readout_noise_and_negated_target_lowers() {
     check(
         "M(0.1) !0",
         &expect![[r#"
-        Circuit [0-9]:
-            items:
-                [0-9] SingleQubitMeasurement {
-                    reset: false,
-                    observable: Z,
-                    readout_noise: 0.1,
-                    negated: true,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-9]:
+                items:
+                    [0-9] SingleQubitMeasurement {
+                        reset: false,
+                        observable: Z,
+                        readout_noise: 0.1,
+                        negated: true,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1333,15 +1333,15 @@ fn mr_lowers() {
     check(
         "MR 0",
         &expect![[r#"
-        Circuit [0-4]:
-            items:
-                [0-4] SingleQubitMeasurement {
-                    reset: true,
-                    observable: Z,
-                    readout_noise: 0.0,
-                    negated: false,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-4]:
+                items:
+                    [0-4] SingleQubitMeasurement {
+                        reset: true,
+                        observable: Z,
+                        readout_noise: 0.0,
+                        negated: false,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1350,15 +1350,15 @@ fn mr_with_readout_noise_lowers() {
     check(
         "MR(0.1) 0",
         &expect![[r#"
-        Circuit [0-9]:
-            items:
-                [0-9] SingleQubitMeasurement {
-                    reset: true,
-                    observable: Z,
-                    readout_noise: 0.1,
-                    negated: false,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-9]:
+                items:
+                    [0-9] SingleQubitMeasurement {
+                        reset: true,
+                        observable: Z,
+                        readout_noise: 0.1,
+                        negated: false,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1367,15 +1367,15 @@ fn mr_with_negated_target_lowers() {
     check(
         "MR !0",
         &expect![[r#"
-        Circuit [0-5]:
-            items:
-                [0-5] SingleQubitMeasurement {
-                    reset: true,
-                    observable: Z,
-                    readout_noise: 0.0,
-                    negated: true,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-5]:
+                items:
+                    [0-5] SingleQubitMeasurement {
+                        reset: true,
+                        observable: Z,
+                        readout_noise: 0.0,
+                        negated: true,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1384,15 +1384,15 @@ fn mrx_lowers() {
     check(
         "MRX 0",
         &expect![[r#"
-        Circuit [0-5]:
-            items:
-                [0-5] SingleQubitMeasurement {
-                    reset: true,
-                    observable: X,
-                    readout_noise: 0.0,
-                    negated: false,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-5]:
+                items:
+                    [0-5] SingleQubitMeasurement {
+                        reset: true,
+                        observable: X,
+                        readout_noise: 0.0,
+                        negated: false,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1401,15 +1401,15 @@ fn mrx_with_readout_noise_lowers() {
     check(
         "MRX(0.1) 0",
         &expect![[r#"
-        Circuit [0-10]:
-            items:
-                [0-10] SingleQubitMeasurement {
-                    reset: true,
-                    observable: X,
-                    readout_noise: 0.1,
-                    negated: false,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-10]:
+                items:
+                    [0-10] SingleQubitMeasurement {
+                        reset: true,
+                        observable: X,
+                        readout_noise: 0.1,
+                        negated: false,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1418,15 +1418,15 @@ fn mrx_with_negated_target_lowers() {
     check(
         "MRX !0",
         &expect![[r#"
-        Circuit [0-6]:
-            items:
-                [0-6] SingleQubitMeasurement {
-                    reset: true,
-                    observable: X,
-                    readout_noise: 0.0,
-                    negated: true,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-6]:
+                items:
+                    [0-6] SingleQubitMeasurement {
+                        reset: true,
+                        observable: X,
+                        readout_noise: 0.0,
+                        negated: true,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1435,15 +1435,15 @@ fn mry_lowers() {
     check(
         "MRY 0",
         &expect![[r#"
-        Circuit [0-5]:
-            items:
-                [0-5] SingleQubitMeasurement {
-                    reset: true,
-                    observable: Y,
-                    readout_noise: 0.0,
-                    negated: false,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-5]:
+                items:
+                    [0-5] SingleQubitMeasurement {
+                        reset: true,
+                        observable: Y,
+                        readout_noise: 0.0,
+                        negated: false,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1452,15 +1452,15 @@ fn mry_with_readout_noise_lowers() {
     check(
         "MRY(0.1) 0",
         &expect![[r#"
-        Circuit [0-10]:
-            items:
-                [0-10] SingleQubitMeasurement {
-                    reset: true,
-                    observable: Y,
-                    readout_noise: 0.1,
-                    negated: false,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-10]:
+                items:
+                    [0-10] SingleQubitMeasurement {
+                        reset: true,
+                        observable: Y,
+                        readout_noise: 0.1,
+                        negated: false,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1469,15 +1469,15 @@ fn mry_with_negated_target_lowers() {
     check(
         "MRY !0",
         &expect![[r#"
-        Circuit [0-6]:
-            items:
-                [0-6] SingleQubitMeasurement {
-                    reset: true,
-                    observable: Y,
-                    readout_noise: 0.0,
-                    negated: true,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-6]:
+                items:
+                    [0-6] SingleQubitMeasurement {
+                        reset: true,
+                        observable: Y,
+                        readout_noise: 0.0,
+                        negated: true,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1486,15 +1486,15 @@ fn mx_lowers() {
     check(
         "MX 0",
         &expect![[r#"
-        Circuit [0-4]:
-            items:
-                [0-4] SingleQubitMeasurement {
-                    reset: false,
-                    observable: X,
-                    readout_noise: 0.0,
-                    negated: false,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-4]:
+                items:
+                    [0-4] SingleQubitMeasurement {
+                        reset: false,
+                        observable: X,
+                        readout_noise: 0.0,
+                        negated: false,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1503,15 +1503,15 @@ fn mx_with_readout_noise_lowers() {
     check(
         "MX(0.1) 0",
         &expect![[r#"
-        Circuit [0-9]:
-            items:
-                [0-9] SingleQubitMeasurement {
-                    reset: false,
-                    observable: X,
-                    readout_noise: 0.1,
-                    negated: false,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-9]:
+                items:
+                    [0-9] SingleQubitMeasurement {
+                        reset: false,
+                        observable: X,
+                        readout_noise: 0.1,
+                        negated: false,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1520,15 +1520,15 @@ fn mx_with_negated_target_lowers() {
     check(
         "MX !0",
         &expect![[r#"
-        Circuit [0-5]:
-            items:
-                [0-5] SingleQubitMeasurement {
-                    reset: false,
-                    observable: X,
-                    readout_noise: 0.0,
-                    negated: true,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-5]:
+                items:
+                    [0-5] SingleQubitMeasurement {
+                        reset: false,
+                        observable: X,
+                        readout_noise: 0.0,
+                        negated: true,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1537,15 +1537,15 @@ fn my_lowers() {
     check(
         "MY 0",
         &expect![[r#"
-        Circuit [0-4]:
-            items:
-                [0-4] SingleQubitMeasurement {
-                    reset: false,
-                    observable: Y,
-                    readout_noise: 0.0,
-                    negated: false,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-4]:
+                items:
+                    [0-4] SingleQubitMeasurement {
+                        reset: false,
+                        observable: Y,
+                        readout_noise: 0.0,
+                        negated: false,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1554,15 +1554,15 @@ fn my_with_readout_noise_lowers() {
     check(
         "MY(0.1) 0",
         &expect![[r#"
-        Circuit [0-9]:
-            items:
-                [0-9] SingleQubitMeasurement {
-                    reset: false,
-                    observable: Y,
-                    readout_noise: 0.1,
-                    negated: false,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-9]:
+                items:
+                    [0-9] SingleQubitMeasurement {
+                        reset: false,
+                        observable: Y,
+                        readout_noise: 0.1,
+                        negated: false,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1571,15 +1571,15 @@ fn my_with_negated_target_lowers() {
     check(
         "MY !0",
         &expect![[r#"
-        Circuit [0-5]:
-            items:
-                [0-5] SingleQubitMeasurement {
-                    reset: false,
-                    observable: Y,
-                    readout_noise: 0.0,
-                    negated: true,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-5]:
+                items:
+                    [0-5] SingleQubitMeasurement {
+                        reset: false,
+                        observable: Y,
+                        readout_noise: 0.0,
+                        negated: true,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -1588,12 +1588,12 @@ fn r_lowers() {
     check(
         "R 0",
         &expect![[r#"
-        Circuit [0-3]:
-            items:
-                [0-3] Reset {
-                    qubit: 0,
-                    basis: Z,
-                }"#]],
+            Circuit [0-3]:
+                items:
+                    [0-3] Reset {
+                        q: 0,
+                        basis: Z,
+                    }"#]],
     );
 }
 
@@ -1602,12 +1602,12 @@ fn rx_lowers() {
     check(
         "RX 0",
         &expect![[r#"
-        Circuit [0-4]:
-            items:
-                [0-4] Reset {
-                    qubit: 0,
-                    basis: X,
-                }"#]],
+            Circuit [0-4]:
+                items:
+                    [0-4] Reset {
+                        q: 0,
+                        basis: X,
+                    }"#]],
     );
 }
 
@@ -1616,12 +1616,12 @@ fn ry_lowers() {
     check(
         "RY 0",
         &expect![[r#"
-        Circuit [0-4]:
-            items:
-                [0-4] Reset {
-                    qubit: 0,
-                    basis: Y,
-                }"#]],
+            Circuit [0-4]:
+                items:
+                    [0-4] Reset {
+                        q: 0,
+                        basis: Y,
+                    }"#]],
     );
 }
 
@@ -1787,24 +1787,24 @@ fn mpp_lowers() {
     check(
         "MPP X0*Y1",
         &expect![[r#"
-        Circuit [0-9]:
-            items:
-                [0-9] PauliProductMeasurement {
-                    readout_noise: 0.0,
-                    product: PauliProduct {
-                        factors: [
-                            PauliFactor {
-                                pauli: X,
-                                qubit: 0,
-                            },
-                            PauliFactor {
-                                pauli: Y,
-                                qubit: 1,
-                            },
-                        ],
-                        negated: false,
-                    },
-                }"#]],
+            Circuit [0-9]:
+                items:
+                    [0-9] PauliProductMeasurement {
+                        readout_noise: 0.0,
+                        product: PauliProduct {
+                            factors: [
+                                PauliFactor {
+                                    pauli: X,
+                                    q: 0,
+                                },
+                                PauliFactor {
+                                    pauli: Y,
+                                    q: 1,
+                                },
+                            ],
+                            negated: false,
+                        },
+                    }"#]],
     );
 }
 
@@ -1813,24 +1813,24 @@ fn mpp_with_readout_noise_lowers() {
     check(
         "MPP(0.1) X0*Y1",
         &expect![[r#"
-        Circuit [0-14]:
-            items:
-                [0-14] PauliProductMeasurement {
-                    readout_noise: 0.1,
-                    product: PauliProduct {
-                        factors: [
-                            PauliFactor {
-                                pauli: X,
-                                qubit: 0,
-                            },
-                            PauliFactor {
-                                pauli: Y,
-                                qubit: 1,
-                            },
-                        ],
-                        negated: false,
-                    },
-                }"#]],
+            Circuit [0-14]:
+                items:
+                    [0-14] PauliProductMeasurement {
+                        readout_noise: 0.1,
+                        product: PauliProduct {
+                            factors: [
+                                PauliFactor {
+                                    pauli: X,
+                                    q: 0,
+                                },
+                                PauliFactor {
+                                    pauli: Y,
+                                    q: 1,
+                                },
+                            ],
+                            negated: false,
+                        },
+                    }"#]],
     );
 }
 
@@ -1839,24 +1839,24 @@ fn mpp_with_negated_target_lowers() {
     check(
         "MPP !X0*Y1",
         &expect![[r#"
-        Circuit [0-10]:
-            items:
-                [0-10] PauliProductMeasurement {
-                    readout_noise: 0.0,
-                    product: PauliProduct {
-                        factors: [
-                            PauliFactor {
-                                pauli: X,
-                                qubit: 0,
-                            },
-                            PauliFactor {
-                                pauli: Y,
-                                qubit: 1,
-                            },
-                        ],
-                        negated: true,
-                    },
-                }"#]],
+            Circuit [0-10]:
+                items:
+                    [0-10] PauliProductMeasurement {
+                        readout_noise: 0.0,
+                        product: PauliProduct {
+                            factors: [
+                                PauliFactor {
+                                    pauli: X,
+                                    q: 0,
+                                },
+                                PauliFactor {
+                                    pauli: Y,
+                                    q: 1,
+                                },
+                            ],
+                            negated: true,
+                        },
+                    }"#]],
     );
 }
 
@@ -1865,24 +1865,24 @@ fn spp_lowers() {
     check(
         "SPP X0*Y1",
         &expect![[r#"
-        Circuit [0-9]:
-            items:
-                [0-9] PauliProductGate {
-                    product: PauliProduct {
-                        factors: [
-                            PauliFactor {
-                                pauli: X,
-                                qubit: 0,
-                            },
-                            PauliFactor {
-                                pauli: Y,
-                                qubit: 1,
-                            },
-                        ],
-                        negated: false,
-                    },
-                    gate: S,
-                }"#]],
+            Circuit [0-9]:
+                items:
+                    [0-9] PauliProductGate {
+                        product: PauliProduct {
+                            factors: [
+                                PauliFactor {
+                                    pauli: X,
+                                    q: 0,
+                                },
+                                PauliFactor {
+                                    pauli: Y,
+                                    q: 1,
+                                },
+                            ],
+                            negated: false,
+                        },
+                        gate: S,
+                    }"#]],
     );
 }
 
@@ -1891,24 +1891,24 @@ fn spp_with_negated_target_lowers() {
     check(
         "SPP X0*!Y1",
         &expect![[r#"
-        Circuit [0-10]:
-            items:
-                [0-10] PauliProductGate {
-                    product: PauliProduct {
-                        factors: [
-                            PauliFactor {
-                                pauli: X,
-                                qubit: 0,
-                            },
-                            PauliFactor {
-                                pauli: Y,
-                                qubit: 1,
-                            },
-                        ],
-                        negated: true,
-                    },
-                    gate: S,
-                }"#]],
+            Circuit [0-10]:
+                items:
+                    [0-10] PauliProductGate {
+                        product: PauliProduct {
+                            factors: [
+                                PauliFactor {
+                                    pauli: X,
+                                    q: 0,
+                                },
+                                PauliFactor {
+                                    pauli: Y,
+                                    q: 1,
+                                },
+                            ],
+                            negated: true,
+                        },
+                        gate: S,
+                    }"#]],
     );
 }
 
@@ -1917,24 +1917,24 @@ fn spp_dag_lowers() {
     check(
         "SPP_DAG X0*Y1",
         &expect![[r#"
-        Circuit [0-13]:
-            items:
-                [0-13] PauliProductGate {
-                    product: PauliProduct {
-                        factors: [
-                            PauliFactor {
-                                pauli: X,
-                                qubit: 0,
-                            },
-                            PauliFactor {
-                                pauli: Y,
-                                qubit: 1,
-                            },
-                        ],
-                        negated: false,
-                    },
-                    gate: S_DAG,
-                }"#]],
+            Circuit [0-13]:
+                items:
+                    [0-13] PauliProductGate {
+                        product: PauliProduct {
+                            factors: [
+                                PauliFactor {
+                                    pauli: X,
+                                    q: 0,
+                                },
+                                PauliFactor {
+                                    pauli: Y,
+                                    q: 1,
+                                },
+                            ],
+                            negated: false,
+                        },
+                        gate: S_DAG,
+                    }"#]],
     );
 }
 
@@ -1943,24 +1943,24 @@ fn spp_dag_with_negated_target_lowers() {
     check(
         "SPP_DAG !X0*Y1",
         &expect![[r#"
-        Circuit [0-14]:
-            items:
-                [0-14] PauliProductGate {
-                    product: PauliProduct {
-                        factors: [
-                            PauliFactor {
-                                pauli: X,
-                                qubit: 0,
-                            },
-                            PauliFactor {
-                                pauli: Y,
-                                qubit: 1,
-                            },
-                        ],
-                        negated: true,
-                    },
-                    gate: S_DAG,
-                }"#]],
+            Circuit [0-14]:
+                items:
+                    [0-14] PauliProductGate {
+                        product: PauliProduct {
+                            factors: [
+                                PauliFactor {
+                                    pauli: X,
+                                    q: 0,
+                                },
+                                PauliFactor {
+                                    pauli: Y,
+                                    q: 1,
+                                },
+                            ],
+                            negated: true,
+                        },
+                        gate: S_DAG,
+                    }"#]],
     );
 }
 
@@ -1977,31 +1977,31 @@ fn require_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-35]:
-            items:
-                SelectBlock:
-                    body:
-                        [11-14] SingleQubitMeasurement {
-                            reset: false,
-                            observable: Z,
-                            readout_noise: 0.0,
-                            negated: false,
-                            qubit: 0,
-                        }
-                        [17-32] Require {
-                            records: [
-                                NegatableMeasurementRecord {
-                                    record: MeasurementRecord {
-                                        offset: 1,
-                                        span: Span {
-                                            lo: 25,
-                                            hi: 32,
+            Circuit [0-35]:
+                items:
+                    SelectBlock:
+                        body:
+                            [11-14] SingleQubitMeasurement {
+                                reset: false,
+                                observable: Z,
+                                readout_noise: 0.0,
+                                negated: false,
+                                q: 0,
+                            }
+                            [17-32] Require {
+                                records: [
+                                    NegatableMeasurementRecord {
+                                        record: MeasurementRecord {
+                                            offset: 1,
+                                            span: Span {
+                                                lo: 25,
+                                                hi: 32,
+                                            },
                                         },
+                                        negated: false,
                                     },
-                                    negated: false,
-                                },
-                            ],
-                        }"#]],
+                                ],
+                            }"#]],
     );
 }
 
@@ -2016,31 +2016,31 @@ fn require_with_negated_record_targets_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-36]:
-            items:
-                SelectBlock:
-                    body:
-                        [11-14] SingleQubitMeasurement {
-                            reset: false,
-                            observable: Z,
-                            readout_noise: 0.0,
-                            negated: false,
-                            qubit: 0,
-                        }
-                        [17-33] Require {
-                            records: [
-                                NegatableMeasurementRecord {
-                                    record: MeasurementRecord {
-                                        offset: 1,
-                                        span: Span {
-                                            lo: 25,
-                                            hi: 33,
+            Circuit [0-36]:
+                items:
+                    SelectBlock:
+                        body:
+                            [11-14] SingleQubitMeasurement {
+                                reset: false,
+                                observable: Z,
+                                readout_noise: 0.0,
+                                negated: false,
+                                q: 0,
+                            }
+                            [17-33] Require {
+                                records: [
+                                    NegatableMeasurementRecord {
+                                        record: MeasurementRecord {
+                                            offset: 1,
+                                            span: Span {
+                                                lo: 25,
+                                                hi: 33,
+                                            },
                                         },
+                                        negated: true,
                                     },
-                                    negated: true,
-                                },
-                            ],
-                        }"#]],
+                                ],
+                            }"#]],
     );
 }
 
@@ -2055,28 +2055,28 @@ fn notleaked_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-37]:
-            items:
-                SelectBlock:
-                    body:
-                        [11-14] SingleQubitMeasurement {
-                            reset: false,
-                            observable: Z,
-                            readout_noise: 0.0,
-                            negated: false,
-                            qubit: 0,
-                        }
-                        [17-34] NotLeaked {
-                            records: [
-                                MeasurementRecord {
-                                    offset: 1,
-                                    span: Span {
-                                        lo: 27,
-                                        hi: 34,
+            Circuit [0-37]:
+                items:
+                    SelectBlock:
+                        body:
+                            [11-14] SingleQubitMeasurement {
+                                reset: false,
+                                observable: Z,
+                                readout_noise: 0.0,
+                                negated: false,
+                                q: 0,
+                            }
+                            [17-34] NotLeaked {
+                                records: [
+                                    MeasurementRecord {
+                                        offset: 1,
+                                        span: Span {
+                                            lo: 27,
+                                            hi: 34,
+                                        },
                                     },
-                                },
-                            ],
-                        }"#]],
+                                ],
+                            }"#]],
     );
 }
 
@@ -2087,12 +2087,12 @@ fn peek_loss_lowers() {
     check(
         "PEEK_LOSS 0",
         &expect![[r#"
-        Circuit [0-11]:
-            items:
-                [0-11] PeekLoss {
-                    readout_noise: 0.0,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-11]:
+                items:
+                    [0-11] PeekLoss {
+                        readout_noise: 0.0,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -2101,12 +2101,12 @@ fn peek_loss_with_readout_noise_lowers() {
     check(
         "PEEK_LOSS(0.1) 0",
         &expect![[r#"
-        Circuit [0-16]:
-            items:
-                [0-16] PeekLoss {
-                    readout_noise: 0.1,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-16]:
+                items:
+                    [0-16] PeekLoss {
+                        readout_noise: 0.1,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -2121,29 +2121,29 @@ fn detector_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-21]:
-            items:
-                [0-3] SingleQubitMeasurement {
-                    reset: false,
-                    observable: Z,
-                    readout_noise: 0.0,
-                    negated: false,
-                    qubit: 0,
-                }
-                [4-20] Annotation(
-                    Detector {
-                        coordinates: [],
-                        records: [
-                            MeasurementRecord {
-                                offset: 1,
-                                span: Span {
-                                    lo: 13,
-                                    hi: 20,
+            Circuit [0-21]:
+                items:
+                    [0-3] SingleQubitMeasurement {
+                        reset: false,
+                        observable: Z,
+                        readout_noise: 0.0,
+                        negated: false,
+                        q: 0,
+                    }
+                    [4-20] Annotation(
+                        Detector {
+                            coordinates: [],
+                            records: [
+                                MeasurementRecord {
+                                    offset: 1,
+                                    span: Span {
+                                        lo: 13,
+                                        hi: 20,
+                                    },
                                 },
-                            },
-                        ],
-                    },
-                )"#]],
+                            ],
+                        },
+                    )"#]],
     );
 }
 
@@ -2241,37 +2241,37 @@ fn observable_include_lowers() {
     check(
         source,
         &expect![[r#"
-        Circuit [0-37]:
-            items:
-                [0-3] SingleQubitMeasurement {
-                    reset: false,
-                    observable: Z,
-                    readout_noise: 0.0,
-                    negated: false,
-                    qubit: 0,
-                }
-                [4-36] Annotation(
-                    ObservableInclude {
-                        logical_observable: 0,
-                        targets: [
-                            Record(
-                                MeasurementRecord {
-                                    offset: 1,
-                                    span: Span {
-                                        lo: 26,
-                                        hi: 33,
+            Circuit [0-37]:
+                items:
+                    [0-3] SingleQubitMeasurement {
+                        reset: false,
+                        observable: Z,
+                        readout_noise: 0.0,
+                        negated: false,
+                        q: 0,
+                    }
+                    [4-36] Annotation(
+                        ObservableInclude {
+                            logical_observable: 0,
+                            targets: [
+                                Record(
+                                    MeasurementRecord {
+                                        offset: 1,
+                                        span: Span {
+                                            lo: 26,
+                                            hi: 33,
+                                        },
                                     },
-                                },
-                            ),
-                            Pauli(
-                                PauliFactor {
-                                    pauli: X,
-                                    qubit: 1,
-                                },
-                            ),
-                        ],
-                    },
-                )"#]],
+                                ),
+                                Pauli(
+                                    PauliFactor {
+                                        pauli: X,
+                                        q: 1,
+                                    },
+                                ),
+                            ],
+                        },
+                    )"#]],
     );
 }
 
@@ -2280,21 +2280,21 @@ fn observable_include_with_max_index_lowers() {
     check(
         "OBSERVABLE_INCLUDE(4294967295) X0",
         &expect![[r#"
-        Circuit [0-33]:
-            items:
-                [0-33] Annotation(
-                    ObservableInclude {
-                        logical_observable: 4294967295,
-                        targets: [
-                            Pauli(
-                                PauliFactor {
-                                    pauli: X,
-                                    qubit: 0,
-                                },
-                            ),
-                        ],
-                    },
-                )"#]],
+            Circuit [0-33]:
+                items:
+                    [0-33] Annotation(
+                        ObservableInclude {
+                            logical_observable: 4294967295,
+                            targets: [
+                                Pauli(
+                                    PauliFactor {
+                                        pauli: X,
+                                        q: 0,
+                                    },
+                                ),
+                            ],
+                        },
+                    )"#]],
     );
 }
 
@@ -2303,17 +2303,17 @@ fn qubit_coords_lowers() {
     check(
         "QUBIT_COORDS(1,2) 0",
         &expect![[r#"
-        Circuit [0-19]:
-            items:
-                [0-19] Annotation(
-                    QubitCoordinates {
-                        coordinates: [
-                            1.0,
-                            2.0,
-                        ],
-                        qubit: 0,
-                    },
-                )"#]],
+            Circuit [0-19]:
+                items:
+                    [0-19] Annotation(
+                        QubitCoordinates {
+                            coordinates: [
+                                1.0,
+                                2.0,
+                            ],
+                            q: 0,
+                        },
+                    )"#]],
     );
 }
 
@@ -2355,12 +2355,12 @@ fn t_lowers() {
     check(
         "T 0",
         &expect![[r#"
-        Circuit [0-3]:
-            items:
-                [0-3] SingleQubitGate {
-                    qubit: 0,
-                    gate: T,
-                }"#]],
+            Circuit [0-3]:
+                items:
+                    [0-3] SingleQubitGate {
+                        q: 0,
+                        gate: T,
+                    }"#]],
     );
 }
 
@@ -2369,12 +2369,12 @@ fn t_dag_lowers() {
     check(
         "T_DAG 0",
         &expect![[r#"
-        Circuit [0-7]:
-            items:
-                [0-7] SingleQubitGate {
-                    qubit: 0,
-                    gate: T_DAG,
-                }"#]],
+            Circuit [0-7]:
+                items:
+                    [0-7] SingleQubitGate {
+                        q: 0,
+                        gate: T_DAG,
+                    }"#]],
     );
 }
 
@@ -2383,24 +2383,24 @@ fn tpp_lowers() {
     check(
         "TPP X0*Y1",
         &expect![[r#"
-        Circuit [0-9]:
-            items:
-                [0-9] PauliProductGate {
-                    product: PauliProduct {
-                        factors: [
-                            PauliFactor {
-                                pauli: X,
-                                qubit: 0,
-                            },
-                            PauliFactor {
-                                pauli: Y,
-                                qubit: 1,
-                            },
-                        ],
-                        negated: false,
-                    },
-                    gate: T,
-                }"#]],
+            Circuit [0-9]:
+                items:
+                    [0-9] PauliProductGate {
+                        product: PauliProduct {
+                            factors: [
+                                PauliFactor {
+                                    pauli: X,
+                                    q: 0,
+                                },
+                                PauliFactor {
+                                    pauli: Y,
+                                    q: 1,
+                                },
+                            ],
+                            negated: false,
+                        },
+                        gate: T,
+                    }"#]],
     );
 }
 
@@ -2409,24 +2409,24 @@ fn tpp_with_negated_target_lowers() {
     check(
         "TPP !X0*Y1",
         &expect![[r#"
-        Circuit [0-10]:
-            items:
-                [0-10] PauliProductGate {
-                    product: PauliProduct {
-                        factors: [
-                            PauliFactor {
-                                pauli: X,
-                                qubit: 0,
-                            },
-                            PauliFactor {
-                                pauli: Y,
-                                qubit: 1,
-                            },
-                        ],
-                        negated: true,
-                    },
-                    gate: T,
-                }"#]],
+            Circuit [0-10]:
+                items:
+                    [0-10] PauliProductGate {
+                        product: PauliProduct {
+                            factors: [
+                                PauliFactor {
+                                    pauli: X,
+                                    q: 0,
+                                },
+                                PauliFactor {
+                                    pauli: Y,
+                                    q: 1,
+                                },
+                            ],
+                            negated: true,
+                        },
+                        gate: T,
+                    }"#]],
     );
 }
 
@@ -2435,24 +2435,24 @@ fn tpp_dag_lowers() {
     check(
         "TPP_DAG X0*Y1",
         &expect![[r#"
-        Circuit [0-13]:
-            items:
-                [0-13] PauliProductGate {
-                    product: PauliProduct {
-                        factors: [
-                            PauliFactor {
-                                pauli: X,
-                                qubit: 0,
-                            },
-                            PauliFactor {
-                                pauli: Y,
-                                qubit: 1,
-                            },
-                        ],
-                        negated: false,
-                    },
-                    gate: T_DAG,
-                }"#]],
+            Circuit [0-13]:
+                items:
+                    [0-13] PauliProductGate {
+                        product: PauliProduct {
+                            factors: [
+                                PauliFactor {
+                                    pauli: X,
+                                    q: 0,
+                                },
+                                PauliFactor {
+                                    pauli: Y,
+                                    q: 1,
+                                },
+                            ],
+                            negated: false,
+                        },
+                        gate: T_DAG,
+                    }"#]],
     );
 }
 
@@ -2461,24 +2461,24 @@ fn tpp_dag_with_negated_target_lowers() {
     check(
         "TPP_DAG !X0*Y1",
         &expect![[r#"
-        Circuit [0-14]:
-            items:
-                [0-14] PauliProductGate {
-                    product: PauliProduct {
-                        factors: [
-                            PauliFactor {
-                                pauli: X,
-                                qubit: 0,
-                            },
-                            PauliFactor {
-                                pauli: Y,
-                                qubit: 1,
-                            },
-                        ],
-                        negated: true,
-                    },
-                    gate: T_DAG,
-                }"#]],
+            Circuit [0-14]:
+                items:
+                    [0-14] PauliProductGate {
+                        product: PauliProduct {
+                            factors: [
+                                PauliFactor {
+                                    pauli: X,
+                                    q: 0,
+                                },
+                                PauliFactor {
+                                    pauli: Y,
+                                    q: 1,
+                                },
+                            ],
+                            negated: true,
+                        },
+                        gate: T_DAG,
+                    }"#]],
     );
 }
 
@@ -2536,13 +2536,13 @@ fn r_x_lowers() {
     check(
         "R_X(0.25) 0",
         &expect![[r#"
-        Circuit [0-11]:
-            items:
-                [0-11] SingleQubitRotation {
-                    axis: X,
-                    angle: 0.7853981633974483,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-11]:
+                items:
+                    [0-11] SingleQubitRotation {
+                        axis: X,
+                        angle: 0.7853981633974483,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -2551,13 +2551,13 @@ fn r_x_with_angle_in_radians_lowers() {
     check(
         "R_X(1rad) 0",
         &expect![[r#"
-        Circuit [0-11]:
-            items:
-                [0-11] SingleQubitRotation {
-                    axis: X,
-                    angle: 1.0,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-11]:
+                items:
+                    [0-11] SingleQubitRotation {
+                        axis: X,
+                        angle: 1.0,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -2566,13 +2566,13 @@ fn r_y_lowers() {
     check(
         "R_Y(0.25) 0",
         &expect![[r#"
-        Circuit [0-11]:
-            items:
-                [0-11] SingleQubitRotation {
-                    axis: Y,
-                    angle: 0.7853981633974483,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-11]:
+                items:
+                    [0-11] SingleQubitRotation {
+                        axis: Y,
+                        angle: 0.7853981633974483,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -2581,13 +2581,13 @@ fn r_z_lowers() {
     check(
         "R_Z(0.25) 0",
         &expect![[r#"
-        Circuit [0-11]:
-            items:
-                [0-11] SingleQubitRotation {
-                    axis: Z,
-                    angle: 0.7853981633974483,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-11]:
+                items:
+                    [0-11] SingleQubitRotation {
+                        axis: Z,
+                        angle: 0.7853981633974483,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -2598,14 +2598,14 @@ fn u3_lowers() {
     check(
         "U3(0.1,0.2,0.3) 0",
         &expect![[r#"
-        Circuit [0-17]:
-            items:
-                [0-17] U3 {
-                    theta: 0.3141592653589793,
-                    phi: 0.6283185307179586,
-                    lambda: 0.9424777960769379,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-17]:
+                items:
+                    [0-17] U3 {
+                        theta: 0.3141592653589793,
+                        phi: 0.6283185307179586,
+                        lambda: 0.9424777960769379,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -2614,14 +2614,14 @@ fn u3_with_mixed_angle_units_lowers() {
     check(
         "U3(0.1,-0.2rad,0.3rad) 0",
         &expect![[r#"
-        Circuit [0-24]:
-            items:
-                [0-24] U3 {
-                    theta: 0.3141592653589793,
-                    phi: -0.2,
-                    lambda: 0.3,
-                    qubit: 0,
-                }"#]],
+            Circuit [0-24]:
+                items:
+                    [0-24] U3 {
+                        theta: 0.3141592653589793,
+                        phi: -0.2,
+                        lambda: 0.3,
+                        q: 0,
+                    }"#]],
     );
 }
 
@@ -2698,24 +2698,24 @@ fn r_pauli_lowers() {
     check(
         "R_PAULI(0.25) X0*Y1",
         &expect![[r#"
-        Circuit [0-19]:
-            items:
-                [0-19] PauliProductRotation {
-                    angle: 0.7853981633974483,
-                    product: PauliProduct {
-                        factors: [
-                            PauliFactor {
-                                pauli: X,
-                                qubit: 0,
-                            },
-                            PauliFactor {
-                                pauli: Y,
-                                qubit: 1,
-                            },
-                        ],
-                        negated: false,
-                    },
-                }"#]],
+            Circuit [0-19]:
+                items:
+                    [0-19] PauliProductRotation {
+                        angle: 0.7853981633974483,
+                        product: PauliProduct {
+                            factors: [
+                                PauliFactor {
+                                    pauli: X,
+                                    q: 0,
+                                },
+                                PauliFactor {
+                                    pauli: Y,
+                                    q: 1,
+                                },
+                            ],
+                            negated: false,
+                        },
+                    }"#]],
     );
 }
 
@@ -2724,24 +2724,24 @@ fn r_pauli_with_angle_in_radians_lowers() {
     check(
         "R_PAULI(1rad) X0*Y1",
         &expect![[r#"
-        Circuit [0-19]:
-            items:
-                [0-19] PauliProductRotation {
-                    angle: 1.0,
-                    product: PauliProduct {
-                        factors: [
-                            PauliFactor {
-                                pauli: X,
-                                qubit: 0,
-                            },
-                            PauliFactor {
-                                pauli: Y,
-                                qubit: 1,
-                            },
-                        ],
-                        negated: false,
-                    },
-                }"#]],
+            Circuit [0-19]:
+                items:
+                    [0-19] PauliProductRotation {
+                        angle: 1.0,
+                        product: PauliProduct {
+                            factors: [
+                                PauliFactor {
+                                    pauli: X,
+                                    q: 0,
+                                },
+                                PauliFactor {
+                                    pauli: Y,
+                                    q: 1,
+                                },
+                            ],
+                            negated: false,
+                        },
+                    }"#]],
     );
 }
 
@@ -2750,23 +2750,23 @@ fn r_pauli_with_negated_target_lowers() {
     check(
         "R_PAULI(0.25) !X0*Y1",
         &expect![[r#"
-        Circuit [0-20]:
-            items:
-                [0-20] PauliProductRotation {
-                    angle: 0.7853981633974483,
-                    product: PauliProduct {
-                        factors: [
-                            PauliFactor {
-                                pauli: X,
-                                qubit: 0,
-                            },
-                            PauliFactor {
-                                pauli: Y,
-                                qubit: 1,
-                            },
-                        ],
-                        negated: true,
-                    },
-                }"#]],
+            Circuit [0-20]:
+                items:
+                    [0-20] PauliProductRotation {
+                        angle: 0.7853981633974483,
+                        product: PauliProduct {
+                            factors: [
+                                PauliFactor {
+                                    pauli: X,
+                                    q: 0,
+                                },
+                                PauliFactor {
+                                    pauli: Y,
+                                    q: 1,
+                                },
+                            ],
+                            negated: true,
+                        },
+                    }"#]],
     );
 }

@@ -60,10 +60,10 @@ fn single_qubit_gates_broadcast_over_targets() {
         let qubits = lower(&source)
             .into_iter()
             .map(|kind| {
-                let InstructionKind::SingleQubitGate { qubit, .. } = kind else {
+                let InstructionKind::SingleQubitGate { q, .. } = kind else {
                     panic!("{gate} should produce single-qubit gates");
                 };
-                qubit
+                q
             })
             .collect::<Vec<_>>();
 
@@ -178,10 +178,10 @@ fn resets_broadcast_over_targets() {
         let qubits = lower(&source)
             .into_iter()
             .map(|kind| {
-                let InstructionKind::Reset { qubit, .. } = kind else {
+                let InstructionKind::Reset { q, .. } = kind else {
                     panic!("{gate} should produce resets");
                 };
-                qubit
+                q
             })
             .collect::<Vec<_>>();
 
@@ -196,10 +196,10 @@ fn single_qubit_measurements_broadcast_over_targets() {
         let qubits = lower(&source)
             .into_iter()
             .map(|kind| {
-                let InstructionKind::SingleQubitMeasurement { qubit, .. } = kind else {
+                let InstructionKind::SingleQubitMeasurement { q, .. } = kind else {
                     panic!("{gate} should produce single-qubit measurements");
                 };
-                qubit
+                q
             })
             .collect::<Vec<_>>();
 
@@ -253,7 +253,7 @@ fn pauli_product_instructions_broadcast_over_products() {
                 product
                     .factors
                     .into_iter()
-                    .map(|factor| (factor.pauli.as_str(), factor.qubit))
+                    .map(|factor| (factor.pauli.as_str(), factor.q))
                     .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>();
@@ -288,10 +288,10 @@ fn single_qubit_noise_broadcasts_over_targets() {
                     panic!("{gate} should produce noise instructions");
                 };
                 match noise {
-                    Noise::SingleQubitNoise { qubit, .. }
-                    | Noise::HeraldedErase { qubit, .. }
-                    | Noise::HeraldedPauliChannel1 { qubit, .. }
-                    | Noise::PauliChannel1 { qubit, .. } => qubit,
+                    Noise::SingleQubitNoise { q, .. }
+                    | Noise::HeraldedErase { q, .. }
+                    | Noise::HeraldedPauliChannel1 { q, .. }
+                    | Noise::PauliChannel1 { q, .. } => q,
                     _ => panic!("{gate} should produce single-qubit noise"),
                 }
             })
@@ -339,10 +339,10 @@ fn peek_loss_broadcasts_over_targets() {
     let qubits = lower(source)
         .into_iter()
         .map(|kind| {
-            let InstructionKind::PeekLoss { qubit, .. } = kind else {
+            let InstructionKind::PeekLoss { q, .. } = kind else {
                 panic!("PEEK_LOSS should produce peek-loss instructions");
             };
-            qubit
+            q
         })
         .collect::<Vec<_>>();
 
@@ -355,11 +355,10 @@ fn annotations_broadcast_over_targets() {
     let coordinates = lower(source)
         .into_iter()
         .map(|kind| {
-            let InstructionKind::Annotation(Annotation::QubitCoordinates { qubit, .. }) = kind
-            else {
+            let InstructionKind::Annotation(Annotation::QubitCoordinates { q, .. }) = kind else {
                 panic!("QUBIT_COORDS should produce coordinate annotations");
             };
-            qubit
+            q
         })
         .collect::<Vec<_>>();
     assert_eq!(coordinates, [2, 7, 13]);
@@ -387,8 +386,7 @@ fn single_qubit_rotations_broadcast_over_targets() {
         let qubits = lower(&source)
             .into_iter()
             .map(|kind| match kind {
-                InstructionKind::SingleQubitRotation { qubit, .. }
-                | InstructionKind::U3 { qubit, .. } => qubit,
+                InstructionKind::SingleQubitRotation { q, .. } | InstructionKind::U3 { q, .. } => q,
                 _ => panic!("{gate} should produce single-qubit rotations"),
             })
             .collect::<Vec<_>>();

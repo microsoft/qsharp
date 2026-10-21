@@ -119,7 +119,7 @@ fn require_with_at_least_one_record_in_scope_lowers() {
                         observable: Z,
                         readout_noise: 0.0,
                         negated: false,
-                        qubit: 0,
+                        q: 0,
                     }
                     SelectBlock:
                         body:
@@ -128,7 +128,7 @@ fn require_with_at_least_one_record_in_scope_lowers() {
                                 observable: Z,
                                 readout_noise: 0.0,
                                 negated: false,
-                                qubit: 1,
+                                q: 1,
                             }
                             [25-48] Require {
                                 records: [
@@ -178,7 +178,7 @@ fn measure_reset_produces_record_in_select() {
                                 observable: Z,
                                 readout_noise: 0.0,
                                 negated: false,
-                                qubit: 0,
+                                q: 0,
                             }
                             [22-37] Require {
                                 records: [
@@ -382,7 +382,7 @@ fn notleaked_with_at_least_one_record_in_scope_lowers() {
                         observable: Z,
                         readout_noise: 0.0,
                         negated: false,
-                        qubit: 0,
+                        q: 0,
                     }
                     SelectBlock:
                         body:
@@ -391,7 +391,7 @@ fn notleaked_with_at_least_one_record_in_scope_lowers() {
                                 observable: Z,
                                 readout_noise: 0.0,
                                 negated: false,
-                                qubit: 1,
+                                q: 1,
                             }
                             [25-50] NotLeaked {
                                 records: [

@@ -699,14 +699,14 @@ fn single_qubit_rotations_require_finite_angles() {
     check(
         "R_X(1e308) 0",
         &expect![[r#"
-        Qdk.Stim.Semantic.InvalidAngle
+            Qdk.Stim.Semantic.InvalidAngle
 
-          x angle for R_X must be finite and representable in radians
-           ,----
-         1 | R_X(1e308) 0
-           :     ^^^^^
-           `----
-    "#]],
+              x angle for R_X must be finite after conversion to radians
+               ,----
+             1 | R_X(1e308) 0
+               :     ^^^^^
+               `----
+        "#]],
     );
 }
 
@@ -715,22 +715,22 @@ fn u3_gates_report_each_non_finite_angle() {
     check(
         "U3(1e308,0.25,-1e308) 0",
         &expect![[r#"
-        Qdk.Stim.Semantic.InvalidAngle
+            Qdk.Stim.Semantic.InvalidAngle
 
-          x angle for U3 must be finite and representable in radians
-           ,----
-         1 | U3(1e308,0.25,-1e308) 0
-           :    ^^^^^
-           `----
+              x angle for U3 must be finite after conversion to radians
+               ,----
+             1 | U3(1e308,0.25,-1e308) 0
+               :    ^^^^^
+               `----
 
-        Qdk.Stim.Semantic.InvalidAngle
+            Qdk.Stim.Semantic.InvalidAngle
 
-          x angle for U3 must be finite and representable in radians
-           ,----
-         1 | U3(1e308,0.25,-1e308) 0
-           :               ^^^^^^
-           `----
-    "#]],
+              x angle for U3 must be finite after conversion to radians
+               ,----
+             1 | U3(1e308,0.25,-1e308) 0
+               :               ^^^^^^
+               `----
+        "#]],
     );
 }
 
@@ -739,14 +739,14 @@ fn two_qubit_rotations_require_finite_angles() {
     check(
         "R_XX(1e308) 0 1",
         &expect![[r#"
-        Qdk.Stim.Semantic.InvalidAngle
+            Qdk.Stim.Semantic.InvalidAngle
 
-          x angle for R_XX must be finite and representable in radians
-           ,----
-         1 | R_XX(1e308) 0 1
-           :      ^^^^^
-           `----
-    "#]],
+              x angle for R_XX must be finite after conversion to radians
+               ,----
+             1 | R_XX(1e308) 0 1
+               :      ^^^^^
+               `----
+        "#]],
     );
 }
 
@@ -755,13 +755,13 @@ fn pauli_product_rotations_require_finite_angles() {
     check(
         "R_PAULI(1e308) X0",
         &expect![[r#"
-        Qdk.Stim.Semantic.InvalidAngle
+            Qdk.Stim.Semantic.InvalidAngle
 
-          x angle for R_PAULI must be finite and representable in radians
-           ,----
-         1 | R_PAULI(1e308) X0
-           :         ^^^^^
-           `----
-    "#]],
+              x angle for R_PAULI must be finite after conversion to radians
+               ,----
+             1 | R_PAULI(1e308) X0
+               :         ^^^^^
+               `----
+        "#]],
     );
 }
