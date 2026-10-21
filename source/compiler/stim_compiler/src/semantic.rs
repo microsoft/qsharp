@@ -469,7 +469,7 @@ pub enum Error {
         #[label]
         span: Span,
     },
-    #[error("angle for {instruction} must be finite and representable in radians")]
+    #[error("angle for {instruction} must be finite after conversion to radians")]
     #[diagnostic(code("Qdk.Stim.Semantic.InvalidAngle"))]
     InvalidAngle {
         instruction: String,
@@ -806,8 +806,8 @@ impl Lowerer {
 
         let record_count_before_repeat = self.record_tracker.count;
         let body = self.lower_items(items);
-        // The body is lowered once but executes num_repeats times, so later record
-        // references must account for the records produced by every iteration.
+        // Lowering computes the record count for a single iteration, so
+        // we need to update it based on the number of repeats.
         self.update_record_count_after_repeat(record_count_before_repeat, num_repeats)?;
 
         Some(Block::RepeatBlock {
