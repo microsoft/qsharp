@@ -161,8 +161,8 @@ pub enum SingleQubitGateKind {
 }
 
 impl SingleQubitGateKind {
-    fn from_name(name: &str) -> Self {
-        match name {
+    fn from_name(name: &str) -> Option<Self> {
+        let gate = match name {
             "I" => Self::I,
             "X" => Self::X,
             "Y" => Self::Y,
@@ -189,8 +189,9 @@ impl SingleQubitGateKind {
             "S_DAG" | "SQRT_Z_DAG" => Self::S_DAG,
             "T" => Self::T,
             "T_DAG" => Self::T_DAG,
-            _ => unreachable!("unknown single-qubit gate: {name}"),
-        }
+            _ => return None,
+        };
+        Some(gate)
     }
 }
 
@@ -223,8 +224,8 @@ pub enum TwoQubitGateKind {
 }
 
 impl TwoQubitGateKind {
-    fn from_name(name: &str) -> Self {
-        match name {
+    fn from_name(name: &str) -> Option<Self> {
+        let gate = match name {
             "CX" | "CNOT" | "ZCX" => Self::CX,
             "CXSWAP" => Self::CXSWAP,
             "CY" | "ZCY" => Self::CY,
@@ -248,8 +249,21 @@ impl TwoQubitGateKind {
             "YCY" => Self::YCY,
             "YCZ" => Self::YCZ,
             "CH" => Self::CH,
-            _ => unreachable!("unknown two-qubit gate: {name}"),
-        }
+            _ => return None,
+        };
+        Some(gate)
+    }
+
+    fn as_classically_controlled_pauli(self) -> Option<(AllowedRecPosition, Pauli)> {
+        let control = match self {
+            Self::CX => (AllowedRecPosition::First, Pauli::X),
+            Self::CY => (AllowedRecPosition::First, Pauli::Y),
+            Self::CZ => (AllowedRecPosition::Either, Pauli::Z),
+            Self::XCZ => (AllowedRecPosition::Second, Pauli::X),
+            Self::YCZ => (AllowedRecPosition::Second, Pauli::Y),
+            _ => return None,
+        };
+        Some(control)
     }
 }
 
@@ -260,11 +274,11 @@ pub enum ThreeQubitGateKind {
 }
 
 impl ThreeQubitGateKind {
-    fn from_name(name: &str) -> Self {
+    fn from_name(name: &str) -> Option<Self> {
         match name {
-            "CCZ" => Self::CCZ,
-            "CCX" => Self::CCX,
-            _ => unreachable!("unknown three-qubit gate: {name}"),
+            "CCZ" => Some(Self::CCZ),
+            "CCX" => Some(Self::CCX),
+            _ => None,
         }
     }
 }
@@ -296,13 +310,13 @@ pub enum PauliProductGateKind {
 }
 
 impl PauliProductGateKind {
-    fn from_name(name: &str) -> Self {
+    fn from_name(name: &str) -> Option<Self> {
         match name {
-            "SPP" => Self::S,
-            "SPP_DAG" => Self::S_DAG,
-            "TPP" => Self::T,
-            "TPP_DAG" => Self::T_DAG,
-            _ => unreachable!("unknown Pauli product gate: {name}"),
+            "SPP" => Some(Self::S),
+            "SPP_DAG" => Some(Self::S_DAG),
+            "TPP" => Some(Self::T),
+            "TPP_DAG" => Some(Self::T_DAG),
+            _ => None,
         }
     }
 }
@@ -843,52 +857,31 @@ impl Lowerer {
     }
 
     fn lower_instruction(&mut self, instruction: &parser::Instruction) -> Vec<Instruction> {
-        match instruction.name.as_str() {
-            // Single Qubit Clifford Gates
-            name @ ("I" | "X" | "Y" | "Z" | "C_NXYZ" | "C_NZYX" | "C_XNYZ" | "C_XYNZ" | "C_XYZ"
-            | "C_ZNYX" | "C_ZYNX" | "C_ZYX" | "H" | "H_XZ" | "H_NXY" | "H_NXZ"
-            | "H_NYZ" | "H_XY" | "H_YZ" | "S" | "SQRT_Z" | "SQRT_X" | "SQRT_X_DAG"
-            | "SQRT_Y" | "SQRT_Y_DAG" | "S_DAG" | "SQRT_Z_DAG") => {
-                self.broadcast_single_qubit_gate(instruction, SingleQubitGateKind::from_name(name))
-            }
+        let name = instruction.name.as_str();
 
-            // Two Qubit Clifford Gates
-            name @ ("CXSWAP" | "CZSWAP" | "SWAPCZ" | "II" | "ISWAP" | "ISWAP_DAG" | "SQRT_XX"
-            | "SQRT_XX_DAG" | "SQRT_YY" | "SQRT_YY_DAG" | "SQRT_ZZ" | "SQRT_ZZ_DAG"
-            | "SWAP" | "SWAPCX" | "XCX" | "XCY" | "YCX" | "YCY") => {
-                self.broadcast_two_qubit_gate(instruction, TwoQubitGateKind::from_name(name))
-            }
-            "CX" | "CNOT" | "ZCX" => self.broadcast_classically_controllable_gate(
-                instruction,
-                TwoQubitGateKind::CX,
-                AllowedRecPosition::First,
-                Pauli::X,
-            ),
-            "CY" | "ZCY" => self.broadcast_classically_controllable_gate(
-                instruction,
-                TwoQubitGateKind::CY,
-                AllowedRecPosition::First,
-                Pauli::Y,
-            ),
-            "CZ" | "ZCZ" => self.broadcast_classically_controllable_gate(
-                instruction,
-                TwoQubitGateKind::CZ,
-                AllowedRecPosition::Either,
-                Pauli::Z,
-            ),
-            "XCZ" => self.broadcast_classically_controllable_gate(
-                instruction,
-                TwoQubitGateKind::XCZ,
-                AllowedRecPosition::Second,
-                Pauli::X,
-            ),
-            "YCZ" => self.broadcast_classically_controllable_gate(
-                instruction,
-                TwoQubitGateKind::YCZ,
-                AllowedRecPosition::Second,
-                Pauli::Y,
-            ),
+        if let Some(gate) = SingleQubitGateKind::from_name(name) {
+            return self.broadcast_single_qubit_gate(instruction, gate);
+        }
+        if let Some(gate) = TwoQubitGateKind::from_name(name) {
+            return match gate.as_classically_controlled_pauli() {
+                Some((allowed_rec_position, pauli)) => self
+                    .broadcast_classically_controllable_gate(
+                        instruction,
+                        gate,
+                        allowed_rec_position,
+                        pauli,
+                    ),
+                None => self.broadcast_two_qubit_gate(instruction, gate),
+            };
+        }
+        if let Some(gate) = ThreeQubitGateKind::from_name(name) {
+            return self.broadcast_three_qubit_gate(instruction, gate);
+        }
+        if let Some(gate) = PauliProductGateKind::from_name(name) {
+            return self.broadcast_pauli_product_gate(instruction, gate);
+        }
 
+        match name {
             // Noise Channels
             "E" | "CORRELATED_ERROR" => self
                 .lower_correlated_error(instruction, CorrelatedErrorKind::Initial)
@@ -951,8 +944,6 @@ impl Lowerer {
 
             // Generalized Pauli Product Gates
             "MPP" => self.broadcast_pauli_product_measurement(instruction),
-            name @ ("SPP" | "SPP_DAG") => self
-                .broadcast_pauli_product_gate(instruction, PauliProductGateKind::from_name(name)),
 
             // Control Flow
             "REPEAT" | "SELECT" => {
@@ -979,18 +970,7 @@ impl Lowerer {
             "SHIFT_COORDS" => self.lower_shift_coords(instruction).into_iter().collect(),
             "TICK" => self.lower_tick(instruction).into_iter().collect(),
 
-            // Non-Clifford Gates
-            name @ ("T" | "T_DAG") => {
-                self.broadcast_single_qubit_gate(instruction, SingleQubitGateKind::from_name(name))
-            }
-            name @ ("TPP" | "TPP_DAG") => self
-                .broadcast_pauli_product_gate(instruction, PauliProductGateKind::from_name(name)),
-            name @ "CH" => {
-                self.broadcast_two_qubit_gate(instruction, TwoQubitGateKind::from_name(name))
-            }
-            name @ ("CCZ" | "CCX") => {
-                self.broadcast_three_qubit_gate(instruction, ThreeQubitGateKind::from_name(name))
-            }
+            // Rotations
             "R_X" => self.broadcast_single_qubit_rotation(instruction, Pauli::X),
             "R_Y" => self.broadcast_single_qubit_rotation(instruction, Pauli::Y),
             "R_Z" => self.broadcast_single_qubit_rotation(instruction, Pauli::Z),
