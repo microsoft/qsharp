@@ -2,16 +2,19 @@
 // Licensed under the MIT License.
 
 //! Pre-pass rewrites before collecting call sites for defunctionalization.
-//! These rewrites are not strictly necessary for correctness, but they
-//! simplify the analysis by eliminating certain patterns of indirection and
-//! exposing more direct call sites. They are run before collecting call sites
-//! and performing the lattice analysis.
+//! These rewrites preserve capture-creation timing and callable-selection
+//! decisions, and simplify indirection before call-site collection and lattice
+//! analysis.
 //!
 //! # Responsibilities
 //!
-//! - Run the static closure-capture inlining that normalizes a partial
-//!   application closure into a capture-free explicit-lambda shape by inlining
-//!   statically-known callable captures into the lifted target body (via
+//! - Bind inline struct operands in source order when a callable field creates
+//!   captures, before specialization moves those captures into call arguments.
+//! - Expose capture bindings and saved selection guards from callable-initializer
+//!   blocks at their original evaluation point, rather than replaying them
+//!   when the callable is invoked.
+//! - Inline statically known callable captures into lifted target bodies,
+//!   retaining all remaining capture slots (via
 //!   [`inline_static_closure_captures`]).
 //! - Run the single-use local promotion that replaces single-use immutable
 //!   callable locals with direct references to their initializer (via
@@ -19,18 +22,24 @@
 //! - Run the adjacent aggregate-alias promotion that replaces
 //!   `let pair = aggregate; let (...) = pair;` with direct aggregate
 //!   destructuring when `pair` has a callable-typed field and no other uses.
+//! - Decompose immutable callable-bearing tuple aliases used by tuple assignments,
+//!   retaining a whole-tuple binding when a closure captures the alias.
+//! - Request shared condition normalization for callable selections, including
+//!   fresh expressions introduced by earlier defunc iterations.
 //! - Run the identity-closure peephole that replaces `(args) => f(args)`
 //!   closures with direct references to `f` (via
 //!   [`identity_closure_peephole`]).
 //!
 
+use crate::fir_builder::alloc_local_var_expr;
 use qsc_data_structures::span::Span;
+use qsc_fir::assigner::Assigner;
 use qsc_fir::fir::{
     Block, BlockId, CallableImpl, Expr, ExprId, ExprKind, ItemKind, LocalItemId, LocalVarId,
     Mutability, Package, PackageId, PackageLookup, PackageStore, Pat, PatId, PatKind, Res, Stmt,
     StmtId, StmtKind, UnOp,
 };
-use qsc_fir::ty::Ty;
+use qsc_fir::ty::{FunctorSet, Ty};
 use qsc_fir::visit::{self, Visitor};
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -38,20 +47,344 @@ use rustc_hash::{FxHashMap, FxHashSet};
 /// [`promote_single_use_callable_locals`], [`promote_adjacent_aggregate_callable_aliases`],
 /// and [`identity_closure_peephole`] for details.
 ///
-/// Only expressions in `reachable_expr_ids` are scanned for promotion candidates
-/// and identity-closure patterns, restricting analysis to entry-reachable code.
+/// The supplied expression IDs filter capture-operand candidates, static capture
+/// inlining, single-use callable promotion, and identity reduction. Guard and
+/// aggregate/tuple normalization inspect all callable and entry scopes. Newly
+/// allocated operand initializers are included before capture-binding exposure.
 ///
-/// Returns the map of collapsed identity-closure call expressions to the spans
-/// that should be re-stamped onto their rewritten call sites.
+/// Returns a map from collapsed identity-closure expression IDs to their former
+/// body-call spans, for re-stamping the rewritten invocation sites.
 pub(super) fn run(
     store: &mut PackageStore,
     package_id: PackageId,
     reachable_expr_ids: &[ExprId],
+    assigner: &mut Assigner,
 ) -> FxHashMap<ExprId, Span> {
+    crate::cond_normalize::normalize_callable_selections(store.get_mut(package_id), assigner);
+    let reachable_expr_ids =
+        normalize_capture_operands(store.get_mut(package_id), reachable_expr_ids, assigner);
+    let reachable_expr_ids = reachable_expr_ids.as_slice();
     inline_static_closure_captures(store, package_id, reachable_expr_ids);
     promote_single_use_callable_locals(store, package_id, reachable_expr_ids);
     promote_adjacent_aggregate_callable_aliases(store, package_id);
-    identity_closure_peephole(store, package_id, reachable_expr_ids)
+    decompose_assignment_tuple_aliases(store.get_mut(package_id), assigner);
+    identity_closure_peephole(store, package_id, reachable_expr_ids, assigner)
+}
+
+/// Normalizes capture creation in the supplied reachable expression IDs. Callee
+/// control-flow rewriting calls this again for fresh branch-local arguments
+/// before analysis observes them.
+pub(super) fn normalize_capture_operands(
+    package: &mut Package,
+    reachable_expr_ids: &[ExprId],
+    assigner: &mut Assigner,
+) -> Vec<ExprId> {
+    let mut reachable_expr_ids = reachable_expr_ids.to_vec();
+    let initializers = materialize_inline_struct_captures(package, &reachable_expr_ids, assigner);
+    reachable_expr_ids.extend(initializers);
+    expose_callable_initializer_prefixes(package, &reachable_expr_ids);
+    reachable_expr_ids
+}
+
+/// Keeps inline struct operands ahead of specialization's capture relocation.
+///
+/// # Before
+/// ```text
+/// Read(new Payload { Tail=Log("tail"), F=Add(Log("capture"), _), Head=Log("head") })
+/// ```
+/// # After
+/// ```text
+/// {
+///     let tail = Log("tail");
+///     let f = Add(Log("capture"), _);
+///     let head = Log("head");
+///     Read(new Payload { Tail=tail, F=f, Head=head })
+/// }
+/// ```
+///
+/// Tuple operands and struct copy sources retain their original evaluation
+/// order. Only direct item callees qualify, so evaluating the callee cannot
+/// itself depend on writes in the arguments. The returned initializer IDs let
+/// [`expose_callable_initializer_prefixes`] process the new callable bindings.
+/// Fresh initializers are normalized in this pass too: moving a nested call to
+/// a new ID must not hide its inline struct captures from the original walk.
+fn materialize_inline_struct_captures(
+    pkg: &mut Package,
+    reachable: &[ExprId],
+    assigner: &mut Assigner,
+) -> Vec<ExprId> {
+    let mut initializers = Vec::new();
+    let mut pending = reachable.to_vec();
+    let mut next = 0;
+    while let Some(&expr_id) = pending.get(next) {
+        next += 1;
+        let expr = pkg.get_expr(expr_id).clone();
+        let ExprKind::Call(callee, args) = expr.kind else {
+            continue;
+        };
+        let (base, _) = super::types::peel_body_functors(pkg, callee);
+        if !matches!(pkg.get_expr(base).kind, ExprKind::Var(Res::Item(_), _))
+            || !has_inline_struct_capture(pkg, args)
+        {
+            continue;
+        }
+        let mut statements = Vec::new();
+        let first_new_initializer = initializers.len();
+        bind_struct_argument_operands(pkg, args, assigner, &mut statements, &mut initializers);
+        pending.extend_from_slice(&initializers[first_new_initializer..]);
+        let call =
+            crate::fir_builder::alloc_expr(pkg, assigner, expr.ty.clone(), expr.kind, expr.span);
+        statements.push(crate::fir_builder::alloc_expr_stmt(
+            pkg, assigner, call, expr.span,
+        ));
+        let block = crate::fir_builder::alloc_block(pkg, assigner, statements, expr.ty, expr.span);
+        pkg.exprs.get_mut(expr_id).expect("call exists").kind = ExprKind::Block(block);
+    }
+    initializers
+}
+
+fn has_inline_struct_capture(pkg: &Package, id: ExprId) -> bool {
+    match &pkg.get_expr(id).kind {
+        ExprKind::Tuple(items) => items
+            .iter()
+            .any(|&item| has_inline_struct_capture(pkg, item)),
+        ExprKind::Struct(_, _, fields) => fields.iter().any(|field| {
+            (matches!(pkg.get_expr(field.value).ty, Ty::Arrow(_))
+                && matches!(pkg.get_expr(field.value).kind, ExprKind::Block(_))
+                && !crate::walk_utils::expr_is_safe_to_discard(pkg, pkg.id, field.value))
+                || has_inline_struct_capture(pkg, field.value)
+        }),
+        _ => false,
+    }
+}
+
+/// Reuses aggregate nodes but replaces each evaluated leaf with a stored read.
+/// Moving the leaf's kind to a fresh initializer avoids an additional reference
+/// from an orphaned aggregate preventing capture-binding exposure.
+fn bind_struct_argument_operands(
+    pkg: &mut Package,
+    id: ExprId,
+    assigner: &mut Assigner,
+    statements: &mut Vec<StmtId>,
+    initializers: &mut Vec<ExprId>,
+) {
+    let expr = pkg.get_expr(id).clone();
+    match expr.kind {
+        ExprKind::Tuple(items) => {
+            for item in items {
+                bind_struct_argument_operands(pkg, item, assigner, statements, initializers);
+            }
+        }
+        ExprKind::Struct(_, copy, fields) => {
+            if let Some(copy) = copy {
+                bind_struct_argument_operands(pkg, copy, assigner, statements, initializers);
+            }
+            for field in fields {
+                bind_struct_argument_operands(pkg, field.value, assigner, statements, initializers);
+            }
+        }
+        ExprKind::Lit(_) | ExprKind::Var(Res::Item(_), _) => {}
+        _ => {
+            let init = crate::fir_builder::alloc_expr(
+                pkg,
+                assigner,
+                expr.ty.clone(),
+                expr.kind,
+                expr.span,
+            );
+            let (local, statement) = crate::fir_builder::alloc_local_var(
+                pkg,
+                assigner,
+                "_.struct_operand",
+                &expr.ty,
+                init,
+                Mutability::Immutable,
+            );
+            statements.push(statement);
+            initializers.push(init);
+            pkg.exprs.get_mut(id).expect("operand exists").kind =
+                ExprKind::Var(Res::Local(local), Vec::new());
+        }
+    }
+}
+
+fn decompose_assignment_tuple_aliases(pkg: &mut Package, assigner: &mut Assigner) {
+    let candidates: Vec<_> = collect_promotion_scopes(pkg)
+        .into_iter()
+        .flat_map(|scope| {
+            let mut needed = FxHashSet::default();
+            let mut captured = FxHashSet::default();
+            for &expr_id in &scope.exprs {
+                match &pkg.get_expr(expr_id).kind {
+                    ExprKind::Assign(lhs, rhs)
+                        if matches!(pkg.get_expr(*lhs).kind, ExprKind::Tuple(_)) =>
+                    {
+                        crate::walk_utils::for_each_expr(pkg, *rhs, &mut |_, expr| {
+                            if let ExprKind::Var(Res::Local(local), _) = expr.kind {
+                                needed.insert(local);
+                            }
+                        });
+                    }
+                    ExprKind::Closure(locals, _) => captured.extend(locals.iter().copied()),
+                    _ => {}
+                }
+            }
+            let bindings: Vec<_> = scope
+                .stmts
+                .iter()
+                .flat_map(|stmt_id| {
+                    let StmtKind::Local(Mutability::Immutable, pat_id, init) =
+                        pkg.get_stmt(*stmt_id).kind
+                    else {
+                        return Vec::new();
+                    };
+                    collect_callable_tuple_bindings(pkg, pat_id)
+                        .into_iter()
+                        .map(|(local, pat_id)| (local, pat_id, init, *stmt_id))
+                        .collect()
+                })
+                .collect();
+            loop {
+                let previous = needed.len();
+                for &(local, _, init, _) in &bindings {
+                    if needed.contains(&local) {
+                        crate::walk_utils::for_each_expr(pkg, init, &mut |_, expr| {
+                            if let ExprKind::Var(Res::Local(dependency), _) = expr.kind {
+                                needed.insert(dependency);
+                            }
+                        });
+                    }
+                }
+                if previous == needed.len() {
+                    break;
+                }
+            }
+            bindings
+                .into_iter()
+                .filter(|(local, _, _, _)| needed.contains(local))
+                .map(|(local, pat_id, _, stmt_id)| {
+                    let reads: Vec<_> = scope
+                        .exprs
+                        .iter()
+                        .copied()
+                        .filter(|expr_id| {
+                            matches!(pkg.get_expr(*expr_id).kind,
+                            ExprKind::Var(Res::Local(var), _) if var == local)
+                        })
+                        .collect();
+                    let captured_binding = captured.contains(&local).then(|| {
+                        let block_id = scope
+                            .blocks
+                            .iter()
+                            .copied()
+                            .find(|&id| pkg.get_block(id).stmts.contains(&stmt_id))
+                            .expect("captured binding has a live containing block");
+                        (block_id, stmt_id)
+                    });
+                    (pat_id, reads, captured_binding)
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect();
+
+    for (pat_id, reads, captured_binding) in candidates {
+        decompose_tuple_alias(pkg, assigner, pat_id, &reads, captured_binding);
+    }
+}
+
+fn decompose_tuple_alias(
+    pkg: &mut Package,
+    assigner: &mut Assigner,
+    pat_id: PatId,
+    reads: &[ExprId],
+    captured_binding: Option<(BlockId, StmtId)>,
+) {
+    let capture_pat = captured_binding.map(|_| {
+        let mut pat = pkg.get_pat(pat_id).clone();
+        pat.id = assigner.next_pat();
+        let id = pat.id;
+        pkg.pats.insert(id, pat);
+        id
+    });
+    decompose_tuple_pattern(pkg, assigner, pat_id);
+    if let (Some((block_id, stmt_id)), Some(capture_pat)) = (captured_binding, capture_pat) {
+        let span = pkg.get_stmt(stmt_id).span;
+        let value = tuple_pattern_value(pkg, assigner, pat_id, span);
+        let aggregate_binding = crate::fir_builder::alloc_local_stmt(
+            pkg,
+            assigner,
+            Mutability::Immutable,
+            capture_pat,
+            value,
+            span,
+        );
+        let block = pkg.blocks.get_mut(block_id).expect("live block exists");
+        let position = block
+            .stmts
+            .iter()
+            .position(|id| *id == stmt_id)
+            .expect("captured binding remains in its live block");
+        block.stmts.insert(position + 1, aggregate_binding);
+    }
+    for &expr_id in reads {
+        let span = pkg.get_expr(expr_id).span;
+        let replacement = tuple_pattern_value(pkg, assigner, pat_id, span);
+        let kind = pkg.get_expr(replacement).kind.clone();
+        pkg.exprs.get_mut(expr_id).expect("tuple read exists").kind = kind;
+    }
+}
+
+fn collect_callable_tuple_bindings(pkg: &Package, pat_id: PatId) -> Vec<(LocalVarId, PatId)> {
+    let mut pending = vec![pat_id];
+    let mut bindings = Vec::new();
+    while let Some(pat_id) = pending.pop() {
+        let pat = pkg.get_pat(pat_id);
+        match &pat.kind {
+            PatKind::Tuple(children) => pending.extend(children.iter().copied()),
+            PatKind::Bind(ident)
+                if matches!(pat.ty, Ty::Tuple(_)) && super::ty_contains_arrow(&pat.ty) =>
+            {
+                bindings.push((ident.id, pat_id));
+            }
+            _ => {}
+        }
+    }
+    bindings
+}
+
+fn decompose_tuple_pattern(pkg: &mut Package, assigner: &mut Assigner, pat_id: PatId) {
+    let pat = pkg.get_pat(pat_id).clone();
+    if let (PatKind::Bind(ident), Ty::Tuple(types)) = (pat.kind, pat.ty) {
+        crate::fir_builder::decompose_binding(pkg, assigner, pat_id, &ident.name, &types);
+        let PatKind::Tuple(children) = pkg.get_pat(pat_id).kind.clone() else {
+            unreachable!("decomposed pattern is a tuple")
+        };
+        for child in children {
+            decompose_tuple_pattern(pkg, assigner, child);
+        }
+    }
+}
+
+fn tuple_pattern_value(
+    pkg: &mut Package,
+    assigner: &mut Assigner,
+    pat_id: PatId,
+    span: qsc_fir::fir::PackageSpan,
+) -> ExprId {
+    let pat = pkg.get_pat(pat_id).clone();
+    match pat.kind {
+        PatKind::Bind(ident) => {
+            crate::fir_builder::alloc_local_var_expr(pkg, assigner, ident.id, pat.ty, span)
+        }
+        PatKind::Tuple(children) => {
+            let values = children
+                .into_iter()
+                .map(|child| tuple_pattern_value(pkg, assigner, child, span))
+                .collect();
+            crate::fir_builder::alloc_tuple_expr(pkg, assigner, values, pat.ty, span)
+        }
+        PatKind::Discard => unreachable!("decomposed binding has no discarded fields"),
+    }
 }
 
 /// A planned normalization of one partial-application closure: the statically
@@ -79,9 +412,178 @@ struct ClosureCaptureInlining {
     body_rewrites: Vec<(ExprId, ExprKind)>,
 }
 
-/// Normalizes a partial-application closure into the capture-free explicit-lambda
-/// shape by inlining statically known callable captures into the lifted target
-/// body. A partial application such as `Repeat(H, 1, _)` lowers to a closure that
+/// Exposes closure-construction bindings in the enclosing block so later
+/// defunctionalization can pass stored captures instead of replaying their
+/// initializers at invocation. Evaluation remains at closure creation, including
+/// when the declaration is inside a branch or loop.
+///
+/// # Before
+/// ```text
+/// let f = {
+///     Message("creating");
+///     let capture = Logged(17);
+///     Closure([capture], target)
+/// };
+/// Message("ready");
+/// f(1)
+/// ```
+///
+/// # After
+/// ```text
+/// Message("creating");
+/// let capture = Logged(17);
+/// let f = Closure([capture], target);
+/// Message("ready");
+/// f(1)   // later rewrite can pass the stored capture to target
+/// ```
+///
+/// # Eligibility
+/// - The reachable initializer belongs to an immutable callable binding and
+///   consists of immutable bindings and expression statements followed by a
+///   closure or conditional callable selection, possibly through nested tail blocks.
+/// - At least one prefix expression is not proven side-effect-free and total.
+///   Proven discard-safe prefixes retain their existing expression-replay path.
+/// - The binding statement, initializer expression, and each traversed block
+///   have one incoming reference. Shared candidates are left alone rather than
+///   exposing the same locals in multiple contexts.
+///
+/// # Mutations
+/// - Inserts the prefix statement IDs immediately before the callable binding,
+///   preserving their order and existing local IDs.
+/// - Replaces the initializer's `Block` kind with the tail callable expression.
+///   The now-detached inner block remains in the arena for later cleanup.
+/// - Processes nested blocks before their owners so an initializer's complete
+///   capture prefix is normalized before its statements move to an outer block.
+///
+/// Saved guard assignments also remain before the binding. Later cleanup can
+/// remove an unused selection without either deleting or repeating its guard.
+fn expose_callable_initializer_prefixes(pkg: &mut Package, reachable_expr_ids: &[ExprId]) {
+    // Reachability limits candidates, but sharing counts cover the whole package:
+    // even a reference outside the current traversal prevents a unique-owner rewrite.
+    let reachable: FxHashSet<_> = reachable_expr_ids.iter().copied().collect();
+    let mut expr_uses: FxHashMap<ExprId, usize> = FxHashMap::default();
+    let mut block_uses: FxHashMap<BlockId, usize> = FxHashMap::default();
+    let mut stmt_uses: FxHashMap<StmtId, usize> = FxHashMap::default();
+
+    // Count block-to-statement and statement-to-expression edges first.
+    for (_, block) in &pkg.blocks {
+        for &stmt in &block.stmts {
+            *stmt_uses.entry(stmt).or_default() += 1;
+        }
+    }
+    for (_, stmt) in &pkg.stmts {
+        match stmt.kind {
+            StmtKind::Local(_, _, expr) | StmtKind::Expr(expr) | StmtKind::Semi(expr) => {
+                *expr_uses.entry(expr).or_default() += 1;
+            }
+            StmtKind::Item(_) => {}
+        }
+    }
+
+    // Count direct expression edges, not recursive visits: a shared parent must
+    // not multiply the count of its children's own incoming references.
+    for (_, expr) in &pkg.exprs {
+        crate::walk_utils::for_each_direct_child(&expr.kind, |child| match child {
+            crate::walk_utils::DirectChild::Expr(expr) => {
+                *expr_uses.entry(expr).or_default() += 1;
+            }
+            crate::walk_utils::DirectChild::Block(block) => {
+                *block_uses.entry(block).or_default() += 1;
+            }
+        });
+    }
+
+    // Callable bodies and the entry expression are roots, so they contribute
+    // references that are not represented by another expression's child edges.
+    for (_, item) in &pkg.items {
+        if let ItemKind::Callable(decl) = &item.kind
+            && let CallableImpl::Spec(spec) = &decl.implementation
+        {
+            *block_uses.entry(spec.body.block).or_default() += 1;
+            for spec in crate::fir_builder::functored_specs(spec) {
+                *block_uses.entry(spec.block).or_default() += 1;
+            }
+        }
+    }
+    if let Some(entry) = pkg.entry {
+        *expr_uses.entry(entry).or_default() += 1;
+    }
+
+    // Preserve postorder: an owner can detach its initializer block while
+    // retaining that block's statements in the live scope.
+    let mut seen_blocks = FxHashSet::default();
+    let block_ids: Vec<_> = collect_promotion_scopes(pkg)
+        .into_iter()
+        .flat_map(|scope| scope.blocks)
+        .filter(|&id| seen_blocks.insert(id))
+        .collect();
+    for block_id in block_ids {
+        let mut statements = Vec::new();
+        for stmt_id in pkg.get_block(block_id).stmts.clone() {
+            // Reusing the existing locals requires a uniquely referenced binding
+            // and initializer block; cloning or remapping shared captures is not
+            // part of this normalization.
+            if let StmtKind::Local(Mutability::Immutable, _, init_id) = pkg.get_stmt(stmt_id).kind
+                && reachable.contains(&init_id)
+                && stmt_uses.get(&stmt_id) == Some(&1)
+                && expr_uses.get(&init_id) == Some(&1)
+                && matches!(pkg.get_expr(init_id).ty, Ty::Arrow(_))
+                && let Some((prefix, tail)) = callable_initializer_prefix(pkg, init_id, &block_uses)
+            {
+                // Splice the complete prefix before `let f`, preserving both
+                // capture dependencies and any surrounding effects.
+                statements.extend(prefix);
+                let callable = pkg.get_expr(tail).kind.clone();
+                pkg.exprs.get_mut(init_id).expect("initializer exists").kind = callable;
+            }
+            // Keep the original callable binding (and all unrelated statements)
+            // in order; later defunc cleanup decides whether the binding is dead.
+            statements.push(stmt_id);
+        }
+        pkg.blocks.get_mut(block_id).expect("block exists").stmts = statements;
+    }
+}
+
+/// Follows only unconditional tail blocks; effects inside conditional branches
+/// remain there. Mutable declarations and item statements are not moved.
+fn callable_initializer_prefix(
+    pkg: &Package,
+    mut expr: ExprId,
+    block_uses: &FxHashMap<BlockId, usize>,
+) -> Option<(Vec<StmtId>, ExprId)> {
+    let mut prefix = Vec::new();
+    let mut needs_storage = false;
+    while let ExprKind::Block(block) = pkg.get_expr(expr).kind {
+        if block_uses.get(&block) != Some(&1) {
+            return None;
+        }
+        let (&tail, statements) = pkg.get_block(block).stmts.split_last()?;
+        for &statement in statements {
+            let (StmtKind::Local(Mutability::Immutable, _, value)
+            | StmtKind::Semi(value)
+            | StmtKind::Expr(value)) = pkg.get_stmt(statement).kind
+            else {
+                return None;
+            };
+            needs_storage |= !crate::walk_utils::expr_is_safe_to_discard(pkg, pkg.id, value);
+            prefix.push(statement);
+        }
+        let StmtKind::Expr(tail) = pkg.get_stmt(tail).kind else {
+            return None;
+        };
+        expr = tail;
+    }
+    (needs_storage
+        && matches!(
+            pkg.get_expr(expr).kind,
+            ExprKind::Closure(..) | ExprKind::If(..)
+        ))
+    .then_some((prefix, expr))
+}
+
+/// Removes statically known callable captures from a partial application by
+/// inlining them into the lifted target body, while retaining the other captures.
+/// A partial application such as `Repeat(H, 1, _)` lowers to a closure that
 /// captures the fixed arguments (`H` and `1`) and forwards them, as parameters, to
 /// a lifted lambda whose body re-invokes the callable. When the captured value is
 /// a global callable (`Var(Res::Item(_))`), the capture never carries information
@@ -112,6 +614,8 @@ struct ClosureCaptureInlining {
 /// - When multiple reachable closures reference one target, every reference
 ///   must produce the same target rewrite. This permits equivalent copies in
 ///   generated functor bodies without affecting a differently-captured closure.
+/// - Targets with item references retain their input: an earlier iteration may
+///   already have emitted direct calls carrying the original capture operands.
 /// - The target's top-level input must be a flat tuple of bindings; nested or
 ///   tuple-destructuring parameters are skipped as a safe no-op.
 /// - A capture parameter re-captured by a nested closure in the target body is
@@ -132,9 +636,22 @@ fn inline_static_closure_captures(
     // rewrite is identical within each group, so apply it once before updating
     // each closure occurrence independently.
     if !inlinings.is_empty() {
+        // Item references can live in other packages. Include detached arena
+        // nodes conservatively; this optimization does not rewrite direct uses.
+        let referenced_targets: FxHashSet<_> = store
+            .iter()
+            .flat_map(|(_, package)| package.exprs.iter())
+            .filter_map(|(_, expr)| match expr.kind {
+                ExprKind::Var(Res::Item(item), _) if item.package == package_id => Some(item.item),
+                _ => None,
+            })
+            .collect();
         let pkg = store.get_mut(package_id);
         for mut group in inlinings {
             let target_rewrite = group.pop().expect("inlining group should not be empty");
+            if referenced_targets.contains(&target_rewrite.target) {
+                continue;
+            }
             let ClosureCaptureInlining {
                 closure_expr_id,
                 new_captures,
@@ -402,7 +919,7 @@ fn plan_closure_capture_inlining(
 }
 
 /// Promotes an adjacent, single-use aggregate local into a following tuple
-/// destructure. This preserves evaluation order because there is no intervening
+/// binding or assignment. This preserves evaluation order because there is no intervening
 /// statement between the alias binding and its only use.
 fn promote_adjacent_aggregate_callable_aliases(store: &mut PackageStore, package_id: PackageId) {
     let block_ids: Vec<_> = {
@@ -424,8 +941,8 @@ fn promote_adjacent_aggregate_callable_aliases(store: &mut PackageStore, package
 ///
 /// Each pass scans adjacent statement pairs: when the first is an immutable
 /// `let` binding whose init is a callable-bearing aggregate and the second
-/// destructures that binding with exactly one use, the alias statement is
-/// elided and the destructure is repointed directly at the original init.
+/// destructures or assigns that binding with exactly one use, the alias statement is
+/// elided and the consuming RHS is repointed directly at the original init.
 /// The loop re-runs because removing one alias may expose the next.
 fn promote_adjacent_aggregate_callable_aliases_in_block(pkg: &mut Package, block_id: BlockId) {
     loop {
@@ -443,13 +960,28 @@ fn promote_adjacent_aggregate_callable_aliases_in_block(pkg: &mut Package, block
                     stmt_ids[index + 1],
                 )
             {
-                if let StmtKind::Local(_, _, expr_id) = &mut pkg
-                    .stmts
-                    .get_mut(stmt_ids[index + 1])
-                    .expect("statement should exist")
-                    .kind
-                {
-                    *expr_id = init_expr_id;
+                match pkg.get_stmt(stmt_ids[index + 1]).kind {
+                    StmtKind::Local(_, _, _) => {
+                        if let StmtKind::Local(_, _, expr_id) = &mut pkg
+                            .stmts
+                            .get_mut(stmt_ids[index + 1])
+                            .expect("statement should exist")
+                            .kind
+                        {
+                            *expr_id = init_expr_id;
+                        }
+                    }
+                    StmtKind::Semi(assign_id) => {
+                        if let ExprKind::Assign(_, rhs_id) = &mut pkg
+                            .exprs
+                            .get_mut(assign_id)
+                            .expect("assignment should exist")
+                            .kind
+                        {
+                            *rhs_id = init_expr_id;
+                        }
+                    }
+                    _ => unreachable!("promotion requires a binding or assignment"),
                 }
                 retained.push(stmt_ids[index + 1]);
                 changed = true;
@@ -478,7 +1010,7 @@ fn promote_adjacent_aggregate_callable_aliases_in_block(pkg: &mut Package, block
 /// The pair is promotable when:
 /// 1. `alias_stmt_id` is an immutable `let` binding whose type contains an
 ///    arrow (callable-bearing aggregate).
-/// 2. `use_stmt_id` destructures that exact binding via a tuple pattern.
+/// 2. `use_stmt_id` destructures that exact binding via a tuple pattern or target.
 /// 3. The alias local has exactly one use in the enclosing block, which is
 ///    the `use_stmt_id` reference.
 ///
@@ -498,17 +1030,28 @@ fn aggregate_alias_promotion_init(
     let PatKind::Bind(alias_ident) = &alias_pat.kind else {
         return None;
     };
-    if !ty_contains_arrow(&alias_pat.ty) {
+    if !super::ty_contains_arrow(&alias_pat.ty) {
         return None;
     }
 
     let use_stmt = pkg.get_stmt(use_stmt_id);
-    let StmtKind::Local(_, use_pat_id, use_expr_id) = use_stmt.kind else {
-        return None;
+    let use_expr_id = match use_stmt.kind {
+        StmtKind::Local(_, use_pat_id, use_expr_id)
+            if matches!(pkg.get_pat(use_pat_id).kind, PatKind::Tuple(_)) =>
+        {
+            use_expr_id
+        }
+        StmtKind::Semi(assign_id) => {
+            let ExprKind::Assign(lhs_id, rhs_id) = pkg.get_expr(assign_id).kind else {
+                return None;
+            };
+            if !matches!(pkg.get_expr(lhs_id).kind, ExprKind::Tuple(_)) {
+                return None;
+            }
+            rhs_id
+        }
+        _ => return None,
     };
-    if !matches!(pkg.get_pat(use_pat_id).kind, PatKind::Tuple(_)) {
-        return None;
-    }
     if !matches!(pkg.get_expr(use_expr_id).kind, ExprKind::Var(Res::Local(var), _) if var == alias_ident.id)
     {
         return None;
@@ -548,23 +1091,6 @@ fn local_has_exactly_one_use_in_block(
     );
 
     use_count == 1 && saw_expected_use
-}
-
-/// Reports whether `ty` is or transitively contains an arrow type (callable).
-/// Recurses through tuple types but does not expand UDTs — expanding a UDT
-/// requires a `PackageStore` lookup (to read the type definition's underlying
-/// structure), and this helper intentionally avoids that dependency because
-/// the pre-pass promotions are best-effort simplifications, not correctness
-/// requirements. A missed callable hidden behind a UDT wrapper is still
-/// handled correctly by the full analysis phase, which uses the heavier
-/// [`super::specialize::ty_contains_arrow_through_udts`] variant with store
-/// access.
-fn ty_contains_arrow(ty: &Ty) -> bool {
-    match ty {
-        Ty::Arrow(_) => true,
-        Ty::Tuple(items) => items.iter().any(ty_contains_arrow),
-        _ => false,
-    }
 }
 
 /// Promotes single-use immutable callable locals whose initializer is a simple
@@ -742,6 +1268,8 @@ struct PromotionScope<'a> {
     stmts: Vec<StmtId>,
     /// Expressions whose local references are checked as use sites.
     exprs: Vec<ExprId>,
+    /// Live blocks in postorder, with nested initializers before their owners.
+    blocks: Vec<BlockId>,
     /// Blocks already visited in this owner boundary.
     seen_blocks: FxHashSet<BlockId>,
     /// Statements already recorded in this owner boundary.
@@ -756,6 +1284,7 @@ impl<'a> PromotionScope<'a> {
             pkg,
             stmts: Vec::new(),
             exprs: Vec::new(),
+            blocks: Vec::new(),
             seen_blocks: FxHashSet::default(),
             seen_stmts: FxHashSet::default(),
             seen_exprs: FxHashSet::default(),
@@ -783,6 +1312,7 @@ impl<'a> Visitor<'a> for PromotionScope<'a> {
     fn visit_block(&mut self, block_id: BlockId) {
         if self.seen_blocks.insert(block_id) {
             visit::walk_block(self, block_id);
+            self.blocks.push(block_id);
         }
     }
 
@@ -807,6 +1337,9 @@ impl<'a> Visitor<'a> for PromotionScope<'a> {
 /// the callee in the package's expressions. An identity closure is one whose
 /// body is a single call that forwards all actual parameters in order to a
 /// callee that is either a global item or a single captured variable.
+/// The callee must have the same callable kind, input type, and output type,
+/// and support every functor required by the closure. Adapting a function to an
+/// operation, changing tuple shape, or discarding a result is not an identity.
 ///
 /// # Before
 /// ```text
@@ -822,20 +1355,22 @@ impl<'a> Visitor<'a> for PromotionScope<'a> {
 /// ```
 /// # After (functor-wrapped callee)
 /// ```text
-/// UnOp(Functor(Adj), Var(Item(callee_item)))   // functor chain preserved
+/// UnOp(Functor(Adj), Var(Item(callee_item)))   // single functor preserved
 /// ```
 ///
 /// # Mutations
 /// - Rewrites `Expr.kind` at each identity-closure site in place.
+/// - Allocates an occurrence-owned operand for a captured-local functor wrapper;
+///   the lifted callable's expressions remain unchanged.
 fn identity_closure_peephole(
     store: &mut PackageStore,
     package_id: PackageId,
     reachable_expr_ids: &[ExprId],
+    assigner: &mut Assigner,
 ) -> FxHashMap<ExprId, Span> {
-    // Collect replacements using an immutable borrow.
     let replacements = {
-        let pkg = store.get(package_id);
-        collect_identity_closures(pkg, reachable_expr_ids)
+        let pkg = store.get_mut(package_id);
+        collect_identity_closures(pkg, reachable_expr_ids, assigner)
     };
 
     // Apply replacements using a mutable borrow, recording the discarded
@@ -849,28 +1384,30 @@ fn identity_closure_peephole(
                 .get_mut(expr_id)
                 .expect("expression should exist")
                 .kind = new_kind;
-            if let Some(span) = inner_span {
-                collapsed_spans.insert(expr_id, span);
-            }
+            collapsed_spans.insert(expr_id, inner_span);
         }
     }
     collapsed_spans
 }
 
 /// Scans reachable expressions and collects `(ExprId, replacement ExprKind,
-/// Option<Span>)` triples for identity closures. The optional span is the
-/// discarded lambda-body call span, set on the collapsed init-expr node so the
-/// surviving direct `Call` can be re-stamped with the original body span.
+/// Span)` triples for identity closures. The span is the discarded lambda-body
+/// call span, returned to analysis for re-stamping rewritten invocation sites.
+/// The closure expression's own span is unchanged.
 fn collect_identity_closures(
-    pkg: &Package,
+    pkg: &mut Package,
     reachable_expr_ids: &[ExprId],
-) -> Vec<(ExprId, ExprKind, Option<Span>)> {
+    assigner: &mut Assigner,
+) -> Vec<(ExprId, ExprKind, Span)> {
     let mut replacements = Vec::new();
 
     for &expr_id in reachable_expr_ids {
         let expr = pkg.get_expr(expr_id);
         if let ExprKind::Closure(captures, target) = &expr.kind {
-            replacements.extend(check_identity_closure(pkg, expr_id, captures, *target));
+            let (captures, target) = (captures.clone(), *target);
+            replacements.extend(check_identity_closure(
+                pkg, expr_id, &captures, target, assigner,
+            ));
         }
     }
 
@@ -882,11 +1419,12 @@ fn collect_identity_closures(
 /// `(args) => Controlled f(args)`, and returns expression replacements that
 /// collapse the closure to a direct reference (optionally functor-applied).
 fn check_identity_closure(
-    pkg: &Package,
+    pkg: &mut Package,
     closure_expr_id: ExprId,
     captures: &[LocalVarId],
     target: qsc_fir::fir::LocalItemId,
-) -> Vec<(ExprId, ExprKind, Option<Span>)> {
+    assigner: &mut Assigner,
+) -> Vec<(ExprId, ExprKind, Span)> {
     // Get the closure's callable declaration.
     let Some(item) = pkg.items.get(target) else {
         return Vec::new();
@@ -920,6 +1458,10 @@ fn check_identity_closure(
         ExprKind::Call(callee, args) => (*callee, *args),
         _ => return Vec::new(),
     };
+
+    if !identity_signature_matches(pkg, closure_expr_id, callee_id) {
+        return Vec::new();
+    }
 
     // Parse the callable's input pattern to separate capture params from actual params.
     let Some(all_param_vars) = extract_flat_param_vars(pkg, decl.input) else {
@@ -958,7 +1500,7 @@ fn check_identity_closure(
             vec![(
                 closure_expr_id,
                 ExprKind::Var(Res::Local(captures[capture_idx]), Vec::new()),
-                Some(inner_span.span),
+                inner_span.span,
             )]
         }
         // Callee is a global item — replace with the global reference.
@@ -966,11 +1508,10 @@ fn check_identity_closure(
             vec![(
                 closure_expr_id,
                 ExprKind::Var(Res::Item(*item_id), generic_args.clone()),
-                Some(inner_span.span),
+                inner_span.span,
             )]
         }
-        // Callee is a functor-wrapped expression — replace closure with the functor
-        // application and rewrite the inner expression to reference the enclosing scope.
+        // Shared lifted targets must retain their own capture parameters.
         ExprKind::UnOp(UnOp::Functor(functor), inner_id) => {
             let inner_expr = pkg.get_expr(*inner_id);
             match &inner_expr.kind {
@@ -979,18 +1520,16 @@ fn check_identity_closure(
                     else {
                         return Vec::new();
                     };
-                    vec![
-                        (
-                            *inner_id,
-                            ExprKind::Var(Res::Local(captures[capture_idx]), Vec::new()),
-                            None,
-                        ),
-                        (
-                            closure_expr_id,
-                            ExprKind::UnOp(UnOp::Functor(*functor), *inner_id),
-                            Some(inner_span.span),
-                        ),
-                    ]
+                    let functor = *functor;
+                    let ty = inner_expr.ty.clone();
+                    let span = inner_expr.span;
+                    let operand =
+                        alloc_local_var_expr(pkg, assigner, captures[capture_idx], ty, span);
+                    vec![(
+                        closure_expr_id,
+                        ExprKind::UnOp(UnOp::Functor(functor), operand),
+                        inner_span.span,
+                    )]
                 }
                 ExprKind::Var(Res::Item(_), _) => {
                     // Inner expression already references the global item; only
@@ -998,7 +1537,7 @@ fn check_identity_closure(
                     vec![(
                         closure_expr_id,
                         ExprKind::UnOp(UnOp::Functor(*functor), *inner_id),
-                        Some(inner_span.span),
+                        inner_span.span,
                     )]
                 }
                 _ => Vec::new(),
@@ -1006,6 +1545,24 @@ fn check_identity_closure(
         }
         _ => Vec::new(),
     }
+}
+
+/// Checks callable kind, exact input/output shape, and required functor support.
+/// Extra callee functors are allowed; unresolved sets must match exactly.
+fn identity_signature_matches(pkg: &Package, closure: ExprId, callee: ExprId) -> bool {
+    matches!(
+        (&pkg.get_expr(closure).ty, &pkg.get_expr(callee).ty),
+        (Ty::Arrow(closure), Ty::Arrow(callee))
+            if closure.kind == callee.kind
+                && closure.input == callee.input
+                && closure.output == callee.output
+                && match (callee.functors, closure.functors) {
+                    (FunctorSet::Value(actual), FunctorSet::Value(required)) => {
+                        actual.intersect(&required) == required
+                    }
+                    (actual, required) => actual == required,
+                }
+    )
 }
 
 /// Extracts a flat list of `LocalVarId`s from a pattern. Returns `None` if the
