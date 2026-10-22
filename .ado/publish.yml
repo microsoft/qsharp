@@ -434,7 +434,7 @@ extends:
                         env:
                           PIP_INDEX_URL: $(PIP_INDEX_URL)
                           CARGO_REGISTRIES_MS_CRATES_IO_INDEX: $(cratesIoFeedOverride)
-                          CARGO_REGISTRIES_MS_CRATES_IO_TOKEN: $(System.AccessToken)
+                          CARGO_REGISTRIES_MS_CRATES_IO_TOKEN: Bearer $(System.AccessToken)
                           CARGO_REGISTRIES_MS_CRATES_IO_CREDENTIAL_PROVIDER: cargo:token
 
                   - ${{ if ne(target.os, 'linux') }}:
