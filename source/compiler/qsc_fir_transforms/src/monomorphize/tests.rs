@@ -2829,3 +2829,86 @@ fn mono_generic_call_as_parallel_within_limit_expr() {
         "#]],
     );
 }
+
+#[test]
+fn generated_entries_preserve_concrete_generic_dependencies() {
+    for (library, source, expected_specialization, expected_value) in [
+        (
+            None,
+            "function Make<'T>(value : 'T) : Unit -> 'T { () -> value }
+             function Main() : Int { let f = Make(42); f() }",
+            "Make<Int>",
+            qsc_eval::val::Value::Int(42),
+        ),
+        (
+            None,
+            "function Empty<'T : Show>() : 'T[] { [] }
+             @EntryPoint() operation Main() : Int[] {
+                 let values : Int[] = Empty();
+                 values
+             }",
+            "Empty<Int>",
+            qsc_eval::val::Value::Array(Vec::new().into()),
+        ),
+        (
+            None,
+            "function Equal<'T : Eq>(values : 'T[]) : Bool { values == [] }
+             @EntryPoint() operation Main() : Bool {
+                 let values : Int[] = [];
+                 Equal(values)
+             }",
+            "Equal<Int>",
+            qsc_eval::val::Value::Bool(true),
+        ),
+        (
+            Some(
+                "namespace Lib {
+                    function Identity<'T>(value : 'T) : 'T { value }
+                    export Identity;
+                }",
+            ),
+            "@EntryPoint() operation Main() : Int { Lib.Identity(42) }",
+            "Identity<Int>",
+            qsc_eval::val::Value::Int(42),
+        ),
+    ] {
+        let (mut store, package_id) = match library {
+            Some(library) => compile_to_fir_with_library(library, source),
+            None => crate::test_utils::compile_to_fir(source),
+        };
+        let owner = if library.is_some() {
+            find_library_callable(&store, package_id, "Identity").package
+        } else {
+            package_id
+        };
+        let package = store.get(package_id);
+        let entry_id = package.entry.expect("entry");
+        let ExprKind::Call(callee, _) = package.get_expr(entry_id).kind else {
+            panic!("generated call");
+        };
+        let ExprKind::Var(Res::Item(original), arguments) = &package.get_expr(callee).kind else {
+            panic!("entry callee");
+        };
+        let original = *original;
+        assert!(arguments.is_empty());
+        let entry_type = package.get_expr(entry_id).ty.clone();
+        let mut assigners = PackageAssigners::new(&store, package_id);
+        monomorphize(&mut store, package_id, &mut assigners);
+        let package = store.get(package_id);
+        let ExprKind::Var(Res::Item(target), arguments) = &package.get_expr(callee).kind else {
+            panic!("entry remains a direct call");
+        };
+        assert_eq!(*target, original);
+        assert!(arguments.is_empty());
+        assert_eq!(package.get_expr(entry_id).ty, entry_type);
+        assert_unique_reachable_specializations(
+            &store,
+            package_id,
+            owner,
+            &[expected_specialization],
+        );
+        let result = crate::run_pipeline_with_diagnostics(&mut store, package_id);
+        assert_pipeline_succeeded("concrete entry dependencies", &result);
+        assert_eq!(try_eval_fir_entry(&store, package_id), Ok(expected_value));
+    }
+}

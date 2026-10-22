@@ -1,10 +1,138 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from pathlib import Path
+
 import pytest
 from qdk import qsharp
 from qdk._native import QSharpError
+from qdk.simulation import run_qir
 from expecttest import assert_expected_inline
+
+
+def _write_entry_project(root: Path, source: str) -> None:
+    (root / "src").mkdir()
+    (root / "qsharp.json").write_text("{}", encoding="utf-8")
+    (root / "src" / "Entry.qs").write_text(
+        f"namespace Test {{ {source} }}", encoding="utf-8"
+    )
+
+
+@pytest.mark.parametrize(
+    "target_profile",
+    [
+        qsharp.TargetProfile.Base,
+        qsharp.TargetProfile.Adaptive_RI,
+        qsharp.TargetProfile.Adaptive_RIF,
+        qsharp.TargetProfile.Adaptive,
+    ],
+)
+@pytest.mark.parametrize(
+    "entry_name,attribute", [("Main", ""), ("Run", "@EntryPoint() ")]
+)
+@pytest.mark.parametrize(
+    "parameters,body",
+    [
+        ("'T", "Int { 42 }"),
+        ("'T : Eq + Show", "Int { 42 }"),
+        ("'T : Add", "Int { 42 }"),
+        ("'T", '\'T { fail "unreachable" }'),
+    ],
+)
+def test_project_generated_generic_entry_reports_missing_type_arguments(
+    tmp_path: Path,
+    target_profile: qsharp.TargetProfile,
+    entry_name: str,
+    attribute: str,
+    parameters: str,
+    body: str,
+) -> None:
+    _write_entry_project(
+        tmp_path, f"{attribute}operation {entry_name}<{parameters}>() : {body}"
+    )
+
+    with pytest.raises(
+        QSharpError, match=r"Qdk\.Qsc\.EntryPoint\.MissingTypeArguments"
+    ) as error:
+        qsharp.init(project_root=str(tmp_path), target_profile=target_profile)
+
+    assert f"operation {entry_name}" in str(error.value)
+    assert "concrete type evidence" in str(error.value)
+
+
+@pytest.mark.parametrize(
+    "target_profile",
+    [
+        qsharp.TargetProfile.Base,
+        qsharp.TargetProfile.Adaptive_RI,
+        qsharp.TargetProfile.Adaptive_RIF,
+        qsharp.TargetProfile.Adaptive,
+    ],
+)
+def test_project_nongeneric_entry_expression_forms_preserve_results(
+    tmp_path: Path, target_profile: qsharp.TargetProfile
+) -> None:
+    _write_entry_project(
+        tmp_path, "operation Main() : Result { use q = Qubit(); X(q); MResetZ(q) }"
+    )
+    qsharp.init(project_root=str(tmp_path), target_profile=target_profile)
+
+    assert qsharp.eval("Test.Main()") == qsharp.Result.One
+    for expression in ["Test.Main()", "(Test.Main())", " Test.Main() "]:
+        qir = str(qsharp.compile(expression))
+        assert run_qir(qir, shots=4, type="cpu") == [qsharp.Result.One] * 4
+
+
+@pytest.mark.parametrize(
+    "target_profile",
+    [
+        qsharp.TargetProfile.Base,
+        qsharp.TargetProfile.Adaptive_RI,
+        qsharp.TargetProfile.Adaptive_RIF,
+        qsharp.TargetProfile.Adaptive,
+    ],
+)
+@pytest.mark.parametrize(
+    "source,check_typed_expression",
+    [
+        (
+            "operation Main<'T : Add>() : Int { 42 } "
+            "@EntryPoint() operation Run() : Result { "
+            "use q = Qubit(); X(q); MResetZ(q) }",
+            False,
+        ),
+        (
+            "operation Main<'T : Add>() : 'T[] { [] } "
+            "@EntryPoint() operation Run() : Result { "
+            "let values : Int[] = Main(); "
+            "use q = Qubit(); if Length(values) == 0 { X(q); } MResetZ(q) }",
+            True,
+        ),
+    ],
+)
+def test_project_nonselected_generic_entry_preserves_inference(
+    tmp_path: Path,
+    target_profile: qsharp.TargetProfile,
+    source: str,
+    check_typed_expression: bool,
+) -> None:
+    _write_entry_project(tmp_path, source)
+    qsharp.init(project_root=str(tmp_path), target_profile=target_profile)
+
+    for expression in ["Test.Main()", "(Test.Main())", " Test.Main() "]:
+        with pytest.raises(QSharpError, match=r"Qdk\.Qsc\.TypeCk\.AmbiguousTy"):
+            qsharp.compile(expression)
+    for expression in ["Test.Run()", "(Test.Run())", " Test.Run() "]:
+        qir = str(qsharp.compile(expression))
+        assert run_qir(qir, shots=4, type="cpu") == [qsharp.Result.One] * 4
+    if check_typed_expression:
+        qir = str(
+            qsharp.compile(
+                "{ let values : Int[] = Test.Main(); "
+                'if Length(values) == 0 { Test.Run() } else { fail "expected empty array" } }'
+            )
+        )
+        assert run_qir(qir, shots=4, type="cpu") == [qsharp.Result.One] * 4
 
 
 def test_python_callable_passed_to_python_callable() -> None:
