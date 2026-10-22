@@ -34,7 +34,7 @@ fn check(file: &str, expr: &str, expect: &Expect) {
     }
 }
 
-fn compile_entry_candidate(source: &str, entry: Option<&str>) -> compile::CompileUnit {
+fn compile_entry_candidate_no_errors(source: &str, entry: Option<&str>) -> compile::CompileUnit {
     let unit = compile(
         &PackageStore::new(compile::core()),
         &[],
@@ -43,6 +43,17 @@ fn compile_entry_candidate(source: &str, entry: Option<&str>) -> compile::Compil
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
+    unit
+}
+
+fn compile_entry_candidates(source: &str, entry: Option<&str>) -> compile::CompileUnit {
+    let unit = compile(
+        &PackageStore::new(compile::core()),
+        &[],
+        SourceMap::new([("test".into(), source.into())], entry.map(Into::into)),
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
     unit
 }
 
@@ -69,7 +80,7 @@ fn generated_entries_reject_unresolved_type_parameters() {
             for kind in ["function", "operation"] {
                 let source = format!("{attribute}{kind} Main<{parameters}>() : {body}");
                 for package_type in [PackageType::Lib, PackageType::Exe] {
-                    let mut unit = compile_entry_candidate(&source, None);
+                    let mut unit = compile_entry_candidates(&source, None);
                     let before = unit.package.to_string();
                     let errors =
                         generate_entry_expr(&mut unit.package, &mut unit.assigner, package_type);
@@ -83,6 +94,7 @@ fn generated_entries_reject_unresolved_type_parameters() {
                         errors[0].code().expect("diagnostic code").to_string(),
                         "Qdk.Qsc.EntryPoint.MissingTypeArguments"
                     );
+
                     assert!(
                         errors[0]
                             .help()
@@ -105,7 +117,7 @@ fn attributed_entry_ignores_unselected_generic_main() {
         ty::{Prim, Ty},
     };
     for package_type in [PackageType::Lib, PackageType::Exe] {
-        let mut unit = compile_entry_candidate(
+        let mut unit = compile_entry_candidate_no_errors(
             r#"
             function Main<'T : Add>() : 'T { fail "not the entry" }
             @EntryPoint()
@@ -141,7 +153,7 @@ fn explicit_entry_preserves_inferred_type_arguments() {
         ty::{GenericArg, Prim, Ty},
     };
     for package_type in [PackageType::Lib, PackageType::Exe] {
-        let mut unit = compile_entry_candidate(
+        let mut unit = compile_entry_candidate_no_errors(
             r#"
             namespace Test {
                 @EntryPoint()
