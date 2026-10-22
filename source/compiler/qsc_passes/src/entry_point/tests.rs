@@ -47,7 +47,6 @@ fn compile_entry_candidate_no_errors(source: &str, entry: Option<&str>) -> compi
 }
 
 fn compile_entry_candidates(source: &str, entry: Option<&str>) -> compile::CompileUnit {
-    
     compile(
         &PackageStore::new(compile::core()),
         &[],
