@@ -7,11 +7,19 @@ use crate::{
 };
 
 fn lower(source: &str) -> Vec<InstructionKind> {
+    // Shown only if the test fails, to identify which source a panic came from.
+    println!("lowering `{source}`");
     let (parsed, parser_errors) = parser::parse(source);
-    assert!(parser_errors.is_empty(), "{parser_errors:#?}");
+    assert!(
+        parser_errors.is_empty(),
+        "`{source}` failed to parse: {parser_errors:#?}"
+    );
 
     let (circuit, semantic_errors) = semantic::lower(parsed);
-    assert!(semantic_errors.is_empty(), "{semantic_errors:#?}");
+    assert!(
+        semantic_errors.is_empty(),
+        "`{source}` failed to lower: {semantic_errors:#?}"
+    );
     circuit
         .items
         .into_iter()
@@ -145,7 +153,11 @@ fn classically_controllable_gates_broadcast_over_target_pairs() {
             })
             .collect::<Vec<_>>();
 
-        assert_eq!(pairs, [(1, 2), (3, 7)], "{gate} broadcast incorrect pairs");
+        assert_eq!(
+            pairs,
+            [(1, 2), (3, 7)],
+            "{gate} broadcast incorrect pairs for targets `{targets}`"
+        );
     }
 }
 
@@ -350,7 +362,7 @@ fn peek_loss_broadcasts_over_targets() {
 }
 
 #[test]
-fn annotations_broadcast_over_targets() {
+fn qubit_coords_broadcast_over_targets() {
     let source = "QUBIT_COORDS(1,2) 2 7 13";
     let coordinates = lower(source)
         .into_iter()
@@ -362,7 +374,10 @@ fn annotations_broadcast_over_targets() {
         })
         .collect::<Vec<_>>();
     assert_eq!(coordinates, [2, 7, 13]);
+}
 
+#[test]
+fn mpad_broadcasts_over_targets() {
     let source = "MPAD 0 1 0";
     let padding = lower(source)
         .into_iter()

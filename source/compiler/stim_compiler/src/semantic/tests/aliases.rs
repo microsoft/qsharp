@@ -7,16 +7,23 @@ use crate::{
 };
 
 fn lower_without_spans(source: &str) -> Circuit {
+    println!("lowering `{source}`");
     let (parsed, parser_errors) = parser::parse(source);
-    assert!(parser_errors.is_empty(), "{parser_errors:#?}");
+    assert!(
+        parser_errors.is_empty(),
+        "`{source}` failed to parse: {parser_errors:#?}"
+    );
 
     let (mut circuit, semantic_errors) = semantic::lower(parsed);
-    assert!(semantic_errors.is_empty(), "{semantic_errors:#?}");
+    assert!(
+        semantic_errors.is_empty(),
+        "`{source}` failed to lower: {semantic_errors:#?}"
+    );
 
     circuit.span = Default::default();
     for item in &mut circuit.items {
         let Item::Instruction(instruction) = item else {
-            panic!("{source} should produce instructions");
+            panic!("`{source}` should produce instructions");
         };
         instruction.span = Default::default();
     }
@@ -24,7 +31,11 @@ fn lower_without_spans(source: &str) -> Circuit {
 }
 
 fn assert_alias(canonical: &str, alias: &str) {
-    assert_eq!(lower_without_spans(canonical), lower_without_spans(alias));
+    assert_eq!(
+        lower_without_spans(canonical),
+        lower_without_spans(alias),
+        "alias `{alias}` should lower to the same circuit as canonical `{canonical}`"
+    );
 }
 
 #[test]

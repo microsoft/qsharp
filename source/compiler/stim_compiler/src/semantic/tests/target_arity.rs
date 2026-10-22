@@ -8,7 +8,7 @@ use indoc::indoc;
 // Two-qubit gates
 
 #[test]
-fn ii_with_odd_target_count_yields_error() {
+fn ii_with_one_target_yields_error() {
     check(
         "II 0",
         &expect![[r#"
@@ -21,7 +21,10 @@ fn ii_with_odd_target_count_yields_error() {
                `----
         "#]],
     );
+}
 
+#[test]
+fn ii_with_three_targets_yields_error() {
     check(
         "II 0 1 2",
         &expect![[r#"
@@ -39,7 +42,7 @@ fn ii_with_odd_target_count_yields_error() {
 // Classically controllable gates
 
 #[test]
-fn cx_with_odd_target_count_yields_error() {
+fn cx_with_one_target_yields_error() {
     check(
         "CX 0",
         &expect![[r#"
@@ -52,7 +55,10 @@ fn cx_with_odd_target_count_yields_error() {
                `----
         "#]],
     );
+}
 
+#[test]
+fn cx_with_three_targets_yields_error() {
     check(
         "CX 0 1 2",
         &expect![[r#"
@@ -68,7 +74,7 @@ fn cx_with_odd_target_count_yields_error() {
 }
 
 #[test]
-fn cx_with_record_and_odd_target_count_yields_error() {
+fn cx_with_one_record_target_yields_error() {
     let source = indoc! {"
     M 0
     CX rec[-1]
@@ -86,7 +92,10 @@ fn cx_with_record_and_odd_target_count_yields_error() {
                `----
         "#]],
     );
+}
 
+#[test]
+fn cx_with_three_targets_including_records_yields_error() {
     let source = indoc! {"
         M 0
         CX rec[-1] 1 rec[-1]
@@ -159,7 +168,7 @@ fn ccx_with_four_targets_yields_error() {
 // Noise channels
 
 #[test]
-fn depolarize2_with_odd_target_count_yields_error() {
+fn depolarize2_with_one_target_yields_error() {
     check(
         "DEPOLARIZE2(0.01) 0",
         &expect![[r#"
@@ -172,7 +181,10 @@ fn depolarize2_with_odd_target_count_yields_error() {
                `----
         "#]],
     );
+}
 
+#[test]
+fn depolarize2_with_three_targets_yields_error() {
     check(
         "DEPOLARIZE2(0.01) 0 1 2",
         &expect![[r#"
@@ -188,7 +200,7 @@ fn depolarize2_with_odd_target_count_yields_error() {
 }
 
 #[test]
-fn ii_error_with_odd_target_count_yields_error() {
+fn ii_error_with_one_target_yields_error() {
     check(
         "II_ERROR 0",
         &expect![[r#"
@@ -201,7 +213,10 @@ fn ii_error_with_odd_target_count_yields_error() {
                `----
         "#]],
     );
+}
 
+#[test]
+fn ii_error_with_three_targets_yields_error() {
     check(
         "II_ERROR 0 1 2",
         &expect![[r#"
@@ -217,7 +232,7 @@ fn ii_error_with_odd_target_count_yields_error() {
 }
 
 #[test]
-fn pauli_channel_2_with_odd_target_count_yields_error() {
+fn pauli_channel_2_with_one_target_yields_error() {
     check(
         "PAULI_CHANNEL_2(0,0,0, 0,0.1,0,0, 0,0,0,0.2, 0,0,0,0) 0",
         &expect![[r#"
@@ -230,7 +245,10 @@ fn pauli_channel_2_with_odd_target_count_yields_error() {
                `----
         "#]],
     );
+}
 
+#[test]
+fn pauli_channel_2_with_three_targets_yields_error() {
     check(
         "PAULI_CHANNEL_2(0,0,0, 0,0.1,0,0, 0,0,0,0.2, 0,0,0,0) 0 1 2",
         &expect![[r#"
@@ -248,7 +266,7 @@ fn pauli_channel_2_with_odd_target_count_yields_error() {
 // Pair measurements
 
 #[test]
-fn mzz_with_odd_target_count_yields_error() {
+fn mzz_with_one_target_yields_error() {
     check(
         "MZZ 0",
         &expect![[r#"
@@ -261,7 +279,10 @@ fn mzz_with_odd_target_count_yields_error() {
                `----
         "#]],
     );
+}
 
+#[test]
+fn mzz_with_three_targets_yields_error() {
     check(
         "MZZ 0 1 2",
         &expect![[r#"
@@ -313,7 +334,7 @@ fn tick_with_targets_yields_error() {
 // Two-qubit rotations
 
 #[test]
-fn r_xx_with_odd_target_count_yields_error() {
+fn r_xx_with_one_target_yields_error() {
     check(
         "R_XX(0.25) 0",
         &expect![[r#"
@@ -326,7 +347,10 @@ fn r_xx_with_odd_target_count_yields_error() {
                `----
         "#]],
     );
+}
 
+#[test]
+fn r_xx_with_three_targets_yields_error() {
     check(
         "R_XX(0.25) 0 1 2",
         &expect![[r#"
