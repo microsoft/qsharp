@@ -7343,6 +7343,7 @@ fn assert_single_integer_output(qir: &str, expected: i64) {
     assert!(records[0].contains(&format!("i64 {expected},")), "{qir}");
 }
 
+#[test]
 fn generic_lambda_dependencies_compile_through_executable_entries() {
     check_generic_lambda_dependency_qir(compile_source_to_qir);
 }
