@@ -7542,6 +7542,124 @@ fn nested_closure_captures_preserve_values_in_base_qir() {
     assert_eq!(gates, expected, "{qir}");
 }
 
+#[test]
+fn generated_generic_entry_qir_reports_missing_type_arguments() {
+    check_generated_entry_missing_type_arguments(
+        "@EntryPoint() operation Main<'T>() : 'T { fail \"unreachable\" }",
+    );
+}
+
+#[test]
+fn generated_entry_rejects_unused_type_parameters() {
+    use miette::Diagnostic;
+
+    let source = "@EntryPoint() operation Main<'T : Eq, 'U : Show>() : Int { 42 }";
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let errors = compile_source_to_qir_result(source, profile.into())
+            .expect_err("unused type parameters must be rejected before entry generation");
+        let expected = [
+            ("Qdk.Qsc.TypeCk.UnusedGeneric", "'T"),
+            ("Qdk.Qsc.TypeCk.UnusedGeneric", "'U"),
+            ("Qdk.Qsc.LowerAst.UnusedGeneric", "'T"),
+            ("Qdk.Qsc.LowerAst.UnusedGeneric", "'U"),
+        ];
+        assert_eq!(errors.len(), expected.len(), "{profile:?}: {errors:?}");
+        for (error, (code, parameter)) in errors.iter().zip(expected) {
+            assert_eq!(error.code().expect("diagnostic code").to_string(), code);
+            let labels: Vec<_> = error.labels().expect("parameter source").collect();
+            assert_eq!(labels.len(), 1);
+            let span = labels[0].inner();
+            assert_eq!(
+                &source[span.offset()..span.offset() + span.len()],
+                parameter
+            );
+            assert!(error.source_code().is_some());
+        }
+    }
+}
+
+fn check_generated_entry_missing_type_arguments(source: &str) {
+    use miette::Diagnostic;
+
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let errors = compile_source_to_qir_result(source, profile.into())
+            .expect_err("generated entry requires concrete type arguments");
+        assert_eq!(errors.len(), 1, "{profile:?}: {errors:?}");
+        assert_eq!(
+            errors[0].code().expect("diagnostic code").to_string(),
+            "Qdk.Qsc.EntryPoint.MissingTypeArguments"
+        );
+        let labels: Vec<_> = errors[0].labels().expect("entry source").collect();
+        assert_eq!(labels.len(), 1);
+        let span = labels[0].inner();
+        assert_eq!(&source[span.offset()..span.offset() + span.len()], "Main");
+        assert!(errors[0].source_code().is_some());
+    }
+}
+
+#[test]
+fn explicit_generic_entry_call_requires_type_evidence() {
+    use miette::Diagnostic;
+
+    let mut interpreter = interpreter_with_capabilities(Profile::AdaptiveRIF.into());
+    eval_fragments(
+        &mut interpreter,
+        "operation Generic<'T>() : 'T { fail \"unreachable\" }",
+    );
+    let errors = interpreter
+        .qirgen("Generic()")
+        .expect_err("ordinary explicit calls still need type evidence");
+    assert_eq!(errors.len(), 1, "{errors:?}");
+    assert_eq!(
+        errors[0].code().expect("diagnostic code").to_string(),
+        "Qdk.Qsc.TypeCk.AmbiguousTy"
+    );
+}
+
+#[test]
+fn generated_nongeneric_entry_qir_reports_source_located_user_failure() {
+    use miette::Diagnostic;
+
+    let source = "@EntryPoint() operation Main() : Result { fail \"unreachable\"; }";
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let errors = compile_source_to_qir_result(source, profile.into())
+            .expect_err("valid nongeneric entry must reach its user failure");
+        let [crate::interpret::Error::PartialEvaluation(error)] = errors.as_slice() else {
+            panic!("{profile:?}: {errors:?}");
+        };
+        assert_eq!(
+            error.code().expect("diagnostic code").to_string(),
+            "Qdk.Qsc.PartialEval.EvaluationFailed"
+        );
+        assert_eq!(
+            error.to_string(),
+            "partial evaluation failed with error: program failed: unreachable"
+        );
+        let labels: Vec<_> = error.labels().expect("failure source").collect();
+        assert_eq!(labels.len(), 1);
+        let (location, span) = error.resolve_span(labels[0].inner());
+        assert_eq!(
+            &location.contents[span.offset()..span.offset() + span.len()],
+            "fail \"unreachable\""
+        );
+    }
+}
+
 /// Check the computed value as an `AdaptiveRIF` integer output and as a Base
 /// rotation operand. This verifies emitted data, not merely successful compilation.
 /// These fixtures also protect existing tuple-alias behavior; the isolated
