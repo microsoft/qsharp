@@ -9,6 +9,14 @@ use qsc_data_structures::{
 };
 use std::fmt::{self, Display, Formatter, Write};
 
+/// Represents the Pauli bases for measurement.
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+pub enum Pauli {
+    X,
+    Y,
+    Z,
+}
+
 /// The root of the RIR.
 #[derive(Default, Clone)]
 pub struct Program {
