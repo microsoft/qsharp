@@ -47,14 +47,14 @@ fn compile_entry_candidate_no_errors(source: &str, entry: Option<&str>) -> compi
 }
 
 fn compile_entry_candidates(source: &str, entry: Option<&str>) -> compile::CompileUnit {
-    let unit = compile(
+    
+    compile(
         &PackageStore::new(compile::core()),
         &[],
         SourceMap::new([("test".into(), source.into())], entry.map(Into::into)),
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
-    );
-    unit
+    )
 }
 
 #[test]
