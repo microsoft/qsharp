@@ -1110,7 +1110,7 @@ impl Interpreter {
     }
 }
 
-fn args_to_values(
+pub(crate) fn args_to_values(
     ctx: &interpret::Interpreter,
     py: Python,
     args: Option<Py<PyAny>>,
@@ -1197,7 +1197,7 @@ where
     }
 }
 
-fn extract_callable_value(py: Python, callable: &Py<PyAny>) -> PyResult<Value> {
+pub(crate) fn extract_callable_value(py: Python, callable: &Py<PyAny>) -> PyResult<Value> {
     if let Ok(global_callable) = callable.extract::<GlobalCallable>(py) {
         Ok(global_callable.0)
     } else if let Ok(closure) = callable.extract::<Closure>(py) {
