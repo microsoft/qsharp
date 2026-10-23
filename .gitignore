@@ -27,3 +27,4 @@ samples/qdk-learning.json
 *.pyd
 /python_doc/
 /logs/
+/exchange/
