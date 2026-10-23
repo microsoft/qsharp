@@ -10,7 +10,7 @@ use num_bigint::{BigInt, BigUint};
 use num_complex::Complex;
 use num_traits::Zero;
 use qdk_simulators::{
-    MeasurementResult, Simulator as _, SparseStateSim,
+    MeasurementResult, Pauli, Simulator as _, SparseStateSim,
     noise_config::{CumulativeNoiseConfig, CumulativeNoiseTable, FaultTerm},
     stabilizer_simulator::StabilizerSimulator,
 };
@@ -44,6 +44,12 @@ pub trait Backend {
     }
     fn m(&mut self, _q: usize) -> Result<val::Result, String> {
         Err("m operation not implemented".to_string())
+    }
+    fn mx(&mut self, _q: usize) -> Result<val::Result, String> {
+        Err("mx operation not implemented".to_string())
+    }
+    fn my(&mut self, _q: usize) -> Result<val::Result, String> {
+        Err("my operation not implemented".to_string())
     }
     fn mresetz(&mut self, _q: usize) -> Result<val::Result, String> {
         Err("mresetz operation not implemented".to_string())
@@ -114,6 +120,12 @@ pub trait Backend {
     }
     fn qubit_is_zero(&mut self, _q: usize) -> Result<bool, String> {
         Err("qubit_is_zero operation not implemented".to_string())
+    }
+    fn qubit_is_plus(&mut self, _q: usize) -> Result<bool, String> {
+        Err("qubit_is_plus operation not implemented".to_string())
+    }
+    fn qubit_is_plus_i(&mut self, _q: usize) -> Result<bool, String> {
+        Err("qubit_is_plus_i operation not implemented".to_string())
     }
     /// Executes custom intrinsic specified by `_name`.
     /// Returns None if this intrinsic is unknown.
@@ -255,6 +267,28 @@ impl<'a, B: Backend> TracingBackend<'a, B> {
         };
         if let Some(tracer) = &mut self.tracer {
             tracer.measure(stack, "M", q, &r);
+        }
+        Ok(r)
+    }
+
+    pub fn mx(&mut self, q: usize, stack: &[Frame]) -> Result<val::Result, String> {
+        let r = match &mut self.backend {
+            OptionalBackend::Some(backend) => backend.mx(q)?,
+            OptionalBackend::None(fallback) => fallback.result_allocate(),
+        };
+        if let Some(tracer) = &mut self.tracer {
+            tracer.measure(stack, "MX", q, &r);
+        }
+        Ok(r)
+    }
+
+    pub fn my(&mut self, q: usize, stack: &[Frame]) -> Result<val::Result, String> {
+        let r = match &mut self.backend {
+            OptionalBackend::Some(backend) => backend.my(q)?,
+            OptionalBackend::None(fallback) => fallback.result_allocate(),
+        };
+        if let Some(tracer) = &mut self.tracer {
+            tracer.measure(stack, "MY", q, &r);
         }
         Ok(r)
     }
@@ -472,6 +506,20 @@ impl<'a, B: Backend> TracingBackend<'a, B> {
     pub fn qubit_is_zero(&mut self, q: usize) -> Result<bool, String> {
         match &mut self.backend {
             OptionalBackend::Some(backend) => backend.qubit_is_zero(q),
+            OptionalBackend::None(_) => Ok(true),
+        }
+    }
+
+    pub fn qubit_is_plus(&mut self, q: usize) -> Result<bool, String> {
+        match &mut self.backend {
+            OptionalBackend::Some(backend) => backend.qubit_is_plus(q),
+            OptionalBackend::None(_) => Ok(true),
+        }
+    }
+
+    pub fn qubit_is_plus_i(&mut self, q: usize) -> Result<bool, String> {
+        match &mut self.backend {
+            OptionalBackend::Some(backend) => backend.qubit_is_plus_i(q),
             OptionalBackend::None(_) => Ok(true),
         }
     }
@@ -818,6 +866,28 @@ impl Backend for SparseSim {
         Ok(val::Result::Val(self.sim.measure(q)))
     }
 
+    fn mx(&mut self, q: usize) -> Result<val::Result, String> {
+        // TODO: [FUTURE] Change noise type
+        self.apply_faults(|noise| &noise.mz, &[q]);
+        if self.is_qubit_lost(q) {
+            self.lost_qubits.set_bit(q as u64, false);
+            return Ok(val::Result::Loss);
+        }
+        let res = self.sim.measure_pauli(q, Pauli::X);
+        Ok(val::Result::Val(res))
+    }
+
+    fn my(&mut self, q: usize) -> Result<val::Result, String> {
+        // TODO: [FUTURE] Change noise type
+        self.apply_faults(|noise| &noise.mz, &[q]);
+        if self.is_qubit_lost(q) {
+            self.lost_qubits.set_bit(q as u64, false);
+            return Ok(val::Result::Loss);
+        }
+        let res = self.sim.measure_pauli(q, Pauli::Y);
+        Ok(val::Result::Val(res))
+    }
+
     fn mresetz(&mut self, q: usize) -> Result<val::Result, String> {
         self.apply_faults(|noise| &noise.mresetz, &[q]);
         if self.is_qubit_lost(q) {
@@ -1072,6 +1142,16 @@ impl Backend for SparseSim {
     fn qubit_is_zero(&mut self, q: usize) -> Result<bool, String> {
         // This is a service function rather than a measurement so it doesn't incur noise.
         Ok(self.sim.qubit_is_zero(q))
+    }
+
+    fn qubit_is_plus(&mut self, q: usize) -> Result<bool, String> {
+        // This is a service function rather than a measurement so it doesn't incur noise.
+        Ok(self.sim.qubit_is_plus(q))
+    }
+
+    fn qubit_is_plus_i(&mut self, q: usize) -> Result<bool, String> {
+        // This is a service function rather than a measurement so it doesn't incur noise.
+        Ok(self.sim.qubit_is_plus_i(q))
     }
 
     fn custom_intrinsic(
