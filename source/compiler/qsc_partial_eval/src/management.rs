@@ -28,28 +28,28 @@ pub struct ResourceManager {
 }
 
 #[derive(Clone)]
-pub(crate) struct QubitState {
+pub(crate) struct QubitStateSnapshot {
     qubits_in_use: Vec<bool>,
     qubit_id_map: IndexMap<usize, usize>,
     qubit_tracker: FxHashSet<Rc<Qubit>>,
 }
 
 impl ResourceManager {
-    pub(crate) fn save_qubit_state(&self) -> QubitState {
-        QubitState {
+    pub(crate) fn save_qubit_state(&self) -> QubitStateSnapshot {
+        QubitStateSnapshot {
             qubits_in_use: self.qubits_in_use.clone(),
             qubit_id_map: self.qubit_id_map.clone(),
             qubit_tracker: self.qubit_tracker.clone(),
         }
     }
 
-    pub(crate) fn restore_qubit_state(&mut self, state: QubitState) {
+    pub(crate) fn restore_qubit_state(&mut self, state: QubitStateSnapshot) {
         self.qubits_in_use = state.qubits_in_use;
         self.qubit_id_map = state.qubit_id_map;
         self.qubit_tracker = state.qubit_tracker;
     }
 
-    pub(crate) fn merge_qubit_state(&mut self, other: &QubitState) {
+    pub(crate) fn merge_qubit_state(&mut self, other: QubitStateSnapshot) {
         if self.qubits_in_use.len() < other.qubits_in_use.len() {
             self.qubits_in_use.resize(other.qubits_in_use.len(), false);
         }
@@ -62,8 +62,12 @@ impl ResourceManager {
                 self.qubit_id_map.insert(id, *slot);
             }
         }
-        self.qubit_tracker
-            .extend(other.qubit_tracker.iter().cloned());
+        self.qubit_tracker.extend(other.qubit_tracker);
+    }
+
+    pub fn is_qubit_live(&self, q: &QubitRef) -> bool {
+        q.try_deref()
+            .is_some_and(|q| self.qubit_id_map.contains_key(q.0))
     }
 
     pub fn map_qubit(&self, q: &QubitRef) -> usize {

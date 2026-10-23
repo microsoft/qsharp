@@ -492,6 +492,34 @@ fn qubit_double_release_triggers_runtime_error() {
 }
 
 #[test]
+fn released_qubit_inside_dynamic_branch_reports_error() {
+    let error = get_partial_evaluation_error(indoc! {
+        r#"
+        namespace Test {
+            operation Op(q : Qubit) : Unit { body intrinsic; }
+
+            @EntryPoint()
+            operation Main() : Unit {
+                use control = Qubit();
+                let q = QIR.Runtime.__quantum__rt__qubit_allocate();
+
+                if MResetZ(control) == One {
+                    QIR.Runtime.__quantum__rt__qubit_release(q);
+                    Op(q);
+                }
+            }
+        }
+        "#,
+    });
+
+    assert!(matches!(
+        error,
+        crate::Error::EvaluationFailed(message, _)
+            if message == "qubit used after release"
+    ));
+}
+
+#[test]
 fn qubit_relabel_in_dynamic_block_triggers_capability_error() {
     let error = get_partial_evaluation_error(indoc! {
         r#"

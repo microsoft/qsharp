@@ -1901,11 +1901,11 @@ impl<'a> PartialEvaluator<'a> {
         let qubits = args_value.qubits();
         let qubits_len = qubits.len();
         if qubits_len > 0 {
-            let qubits = qubits
+            let live_qubits = qubits
                 .iter()
-                .filter_map(|q| q.try_deref().map(|q| q.0))
-                .collect::<Vec<_>>();
-            if qubits.len() != qubits_len {
+                .filter(|q| self.resource_manager.is_qubit_live(q))
+                .count();
+            if live_qubits != qubits_len {
                 return if callable_decl.name.name.as_ref() == "__quantum__rt__qubit_release" {
                     Err(EvalError::QubitDoubleRelease(args_span).into())
                 } else {
@@ -2626,7 +2626,7 @@ impl<'a> PartialEvaluator<'a> {
         };
 
         self.resource_manager
-            .merge_qubit_state(&qubit_state_after_true);
+            .merge_qubit_state(qubit_state_after_true);
 
         // Finally, we insert the branch instruction.
         let condition_value_var = condition_value.unwrap_var();
