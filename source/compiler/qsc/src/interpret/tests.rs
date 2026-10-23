@@ -2091,7 +2091,7 @@ mod given_interpreter {
                 "expected measurement comparisons to lower through read_result, got:\n{qir}"
             );
             assert!(
-                qir.contains("icmp eq i1 %var_5, %var_6"),
+                qir.contains("icmp eq i1 %var_7, %var_8"),
                 "expected result-to-result equality to lower to an i1 comparison, got:\n{qir}"
             );
         }
@@ -2131,13 +2131,13 @@ mod given_interpreter {
                   call void @__quantum__rt__initialize(i8* null)
                   call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   %var_0 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 0 to %Result*))
-                  %var_2 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 0 to %Result*))
-                  %var_3 = icmp eq i1 %var_2, false
+                  %var_3 = call zeroext i1 @__quantum__rt__read_result(%Result* inttoptr (i64 0 to %Result*))
+                  %var_4 = icmp eq i1 %var_3, false
                   call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i64 0, i64 0))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i64 0, i64 0))
                   call void @__quantum__rt__tuple_record_output(i64 2, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i64 0, i64 0))
                   call void @__quantum__rt__bool_record_output(i1 zeroext %var_0, i8* getelementptr inbounds ([8 x i8], [8 x i8]* @3, i64 0, i64 0))
-                  call void @__quantum__rt__bool_record_output(i1 zeroext %var_3, i8* getelementptr inbounds ([8 x i8], [8 x i8]* @4, i64 0, i64 0))
+                  call void @__quantum__rt__bool_record_output(i1 zeroext %var_4, i8* getelementptr inbounds ([8 x i8], [8 x i8]* @4, i64 0, i64 0))
                   ret i64 0
                 }
 
@@ -2765,6 +2765,79 @@ mod given_interpreter {
         }
 
         #[test]
+        fn generated_generic_entry_reports_missing_type_arguments() {
+            let source = "@EntryPoint() operation Main<'T>() : 'T { fail \"unreachable\" }";
+            for profile in [Profile::Base, Profile::Unrestricted] {
+                for package_type in [PackageType::Lib, PackageType::Exe] {
+                    let (std_id, store) = crate::compile::package_store_with_stdlib(profile.into());
+                    let errors = Interpreter::new(
+                        SourceMap::new([("test".into(), source.into())], None),
+                        package_type,
+                        profile.into(),
+                        LanguageFeatures::default(),
+                        store,
+                        &[(std_id, None)],
+                        Default::default(),
+                    )
+                    .err()
+                    .expect("generated generic entry must be rejected before evaluation");
+                    assert_eq!(errors.len(), 1, "{profile:?}: {errors:?}");
+                    assert_eq!(
+                        errors[0].code().expect("diagnostic code").to_string(),
+                        "Qdk.Qsc.EntryPoint.MissingTypeArguments"
+                    );
+                    let labels: Vec<_> = errors[0].labels().expect("entry source").collect();
+                    assert_eq!(labels.len(), 1);
+                    let span = labels[0].inner();
+                    assert_eq!(&source[span.offset()..span.offset() + span.len()], "Main");
+                    assert!(errors[0].source_code().is_some());
+                }
+            }
+        }
+
+        #[test]
+        fn generated_nongeneric_entry_reports_source_located_user_failure() {
+            let source = "@EntryPoint() operation Main() : Result { fail \"unreachable\"; }";
+            for profile in [Profile::Base, Profile::Unrestricted] {
+                for package_type in [PackageType::Lib, PackageType::Exe] {
+                    let (std_id, store) = crate::compile::package_store_with_stdlib(profile.into());
+                    let mut interpreter = Interpreter::new(
+                        SourceMap::new([("test".into(), source.into())], None),
+                        package_type,
+                        profile.into(),
+                        LanguageFeatures::default(),
+                        store,
+                        &[(std_id, None)],
+                        Default::default(),
+                    )
+                    .unwrap_or_else(|errors| panic!("{profile:?}: {errors:?}"));
+                    let (result, _) = entry(&mut interpreter);
+                    let errors = result.expect_err("valid entry must reach its user failure");
+                    assert!(
+                        matches!(errors.as_slice(), [crate::interpret::Error::Eval(_)]),
+                        "{profile:?}: {errors:?}"
+                    );
+                    assert_eq!(
+                        errors[0].code().expect("diagnostic code").to_string(),
+                        "Qdk.Qsc.Eval.UserFail"
+                    );
+                    let labels: Vec<_> = errors[0].labels().expect("failure source").collect();
+                    assert_eq!(labels.len(), 1);
+                    let contents = errors[0]
+                        .source_code()
+                        .expect("source-located failure")
+                        .read_span(labels[0].inner(), 0, 0)
+                        .expect("failure span");
+                    assert!(
+                        std::str::from_utf8(contents.data())
+                            .expect("source text")
+                            .contains("fail \"unreachable\"")
+                    );
+                }
+            }
+        }
+
+        #[test]
         fn invalid_partial_application_should_fail_not_panic() {
             // Found via fuzzing, see #2363
             let source = "operation e(oracle:(w=>)){oracle=i(_)";
@@ -2915,12 +2988,10 @@ mod given_interpreter {
         }
 
         #[test]
-        fn restricted_profile_fatal_transform_error_reported_as_fir_transform() {
-            // A local callable forced to `Dynamic` by a loop reassignment cannot be
-            // resolved statically, so the defunctionalize stage of the FIR transform
-            // pipeline emits a fatal diagnostic. The construction-time gate must
-            // surface this as `Error::FirTransform` (mirroring codegen), not as a
-            // capability `Error::Pass`.
+        fn restricted_profile_resolvable_dynamic_callable_constructs_successfully() {
+            // Construction runs transforms and capability analysis, not partial
+            // evaluation. A loop-reassigned callable can remain unresolved at this
+            // stage without rejecting the restricted AdaptiveRI program.
             let source = indoc! { r#"
             namespace Test {
                 operation Foo(q : Qubit) : Unit {}
@@ -2950,23 +3021,11 @@ mod given_interpreter {
                 Default::default(),
             );
 
-            match result {
-                Ok(_) => panic!("expected a fatal FIR transform error for a dynamic callable"),
-                Err(errors) => {
-                    assert!(
-                        errors
-                            .iter()
-                            .all(|error| matches!(error, crate::interpret::Error::FirTransform(_))),
-                        "expected FIR transform errors, got {errors:?}"
-                    );
-                    assert!(
-                        errors
-                            .iter()
-                            .any(|error| format!("{error:?}").contains("DynamicCallable")),
-                        "expected a dynamic-callable transform diagnostic, got {errors:?}"
-                    );
-                }
-            }
+            assert!(
+                result.is_ok(),
+                "expected the deferred, resolvable dynamic callable to construct cleanly, got {:?}",
+                result.err()
+            );
         }
 
         #[test]
