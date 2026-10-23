@@ -65,6 +65,24 @@ fn contains_return_in_while_stmt(package: &Package, stmt_id: StmtId) -> bool {
     }
 }
 
+// Only follow straight-line blocks: a return inside a loop or one arm of
+// a conditional does not establish that the containing statement returns.
+fn stmt_unconditionally_returns(package: &Package, stmt_id: StmtId) -> bool {
+    let expr_id = match package.get_stmt(stmt_id).kind {
+        StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) => expr_id,
+        _ => return false,
+    };
+    match package.get_expr(expr_id).kind {
+        ExprKind::Return(_) => true,
+        ExprKind::Block(block_id) => package
+            .get_block(block_id)
+            .stmts
+            .iter()
+            .any(|&stmt_id| stmt_unconditionally_returns(package, stmt_id)),
+        _ => false,
+    }
+}
+
 fn sync_block_type_to_stmt_or_unit(package: &mut Package, block_id: BlockId) {
     let trailing_ty = match package.get_block(block_id).stmts.last() {
         Some(&stmt_id) => match package.get_stmt(stmt_id).kind {
@@ -343,6 +361,8 @@ fn transform_block_stmts_with_flags(
             _ => false,
         };
         let has_return = contains_return_in_stmt(package, stmt_id);
+        let ends_unit_block = matches!(output, FlagBlockOutput::Unit)
+            && stmt_unconditionally_returns(package, stmt_id);
         let is_final_trailing_expr = output.final_trailing_expr_strategy().is_some()
             && index == original_stmts.len() - 1
             && matches!(package.get_stmt(stmt_id).kind, StmtKind::Expr(_));
@@ -444,6 +464,11 @@ fn transform_block_stmts_with_flags(
             has_return,
             seen_return_bearing_stmt,
         );
+        // The return has already emitted its cleanup and flag/slot writes.
+        // Any remaining statements on this straight-line path are unreachable.
+        if ends_unit_block {
+            break;
+        }
     }
 
     new_stmts

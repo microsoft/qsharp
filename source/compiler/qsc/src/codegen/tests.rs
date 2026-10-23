@@ -92,6 +92,48 @@ fn compile_source_to_qir_result(
 }
 
 #[test]
+fn issue_3940_control_array_without_loop() {
+    let source =
+        r#"@EntryPoint(Adaptive) operation Main() : Bool { use qs = Qubit[4]; return false; }"#;
+    let _ = compile_source_to_qir(source, Profile::Adaptive.into());
+}
+
+#[test]
+fn issue_3940_control_scalar_in_loop() {
+    let source = r#"@EntryPoint(Adaptive) operation Main() : Bool { for e in [0] { use q = Qubit(); return false; } return false; }"#;
+    let _ = compile_source_to_qir(source, Profile::Adaptive.into());
+}
+
+#[test]
+fn issue_3940_control_array_in_loop_without_early_return() {
+    let source = r#"@EntryPoint(Adaptive) operation Main() : Bool { for e in [0] { use qs = Qubit[4]; } return false; }"#;
+    let _ = compile_source_to_qir(source, Profile::Adaptive.into());
+}
+
+#[test]
+fn issue_3940_control_array_in_range_loop() {
+    let source = r#"@EntryPoint(Adaptive) operation Main() : Bool { for e in 0..0 { use qs = Qubit[4]; return false; } return false; }"#;
+    let _ = compile_source_to_qir(source, Profile::Adaptive.into());
+}
+
+#[test]
+fn issue_3940_variant_return_from_loop_with_local_qubit_array() {
+    let source = r#"
+        @EntryPoint(Adaptive)
+        operation Main() : Bool {
+            for e0 in [0] {
+                use qa0 = Qubit[4];
+                let ret0 = false;
+                return ret0;
+            }
+            return false;
+        }
+    "#;
+
+    let _ = compile_source_to_qir(source, Profile::Adaptive.into());
+}
+
+#[test]
 fn issue_3940_adaptive_early_return_indexed_qubit_array() {
     let source = r#"
         @EntryPoint(Adaptive)
