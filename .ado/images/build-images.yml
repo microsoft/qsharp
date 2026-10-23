@@ -60,7 +60,8 @@ extends:
     settings:
       # To fetch the Universal Package from the ADO feed, Azure blob access is needed.
       # See https://eng.ms/docs/cloud-ai-platform/devdiv/one-engineering-system-1es/1es-build/cloudbuild/security/1espt-network-isolation
-      networkIsolationPolicy: AzureStorage
+      # Here, using Permissive to try and address failures to fetch from GitHub or sent pipeline telemetry.
+      networkIsolationPolicy: Permissive
 
     sdl:
       autobaseline:
