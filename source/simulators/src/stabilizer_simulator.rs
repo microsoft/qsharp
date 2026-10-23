@@ -580,6 +580,14 @@ impl Simulator for StabilizerSimulator {
         self.apply_noise(|config| &config.swap, &[q1, q2]);
     }
 
+    fn mx(&mut self, _target: QubitID, _result_id: ResultID) {
+        todo!()
+    }
+
+    fn my(&mut self, _target: QubitID, _result_id: ResultID) {
+        todo!()
+    }
+
     fn mz(&mut self, target: QubitID, result_id: ResultID) {
         self.apply_idle_noise(target);
         self.record_mz(target, result_id);

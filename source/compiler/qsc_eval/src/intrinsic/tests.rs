@@ -1569,7 +1569,6 @@ fn m() {
     );
 }
 
-/// TODO: Update tests for MX and MY
 #[test]
 fn mx() {
     check_intrinsic_result(

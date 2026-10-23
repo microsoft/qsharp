@@ -113,6 +113,12 @@ pub trait Simulator {
     /// Two qubits SWAP gate.
     fn swap(&mut self, q1: QubitID, q2: QubitID);
 
+    /// `MX` operation.
+    fn mx(&mut self, target: QubitID, result_id: ResultID);
+
+    /// `MY` operation.
+    fn my(&mut self, target: QubitID, result_id: ResultID);
+
     /// `MZ` operation.
     fn mz(&mut self, target: QubitID, result_id: ResultID);
 
