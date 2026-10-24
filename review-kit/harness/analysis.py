@@ -16,6 +16,13 @@ from harness.common import PROFILES, ReviewError, read_json
 HIERARCHY = PROFILES
 BAD_VERDICTS = {"regression_candidate", "simulator_regression_candidate", "new_failure_unvalidated"}
 GOOD_VERDICTS = {"fix_candidate", "simulator_fix_candidate", "newly_accepted_unvalidated"}
+# Failures that announce themselves; a change from one of these to wrong_result hides a bug.
+LOUD = {"panic", "rejected", "compiler_crash", "compile_timeout", "execution_failure", "execution_timeout"}
+FAILED = LOUD | {"wrong_result"}
+# Defaults for per-case compile-time outliers (whole compile stage, including process start).
+OUTLIER_RATIO = 2.0
+OUTLIER_SECONDS = 0.25
+EXTRACTED = re.compile(r"^([0-9a-f]{12}) (\S+) test (\S+)")
 
 
 def load_run(run):
@@ -73,15 +80,25 @@ def hierarchy_violations(statuses):
     return violations
 
 
-def summarize_run(run, examples=5):
+def _compile_seconds(result, profile):
+    compiled = result.get("profiles", {}).get(profile, {}).get("compile", {})
+    return compiled.get("seconds") if compiled.get("status") == "ok" else None
+
+
+def summarize_run(run, examples=5, outlier_ratio=OUTLIER_RATIO, outlier_seconds=OUTLIER_SECONDS):
     manifest, cases, rows = load_run(run)
+    candidate_sha = manifest["config"]["refs"]["candidate"]
     verdicts = Counter()
     transitions = defaultdict(Counter)
     signatures = defaultdict(lambda: {"count": 0, "reference": Counter(), "examples": []})
-    flagged = []
+    flagged, silenced, lost, outliers, pipeline = [], [], [], [], defaultdict(list)
     hierarchy = {"reference": [], "candidate": []}
+    hierarchy_groups = defaultdict(lambda: {"count": 0, "reference": Counter(), "examples": []})
+    layer_hazards = defaultdict(lambda: defaultdict(list))
+    qir = Counter()
     timings = defaultdict(list)
     for case_id, row in rows.items():
+        candidate = row["results"]["candidate"]
         for comparison in row["comparison"]:
             profile, old, new, verdict = (
                 comparison["profile"], comparison["reference"], comparison["candidate"], comparison["verdict"]
@@ -91,18 +108,69 @@ def summarize_run(run, examples=5):
             if verdict in BAD_VERDICTS:
                 flagged.append({
                     "case": case_id, "profile": profile, "reference": old, "candidate": new,
-                    "signature": normalize_signature(stage_message(row["results"]["candidate"], profile)),
+                    "signature": normalize_signature(stage_message(candidate, profile)),
+                })
+            if profile != "Unrestricted" and old in LOUD and new == "wrong_result":
+                silenced.append({
+                    "case": case_id, "profile": profile, "reference": old,
+                    "signature": normalize_signature(stage_message(row["results"]["reference"], profile)),
                 })
             if profile != "Unrestricted" and new not in ("validated", "validated_unchanged") and not new.endswith("_unvalidated"):
-                key = (profile, new, normalize_signature(stage_message(row["results"]["candidate"], profile)))
+                key = (profile, new, normalize_signature(stage_message(candidate, profile)))
                 group = signatures[key]
                 group["count"] += 1
                 group["reference"][old] += 1
                 if len(group["examples"]) < examples:
                     group["examples"].append(case_id)
+            if profile != "Unrestricted":
+                a, b = (row["results"]["reference"].get("profiles", {}).get(profile, {}).get("compile", {}),
+                        candidate.get("profiles", {}).get(profile, {}).get("compile", {}))
+                if a.get("qir_digest") and b.get("qir_digest"):
+                    kind = cases.get(case_id, {}).get("oracle", {}).get("kind", "deterministic")
+                    same = a["qir_digest"] == b["qir_digest"]
+                    qir["identical" if same else "different"] += 1
+                    if kind != "deterministic":
+                        qir["unvalidated_identical" if same else "unvalidated_different"] += 1
+                old_s, new_s = _compile_seconds(row["results"]["reference"], profile), _compile_seconds(candidate, profile)
+                if old_s and new_s and new_s / old_s >= outlier_ratio and new_s - old_s >= outlier_seconds:
+                    outliers.append({"case": case_id, "profile": profile, "reference": round(old_s, 3),
+                                     "candidate": round(new_s, 3), "ratio": round(new_s / old_s, 2)})
+        for comparison in row.get("previous") or []:
+            old, new = comparison["reference"], comparison["candidate"]
+            if comparison["profile"] != "Unrestricted" and (
+                (old == "validated" and new in FAILED) or (old in LOUD and new == "wrong_result")
+            ):
+                lost.append({"case": case_id, "profile": comparison["profile"], "previous": old, "candidate": new,
+                             "signature": normalize_signature(stage_message(candidate, comparison["profile"]))})
+        reference_status = outcomes(row, "reference")
+        candidate_status = outcomes(row, "candidate")
+        for role, statuses in (row.get("layers") or {}).items():
+            for profile, status in statuses.items():
+                # A layer that breaks what both ends get right, or silences a loud reference failure.
+                if status in FAILED and candidate_status.get(profile) == "validated" and (
+                    reference_status.get(profile) == "validated" or status == "wrong_result"
+                ):
+                    layer_hazards[role][(profile, reference_status.get(profile), status)].append(case_id)
         for side in ("reference", "candidate"):
+            highest_lower = {}
             for lower, higher, status in hierarchy_violations(outcomes(row, side)):
                 hierarchy[side].append({"case": case_id, "lower": lower, "higher": higher, "status": status})
+                highest_lower[(higher, status)] = lower  # violations are ordered from the lowest profile up
+            if side == "candidate":
+                # One entry per program and failing profile, naming the highest profile that validated.
+                for (higher, status), lower in highest_lower.items():
+                    signature = normalize_signature(stage_message(candidate, higher))
+                    group = hierarchy_groups[(lower, higher, status, signature)]
+                    group["count"] += 1
+                    group["reference"][reference_status.get(higher)] += 1
+                    if len(group["examples"]) < examples:
+                        group["examples"].append(case_id)
+        origin = EXTRACTED.match(cases.get(case_id, {}).get("origin", ""))
+        if origin and candidate_sha.startswith(origin.group(1)):
+            bad = sorted({status for profile, status in candidate_status.items()
+                          if profile != "Unrestricted" and status in FAILED - {"rejected"}})
+            if bad:
+                pipeline[origin.group(3)].append({"case": case_id, "statuses": bad})
         for role, result in row["results"].items():
             for profile, record in result.get("profiles", {}).items():
                 seconds = record.get("compile", {}).get("seconds")
@@ -110,10 +178,12 @@ def summarize_run(run, examples=5):
                     timings[(role, profile)].append(seconds)
     reference_keys = {(v["case"], v["lower"], v["higher"]) for v in hierarchy["reference"]}
     new_violations = [v for v in hierarchy["candidate"] if (v["case"], v["lower"], v["higher"]) not in reference_keys]
+    roles = manifest.get("roles") or list(dict.fromkeys(role for row in rows.values() for role in row["results"]))
     return {
         "run": str(run),
         "reference": manifest["config"]["refs"]["reference"],
         "candidate": manifest["config"]["refs"]["candidate"],
+        "roles": {role: manifest["config"]["refs"].get(role) for role in roles},
         "status": manifest.get("status"),
         "cases": len(rows),
         "verdicts": dict(verdicts),
@@ -122,6 +192,13 @@ def summarize_run(run, examples=5):
             for profile, counter in transitions.items()
         },
         "flagged": flagged,
+        "silenced": silenced,
+        "lost_fixes": lost,
+        "layer_hazards": {
+            role: [{"profile": p, "reference": old, "layer": status, "count": len(ids), "examples": ids[:examples]}
+                   for (p, old, status), ids in sorted(groups.items(), key=lambda item: -len(item[1]))]
+            for role, groups in layer_hazards.items()
+        },
         "candidate_failures": [
             {"profile": p, "status": s, "signature": sig, "count": g["count"],
              "reference": dict(g["reference"]), "examples": g["examples"]}
@@ -131,7 +208,20 @@ def summarize_run(run, examples=5):
             "reference": len(hierarchy["reference"]),
             "candidate": len(hierarchy["candidate"]),
             "new_at_candidate": new_violations,
+            "candidate_groups": [
+                {"lower": lo, "higher": hi, "status": st, "signature": sig, "count": g["count"],
+                 "reference": dict(g["reference"]), "examples": g["examples"]}
+                for (lo, hi, st, sig), g in sorted(hierarchy_groups.items(), key=lambda item: -item[1]["count"])
+            ],
         },
+        "qir_identity": dict(qir),
+        "pipeline_gaps": [
+            {"test": test, "count": len(items), "statuses": sorted({s for item in items for s in item["statuses"]}),
+             "examples": [item["case"] for item in items[:examples]]}
+            for test, items in sorted(pipeline.items(), key=lambda item: -len(item[1]))
+        ],
+        "compile_outliers": sorted(outliers, key=lambda item: -item["ratio"]),
+        "compile_outlier_thresholds": {"ratio": outlier_ratio, "seconds": outlier_seconds},
         "compile_seconds_median": {
             f"{role}/{profile}": round(statistics.median(values), 3) for (role, profile), values in sorted(timings.items())
         },
@@ -141,6 +231,9 @@ def summarize_run(run, examples=5):
 def print_summary(summary, show=10):
     print(f"Run {summary['run']} ({summary['status']}): {summary['cases']} cases")
     print(f"Reference {summary['reference'][:12]}  candidate {summary['candidate'][:12]}")
+    extra = {role: sha for role, sha in summary.get("roles", {}).items() if role not in ("reference", "candidate")}
+    if extra:
+        print("Other columns: " + ", ".join(f"{role} {sha[:12]}" for role, sha in extra.items()))
     print("Verdicts:", ", ".join(f"{k}={v}" for k, v in sorted(summary["verdicts"].items())))
     print("\nReference -> candidate outcomes per profile:")
     for profile, rows in summary["transitions"].items():
@@ -149,6 +242,22 @@ def print_summary(summary, show=10):
     print(f"\nFlagged regressions ({len(summary['flagged'])}):")
     for item in summary["flagged"][:show]:
         print(f"  {item['case']} [{item['profile']}] {item['reference']} -> {item['candidate']}: {item['signature']}")
+    silenced = summary.get("silenced", [])
+    print(f"\nLoud -> silent (reference panicked or rejected; candidate returns a wrong result): {len(silenced)}")
+    for item in silenced[:show]:
+        print(f"  {item['case']} [{item['profile']}] {item['reference']} -> wrong_result; reference: {item['signature']}")
+    if "previously_reviewed" in summary.get("roles", {}):
+        lost = summary.get("lost_fixes", [])
+        print(f"\nLost fixes (previously reviewed candidate validated or failed loudly; candidate fails/is wrong): {len(lost)}")
+        for item in lost[:show]:
+            print(f"  {item['case']} [{item['profile']}] {item['previous']} -> {item['candidate']}: {item['signature']}")
+    for role, groups in summary.get("layer_hazards", {}).items():
+        sha = summary.get("roles", {}).get(role, "")
+        print(f"\nIntermediate-layer hazards at {role} {sha[:12]} (broken there, correct at the candidate): "
+              f"{sum(g['count'] for g in groups)}")
+        for group in groups[:show]:
+            print(f"  {group['count']:5} [{group['profile']}] reference {group['reference']}, layer {group['layer']}; "
+                  f"e.g. {', '.join(group['examples'])}")
     print(f"\nCandidate failures by signature ({len(summary['candidate_failures'])} groups):")
     for group in summary["candidate_failures"][:show]:
         print(f"  {group['count']:5} [{group['profile']}] {group['status']}: {group['signature']}")
@@ -161,6 +270,33 @@ def print_summary(summary, show=10):
     )
     for item in hierarchy["new_at_candidate"][:show]:
         print(f"  {item['case']}: {item['lower']} validated, {item['higher']} {item['status']}")
+    if hierarchy.get("candidate_groups"):
+        print("  Candidate violations by higher-profile signature:")
+        for group in hierarchy["candidate_groups"][:show]:
+            print(f"  {group['count']:5} {group['lower']} validated, {group['higher']} {group['status']}: "
+                  f"{group['signature']}; reference {group['reference']}; e.g. {', '.join(group['examples'])}")
+    gaps = summary.get("pipeline_gaps", [])
+    if gaps:
+        print(f"\nCandidate's own extracted test programs that fail end to end ({sum(g['count'] for g in gaps)} programs; "
+              "the cargo tests pass, so their helpers skip part of the user pipeline):")
+        for gap in gaps[:show]:
+            print(f"  {gap['count']:5} {gap['test']}: {', '.join(gap['statuses'])}; e.g. {', '.join(gap['examples'])}")
+    identity = summary.get("qir_identity", {})
+    if identity:
+        total = identity.get("identical", 0) + identity.get("different", 0)
+        print(f"\nIdentical QIR at both endpoints: {identity.get('identical', 0)}/{total} compilations"
+              + (f" ({identity.get('unvalidated_identical', 0)}/"
+                 f"{identity.get('unvalidated_identical', 0) + identity.get('unvalidated_different', 0)} "
+                 "for observe/compile-only cases, where identity is the only evidence)"
+                 if identity.get("unvalidated_identical", 0) + identity.get("unvalidated_different", 0) else ""))
+    outliers = summary.get("compile_outliers", [])
+    limits = summary.get("compile_outlier_thresholds", {"ratio": OUTLIER_RATIO, "seconds": OUTLIER_SECONDS})
+    print(f"\nCompile-time outliers (candidate >= {limits['ratio']}x and +{limits['seconds']}s over the reference, "
+          f"same case and profile): {len(outliers)}")
+    for item in outliers[:show]:
+        print(f"  {item['ratio']:6.2f}x {item['case']} [{item['profile']}] {item['reference']}s -> {item['candidate']}s")
+    if outliers:
+        print("  Concurrent sweep timings; confirm with `review.py timing` before reporting.")
     print("\nMedian compile seconds (concurrent sweep; not a performance measurement):")
     for key, value in summary["compile_seconds_median"].items():
         print(f"  {key}: {value}")
@@ -196,7 +332,8 @@ def compare_runs(run_a, run_b, side="candidate", examples=5):
         "reference_changes": reference_changes,
         "changes": [
             {"profile": p, "a": old, "b": new, "count": len(ids), "examples": ids[:examples],
-             "direction": "better" if new == "validated" else "worse" if old == "validated" else "changed"}
+             "direction": "better" if new == "validated" else "worse" if old == "validated"
+             else "worse (silent)" if old in LOUD and new == "wrong_result" else "changed"}
             for (p, old, new), ids in sorted(changes.items(), key=lambda item: (-len(item[1]), item[0]))
         ],
     }

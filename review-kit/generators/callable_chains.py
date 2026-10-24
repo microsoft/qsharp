@@ -18,7 +18,11 @@ applies it to a register. The oracle is built in:
 
 Families: inline (single-register callables), layout (``(Int, Qubit[]) => Unit``
 callables with holes in different positions), python (factories called from Python
-through the callable API, composed in Python, passed to an entry operation).
+through the callable API, composed in Python, passed to an entry operation directly or
+inside a struct).
+
+Callable arrays appear plainly, nested (one factory, inner closures capturing arrays of
+different lengths), held in structs, and as arrays of closures over captured loop counts.
 
 Usage:
     python review-kit/generators/callable_chains.py OUT_DIR --inline 1600 --layout 800 \
@@ -143,6 +147,14 @@ class MX:
         return self.models[x]
 
 
+def power(model, k):
+    """`model` applied k times in sequence."""
+    result = model
+    for _ in range(k - 1):
+        result = result.then(model)
+    return result
+
+
 def effect(rng):
     if rng.random() < 0.4:
         index = rng.randrange(3)
@@ -211,7 +223,10 @@ class Chain:
         T, LAM, P, H, SF = self.T, self.LAM, self.P, self.HOLES, self.SFX
         options = ["pass", "wrap_lambda", "wrap_partial", "adj_factory", "struct", "struct_factory", "tuple",
                    "newtype", "nested_struct", "select_static", "select_mutable_later", "array_static",
-                   "array_mutable_index", "reassign", "alias", "choose_param", "array_closure", "seq"]
+                   "array_mutable_index", "reassign", "alias", "choose_param", "array_closure", "seq",
+                   "array_closure_nested", "array_in_struct"]
+        if not isinstance(self, LayoutChain):  # `T` is shadowed here; repetition needs one-argument callables
+            options += ["repeat_array"]
         if inner.fn_safe:
             options += ["factory_body", "factory_body"]
         if self.allow_effects and not inner.dyn:
@@ -311,6 +326,30 @@ class Chain:
                 return node(s, f"MkArr{n}([{e}, {d.expr}])", m.then(d.model), stages={"array", "closure", "factory"})
             return node(s + [f"let ops{n} : {T}[] = [{d.expr}, {e}];"], f"{LAM} => ApplyAll{SF}(ops{n}, {P})",
                         d.model.then(m), stages={"array", "closure"})
+        if w == "array_closure_nested":
+            # One factory, inner closures capturing callable arrays of different lengths.
+            d1, d2 = self.decoy(), self.decoy()
+            self.decls.append(f"function MkAll{n}(ops : {T}[]) : {T} {{ ApplyAll{SF}(ops, {H}) }}")
+            if r.random() < 0.5:
+                return node(s, f"MkAll{n}([MkAll{n}([{e}]), MkAll{n}([{d1.expr}, {d2.expr}])])",
+                            m.then(d1.model).then(d2.model), stages={"array", "closure", "factory"})
+            return node(s, f"MkAll{n}([MkAll{n}([{d1.expr}, {d2.expr}]), MkAll{n}([{e}])])",
+                        d1.model.then(d2.model).then(m), stages={"array", "closure", "factory"})
+        if w == "array_in_struct":
+            d = self.decoy()
+            self.decls.append(f"struct ArrBox{n} {{ Ops : {T}[], Tag : Int }}")
+            self.decls.append(f"function MkFromBox{n}(b : ArrBox{n}) : {T} {{ ApplyAll{SF}(b.Ops, {H}) }}")
+            return node(s, f"MkFromBox{n}(new ArrBox{n} {{ Ops = [{e}, {d.expr}], Tag = 2 }})", m.then(d.model),
+                        stages={"array", "record", "closure", "factory"})
+        if w == "repeat_array":
+            # Closures over captured loop bounds, kept in a callable array.
+            d, k1, k2 = self.decoy(), r.randint(1, 3), r.randint(1, 3)
+            self.decls.append(f"operation Rep{n}(op : {T}, k : Int, qs : Qubit[]) : Unit is Adj + Ctl "
+                              f"{{ for _ in 1..k {{ op(qs); }} }}")
+            self.decls.append(f"function MkRep{n}(op : {T}, k : Int) : {T} {{ Rep{n}(op, k, _) }}")
+            return node(s + [f"let reps{n} : {T}[] = [MkRep{n}({e}, {k1}), MkRep{n}({d.expr}, {k2})];"],
+                        f"ApplyAll(reps{n}, _)", power(m, k1).then(power(d.model, k2)),
+                        stages={"array", "closure", "factory", "loop"})
         if w == "seq":
             d = self.decoy()
             if r.random() < 0.5:
@@ -494,8 +533,12 @@ def layout_application(rng, model, ctl_on, x):
             m.then(body).then(m.adj()), {"within"})
 
 
-def harness(rng, node, dynamic, name, apply, param=None):
-    """Wrap the chain in an operation; returns (code, expected bits, stages)."""
+def harness(rng, node, dynamic, name, apply, param=None, ty=T):
+    """Wrap the chain in an operation; returns (code, expected bits, stages).
+
+    `f` is bound with its callable type: an unannotated `let` of a lambda gets no functors,
+    which makes `within`/`Adjoint` uses of it invalid programs rather than compiler tests.
+    """
     init, ctl_on = rng.randrange(8), rng.random() < 0.7
     code, model, stages = apply(ctl_on)
     state = init
@@ -510,8 +553,9 @@ def harness(rng, node, dynamic, name, apply, param=None):
     if ctl_on:
         lines.append("X(ctl);")
     lines.append("H(qs[3]);")
+    lines += node.stmts
     if param is None:
-        lines += node.stmts + [f"let f = {node.expr};"]
+        lines.append(f"let f : {ty} = {node.expr};")
     lines.append(code)
     if correction:
         lines.append(f"Rz({correction}.0 * {HALF_PI}, qs[3]);")
@@ -556,10 +600,12 @@ def layout_case(rng, index, profiles, dynamic_rate, effects_rate):
         for _ in range(rng.randint(0, 3)):
             node = chain.wrap(node)
         apply = lambda ctl_on: application(rng, node.model, ctl_on)  # noqa: E731
+        ty = T
     else:
         x = rng.randrange(8)
         apply = lambda ctl_on: layout_application(rng, node.model, ctl_on, x)  # noqa: E731
-    main, expected, stages = harness(rng, node, dynamic or node.dyn, "Main", apply)
+        ty = T2
+    main, expected, stages = harness(rng, node, dynamic or node.dyn, "Main", apply, ty=ty)
     source = PRELUDE + "\n".join(decls) + "\n@EntryPoint()\n" + main + "\n"
     return _case(f"gl-{index:04d}", "layout", node.stages | stages | ({"dynamic"} if node.dyn else set()),
                  expected, profiles, source=source, entry="Main()")
@@ -575,6 +621,10 @@ PY_HELPERS = [
     f"struct PyBox {{ Head : Int, F : {T} }}",
     f"function PyMkBox(op : {T}) : PyBox {{ new PyBox {{ Head = 7, F = op }} }}",
     f"function PyUnbox(b : PyBox) : {T} {{ b.F }}",
+    f"operation PyApplyBox(b : PyBox, qs : Qubit[]) : Unit is Adj + Ctl {{ b.F(qs); }}",
+    f"function PyCapBox(b : PyBox) : {T} {{ PyApplyBox(b, _) }}",
+    f"operation PyRep(op : {T}, k : Int, qs : Qubit[]) : Unit is Adj + Ctl {{ for _ in 1..k {{ op(qs); }} }}",
+    f"function PyMkRep(op : {T}, k : Int) : {T} {{ PyRep(op, k, _) }}",
 ]
 
 
@@ -588,7 +638,7 @@ def python_case(rng, index, profiles, adapters):
     chain.decls += PY_HELPERS
     expr, model, stages = "c.Build()", node.model, set(node.stages) | {"python"}
     for _ in range(rng.randint(1, 4)):
-        step = rng.choice(["pass", "wrap", "adj", "choose", "arr", "box", "seq"])
+        step = rng.choice(["pass", "wrap", "adj", "choose", "arr", "box", "seq", "capbox", "nested_arr", "rep"])
         if step == "pass":
             expr = f"c.PyPass({expr})"
         elif step == "wrap":
@@ -597,6 +647,21 @@ def python_case(rng, index, profiles, adapters):
             expr, model, stages = f"c.PyAdj({expr})", model.adj(), stages | {"functor", "factory"}
         elif step == "box":
             expr, stages = f"c.PyUnbox(c.PyMkBox({expr}))", stages | {"record", "factory"}
+        elif step == "capbox":
+            expr, stages = f"c.PyCapBox(c.PyMkBox({expr}))", stages | {"record", "closure", "factory"}
+        elif step == "rep":
+            k = rng.randint(1, 3)
+            expr, model, stages = f"c.PyMkRep({expr}, {k})", power(model, k), stages | {"closure", "factory", "loop"}
+        elif step == "nested_arr":
+            names = []
+            for _ in range(2):
+                decoy = chain.decoy()
+                names.append((f"PyDecoy{chain.fresh()}", decoy))
+                chain.decls.append(f"function {names[-1][0]}() : {T} {{ {decoy.expr} }}")
+            (a, da), (b, db) = names
+            expr = f"c.PyArr([c.PyArr([{expr}]), c.PyArr([c.{a}(), c.{b}()])])"
+            model = model.then(da.model).then(db.model)
+            stages |= {"array", "closure", "factory"}
         else:
             decoy = chain.decoy()
             name = f"PyDecoy{chain.fresh()}"
@@ -616,12 +681,19 @@ def python_case(rng, index, profiles, adapters):
             else:
                 expr, model = f"c.PySeq({expr}, c.{name}())", model.then(decoy.model)
                 stages |= {"closure", "factory"}
-    run, expected, app_stages = harness(rng, Node([], "f", model), False, "Run",
-                                        lambda ctl_on: application(rng, model, ctl_on), param=f"f : {T}")
+    # Sometimes the entry takes a struct holding the callable, built in Python.
+    boxed = rng.random() < 0.25
+    entry_node = Node(["let f = b.F;"], "f", model) if boxed else Node([], "f", model)
+    run, expected, app_stages = harness(rng, entry_node, False, "Run",
+                                        lambda ctl_on: application(rng, model, ctl_on),
+                                        param="b : PyBox" if boxed else f"f : {T}")
+    if boxed:
+        app_stages = app_stages | {"record"}
     source = PRELUDE + "\n".join(chain.decls) + "\n" + run + "\n"
     path = adapters / f"gp_{index:04d}.py"
+    argument = "c.PyMkBox(f)" if boxed else "f"
     path.write_text(f"SRC = {source!r}\n\n\ndef prepare(ctx):\n    ctx.eval(SRC)\n    c = ctx.code\n"
-                    f"    f = {expr}\n    return c.Run, (f,)\n")
+                    f"    f = {expr}\n    return c.Run, ({argument},)\n")
     return _case(f"gp-{index:04d}", "python", stages | app_stages, expected, profiles,
                  adapter=f"adapters/{path.name}")
 

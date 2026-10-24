@@ -11,7 +11,7 @@ import tempfile
 
 from harness.builds import build_revision, worker_environment
 from harness.cases import load_cases
-from harness.common import KIT, ReviewError, digest, file_digest, isolated, preflight, write_json
+from harness.common import KIT, ReviewError, digest, file_digest, isolated, preflight, select_roles, write_json
 
 
 def stage(config, build, case, name, profile=None, qir_path=None):
@@ -180,8 +180,9 @@ def prune_qir(config, case, results):
                 Path(path).unlink()
 
 
-def create_run(config, cases_path, mode):
+def create_run(config, cases_path, mode, roles=None):
     tools = preflight(config)
+    roles = select_roles(config, roles)
     root = Path(config["work_dir"]) / "runs"
     root.mkdir(parents=True, exist_ok=True)
     directory = Path(tempfile.mkdtemp(prefix=datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ-"), dir=root))
@@ -202,12 +203,9 @@ def create_run(config, cases_path, mode):
     write_json(directory / "manifest.json", manifest)
     write_json(directory / "cases.json", cases)
     try:
-        builds = {
-            role: build_revision(config, sha, mode, tools)
-            for role, sha in config["refs"].items()
-            if role != "previously_reviewed"
-        }
+        builds = {role: build_revision(config, config["refs"][role], mode, tools) for role in roles}
         manifest["builds"] = builds
+        manifest["roles"] = roles
         write_json(directory / "manifest.json", manifest)
 
         def execute(case):
@@ -221,8 +219,20 @@ def create_run(config, cases_path, mode):
                 if "historical_reference" in results
                 else None
             )
+            # Lost fixes: what the previously reviewed candidate did versus the current candidate.
+            previous = (
+                compare(case, results["previously_reviewed"], results["candidate"])
+                if "previously_reviewed" in results
+                else None
+            )
+            layers = {
+                role: {profile: endpoint(case, results[role], profile) for profile in case["profiles"]}
+                for role in results
+                if role.startswith("layer")
+            } or None
             prune_qir(config, case, results)
-            return {"case": case["id"], "results": results, "comparison": comparison, "historical": historical}
+            return {"case": case["id"], "results": results, "comparison": comparison, "historical": historical,
+                    "previous": previous, "layers": layers}
 
         # Rows are appended as cases finish so slow cases never hide progress; the file
         # is rewritten in manifest order once every case has completed.

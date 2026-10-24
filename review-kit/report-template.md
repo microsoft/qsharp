@@ -19,7 +19,8 @@ current) and keep that terminology throughout.
 - New or changed commits (from `git range-diff`); stacks with identical trees.
 - Rerun results versus the previous candidate (`review.py compare`): unchanged
   suites, new fixes, new failures.
-- Status of every earlier finding: resolved, unchanged, or changed shape.
+- Status of every earlier finding: resolved, unchanged, or changed shape, from
+  `review.py recheck` (cached cases and scripts, or the previous report's repros).
 
 For a follow-up PR reviewed on top of the candidate, put a dated update section
 here instead: inputs and merge commit, what it restores/fixes/regresses, and the
@@ -55,8 +56,17 @@ Observed output:
 <actual output, including failures and exit statuses>
 ```
 
-Repeat this full structure for every unresolved issue. Do not substitute a local
-absolute project path for a self-contained repro.
+Repeat this full structure for every unresolved issue, including performance
+regressions confirmed with `review.py timing` (per-revision medians and ratios, and
+the client entry points affected). Do not substitute a local absolute project path
+for a self-contained repro.
+
+### Merge-order hazards
+
+Only for stacked PRs reviewed with `layers`: programs an intermediate layer breaks or
+silently miscompiles that the full stack gets right (`summarize`'s intermediate-layer
+hazards), the layer, the repairing layer, and the client impact if that layer merges
+alone.
 
 ## 2. Fixed issues
 
@@ -66,6 +76,9 @@ and whether commits/PRs reference the issue. Separate partial fixes and acceptan
 without semantic validation.
 
 ## 3. Non-regression issues
+
+List loud → silent cases (`summarize`) first: a reference panic or rejection that
+became a wrong result is a non-regression by verdict but needs the full structure.
 
 Use the full unresolved-issue structure above. Show the reference failure; explain
 whether this is the original trigger, a new trigger, or a demonstrated distinct

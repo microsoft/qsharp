@@ -9,10 +9,19 @@
     "candidate": { "type": "string", "minLength": 1 },
     "previously_reviewed": { "type": "string", "minLength": 1 },
     "historical_reference": { "type": "string", "minLength": 1 },
+    "layers": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
     "repository": { "type": "string", "minLength": 1 },
     "venv": { "type": "string", "minLength": 1 },
     "work_dir": { "type": "string", "minLength": 1 },
     "report": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$" },
+    "cache_dir": { "type": "string", "minLength": 1 },
+    "cache_budget_mb": { "type": "integer", "minimum": 1 },
     "profiles": {
       "type": "array",
       "minItems": 1,

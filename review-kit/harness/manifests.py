@@ -26,8 +26,18 @@ def rebase_paths(case, source_manifest, output):
     return case
 
 
+def _content(case):
+    """A case's identity for de-duplication: everything except provenance notes."""
+    return {key: value for key, value in case.items() if key not in ("origin", "notes")}
+
+
 def subset_manifests(manifests, output, ids=(), patterns=()):
-    """Select cases by exact ID or glob across manifests; IDs must stay unique."""
+    """Select cases by exact ID or glob across manifests.
+
+    The same ID with the same content (provenance aside) is merged, keeping the first: extracted
+    test programs hash their source, so manifests from several revisions overlap. The same ID
+    with different content is an error.
+    """
     if not ids and not patterns:
         raise ReviewError("Select cases with --ids and/or --match")
     schema = read_json(KIT / "cases.schema.json")
@@ -37,10 +47,14 @@ def subset_manifests(manifests, output, ids=(), patterns=()):
         validate(cases, schema, str(manifest))
         for case in cases:
             if case["id"] in wanted or any(fnmatch.fnmatch(case["id"], p) for p in patterns):
+                rebased = rebase_paths(case, manifest, output)
                 if case["id"] in seen:
-                    raise ReviewError(f"Case {case['id']} appears in both {seen[case['id']]} and {manifest}")
-                seen[case["id"]] = manifest
-                selected.append(rebase_paths(case, manifest, output))
+                    first, index = seen[case["id"]]
+                    if _content(selected[index]) != _content(rebased):
+                        raise ReviewError(f"Case {case['id']} appears in both {first} and {manifest} with different content")
+                    continue
+                seen[case["id"]] = (manifest, len(selected))
+                selected.append(rebased)
     missing = sorted(wanted - set(seen))
     if missing:
         raise ReviewError(f"Case IDs not found: {', '.join(missing[:20])}")

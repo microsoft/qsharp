@@ -8,7 +8,7 @@ import re
 import subprocess
 
 from harness.builds import build_revision, worker_environment
-from harness.common import ReviewError, git, preflight, resolve_ref, write_json
+from harness.common import ReviewError, git, ordered_roles, preflight, resolve_ref, write_json
 
 PANIC = re.compile(r"panicked at ([^\s:]+):(\d+):(\d+):\n(.*)")
 EXCEPTION = re.compile(r"^((?:[A-Za-z_][\w]*\.)*[A-Za-z_]\w*(?:Error|Exception)): ?(.*)$", re.M)
@@ -44,7 +44,7 @@ def last_exception(output):
 def resolve_targets(config, roles=None, refs=None):
     if refs:
         return [(ref, resolve_ref(config["repository"], ref)) for ref in refs]
-    roles = roles or [role for role in config["refs"] if role != "previously_reviewed"]
+    roles = roles or ordered_roles(config["refs"])
     missing = [role for role in roles if role not in config["refs"]]
     if missing:
         raise ReviewError(f"Configuration has no {', '.join(missing)}")

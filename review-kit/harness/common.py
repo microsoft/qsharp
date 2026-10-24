@@ -139,6 +139,14 @@ def load_config(path):
         for name in ("reference", "candidate", "historical_reference", "previously_reviewed")
         if name in raw
     }
+    # Intermediate heads of a PR stack: extra columns named layer1, layer2, ... (oldest first).
+    layers = []
+    for index, ref in enumerate(raw.get("layers", []), 1):
+        role = f"layer{index}"
+        refs[role] = resolve_ref(repo, ref)
+        layers.append({"role": role, "ref": ref, "sha": refs[role]})
+    report = (base / raw.get("report", "review.md")).resolve()
+    cache_root = raw.get("cache_dir") or os.environ.get("REVIEW_KIT_CACHE") or str(repo.parent / "cache" / "review-kit")
     clients = []
     for client in raw.get("clients", []):
         root = (base / client["path"]).resolve()
@@ -157,7 +165,11 @@ def load_config(path):
         "refs": refs,
         "venv": str((base / raw.get("venv", str(repo / ".venv"))).resolve()),
         "work_dir": str((base / raw.get("work_dir", str(KIT / ".work"))).resolve()),
-        "report": str((base / raw.get("report", "review.md")).resolve()),
+        "report": str(report),
+        "layers": layers,
+        "name": raw.get("name") or re.sub(r"[^A-Za-z0-9_.-]", "-", report.stem) or "review",
+        "cache_dir": str((base / cache_root).resolve()),
+        "cache_budget_mb": raw.get("cache_budget_mb", 50),
         "profiles": raw.get("profiles", PROFILES),
         "debug_validation": raw.get("debug_validation", "targeted"),
         "keep_qir": raw.get("keep_qir", False),
@@ -165,6 +177,24 @@ def load_config(path):
         "clients": clients,
         "checkout_status": git(repo, "status", "--porcelain"),
     }
+
+
+def ordered_roles(refs):
+    """Roles in chronological display order: historical, previous, reference, layers, candidate."""
+    layers = sorted((r for r in refs if re.fullmatch(r"layer\d+", r)), key=lambda r: int(r[5:]))
+    order = ["historical_reference", "previously_reviewed", "reference", *layers, "candidate"]
+    return [role for role in order if role in refs] + [r for r in refs if r not in order]
+
+
+def select_roles(config, extra=None):
+    """Reference and candidate always; other configured roles unless `extra` narrows them."""
+    roles = ordered_roles(config["refs"])
+    if extra is None:
+        return roles
+    unknown = [role for role in extra if role not in config["refs"]]
+    if unknown:
+        raise ReviewError(f"Configuration has no {', '.join(unknown)}")
+    return [role for role in roles if role in ("reference", "candidate") or role in extra]
 
 
 def preflight(config):
