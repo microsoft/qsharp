@@ -92,6 +92,97 @@ fn compile_source_to_qir_result(
 }
 
 #[test]
+fn early_return_skips_later_loop_conditional() {
+    let source = r#"
+        operation Main() : Int {
+            if true { return 1; }
+            if true { return 2; } else { for i in [0] { return 3; } }
+            return 4;
+        }
+    "#;
+    for profile in [Profile::Adaptive, Profile::AdaptiveRI, Profile::AdaptiveRIF] {
+        let qir = compile_source_to_qir(source, profile.into());
+        assert!(
+            qir.contains("call void @__quantum__rt__int_record_output(i64 1,"),
+            "{profile:?}: {qir}"
+        );
+    }
+}
+
+#[test]
+fn functored_local_after_early_return_generates_qir() {
+    for initializer in ["U", "[U, V][1]"] {
+        for invocation in [
+            "f()",
+            "Adjoint f()",
+            "Adjoint Adjoint f()",
+            "Controlled f([], ())",
+            "Controlled Adjoint f([], ())",
+            "Controlled Controlled f([], ([], ()))",
+        ] {
+            let source = format!(
+                r#"
+                operation U() : Unit is Adj + Ctl {{}}
+                operation V() : Unit is Adj + Ctl {{}}
+                operation Main() : Unit {{
+                    if false {{ return (); }}
+                    let f = {initializer};
+                    {invocation};
+                }}
+                "#
+            );
+            for profile in [
+                Profile::Base,
+                Profile::AdaptiveRI,
+                Profile::AdaptiveRIF,
+                Profile::Adaptive,
+            ] {
+                compile_source_to_qir(&source, profile.into());
+            }
+        }
+    }
+}
+
+#[test]
+fn nested_callable_selectors_generate_correct_qir_on_every_profile() {
+    let source = r#"
+        operation A(q : Qubit[]) : Unit { X(q[0]); }
+        operation B(q : Qubit[]) : Unit { X(q[1]); }
+        function Choose(flag : Bool, a : Qubit[] => Unit, b : Qubit[] => Unit) : Qubit[] => Unit {
+            if flag { a } else { b }
+        }
+        operation Main() : Result[] {
+            use q = Qubit[2];
+            let f = Choose(1 < 2, Choose(1 < 2, A, B), B);
+            f(q);
+            MResetEachZ(q)
+        }
+    "#;
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let qir = compile_source_to_qir(source, profile.into());
+        if profile == Profile::Adaptive {
+            assert_eq!(qir.matches("call void @X(").count(), 1, "{qir}");
+            assert!(
+                qir.contains("call void @X(ptr inttoptr (i64 0 to ptr))"),
+                "{qir}"
+            );
+            assert_eq!(
+                qir.matches("call void @__quantum__qis__x__body").count(),
+                1,
+                "{qir}"
+            );
+        } else {
+            assert_x_targets(&qir, &[0]);
+        }
+    }
+}
+
+#[test]
 fn expanding_polymorphic_recursion_reports_source_errors_on_every_compile_profile() {
     let sources = [
         // Array growth with a captured callable used to reach a closure-layout panic.
@@ -2737,6 +2828,1049 @@ fn interpreter_with_capabilities(
         Default::default(),
     )
     .expect("interpreter should be created")
+}
+
+fn assert_runtime_argument_type_error(
+    errors: &[crate::interpret::Error],
+    expected_type: &str,
+    actual_type: &str,
+) {
+    assert_eq!(errors.len(), 1, "{errors:?}");
+    let error = &errors[0];
+    let crate::interpret::Error::InvalidRuntimeCallableArgumentType { expected, actual } = error
+    else {
+        panic!("expected a runtime callable signature diagnostic, got {error:?}");
+    };
+    assert_eq!(expected.to_string(), expected_type);
+    assert_eq!(actual.to_string(), actual_type);
+    assert_eq!(
+        miette::Diagnostic::code(error)
+            .expect("diagnostic code")
+            .to_string(),
+        "Qdk.Qsc.Interpret.InvalidRuntimeCallableArgumentType"
+    );
+}
+
+fn runtime_argument_global(interpreter: &crate::interpret::Interpreter, name: &str) -> Value {
+    interpreter
+        .user_globals()
+        .into_iter()
+        .chain(interpreter.source_globals())
+        .find(|global| global.name.as_ref() == name)
+        .expect("source global")
+        .value
+}
+
+#[test]
+fn runtime_callable_argument_signature_mismatch_is_rejected() {
+    let source = r#"
+        namespace Test {
+            function DoubleFunc(x : Int) : Double { 0.5 }
+            function WrongInput(x : Double) : Int { 0 }
+            operation WrongKind(x : Int) : Int { 0 }
+            operation NotFromFunc(f : Int -> Int) : Int { ~~~f(0) }
+        }
+    "#;
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let mut interpreter = interpreter_with_capabilities(profile.into());
+        eval_fragments(&mut interpreter, source);
+        let target = eval_fragments(&mut interpreter, "Test.NotFromFunc");
+        for (argument, expected, actual) in [
+            ("Test.DoubleFunc", "Int", "Double"),
+            ("Test.WrongInput", "Int", "Double"),
+            ("Test.WrongKind", "(Int -> Int)", "(Int => Int)"),
+        ] {
+            let args = eval_fragments(&mut interpreter, argument);
+            let errors = interpreter
+                .qirgen_from_callable(&target, args)
+                .expect_err("incompatible callable must not produce QIR");
+            assert_runtime_argument_type_error(&errors, expected, actual);
+        }
+        let errors = interpreter
+            .qirgen("Test.NotFromFunc(Test.DoubleFunc)")
+            .expect_err("inline call must retain source type checking");
+        assert!(matches!(&errors[0], crate::interpret::Error::Compile(_)));
+        assert!(format!("{errors:?}").contains("TyMismatch"));
+    }
+}
+
+#[test]
+fn runtime_callable_argument_aggregate_mismatch_is_rejected() {
+    let source = r#"
+        namespace Test {
+            function Good(x : Int) : Int { x }
+            function Bad(x : Int) : Double { 0.5 }
+            struct Config { Transform : Int -> Int, Data : Int }
+            operation Nested(pair : (Int, (Int -> Int, Int))) : Unit {
+                let (_, (f, n)) = pair;
+                let _ = f(n);
+            }
+            operation Each(fs : (Int -> Int)[]) : Unit {
+                for f in fs { let _ = f(0); }
+            }
+            operation Wrapped(config : Config) : Unit { let _ = config.Transform(0); }
+        }
+    "#;
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let caps = profile.into();
+        let (store, pkg, items) = compile_and_locate_items(
+            source,
+            &[
+                ("Good", true),
+                ("Bad", true),
+                ("Nested", true),
+                ("Each", true),
+                ("Wrapped", true),
+                ("Config", false),
+            ],
+            caps,
+        );
+        let good = Value::Global(fir_id_for(pkg, items["Good"]), FunctorApp::default());
+        let bad = Value::Global(fir_id_for(pkg, items["Bad"]), FunctorApp::default());
+        for (target, args) in [
+            (
+                "Nested",
+                Value::Tuple(
+                    vec![
+                        Value::Int(0),
+                        Value::Tuple(vec![bad.clone(), Value::Int(0)].into(), None),
+                    ]
+                    .into(),
+                    None,
+                ),
+            ),
+            ("Each", Value::Array(vec![good, bad.clone()].into())),
+            (
+                "Wrapped",
+                Value::Tuple(
+                    vec![bad, Value::Int(0)].into(),
+                    Some(Rc::new(fir_id_for(pkg, items["Config"]))),
+                ),
+            ),
+        ] {
+            let errors = prepare_codegen_fir_from_callable_args(
+                &store,
+                hir_id_for(pkg, items[target]),
+                &args,
+                caps,
+            )
+            .err()
+            .expect("all callable positions must be checked");
+            assert_runtime_argument_type_error(&errors, "Int", "Double");
+        }
+    }
+}
+
+#[test]
+fn runtime_callable_argument_closure_mismatch_is_rejected() {
+    let source = r#"
+        namespace Test {
+            function Partial(x : Int, y : Int) : Double { 0.5 }
+            function MakeBad() : (Int -> Double) { x -> 0.5 }
+            function Capture<'T>(value : 'T) : (Int -> 'T) { x -> value }
+            operation Run(f : Int -> Int) : Unit { let _ = f(0); }
+        }
+    "#;
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let mut interpreter = interpreter_with_capabilities(profile.into());
+        eval_fragments(&mut interpreter, source);
+        let target = eval_fragments(&mut interpreter, "Test.Run");
+        for argument in ["Test.MakeBad()", "Test.Partial(1, _)", "Test.Capture(0.5)"] {
+            let args = eval_fragments(&mut interpreter, argument);
+            let errors = interpreter
+                .qirgen_from_callable(&target, args)
+                .expect_err("closure's remaining signature must be checked");
+            assert_runtime_argument_type_error(&errors, "Int", "Double");
+        }
+    }
+}
+
+#[test]
+fn runtime_callable_argument_generic_bindings_are_consistent_and_scoped() {
+    let source = r#"
+        namespace Test {
+            function Identity<'T>(x : 'T) : 'T { x }
+            operation Wrong(f : Int -> Double) : Unit { let _ = f(0); }
+            operation Pair<'T>(value : 'T, f : 'T -> 'T) : Unit { let _ = f(value); }
+            operation Independent<'T>(value : 'T, f : Int -> Int) : Unit { let _ = (value, f(0)); }
+        }
+    "#;
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let mut interpreter = interpreter_with_capabilities(profile.into());
+        eval_fragments(&mut interpreter, source);
+        let identity = runtime_argument_global(&interpreter, "Identity");
+        let wrong = eval_fragments(&mut interpreter, "Test.Wrong");
+        let errors = interpreter
+            .qirgen_from_callable(&wrong, identity.clone())
+            .expect_err("one type parameter cannot be both Int and Double");
+        assert_runtime_argument_type_error(&errors, "Double", "Int");
+
+        let pair = runtime_argument_global(&interpreter, "Pair");
+        let args = Value::Tuple(vec![Value::Int(1), identity.clone()].into(), None);
+        interpreter
+            .qirgen_from_callable(&pair, args)
+            .expect("shared type requirements should infer Int");
+
+        let independent = runtime_argument_global(&interpreter, "Independent");
+        let args = Value::Tuple(vec![Value::Double(0.5), identity].into(), None);
+        interpreter
+            .qirgen_from_callable(&independent, args)
+            .expect("distinct declarations' type parameters must not conflict");
+    }
+}
+
+#[test]
+fn runtime_callable_argument_mismatch_is_checked_before_reinvocation() {
+    let source = r#"
+        namespace Test {
+            function Bad(x : Int) : Double { 0.5 }
+            operation Run(q : Qubit, n : Int, f : Int -> Int) : Unit { let _ = f(n); }
+        }
+    "#;
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let caps = profile.into();
+        let (store, pkg, items) =
+            compile_and_locate_items(source, &[("Bad", true), ("Run", true)], caps);
+        let qubit = Rc::new(qsc_eval::val::Qubit(0));
+        for n in [
+            Value::Int(0),
+            Value::Var(qsc_eval::val::Var {
+                id: 0,
+                ty: qsc_eval::val::VarTy::Integer,
+            }),
+        ] {
+            let args = Value::Tuple(
+                vec![
+                    Value::Qubit((&qubit).into()),
+                    n,
+                    Value::Global(fir_id_for(pkg, items["Bad"]), FunctorApp::default()),
+                ]
+                .into(),
+                None,
+            );
+            let errors = prepare_codegen_fir_from_callable_args(
+                &store,
+                hir_id_for(pkg, items["Run"]),
+                &args,
+                caps,
+            )
+            .err()
+            .expect("runtime identities or unknown siblings must not bypass the check");
+            assert_runtime_argument_type_error(&errors, "Int", "Double");
+        }
+    }
+}
+
+#[test]
+fn runtime_callable_argument_valid_values_match_source_qir() {
+    let source = r#"
+        namespace Test {
+            function Good(x : Int) : Int { x }
+            function Identity<'T>(x : 'T) : 'T { x }
+            function Add(x : Int, y : Int) : Int { x + y }
+            operation Run(f : Int -> Int) : Result {
+                use q = Qubit();
+                if f(0) == 0 { X(q); }
+                MResetZ(q)
+            }
+            operation Each(fs : (Int -> Int)[]) : Result {
+                use q = Qubit();
+                for f in fs { if f(0) == 0 { X(q); } }
+                MResetZ(q)
+            }
+        }
+    "#;
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let mut interpreter = interpreter_with_capabilities(profile.into());
+        eval_fragments(&mut interpreter, source);
+        for (target, argument) in [
+            ("Test.Run", "Test.Good"),
+            ("Test.Run", "Test.Identity"),
+            ("Test.Run", "Test.Add(0, _)"),
+            ("Test.Each", "[]"),
+            ("Test.Each", "[Test.Identity]"),
+        ] {
+            let source_call = format!("{target}({argument})");
+            let target = eval_fragments(&mut interpreter, target);
+            let args = match argument {
+                "Test.Identity" => runtime_argument_global(&interpreter, "Identity"),
+                "[]" => Value::Array(Vec::new().into()),
+                "[Test.Identity]" => {
+                    Value::Array(vec![runtime_argument_global(&interpreter, "Identity")].into())
+                }
+                _ => eval_fragments(&mut interpreter, argument),
+            };
+            let qir = interpreter
+                .qirgen_from_callable(&target, args)
+                .expect("valid callable arguments must still compile");
+            let source_qir = interpreter.qirgen(&source_call).expect("source invocation");
+            assert_eq!(qir, source_qir, "{profile:?}: {source_call}");
+        }
+    }
+}
+
+#[test]
+fn runtime_callable_argument_functor_shapes_match_source_qir() {
+    let source = r#"
+        namespace Test {
+            operation Extra(q : Qubit) : Unit is Adj + Ctl { X(q); }
+            operation Run(f : Qubit => Unit is Adj) : Result {
+                use q = Qubit();
+                f(q);
+                MResetZ(q)
+            }
+            operation RunControlled(f : (Qubit[], Qubit) => Unit) : Result {
+                use q = Qubit();
+                f([], q);
+                MResetZ(q)
+            }
+        }
+    "#;
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let mut interpreter = interpreter_with_capabilities(profile.into());
+        eval_fragments(&mut interpreter, source);
+        for (target, argument) in [
+            ("Test.Run", "Test.Extra"),
+            ("Test.Run", "Adjoint Test.Extra"),
+            ("Test.RunControlled", "Controlled Test.Extra"),
+        ] {
+            let source_call = format!("{target}({argument})");
+            let target = eval_fragments(&mut interpreter, target);
+            let args = eval_fragments(&mut interpreter, argument);
+            let qir = interpreter
+                .qirgen_from_callable(&target, args)
+                .expect("supported extra functors and runtime control layers must remain valid");
+            let source_qir = interpreter.qirgen(&source_call).expect("source invocation");
+            assert_eq!(qir, source_qir, "{profile:?}: {source_call}");
+        }
+    }
+}
+
+#[test]
+fn runtime_callable_argument_preserves_nominal_udt_identity() {
+    let source = r#"
+        namespace Test {
+            struct A { Data : Int }
+            struct B { Data : Int }
+            struct Config { Transform : A -> A }
+            newtype Scalar = Int;
+            newtype PairValue = (Int, Int);
+            function Identity<'T>(x : 'T) : 'T { x }
+            function IdA(x : A) : A { x }
+            function IdB(x : B) : B { x }
+            function ToB(x : Int) : B { new B { Data = x } }
+            function MakeA(x : A) : (Unit -> A) { () -> x }
+            operation Run(f : A -> A) : Unit { let _ = f(new A { Data = 0 }); }
+            operation Output(f : Int -> A) : Unit { let _ = f(0); }
+            operation Wrapped(config : Config) : Unit {
+                let _ = config.Transform(new A { Data = 0 });
+            }
+            operation Factory(f : Unit -> A) : Unit { let _ = f(); }
+            operation Alias(f : Scalar -> Scalar) : Unit { let _ = f(Scalar(1)); }
+            operation Same<'T>(left : 'T -> 'T, right : 'T -> 'T) : Unit {}
+            operation TupleInput(data : (Int, Int), f : Int -> Int) : Unit {
+                let (x, y) = data;
+                let _ = f(x + y);
+            }
+        }
+    "#;
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let mut interpreter = interpreter_with_capabilities(profile.into());
+        eval_fragments(&mut interpreter, source);
+        let nominal_type = |value: Value| {
+            let Value::Tuple(_, Some(id)) = value else {
+                panic!("expected a tagged UDT value");
+            };
+            qsc_fir::ty::Ty::Udt(FirRes::Item(qsc_fir::fir::ItemId {
+                package: id.package,
+                item: id.item,
+            }))
+        };
+        let expected = nominal_type(eval_fragments(&mut interpreter, "new Test.A { Data = 0 }"));
+        let actual = nominal_type(eval_fragments(&mut interpreter, "new Test.B { Data = 0 }"));
+        for (target, argument) in [
+            ("Test.Run", "Test.IdB"),
+            ("Test.Output", "Test.ToB"),
+            ("Test.Wrapped", "new Test.Config { Transform = Test.IdB }"),
+            ("Test.Same", "Test.IdA, Test.IdB"),
+        ] {
+            let args = if target == "Test.Same" {
+                Value::Tuple(
+                    vec![
+                        runtime_argument_global(&interpreter, "IdA"),
+                        runtime_argument_global(&interpreter, "IdB"),
+                    ]
+                    .into(),
+                    None,
+                )
+            } else if target == "Test.Wrapped" {
+                let config =
+                    eval_fragments(&mut interpreter, "new Test.Config { Transform = Test.IdA }");
+                let Value::Tuple(_, id) = config else {
+                    panic!("Config tuple");
+                };
+                Value::Tuple(
+                    vec![runtime_argument_global(&interpreter, "IdB")].into(),
+                    id,
+                )
+            } else {
+                eval_fragments(&mut interpreter, argument)
+            };
+            let target_value = runtime_argument_global(
+                &interpreter,
+                target.strip_prefix("Test.").expect("test namespace"),
+            );
+            let errors = interpreter
+                .qirgen_from_callable(&target_value, args)
+                .expect_err("equal payload layouts must not erase a declared type mismatch");
+            assert_runtime_argument_type_error(&errors, &expected.to_string(), &actual.to_string());
+            let source_errors = interpreter
+                .qirgen(&format!("{target}({argument})"))
+                .expect_err("source type checker must reject the same nominal mismatch");
+            assert!(format!("{source_errors:?}").contains("TyMismatch"));
+        }
+        for (target, argument) in [
+            ("Test.Run", "Test.IdA"),
+            ("Test.Factory", "Test.MakeA(new Test.A { Data = 0 })"),
+            ("Test.Alias", "Test.Identity"),
+            ("Test.TupleInput", "Test.PairValue(1, 2)!, Test.Identity"),
+        ] {
+            let target_value = eval_fragments(&mut interpreter, target);
+            let args = if target == "Test.TupleInput" {
+                Value::Tuple(
+                    vec![
+                        eval_fragments(&mut interpreter, "Test.PairValue(1, 2)!"),
+                        runtime_argument_global(&interpreter, "Identity"),
+                    ]
+                    .into(),
+                    None,
+                )
+            } else if argument == "Test.Identity" {
+                runtime_argument_global(&interpreter, "Identity")
+            } else {
+                eval_fragments(&mut interpreter, argument)
+            };
+            let native = interpreter
+                .qirgen_from_callable(&target_value, args)
+                .expect("matching UDT declarations and erased payloads must remain valid");
+            let source = interpreter
+                .qirgen(&format!("{target}({argument})"))
+                .expect("valid source call");
+            assert_eq!(native, source, "{profile:?}: {target}({argument})");
+        }
+    }
+}
+
+fn assert_x_targets(qir: &str, expected: &[usize]) {
+    let calls: Vec<_> = qir
+        .lines()
+        .filter(|line| line.contains("call void @__quantum__qis__x__body("))
+        .collect();
+    assert_eq!(calls.len(), expected.len(), "unexpected X calls:\n{qir}");
+    for (call, &target) in calls.iter().zip(expected) {
+        assert!(
+            call.contains(&format!("inttoptr (i64 {target} to %Qubit*)"))
+                || (target == 0 && call.contains("%Qubit* null")),
+            "expected X on qubit {target}, found {call}:\n{qir}"
+        );
+    }
+}
+
+#[test]
+fn nested_selectors_emit_selected_operation() {
+    for (selection, target) in [
+        ("Choose(1 < 2, A, B)", 0),
+        ("Choose(1 < 2, Choose(1 < 2, A, B), B)", 0),
+        ("Choose(1 < 2, Choose(1 > 2, A, B), B)", 2),
+        ("Choose(1 > 2, Choose(1 < 2, A, B), B)", 2),
+        ("Choose(true, Choose(true, A, B), B)", 0),
+        ("Choose(1 < 2, Make(), B)", 0),
+    ] {
+        for invocation in ["ApplyOne(f, qs)", "f(qs)"] {
+            let source = format!(
+                r#"
+                operation A(qs : Qubit[]) : Unit is Adj + Ctl {{ X(qs[0]); }}
+                operation B(qs : Qubit[]) : Unit is Adj + Ctl {{ X(qs[2]); }}
+                operation ApplyOne(op : (Qubit[] => Unit is Adj + Ctl), qs : Qubit[]) : Unit is Adj + Ctl {{
+                    op(qs);
+                }}
+                function Choose(flag : Bool, a : (Qubit[] => Unit is Adj + Ctl), b : (Qubit[] => Unit is Adj + Ctl)) : (Qubit[] => Unit is Adj + Ctl) {{
+                    if flag {{ a }} else {{ b }}
+                }}
+                function Make() : (Qubit[] => Unit is Adj + Ctl) {{ Choose(1 < 2, A, B) }}
+                operation Main() : Result[] {{
+                    use qs = Qubit[3];
+                    let f = {selection};
+                    {invocation};
+                    MResetEachZ(qs)
+                }}
+                "#
+            );
+            for profile in [Profile::Base, Profile::AdaptiveRI, Profile::AdaptiveRIF] {
+                let mut interpreter = interpreter_with_capabilities(profile.into());
+                eval_fragments(&mut interpreter, &source);
+                let qir = interpreter.qirgen("Main()").unwrap_or_else(|errors| {
+                    panic!(
+                        "{profile:?}: {selection}, {invocation}:\n{}",
+                        format_interpret_errors(errors)
+                    )
+                });
+                assert_x_targets(&qir, &[target]);
+            }
+        }
+    }
+}
+
+#[test]
+fn runtime_callable_captures_emit_expected_operations() {
+    let source = indoc::indoc! {r#"
+        operation A(qs : Qubit[]) : Unit is Adj + Ctl { X(qs[0]); }
+        operation B(qs : Qubit[]) : Unit is Adj + Ctl { X(qs[1]); }
+        operation Seq(a : (Qubit[] => Unit is Adj + Ctl), b : (Qubit[] => Unit is Adj + Ctl), qs : Qubit[]) : Unit is Adj + Ctl {
+            a(qs); b(qs);
+        }
+        operation ApplyOnly(a : (Qubit[] => Unit is Adj + Ctl), qs : Qubit[]) : Unit is Adj + Ctl { a(qs); }
+        operation ApplyRepeated(a : (Qubit[] => Unit is Adj + Ctl), n : Int, qs : Qubit[]) : Unit is Adj + Ctl {
+            for _ in 1..n { a(qs); }
+        }
+        function MakeSeq(a : (Qubit[] => Unit is Adj + Ctl), b : (Qubit[] => Unit is Adj + Ctl)) : (Qubit[] => Unit is Adj + Ctl) { Seq(a, b, _) }
+        function MakeForward(a : (Qubit[] => Unit is Adj + Ctl), b : (Qubit[] => Unit is Adj + Ctl)) : (Qubit[] => Unit is Adj + Ctl) { qs => Seq(a, b, qs) }
+        function MakeDirect(a : (Qubit[] => Unit is Adj + Ctl), b : (Qubit[] => Unit is Adj + Ctl)) : (Qubit[] => Unit is Adj + Ctl) { qs => { a(qs); b(qs); } }
+        function MakeOne(a : (Qubit[] => Unit is Adj + Ctl)) : (Qubit[] => Unit is Adj + Ctl) { ApplyOnly(a, _) }
+        function MakeN(a : (Qubit[] => Unit is Adj + Ctl), n : Int) : (Qubit[] => Unit is Adj + Ctl) { ApplyRepeated(a, n, _) }
+        function GetA() : (Qubit[] => Unit is Adj + Ctl) { A }
+        function GetB() : (Qubit[] => Unit is Adj + Ctl) { B }
+        operation Run(f : (Qubit[] => Unit is Adj + Ctl)) : Result[] {
+            use qs = Qubit[2];
+            f(qs);
+            MResetEachZ(qs)
+        }
+        operation RunWithCount(f : (Qubit[] => Unit is Adj + Ctl), count : Int) : Result[] {
+            use qs = Qubit[2];
+            for _ in 1..count { f(qs); }
+            MResetEachZ(qs)
+        }
+        operation RunMany(fs : (Qubit[] => Unit is Adj + Ctl)[]) : Result[] {
+            use qs = Qubit[2];
+            for f in fs { f(qs); }
+            MResetEachZ(qs)
+        }
+        operation RunControlledAdjoint(f : (Qubit[] => Unit is Adj + Ctl)) : Result[] {
+            use control = Qubit();
+            use qs = Qubit[2];
+            X(control);
+            Controlled Adjoint f([control], qs);
+            MResetEachZ([control] + qs)
+        }
+    "#};
+    for (factory, capture_count, targets) in [
+        ("MakeSeq(GetA(), GetB())", 2, vec![0, 1]),
+        ("MakeSeq(A, B)", 2, vec![0, 1]),
+        ("Adjoint (MakeSeq(GetA(), GetB()))", 2, vec![1, 0]),
+        ("MakeForward(GetA(), GetB())", 2, vec![0, 1]),
+        ("MakeDirect(GetA(), GetB())", 2, vec![0, 1]),
+        ("MakeOne(GetA())", 1, vec![0]),
+        ("MakeN(GetA(), 3)", 2, vec![0, 0, 0]),
+    ] {
+        for profile in [Profile::Base, Profile::AdaptiveRI, Profile::AdaptiveRIF] {
+            let mut interpreter = interpreter_with_capabilities(profile.into());
+            eval_fragments(&mut interpreter, source);
+            let callable = eval_fragments(&mut interpreter, "Run");
+            let closure = eval_fragments(&mut interpreter, factory);
+            assert!(
+                matches!(&closure, Value::Closure(value) if value.fixed_args.len() == capture_count),
+                "{factory} must construct a closure with {capture_count} captures: {closure:?}"
+            );
+            let qir = interpreter
+                .qirgen_from_callable(&callable, closure.clone())
+                .unwrap_or_else(|errors| {
+                    panic!(
+                        "{profile:?}: {factory}:\n{}",
+                        format_interpret_errors(errors)
+                    )
+                });
+            assert_x_targets(&qir, &targets);
+            if factory == "MakeSeq(GetA(), GetB())" {
+                let callable = eval_fragments(&mut interpreter, "RunControlledAdjoint");
+                let qir = interpreter
+                    .qirgen_from_callable(&callable, closure.clone())
+                    .unwrap_or_else(|errors| {
+                        panic!("controlled adjoint:\n{}", format_interpret_errors(errors))
+                    });
+                assert_x_targets(&qir, &[0]);
+                let controlled_calls = qir
+                    .lines()
+                    .filter(|line| line.contains("call void @__quantum__qis__cx__body("))
+                    .map(str::trim)
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                expect![[r#"
+                    call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 2 to %Qubit*))
+                    call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))"#]]
+                .assert_eq(&controlled_calls);
+            }
+            if factory == "MakeSeq(GetA(), GetB())" && profile == Profile::AdaptiveRIF {
+                for (entry, args, expected) in [
+                    (
+                        "RunWithCount",
+                        Value::Tuple(vec![closure.clone(), Value::Int(1)].into(), None),
+                        vec![0, 1],
+                    ),
+                    (
+                        "RunMany",
+                        Value::Array(vec![closure.clone(), closure.clone()].into()),
+                        vec![0, 1, 0, 1],
+                    ),
+                ] {
+                    let callable = eval_fragments(&mut interpreter, entry);
+                    let qir = interpreter
+                        .qirgen_from_callable(&callable, args)
+                        .unwrap_or_else(|errors| {
+                            panic!("{entry}:\n{}", format_interpret_errors(errors))
+                        });
+                    assert_x_targets(&qir, &expected);
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn runtime_mixed_callable_captures_preserve_operations() {
+    for functors in ["", "is Adj", "is Ctl", "is Adj + Ctl"] {
+        for make_flip in ["Flip(i, _)", "qs => Flip(i, qs)"] {
+            let source = format!(
+                r#"
+                operation A(qs : Qubit[]) : Unit {functors} {{ X(qs[0]); }}
+                operation Flip(i : Int, qs : Qubit[]) : Unit {functors} {{ X(qs[i]); }}
+                operation Both(a : (Qubit[] => Unit {functors}), b : (Qubit[] => Unit {functors}), qs : Qubit[]) : Unit {functors} {{
+                    a(qs); b(qs);
+                }}
+                function MakeBoth(a : (Qubit[] => Unit {functors}), b : (Qubit[] => Unit {functors})) : (Qubit[] => Unit {functors}) {{
+                    Both(a, b, _)
+                }}
+                function MakeFlip(i : Int) : (Qubit[] => Unit {functors}) {{ {make_flip} }}
+                operation Run(f : (Qubit[] => Unit {functors})) : Result[] {{
+                    use qs = Qubit[2];
+                    f(qs);
+                    MResetEachZ(qs)
+                }}
+                "#
+            );
+            for profile in [
+                Profile::Base,
+                Profile::AdaptiveRI,
+                Profile::AdaptiveRIF,
+                Profile::Adaptive,
+            ] {
+                let mut interpreter = interpreter_with_capabilities(profile.into());
+                eval_fragments(&mut interpreter, &source);
+                let globals = interpreter.user_globals();
+                let global = |name: &str| {
+                    globals
+                        .iter()
+                        .find(|g| g.name.as_ref() == name)
+                        .unwrap_or_else(|| panic!("{name} should exist"))
+                        .value
+                        .clone()
+                };
+                let mut output = Cursor::new(Vec::new());
+                let mut receiver = CursorReceiver::new(&mut output);
+                let flip = interpreter
+                    .invoke(&mut receiver, global("MakeFlip"), Value::Int(1))
+                    .unwrap_or_else(|e| panic!("{}", format_interpret_errors(e)));
+                let composed = interpreter
+                    .invoke(
+                        &mut receiver,
+                        global("MakeBoth"),
+                        Value::Tuple(vec![global("A"), flip].into(), None),
+                    )
+                    .unwrap_or_else(|e| panic!("{}", format_interpret_errors(e)));
+                let expected =
+                    Value::Array(vec![Value::Result(qsc_eval::val::Result::Val(true)); 2].into());
+                assert_eq!(
+                    interpreter
+                        .invoke(&mut receiver, global("Run"), composed.clone())
+                        .unwrap_or_else(|e| panic!("{}", format_interpret_errors(e))),
+                    expected,
+                );
+                // Preserve runtime construction: compiling the inline expression
+                // would bypass the closure-value reconstruction that failed.
+                let qir = interpreter
+                    .qirgen_from_callable(&global("Run"), composed)
+                    .unwrap_or_else(|e| {
+                        panic!(
+                            "{profile:?}, {functors}, {make_flip}: {}",
+                            format_interpret_errors(e)
+                        )
+                    });
+                if profile == Profile::Adaptive {
+                    let calls = qir
+                        .lines()
+                        .filter(|line| line.contains("call void @X("))
+                        .map(str::trim)
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    expect![[r#"
+                        call void @X(ptr inttoptr (i64 0 to ptr))
+                        call void @X(ptr inttoptr (i64 1 to ptr))"#]]
+                    .assert_eq(&calls);
+                    assert!(qir.contains("call void @__quantum__qis__x__body("));
+                } else {
+                    assert_x_targets(&qir, &[0, 1]);
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn runtime_callable_arrays_preserve_declared_functors() {
+    for functors in ["is Ctl", "is Adj + Ctl"] {
+        for factory in ["ApplyAll(ops, _)", "q => ApplyAll(ops, q)"] {
+            let source = format!(
+                r#"
+                operation A(q : Qubit[]) : Unit {functors} {{ X(q[0]); }}
+                operation B(q : Qubit[]) : Unit is Adj + Ctl {{ X(q[1]); }}
+                operation Flip(i : Int, q : Qubit[]) : Unit {functors} {{ X(q[i]); }}
+                operation ApplyAll(ops : (Qubit[] => Unit {functors})[], q : Qubit[]) : Unit {functors} {{
+                    for op in ops {{ op(q); }}
+                }}
+                function MakeAll(ops : (Qubit[] => Unit {functors})[]) : (Qubit[] => Unit {functors}) {{
+                    {factory}
+                }}
+                function MakeFlip(i : Int) : (Qubit[] => Unit {functors}) {{ Flip(i, _) }}
+                operation Run(f : Qubit[] => Unit {functors}) : Result[] {{
+                    use (control, q) = (Qubit(), Qubit[2]);
+                    X(control);
+                    Controlled f([control], q);
+                    Reset(control);
+                    MResetEachZ(q)
+                }}
+                "#
+            );
+            for profile in [
+                Profile::Base,
+                Profile::AdaptiveRI,
+                Profile::AdaptiveRIF,
+                Profile::Adaptive,
+            ] {
+                let mut interpreter = interpreter_with_capabilities(profile.into());
+                eval_fragments(&mut interpreter, &source);
+                let globals = interpreter.user_globals();
+                let global = |name: &str| {
+                    globals
+                        .iter()
+                        .find(|g| g.name.as_ref() == name)
+                        .unwrap_or_else(|| panic!("{name} should exist"))
+                        .value
+                        .clone()
+                };
+                let invoke = |interpreter: &mut crate::interpret::Interpreter, name, args| {
+                    let mut output = Cursor::new(Vec::new());
+                    interpreter
+                        .invoke(&mut CursorReceiver::new(&mut output), global(name), args)
+                        .unwrap_or_else(|e| panic!("{}", format_interpret_errors(e)))
+                };
+                for case in ["globals", "partial", "empty", "nested"] {
+                    let values = match case {
+                        "globals" => vec![global("A"), global("B")],
+                        "partial" => vec![
+                            invoke(&mut interpreter, "MakeFlip", Value::Int(0)),
+                            global("B"),
+                        ],
+                        "empty" => Vec::new(),
+                        "nested" => ["A", "B"]
+                            .map(|name| {
+                                invoke(
+                                    &mut interpreter,
+                                    "MakeAll",
+                                    Value::Array(vec![global(name)].into()),
+                                )
+                            })
+                            .to_vec(),
+                        _ => unreachable!(),
+                    };
+                    let composed = invoke(&mut interpreter, "MakeAll", Value::Array(values.into()));
+                    assert_eq!(
+                        invoke(&mut interpreter, "Run", composed.clone()),
+                        Value::Array(
+                            vec![Value::Result(qsc_eval::val::Result::Val(case != "empty")); 2]
+                                .into()
+                        ),
+                    );
+                    let qir = interpreter
+                        .qirgen_from_callable(&global("Run"), composed.clone())
+                        .unwrap_or_else(|e| {
+                            panic!(
+                                "{profile:?}, {functors}, {factory}, {case}: {}",
+                                format_interpret_errors(e)
+                            )
+                        });
+                    let calls = qir
+                        .lines()
+                        .map(str::trim)
+                        .filter(|line| line.starts_with("call void @__quantum__qis__cx__body("))
+                        .map(|line| line.replace("%Qubit*", "ptr"))
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    if case == "empty" {
+                        assert!(
+                            calls.is_empty(),
+                            "empty captures must apply no controlled gates"
+                        );
+                    } else {
+                        expect![[r#"
+                            call void @__quantum__qis__cx__body(ptr inttoptr (i64 0 to ptr), ptr inttoptr (i64 1 to ptr))
+                            call void @__quantum__qis__cx__body(ptr inttoptr (i64 0 to ptr), ptr inttoptr (i64 2 to ptr))"#]]
+                        .assert_eq(&calls);
+                    }
+                    if case == "partial" {
+                        let repeated = interpreter
+                            .qirgen_from_callable(&global("Run"), composed)
+                            .unwrap_or_else(|e| panic!("{}", format_interpret_errors(e)));
+                        assert_eq!(
+                            qir, repeated,
+                            "compilation must preserve reusable runtime values"
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn runtime_normalization_preserves_bounds_and_templates() {
+    use qsc_fir::{
+        fir::{CallableDecl, CallableImpl, Package, Pat, PatId, PatKind},
+        ty::{FunctorSet, FunctorSetValue, Ty},
+    };
+
+    fn controls(decl: &CallableDecl) -> Vec<PatId> {
+        let CallableImpl::Spec(specs) = &decl.implementation else {
+            return Vec::new();
+        };
+        std::iter::once(&specs.body)
+            .chain(specs.adj.iter())
+            .chain(specs.ctl.iter())
+            .chain(specs.ctl_adj.iter())
+            .filter_map(|spec| spec.input)
+            .collect()
+    }
+
+    fn patterns(package: &Package, mut roots: Vec<PatId>) -> Vec<Pat> {
+        let mut result = Vec::new();
+        while let Some(id) = roots.pop() {
+            let pat = package.get_pat(id);
+            if let PatKind::Tuple(children) = &pat.kind {
+                roots.extend(children);
+            }
+            result.push(pat.clone());
+        }
+        result
+    }
+
+    let source = r#"
+        operation ApplyAll(ops : (Qubit => Unit is Adj + Ctl)[], q : Qubit) : Unit is Adj + Ctl {
+            for op in ops { op(q); }
+        }
+        function MakeAll(ops : (Qubit => Unit is Adj + Ctl)[]) : (Qubit => Unit is Adj + Ctl) {
+            ApplyAll(ops, _)
+        }
+    "#;
+    let (store, package_id, items) = compile_and_locate_items(
+        source,
+        &[(".lambda", true), ("ApplyAll", true)],
+        Profile::AdaptiveRIF.into(),
+    );
+    let lambda_id = fir_id_for(package_id, items[".lambda"]);
+    let generic_id = fir_id_for(package_id, items["ApplyAll"]);
+    let hir_package = &store
+        .get(package_id)
+        .expect("source package exists")
+        .package;
+    // A shallow HIR clone shares mutable arrow cells, so snapshot their values.
+    let original_hir = format!("{hir_package:?}");
+    let (fir_store, package_id, _) = lower_hir_to_fir(&store, package_id);
+    let package = fir_store.get(package_id);
+    let FirItemKind::Callable(lambda) = &package.get_item(lambda_id.item).kind else {
+        panic!("lifted lambda should exist");
+    };
+    assert!(lambda.generics.is_empty());
+    let lambda_inputs = patterns(package, vec![lambda.input]);
+    let control_inputs = patterns(package, controls(lambda));
+    assert!(
+        !control_inputs.is_empty(),
+        "fixture must include control bindings"
+    );
+    let is_parameterized_capture = |pat: &Pat| {
+        matches!(&pat.ty, Ty::Array(ty)
+            if matches!(ty.as_ref(), Ty::Arrow(arrow)
+                if matches!(arrow.functors, FunctorSet::Param(_))))
+    };
+    assert!(
+        lambda_inputs.iter().any(is_parameterized_capture),
+        "fixture must expose an inherited functor parameter",
+    );
+    let FirItemKind::Callable(generic) = &package.get_item(generic_id.item).kind else {
+        panic!("generic callable should exist");
+    };
+    assert!(!generic.generics.is_empty());
+    let mut generic_roots = controls(generic);
+    generic_roots.push(generic.input);
+    let generic_inputs = patterns(package, generic_roots);
+    let callables = FxHashSet::from_iter([lambda_id, generic_id]);
+
+    let normalized =
+        super::qir::normalize_runtime_callable_hir(hir_package, package_id, &callables);
+    assert_eq!(format!("{hir_package:?}"), original_hir);
+    assert_eq!(
+        normalized.items.get(items["ApplyAll"]),
+        hir_package.items.get(items["ApplyAll"]),
+        "preserve the entire generic declaration"
+    );
+    let repeated = super::qir::normalize_runtime_callable_hir(&normalized, package_id, &callables);
+    assert_eq!(
+        format!("{normalized:?}"),
+        format!("{repeated:?}"),
+        "normalization is idempotent"
+    );
+    let foreign_callables = callables
+        .iter()
+        .map(|id| StoreItemId {
+            package: qsc_fir::fir::PackageId::from(0_usize),
+            ..*id
+        })
+        .collect();
+    assert!(matches!(
+        super::qir::normalize_runtime_callable_hir(hir_package, package_id, &foreign_callables),
+        std::borrow::Cow::Borrowed(_)
+    ));
+
+    let normalized_fir =
+        qsc_lowerer::Lowerer::new().lower_package(&normalized, &fir_store, package_id);
+    let package = &normalized_fir;
+    for before in &lambda_inputs {
+        let after = package.get_pat(before.id);
+        assert_eq!(
+            after.kind, before.kind,
+            "preserve input bindings and structure"
+        );
+        assert_eq!(after.span, before.span);
+        assert!(
+            !is_parameterized_capture(after),
+            "input must be concrete: {after:?}"
+        );
+        if let Ty::Array(item) = &after.ty
+            && let Ty::Arrow(arrow) = item.as_ref()
+        {
+            assert_eq!(
+                arrow.functors,
+                FunctorSet::Value(FunctorSetValue::CtlAdj),
+                "preserve the capture's declared functor bound"
+            );
+        }
+        if let PatKind::Tuple(children) = &after.kind {
+            let Ty::Tuple(types) = &after.ty else {
+                panic!("tuple pattern must retain its tuple type");
+            };
+            assert_eq!(children.len(), types.len());
+            for (&child, ty) in children.iter().zip(types) {
+                assert_eq!(&package.get_pat(child).ty, ty);
+            }
+        }
+    }
+    for before in generic_inputs.iter().chain(&control_inputs) {
+        assert_eq!(
+            package.get_pat(before.id),
+            before,
+            "preserve generic inputs and controls"
+        );
+    }
+}
+
+#[test]
+fn nested_callable_arrays_control_each_target() {
+    let source = r#"
+        operation A(q : Qubit[]) : Unit is Ctl { X(q[0]); }
+        operation B(q : Qubit[]) : Unit is Ctl { X(q[1]); }
+        operation ApplyAll(ops : (Qubit[] => Unit is Ctl)[], q : Qubit[]) : Unit is Ctl {
+            for op in ops { op(q); }
+        }
+        function MakeAll(ops : (Qubit[] => Unit is Ctl)[]) : (Qubit[] => Unit is Ctl) {
+            ApplyAll(ops, _)
+        }
+        operation Run(f : Qubit[] => Unit is Ctl) : Result[] {
+            use (control, q) = (Qubit(), Qubit[2]);
+            X(control);
+            Controlled f([control], q);
+            Reset(control);
+            MResetEachZ(q)
+        }
+        @EntryPoint() operation Main() : Result[] {
+            Run(MakeAll([MakeAll([A]), MakeAll([B])]))
+        }
+    "#;
+    for profile in [
+        Profile::Base,
+        Profile::AdaptiveRI,
+        Profile::AdaptiveRIF,
+        Profile::Adaptive,
+    ] {
+        let qir = compile_source_to_qir(source, profile.into());
+        let gates = qir
+            .lines()
+            .map(str::trim)
+            .filter(|line| line.starts_with("call void @__quantum__qis__cx__body("))
+            .map(|line| line.replace("%Qubit*", "ptr"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        expect![[r#"
+            call void @__quantum__qis__cx__body(ptr inttoptr (i64 0 to ptr), ptr inttoptr (i64 1 to ptr))
+            call void @__quantum__qis__cx__body(ptr inttoptr (i64 0 to ptr), ptr inttoptr (i64 2 to ptr))"#]]
+        .assert_eq(&gates);
+    }
 }
 
 // ---- Synthetic path: arrow + non-callable params (tuple input) ----

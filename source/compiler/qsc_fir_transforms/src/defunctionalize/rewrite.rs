@@ -386,15 +386,16 @@ pub(super) fn build_specialized_call_args(
             let args = if let ExprKind::Var(Res::Local(local), _) = package.get_expr(args).kind
                 && let CaptureScope::Callable(owner) | CaptureScope::CloneScope(owner) = destination
             {
-                replayable_local_initializer(package, owner, local).unwrap_or(args)
+                projectable_local_initializer(package, owner, local, &package.get_expr(args).ty)
+                    .unwrap_or(args)
             } else {
                 args
             };
             let original = package.get_expr(args).clone();
-            let slots = if uses_tuple_input {
-                tuple_argument_elements(udts, package, &original, assigner)?
+            let (mut prefix, slots) = if uses_tuple_input {
+                materialize_tuple_argument_elements(udts, package, &original, assigner)?
             } else {
-                vec![args]
+                (Vec::new(), vec![args])
             };
             let mut retained = Vec::new();
             for (index, slot) in slots.into_iter().enumerate() {
@@ -425,12 +426,8 @@ pub(super) fn build_specialized_call_args(
             if let Some(value) =
                 pack_declared_input(package, with_empty, input, original.span, assigner)
             {
-                return Some(RewrittenArgs {
-                    value,
-                    prefix: Vec::new(),
-                });
+                return Some(RewrittenArgs { value, prefix });
             }
-            let mut prefix = Vec::new();
             if let Some(last_effect) = retained.iter().rposition(|(value, consumed)| {
                 *consumed && !expr_is_safe_to_discard(package, package.id, *value)
             }) {
@@ -501,8 +498,8 @@ pub(super) fn rewrite(
     declared_inputs: &FxHashMap<StoreItemId, Ty>,
 ) {
     let udts = &analysis.udt_metadata;
-    let capture_dependencies = capture_expression_dependencies(package, package_id, analysis);
-    let capture_expressions: FxHashMap<_, _> = capture_dependencies
+    let call_dependencies = call_expression_dependencies(package, package_id, analysis);
+    let analyzed_expressions: FxHashMap<_, _> = call_dependencies
         .values()
         .flatten()
         .map(|&id| (id, package.get_expr(id).clone()))
@@ -569,11 +566,11 @@ pub(super) fn rewrite(
     // Rewriting an outer call can copy its argument tree. Finish every inner
     // HOF or direct closure invocation before any enclosing call copies it.
     for call_expr_id in expressions_in_postorder(package) {
-        if capture_dependencies
+        if call_dependencies
             .get(&call_expr_id)
             .is_some_and(|dependencies| {
                 dependencies.iter().any(|id| {
-                    let before = &capture_expressions[id];
+                    let before = &analyzed_expressions[id];
                     let after = package.get_expr(*id);
                     before != after
                         && !matches!(
@@ -584,8 +581,8 @@ pub(super) fn rewrite(
                 })
             })
         {
-            // Inner rewrites can change a captured argument's shape or introduce
-            // block-local temporaries. Reanalyze before using stale capture facts.
+            // Inner rewrites can change captures or guards in place and introduce
+            // block-local temporaries. Reanalyze before using those stale facts.
             continue;
         }
         if let Some(group) = grouped.get(&call_expr_id) {
@@ -665,17 +662,22 @@ pub(super) fn rewrite(
     );
 }
 
-/// Records the expression dependencies of analyzed capture operands per call.
+/// Records the expression dependencies of analyzed captures and guards per call.
 /// Rewriting an earlier operand can change these nodes in place, invalidating
-/// capture facts for a later direct or higher-order call. Include nested
+/// facts for a later direct or higher-order call. Include nested
 /// producer-to-caller substitutions, not only the outer capture expression.
-fn capture_expression_dependencies(
+fn call_expression_dependencies(
     package: &Package,
     package_id: PackageId,
     analysis: &AnalysisResult,
 ) -> FxHashMap<ExprId, Vec<ExprId>> {
-    fn add(package: &Package, captures: &[CapturedVar], reads: &mut FxHashSet<ExprId>) {
-        let mut roots = Vec::new();
+    fn add(
+        package: &Package,
+        captures: &[CapturedVar],
+        guards: &[ExprId],
+        reads: &mut FxHashSet<ExprId>,
+    ) {
+        let mut roots = guards.to_vec();
         for capture in captures {
             roots.extend(capture.expr);
             let mut pending: Vec<_> = capture.caller_substitutions.iter().collect();
@@ -693,12 +695,15 @@ fn capture_expression_dependencies(
 
     let mut reads: FxHashMap<ExprId, FxHashSet<ExprId>> = FxHashMap::default();
     for site in &analysis.call_sites {
-        if site.call_pkg_id == package_id
-            && let ConcreteCallable::Closure { captures, .. } = &site.callable_arg
-        {
+        if site.call_pkg_id == package_id {
+            let captures = match &site.callable_arg {
+                ConcreteCallable::Closure { captures, .. } => captures.as_slice(),
+                _ => &[],
+            };
             add(
                 package,
                 captures,
+                &site.condition,
                 reads.entry(site.call_expr_id).or_default(),
             );
         }
@@ -708,9 +713,9 @@ fn capture_expression_dependencies(
             continue;
         }
         let target = reads.entry(site.call_expr_id).or_default();
-        add(package, &site.captures, target);
+        add(package, &site.captures, &site.condition, target);
         if let ConcreteCallable::Closure { captures, .. } = &site.callable {
-            add(package, captures, target);
+            add(package, captures, &[], target);
         }
     }
     reads
@@ -2779,6 +2784,33 @@ fn replayable_local_initializer(
         };
     });
     (!reads_mutable).then_some(init)
+}
+
+/// Requires replay safety, a matching argument type, and a projectable shape.
+/// The type check excludes whole destructuring initializers for a single binding.
+///
+/// Tuple and struct literals expose their children directly. Local reads and
+/// field accesses preserve a stored value that argument reduction can project.
+/// UDT constructor calls are structural wrappers around their argument aggregate,
+/// so reduction can unwrap them. Ordinary factory calls expose no such structure
+/// and stay stored: safe replay alone does not make their result fields available.
+fn projectable_local_initializer(
+    package: &Package,
+    callable_id: LocalItemId,
+    local_var: LocalVarId,
+    argument_ty: &Ty,
+) -> Option<ExprId> {
+    replayable_local_initializer(package, callable_id, local_var).filter(|&initializer| {
+        let expr = package.get_expr(initializer);
+        &expr.ty == argument_ty
+            && (matches!(
+                expr.kind,
+                ExprKind::Tuple(_)
+                    | ExprKind::Struct(..)
+                    | ExprKind::Var(Res::Local(_), _)
+                    | ExprKind::Field(..)
+            ) || type_constructor_args(package, expr).is_some())
+    })
 }
 
 /// Prunes eligible callable-argument locals and closure-bearing source arrays
@@ -4907,7 +4939,8 @@ fn reduce_argument(
     if let Some(inner_args_id) = type_constructor_args(package, &expr) {
         return reduce_argument(udts, package, inner_args_id, removal, assigner);
     }
-    let elements = tuple_argument_elements(udts, package, &expr, assigner)?;
+    let (statements, elements) =
+        materialize_tuple_argument_elements(udts, package, &expr, assigner)?;
     if children.len() != elements.len() {
         return None;
     }
@@ -4921,14 +4954,53 @@ fn reduce_argument(
             remaining.push(alloc_expr(package, assigner, ty, kind, span));
         }
     }
-    if *collapse {
-        return Some(build_expr_data_from_elements(package, remaining));
+    let (kind, ty) = if *collapse {
+        build_expr_data_from_elements(package, remaining)
+    } else {
+        let tys = remaining
+            .iter()
+            .map(|id| package.get_expr(*id).ty.clone())
+            .collect();
+        (ExprKind::Tuple(remaining), Ty::Tuple(tys))
+    };
+    Some(wrap_argument_statements(
+        package, statements, kind, ty, expr.span, assigner,
+    ))
+}
+
+/// Opaque aggregates need one stored result shared by all surviving projections.
+fn materialize_tuple_argument_elements(
+    udts: &UdtMetadata,
+    package: &mut Package,
+    expr: &Expr,
+    assigner: &mut Assigner,
+) -> Option<(Vec<StmtId>, Vec<ExprId>)> {
+    if let Some(elements) = tuple_argument_elements(udts, package, expr, assigner) {
+        return Some((Vec::new(), elements));
     }
-    let tys = remaining
-        .iter()
-        .map(|id| package.get_expr(*id).ty.clone())
-        .collect();
-    Some((ExprKind::Tuple(remaining), Ty::Tuple(tys)))
+    let Ty::Tuple(_) = udts.underlying_ty(&expr.ty) else {
+        return None;
+    };
+    let (local, binding) = crate::fir_builder::alloc_local_var(
+        package,
+        assigner,
+        "_.aggregate_argument",
+        &expr.ty,
+        expr.id,
+        Mutability::Immutable,
+    );
+    let read = crate::fir_builder::alloc_local_var_expr(
+        package,
+        assigner,
+        local,
+        expr.ty.clone(),
+        expr.span,
+    );
+    let stored = package.get_expr(read).clone();
+    Some((
+        vec![binding],
+        tuple_argument_elements(udts, package, &stored, assigner)?,
+    ))
 }
 
 /// Reuses literal aggregate children or projects a stored tuple value. Following
@@ -5855,11 +5927,8 @@ fn copy_branch_argument(
     copies: &mut FxHashMap<ExprId, ExprId>,
     assigner: &mut Assigner,
 ) -> ExprId {
-    let source = package.clone();
-    let mut cloner = crate::cloner::FirCloner::from_assigner_for_expr(std::mem::take(assigner));
-    let copy = cloner.clone_expr(&source, id, package);
-    copies.extend(cloner.expr_map());
-    *assigner = cloner.into_assigner();
+    let (copy, mapping) = crate::cloner::clone_expr_within_package_with_map(package, id, assigner);
+    copies.extend(mapping);
     copy
 }
 
