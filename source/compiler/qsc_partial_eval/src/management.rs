@@ -66,8 +66,15 @@ impl ResourceManager {
     }
 
     pub fn is_qubit_live(&self, q: &QubitRef) -> bool {
-        q.try_deref()
-            .is_some_and(|q| self.qubit_id_map.contains_key(q.0))
+        q.try_deref().is_some_and(|q| {
+            // A snapshot can keep a released qubit alive after its numeric ID
+            // has been reused. Require the allocation currently tracked for it.
+            self.qubit_id_map.contains_key(q.0)
+                && self
+                    .qubit_tracker
+                    .get(&q)
+                    .is_some_and(|active| Rc::ptr_eq(active, &q))
+        })
     }
 
     pub fn map_qubit(&self, q: &QubitRef) -> usize {

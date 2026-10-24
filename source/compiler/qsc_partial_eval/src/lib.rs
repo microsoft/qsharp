@@ -2625,6 +2625,8 @@ impl<'a> PartialEvaluator<'a> {
             continuation_block_node_id
         };
 
+        // Preserve the true branch's peak qubit count even when its extra
+        // allocations have been released and the false path is implicit.
         self.resource_manager
             .merge_qubit_state(qubit_state_after_true);
 
